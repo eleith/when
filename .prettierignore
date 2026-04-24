@@ -11,3 +11,6 @@ bun.lockb
 # Hand-authored prose — leave line breaks alone
 /planning/
 /README.md
+
+# Generated
+/src/lib/server/config/schema.d.ts

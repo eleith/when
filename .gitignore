@@ -31,4 +31,7 @@ vite.config.ts.timestamp-*
 /blob-report/
 /playwright/.cache/
 
+# Generated from config.schema.json by `bun run generate:types`
+/src/lib/server/config/schema.d.ts
+
 planning/
