@@ -34,4 +34,7 @@ vite.config.ts.timestamp-*
 # Generated from config.schema.json by `bun run generate:types`
 /src/lib/server/config/schema.d.ts
 
+# Per-user / local tool state
+/.claude/
+
 planning/

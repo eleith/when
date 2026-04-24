@@ -14,3 +14,6 @@ bun.lockb
 
 # Generated
 /src/lib/server/config/schema.d.ts
+
+# Per-user / local tool state
+/.claude/
