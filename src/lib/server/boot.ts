@@ -1,5 +1,7 @@
 import { join } from 'node:path';
 import { type Kysely } from 'kysely';
+import { makeAuth } from './auth';
+import { requireAuthSecret } from './auth/secret';
 import { bootConfig } from './config/boot';
 import type { WhenConfiguration } from './config/schema';
 import { loadEncryptionKey } from './crypto';
@@ -19,11 +21,13 @@ export function defaultDbPath(): string {
 }
 
 export async function bootApp(): Promise<BootResult> {
+	requireAuthSecret();
 	const config = await bootConfig();
 	const encryptionKey = await loadEncryptionKey();
 	const dbPath = process.env.DATABASE_PATH ?? defaultDbPath();
 	const db = openDb(dbPath);
 	const applied = await runMigrations(db);
 	logger.info({ db: dbPath, migrations: applied }, 'migrations applied');
+	makeAuth(config);
 	return { config, db, encryptionKey };
 }
