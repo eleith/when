@@ -1,0 +1,38 @@
+# yaml-language-server: $schema=./config.schema.json
+#
+# Minimal starter config for When. Fill in the ${ENV_VAR} references
+# before running the app, or replace them with literal values.
+# Full reference: https://when.app/schema/config.json
+
+auth:
+  credentials:
+    username: admin
+    password_hash: '${ADMIN_PASSWORD_HASH}' # generate via `bunx when hash-password`
+
+user:
+  name: 'Your Name'
+  timezone: 'UTC'
+  email: 'you@example.com'
+
+calendars:
+  - id: 'main'
+    type: 'caldav'
+    url: 'https://caldav.example.com/dav/you/cal/'
+    username: 'you'
+    password: '${CALDAV_PASSWORD}'
+
+availability:
+  default:
+    monday: ['09:00-17:00']
+    tuesday: ['09:00-17:00']
+    wednesday: ['09:00-17:00']
+    thursday: ['09:00-17:00']
+    friday: ['09:00-17:00']
+
+event_types:
+  - id: 'chat'
+    name: '30-minute chat'
+    duration: 30
+    slug: 'chat'
+    booking_flow: 'auto'
+    destination_calendar: 'main'

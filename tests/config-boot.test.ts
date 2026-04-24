@@ -1,0 +1,39 @@
+import { afterEach, beforeEach, expect, test } from 'bun:test';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { stringify } from 'yaml';
+import { bootConfig } from '../src/lib/server/config/boot';
+import { ConfigError } from '../src/lib/server/config/load';
+import { validConfig } from './fixtures/valid-config';
+
+let dir: string;
+beforeEach(async () => {
+	dir = await mkdtemp(join(tmpdir(), 'when-boot-'));
+});
+afterEach(async () => {
+	await rm(dir, { recursive: true, force: true });
+});
+
+test('missing config writes config.example.yaml and throws', async () => {
+	const cfgPath = join(dir, 'config.yaml');
+	await expect(bootConfig(cfgPath)).rejects.toThrow(/config not found/);
+	const examplePath = join(dir, 'config.example.yaml');
+	const example = await Bun.file(examplePath).text();
+	expect(example).toContain('yaml-language-server: $schema=./config.schema.json');
+	expect(example).toContain('event_types:');
+});
+
+test('invalid config throws ConfigError', async () => {
+	const cfgPath = join(dir, 'config.yaml');
+	await Bun.write(cfgPath, 'auth: {}\nuser: {}\n');
+	await expect(bootConfig(cfgPath)).rejects.toBeInstanceOf(ConfigError);
+});
+
+test('valid config loads and returns typed object', async () => {
+	const cfgPath = join(dir, 'config.yaml');
+	await Bun.write(cfgPath, stringify(validConfig));
+	const cfg = await bootConfig(cfgPath);
+	expect(cfg.user.name).toBe('Jane Doe');
+	expect(cfg.event_types[0].slug).toBe('30-min');
+});
