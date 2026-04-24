@@ -1,5 +1,8 @@
 node_modules
 
+# Runtime data (sqlite + WAL/SHM files)
+/data/
+
 # Output
 .output
 .vercel
