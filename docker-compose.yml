@@ -1,0 +1,10 @@
+services:
+  when:
+    build: .
+    platform: linux/amd64
+    ports:
+      - '3000:3000'
+    volumes:
+      - ./config:/app/config
+      - ./data:/app/data
+    restart: unless-stopped
