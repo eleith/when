@@ -15,13 +15,9 @@ afterEach(async () => {
 	await rm(dir, { recursive: true, force: true });
 });
 
-test('missing config writes config.example.yaml and throws', async () => {
+test('missing config throws', async () => {
 	const cfgPath = join(dir, 'config.yaml');
 	await expect(bootConfig(cfgPath)).rejects.toThrow(/config not found/);
-	const examplePath = join(dir, 'config.example.yaml');
-	const example = await Bun.file(examplePath).text();
-	expect(example).toContain('yaml-language-server: $schema=./config.schema.json');
-	expect(example).toContain('event_types:');
 });
 
 test('invalid config throws ConfigError', async () => {

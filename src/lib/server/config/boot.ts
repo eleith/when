@@ -3,7 +3,6 @@ import { logger } from '../logger';
 import { configValid } from '../metrics';
 import { ConfigError, loadConfigFile } from './load';
 import { MissingEnvVarsError } from './interpolate';
-import { writeExampleConfig } from './example';
 import type { WhenConfiguration } from './schema';
 
 export function defaultConfigPath(): string {
@@ -15,11 +14,9 @@ export async function bootConfig(path: string = defaultConfigPath()): Promise<Wh
 	configValid.set(0);
 	const file = Bun.file(path);
 	if (!(await file.exists())) {
-		const examplePath = path.replace(/config\.yaml$/, 'config.example.yaml');
-		await writeExampleConfig(examplePath);
 		logger.fatal(
-			{ path, example: examplePath },
-			'config.yaml not found; wrote a starter config.example.yaml — edit and restart'
+			{ path },
+			'config.yaml not found; copy config.example.yaml from the repo as a starting point'
 		);
 		throw new Error(`config not found at ${path}`);
 	}
