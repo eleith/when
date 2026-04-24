@@ -14,7 +14,8 @@
 		"lint": "prettier --check . && eslint .",
 		"format": "prettier --write .",
 		"test": "bun test",
-		"test:e2e": "playwright test"
+		"test:e2e": "playwright test",
+		"validate-config": "bun ./cli/validate-config.ts"
 	},
 	"devDependencies": {
 		"@eslint/compat": "^2.0.4",
