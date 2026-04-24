@@ -15,7 +15,8 @@
 		"format": "prettier --write .",
 		"test": "bun test",
 		"test:e2e": "playwright test",
-		"validate-config": "bun ./cli/validate-config.ts"
+		"validate-config": "bun ./cli/validate-config.ts",
+		"hash-password": "bun ./cli/hash-password.ts"
 	},
 	"devDependencies": {
 		"@eslint/compat": "^2.0.4",
