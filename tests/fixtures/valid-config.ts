@@ -1,0 +1,42 @@
+import type { WhenConfiguration } from '../../src/lib/server/config/schema';
+
+export const validConfig: WhenConfiguration = {
+	auth: {
+		credentials: {
+			username: 'admin',
+			password_hash: '$argon2id$v=19$m=65536,t=3,p=4$abc$def'
+		}
+	},
+	user: {
+		name: 'Jane Doe',
+		timezone: 'America/New_York',
+		email: 'jane@example.com'
+	},
+	calendars: [
+		{
+			id: 'my-google-cal',
+			type: 'google',
+			client_id: 'gc-id',
+			client_secret: 'gc-secret'
+		}
+	],
+	availability: {
+		default: {
+			monday: ['09:00-17:00'],
+			tuesday: ['09:00-17:00'],
+			wednesday: ['09:00-17:00'],
+			thursday: ['09:00-17:00'],
+			friday: ['09:00-17:00']
+		}
+	},
+	event_types: [
+		{
+			id: '30-min-chat',
+			name: '30 Minute Chat',
+			duration: 30,
+			slug: '30-min',
+			booking_flow: 'auto',
+			destination_calendar: 'my-google-cal'
+		}
+	]
+};
