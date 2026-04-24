@@ -4,6 +4,7 @@ import { parse as parseYaml } from 'yaml';
 import schema from '../../../../config.schema.json' with { type: 'json' };
 import type { WhenConfiguration } from './schema';
 import { interpolate } from './interpolate';
+import { checkCrossRefs } from './cross-refs';
 
 export { schema };
 
@@ -30,6 +31,10 @@ export function validateConfig(raw: unknown): WhenConfiguration {
 	if (!validateSchema(interpolated)) {
 		const issues = (validateSchema.errors ?? []).map(toIssue);
 		throw new ConfigError(`config failed schema validation`, issues);
+	}
+	const crossRefIssues = checkCrossRefs(interpolated);
+	if (crossRefIssues.length > 0) {
+		throw new ConfigError(`config failed cross-reference validation`, crossRefIssues);
 	}
 	return interpolated;
 }
