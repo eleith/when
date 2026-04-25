@@ -61,6 +61,12 @@
 </p>
 
 {#if data.appointment.status === 'pending' || data.appointment.status === 'confirmed'}
+	<p>
+		<a
+			href="/schedule/{data.eventType.slug}?reschedule={data.appointment
+				.id}&token={encodeURIComponent(data.token)}">Reschedule</a
+		>
+	</p>
 	<form method="POST" action="?/cancel" class="cancel-form">
 		<input type="hidden" name="token" value={data.token} />
 		<button type="submit" class="cancel-btn">Cancel booking</button>

@@ -148,6 +148,9 @@
 
 <div class="booking" style="--accent: {accent}">
 	<header class="booking-header">
+		{#if data.reschedule}
+			<p class="reschedule-badge">Reschedule</p>
+		{/if}
 		<div class="host-info">
 			{#if data.user.branding?.logo_url}
 				<img src={data.user.branding.logo_url} alt="" class="host-avatar" />
@@ -221,17 +224,34 @@
 							<p class="form-error" role="alert">{form.error}</p>
 						{/if}
 
-						<form method="POST" action="?/book">
+						<form method="POST" action={data.reschedule ? '?/reschedule' : '?/book'}>
 							<input type="hidden" name="slot" value={viewSlot} />
+							{#if data.reschedule}
+								<input type="hidden" name="reschedule_id" value={data.reschedule.id} />
+								<input type="hidden" name="token" value={data.token} />
+							{/if}
 
 							<div class="field">
 								<label for="name">Name</label>
-								<input id="name" name="name" required autocomplete="name" />
+								<input
+									id="name"
+									name="name"
+									required
+									autocomplete="name"
+									value={data.reschedule?.name ?? ''}
+								/>
 							</div>
 
 							<div class="field">
 								<label for="email">Email</label>
-								<input id="email" name="email" type="email" required autocomplete="email" />
+								<input
+									id="email"
+									name="email"
+									type="email"
+									required
+									autocomplete="email"
+									value={data.reschedule?.email ?? ''}
+								/>
 							</div>
 
 							{#if data.eventType.location?.mode === 'fixed'}
@@ -260,7 +280,9 @@
 								<textarea id="notes" name="notes" rows="3"></textarea>
 							</div>
 
-							<button type="submit" class="submit-btn">Book</button>
+							<button type="submit" class="submit-btn">
+								{data.reschedule ? 'Reschedule' : 'Book'}
+							</button>
 						</form>
 					</div>
 				{:else if viewDate && daySlots.length > 0}
@@ -296,6 +318,17 @@
 
 	.booking-header {
 		margin-bottom: 28px;
+	}
+
+	.reschedule-badge {
+		display: inline-block;
+		background: var(--accent);
+		color: #fff;
+		font-size: 0.75rem;
+		font-weight: 600;
+		padding: 2px 10px;
+		border-radius: 999px;
+		margin-bottom: 8px;
 	}
 
 	.host-info {
