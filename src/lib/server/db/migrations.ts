@@ -55,6 +55,16 @@ const initial: Migration = {
 	}
 };
 
+const responseToken: Migration = {
+	async up(db: Kysely<unknown>): Promise<void> {
+		await db.schema.alterTable('appointments').addColumn('response_token', 'text').execute();
+	},
+	async down(db: Kysely<unknown>): Promise<void> {
+		await db.schema.alterTable('appointments').dropColumn('response_token').execute();
+	}
+};
+
 export const migrations: Record<string, Migration> = {
-	'0001_initial': initial
+	'0001_initial': initial,
+	'0002_response_token': responseToken
 };

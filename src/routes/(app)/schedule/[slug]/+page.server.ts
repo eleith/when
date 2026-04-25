@@ -113,6 +113,8 @@ export const actions: Actions = {
 		const id = crypto.randomUUID();
 		const cancelToken = crypto.randomUUID();
 		const status = eventType.booking_flow === 'requires_confirmation' ? 'pending' : 'confirmed';
+		const responseToken =
+			eventType.booking_flow === 'requires_confirmation' ? crypto.randomUUID() : null;
 
 		try {
 			await getDb()
@@ -128,6 +130,7 @@ export const actions: Actions = {
 					location: resolvedLocation,
 					status,
 					cancel_token: cancelToken,
+					response_token: responseToken,
 					external_event_id: null,
 					external_calendar_id: null,
 					notification_status: null

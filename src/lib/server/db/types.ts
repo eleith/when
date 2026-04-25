@@ -13,6 +13,7 @@ export interface AppointmentsTable {
 	location: string | null;
 	status: AppointmentStatus;
 	cancel_token: string;
+	response_token: string | null;
 	external_event_id: string | null;
 	external_calendar_id: string | null;
 	notification_status: string | null;
