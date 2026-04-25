@@ -1,0 +1,19 @@
+FROM --platform=linux/amd64 oven/bun:1.3.13-alpine
+
+WORKDIR /app
+
+# Install dependencies first for layer caching
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile
+
+# Copy project source (node_modules excluded via .dockerignore)
+COPY . .
+
+# Make top-level dirs world-writable so the host-mapped UID can write at
+# runtime (.cache for Vite/Bun, data/ for SQLite, .svelte-kit for sync).
+# No -R — that would hit thousands of files inside node_modules.
+RUN mkdir -p /app/data /app/node_modules/.cache /app/.svelte-kit && \
+    chmod 777 /app/node_modules /app/node_modules/.cache /app/data /app/.svelte-kit
+
+EXPOSE 5173
+CMD ["bun", "run", "dev", "--host", "0.0.0.0"]

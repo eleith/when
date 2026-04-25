@@ -21,6 +21,7 @@ tests
 !.env.example
 
 Dockerfile
+Dockerfile.dev
 docker-compose.yml
 .dockerignore
 

@@ -2,19 +2,19 @@
 #   docker compose -f docker-compose.dev.yml up
 # or via the package.json shortcut: bun run dev:docker
 #
-# Bind-mounts the project source so file changes trigger Vite HMR. node_modules
-# lives in an anonymous volume so the host's node_modules (or absence thereof)
-# does not shadow the container's.
+# Builds from Dockerfile.dev which pre-installs dependencies and makes
+# writable directories world-accessible (chmod 777) so the host-mapped
+# user can write at runtime. Bind-mounts the project source for HMR.
 
 services:
   when-dev:
-    image: oven/bun:1.3.13-alpine
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
     platform: linux/amd64
-    # Run as the host user so files created in bind-mounted dirs (e.g.
-    # .svelte-kit/, data/) stay editable on the host.
     user: '${UID:-1000}:${GID:-1000}'
     working_dir: /app
-    command: sh -c "bun install --frozen-lockfile && exec bun run dev --host 0.0.0.0"
+    command: bun run dev --host 0.0.0.0
     ports:
       - '5173:5173'
     volumes:
