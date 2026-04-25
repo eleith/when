@@ -1,6 +1,8 @@
 <script lang="ts">
 	let { data } = $props();
 
+	let configOpen = $state(false);
+
 	function fmt(iso: string): string {
 		return new Date(iso).toLocaleString([], {
 			weekday: 'short',
@@ -55,6 +57,16 @@
 			</tbody>
 		</table>
 	</div>
+{/if}
+
+<h2>
+	<button class="toggle" onclick={() => (configOpen = !configOpen)}>
+		Config {configOpen ? '▾' : '▸'}
+	</button>
+</h2>
+
+{#if configOpen}
+	<pre class="config-block">{JSON.stringify(data.config, null, 2)}</pre>
 {/if}
 
 <style>
@@ -129,5 +141,27 @@
 
 	.status-declined {
 		color: #dc2626;
+	}
+
+	.toggle {
+		background: none;
+		border: none;
+		cursor: pointer;
+		font-size: 1.25rem;
+		font-weight: 600;
+		padding: 0;
+		color: #111827;
+		font-family: inherit;
+	}
+
+	.config-block {
+		background: #f9fafb;
+		border: 1px solid #e5e7eb;
+		border-radius: 8px;
+		padding: 16px;
+		overflow-x: auto;
+		font-size: 0.8125rem;
+		line-height: 1.5;
+		margin: 0;
 	}
 </style>
