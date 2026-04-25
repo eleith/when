@@ -1,5 +1,8 @@
 node_modules
 
+# User config (real values; example lives in config.example.yaml)
+/config.yaml
+
 # Runtime data (sqlite + WAL/SHM files)
 /data/
 
