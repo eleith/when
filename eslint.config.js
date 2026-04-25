@@ -37,8 +37,10 @@ export default defineConfig(
 		}
 	},
 	{
-		// Override or add rule settings here, such as:
-		// 'svelte/button-has-type': 'error'
-		rules: {}
+		rules: {
+			// Type-safe route resolution is overkill for our scale; we'll add it
+			// back if/when route renames bite.
+			'svelte/no-navigation-without-resolve': 'off'
+		}
 	}
 );
