@@ -2,6 +2,7 @@ import { join } from 'node:path';
 import { type Kysely } from 'kysely';
 import { makeAuth } from './auth';
 import { requireAuthSecret } from './auth/secret';
+import { setState } from './state';
 import { bootConfig } from './config/boot';
 import type { WhenConfiguration } from './config/schema';
 import { loadEncryptionKey } from './crypto';
@@ -29,5 +30,6 @@ export async function bootApp(): Promise<BootResult> {
 	const applied = await runMigrations(db);
 	logger.info({ db: dbPath, migrations: applied }, 'migrations applied');
 	makeAuth(config);
+	setState({ config, db, encryptionKey });
 	return { config, db, encryptionKey };
 }
