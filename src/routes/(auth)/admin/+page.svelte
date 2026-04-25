@@ -40,6 +40,7 @@
 					<th>Event</th>
 					<th>When</th>
 					<th>Status</th>
+					<th>Actions</th>
 				</tr>
 			</thead>
 			<tbody>
@@ -51,6 +52,18 @@
 						<td>{fmt(a.start_time)}</td>
 						<td>
 							<span class="status status-{a.status}">{a.status}</span>
+						</td>
+						<td>
+							{#if a.status === 'pending' && a.response_token}
+								<a
+									class="action-link accept"
+									href="/admin/respond/{a.id}?action=accept&token={a.response_token}">Accept</a
+								>
+								<a
+									class="action-link decline"
+									href="/admin/respond/{a.id}?action=decline&token={a.response_token}">Decline</a
+								>
+							{/if}
 						</td>
 					</tr>
 				{/each}
@@ -140,6 +153,21 @@
 	}
 
 	.status-declined {
+		color: #dc2626;
+	}
+
+	.action-link {
+		font-size: 0.8125rem;
+		font-weight: 600;
+		text-decoration: none;
+		margin-right: 8px;
+	}
+
+	.action-link.accept {
+		color: #059669;
+	}
+
+	.action-link.decline {
 		color: #dc2626;
 	}
 
