@@ -1,6 +1,6 @@
-import { error } from '@sveltejs/kit';
+import { error, fail } from '@sveltejs/kit';
 import { getConfig, getDb } from '$lib/server/state';
-import type { PageServerLoad } from './$types';
+import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params, url }) => {
 	const token = url.searchParams.get('token');
@@ -33,4 +33,32 @@ export const load: PageServerLoad = async ({ params, url }) => {
 		user: { name: cfg.user.name, timezone: cfg.user.timezone },
 		token
 	};
+};
+
+export const actions: Actions = {
+	cancel: async ({ request, params }) => {
+		const form = await request.formData();
+		const token = String(form.get('token') ?? '');
+
+		const row = await getDb()
+			.selectFrom('appointments')
+			.selectAll()
+			.where('id', '=', params.id)
+			.executeTakeFirst();
+
+		if (!row || row.cancel_token !== token) {
+			return fail(403, { error: 'Invalid cancel token.' });
+		}
+		if (row.status === 'cancelled') {
+			return fail(400, { error: 'Booking is already cancelled.' });
+		}
+
+		await getDb()
+			.updateTable('appointments')
+			.set({ status: 'cancelled', updated_at: new Date().toISOString() })
+			.where('id', '=', params.id)
+			.execute();
+
+		return { cancelled: true };
+	}
 };

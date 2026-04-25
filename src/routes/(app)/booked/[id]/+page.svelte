@@ -1,6 +1,14 @@
 <script lang="ts">
 	let { data } = $props();
 
+	let title = $derived(
+		data.appointment.status === 'cancelled'
+			? 'Booking cancelled'
+			: data.appointment.status === 'pending'
+				? 'Booking requested'
+				: 'Booking confirmed'
+	);
+
 	function fmt(iso: string): string {
 		return new Date(iso).toLocaleString([], {
 			weekday: 'long',
@@ -13,10 +21,13 @@
 </script>
 
 <svelte:head>
-	<title>Booking confirmed — When</title>
+	<title>{title} — When</title>
 </svelte:head>
 
-{#if data.appointment.status === 'pending'}
+{#if data.appointment.status === 'cancelled'}
+	<h1>Booking cancelled</h1>
+	<p>This booking was previously cancelled.</p>
+{:else if data.appointment.status === 'pending'}
 	<h1>Booking requested</h1>
 	<p>
 		{data.user.name} will review and confirm your request. You'll get an email at
@@ -31,7 +42,7 @@
 	<dd>{data.eventType.name}</dd>
 
 	<dt>When</dt>
-	<dd>{fmt(data.appointment.start_time)} → {fmt(data.appointment.end_time)}</dd>
+	<dd>{fmt(data.appointment.start_time)} &rarr; {fmt(data.appointment.end_time)}</dd>
 
 	{#if data.appointment.location}
 		<dt>Where</dt>
@@ -48,3 +59,32 @@
 		download="when-{data.appointment.id}.ics">Download .ics</a
 	>
 </p>
+
+{#if data.appointment.status === 'pending' || data.appointment.status === 'confirmed'}
+	<form method="POST" action="?/cancel" class="cancel-form">
+		<input type="hidden" name="token" value={data.token} />
+		<button type="submit" class="cancel-btn">Cancel booking</button>
+	</form>
+{/if}
+
+<style>
+	.cancel-form {
+		margin-top: 24px;
+	}
+
+	.cancel-btn {
+		background: none;
+		border: 1px solid #d1d5db;
+		border-radius: 8px;
+		padding: 8px 16px;
+		color: #dc2626;
+		cursor: pointer;
+		font-size: 0.875rem;
+		font-family: inherit;
+	}
+
+	.cancel-btn:hover {
+		background: #fef2f2;
+		border-color: #fca5a5;
+	}
+</style>
