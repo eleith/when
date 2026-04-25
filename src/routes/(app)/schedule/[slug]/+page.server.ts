@@ -6,6 +6,7 @@ import { resolveKnobsFor } from '$lib/server/availability/knobs';
 import { systemClock } from '$lib/server/clock';
 import type { Location } from '$lib/server/config/schema';
 import { logger } from '$lib/server/logger';
+import { sendEmail } from '$lib/server/smtp';
 import { getConfig, getDb } from '$lib/server/state';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -63,7 +64,7 @@ export const load: PageServerLoad = async ({ params, url }) => {
 };
 
 export const actions: Actions = {
-	book: async ({ request, params }) => {
+	book: async ({ request, params, url }) => {
 		const cfg = getConfig();
 		const eventType = cfg.event_types.find((e) => e.slug === params.slug);
 		if (!eventType) error(404);
@@ -142,6 +143,29 @@ export const actions: Actions = {
 			}
 			logger.error({ err, eventTypeId: eventType.id, slot: slotStr }, 'failed to insert booking');
 			return fail(500, { error: 'Could not save the booking. Please try again.' });
+		}
+
+		if (status === 'pending' && responseToken) {
+			const acceptUrl = `${url.origin}/admin/respond/${id}?action=accept&token=${encodeURIComponent(responseToken)}`;
+			const declineUrl = `${url.origin}/admin/respond/${id}?action=decline&token=${encodeURIComponent(responseToken)}`;
+			const result = await sendEmail({
+				to: cfg.user.email,
+				subject: `Booking request: ${eventType.name} from ${name}`,
+				text:
+					`${name} <${email}> has requested to book ${eventType.name}.\n\n` +
+					`When: ${start.toString()}\n` +
+					`Duration: ${eventType.duration} min\n` +
+					(resolvedLocation ? `Where: ${resolvedLocation}\n\n` : '\n') +
+					`Accept: ${acceptUrl}\n` +
+					`Decline: ${declineUrl}\n`
+			});
+			if (!result.ok) {
+				await getDb()
+					.updateTable('appointments')
+					.set({ notification_status: JSON.stringify({ email: 'failed' }) })
+					.where('id', '=', id)
+					.execute();
+			}
 		}
 
 		redirect(303, `/booked/${id}?token=${encodeURIComponent(cancelToken)}`);
