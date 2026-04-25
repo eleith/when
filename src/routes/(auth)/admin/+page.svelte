@@ -52,6 +52,9 @@
 						<td>{fmt(a.start_time)}</td>
 						<td>
 							<span class="status status-{a.status}">{a.status}</span>
+							{#if a.notification_status}
+								<span class="notif-warn" title={a.notification_status}>&#9888;</span>
+							{/if}
 						</td>
 						<td>
 							{#if a.status === 'pending' && a.response_token}
@@ -154,6 +157,12 @@
 
 	.status-declined {
 		color: #dc2626;
+	}
+
+	.notif-warn {
+		color: #d97706;
+		margin-left: 4px;
+		cursor: help;
 	}
 
 	.action-link {
