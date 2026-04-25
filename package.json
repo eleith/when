@@ -16,7 +16,8 @@
 		"test": "bun test",
 		"test:e2e": "playwright test",
 		"validate-config": "bun ./cli/validate-config.ts",
-		"hash-password": "bun ./cli/hash-password.ts"
+		"hash-password": "bun ./cli/hash-password.ts",
+		"dev:docker": "docker compose -f docker-compose.dev.yml up"
 	},
 	"devDependencies": {
 		"@eslint/compat": "^2.0.4",
