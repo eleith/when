@@ -41,3 +41,10 @@
 	<dt>Attendee</dt>
 	<dd>{data.appointment.attendee_name} &lt;{data.appointment.attendee_email}&gt;</dd>
 </dl>
+
+<p>
+	<a
+		href="/booked/{data.appointment.id}/ics?token={encodeURIComponent(data.token)}"
+		download="when-{data.appointment.id}.ics">Download .ics</a
+	>
+</p>
