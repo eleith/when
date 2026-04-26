@@ -9,10 +9,16 @@ RUN bun install --frozen-lockfile
 # Copy the rest of the project so the image is self-contained.
 COPY . .
 
-# Runtime-writable dirs (host-mapped UID writes here): SQLite db lives
-# in /app/data; svelte-kit sync writes to /app/.svelte-kit on dev start.
+# Runtime-writable dirs (the host-mapped UID needs write here):
+#   /app                  — vite drops a .timestamp-*.mjs next to vite.config.ts
+#   /app/node_modules     — vite/svelte-kit create .vite/ and .cache/ subdirs
+#   /app/.svelte-kit      — svelte-kit sync output
+#   /app/data             — SQLite database
+# Mode 777 on the dir alone (no -R); root-owned files inside stay
+# readable by everyone (default 644), which is all the runtime user
+# needs from them.
 RUN mkdir -p /app/data /app/.svelte-kit && \
-    chmod 777 /app/data /app/.svelte-kit
+    chmod 777 /app /app/node_modules /app/data /app/.svelte-kit
 
 EXPOSE 5173
 CMD ["bun", "run", "dev", "--host", "0.0.0.0"]
