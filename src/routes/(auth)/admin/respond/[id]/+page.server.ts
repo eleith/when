@@ -1,5 +1,6 @@
 import { error, fail } from '@sveltejs/kit';
 import { systemClock } from '$lib/server/clock';
+import { mergeNotificationStatus } from '$lib/server/db/notification-status';
 import { sendEmail } from '$lib/server/smtp';
 import { getConfig, getDb } from '$lib/server/state';
 import type { Actions, PageServerLoad } from './$types';
@@ -105,7 +106,11 @@ export const actions: Actions = {
 		if (!emailResult.ok) {
 			await getDb()
 				.updateTable('appointments')
-				.set({ notification_status: JSON.stringify({ email_attendee: 'failed' }) })
+				.set({
+					notification_status: mergeNotificationStatus(row.notification_status, {
+						email: 'failed'
+					})
+				})
 				.where('id', '=', params.id)
 				.execute();
 		}

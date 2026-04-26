@@ -5,6 +5,7 @@ import { loadAppointmentBlocks } from '$lib/server/availability/db-blocks';
 import { resolveKnobsFor } from '$lib/server/availability/knobs';
 import { systemClock } from '$lib/server/clock';
 import type { Location } from '$lib/server/config/schema';
+import { mergeNotificationStatus } from '$lib/server/db/notification-status';
 import { logger } from '$lib/server/logger';
 import { sendEmail } from '$lib/server/smtp';
 import { getConfig, getDb } from '$lib/server/state';
@@ -186,9 +187,18 @@ export const actions: Actions = {
 					`Decline: ${declineUrl}\n`
 			});
 			if (!result.ok) {
+				const current = await getDb()
+					.selectFrom('appointments')
+					.select('notification_status')
+					.where('id', '=', id)
+					.executeTakeFirst();
 				await getDb()
 					.updateTable('appointments')
-					.set({ notification_status: JSON.stringify({ email: 'failed' }) })
+					.set({
+						notification_status: mergeNotificationStatus(current?.notification_status ?? null, {
+							email: 'failed'
+						})
+					})
 					.where('id', '=', id)
 					.execute();
 			}
