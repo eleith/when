@@ -1,0 +1,200 @@
+# When
+
+Single-user appointment scheduling. Booking page, admin UI, CalDAV
+integration, configurable via a YAML file.
+
+## Quick start (Docker)
+
+1. Copy `config.example.yaml` to `config.yaml` and fill it in.
+2. Generate a password hash for the admin login (skip if using OIDC):
+
+   ```sh
+   bun run hash-password
+   ```
+
+   Save the output as `ADMIN_PASSWORD_HASH` in your environment.
+
+3. Generate a 32-byte base64 encryption key:
+
+   ```sh
+   openssl rand -base64 32
+   ```
+
+   Save it as `ENCRYPTION_KEY`.
+
+4. Generate a 32-byte base64 auth secret:
+
+   ```sh
+   openssl rand -base64 32
+   ```
+
+   Save it as `AUTH_SECRET`.
+
+5. Bring up the container:
+
+   ```sh
+   docker compose up -d
+   ```
+
+   The booking page is at `http://localhost:3000/`, the admin UI at
+   `/admin`.
+
+The container runs migrations on boot. SQLite lives at
+`/app/data/when.db` inside the container; mount that path to a volume
+to persist bookings across restarts (the bundled `docker-compose.yml`
+mounts `./data`).
+
+## Required environment variables
+
+| Variable                | Required        | Notes                                                                                                                                |
+| ----------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `AUTH_SECRET`           | always          | Auth.js JWT signing secret. 32+ random bytes, base64-encoded.                                                                        |
+| `ENCRYPTION_KEY`        | production      | Base64 of 32 random bytes. Used to encrypt OAuth refresh tokens at the column level. In dev, an ephemeral key is generated + warned. |
+| `ADMIN_PASSWORD_HASH`   | credentials auth | argon2id hash of the admin password. Generate with `bun run hash-password`.                                                          |
+| `OIDC_CLIENT_SECRET`    | oidc auth       | OIDC provider client secret (any name works; whatever the yaml's `${...}` interpolation references).                                 |
+| `CALDAV_PASSWORD`       | caldav calendar | CalDAV password / app password.                                                                                                      |
+| `SMTP_USER` / `SMTP_PASS` | requires_confirmation events | SMTP credentials.                                                                                                                    |
+
+Any string value in `config.yaml` may reference `${ENV_VAR}` and the
+substitution happens before schema validation, so secrets stay in the
+environment rather than on disk.
+
+## Authentication
+
+The `auth` block in `config.yaml` must declare exactly one of:
+
+- **`credentials`** — username + argon2id password hash. Sign in with a
+  username/password form at `/signin`.
+
+  ```yaml
+  auth:
+    credentials:
+      username: admin
+      password_hash: '${ADMIN_PASSWORD_HASH}'
+  ```
+
+- **`oidc`** — issuer + client id/secret. Sign in via the configured
+  identity provider.
+
+  ```yaml
+  auth:
+    oidc:
+      issuer: 'https://auth.example.com'
+      client_id: 'when'
+      client_secret: '${OIDC_CLIENT_SECRET}'
+  ```
+
+  The OIDC provider must allow `${origin}/auth/callback/oidc` as a
+  redirect URL.
+
+`AUTH_SECRET` is required for both modes (Auth.js JWT signing).
+
+## Calendar integration
+
+CalDAV calendars are supported as both **conflict sources** (busy times
+to subtract from availability) and **destination** (where confirmed
+bookings get written). Add one or more entries under `calendars:` and
+reference them from event types.
+
+```yaml
+calendars:
+  - id: 'work'
+    type: 'caldav'
+    url: 'https://cloud.example.com/remote.php/dav/calendars/jane/work/'
+    username: 'jane'
+    password: '${CALDAV_PASSWORD}'
+
+event_types:
+  - id: 'chat'
+    name: '30-minute chat'
+    duration: 30
+    slug: 'chat'
+    booking_flow: 'auto'
+    conflict_calendars: ['work']
+    destination_calendar: 'work'
+```
+
+Conflict pulls are cached in-process for ~60 seconds; the booking
+submit re-fetches the slot's day to close the stale-cache window.
+
+> **Google Calendar is not yet supported.** The schema accepts a
+> `google` calendar type for forward-compatibility, but push/pull
+> against Google is deferred. Use a CalDAV-compatible bridge (e.g.,
+> [DAVx⁵](https://www.davx5.com/)) if you need Google in the meantime.
+
+## Email & confirmation flow
+
+Event types with `booking_flow: requires_confirmation` need an `smtp:`
+block. The booker submits the form, the admin gets an email with one-
+click Accept / Decline links (and the same controls in `/admin`), and
+on accept the booker receives a confirmation email with the `.ics`
+attached.
+
+```yaml
+smtp:
+  host: 'smtp.example.com'
+  port: 587
+  user: '${SMTP_USER}'
+  pass: '${SMTP_PASS}'
+```
+
+Failures (SMTP unreachable, CalDAV push failed) are written to the
+appointment's `notification_status` column and surfaced as a warning
+icon in `/admin`.
+
+## Availability
+
+Default working hours live in `availability.default` (per weekday, in
+`HH:MM-HH:MM` ranges). Knobs (`slot_granularity`, `minimum_notice`,
+`maximum_lookahead`, `buffer_before`, `buffer_after`,
+`max_bookings_per_day`) are global with per-event-type overrides.
+
+Ad-hoc per-date overrides (vacation days, late starts) are managed
+through the admin UI at `/admin/overrides`. They take precedence over
+the YAML defaults for that date.
+
+## Operating
+
+- **Health**: `GET /healthz` returns `200 OK` once the app is up.
+- **Metrics**: `GET /metrics` exposes Prometheus metrics
+  (`prom-client`).
+- **Schema**: `GET /schema/config.json` serves the current config
+  schema for editor tooling (`yaml-language-server: $schema=...`).
+
+## CLI helpers
+
+Run inside the container or with `bun run` in a checkout:
+
+- `bun run hash-password` — interactive prompt; emits an argon2id hash.
+- `bun run validate-config` — parses + validates `config.yaml` without
+  starting the server. Exits non-zero on validation errors.
+
+## Local development
+
+```sh
+bun install
+bun run dev
+```
+
+Or with hot-reload in Docker:
+
+```sh
+bun run dev:docker
+```
+
+Run the test suite:
+
+```sh
+bun test           # unit tests
+bun run test:e2e   # Playwright (requires browsers installed)
+```
+
+## Architecture notes
+
+- SQLite via `bun:sqlite` (Kysely query builder). Migrations run on
+  boot and are idempotent.
+- Availability calculation uses Temporal (`@js-temporal/polyfill`) for
+  DST-correct timezone math.
+- Outbound `.ics` and inbound CalDAV iCal both go through `ts-ics`.
+- Single-process, single-user: no multi-tenancy, no team round-robin.
+- Docker image is `linux/amd64` only.
