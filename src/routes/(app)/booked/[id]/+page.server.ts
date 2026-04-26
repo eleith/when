@@ -2,6 +2,7 @@ import { error, fail } from '@sveltejs/kit';
 import { deleteAppointmentFromCalendar } from '$lib/server/calendar/push';
 import { systemClock } from '$lib/server/clock';
 import { mergeNotificationStatus } from '$lib/server/db/notification-status';
+import { notifyBookingCancelled } from '$lib/server/notify';
 import { getConfig, getDb } from '$lib/server/state';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -62,24 +63,39 @@ export const actions: Actions = {
 			.where('id', '=', params.id)
 			.execute();
 
+		const cfg = getConfig();
+		const eventType = cfg.event_types.find((e) => e.id === row.event_type_id);
+		let notif = row.notification_status;
+
 		if (row.external_event_id && row.external_calendar_id) {
-			const cfg = getConfig();
 			const result = await deleteAppointmentFromCalendar(
 				cfg,
 				row.external_calendar_id,
 				row.external_event_id
 			);
 			if (!result.ok) {
+				notif = mergeNotificationStatus(notif, { calendar_push: 'failed' });
 				await getDb()
 					.updateTable('appointments')
-					.set({
-						notification_status: mergeNotificationStatus(row.notification_status, {
-							calendar_push: 'failed'
-						})
-					})
+					.set({ notification_status: notif })
 					.where('id', '=', params.id)
 					.execute();
 			}
+		}
+
+		const notifyResult = await notifyBookingCancelled({
+			cfg,
+			appointment: { ...row, status: 'cancelled' },
+			eventType,
+			cancelUrl: ''
+		});
+		if (!notifyResult.ok) {
+			notif = mergeNotificationStatus(notif, { email: 'failed' });
+			await getDb()
+				.updateTable('appointments')
+				.set({ notification_status: notif })
+				.where('id', '=', params.id)
+				.execute();
 		}
 
 		return { cancelled: true };
