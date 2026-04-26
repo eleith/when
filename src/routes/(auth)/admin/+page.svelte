@@ -58,14 +58,24 @@
 						</td>
 						<td>
 							{#if a.status === 'pending' && a.response_token}
-								<a
-									class="action-link accept"
-									href="/admin/respond/{a.id}?action=accept&token={a.response_token}">Accept</a
+								<form
+									method="POST"
+									action="/admin/respond/{a.id}?action=accept&token={a.response_token}"
+									class="action-form"
 								>
-								<a
-									class="action-link decline"
-									href="/admin/respond/{a.id}?action=decline&token={a.response_token}">Decline</a
+									<input type="hidden" name="action" value="accept" />
+									<input type="hidden" name="token" value={a.response_token} />
+									<button type="submit" class="action-btn accept">Accept</button>
+								</form>
+								<form
+									method="POST"
+									action="/admin/respond/{a.id}?action=decline&token={a.response_token}"
+									class="action-form"
 								>
+									<input type="hidden" name="action" value="decline" />
+									<input type="hidden" name="token" value={a.response_token} />
+									<button type="submit" class="action-btn decline">Decline</button>
+								</form>
 							{/if}
 						</td>
 					</tr>
@@ -165,19 +175,38 @@
 		cursor: help;
 	}
 
-	.action-link {
+	.action-form {
+		display: inline-block;
+		margin-right: 4px;
+	}
+
+	.action-btn {
 		font-size: 0.8125rem;
 		font-weight: 600;
-		text-decoration: none;
-		margin-right: 8px;
+		padding: 3px 10px;
+		border-radius: 6px;
+		border: 1px solid;
+		background: white;
+		cursor: pointer;
+		font-family: inherit;
 	}
 
-	.action-link.accept {
+	.action-btn.accept {
 		color: #059669;
+		border-color: #a7f3d0;
 	}
 
-	.action-link.decline {
+	.action-btn.accept:hover {
+		background: #ecfdf5;
+	}
+
+	.action-btn.decline {
 		color: #dc2626;
+		border-color: #fca5a5;
+	}
+
+	.action-btn.decline:hover {
+		background: #fef2f2;
 	}
 
 	.toggle {
