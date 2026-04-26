@@ -17,11 +17,18 @@ function getTransporter(): nodemailer.Transporter {
 	return transporter;
 }
 
+export interface EmailAttachment {
+	filename: string;
+	content: string;
+	contentType?: string;
+}
+
 export async function sendEmail(opts: {
 	to: string;
 	subject: string;
 	text: string;
 	html?: string;
+	attachments?: EmailAttachment[];
 }): Promise<{ ok: true } | { ok: false; reason: string }> {
 	try {
 		const transport = getTransporter();
@@ -31,7 +38,8 @@ export async function sendEmail(opts: {
 			to: opts.to,
 			subject: opts.subject,
 			text: opts.text,
-			html: opts.html
+			html: opts.html,
+			attachments: opts.attachments
 		});
 		logger.info({ to: opts.to, subject: opts.subject }, 'email sent');
 		return { ok: true };

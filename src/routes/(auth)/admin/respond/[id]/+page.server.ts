@@ -1,6 +1,7 @@
 import { error, fail } from '@sveltejs/kit';
 import { systemClock } from '$lib/server/clock';
 import { mergeNotificationStatus } from '$lib/server/db/notification-status';
+import { buildIcs } from '$lib/server/ics';
 import { sendEmail } from '$lib/server/smtp';
 import { getConfig, getDb } from '$lib/server/state';
 import type { Actions, PageServerLoad } from './$types';
@@ -92,7 +93,20 @@ export const actions: Actions = {
 							`What: ${eventTypeName}\n` +
 							`When: ${row.start_time}\n` +
 							(row.location ? `Where: ${row.location}\n\n` : '\n') +
-							`Cancel: ${cancelUrl}\n`
+							`Cancel: ${cancelUrl}\n`,
+						attachments: [
+							{
+								filename: `${row.id}.ics`,
+								content: buildIcs({
+									appointment: { ...row, status: 'confirmed' },
+									eventTypeName,
+									organizerName: cfg.user.name,
+									organizerEmail: cfg.user.email,
+									cancelUrl
+								}),
+								contentType: 'text/calendar; charset=utf-8'
+							}
+						]
 					})
 				: await sendEmail({
 						to: row.attendee_email,
