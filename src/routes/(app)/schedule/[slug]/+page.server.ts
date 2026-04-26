@@ -3,6 +3,7 @@ import { Temporal } from '@js-temporal/polyfill';
 import { computeSlots } from '$lib/server/availability';
 import { loadAppointmentBlocks } from '$lib/server/availability/db-blocks';
 import { resolveKnobsFor } from '$lib/server/availability/knobs';
+import { pullConflictBusy } from '$lib/server/calendar/conflicts';
 import { systemClock } from '$lib/server/clock';
 import type { Location } from '$lib/server/config/schema';
 import { mergeNotificationStatus } from '$lib/server/db/notification-status';
@@ -46,6 +47,10 @@ export const load: PageServerLoad = async ({ params, url }) => {
 	const rangeEnd = nowInstant.add({ hours: 24 * knobs.maximum_lookahead });
 
 	const blocks = await loadAppointmentBlocks(getDb(), eventType.id, nowInstant, rangeEnd, userTz);
+	const remoteBusy = await pullConflictBusy(cfg.calendars, eventType.conflict_calendars ?? [], {
+		start: nowInstant,
+		end: rangeEnd
+	});
 	const slots = computeSlots({
 		knobs,
 		rangeStart: nowInstant,
@@ -53,7 +58,7 @@ export const load: PageServerLoad = async ({ params, url }) => {
 		userTz,
 		now: nowInstant,
 		existingAppointments: blocks.appointments,
-		remoteBusy: [],
+		remoteBusy,
 		perDayCount: blocks.perDayCount
 	});
 
@@ -122,6 +127,7 @@ export const actions: Actions = {
 		const nowInstant = Temporal.Instant.fromEpochMilliseconds(systemClock.nowMs());
 		const rangeEnd = nowInstant.add({ hours: 24 * knobs.maximum_lookahead });
 		const blocks = await loadAppointmentBlocks(getDb(), eventType.id, nowInstant, rangeEnd, userTz);
+		const remoteBusy = await pullSlotDayBusy(cfg, eventType, slotStr, userTz);
 		const slots = computeSlots({
 			knobs,
 			rangeStart: nowInstant,
@@ -129,7 +135,7 @@ export const actions: Actions = {
 			userTz,
 			now: nowInstant,
 			existingAppointments: blocks.appointments,
-			remoteBusy: [],
+			remoteBusy,
 			perDayCount: blocks.perDayCount
 		});
 		if (!slots.some((s) => s.toString() === slotStr)) {
@@ -249,6 +255,7 @@ export const actions: Actions = {
 			appointments: blocks.appointments.filter((a) => a.start.toString() !== existing.start_time),
 			perDayCount: blocks.perDayCount
 		};
+		const remoteBusy = await pullSlotDayBusy(cfg, eventType, slotStr, userTz);
 		const slots = computeSlots({
 			knobs,
 			rangeStart: nowInstant,
@@ -256,7 +263,7 @@ export const actions: Actions = {
 			userTz,
 			now: nowInstant,
 			existingAppointments: blocks.appointments,
-			remoteBusy: [],
+			remoteBusy,
 			perDayCount: blocks.perDayCount
 		});
 		if (!slots.some((s) => s.toString() === slotStr)) {
@@ -311,4 +318,22 @@ function isUniqueViolation(err: unknown): boolean {
 	if (!err || typeof err !== 'object') return false;
 	const msg = String((err as { message?: unknown }).message ?? '');
 	return /UNIQUE constraint failed/i.test(msg);
+}
+
+async function pullSlotDayBusy(
+	cfg: ReturnType<typeof getConfig>,
+	eventType: ReturnType<typeof getConfig>['event_types'][number],
+	slotStr: string,
+	userTz: string
+) {
+	const slot = Temporal.Instant.from(slotStr);
+	const date = slot.toZonedDateTimeISO(userTz).toPlainDate();
+	const dayStart = date.toZonedDateTime(userTz).toInstant();
+	const dayEnd = date.add({ days: 1 }).toZonedDateTime(userTz).toInstant();
+	return pullConflictBusy(
+		cfg.calendars,
+		eventType.conflict_calendars ?? [],
+		{ start: dayStart, end: dayEnd },
+		{ bypassCache: true }
+	);
 }

@@ -1,0 +1,126 @@
+import { beforeEach, expect, test } from 'bun:test';
+import { Temporal } from '@js-temporal/polyfill';
+import type { FetchFn } from '../src/lib/server/calendar/caldav';
+import { clearConflictCache, pullConflictBusy } from '../src/lib/server/calendar/conflicts';
+import type { Calendar } from '../src/lib/server/config/schema';
+
+const inst = (s: string): Temporal.Instant => Temporal.Instant.from(s);
+
+const window = {
+	start: inst('2026-04-01T00:00:00Z'),
+	end: inst('2026-05-01T00:00:00Z')
+};
+
+const sampleVevent = `<?xml version="1.0"?>
+<multistatus xmlns:C="urn:ietf:params:xml:ns:caldav">
+  <response>
+    <C:calendar-data>BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//x//EN
+BEGIN:VEVENT
+UID:remote-1@x
+DTSTAMP:20260101T000000Z
+DTSTART:20260415T140000Z
+DTEND:20260415T150000Z
+SUMMARY:Remote
+END:VEVENT
+END:VCALENDAR</C:calendar-data>
+  </response>
+</multistatus>`;
+
+const calendars: Calendar[] = [
+	{
+		id: 'work',
+		type: 'caldav',
+		url: 'https://cal.example.com/work/',
+		username: 'jane',
+		password: 'secret'
+	},
+	{
+		id: 'g',
+		type: 'google',
+		client_id: 'gid',
+		client_secret: 'gsec'
+	}
+];
+
+beforeEach(() => clearConflictCache());
+
+test('pulls a single CalDAV calendar and returns intervals', async () => {
+	const fakeFetch: FetchFn = async () => new Response(sampleVevent, { status: 207 });
+	const intervals = await pullConflictBusy(calendars, ['work'], window, {
+		fetchImpl: fakeFetch,
+		now: 1_000
+	});
+	expect(intervals).toHaveLength(1);
+	expect(intervals[0].start.toString()).toBe('2026-04-15T14:00:00Z');
+});
+
+test('skips Google calendars (deferred)', async () => {
+	let called = 0;
+	const fakeFetch: FetchFn = async () => {
+		called++;
+		return new Response(sampleVevent, { status: 207 });
+	};
+	const intervals = await pullConflictBusy(calendars, ['g'], window, {
+		fetchImpl: fakeFetch,
+		now: 1_000
+	});
+	expect(intervals).toEqual([]);
+	expect(called).toBe(0);
+});
+
+test('caches results within 60s and re-fetches after TTL', async () => {
+	let calls = 0;
+	const fakeFetch: FetchFn = async () => {
+		calls++;
+		return new Response(sampleVevent, { status: 207 });
+	};
+	await pullConflictBusy(calendars, ['work'], window, { fetchImpl: fakeFetch, now: 1_000 });
+	await pullConflictBusy(calendars, ['work'], window, { fetchImpl: fakeFetch, now: 30_000 });
+	expect(calls).toBe(1);
+	await pullConflictBusy(calendars, ['work'], window, {
+		fetchImpl: fakeFetch,
+		now: 1_000 + 61_000
+	});
+	expect(calls).toBe(2);
+});
+
+test('bypassCache forces a fresh fetch even within TTL', async () => {
+	let calls = 0;
+	const fakeFetch: FetchFn = async () => {
+		calls++;
+		return new Response(sampleVevent, { status: 207 });
+	};
+	await pullConflictBusy(calendars, ['work'], window, { fetchImpl: fakeFetch, now: 1_000 });
+	await pullConflictBusy(calendars, ['work'], window, {
+		fetchImpl: fakeFetch,
+		now: 2_000,
+		bypassCache: true
+	});
+	expect(calls).toBe(2);
+});
+
+test('failed CalDAV fetch yields empty and does not throw', async () => {
+	const fakeFetch: FetchFn = async () =>
+		new Response('boom', { status: 500, statusText: 'Internal Server Error' });
+	const intervals = await pullConflictBusy(calendars, ['work'], window, {
+		fetchImpl: fakeFetch,
+		now: 1_000
+	});
+	expect(intervals).toEqual([]);
+});
+
+test('unknown calendar id is skipped', async () => {
+	let calls = 0;
+	const fakeFetch: FetchFn = async () => {
+		calls++;
+		return new Response(sampleVevent, { status: 207 });
+	};
+	const intervals = await pullConflictBusy(calendars, ['ghost'], window, {
+		fetchImpl: fakeFetch,
+		now: 1_000
+	});
+	expect(intervals).toEqual([]);
+	expect(calls).toBe(0);
+});
