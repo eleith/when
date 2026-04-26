@@ -4,7 +4,7 @@ import { computeSlots } from '$lib/server/availability';
 import { loadAppointmentBlocks } from '$lib/server/availability/db-blocks';
 import { loadDateOverrides } from '$lib/server/availability/db-overrides';
 import { resolveKnobsFor } from '$lib/server/availability/knobs';
-import { pullConflictBusy } from '$lib/server/calendar/conflicts';
+import { conflictPullWindow, pullConflictBusy } from '$lib/server/calendar/conflicts';
 import { pushAppointment } from '$lib/server/calendar/push';
 import { systemClock } from '$lib/server/clock';
 import type { Location } from '$lib/server/config/schema';
@@ -51,10 +51,11 @@ export const load: PageServerLoad = async ({ params, url }) => {
 	const rangeEnd = nowInstant.add({ hours: 24 * knobs.maximum_lookahead });
 
 	const blocks = await loadAppointmentBlocks(getDb(), eventType.id, nowInstant, rangeEnd, userTz);
-	const remoteBusy = await pullConflictBusy(cfg.calendars, eventType.conflict_calendars ?? [], {
-		start: nowInstant,
-		end: rangeEnd
-	});
+	const remoteBusy = await pullConflictBusy(
+		cfg.calendars,
+		eventType.conflict_calendars ?? [],
+		conflictPullWindow(nowInstant, userTz, knobs.maximum_lookahead)
+	);
 	const dateOverrides = await loadDateOverrides(
 		getDb(),
 		nowInstant.toZonedDateTimeISO(userTz).toPlainDate().toString(),

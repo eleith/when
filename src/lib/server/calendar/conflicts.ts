@@ -1,3 +1,4 @@
+import { Temporal } from '@js-temporal/polyfill';
 import type { CalDavCalendar, Calendar } from '../config/schema';
 import { logger } from '../logger';
 import type { Interval } from '../availability/types';
@@ -84,4 +85,23 @@ export async function pullConflictBusy(
 
 function toCalDavConfig(cal: CalDavCalendar): { url: string; username: string; password: string } {
 	return { url: cal.url, username: cal.username, password: cal.password };
+}
+
+/**
+ * Page-render conflict-pull window: from `now` to the end of the visible
+ * month + 2 weeks (per spec), but never beyond `now + maxLookaheadDays`.
+ * The submit-time slot-day re-fetch (with `bypassCache`) catches any
+ * busy events past this window before persisting a booking.
+ */
+export function conflictPullWindow(
+	now: Temporal.Instant,
+	userTz: string,
+	maxLookaheadDays: number
+): ExpandWindow {
+	const today = now.toZonedDateTimeISO(userTz).toPlainDate();
+	const startOfNextMonth = today.with({ day: 1 }).add({ months: 1 });
+	const cap = startOfNextMonth.add({ weeks: 2 }).toZonedDateTime(userTz).toInstant();
+	const lookaheadEnd = now.add({ hours: 24 * maxLookaheadDays });
+	const end = Temporal.Instant.compare(cap, lookaheadEnd) < 0 ? cap : lookaheadEnd;
+	return { start: now, end };
 }
