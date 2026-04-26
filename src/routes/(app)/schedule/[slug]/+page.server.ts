@@ -266,15 +266,26 @@ export const actions: Actions = {
 		const start = Temporal.Instant.from(slotStr);
 		const end = start.add({ minutes: eventType.duration });
 
-		await getDb()
-			.updateTable('appointments')
-			.set({
-				start_time: start.toString(),
-				end_time: end.toString(),
-				updated_at: systemClock.now().toISOString()
-			})
-			.where('id', '=', rescheduleId)
-			.execute();
+		try {
+			await getDb()
+				.updateTable('appointments')
+				.set({
+					start_time: start.toString(),
+					end_time: end.toString(),
+					updated_at: systemClock.now().toISOString()
+				})
+				.where('id', '=', rescheduleId)
+				.execute();
+		} catch (err) {
+			if (isUniqueViolation(err)) {
+				return fail(409, { error: 'That time was just taken. Please pick another.' });
+			}
+			logger.error(
+				{ err, eventTypeId: eventType.id, slot: slotStr, rescheduleId },
+				'failed to reschedule booking'
+			);
+			return fail(500, { error: 'Could not save the reschedule. Please try again.' });
+		}
 
 		redirect(303, `/booked/${rescheduleId}?token=${encodeURIComponent(existing.cancel_token)}`);
 	}
