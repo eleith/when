@@ -11,7 +11,7 @@ import type { Location } from '$lib/server/config/schema';
 import type { Appointment } from '$lib/server/db';
 import { mergeNotificationStatus } from '$lib/server/db/notification-status';
 import { logger } from '$lib/server/logger';
-import { notifyBookingConfirmed } from '$lib/server/notify';
+import { notifyBookingConfirmed, notifyBookingRescheduled } from '$lib/server/notify';
 import { sendEmail } from '$lib/server/smtp';
 import { getConfig, getDb } from '$lib/server/state';
 import type { Actions, PageServerLoad } from './$types';
@@ -390,32 +390,41 @@ export const actions: Actions = {
 			return fail(500, { error: 'Could not save the reschedule. Please try again.' });
 		}
 
+		const updated: Appointment = {
+			...existing,
+			start_time: start.toString(),
+			end_time: end.toString()
+		};
+		const cancelUrl = `${url.origin}/booked/${rescheduleId}?token=${encodeURIComponent(existing.cancel_token)}`;
+		let notif = existing.notification_status;
+
 		if (existing.external_event_id && existing.external_calendar_id) {
-			const updated: Appointment = {
-				...existing,
-				start_time: start.toString(),
-				end_time: end.toString()
-			};
-			const cancelUrl = `${url.origin}/booked/${rescheduleId}?token=${encodeURIComponent(existing.cancel_token)}`;
 			const pushed = await pushAppointment(cfg, updated, existing.external_calendar_id, {
 				cancelUrl
 			});
 			if (!pushed.ok) {
-				const current = await getDb()
-					.selectFrom('appointments')
-					.select('notification_status')
-					.where('id', '=', rescheduleId)
-					.executeTakeFirst();
+				notif = mergeNotificationStatus(notif, { calendar_push: 'failed' });
 				await getDb()
 					.updateTable('appointments')
-					.set({
-						notification_status: mergeNotificationStatus(current?.notification_status ?? null, {
-							calendar_push: 'failed'
-						})
-					})
+					.set({ notification_status: notif })
 					.where('id', '=', rescheduleId)
 					.execute();
 			}
+		}
+
+		const notifyResult = await notifyBookingRescheduled({
+			cfg,
+			appointment: updated,
+			eventType,
+			cancelUrl
+		});
+		if (!notifyResult.ok) {
+			notif = mergeNotificationStatus(notif, { email: 'failed' });
+			await getDb()
+				.updateTable('appointments')
+				.set({ notification_status: notif })
+				.where('id', '=', rescheduleId)
+				.execute();
 		}
 
 		redirect(303, `/booked/${rescheduleId}?token=${encodeURIComponent(existing.cancel_token)}`);
