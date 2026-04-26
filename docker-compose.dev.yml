@@ -14,7 +14,7 @@ services:
     platform: linux/amd64
     user: '${UID:-1000}:${GID:-1000}'
     working_dir: /app
-    command: sh -c 'bun install --frozen-lockfile && bun run dev --host 0.0.0.0'
+    command: ./scripts/dev-entrypoint.sh
     ports:
       - '5173:5173'
     volumes:
