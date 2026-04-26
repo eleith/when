@@ -1,4 +1,5 @@
 import { error, fail } from '@sveltejs/kit';
+import { pushAppointment } from '$lib/server/calendar/push';
 import { systemClock } from '$lib/server/clock';
 import { mergeNotificationStatus } from '$lib/server/db/notification-status';
 import { buildIcs } from '$lib/server/ics';
@@ -117,16 +118,41 @@ export const actions: Actions = {
 							`When: ${row.start_time}\n`
 					});
 
+		let notif = row.notification_status;
 		if (!emailResult.ok) {
+			notif = mergeNotificationStatus(notif, { email: 'failed' });
 			await getDb()
 				.updateTable('appointments')
-				.set({
-					notification_status: mergeNotificationStatus(row.notification_status, {
-						email: 'failed'
-					})
-				})
+				.set({ notification_status: notif })
 				.where('id', '=', params.id)
 				.execute();
+		}
+
+		if (action === 'accept' && eventType) {
+			const pushed = await pushAppointment(
+				cfg,
+				{ ...row, status: 'confirmed' },
+				eventType.destination_calendar,
+				{ cancelUrl }
+			);
+			if (pushed.ok) {
+				await getDb()
+					.updateTable('appointments')
+					.set({
+						external_event_id: pushed.externalEventId,
+						external_calendar_id: pushed.externalCalendarId,
+						updated_at: systemClock.now().toISOString()
+					})
+					.where('id', '=', params.id)
+					.execute();
+			} else {
+				notif = mergeNotificationStatus(notif, { calendar_push: 'failed' });
+				await getDb()
+					.updateTable('appointments')
+					.set({ notification_status: notif })
+					.where('id', '=', params.id)
+					.execute();
+			}
 		}
 
 		return { done: true, alreadyDecided: false, already: null, action, attendee, eventTypeName };

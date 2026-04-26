@@ -50,6 +50,56 @@ export async function fetchCalDavBusy(
 	return out;
 }
 
+/**
+ * Create or replace a VEVENT at `${cfg.url}${uid}.ics` via HTTP PUT.
+ * Pass an `etag` to enforce conditional update (If-Match); pass `null`
+ * (default) for unconditional create-or-replace.
+ */
+export async function putCalDavEvent(
+	cfg: CalDavConfig,
+	uid: string,
+	ics: string,
+	opts: { etag?: string | null; fetchImpl?: FetchFn } = {}
+): Promise<{ url: string; etag: string | null }> {
+	const auth = Buffer.from(`${cfg.username}:${cfg.password}`).toString('base64');
+	const url = joinPath(cfg.url, `${encodeURIComponent(uid)}.ics`);
+	const headers: Record<string, string> = {
+		Authorization: `Basic ${auth}`,
+		'Content-Type': 'text/calendar; charset=utf-8'
+	};
+	if (opts.etag) headers['If-Match'] = opts.etag;
+	const fetchImpl = opts.fetchImpl ?? fetch;
+	const res = await fetchImpl(url, { method: 'PUT', headers, body: ics });
+	if (!res.ok) {
+		throw new Error(`CalDAV PUT ${url} failed: ${res.status} ${res.statusText}`);
+	}
+	return { url, etag: res.headers.get('etag') };
+}
+
+/**
+ * Delete a VEVENT previously stored at `${cfg.url}${uid}.ics`.
+ */
+export async function deleteCalDavEvent(
+	cfg: CalDavConfig,
+	uid: string,
+	opts: { etag?: string | null; fetchImpl?: FetchFn } = {}
+): Promise<void> {
+	const auth = Buffer.from(`${cfg.username}:${cfg.password}`).toString('base64');
+	const url = joinPath(cfg.url, `${encodeURIComponent(uid)}.ics`);
+	const headers: Record<string, string> = { Authorization: `Basic ${auth}` };
+	if (opts.etag) headers['If-Match'] = opts.etag;
+	const fetchImpl = opts.fetchImpl ?? fetch;
+	const res = await fetchImpl(url, { method: 'DELETE', headers });
+	// 404 means the event is already gone; treat as success.
+	if (!res.ok && res.status !== 404) {
+		throw new Error(`CalDAV DELETE ${url} failed: ${res.status} ${res.statusText}`);
+	}
+}
+
+function joinPath(base: string, child: string): string {
+	return base.endsWith('/') ? base + child : base + '/' + child;
+}
+
 export function buildReportBody(start: Temporal.Instant, end: Temporal.Instant): string {
 	return `<?xml version="1.0" encoding="utf-8" ?>
 <C:calendar-query xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav">

@@ -4,8 +4,10 @@ import { computeSlots } from '$lib/server/availability';
 import { loadAppointmentBlocks } from '$lib/server/availability/db-blocks';
 import { resolveKnobsFor } from '$lib/server/availability/knobs';
 import { pullConflictBusy } from '$lib/server/calendar/conflicts';
+import { pushAppointment } from '$lib/server/calendar/push';
 import { systemClock } from '$lib/server/clock';
 import type { Location } from '$lib/server/config/schema';
+import type { Appointment } from '$lib/server/db';
 import { mergeNotificationStatus } from '$lib/server/db/notification-status';
 import { logger } from '$lib/server/logger';
 import { sendEmail } from '$lib/server/smtp';
@@ -176,6 +178,57 @@ export const actions: Actions = {
 			}
 			logger.error({ err, eventTypeId: eventType.id, slot: slotStr }, 'failed to insert booking');
 			return fail(500, { error: 'Could not save the booking. Please try again.' });
+		}
+
+		if (status === 'confirmed') {
+			const appt: Appointment = {
+				id,
+				event_type_id: eventType.id,
+				start_time: start.toString(),
+				end_time: end.toString(),
+				attendee_name: name,
+				attendee_email: email,
+				attendee_notes: notes || null,
+				location: resolvedLocation,
+				status,
+				cancel_token: cancelToken,
+				response_token: responseToken,
+				external_event_id: null,
+				external_calendar_id: null,
+				notification_status: null,
+				created_at: '',
+				updated_at: ''
+			};
+			const cancelUrl = `${url.origin}/booked/${id}?token=${encodeURIComponent(cancelToken)}`;
+			const pushed = await pushAppointment(cfg, appt, eventType.destination_calendar, {
+				cancelUrl
+			});
+			if (pushed.ok) {
+				await getDb()
+					.updateTable('appointments')
+					.set({
+						external_event_id: pushed.externalEventId,
+						external_calendar_id: pushed.externalCalendarId,
+						updated_at: systemClock.now().toISOString()
+					})
+					.where('id', '=', id)
+					.execute();
+			} else {
+				const current = await getDb()
+					.selectFrom('appointments')
+					.select('notification_status')
+					.where('id', '=', id)
+					.executeTakeFirst();
+				await getDb()
+					.updateTable('appointments')
+					.set({
+						notification_status: mergeNotificationStatus(current?.notification_status ?? null, {
+							calendar_push: 'failed'
+						})
+					})
+					.where('id', '=', id)
+					.execute();
+			}
 		}
 
 		if (status === 'pending' && responseToken) {

@@ -1,0 +1,161 @@
+import { expect, test } from 'bun:test';
+import { deleteCalDavEvent, putCalDavEvent, type FetchFn } from '../src/lib/server/calendar/caldav';
+import { deleteAppointmentFromCalendar, pushAppointment } from '../src/lib/server/calendar/push';
+import type { Appointment } from '../src/lib/server/db';
+import type { WhenConfiguration } from '../src/lib/server/config/schema';
+import { validConfig } from './fixtures/valid-config';
+
+const caldavCfg = { url: 'https://cal.example.com/work/', username: 'jane', password: 'secret' };
+
+const baseAppointment: Appointment = {
+	id: 'appt-xyz',
+	event_type_id: '30-min-chat',
+	start_time: '2026-04-27T13:00:00Z',
+	end_time: '2026-04-27T13:30:00Z',
+	attendee_name: 'Booker',
+	attendee_email: 'booker@example.com',
+	attendee_notes: null,
+	location: null,
+	status: 'confirmed',
+	cancel_token: 'tok',
+	response_token: null,
+	external_event_id: null,
+	external_calendar_id: null,
+	notification_status: null,
+	created_at: '',
+	updated_at: ''
+};
+
+const cfgWithCalDav: WhenConfiguration = {
+	...validConfig,
+	calendars: [
+		{ id: 'work', type: 'caldav', url: caldavCfg.url, username: 'jane', password: 'secret' }
+	],
+	event_types: [
+		{
+			...validConfig.event_types[0],
+			destination_calendar: 'work'
+		}
+	]
+};
+
+test('putCalDavEvent issues PUT with basic auth and text/calendar body', async () => {
+	let captured: { url: string; init: RequestInit } | null = null;
+	const fakeFetch: FetchFn = async (url, init) => {
+		captured = { url: String(url), init: init as RequestInit };
+		return new Response('', { status: 201, headers: { etag: '"abc"' } });
+	};
+	const result = await putCalDavEvent(caldavCfg, 'appt-xyz', 'BEGIN:VCALENDAR\nEND:VCALENDAR', {
+		fetchImpl: fakeFetch
+	});
+	expect(result.url).toBe('https://cal.example.com/work/appt-xyz.ics');
+	expect(result.etag).toBe('"abc"');
+	expect(captured).not.toBeNull();
+	const init = captured!.init;
+	expect(init.method).toBe('PUT');
+	const headers = init.headers as Record<string, string>;
+	expect(headers['Content-Type']).toContain('text/calendar');
+	const expected = 'Basic ' + Buffer.from('jane:secret').toString('base64');
+	expect(headers['Authorization']).toBe(expected);
+});
+
+test('putCalDavEvent forwards If-Match when etag is provided', async () => {
+	let captured: RequestInit | null = null;
+	const fakeFetch: FetchFn = async (_url, init) => {
+		captured = init as RequestInit;
+		return new Response('', { status: 204 });
+	};
+	await putCalDavEvent(caldavCfg, 'appt-xyz', 'BEGIN:VCALENDAR\nEND:VCALENDAR', {
+		fetchImpl: fakeFetch,
+		etag: '"prev"'
+	});
+	expect(captured).not.toBeNull();
+	const headers = (captured as unknown as RequestInit).headers as Record<string, string>;
+	expect(headers['If-Match']).toBe('"prev"');
+});
+
+test('putCalDavEvent throws on non-2xx', async () => {
+	const fakeFetch: FetchFn = async () =>
+		new Response('forbidden', { status: 403, statusText: 'Forbidden' });
+	await expect(
+		putCalDavEvent(caldavCfg, 'appt-xyz', 'x', { fetchImpl: fakeFetch })
+	).rejects.toThrow(/403/);
+});
+
+test('deleteCalDavEvent treats 404 as success', async () => {
+	const fakeFetch: FetchFn = async () => new Response('', { status: 404 });
+	await deleteCalDavEvent(caldavCfg, 'appt-xyz', { fetchImpl: fakeFetch });
+});
+
+test('deleteCalDavEvent throws on 5xx', async () => {
+	const fakeFetch: FetchFn = async () =>
+		new Response('boom', { status: 500, statusText: 'Internal Server Error' });
+	await expect(deleteCalDavEvent(caldavCfg, 'appt-xyz', { fetchImpl: fakeFetch })).rejects.toThrow(
+		/500/
+	);
+});
+
+test('pushAppointment routes to CalDAV PUT and returns external ids', async () => {
+	let body = '';
+	const fakeFetch: FetchFn = async (_url, init) => {
+		body = (init as RequestInit).body as string;
+		return new Response('', { status: 201 });
+	};
+	const result = await pushAppointment(cfgWithCalDav, baseAppointment, 'work', {
+		cancelUrl: 'https://when.example.com/booked/appt-xyz?token=tok',
+		fetchImpl: fakeFetch
+	});
+	expect(result.ok).toBe(true);
+	if (result.ok) {
+		expect(result.externalEventId).toBe('appt-xyz');
+		expect(result.externalCalendarId).toBe('work');
+	}
+	expect(body).toContain('BEGIN:VCALENDAR');
+	expect(body).toContain('UID:appt-xyz');
+});
+
+test('pushAppointment fails (deferred) on Google calendar', async () => {
+	const cfgGoogle: WhenConfiguration = {
+		...validConfig,
+		calendars: [{ id: 'g', type: 'google', client_id: 'gid', client_secret: 'gsec' }],
+		event_types: [{ ...validConfig.event_types[0], destination_calendar: 'g' }]
+	};
+	const result = await pushAppointment(cfgGoogle, baseAppointment, 'g', {
+		cancelUrl: 'https://when.example.com/booked/appt-xyz?token=tok'
+	});
+	expect(result.ok).toBe(false);
+	if (!result.ok) expect(result.reason).toContain('deferred');
+});
+
+test('pushAppointment fails on unknown destination calendar id', async () => {
+	const result = await pushAppointment(cfgWithCalDav, baseAppointment, 'nope', {
+		cancelUrl: 'https://when.example.com/booked/appt-xyz?token=tok'
+	});
+	expect(result.ok).toBe(false);
+});
+
+test('pushAppointment surfaces network failures as ok:false', async () => {
+	const fakeFetch: FetchFn = async () =>
+		new Response('', { status: 500, statusText: 'Internal Server Error' });
+	const result = await pushAppointment(cfgWithCalDav, baseAppointment, 'work', {
+		cancelUrl: 'https://when.example.com/booked/appt-xyz?token=tok',
+		fetchImpl: fakeFetch
+	});
+	expect(result.ok).toBe(false);
+});
+
+test('deleteAppointmentFromCalendar returns ok on success', async () => {
+	const fakeFetch: FetchFn = async () => new Response('', { status: 204 });
+	const result = await deleteAppointmentFromCalendar(cfgWithCalDav, 'work', 'appt-xyz', {
+		fetchImpl: fakeFetch
+	});
+	expect(result.ok).toBe(true);
+});
+
+test('deleteAppointmentFromCalendar returns ok on 404 (already gone)', async () => {
+	const fakeFetch: FetchFn = async () => new Response('', { status: 404 });
+	const result = await deleteAppointmentFromCalendar(cfgWithCalDav, 'work', 'appt-xyz', {
+		fetchImpl: fakeFetch
+	});
+	expect(result.ok).toBe(true);
+});
