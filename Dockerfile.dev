@@ -2,16 +2,17 @@ FROM --platform=linux/amd64 oven/bun:1.3.13-alpine
 
 WORKDIR /app
 
-# Copy project source (node_modules excluded via .dockerignore).
+# Install deps first for layer caching.
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile
+
+# Copy the rest of the project so the image is self-contained.
 COPY . .
 
-# Pre-create the writable directories the host-mapped UID will need at
-# runtime. node_modules itself is populated by scripts/dev-entrypoint.sh
-# on container start (running as the host UID), so the install owns all
-# files and `rm -rf node_modules` works on subsequent restarts when the
-# lockfile changes.
-RUN mkdir -p /app/data /app/node_modules /app/.svelte-kit && \
-    chmod 777 /app/node_modules /app/data /app/.svelte-kit
+# Runtime-writable dirs (host-mapped UID writes here): SQLite db lives
+# in /app/data; svelte-kit sync writes to /app/.svelte-kit on dev start.
+RUN mkdir -p /app/data /app/.svelte-kit && \
+    chmod 777 /app/data /app/.svelte-kit
 
 EXPOSE 5173
-CMD ["./scripts/dev-entrypoint.sh"]
+CMD ["bun", "run", "dev", "--host", "0.0.0.0"]
