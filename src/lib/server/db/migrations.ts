@@ -64,7 +64,32 @@ const responseToken: Migration = {
 	}
 };
 
+const availabilityOverrides: Migration = {
+	async up(db: Kysely<unknown>): Promise<void> {
+		await db.schema
+			.createTable('availability_overrides')
+			.addColumn('id', 'text', (c) => c.primaryKey())
+			.addColumn('date', 'text', (c) => c.notNull())
+			.addColumn('start_time', 'text')
+			.addColumn('end_time', 'text')
+			.addColumn('reason', 'text')
+			.addColumn('created_at', 'text', (c) => c.notNull().defaultTo(sql`CURRENT_TIMESTAMP`))
+			.execute();
+
+		await db.schema
+			.createIndex('availability_overrides_date')
+			.on('availability_overrides')
+			.column('date')
+			.execute();
+	},
+
+	async down(db: Kysely<unknown>): Promise<void> {
+		await db.schema.dropTable('availability_overrides').execute();
+	}
+};
+
 export const migrations: Record<string, Migration> = {
 	'0001_initial': initial,
-	'0002_response_token': responseToken
+	'0002_response_token': responseToken,
+	'0003_availability_overrides': availabilityOverrides
 };

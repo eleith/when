@@ -2,6 +2,7 @@ import { error, fail, redirect } from '@sveltejs/kit';
 import { Temporal } from '@js-temporal/polyfill';
 import { computeSlots } from '$lib/server/availability';
 import { loadAppointmentBlocks } from '$lib/server/availability/db-blocks';
+import { loadDateOverrides } from '$lib/server/availability/db-overrides';
 import { resolveKnobsFor } from '$lib/server/availability/knobs';
 import { pullConflictBusy } from '$lib/server/calendar/conflicts';
 import { pushAppointment } from '$lib/server/calendar/push';
@@ -53,6 +54,11 @@ export const load: PageServerLoad = async ({ params, url }) => {
 		start: nowInstant,
 		end: rangeEnd
 	});
+	const dateOverrides = await loadDateOverrides(
+		getDb(),
+		nowInstant.toZonedDateTimeISO(userTz).toPlainDate().toString(),
+		rangeEnd.toZonedDateTimeISO(userTz).toPlainDate().toString()
+	);
 	const slots = computeSlots({
 		knobs,
 		rangeStart: nowInstant,
@@ -61,7 +67,8 @@ export const load: PageServerLoad = async ({ params, url }) => {
 		now: nowInstant,
 		existingAppointments: blocks.appointments,
 		remoteBusy,
-		perDayCount: blocks.perDayCount
+		perDayCount: blocks.perDayCount,
+		dateOverrides
 	});
 
 	const slotsByDate: Record<string, string[]> = {};
@@ -130,6 +137,11 @@ export const actions: Actions = {
 		const rangeEnd = nowInstant.add({ hours: 24 * knobs.maximum_lookahead });
 		const blocks = await loadAppointmentBlocks(getDb(), eventType.id, nowInstant, rangeEnd, userTz);
 		const remoteBusy = await pullSlotDayBusy(cfg, eventType, slotStr, userTz);
+		const dateOverrides = await loadDateOverrides(
+			getDb(),
+			nowInstant.toZonedDateTimeISO(userTz).toPlainDate().toString(),
+			rangeEnd.toZonedDateTimeISO(userTz).toPlainDate().toString()
+		);
 		const slots = computeSlots({
 			knobs,
 			rangeStart: nowInstant,
@@ -138,7 +150,8 @@ export const actions: Actions = {
 			now: nowInstant,
 			existingAppointments: blocks.appointments,
 			remoteBusy,
-			perDayCount: blocks.perDayCount
+			perDayCount: blocks.perDayCount,
+			dateOverrides
 		});
 		if (!slots.some((s) => s.toString() === slotStr)) {
 			return fail(409, { error: 'That time is no longer available. Please pick another.' });
@@ -309,6 +322,11 @@ export const actions: Actions = {
 			perDayCount: blocks.perDayCount
 		};
 		const remoteBusy = await pullSlotDayBusy(cfg, eventType, slotStr, userTz);
+		const dateOverrides = await loadDateOverrides(
+			getDb(),
+			nowInstant.toZonedDateTimeISO(userTz).toPlainDate().toString(),
+			rangeEnd.toZonedDateTimeISO(userTz).toPlainDate().toString()
+		);
 		const slots = computeSlots({
 			knobs,
 			rangeStart: nowInstant,
@@ -317,7 +335,8 @@ export const actions: Actions = {
 			now: nowInstant,
 			existingAppointments: blocks.appointments,
 			remoteBusy,
-			perDayCount: blocks.perDayCount
+			perDayCount: blocks.perDayCount,
+			dateOverrides
 		});
 		if (!slots.some((s) => s.toString() === slotStr)) {
 			return fail(409, { error: 'That time is no longer available. Please pick another.' });

@@ -9,10 +9,13 @@ export type { Database } from './types';
 export type {
 	AppointmentsTable,
 	OauthTokensTable,
+	AvailabilityOverridesTable,
 	AppointmentStatus,
 	Appointment,
 	NewAppointment,
-	AppointmentUpdate
+	AppointmentUpdate,
+	AvailabilityOverride,
+	NewAvailabilityOverride
 } from './types';
 
 export function openDb(path: string): Kysely<Database> {
