@@ -11,6 +11,7 @@ import type { Location } from '$lib/server/config/schema';
 import type { Appointment } from '$lib/server/db';
 import { mergeNotificationStatus } from '$lib/server/db/notification-status';
 import { logger } from '$lib/server/logger';
+import { notifyBookingConfirmed } from '$lib/server/notify';
 import { sendEmail } from '$lib/server/smtp';
 import { getConfig, getDb } from '$lib/server/state';
 import type { Actions, PageServerLoad } from './$types';
@@ -237,6 +238,29 @@ export const actions: Actions = {
 					.set({
 						notification_status: mergeNotificationStatus(current?.notification_status ?? null, {
 							calendar_push: 'failed'
+						})
+					})
+					.where('id', '=', id)
+					.execute();
+			}
+
+			const notifyResult = await notifyBookingConfirmed({
+				cfg,
+				appointment: appt,
+				eventType,
+				cancelUrl
+			});
+			if (!notifyResult.ok) {
+				const current = await getDb()
+					.selectFrom('appointments')
+					.select('notification_status')
+					.where('id', '=', id)
+					.executeTakeFirst();
+				await getDb()
+					.updateTable('appointments')
+					.set({
+						notification_status: mergeNotificationStatus(current?.notification_status ?? null, {
+							email: 'failed'
 						})
 					})
 					.where('id', '=', id)
