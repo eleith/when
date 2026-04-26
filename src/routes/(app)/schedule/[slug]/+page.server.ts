@@ -266,7 +266,7 @@ export const actions: Actions = {
 		redirect(303, `/booked/${id}?token=${encodeURIComponent(cancelToken)}`);
 	},
 
-	reschedule: async ({ request, params }) => {
+	reschedule: async ({ request, params, url }) => {
 		const cfg = getConfig();
 		const eventType = cfg.event_types.find((e) => e.slug === params.slug);
 		if (!eventType) error(404);
@@ -345,6 +345,34 @@ export const actions: Actions = {
 				'failed to reschedule booking'
 			);
 			return fail(500, { error: 'Could not save the reschedule. Please try again.' });
+		}
+
+		if (existing.external_event_id && existing.external_calendar_id) {
+			const updated: Appointment = {
+				...existing,
+				start_time: start.toString(),
+				end_time: end.toString()
+			};
+			const cancelUrl = `${url.origin}/booked/${rescheduleId}?token=${encodeURIComponent(existing.cancel_token)}`;
+			const pushed = await pushAppointment(cfg, updated, existing.external_calendar_id, {
+				cancelUrl
+			});
+			if (!pushed.ok) {
+				const current = await getDb()
+					.selectFrom('appointments')
+					.select('notification_status')
+					.where('id', '=', rescheduleId)
+					.executeTakeFirst();
+				await getDb()
+					.updateTable('appointments')
+					.set({
+						notification_status: mergeNotificationStatus(current?.notification_status ?? null, {
+							calendar_push: 'failed'
+						})
+					})
+					.where('id', '=', rescheduleId)
+					.execute();
+			}
 		}
 
 		redirect(303, `/booked/${rescheduleId}?token=${encodeURIComponent(existing.cancel_token)}`);

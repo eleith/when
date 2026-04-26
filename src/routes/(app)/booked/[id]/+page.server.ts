@@ -1,5 +1,7 @@
 import { error, fail } from '@sveltejs/kit';
+import { deleteAppointmentFromCalendar } from '$lib/server/calendar/push';
 import { systemClock } from '$lib/server/clock';
+import { mergeNotificationStatus } from '$lib/server/db/notification-status';
 import { getConfig, getDb } from '$lib/server/state';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -59,6 +61,26 @@ export const actions: Actions = {
 			.set({ status: 'cancelled', updated_at: systemClock.now().toISOString() })
 			.where('id', '=', params.id)
 			.execute();
+
+		if (row.external_event_id && row.external_calendar_id) {
+			const cfg = getConfig();
+			const result = await deleteAppointmentFromCalendar(
+				cfg,
+				row.external_calendar_id,
+				row.external_event_id
+			);
+			if (!result.ok) {
+				await getDb()
+					.updateTable('appointments')
+					.set({
+						notification_status: mergeNotificationStatus(row.notification_status, {
+							calendar_push: 'failed'
+						})
+					})
+					.where('id', '=', params.id)
+					.execute();
+			}
+		}
 
 		return { cancelled: true };
 	}
