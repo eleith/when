@@ -6,7 +6,6 @@
 	let slotsByDate = $derived(data.slotsByDate as Record<string, string[]>);
 	let availableDates = $derived(new Set(Object.keys(slotsByDate)));
 	let firstDate = $derived(Object.keys(slotsByDate)[0] ?? null);
-	let accent = $derived(data.user.branding?.accent_color ?? '#4f46e5');
 	let localTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 	// User-controlled state — initialized in $effect below
@@ -146,7 +145,7 @@
 	<title>{data.eventType.name} — {data.user.name}</title>
 </svelte:head>
 
-<div class="booking" style="--accent: {accent}">
+<div class="booking">
 	<header class="booking-header">
 		{#if data.reschedule}
 			<p class="reschedule-badge">Reschedule</p>

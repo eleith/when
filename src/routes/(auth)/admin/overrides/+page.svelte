@@ -85,7 +85,7 @@
 	}
 
 	.back a {
-		color: #4f46e5;
+		color: var(--accent, #4f46e5);
 		text-decoration: none;
 		font-size: 0.875rem;
 	}
@@ -145,17 +145,19 @@
 
 	.add-form button {
 		padding: 8px 16px;
-		border: 1px solid #4f46e5;
-		background: #4f46e5;
+		border: 1px solid var(--accent, #4f46e5);
+		background: var(--accent, #4f46e5);
 		color: white;
 		border-radius: 6px;
 		font-weight: 600;
 		cursor: pointer;
 		font-family: inherit;
+		filter: brightness(1);
+		transition: filter 0.15s;
 	}
 
 	.add-form button:hover {
-		background: #4338ca;
+		filter: brightness(0.92);
 	}
 
 	h2 {

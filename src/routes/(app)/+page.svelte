@@ -1,13 +1,12 @@
 <script lang="ts">
 	let { data } = $props();
-	let accent = $derived(data.user.branding?.accent_color ?? '#4f46e5');
 </script>
 
 <svelte:head>
 	<title>{data.user.name} | When</title>
 </svelte:head>
 
-<main class="landing" style="--accent: {accent}">
+<main class="landing">
 	{#if data.user.branding?.logo_url}
 		<img src={data.user.branding.logo_url} alt={data.user.name} class="avatar" />
 	{/if}

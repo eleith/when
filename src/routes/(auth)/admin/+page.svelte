@@ -111,7 +111,7 @@
 	}
 
 	.links a {
-		color: #4f46e5;
+		color: var(--accent, #4f46e5);
 		text-decoration: none;
 		font-size: 0.875rem;
 	}

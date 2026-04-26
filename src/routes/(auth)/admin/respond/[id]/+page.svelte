@@ -60,7 +60,7 @@
 	}
 
 	a {
-		color: #4f46e5;
+		color: var(--accent, #4f46e5);
 	}
 
 	.confirm-btn {
