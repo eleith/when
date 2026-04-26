@@ -11,8 +11,9 @@ NEW_HASH=$(sha256sum bun.lock | awk '{print $1}')
 
 if [ ! -f "$HASH_FILE" ] || [ "$(cat "$HASH_FILE")" != "$NEW_HASH" ]; then
 	echo "[dev] lockfile changed (or first run) — installing dependencies"
-	rm -rf /app/node_modules
-	mkdir -p /app/node_modules
+	# /app/node_modules is the volume mountpoint and can't be unlinked
+	# from inside the container; wipe its contents instead.
+	find /app/node_modules -mindepth 1 -delete
 	bun install --frozen-lockfile
 	echo "$NEW_HASH" >"$HASH_FILE"
 else
