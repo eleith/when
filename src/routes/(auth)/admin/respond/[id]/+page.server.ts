@@ -1,4 +1,5 @@
 import { error, fail } from '@sveltejs/kit';
+import { systemClock } from '$lib/server/clock';
 import { sendEmail } from '$lib/server/smtp';
 import { getConfig, getDb } from '$lib/server/state';
 import type { Actions, PageServerLoad } from './$types';
@@ -74,7 +75,7 @@ export const actions: Actions = {
 
 		await getDb()
 			.updateTable('appointments')
-			.set({ status: newStatus, updated_at: new Date().toISOString() })
+			.set({ status: newStatus, updated_at: systemClock.now().toISOString() })
 			.where('id', '=', params.id)
 			.execute();
 

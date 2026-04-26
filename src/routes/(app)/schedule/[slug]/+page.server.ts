@@ -261,7 +261,7 @@ export const actions: Actions = {
 			.set({
 				start_time: start.toString(),
 				end_time: end.toString(),
-				updated_at: new Date().toISOString()
+				updated_at: systemClock.now().toISOString()
 			})
 			.where('id', '=', rescheduleId)
 			.execute();
