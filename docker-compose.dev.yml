@@ -1,30 +1,13 @@
-# Hot-reload dev environment. Run with:
-#   docker compose -f docker-compose.dev.yml up
-# or via the package.json shortcut: bun run dev:docker
-#
-# The image is self-contained: Dockerfile.dev runs `bun install` and
-# bakes node_modules at build time. Host source is bind-mounted only
-# for the dirs/files a dev edits actively, so HMR works without
-# shadowing the image's node_modules. Add a new top-level path? Add
-# it to the volumes list below.
-#
-# Workflow:
-#   - Edit src/* → Vite HMR.
-#   - Add a dependency:
-#       (host) edit package.json   # e.g. via `bun add foo` if Bun is local,
-#                                  # or hand-edit + bump bun.lock to match
-#       docker compose -f docker-compose.dev.yml up --build
-
 services:
   when-dev:
     build:
       context: .
       dockerfile: Dockerfile.dev
-    platform: linux/amd64
     user: '${UID:-1000}:${GID:-1000}'
     ports:
       - '5173:5173'
     volumes:
+      - ./.env:/app/.env
       - ./src:/app/src
       - ./static:/app/static
       - ./config.yaml:/app/config.yaml
@@ -33,13 +16,10 @@ services:
       - ./vite.config.ts:/app/vite.config.ts
       - ./tsconfig.json:/app/tsconfig.json
       - ./eslint.config.js:/app/eslint.config.js
-      - when-dev-data:/app/data
+      - ./data:/app/data
     environment:
       NODE_ENV: development
       AUTH_SECRET: ${AUTH_SECRET:-development-only-secret-please-change-it-32chars}
-      # ENCRYPTION_KEY intentionally unset; dev mode auto-generates an ephemeral
-      # key with a loud warning. Stored secrets (OAuth tokens) won't survive a
-      # restart in this mode — that's OK for local iteration.
 
 volumes:
   when-dev-data:
