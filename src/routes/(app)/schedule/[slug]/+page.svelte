@@ -150,12 +150,13 @@
 		{#if data.reschedule}
 			<p class="reschedule-badge">Reschedule</p>
 		{/if}
-		<div class="host-info">
+		<a href="/" class="host-info" aria-label="Back to all event types">
+			<span class="back-arrow" aria-hidden="true">&larr;</span>
 			{#if data.user.branding?.logo_url}
 				<img src={data.user.branding.logo_url} alt="" class="host-avatar" />
 			{/if}
 			<span class="host-name">{data.user.name}</span>
-		</div>
+		</a>
 		<h1 class="event-name">{data.eventType.name}</h1>
 		<p class="event-meta">
 			{data.eventType.duration} min
@@ -331,10 +332,23 @@
 	}
 
 	.host-info {
-		display: flex;
+		display: inline-flex;
 		align-items: center;
 		gap: 8px;
 		margin-bottom: 12px;
+		text-decoration: none;
+		color: inherit;
+		transition: opacity 0.15s;
+	}
+
+	.host-info:hover {
+		opacity: 0.8;
+	}
+
+	.back-arrow {
+		color: #9ca3af;
+		font-size: 1.1rem;
+		line-height: 1;
 	}
 
 	.host-avatar {
