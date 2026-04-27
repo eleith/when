@@ -210,3 +210,7 @@ bun run test:e2e   # Playwright (requires browsers installed)
 - Outbound `.ics` and inbound CalDAV iCal both go through `ts-ics`.
 - Single-process, single-user: no multi-tenancy, no team round-robin.
 - Docker image is `linux/amd64` only.
+
+## Documentation
+
+For LLMs or AI agents working on this project, please consult [`AGENTS.md`](./AGENTS.md) for architectural constraints and coding guidelines.
