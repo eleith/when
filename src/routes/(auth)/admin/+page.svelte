@@ -25,8 +25,6 @@
 	<button type="submit">Sign out</button>
 </form>
 
-<p class="links"><a href="/admin/overrides">Manage availability overrides &rarr;</a></p>
-
 <h2>Appointments</h2>
 
 {#if data.appointments.length === 0}
@@ -103,20 +101,6 @@
 
 	.signout-form {
 		margin-bottom: 32px;
-	}
-
-	.links {
-		margin: 0 0 24px;
-	}
-
-	.links a {
-		color: var(--accent, #4f46e5);
-		text-decoration: none;
-		font-size: 0.875rem;
-	}
-
-	.links a:hover {
-		text-decoration: underline;
 	}
 
 	.signout-form button {

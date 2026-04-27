@@ -95,21 +95,6 @@ test('buildBaseWindows around fall-back picks the earlier occurrence', () => {
 	expect(intervals[0].end.toString()).toBe('2026-11-01T09:00:00Z');
 });
 
-test('buildBaseWindows accepts a custom-window override', () => {
-	const intervals = buildBaseWindows(plainDate('2026-06-10'), NINE_TO_FIVE, NYC, {
-		window: { start: '14:00', end: '16:00' }
-	});
-	expect(intervals).toHaveLength(1);
-	expect(intervals[0].start.toString()).toBe('2026-06-10T18:00:00Z');
-	expect(intervals[0].end.toString()).toBe('2026-06-10T20:00:00Z');
-});
-
-test('buildBaseWindows returns [] for an all-day-block override', () => {
-	expect(
-		buildBaseWindows(plainDate('2026-06-10'), NINE_TO_FIVE, NYC, { allDayBlock: true })
-	).toEqual([]);
-});
-
 test('buildBaseWindows rejects ill-formed range strings', () => {
 	const bad: WeeklySchedule = { monday: ['9-5'] };
 	expect(buildBaseWindows(plainDate('2026-04-27'), bad, NYC)).toEqual([]);

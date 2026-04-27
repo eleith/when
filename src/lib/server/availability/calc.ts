@@ -2,7 +2,7 @@ import type { Temporal } from '@js-temporal/polyfill';
 import { mergeBlocks } from './blocks';
 import { filterSlots } from './filter';
 import { generateSlots } from './slots';
-import type { DateOverride, EventTypeKnobs, Interval } from './types';
+import type { EventTypeKnobs, Interval } from './types';
 import { buildBaseWindows, candidateDates } from './windows';
 
 export interface ComputeOptions {
@@ -17,8 +17,6 @@ export interface ComputeOptions {
 	remoteBusy: Interval[];
 	/** Active-booking counts keyed by user_tz YYYY-MM-DD. */
 	perDayCount: Map<string, number>;
-	/** Per-date overrides (Phase 6); keyed by user_tz YYYY-MM-DD. */
-	dateOverrides?: Map<string, DateOverride>;
 }
 
 export function computeSlots(opts: ComputeOptions): Temporal.Instant[] {
@@ -30,15 +28,13 @@ export function computeSlots(opts: ComputeOptions): Temporal.Instant[] {
 		now,
 		existingAppointments,
 		remoteBusy,
-		perDayCount,
-		dateOverrides
+		perDayCount
 	} = opts;
 
 	const dates = candidateDates(rangeStart, rangeEnd, userTz);
 	const windows: Interval[] = [];
 	for (const date of dates) {
-		const override = dateOverrides?.get(date.toString());
-		windows.push(...buildBaseWindows(date, knobs.weekly, userTz, override));
+		windows.push(...buildBaseWindows(date, knobs.weekly, userTz));
 	}
 
 	const blocks = mergeBlocks([...existingAppointments, ...remoteBusy]);

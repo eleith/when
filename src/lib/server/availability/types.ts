@@ -25,9 +25,6 @@ export interface Interval {
 	end: Temporal.Instant;
 }
 
-/** Per-date override (Phase 6 wires this from `availability_overrides`). */
-export type DateOverride = { allDayBlock: true } | { window: { start: string; end: string } };
-
 /** Knobs an event type cares about, with globals already merged in. */
 export interface EventTypeKnobs {
 	/** minutes */

@@ -1,5 +1,5 @@
 import { Temporal } from '@js-temporal/polyfill';
-import type { DateOverride, Interval, Weekday, WeeklySchedule } from './types';
+import type { Interval, Weekday, WeeklySchedule } from './types';
 
 const WEEKDAYS: readonly Weekday[] = [
 	'monday',
@@ -45,14 +45,8 @@ const HHMM_RANGE = /^([01]\d|2[0-3]):([0-5]\d)-([01]\d|2[0-3]):([0-5]\d)$/;
 export function buildBaseWindows(
 	date: Temporal.PlainDate,
 	weekly: WeeklySchedule,
-	userTz: string,
-	override?: DateOverride
+	userTz: string
 ): Interval[] {
-	if (override) {
-		if ('allDayBlock' in override) return [];
-		const interval = parseRange(`${override.window.start}-${override.window.end}`, date, userTz);
-		return interval ? [interval] : [];
-	}
 	const ranges = weekly[weekdayOf(date)] ?? [];
 	return ranges.map((r) => parseRange(r, date, userTz)).filter((x): x is Interval => x !== null);
 }

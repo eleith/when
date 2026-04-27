@@ -217,49 +217,6 @@ test('max_bookings_per_day rejects all candidates on capped days', () => {
 	expect(dates.has('2026-04-28')).toBe(true);
 });
 
-test('availability override: full-day block emits no slots that day', () => {
-	const knobs = defaults({ weekly: { wednesday: ['09:00-17:00'] } });
-	const overrides = new Map([['2026-06-10', { allDayBlock: true } as const]]);
-	const slots = computeSlots({
-		knobs,
-		userTz: NYC,
-		now: I('2026-06-09T00:00:00Z'),
-		rangeStart: I('2026-06-10T00:00:00Z'),
-		rangeEnd: I('2026-06-11T00:00:00Z'),
-		existingAppointments: [],
-		remoteBusy: [],
-		perDayCount: new Map(),
-		dateOverrides: overrides
-	});
-	expect(slots).toEqual([]);
-});
-
-test('availability override: custom window replaces default entirely', () => {
-	const knobs = defaults({
-		duration: 30,
-		slot_granularity: 30,
-		weekly: { wednesday: ['09:00-17:00'] }
-	});
-	const overrides = new Map([
-		['2026-06-10', { window: { start: '14:00', end: '16:00' } } as const]
-	]);
-	const slots = computeSlots({
-		knobs,
-		userTz: NYC,
-		now: I('2026-06-09T00:00:00Z'),
-		rangeStart: I('2026-06-10T00:00:00Z'),
-		rangeEnd: I('2026-06-11T00:00:00Z'),
-		existingAppointments: [],
-		remoteBusy: [],
-		perDayCount: new Map(),
-		dateOverrides: overrides
-	});
-	const localTimes = slots.map((s) =>
-		s.toZonedDateTimeISO(NYC).toPlainTime().toString({ smallestUnit: 'minute' })
-	);
-	expect(localTimes).toEqual(['14:00', '14:30', '15:00', '15:30']);
-});
-
 test('empty availability for a weekday emits no slots', () => {
 	const knobs = defaults({ weekly: { friday: ['09:00-17:00'] } }); // Sat/Sun missing
 	const slots = computeSlots({

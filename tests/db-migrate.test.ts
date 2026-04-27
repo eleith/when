@@ -3,18 +3,17 @@ import { sql } from 'kysely';
 import { openDb } from '../src/lib/server/db';
 import { runMigrations } from '../src/lib/server/db/migrate';
 
-test('runMigrations creates appointments, oauth_tokens, availability_overrides', async () => {
+test('runMigrations creates appointments and oauth_tokens', async () => {
 	const db = openDb(':memory:');
 	try {
 		const applied = await runMigrations(db);
 		expect(applied).toContain('0001_initial');
-		expect(applied).toContain('0003_availability_overrides');
 
 		const tables = await sql<{ name: string }>`
 			SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'kysely_%'
 		`.execute(db);
 		const tableNames = tables.rows.map((r) => r.name).sort();
-		expect(tableNames).toEqual(['appointments', 'availability_overrides', 'oauth_tokens']);
+		expect(tableNames).toEqual(['appointments', 'oauth_tokens']);
 
 		const indexes = await sql<{ name: string }>`
 			SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='appointments'
