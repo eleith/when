@@ -75,18 +75,17 @@
 
 <style>
 	.cancel-form {
-		margin-top: 24px;
+		margin-top: var(--space-7);
 	}
 
 	.cancel-btn {
 		background: none;
 		border: 1px solid var(--border-strong);
-		border-radius: 8px;
-		padding: 8px 16px;
+		border-radius: var(--radius);
+		padding: var(--space-3) var(--space-5);
 		color: var(--danger);
 		cursor: pointer;
-		font-size: 0.875rem;
-		font-family: inherit;
+		font-size: var(--font-size-base);
 	}
 
 	.cancel-btn:hover {

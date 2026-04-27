@@ -310,35 +310,33 @@
 	.booking {
 		max-width: 880px;
 		margin: 0 auto;
-		padding: 32px 20px 64px;
-		font-family:
-			-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+		padding: var(--space-8) var(--space-6) var(--space-10);
 		color: var(--text);
 	}
 
 	.booking-header {
-		margin-bottom: 28px;
+		margin-bottom: var(--space-7);
 	}
 
 	.reschedule-badge {
 		display: inline-block;
 		background: var(--accent);
 		color: var(--text-on-accent);
-		font-size: 0.75rem;
+		font-size: var(--font-size-xs);
 		font-weight: 600;
-		padding: 2px 10px;
-		border-radius: 999px;
-		margin-bottom: 8px;
+		padding: var(--space-1) var(--space-4);
+		border-radius: var(--radius-pill);
+		margin-bottom: var(--space-3);
 	}
 
 	.host-info {
 		display: inline-flex;
 		align-items: center;
-		gap: 8px;
-		margin-bottom: 12px;
+		gap: var(--space-3);
+		margin-bottom: var(--space-4);
 		text-decoration: none;
 		color: inherit;
-		transition: opacity 0.15s;
+		transition: opacity var(--transition);
 	}
 
 	.host-info:hover {
@@ -347,7 +345,7 @@
 
 	.back-arrow {
 		color: var(--text-disabled);
-		font-size: 1.1rem;
+		font-size: var(--font-size-lg);
 		line-height: 1;
 	}
 
@@ -360,13 +358,13 @@
 
 	.host-name {
 		color: var(--text-muted);
-		font-size: 0.875rem;
+		font-size: var(--font-size-base);
 	}
 
 	.event-name {
-		font-size: 1.5rem;
+		font-size: var(--font-size-2xl);
 		font-weight: 700;
-		margin: 0 0 4px;
+		margin: 0 0 var(--space-2);
 	}
 
 	.event-meta {
@@ -377,13 +375,13 @@
 	.empty {
 		text-align: center;
 		color: var(--text-muted);
-		padding: 48px 0;
+		padding: var(--space-9) 0;
 	}
 
 	/* ---- two-column layout ---- */
 	.booking-body {
 		display: flex;
-		gap: 24px;
+		gap: var(--space-7);
 		align-items: flex-start;
 	}
 
@@ -392,8 +390,8 @@
 		width: 308px;
 		background: var(--surface);
 		border: 1px solid var(--border);
-		border-radius: 12px;
-		padding: 20px;
+		border-radius: var(--radius-md);
+		padding: var(--space-6);
 	}
 
 	.selection-panel {
@@ -406,17 +404,17 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		margin-bottom: 14px;
+		margin-bottom: var(--space-5);
 	}
 
 	.nav-btn {
 		background: none;
 		border: none;
-		font-size: 1.4rem;
+		font-size: var(--font-size-2xl);
 		color: var(--text-muted);
 		cursor: pointer;
-		padding: 2px 8px;
-		border-radius: 6px;
+		padding: var(--space-1) var(--space-3);
+		border-radius: var(--radius-sm);
 		line-height: 1;
 	}
 
@@ -427,7 +425,7 @@
 
 	.month-label {
 		font-weight: 600;
-		font-size: 0.9375rem;
+		font-size: var(--font-size-md);
 	}
 
 	/* ---- calendar grid ---- */
@@ -438,16 +436,16 @@
 	.day-headers {
 		display: grid;
 		grid-template-columns: repeat(7, 1fr);
-		margin-bottom: 2px;
+		margin-bottom: var(--space-1);
 	}
 
 	.day-header {
 		text-align: center;
-		font-size: 0.6875rem;
+		font-size: var(--font-size-xs);
 		color: var(--text-disabled);
 		font-weight: 600;
 		text-transform: uppercase;
-		padding: 4px 0;
+		padding: var(--space-2) 0;
 		letter-spacing: 0.025em;
 	}
 
@@ -461,15 +459,14 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		font-size: 0.8125rem;
+		font-size: var(--font-size-sm);
 		border: none;
 		background: none;
 		cursor: pointer;
-		border-radius: 8px;
+		border-radius: var(--radius);
 		color: var(--text);
-		transition: background 0.12s;
+		transition: background var(--transition);
 		position: relative;
-		font-family: inherit;
 	}
 
 	.day-cell.empty {
@@ -497,7 +494,7 @@
 	.day-cell.today:not(.selected)::after {
 		content: '';
 		position: absolute;
-		bottom: 2px;
+		bottom: var(--space-1);
 		left: 50%;
 		transform: translateX(-50%);
 		width: 4px;
@@ -521,8 +518,8 @@
 	}
 
 	.tz-note {
-		margin: 14px 0 0;
-		font-size: 0.7rem;
+		margin: var(--space-5) 0 0;
+		font-size: var(--font-size-xs);
 		color: var(--text-disabled);
 		text-align: center;
 	}
@@ -531,35 +528,34 @@
 	.time-slots {
 		background: var(--surface);
 		border: 1px solid var(--border);
-		border-radius: 12px;
-		padding: 24px;
+		border-radius: var(--radius-md);
+		padding: var(--space-7);
 	}
 
 	.slots-date {
-		font-size: 1rem;
+		font-size: var(--font-size-lg);
 		font-weight: 600;
-		margin: 0 0 16px;
+		margin: 0 0 var(--space-5);
 	}
 
 	.slots-list {
 		display: grid;
 		grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-		gap: 8px;
+		gap: var(--space-3);
 	}
 
 	.slot-btn {
-		padding: 10px 14px;
+		padding: var(--space-4) var(--space-5);
 		border: 1px solid var(--border-strong);
-		border-radius: 8px;
+		border-radius: var(--radius);
 		background: var(--surface);
-		font-size: 0.875rem;
+		font-size: var(--font-size-base);
 		font-weight: 500;
 		cursor: pointer;
 		color: var(--accent);
 		transition:
-			border-color 0.12s,
-			background 0.12s;
-		font-family: inherit;
+			border-color var(--transition),
+			background var(--transition);
 	}
 
 	.slot-btn:hover {
@@ -570,33 +566,33 @@
 	.empty-state {
 		text-align: center;
 		color: var(--text-muted);
-		padding: 48px 24px;
+		padding: var(--space-9) var(--space-7);
 	}
 
 	/* ---- booking form ---- */
 	.booking-form {
 		background: var(--surface);
 		border: 1px solid var(--border);
-		border-radius: 12px;
-		padding: 24px;
+		border-radius: var(--radius-md);
+		padding: var(--space-7);
 	}
 
 	.confirmed-slot {
 		display: flex;
 		align-items: baseline;
-		gap: 8px;
-		margin-bottom: 2px;
+		gap: var(--space-3);
+		margin-bottom: var(--space-1);
 		flex-wrap: wrap;
 	}
 
 	.slot-time {
-		font-size: 1.25rem;
+		font-size: var(--font-size-xl);
 		font-weight: 600;
 	}
 
 	.slot-date {
 		color: var(--text-muted);
-		font-size: 0.9375rem;
+		font-size: var(--font-size-md);
 	}
 
 	.change-link {
@@ -604,31 +600,31 @@
 		border: none;
 		color: var(--accent);
 		cursor: pointer;
-		font-size: 0.8125rem;
+		font-size: var(--font-size-sm);
 		padding: 0;
-		margin-bottom: 18px;
+		margin-bottom: var(--space-6);
 		text-decoration: underline;
 	}
 
 	.form-error {
 		background: var(--danger-bg);
 		color: var(--danger);
-		padding: 10px 14px;
-		border-radius: 8px;
-		font-size: 0.875rem;
-		margin-bottom: 18px;
+		padding: var(--space-4) var(--space-5);
+		border-radius: var(--radius);
+		font-size: var(--font-size-base);
+		margin-bottom: var(--space-6);
 	}
 
 	.field {
-		margin-bottom: 14px;
+		margin-bottom: var(--space-5);
 	}
 
 	.field label,
 	.field-label {
 		display: block;
-		font-size: 0.8125rem;
+		font-size: var(--font-size-sm);
 		font-weight: 600;
-		margin-bottom: 4px;
+		margin-bottom: var(--space-2);
 		color: var(--text-secondary);
 	}
 
@@ -641,13 +637,12 @@
 	.field select,
 	.field textarea {
 		width: 100%;
-		padding: 9px 12px;
+		padding: var(--space-4) var(--space-4);
 		border: 1px solid var(--border-strong);
-		border-radius: 8px;
-		font-size: 0.9375rem;
-		font-family: inherit;
+		border-radius: var(--radius);
+		font-size: var(--font-size-md);
 		box-sizing: border-box;
-		transition: border-color 0.12s;
+		transition: border-color var(--transition);
 		background: var(--surface);
 		color: var(--text);
 	}
@@ -662,22 +657,22 @@
 
 	.location-display {
 		color: var(--text-muted);
-		font-size: 0.9375rem;
+		font-size: var(--font-size-md);
 		margin: 0;
 	}
 
 	.submit-btn {
 		width: 100%;
-		padding: 11px 20px;
+		padding: var(--space-4) var(--space-6);
 		background: var(--accent);
 		color: var(--text-on-accent);
 		border: none;
-		border-radius: 8px;
-		font-size: 0.9375rem;
+		border-radius: var(--radius);
+		font-size: var(--font-size-md);
 		font-weight: 600;
 		cursor: pointer;
-		transition: opacity 0.12s;
-		margin-top: 4px;
+		transition: opacity var(--transition);
+		margin-top: var(--space-2);
 	}
 
 	.submit-btn:hover {

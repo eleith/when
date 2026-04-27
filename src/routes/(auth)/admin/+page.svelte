@@ -96,21 +96,20 @@
 
 <style>
 	h1 {
-		margin: 0 0 4px;
+		margin: 0 0 var(--space-2);
 	}
 
 	.signout-form {
-		margin-bottom: 32px;
+		margin-bottom: var(--space-8);
 	}
 
 	.signout-form button {
 		background: none;
 		border: 1px solid var(--border-strong);
-		border-radius: 6px;
-		padding: 4px 12px;
-		font-size: 0.8125rem;
+		border-radius: var(--radius-sm);
+		padding: var(--space-2) var(--space-4);
+		font-size: var(--font-size-sm);
 		cursor: pointer;
-		font-family: inherit;
 	}
 
 	.signout-form button:hover {
@@ -118,8 +117,8 @@
 	}
 
 	h2 {
-		font-size: 1.25rem;
-		margin: 0 0 12px;
+		font-size: var(--font-size-xl);
+		margin: 0 0 var(--space-4);
 	}
 
 	.empty {
@@ -138,9 +137,9 @@
 	th,
 	td {
 		text-align: left;
-		padding: 8px 12px;
+		padding: var(--space-3) var(--space-4);
 		border-bottom: 1px solid var(--border);
-		font-size: 0.875rem;
+		font-size: var(--font-size-base);
 	}
 
 	th {
@@ -170,24 +169,23 @@
 
 	.notif-warn {
 		color: var(--warning);
-		margin-left: 4px;
+		margin-left: var(--space-2);
 		cursor: help;
 	}
 
 	.action-form {
 		display: inline-block;
-		margin-right: 4px;
+		margin-right: var(--space-2);
 	}
 
 	.action-btn {
-		font-size: 0.8125rem;
+		font-size: var(--font-size-sm);
 		font-weight: 600;
-		padding: 3px 10px;
-		border-radius: 6px;
+		padding: var(--space-1) var(--space-4);
+		border-radius: var(--radius-sm);
 		border: 1px solid;
 		background: var(--surface);
 		cursor: pointer;
-		font-family: inherit;
 	}
 
 	.action-btn.accept {
@@ -212,20 +210,19 @@
 		background: none;
 		border: none;
 		cursor: pointer;
-		font-size: 1.25rem;
+		font-size: var(--font-size-xl);
 		font-weight: 600;
 		padding: 0;
 		color: var(--text);
-		font-family: inherit;
 	}
 
 	.config-block {
 		background: var(--surface-page);
 		border: 1px solid var(--border);
-		border-radius: 8px;
-		padding: 16px;
+		border-radius: var(--radius);
+		padding: var(--space-5);
 		overflow-x: auto;
-		font-size: 0.8125rem;
+		font-size: var(--font-size-sm);
 		line-height: 1.5;
 		margin: 0;
 	}

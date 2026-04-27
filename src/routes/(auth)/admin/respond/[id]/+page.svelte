@@ -51,11 +51,11 @@
 
 <style>
 	h1 {
-		margin: 0 0 8px;
+		margin: 0 0 var(--space-3);
 	}
 
 	p {
-		margin: 0 0 16px;
+		margin: 0 0 var(--space-5);
 		color: var(--text-muted);
 	}
 
@@ -64,13 +64,12 @@
 	}
 
 	.confirm-btn {
-		font-size: 0.9375rem;
+		font-size: var(--font-size-md);
 		font-weight: 600;
-		padding: 8px 16px;
-		border-radius: 8px;
+		padding: var(--space-3) var(--space-5);
+		border-radius: var(--radius);
 		border: 1px solid transparent;
 		cursor: pointer;
-		font-family: inherit;
 	}
 
 	.confirm-accept {

@@ -15,22 +15,20 @@
 <style>
 	.error-page {
 		max-width: 480px;
-		margin: 80px auto;
+		margin: var(--space-10) auto;
 		text-align: center;
-		font-family:
-			-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 		color: var(--text);
 	}
 
 	h1 {
-		font-size: 3rem;
+		font-size: var(--font-size-display);
 		font-weight: 700;
-		margin: 0 0 8px;
+		margin: 0 0 var(--space-3);
 	}
 
 	p {
 		color: var(--text-muted);
-		margin: 0 0 24px;
+		margin: 0 0 var(--space-7);
 	}
 
 	a {
