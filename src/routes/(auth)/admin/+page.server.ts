@@ -1,6 +1,7 @@
+import { signOutAction } from '$lib/server/auth';
 import { getConfig, getDb } from '$lib/server/state';
 import type { WhenConfiguration } from '$lib/server/config/schema';
-import type { PageServerLoad } from './$types';
+import type { Actions, PageServerLoad } from './$types';
 
 function sanitizeConfig(cfg: WhenConfiguration): unknown {
 	const s = JSON.parse(JSON.stringify(cfg));
@@ -14,10 +15,8 @@ function sanitizeConfig(cfg: WhenConfiguration): unknown {
 	return s;
 }
 
-export const load: PageServerLoad = async ({ locals, fetch }) => {
+export const load: PageServerLoad = async ({ locals }) => {
 	const session = (await locals.auth())!;
-	const csrfRes = await fetch('/auth/csrf');
-	const { csrfToken } = (await csrfRes.json()) as { csrfToken: string };
 
 	const cfg = getConfig();
 	const rows = await getDb()
@@ -31,5 +30,9 @@ export const load: PageServerLoad = async ({ locals, fetch }) => {
 		event_type_name: cfg.event_types.find((e) => e.id === r.event_type_id)?.name ?? r.event_type_id
 	}));
 
-	return { session, csrfToken, appointments, config: sanitizeConfig(cfg) };
+	return { session, appointments, config: sanitizeConfig(cfg) };
+};
+
+export const actions: Actions = {
+	signout: signOutAction
 };

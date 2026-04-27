@@ -8,9 +8,9 @@
 
 <h1>Sign in</h1>
 
-<form method="POST" action="/auth/callback/credentials">
-	<input type="hidden" name="csrfToken" value={data.csrfToken} />
-	<input type="hidden" name="callbackUrl" value={data.callbackUrl} />
+<form method="POST">
+	<input type="hidden" name="providerId" value="credentials" />
+	<input type="hidden" name="redirectTo" value={data.callbackUrl} />
 	<label>
 		Username
 		<input name="username" autocomplete="username" required />

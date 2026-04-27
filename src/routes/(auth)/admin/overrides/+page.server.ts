@@ -5,17 +5,14 @@ import type { Actions, PageServerLoad } from './$types';
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_RE = /^\d{2}:\d{2}$/;
 
-export const load: PageServerLoad = async ({ fetch }) => {
-	const csrfRes = await fetch('/auth/csrf');
-	const { csrfToken } = (await csrfRes.json()) as { csrfToken: string };
-
+export const load: PageServerLoad = async () => {
 	const rows = await getDb()
 		.selectFrom('availability_overrides')
 		.selectAll()
 		.orderBy('date', 'asc')
 		.execute();
 
-	return { csrfToken, overrides: rows };
+	return { overrides: rows };
 };
 
 export const actions: Actions = {

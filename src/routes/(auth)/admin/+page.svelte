@@ -21,8 +21,7 @@
 <h1>Admin</h1>
 <p>Signed in as {data.session.user?.name ?? 'unknown'}</p>
 
-<form method="POST" action="/auth/signout" class="signout-form">
-	<input type="hidden" name="csrfToken" value={data.csrfToken} />
+<form method="POST" action="?/signout" class="signout-form">
 	<button type="submit">Sign out</button>
 </form>
 
