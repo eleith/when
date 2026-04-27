@@ -41,7 +41,7 @@
 		padding: 48px 24px;
 		font-family:
 			-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-		color: #111827;
+		color: var(--text);
 	}
 
 	.avatar {
@@ -59,12 +59,12 @@
 	}
 
 	.subtitle {
-		color: #6b7280;
+		color: var(--text-muted);
 		margin: 0 0 32px;
 	}
 
 	.empty {
-		color: #6b7280;
+		color: var(--text-muted);
 	}
 
 	.event-list {
@@ -77,8 +77,8 @@
 		display: flex;
 		align-items: center;
 		gap: 14px;
-		background: #fff;
-		border: 1px solid #e5e7eb;
+		background: var(--surface);
+		border: 1px solid var(--border);
 		border-radius: 10px;
 		padding: 18px 20px;
 		text-decoration: none;
@@ -113,20 +113,20 @@
 	}
 
 	.event-meta {
-		color: #6b7280;
+		color: var(--text-muted);
 		font-size: 0.875rem;
 		margin: 2px 0 0;
 	}
 
 	.event-desc {
-		color: #6b7280;
+		color: var(--text-muted);
 		font-size: 0.875rem;
 		margin: 4px 0 0;
 		line-height: 1.4;
 	}
 
 	.arrow {
-		color: #9ca3af;
+		color: var(--text-disabled);
 		font-size: 1.25rem;
 		flex-shrink: 0;
 	}

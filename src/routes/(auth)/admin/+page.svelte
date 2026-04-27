@@ -105,7 +105,7 @@
 
 	.signout-form button {
 		background: none;
-		border: 1px solid #d1d5db;
+		border: 1px solid var(--border-strong);
 		border-radius: 6px;
 		padding: 4px 12px;
 		font-size: 0.8125rem;
@@ -114,7 +114,7 @@
 	}
 
 	.signout-form button:hover {
-		background: #f3f4f6;
+		background: var(--surface-muted);
 	}
 
 	h2 {
@@ -123,7 +123,7 @@
 	}
 
 	.empty {
-		color: #6b7280;
+		color: var(--text-muted);
 	}
 
 	.table-wrap {
@@ -139,12 +139,12 @@
 	td {
 		text-align: left;
 		padding: 8px 12px;
-		border-bottom: 1px solid #e5e7eb;
+		border-bottom: 1px solid var(--border);
 		font-size: 0.875rem;
 	}
 
 	th {
-		color: #6b7280;
+		color: var(--text-muted);
 		font-weight: 600;
 	}
 
@@ -153,23 +153,23 @@
 	}
 
 	.status-confirmed {
-		color: #059669;
+		color: var(--success);
 	}
 
 	.status-pending {
-		color: #d97706;
+		color: var(--warning);
 	}
 
 	.status-cancelled {
-		color: #9ca3af;
+		color: var(--text-disabled);
 	}
 
 	.status-declined {
-		color: #dc2626;
+		color: var(--danger);
 	}
 
 	.notif-warn {
-		color: #d97706;
+		color: var(--warning);
 		margin-left: 4px;
 		cursor: help;
 	}
@@ -185,27 +185,27 @@
 		padding: 3px 10px;
 		border-radius: 6px;
 		border: 1px solid;
-		background: white;
+		background: var(--surface);
 		cursor: pointer;
 		font-family: inherit;
 	}
 
 	.action-btn.accept {
-		color: #059669;
-		border-color: #a7f3d0;
+		color: var(--success);
+		border-color: var(--success-border);
 	}
 
 	.action-btn.accept:hover {
-		background: #ecfdf5;
+		background: var(--success-bg);
 	}
 
 	.action-btn.decline {
-		color: #dc2626;
-		border-color: #fca5a5;
+		color: var(--danger);
+		border-color: var(--danger-border);
 	}
 
 	.action-btn.decline:hover {
-		background: #fef2f2;
+		background: var(--danger-bg);
 	}
 
 	.toggle {
@@ -215,13 +215,13 @@
 		font-size: 1.25rem;
 		font-weight: 600;
 		padding: 0;
-		color: #111827;
+		color: var(--text);
 		font-family: inherit;
 	}
 
 	.config-block {
-		background: #f9fafb;
-		border: 1px solid #e5e7eb;
+		background: var(--surface-page);
+		border: 1px solid var(--border);
 		border-radius: 8px;
 		padding: 16px;
 		overflow-x: auto;

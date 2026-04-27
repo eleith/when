@@ -80,17 +80,17 @@
 
 	.cancel-btn {
 		background: none;
-		border: 1px solid #d1d5db;
+		border: 1px solid var(--border-strong);
 		border-radius: 8px;
 		padding: 8px 16px;
-		color: #dc2626;
+		color: var(--danger);
 		cursor: pointer;
 		font-size: 0.875rem;
 		font-family: inherit;
 	}
 
 	.cancel-btn:hover {
-		background: #fef2f2;
-		border-color: #fca5a5;
+		background: var(--danger-bg);
+		border-color: var(--danger-border);
 	}
 </style>

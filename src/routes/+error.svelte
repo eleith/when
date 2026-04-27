@@ -19,7 +19,7 @@
 		text-align: center;
 		font-family:
 			-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-		color: #111827;
+		color: var(--text);
 	}
 
 	h1 {
@@ -29,7 +29,7 @@
 	}
 
 	p {
-		color: #6b7280;
+		color: var(--text-muted);
 		margin: 0 0 24px;
 	}
 

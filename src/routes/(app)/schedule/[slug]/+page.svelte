@@ -313,7 +313,7 @@
 		padding: 32px 20px 64px;
 		font-family:
 			-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-		color: #111827;
+		color: var(--text);
 	}
 
 	.booking-header {
@@ -323,7 +323,7 @@
 	.reschedule-badge {
 		display: inline-block;
 		background: var(--accent);
-		color: #fff;
+		color: var(--text-on-accent);
 		font-size: 0.75rem;
 		font-weight: 600;
 		padding: 2px 10px;
@@ -346,7 +346,7 @@
 	}
 
 	.back-arrow {
-		color: #9ca3af;
+		color: var(--text-disabled);
 		font-size: 1.1rem;
 		line-height: 1;
 	}
@@ -359,7 +359,7 @@
 	}
 
 	.host-name {
-		color: #6b7280;
+		color: var(--text-muted);
 		font-size: 0.875rem;
 	}
 
@@ -370,13 +370,13 @@
 	}
 
 	.event-meta {
-		color: #6b7280;
+		color: var(--text-muted);
 		margin: 0;
 	}
 
 	.empty {
 		text-align: center;
-		color: #6b7280;
+		color: var(--text-muted);
 		padding: 48px 0;
 	}
 
@@ -390,8 +390,8 @@
 	.calendar-panel {
 		flex-shrink: 0;
 		width: 308px;
-		background: #fff;
-		border: 1px solid #e5e7eb;
+		background: var(--surface);
+		border: 1px solid var(--border);
 		border-radius: 12px;
 		padding: 20px;
 	}
@@ -413,7 +413,7 @@
 		background: none;
 		border: none;
 		font-size: 1.4rem;
-		color: #6b7280;
+		color: var(--text-muted);
 		cursor: pointer;
 		padding: 2px 8px;
 		border-radius: 6px;
@@ -421,8 +421,8 @@
 	}
 
 	.nav-btn:hover {
-		background: #f3f4f6;
-		color: #111827;
+		background: var(--surface-muted);
+		color: var(--text);
 	}
 
 	.month-label {
@@ -444,7 +444,7 @@
 	.day-header {
 		text-align: center;
 		font-size: 0.6875rem;
-		color: #9ca3af;
+		color: var(--text-disabled);
 		font-weight: 600;
 		text-transform: uppercase;
 		padding: 4px 0;
@@ -466,7 +466,7 @@
 		background: none;
 		cursor: pointer;
 		border-radius: 8px;
-		color: #111827;
+		color: var(--text);
 		transition: background 0.12s;
 		position: relative;
 		font-family: inherit;
@@ -477,12 +477,12 @@
 	}
 
 	.day-cell.past {
-		color: #d1d5db;
+		color: var(--border-strong);
 		cursor: default;
 	}
 
 	.day-cell:not(.past):not(.empty):not(:disabled):hover {
-		background: #f3f4f6;
+		background: var(--surface-muted);
 	}
 
 	.day-cell.available {
@@ -491,7 +491,7 @@
 	}
 
 	.day-cell.available:not(.selected):hover {
-		background: #eef2ff;
+		background: var(--surface-accent);
 	}
 
 	.day-cell.today:not(.selected)::after {
@@ -508,29 +508,29 @@
 
 	.day-cell.selected {
 		background: var(--accent);
-		color: #fff;
+		color: var(--text-on-accent);
 	}
 
 	.day-cell.selected.today::after {
-		background: #fff;
+		background: var(--text-on-accent);
 	}
 
 	.day-cell:disabled {
 		cursor: default;
-		color: #d1d5db;
+		color: var(--border-strong);
 	}
 
 	.tz-note {
 		margin: 14px 0 0;
 		font-size: 0.7rem;
-		color: #9ca3af;
+		color: var(--text-disabled);
 		text-align: center;
 	}
 
 	/* ---- time slots ---- */
 	.time-slots {
-		background: #fff;
-		border: 1px solid #e5e7eb;
+		background: var(--surface);
+		border: 1px solid var(--border);
 		border-radius: 12px;
 		padding: 24px;
 	}
@@ -549,9 +549,9 @@
 
 	.slot-btn {
 		padding: 10px 14px;
-		border: 1px solid #d1d5db;
+		border: 1px solid var(--border-strong);
 		border-radius: 8px;
-		background: #fff;
+		background: var(--surface);
 		font-size: 0.875rem;
 		font-weight: 500;
 		cursor: pointer;
@@ -564,19 +564,19 @@
 
 	.slot-btn:hover {
 		border-color: var(--accent);
-		background: #eef2ff;
+		background: var(--surface-accent);
 	}
 
 	.empty-state {
 		text-align: center;
-		color: #6b7280;
+		color: var(--text-muted);
 		padding: 48px 24px;
 	}
 
 	/* ---- booking form ---- */
 	.booking-form {
-		background: #fff;
-		border: 1px solid #e5e7eb;
+		background: var(--surface);
+		border: 1px solid var(--border);
 		border-radius: 12px;
 		padding: 24px;
 	}
@@ -595,7 +595,7 @@
 	}
 
 	.slot-date {
-		color: #6b7280;
+		color: var(--text-muted);
 		font-size: 0.9375rem;
 	}
 
@@ -611,8 +611,8 @@
 	}
 
 	.form-error {
-		background: #fef2f2;
-		color: #dc2626;
+		background: var(--danger-bg);
+		color: var(--danger);
 		padding: 10px 14px;
 		border-radius: 8px;
 		font-size: 0.875rem;
@@ -629,11 +629,11 @@
 		font-size: 0.8125rem;
 		font-weight: 600;
 		margin-bottom: 4px;
-		color: #374151;
+		color: var(--text-secondary);
 	}
 
 	.optional {
-		color: #9ca3af;
+		color: var(--text-disabled);
 		font-weight: 400;
 	}
 
@@ -642,14 +642,14 @@
 	.field textarea {
 		width: 100%;
 		padding: 9px 12px;
-		border: 1px solid #d1d5db;
+		border: 1px solid var(--border-strong);
 		border-radius: 8px;
 		font-size: 0.9375rem;
 		font-family: inherit;
 		box-sizing: border-box;
 		transition: border-color 0.12s;
-		background: #fff;
-		color: #111827;
+		background: var(--surface);
+		color: var(--text);
 	}
 
 	.field input:focus,
@@ -657,11 +657,11 @@
 	.field textarea:focus {
 		outline: none;
 		border-color: var(--accent);
-		box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+		box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent);
 	}
 
 	.location-display {
-		color: #6b7280;
+		color: var(--text-muted);
 		font-size: 0.9375rem;
 		margin: 0;
 	}
@@ -670,7 +670,7 @@
 		width: 100%;
 		padding: 11px 20px;
 		background: var(--accent);
-		color: #fff;
+		color: var(--text-on-accent);
 		border: none;
 		border-radius: 8px;
 		font-size: 0.9375rem;

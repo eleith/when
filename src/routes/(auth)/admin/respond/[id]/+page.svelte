@@ -56,7 +56,7 @@
 
 	p {
 		margin: 0 0 16px;
-		color: #6b7280;
+		color: var(--text-muted);
 	}
 
 	a {
@@ -74,20 +74,20 @@
 	}
 
 	.confirm-accept {
-		background: #059669;
+		background: var(--success);
 		color: white;
 	}
 
 	.confirm-accept:hover {
-		background: #047857;
+		background: var(--success-strong);
 	}
 
 	.confirm-decline {
-		background: #dc2626;
+		background: var(--danger);
 		color: white;
 	}
 
 	.confirm-decline:hover {
-		background: #b91c1c;
+		background: var(--danger-strong);
 	}
 </style>
