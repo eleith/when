@@ -110,12 +110,21 @@
 			"title": "GoogleCalendar",
 			"type": "object",
 			"additionalProperties": false,
-			"required": ["id", "type", "client_id", "client_secret"],
+			"required": [
+				"id",
+				"type",
+				"client_id",
+				"client_secret",
+				"refresh_token",
+				"google_calendar_id"
+			],
 			"properties": {
 				"id": { "type": "string", "minLength": 1 },
 				"type": { "const": "google" },
 				"client_id": { "type": "string", "minLength": 1 },
-				"client_secret": { "type": "string", "minLength": 1 }
+				"client_secret": { "type": "string", "minLength": 1 },
+				"refresh_token": { "type": "string", "minLength": 1 },
+				"google_calendar_id": { "type": "string", "minLength": 1 }
 			}
 		},
 		"CalDavCalendar": {

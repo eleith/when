@@ -17,7 +17,9 @@ export const validConfig: WhenConfiguration = {
 			id: 'my-google-cal',
 			type: 'google',
 			client_id: 'gc-id',
-			client_secret: 'gc-secret'
+			client_secret: 'gc-secret',
+			refresh_token: 'gc-token',
+			google_calendar_id: 'gc-calid'
 		}
 	],
 	availability: {
