@@ -117,10 +117,21 @@ event_types:
 Conflict pulls are cached in-process for ~60 seconds; the booking
 submit re-fetches the slot's day to close the stale-cache window.
 
-> **Google Calendar is not yet supported.** The schema accepts a
-> `google` calendar type for forward-compatibility, but push/pull
-> against Google is deferred. Use a CalDAV-compatible bridge (e.g.,
-> [DAVx⁵](https://www.davx5.com/)) if you need Google in the meantime.
+> **Google Calendar Support:** "When" fully supports Google Calendar. Because Google's OAuth requires a browser consent flow, we provide a CLI tool to generate your configuration without needing complex UI setups or database state. See the CLI helpers section below.
+
+### Google Calendar Prerequisites
+Before running the setup CLI, you must prepare a Google Cloud project:
+1. Go to the [Google Cloud Console](https://console.cloud.google.com/).
+2. Create a new project (e.g., "When Scheduling").
+3. Go to **APIs & Services > Library** and enable the **Google Calendar API**.
+4. Go to **APIs & Services > OAuth consent screen**:
+   - Choose **External** and click Create.
+   - Fill in the required app name and developer email fields.
+   - **Crucial:** Under "Test users", add your personal `@gmail.com` email address.
+5. Go to **APIs & Services > Credentials**:
+   - Click **Create Credentials > OAuth client ID**.
+   - **Crucial:** Select **Desktop app** as the Application type (do NOT select Web application).
+   - Copy your `Client ID` and `Client Secret`.
 
 ## Email & confirmation flow
 
@@ -166,6 +177,7 @@ the YAML defaults for that date.
 Run inside the container or with `bun run` in a checkout:
 
 - `bun run hash-password` — interactive prompt; emits an argon2id hash.
+- `bun run setup-google` — interactive prompt; opens your browser to authenticate with Google and generates the required `config.yaml` block for a Google Calendar (requires a Google Cloud OAuth 2.0 Client ID of type "Desktop app").
 - `bun run validate-config` — parses + validates `config.yaml` without
   starting the server. Exits non-zero on validation errors.
 
