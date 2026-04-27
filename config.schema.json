@@ -84,10 +84,25 @@
 			"properties": {
 				"logo_url": { "type": "string", "minLength": 1 },
 				"accent_color": {
-					"type": "string",
-					"pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+					"description": "Accent color. Either a single hex string used in both modes, or an object with `light` and `dark` hex values.",
+					"oneOf": [
+						{ "$ref": "#/$defs/HexColor" },
+						{
+							"type": "object",
+							"additionalProperties": false,
+							"required": ["light", "dark"],
+							"properties": {
+								"light": { "$ref": "#/$defs/HexColor" },
+								"dark": { "$ref": "#/$defs/HexColor" }
+							}
+						}
+					]
 				}
 			}
+		},
+		"HexColor": {
+			"type": "string",
+			"pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
 		},
 		"Smtp": {
 			"title": "Smtp",

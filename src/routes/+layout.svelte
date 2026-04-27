@@ -4,23 +4,30 @@
 
 	let { data, children } = $props();
 
-	let accent = $derived(data?.branding?.accent_color ?? '#4f46e5');
+	let accent = $derived(data?.branding?.accent ?? { light: '#4f46e5', dark: '#4f46e5' });
 </script>
 
 <svelte:head>
 	<link rel="icon" href={favicon} />
 </svelte:head>
 
-<div class="app-root" style="--accent: {accent}">
+<div class="app-root" style="--accent-light: {accent.light}; --accent-dark: {accent.dark};">
 	{@render children()}
 </div>
 
 <style>
 	.app-root {
 		min-height: 100vh;
+		--accent: var(--accent-light);
+	}
+
+	@media (prefers-color-scheme: dark) {
+		.app-root {
+			--accent: var(--accent-dark);
+		}
 	}
 
 	:global(a) {
-		color: var(--accent, #4f46e5);
+		color: var(--accent);
 	}
 </style>
