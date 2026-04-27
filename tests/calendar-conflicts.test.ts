@@ -40,7 +40,9 @@ const calendars: Calendar[] = [
 		id: 'g',
 		type: 'google',
 		client_id: 'gid',
-		client_secret: 'gsec'
+		client_secret: 'gsec',
+		refresh_token: 'gtoken-conflict',
+		google_calendar_id: 'gcal'
 	}
 ];
 
@@ -56,18 +58,44 @@ test('pulls a single CalDAV calendar and returns intervals', async () => {
 	expect(intervals[0].start.toString()).toBe('2026-04-15T14:00:00Z');
 });
 
-test('skips Google calendars (deferred)', async () => {
-	let called = 0;
-	const fakeFetch: FetchFn = async () => {
-		called++;
-		return new Response(sampleVevent, { status: 207 });
+test('pulls a Google calendar and returns intervals', async () => {
+	let reqCount = 0;
+	const fakeFetch: FetchFn = async (input) => {
+		reqCount++;
+		const url = input.toString();
+		if (url.includes('oauth2')) {
+			return new Response(JSON.stringify({ access_token: 'tok', expires_in: 3600 }), {
+				status: 200
+			});
+		} else if (url.includes('events')) {
+			return new Response(
+				JSON.stringify({
+					items: [
+						{
+							id: 'g1',
+							start: { dateTime: '2026-04-15T12:00:00Z' },
+							end: { dateTime: '2026-04-15T13:00:00Z' }
+						}
+					]
+				}),
+				{ status: 200 }
+			);
+		}
+		return new Response('Not found', { status: 404 });
 	};
+
 	const intervals = await pullConflictBusy(calendars, ['g'], window, {
 		fetchImpl: fakeFetch,
 		now: 1_000
 	});
-	expect(intervals).toEqual([]);
-	expect(called).toBe(0);
+
+	expect(reqCount).toBe(2);
+	expect(intervals).toEqual([
+		{
+			start: Temporal.Instant.from('2026-04-15T12:00:00Z'),
+			end: Temporal.Instant.from('2026-04-15T13:00:00Z')
+		}
+	]);
 });
 
 test('caches results within 60s and re-fetches after TTL', async () => {

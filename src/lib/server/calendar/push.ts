@@ -1,8 +1,9 @@
-import type { WhenConfiguration } from '../config/schema';
+import type { WhenConfiguration, GoogleCalendar } from '../config/schema';
 import type { Appointment } from '../db';
 import { buildIcs } from '../ics';
 import { logger } from '../logger';
 import { deleteCalDavEvent, putCalDavEvent, type FetchFn } from './caldav';
+import { putGoogleEvent, deleteGoogleEvent } from './google';
 
 export type PushResult =
 	| { ok: true; externalEventId: string; externalCalendarId: string }
@@ -16,9 +17,7 @@ export interface PushOptions {
 }
 
 /**
- * Create or update the appointment in its destination calendar. CalDAV
- * only — non-CalDAV calendars are reported as a deferred no-op (caller
- * should treat as failure-to-push for notification_status).
+ * Create or update the appointment in its destination calendar.
  */
 export async function pushAppointment(
 	cfg: WhenConfiguration,
@@ -28,29 +27,43 @@ export async function pushAppointment(
 ): Promise<PushResult> {
 	const cal = cfg.calendars.find((c) => c.id === destinationCalendarId);
 	if (!cal) return { ok: false, reason: `unknown destination calendar "${destinationCalendarId}"` };
-	if (cal.type !== 'caldav') {
-		return { ok: false, reason: `${cal.type} push is deferred; only CalDAV is supported` };
-	}
 
 	const eventType = cfg.event_types.find((e) => e.id === appointment.event_type_id);
-	const ics = buildIcs({
-		appointment,
-		eventTypeName: eventType?.name ?? appointment.event_type_id,
-		organizerName: cfg.user.name,
-		organizerEmail: cfg.user.email,
-		cancelUrl: opts.cancelUrl
-	});
+	const eventTypeName = eventType?.name ?? appointment.event_type_id;
 
 	try {
-		await putCalDavEvent(
-			{ url: cal.url, username: cal.username, password: cal.password },
-			appointment.id,
-			ics,
-			{ fetchImpl: opts.fetchImpl }
-		);
-		return { ok: true, externalEventId: appointment.id, externalCalendarId: cal.id };
+		if (cal.type === 'caldav') {
+			const ics = buildIcs({
+				appointment,
+				eventTypeName,
+				organizerName: cfg.user.name,
+				organizerEmail: cfg.user.email,
+				cancelUrl: opts.cancelUrl
+			});
+
+			await putCalDavEvent(
+				{ url: cal.url, username: cal.username, password: cal.password },
+				appointment.id,
+				ics,
+				{ fetchImpl: opts.fetchImpl }
+			);
+			return { ok: true, externalEventId: appointment.id, externalCalendarId: cal.id };
+		} else if (cal.type === 'google') {
+			const result = await putGoogleEvent(cal as GoogleCalendar, appointment, {
+				cancelUrl: opts.cancelUrl,
+				eventTypeName,
+				organizerName: cfg.user.name,
+				fetchImpl: opts.fetchImpl
+			});
+			return { ok: true, externalEventId: result.externalEventId, externalCalendarId: cal.id };
+		}
+
+		return { ok: false, reason: `unsupported calendar type` };
 	} catch (err) {
-		logger.error({ err, calendarId: cal.id, appointmentId: appointment.id }, 'CalDAV push failed');
+		logger.error(
+			{ err, calendarId: cal.id, appointmentId: appointment.id },
+			`${cal.type} push failed`
+		);
 		return { ok: false, reason: String(err) };
 	}
 }
@@ -67,19 +80,24 @@ export async function deleteAppointmentFromCalendar(
 ): Promise<DeleteResult> {
 	const cal = cfg.calendars.find((c) => c.id === externalCalendarId);
 	if (!cal) return { ok: false, reason: `unknown calendar "${externalCalendarId}"` };
-	if (cal.type !== 'caldav') {
-		return { ok: false, reason: `${cal.type} delete is deferred; only CalDAV is supported` };
-	}
 
 	try {
-		await deleteCalDavEvent(
-			{ url: cal.url, username: cal.username, password: cal.password },
-			externalEventId,
-			{ fetchImpl: opts.fetchImpl }
-		);
+		if (cal.type === 'caldav') {
+			await deleteCalDavEvent(
+				{ url: cal.url, username: cal.username, password: cal.password },
+				externalEventId,
+				{ fetchImpl: opts.fetchImpl }
+			);
+		} else if (cal.type === 'google') {
+			await deleteGoogleEvent(cal as GoogleCalendar, externalEventId, {
+				fetchImpl: opts.fetchImpl
+			});
+		} else {
+			return { ok: false, reason: `unsupported calendar type` };
+		}
 		return { ok: true };
 	} catch (err) {
-		logger.error({ err, calendarId: cal.id, externalEventId }, 'CalDAV delete failed');
+		logger.error({ err, calendarId: cal.id, externalEventId }, `${cal.type} delete failed`);
 		return { ok: false, reason: String(err) };
 	}
 }

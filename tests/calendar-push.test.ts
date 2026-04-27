@@ -114,17 +114,47 @@ test('pushAppointment routes to CalDAV PUT and returns external ids', async () =
 	expect(body).toContain('UID:appt-xyz');
 });
 
-test('pushAppointment fails (deferred) on Google calendar', async () => {
+test('pushAppointment succeeds on Google calendar', async () => {
 	const cfgGoogle: WhenConfiguration = {
 		...validConfig,
-		calendars: [{ id: 'g', type: 'google', client_id: 'gid', client_secret: 'gsec' }],
+		calendars: [
+			{
+				id: 'g',
+				type: 'google',
+				client_id: 'gid',
+				client_secret: 'gsec',
+				refresh_token: 'gtoken',
+				google_calendar_id: 'gcal'
+			}
+		],
 		event_types: [{ ...validConfig.event_types[0], destination_calendar: 'g' }]
 	};
+
+	let reqCount = 0;
+	const fakeFetch: FetchFn = async (input) => {
+		reqCount++;
+		const url = input.toString();
+		if (url.includes('oauth2')) {
+			return new Response(JSON.stringify({ access_token: 'tok', expires_in: 3600 }), {
+				status: 200
+			});
+		} else if (url.includes('events')) {
+			return new Response(JSON.stringify({ id: 'ext-g-123' }), { status: 200 });
+		}
+		return new Response('Not found', { status: 404 });
+	};
+
 	const result = await pushAppointment(cfgGoogle, baseAppointment, 'g', {
-		cancelUrl: 'https://when.example.com/booked/appt-xyz?token=tok'
+		cancelUrl: 'https://when.example.com/booked/appt-xyz?token=tok',
+		fetchImpl: fakeFetch
 	});
-	expect(result.ok).toBe(false);
-	if (!result.ok) expect(result.reason).toContain('deferred');
+
+	expect(result.ok).toBe(true);
+	if (result.ok) {
+		expect(result.externalEventId).toBe('ext-g-123');
+		expect(result.externalCalendarId).toBe('g');
+	}
+	expect(reqCount).toBe(2);
 });
 
 test('pushAppointment fails on unknown destination calendar id', async () => {

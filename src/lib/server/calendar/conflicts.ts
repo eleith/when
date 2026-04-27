@@ -1,8 +1,9 @@
 import { Temporal } from '@js-temporal/polyfill';
-import type { CalDavCalendar, Calendar } from '../config/schema';
+import type { CalDavCalendar, Calendar, GoogleCalendar } from '../config/schema';
 import { logger } from '../logger';
 import type { Interval } from '../availability/types';
 import { fetchCalDavBusy, type FetchFn } from './caldav';
+import { fetchGoogleBusy } from './google';
 import { expandBusy, type ExpandWindow } from './expand';
 
 interface CacheEntry {
@@ -32,9 +33,8 @@ export interface PullOptions {
 
 /**
  * Pull busy intervals from the named conflict calendars within `window`.
- * Non-CalDAV calendars (e.g. Google) are silently skipped — Google
- * support is deferred. Network failures are logged and treated as empty
- * so a single broken calendar doesn't block availability.
+ * Network failures are logged and treated as empty so a single broken
+ * calendar doesn't block availability.
  */
 export async function pullConflictBusy(
 	calendars: Calendar[],
@@ -51,10 +51,6 @@ export async function pullConflictBusy(
 			logger.warn({ id }, 'unknown conflict_calendar id; skipping');
 			continue;
 		}
-		if (cal.type !== 'caldav') {
-			logger.debug({ id, type: cal.type }, 'skipping non-CalDAV calendar (Google deferred)');
-			continue;
-		}
 
 		const key = cacheKey(id, window);
 		if (!opts.bypassCache) {
@@ -66,17 +62,29 @@ export async function pullConflictBusy(
 		}
 
 		try {
-			const events = await fetchCalDavBusy(
-				toCalDavConfig(cal),
-				{ start: window.start, end: window.end },
-				opts.fetchImpl
-			);
+			let events;
+			if (cal.type === 'caldav') {
+				events = await fetchCalDavBusy(
+					toCalDavConfig(cal),
+					{ start: window.start, end: window.end },
+					opts.fetchImpl
+				);
+			} else if (cal.type === 'google') {
+				events = await fetchGoogleBusy(
+					cal as GoogleCalendar,
+					{ start: window.start, end: window.end },
+					opts.fetchImpl
+				);
+			} else {
+				continue;
+			}
+
 			const occurrences = expandBusy(events, window);
 			const intervals: Interval[] = occurrences.map((o) => ({ start: o.start, end: o.end }));
 			cache.set(key, { intervals, expiresMs: now + CACHE_TTL_MS });
 			out.push(...intervals);
 		} catch (err) {
-			logger.error({ err, calendarId: id }, 'CalDAV conflict fetch failed; treating as empty');
+			logger.error({ err, calendarId: id }, `${cal.type} conflict fetch failed; treating as empty`);
 		}
 	}
 
