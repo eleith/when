@@ -1,8 +1,10 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { Temporal } from '@js-temporal/polyfill';
 import { computeSlots } from '$lib/server/availability';
+import { mergeBlocks } from '$lib/server/availability/blocks';
 import { loadAppointmentBlocks } from '$lib/server/availability/db-blocks';
 import { resolveKnobsFor } from '$lib/server/availability/knobs';
+import { buildBaseWindows, candidateDates } from '$lib/server/availability/windows';
 import { conflictPullWindow, pullConflictBusy } from '$lib/server/calendar/conflicts';
 import { pushAppointment } from '$lib/server/calendar/push';
 import { systemClock } from '$lib/server/clock';
@@ -76,6 +78,18 @@ export const load: PageServerLoad = async ({ params, url }) => {
 	const selectedSlot =
 		requestedSlot && slots.some((s) => s.toString() === requestedSlot) ? requestedSlot : null;
 
+	const dates = candidateDates(nowInstant, rangeEnd, userTz);
+	const workingWindows: { start: string; end: string }[] = [];
+	for (const date of dates) {
+		for (const w of buildBaseWindows(date, knobs.weekly, userTz)) {
+			workingWindows.push({ start: w.start.toString(), end: w.end.toString() });
+		}
+	}
+	const busyBlocks = mergeBlocks([...blocks.appointments, ...remoteBusy]).map((b) => ({
+		start: b.start.toString(),
+		end: b.end.toString()
+	}));
+
 	return {
 		eventType: {
 			id: eventType.id,
@@ -85,7 +99,9 @@ export const load: PageServerLoad = async ({ params, url }) => {
 			description: eventType.description ?? null,
 			visibility: eventType.visibility ?? 'public',
 			booking_flow: eventType.booking_flow,
-			location: eventType.location ?? null
+			location: eventType.location ?? null,
+			buffer_before: knobs.buffer_before,
+			buffer_after: knobs.buffer_after
 		},
 		user: {
 			name: cfg.user.name,
@@ -93,6 +109,8 @@ export const load: PageServerLoad = async ({ params, url }) => {
 			branding: cfg.user.branding ?? null
 		},
 		slotsByDate,
+		workingWindows,
+		busyBlocks,
 		selectedSlot,
 		reschedule,
 		token: rescheduleToken ?? null

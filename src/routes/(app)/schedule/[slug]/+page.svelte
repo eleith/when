@@ -3,10 +3,17 @@
 
 	let { data, form } = $props();
 
-	let slotsByDate = $derived(data.slotsByDate as Record<string, string[]>);
-	let availableDates = $derived(new Set(Object.keys(slotsByDate)));
-	let firstDate = $derived(Object.keys(slotsByDate)[0] ?? null);
 	let localTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+	let allSlots = $derived(Object.values(data.slotsByDate as Record<string, string[]>).flat());
+	let availableDates = $derived.by(() => {
+		const set = new Set<string>();
+		for (const iso of allSlots) {
+			set.add(Temporal.Instant.from(iso).toZonedDateTimeISO(localTz).toPlainDate().toString());
+		}
+		return set;
+	});
+	let firstDate = $derived([...availableDates].sort()[0] ?? null);
 
 	// User-controlled state — initialized in $effect below
 	let viewSlot = $state<string | null>(null);
@@ -25,7 +32,16 @@
 	});
 
 	const todayKey = new Date().toISOString().slice(0, 10);
-	let daySlots = $derived(viewDate ? (slotsByDate[viewDate] ?? []) : []);
+	let daySlots = $derived.by(() => {
+		if (!viewDate) return [];
+		return allSlots
+			.filter(
+				(iso: string) =>
+					Temporal.Instant.from(iso).toZonedDateTimeISO(localTz).toPlainDate().toString() ===
+					viewDate
+			)
+			.sort();
+	});
 
 	// ---- calendar grid ----
 	let grid = $derived.by(() => {
@@ -95,6 +111,158 @@
 	function clearSlot() {
 		viewSlot = null;
 		history.replaceState({}, '', '?');
+	}
+
+	// ---- timeline day view ----
+	let timeline = $derived.by(() => {
+		if (!viewDate) return null;
+
+		const dateObj = Temporal.PlainDate.from(viewDate);
+		const startOfDay = dateObj.toZonedDateTime(localTz).toInstant();
+		const endOfDay = dateObj.add({ days: 1 }).toZonedDateTime(localTz).toInstant();
+
+		const dayWindows = (data.workingWindows as { start: string; end: string }[])
+			.map((w) => ({
+				start: Temporal.Instant.from(w.start),
+				end: Temporal.Instant.from(w.end)
+			}))
+			.filter(
+				(w) =>
+					Temporal.Instant.compare(w.start, endOfDay) < 0 &&
+					Temporal.Instant.compare(w.end, startOfDay) > 0
+			);
+
+		if (dayWindows.length === 0) return null;
+
+		let earliest = dayWindows[0].start;
+		let latest = dayWindows[0].end;
+		for (const w of dayWindows) {
+			if (Temporal.Instant.compare(w.start, earliest) < 0) earliest = w.start;
+			if (Temporal.Instant.compare(w.end, latest) > 0) latest = w.end;
+		}
+
+		let viewStart = earliest.subtract({ hours: 1 });
+		if (Temporal.Instant.compare(viewStart, startOfDay) < 0) viewStart = startOfDay;
+
+		let viewEnd = latest.add({ hours: 1 });
+		if (Temporal.Instant.compare(viewEnd, endOfDay) > 0) viewEnd = endOfDay;
+
+		const totalMs = Number(viewEnd.epochMilliseconds - viewStart.epochMilliseconds);
+		if (totalMs <= 0) return null;
+
+		const toPercent = (inst: Temporal.Instant) => {
+			const ms = Number(inst.epochMilliseconds - viewStart.epochMilliseconds);
+			return Math.max(0, Math.min(100, (ms / totalMs) * 100));
+		};
+
+		const busy = (data.busyBlocks as { start: string; end: string }[])
+			.map((b) => ({
+				start: Temporal.Instant.from(b.start),
+				end: Temporal.Instant.from(b.end)
+			}))
+			.filter(
+				(b) =>
+					Temporal.Instant.compare(b.start, viewEnd) < 0 &&
+					Temporal.Instant.compare(b.end, viewStart) > 0
+			)
+			.map((b) => ({
+				top: toPercent(b.start),
+				height: toPercent(b.end) - toPercent(b.start)
+			}));
+
+		const buffers = (data.busyBlocks as { start: string; end: string }[])
+			.map((b) => {
+				const start = Temporal.Instant.from(b.start).subtract({
+					minutes: data.eventType.buffer_before ?? 0
+				});
+				const end = Temporal.Instant.from(b.end).add({ minutes: data.eventType.buffer_after ?? 0 });
+				return { start, end };
+			})
+			.filter(
+				(b) =>
+					Temporal.Instant.compare(b.start, viewEnd) < 0 &&
+					Temporal.Instant.compare(b.end, viewStart) > 0
+			)
+			.map((b) => ({
+				top: toPercent(b.start),
+				height: toPercent(b.end) - toPercent(b.start)
+			}));
+
+		const working = dayWindows.map((w) => ({
+			top: toPercent(w.start),
+			height: toPercent(w.end) - toPercent(w.start)
+		}));
+
+		const slots = daySlots.map((iso) => {
+			const start = Temporal.Instant.from(iso);
+			const end = start.add({ minutes: data.eventType.duration });
+			return {
+				iso,
+				time: fmtTime(iso),
+				top: toPercent(start),
+				height: toPercent(end) - toPercent(start)
+			};
+		});
+
+		const labels = [];
+		let current = viewStart
+			.toZonedDateTimeISO(localTz)
+			.with({ minute: 0, second: 0, millisecond: 0, microsecond: 0, nanosecond: 0 });
+		if (Temporal.Instant.compare(current.toInstant(), viewStart) < 0) {
+			current = current.add({ hours: 1 });
+		}
+		while (Temporal.Instant.compare(current.toInstant(), viewEnd) < 0) {
+			labels.push({
+				label: current.toLocaleString(undefined, { hour: 'numeric' }),
+				top: toPercent(current.toInstant())
+			});
+			current = current.add({ hours: 1 });
+		}
+
+		return {
+			totalMs,
+			working,
+			busy,
+			buffers,
+			slots,
+			labels
+		};
+	});
+
+	// ---- timeline interaction ----
+	let hoverY = $state<number | null>(null);
+
+	let closestSlot = $derived.by(() => {
+		if (hoverY === null || !timeline || timeline.slots.length === 0) return null;
+
+		let best = null;
+		let minDiff = Infinity;
+
+		for (const s of timeline.slots) {
+			const diff = Math.abs(s.top - hoverY);
+			if (diff < minDiff) {
+				minDiff = diff;
+				best = s;
+			}
+		}
+
+		return minDiff < 10 ? best : null;
+	});
+
+	function handleTimelineMove(e: MouseEvent) {
+		const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+		hoverY = ((e.clientY - rect.top) / rect.height) * 100;
+	}
+
+	function handleTimelineLeave() {
+		hoverY = null;
+	}
+
+	function handleTimelineClick() {
+		if (closestSlot) {
+			selectSlot(closestSlot.iso);
+			hoverY = null;
+		}
 	}
 
 	// ---- formatting ----
@@ -169,49 +337,129 @@
 		<p class="empty">No availability in the near future.</p>
 	{:else}
 		<div class="booking-body">
-			<div class="calendar-panel">
-				<div class="calendar-nav">
-					<button class="nav-btn" onclick={prevMonth} aria-label="Previous month">&lsaquo;</button>
-					<span class="month-label">{monthLabel}</span>
-					<button class="nav-btn" onclick={nextMonth} aria-label="Next month">&rsaquo;</button>
-				</div>
-
-				<div class="calendar-grid">
-					<div class="day-headers">
-						{#each dayHeaders as h (h)}
-							<span class="day-header">{h}</span>
-						{/each}
+			{#if !viewSlot}
+				<div class="calendar-panel">
+					<div class="calendar-nav">
+						<button class="nav-btn" onclick={prevMonth} aria-label="Previous month">&lsaquo;</button
+						>
+						<span class="month-label">{monthLabel}</span>
+						<button class="nav-btn" onclick={nextMonth} aria-label="Next month">&rsaquo;</button>
 					</div>
-					{#each grid as week, wi (wi)}
-						<div class="week-row">
-							{#each week as cell, ci (cell?.key ?? `c${ci}`)}
-								{#if cell}
-									{@const key = cell.key}
-									{@const hasSlots = availableDates.has(key)}
-									<button
-										class="day-cell"
-										class:available={hasSlots}
-										class:selected={key === viewDate}
-										class:today={isToday(key)}
-										class:past={isPast(key)}
-										disabled={!hasSlots || isPast(key)}
-										onclick={() => selectDate(key)}
-										aria-label={fmtDate(key)}
-									>
-										{cell.day}
-									</button>
-								{:else}
-									<span class="day-cell empty"></span>
-								{/if}
+
+					<div class="calendar-grid">
+						<div class="day-headers">
+							{#each dayHeaders as h (h)}
+								<span class="day-header">{h}</span>
 							{/each}
 						</div>
-					{/each}
+						{#each grid as week, wi (wi)}
+							<div class="week-row">
+								{#each week as cell, ci (cell?.key ?? `c${ci}`)}
+									{#if cell}
+										{@const key = cell.key}
+										{@const hasSlots = availableDates.has(key)}
+										<button
+											class="day-cell"
+											class:available={hasSlots}
+											class:selected={key === viewDate}
+											class:today={isToday(key)}
+											class:past={isPast(key)}
+											disabled={!hasSlots || isPast(key)}
+											onclick={() => selectDate(key)}
+											aria-label={fmtDate(key)}
+										>
+											{cell.day}
+										</button>
+									{:else}
+										<span class="day-cell empty"></span>
+									{/if}
+								{/each}
+							</div>
+						{/each}
+					</div>
+
+					<p class="tz-note">Times shown in {localTz.replace(/_/g, ' ')}</p>
 				</div>
+			{/if}
 
-				<p class="tz-note">Times shown in {localTz.replace(/_/g, ' ')}</p>
-			</div>
+			<div class="selection-panel" class:with-form={!!viewSlot}>
+				{#if viewDate && timeline}
+					<div class="timeline-container">
+						<h2 class="slots-date">{fmtDate(viewDate)}</h2>
+						<div class="timeline-scroll">
+							<div
+								class="timeline"
+								style:height="{Math.max(600, (timeline.totalMs / 3600000) * 80)}px"
+							>
+								{#each timeline.labels as { label, top }}
+									<div class="timeline-label" style:top="{top}%">{label}</div>
+									<div class="timeline-gridline" style:top="{top}%"></div>
+								{/each}
 
-			<div class="selection-panel">
+								<!-- svelte-ignore a11y_click_events_have_key_events -->
+								<!-- svelte-ignore a11y_no_static_element_interactions -->
+								<div
+									class="timeline-track"
+									onmousemove={handleTimelineMove}
+									onmouseleave={handleTimelineLeave}
+									onclick={handleTimelineClick}
+								>
+									<div class="hatch-bg"></div>
+
+									{#each timeline.working as w}
+										<div
+											class="working-window"
+											style:top="{w.top}%"
+											style:height="{w.height}%"
+										></div>
+									{/each}
+
+									{#each timeline.buffers as b}
+										<div
+											class="buffer-block hatch-bg"
+											style:top="{b.top}%"
+											style:height="{b.height}%"
+										></div>
+									{/each}
+
+									{#each timeline.busy as b}
+										<div class="busy-block" style:top="{b.top}%" style:height="{b.height}%">
+											<span class="busy-text">Busy</span>
+										</div>
+									{/each}
+
+									{#if viewSlot}
+										{@const s = timeline.slots.find((s) => s.iso === viewSlot)}
+										{#if s}
+											<div
+												class="slot-block selected"
+												style:top="{s.top}%"
+												style:height="{s.height}%"
+											>
+												<span class="slot-text">{s.time}</span>
+											</div>
+										{/if}
+									{/if}
+
+									{#if closestSlot && (!viewSlot || closestSlot.iso !== viewSlot)}
+										<div
+											class="slot-block ghost"
+											style:top="{closestSlot.top}%"
+											style:height="{closestSlot.height}%"
+										>
+											<span class="slot-text">{closestSlot.time}</span>
+										</div>
+									{/if}
+								</div>
+							</div>
+						</div>
+					</div>
+				{:else if !viewSlot}
+					<div class="time-slots empty-state">
+						<p>Select a highlighted date to see available times.</p>
+					</div>
+				{/if}
+
 				{#if viewSlot}
 					<div class="booking-form">
 						<div class="confirmed-slot">
@@ -284,21 +532,6 @@
 								{data.reschedule ? 'Reschedule' : 'Book'}
 							</button>
 						</form>
-					</div>
-				{:else if viewDate && daySlots.length > 0}
-					<div class="time-slots">
-						<h2 class="slots-date">{fmtDate(viewDate)}</h2>
-						<div class="slots-list">
-							{#each daySlots as iso (iso)}
-								<button class="slot-btn" onclick={() => selectSlot(iso)}>
-									{fmtTime(iso)}
-								</button>
-							{/each}
-						</div>
-					</div>
-				{:else}
-					<div class="time-slots empty-state">
-						<p>Select a highlighted date to see available times.</p>
 					</div>
 				{/if}
 			</div>
@@ -524,8 +757,8 @@
 		text-align: center;
 	}
 
-	/* ---- time slots ---- */
-	.time-slots {
+	/* ---- timeline day view ---- */
+	.timeline-container {
 		background: var(--surface);
 		border: 1px solid var(--border);
 		border-radius: var(--radius-md);
@@ -538,29 +771,126 @@
 		margin: 0 0 var(--space-5);
 	}
 
-	.slots-list {
-		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-		gap: var(--space-3);
+	.timeline-scroll {
+		position: relative;
+		overflow-y: auto;
+		overflow-x: hidden;
+		padding-right: var(--space-2);
 	}
 
-	.slot-btn {
-		padding: var(--space-4) var(--space-5);
-		border: 1px solid var(--border-strong);
-		border-radius: var(--radius);
-		background: var(--surface);
-		font-size: var(--font-size-base);
-		font-weight: 500;
+	.timeline {
+		position: relative;
+		margin-left: 60px;
+	}
+
+	.timeline-label {
+		position: absolute;
+		left: -60px;
+		width: 50px;
+		text-align: right;
+		font-size: var(--font-size-sm);
+		color: var(--text-muted);
+		transform: translateY(-50%);
+		line-height: 1;
+	}
+
+	.timeline-gridline {
+		position: absolute;
+		left: 0;
+		right: 0;
+		height: 1px;
+		background: var(--border);
+		transform: translateY(-50%);
+		z-index: 1;
+	}
+
+	.timeline-track {
+		position: absolute;
+		top: 0;
+		bottom: 0;
+		left: 0;
+		right: 0;
+		border-left: 1px solid var(--border-strong);
+		z-index: 2;
 		cursor: pointer;
-		color: var(--accent);
-		transition:
-			border-color var(--transition),
-			background var(--transition);
 	}
 
-	.slot-btn:hover {
-		border-color: var(--accent);
+	.hatch-bg {
+		position: absolute;
+		inset: 0;
+		background-image: repeating-linear-gradient(
+			45deg,
+			var(--surface-muted) 0,
+			var(--surface-muted) 2px,
+			transparent 2px,
+			transparent 8px
+		);
+		z-index: 1;
+		opacity: 0.5;
+	}
+
+	.working-window {
+		position: absolute;
+		left: 0;
+		right: 0;
+		background: var(--surface);
+		z-index: 2;
+	}
+
+	.busy-block {
+		position: absolute;
+		left: 0;
+		right: 0;
+		background: var(--border);
+		display: flex;
+		align-items: flex-start;
+		padding: var(--space-1) var(--space-2);
+		z-index: 4;
+		border-left: 3px solid var(--border-strong);
+		border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+		overflow: hidden;
+	}
+
+	.buffer-block {
+		position: absolute;
+		left: 0;
+		right: 0;
+		z-index: 3;
+		opacity: 0.5;
+	}
+
+	.busy-text {
+		font-size: var(--font-size-xs);
+		font-weight: 600;
+		color: var(--text-secondary);
+	}
+
+	.slot-block {
+		position: absolute;
+		left: 12px;
+		right: 12px;
 		background: var(--surface-accent);
+		border: 1px solid var(--accent);
+		border-radius: var(--radius-sm);
+		display: flex;
+		align-items: flex-start;
+		padding: var(--space-1) var(--space-2);
+		font-size: var(--font-size-sm);
+		color: var(--accent);
+		z-index: 5;
+		transition: all var(--transition);
+		pointer-events: none;
+	}
+
+	.slot-block.ghost {
+		background: var(--accent);
+		color: var(--text-on-accent);
+		box-shadow: var(--shadow-card);
+		z-index: 6;
+	}
+
+	.slot-text {
+		font-weight: 600;
 	}
 
 	.empty-state {
@@ -687,10 +1017,6 @@
 
 		.calendar-panel {
 			width: 100%;
-		}
-
-		.slots-list {
-			grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
 		}
 	}
 </style>
