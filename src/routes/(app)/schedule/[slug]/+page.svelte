@@ -219,11 +219,22 @@
 			current = current.add({ hours: 1 });
 		}
 
+		let past = null;
+		const nowInst = Temporal.Now.instant();
+		if (Temporal.Instant.compare(nowInst, viewStart) > 0) {
+			if (Temporal.Instant.compare(nowInst, viewEnd) >= 0) {
+				past = { top: 0, height: 100 };
+			} else {
+				past = { top: 0, height: toPercent(nowInst) };
+			}
+		}
+
 		return {
 			totalMs,
 			working,
 			busy,
 			buffers,
+			past,
 			slots,
 			labels
 		};
@@ -249,18 +260,34 @@
 		return minDiff < 10 ? best : null;
 	});
 
-	function handleTimelineMove(e: MouseEvent) {
+	function handleTimelineMove(e: MouseEvent | TouchEvent) {
 		const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-		hoverY = ((e.clientY - rect.top) / rect.height) * 100;
+		const clientY = 'touches' in e ? e.touches[0].clientY : (e as MouseEvent).clientY;
+		hoverY = ((clientY - rect.top) / rect.height) * 100;
 	}
 
 	function handleTimelineLeave() {
 		hoverY = null;
 	}
 
-	function handleTimelineClick() {
-		if (closestSlot) {
-			selectSlot(closestSlot.iso);
+	function handleTimelineClick(e: MouseEvent | TouchEvent) {
+		const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+		const clientY = 'changedTouches' in e ? e.changedTouches[0].clientY : (e as MouseEvent).clientY;
+		const clickY = ((clientY - rect.top) / rect.height) * 100;
+
+		let best = null;
+		let minDiff = Infinity;
+
+		for (const s of timeline?.slots || []) {
+			const diff = Math.abs(s.top - clickY);
+			if (diff < minDiff) {
+				minDiff = diff;
+				best = s;
+			}
+		}
+
+		if (best && minDiff < 10) {
+			selectSlot(best.iso);
 			hoverY = null;
 		}
 	}
@@ -403,6 +430,8 @@
 									onmousemove={handleTimelineMove}
 									onmouseleave={handleTimelineLeave}
 									onclick={handleTimelineClick}
+									ontouchstart={handleTimelineMove}
+									ontouchmove={handleTimelineMove}
 								>
 									<div class="hatch-bg"></div>
 
@@ -413,6 +442,14 @@
 											style:height="{w.height}%"
 										></div>
 									{/each}
+
+									{#if timeline.past}
+										<div
+											class="buffer-block hatch-bg"
+											style:top="{timeline.past.top}%"
+											style:height="{timeline.past.height}%"
+										></div>
+									{/if}
 
 									{#each timeline.buffers as b}
 										<div
