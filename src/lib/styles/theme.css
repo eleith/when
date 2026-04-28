@@ -28,6 +28,7 @@
 	--warning: #d97706;
 
 	--shadow-card: 0 1px 6px rgba(0, 0, 0, 0.06);
+	--shadow-focus: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent);
 
 	--space-1: 2px;
 	--space-2: 4px;
@@ -89,6 +90,7 @@
 		--warning: #fbbf24;
 
 		--shadow-card: 0 1px 6px rgba(0, 0, 0, 0.4);
+		--shadow-focus: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent);
 	}
 }
 
