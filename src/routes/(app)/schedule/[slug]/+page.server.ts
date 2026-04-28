@@ -101,7 +101,8 @@ export const load: PageServerLoad = async ({ params, url }) => {
 			booking_flow: eventType.booking_flow,
 			location: eventType.location ?? null,
 			buffer_before: knobs.buffer_before,
-			buffer_after: knobs.buffer_after
+			buffer_after: knobs.buffer_after,
+			minimum_notice: knobs.minimum_notice
 		},
 		user: {
 			name: cfg.user.name,

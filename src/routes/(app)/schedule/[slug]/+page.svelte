@@ -221,11 +221,15 @@
 
 		let past = null;
 		const nowInst = Temporal.Now.instant();
-		if (Temporal.Instant.compare(nowInst, viewStart) > 0) {
-			if (Temporal.Instant.compare(nowInst, viewEnd) >= 0) {
+		const noticeInst = nowInst.add({
+			minutes: (data.eventType.minimum_notice ?? 0) + (data.eventType.buffer_before ?? 0)
+		});
+
+		if (Temporal.Instant.compare(noticeInst, viewStart) > 0) {
+			if (Temporal.Instant.compare(noticeInst, viewEnd) >= 0) {
 				past = { top: 0, height: 100 };
 			} else {
-				past = { top: 0, height: toPercent(nowInst) };
+				past = { top: 0, height: toPercent(noticeInst) };
 			}
 		}
 
@@ -445,7 +449,7 @@
 
 									{#if timeline.past}
 										<div
-											class="buffer-block hatch-bg"
+											class="buffer-block"
 											style:top="{timeline.past.top}%"
 											style:height="{timeline.past.height}%"
 										></div>
@@ -453,7 +457,7 @@
 
 									{#each timeline.buffers as b}
 										<div
-											class="buffer-block hatch-bg"
+											class="buffer-block"
 											style:top="{b.top}%"
 											style:height="{b.height}%"
 										></div>
@@ -894,6 +898,13 @@
 		right: 0;
 		z-index: 3;
 		opacity: 0.5;
+		background-image: repeating-linear-gradient(
+			45deg,
+			var(--surface-muted) 0,
+			var(--surface-muted) 2px,
+			transparent 2px,
+			transparent 8px
+		);
 	}
 
 	.busy-text {

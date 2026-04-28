@@ -8,7 +8,11 @@
 
 <main class="landing">
 	{#if data.user.branding?.avatar_url || data.user.branding?.logo_url}
-		<img src={data.user.branding?.avatar_url || data.user.branding?.logo_url} alt={data.user.name} class="avatar" />
+		<img
+			src={data.user.branding?.avatar_url || data.user.branding?.logo_url}
+			alt={data.user.name}
+			class="avatar"
+		/>
 	{/if}
 	<h1>{data.user.branding?.page_title || data.user.name}</h1>
 	{#if data.user.branding?.descriptionHtml}
