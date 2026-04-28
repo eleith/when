@@ -90,6 +90,16 @@
 		currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1);
 	}
 
+	const MOBILE_MQ = '(max-width: 768px)';
+
+	let timelineEl = $state<HTMLElement | null>(null);
+	let formEl = $state<HTMLElement | null>(null);
+
+	function scrollTo(el: HTMLElement | null) {
+		if (!el || !window.matchMedia(MOBILE_MQ).matches) return;
+		el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+	}
+
 	function selectDate(key: string) {
 		if (!availableDates.has(key)) return;
 		viewDate = key;
@@ -99,6 +109,7 @@
 		}
 		const [y, m] = key.split('-').map(Number);
 		currentMonth = new Date(y, m - 1, 1);
+		scrollTo(timelineEl);
 	}
 
 	function selectSlot(iso: string) {
@@ -106,6 +117,7 @@
 		viewDate = iso.slice(0, 10);
 		currentMonth = new Date(Number(iso.slice(0, 4)), Number(iso.slice(5, 7)) - 1, 1);
 		history.replaceState({}, '', `?slot=${encodeURIComponent(iso)}`);
+		scrollTo(formEl);
 	}
 
 	function clearSlot() {
@@ -247,27 +259,9 @@
 	// ---- timeline interaction ----
 	let hoverY = $state<number | null>(null);
 
-	let closestSlot = $derived.by(() => {
-		if (hoverY === null || !timeline || timeline.slots.length === 0) return null;
-
-		let best = null;
-		let minDiff = Infinity;
-
-		for (const s of timeline.slots) {
-			const diff = Math.abs(s.top - hoverY);
-			if (diff < minDiff) {
-				minDiff = diff;
-				best = s;
-			}
-		}
-
-		return minDiff < 10 ? best : null;
-	});
-
-	function handleTimelineMove(e: MouseEvent | TouchEvent) {
+	function handleTimelineMove(e: MouseEvent) {
 		const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-		const clientY = 'touches' in e ? e.touches[0].clientY : (e as MouseEvent).clientY;
-		hoverY = ((clientY - rect.top) / rect.height) * 100;
+		hoverY = ((e.clientY - rect.top) / rect.height) * 100;
 	}
 
 	function handleTimelineLeave() {
@@ -292,7 +286,6 @@
 
 		if (best && minDiff < 10) {
 			selectSlot(best.iso);
-			hoverY = null;
 		}
 	}
 
@@ -368,7 +361,6 @@
 		<p class="empty">No availability in the near future.</p>
 	{:else}
 		<div class="booking-body">
-			{#if !viewSlot}
 				<div class="calendar-panel">
 					<div class="calendar-nav">
 						<button class="nav-btn" onclick={prevMonth} aria-label="Previous month">&lsaquo;</button
@@ -411,11 +403,9 @@
 
 					<p class="tz-note">Times shown in {localTz.replace(/_/g, ' ')}</p>
 				</div>
-			{/if}
 
-			<div class="selection-panel" class:with-form={!!viewSlot}>
-				{#if viewDate && timeline}
-					<div class="timeline-container">
+			{#if viewDate && timeline}
+				<div class="timeline-container" bind:this={timelineEl}>
 						<h2 class="slots-date">{fmtDate(viewDate)}</h2>
 						<div class="timeline-scroll">
 							<div
@@ -431,11 +421,9 @@
 								<!-- svelte-ignore a11y_no_static_element_interactions -->
 								<div
 									class="timeline-track"
+									onclick={handleTimelineClick}
 									onmousemove={handleTimelineMove}
 									onmouseleave={handleTimelineLeave}
-									onclick={handleTimelineClick}
-									ontouchstart={handleTimelineMove}
-									ontouchmove={handleTimelineMove}
 								>
 									<div class="hatch-bg"></div>
 
@@ -482,27 +470,21 @@
 										{/if}
 									{/if}
 
-									{#if closestSlot && (!viewSlot || closestSlot.iso !== viewSlot)}
-										<div
-											class="slot-block ghost"
-											style:top="{closestSlot.top}%"
-											style:height="{closestSlot.height}%"
-										>
-											<span class="slot-text">{closestSlot.time}</span>
-										</div>
+									{#if hoverY !== null}
+										<div class="timeline-cursor" style:top="{hoverY}%"></div>
 									{/if}
 								</div>
 							</div>
 						</div>
 					</div>
-				{:else if !viewSlot}
-					<div class="time-slots empty-state">
-						<p>Select a highlighted date to see available times.</p>
-					</div>
-				{/if}
+			{:else}
+				<div class="timeline-container empty-state" bind:this={timelineEl}>
+					<p>Select a highlighted date to see available times.</p>
+				</div>
+			{/if}
 
+			<div class="booking-form" bind:this={formEl}>
 				{#if viewSlot}
-					<div class="booking-form">
 						<div class="confirmed-slot">
 							<span class="slot-time">{fmtTime(viewSlot)}</span>
 							<span class="slot-date">&mdash; {fmtDateShort(viewSlot.slice(0, 10))}</span>
@@ -573,16 +555,19 @@
 								{data.reschedule ? 'Reschedule' : 'Book'}
 							</button>
 						</form>
+				{:else}
+					<div class="form-placeholder">
+						<p>Select a time on the timeline to continue</p>
 					</div>
 				{/if}
-			</div>
+				</div>
 		</div>
 	{/if}
 </div>
 
 <style>
 	.booking {
-		max-width: 880px;
+		max-width: 960px;
 		margin: 0 auto;
 		padding: var(--space-8) var(--space-6) var(--space-10);
 		color: var(--text);
@@ -661,16 +646,20 @@
 
 	.calendar-panel {
 		flex-shrink: 0;
-		width: 308px;
+		width: 250px;
 		background: var(--surface);
 		border: 1px solid var(--border);
 		border-radius: var(--radius-md);
 		padding: var(--space-6);
 	}
 
-	.selection-panel {
+	.timeline-container {
 		flex: 1;
 		min-width: 0;
+	}
+
+	.booking-form {
+		flex: 0 0 270px;
 	}
 
 	/* ---- calendar nav ---- */
@@ -771,8 +760,8 @@
 		bottom: var(--space-1);
 		left: 50%;
 		transform: translateX(-50%);
-		width: 4px;
-		height: 4px;
+		width: var(--space-2);
+		height: var(--space-2);
 		border-radius: 50%;
 		background: var(--accent);
 	}
@@ -915,8 +904,8 @@
 
 	.slot-block {
 		position: absolute;
-		left: 12px;
-		right: 12px;
+		left: var(--space-4);
+		right: var(--space-4);
 		background: var(--surface-accent);
 		border: 1px solid var(--accent);
 		border-radius: var(--radius-sm);
@@ -930,11 +919,14 @@
 		pointer-events: none;
 	}
 
-	.slot-block.ghost {
+	.timeline-cursor {
+		position: absolute;
+		left: 0;
+		right: 0;
+		height: 1px;
 		background: var(--accent);
-		color: var(--text-on-accent);
-		box-shadow: var(--shadow-card);
-		z-index: 6;
+		z-index: 7;
+		pointer-events: none;
 	}
 
 	.slot-text {
@@ -1030,7 +1022,7 @@
 	.field textarea:focus {
 		outline: none;
 		border-color: var(--accent);
-		box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent);
+		box-shadow: var(--shadow-focus);
 	}
 
 	.location-display {
@@ -1057,14 +1049,35 @@
 		opacity: 0.9;
 	}
 
+	/* ---- form placeholder ---- */
+	.form-placeholder {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		text-align: center;
+		color: var(--text-disabled);
+		font-size: var(--font-size-sm);
+		padding: var(--space-9) var(--space-7);
+		min-height: 200px;
+	}
+
 	/* ---- responsive ---- */
-	@media (max-width: 640px) {
+	@media (max-width: 768px) {
 		.booking-body {
 			flex-direction: column;
 		}
 
-		.calendar-panel {
+		.calendar-panel,
+		.booking-form,
+		.timeline-container {
 			width: 100%;
+			flex: 0 0 auto;
+		}
+
+		.calendar-panel,
+		.timeline-container,
+		.booking-form {
+			scroll-margin-top: var(--space-5);
 		}
 	}
 </style>
