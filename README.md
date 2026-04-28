@@ -181,6 +181,29 @@ Run inside the container or with `bun run` in a checkout:
 - `bun run validate-config` — parses + validates `config.yaml` without
   starting the server. Exits non-zero on validation errors.
 
+## Custom Branding & Assets
+
+You can customize the appearance of your booking page by providing your own images (logos, avatars, favicons, or event-specific images) and referencing them in your `config.yaml`. 
+
+To do this, create a `public` directory inside your `data` volume (`./data/public`) and place your image files there. Both the production and development Docker compose files are configured to mount this directory so that SvelteKit serves them as static assets under the `/public/` URL path.
+
+For example, if you place `my-avatar.jpg` and `chat-icon.png` in `./data/public/`, your config would look like this:
+
+```yaml
+user:
+  name: "Your Name"
+  branding:
+    page_title: "Schedule a time with me"
+    description: "A little bit about me and **why** I want to schedule a meeting."
+    avatar_url: "/public/my-avatar.jpg"
+    favicon_url: "/public/favicon.ico"
+
+event_types:
+  - id: "chat"
+    name: "30-minute chat"
+    image_url: "/public/chat-icon.png"
+```
+
 ## Local development
 
 ```sh
