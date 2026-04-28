@@ -7,18 +7,30 @@
 	"additionalProperties": false,
 	"required": ["auth", "user", "calendars", "availability", "event_types"],
 	"properties": {
-		"auth": { "$ref": "#/$defs/Auth" },
-		"user": { "$ref": "#/$defs/User" },
-		"smtp": { "$ref": "#/$defs/Smtp" },
+		"auth": {
+			"$ref": "#/$defs/Auth"
+		},
+		"user": {
+			"$ref": "#/$defs/User"
+		},
+		"smtp": {
+			"$ref": "#/$defs/Smtp"
+		},
 		"calendars": {
 			"type": "array",
-			"items": { "$ref": "#/$defs/Calendar" }
+			"items": {
+				"$ref": "#/$defs/Calendar"
+			}
 		},
-		"availability": { "$ref": "#/$defs/Availability" },
+		"availability": {
+			"$ref": "#/$defs/Availability"
+		},
 		"event_types": {
 			"type": "array",
 			"minItems": 1,
-			"items": { "$ref": "#/$defs/EventType" }
+			"items": {
+				"$ref": "#/$defs/EventType"
+			}
 		}
 	},
 	"$defs": {
@@ -30,12 +42,20 @@
 				{
 					"additionalProperties": false,
 					"required": ["oidc"],
-					"properties": { "oidc": { "$ref": "#/$defs/OidcAuth" } }
+					"properties": {
+						"oidc": {
+							"$ref": "#/$defs/OidcAuth"
+						}
+					}
 				},
 				{
 					"additionalProperties": false,
 					"required": ["credentials"],
-					"properties": { "credentials": { "$ref": "#/$defs/CredentialsAuth" } }
+					"properties": {
+						"credentials": {
+							"$ref": "#/$defs/CredentialsAuth"
+						}
+					}
 				}
 			]
 		},
@@ -45,9 +65,18 @@
 			"additionalProperties": false,
 			"required": ["issuer", "client_id", "client_secret"],
 			"properties": {
-				"issuer": { "type": "string", "format": "uri" },
-				"client_id": { "type": "string", "minLength": 1 },
-				"client_secret": { "type": "string", "minLength": 1 }
+				"issuer": {
+					"type": "string",
+					"format": "uri"
+				},
+				"client_id": {
+					"type": "string",
+					"minLength": 1
+				},
+				"client_secret": {
+					"type": "string",
+					"minLength": 1
+				}
 			}
 		},
 		"CredentialsAuth": {
@@ -57,8 +86,14 @@
 			"additionalProperties": false,
 			"required": ["username", "password_hash"],
 			"properties": {
-				"username": { "type": "string", "minLength": 1 },
-				"password_hash": { "type": "string", "minLength": 1 }
+				"username": {
+					"type": "string",
+					"minLength": 1
+				},
+				"password_hash": {
+					"type": "string",
+					"minLength": 1
+				}
 			}
 		},
 		"User": {
@@ -67,14 +102,22 @@
 			"additionalProperties": false,
 			"required": ["name", "timezone", "email"],
 			"properties": {
-				"name": { "type": "string", "minLength": 1 },
+				"name": {
+					"type": "string",
+					"minLength": 1
+				},
 				"timezone": {
 					"type": "string",
 					"description": "IANA timezone identifier (e.g. America/New_York).",
 					"minLength": 1
 				},
-				"email": { "type": "string", "format": "email" },
-				"branding": { "$ref": "#/$defs/Branding" }
+				"email": {
+					"type": "string",
+					"format": "email"
+				},
+				"branding": {
+					"$ref": "#/$defs/Branding"
+				}
 			}
 		},
 		"Branding": {
@@ -82,21 +125,46 @@
 			"type": "object",
 			"additionalProperties": false,
 			"properties": {
-				"logo_url": { "type": "string", "minLength": 1 },
+				"logo_url": {
+					"type": "string",
+					"minLength": 1
+				},
 				"accent_color": {
 					"description": "Accent color. Either a single hex string used in both modes, or an object with `light` and `dark` hex values.",
 					"oneOf": [
-						{ "$ref": "#/$defs/HexColor" },
+						{
+							"$ref": "#/$defs/HexColor"
+						},
 						{
 							"type": "object",
 							"additionalProperties": false,
 							"required": ["light", "dark"],
 							"properties": {
-								"light": { "$ref": "#/$defs/HexColor" },
-								"dark": { "$ref": "#/$defs/HexColor" }
+								"light": {
+									"$ref": "#/$defs/HexColor"
+								},
+								"dark": {
+									"$ref": "#/$defs/HexColor"
+								}
 							}
 						}
 					]
+				},
+				"avatar_url": {
+					"type": "string",
+					"minLength": 1
+				},
+				"favicon_url": {
+					"type": "string",
+					"minLength": 1
+				},
+				"page_title": {
+					"type": "string",
+					"minLength": 1
+				},
+				"description": {
+					"type": "string",
+					"minLength": 1
 				}
 			}
 		},
@@ -111,15 +179,35 @@
 			"additionalProperties": false,
 			"required": ["host", "port", "user", "pass"],
 			"properties": {
-				"host": { "type": "string", "minLength": 1 },
-				"port": { "type": "integer", "minimum": 1, "maximum": 65535 },
-				"user": { "type": "string", "minLength": 1 },
-				"pass": { "type": "string", "minLength": 1 }
+				"host": {
+					"type": "string",
+					"minLength": 1
+				},
+				"port": {
+					"type": "integer",
+					"minimum": 1,
+					"maximum": 65535
+				},
+				"user": {
+					"type": "string",
+					"minLength": 1
+				},
+				"pass": {
+					"type": "string",
+					"minLength": 1
+				}
 			}
 		},
 		"Calendar": {
 			"title": "Calendar",
-			"oneOf": [{ "$ref": "#/$defs/GoogleCalendar" }, { "$ref": "#/$defs/CalDavCalendar" }]
+			"oneOf": [
+				{
+					"$ref": "#/$defs/GoogleCalendar"
+				},
+				{
+					"$ref": "#/$defs/CalDavCalendar"
+				}
+			]
 		},
 		"GoogleCalendar": {
 			"title": "GoogleCalendar",
@@ -134,12 +222,29 @@
 				"google_calendar_id"
 			],
 			"properties": {
-				"id": { "type": "string", "minLength": 1 },
-				"type": { "const": "google" },
-				"client_id": { "type": "string", "minLength": 1 },
-				"client_secret": { "type": "string", "minLength": 1 },
-				"refresh_token": { "type": "string", "minLength": 1 },
-				"google_calendar_id": { "type": "string", "minLength": 1 }
+				"id": {
+					"type": "string",
+					"minLength": 1
+				},
+				"type": {
+					"const": "google"
+				},
+				"client_id": {
+					"type": "string",
+					"minLength": 1
+				},
+				"client_secret": {
+					"type": "string",
+					"minLength": 1
+				},
+				"refresh_token": {
+					"type": "string",
+					"minLength": 1
+				},
+				"google_calendar_id": {
+					"type": "string",
+					"minLength": 1
+				}
 			}
 		},
 		"CalDavCalendar": {
@@ -148,11 +253,25 @@
 			"additionalProperties": false,
 			"required": ["id", "type", "url", "username", "password"],
 			"properties": {
-				"id": { "type": "string", "minLength": 1 },
-				"type": { "const": "caldav" },
-				"url": { "type": "string", "format": "uri" },
-				"username": { "type": "string", "minLength": 1 },
-				"password": { "type": "string", "minLength": 1 }
+				"id": {
+					"type": "string",
+					"minLength": 1
+				},
+				"type": {
+					"const": "caldav"
+				},
+				"url": {
+					"type": "string",
+					"format": "uri"
+				},
+				"username": {
+					"type": "string",
+					"minLength": 1
+				},
+				"password": {
+					"type": "string",
+					"minLength": 1
+				}
 			}
 		},
 		"Availability": {
@@ -162,17 +281,39 @@
 			"additionalProperties": false,
 			"required": ["default"],
 			"properties": {
-				"slot_granularity": { "type": "integer", "minimum": 1, "default": 15 },
-				"minimum_notice": { "type": "integer", "minimum": 0, "default": 120 },
-				"maximum_lookahead": { "type": "integer", "minimum": 1, "default": 60 },
-				"buffer_before": { "type": "integer", "minimum": 0, "default": 0 },
-				"buffer_after": { "type": "integer", "minimum": 0, "default": 0 },
+				"slot_granularity": {
+					"type": "integer",
+					"minimum": 1,
+					"default": 15
+				},
+				"minimum_notice": {
+					"type": "integer",
+					"minimum": 0,
+					"default": 120
+				},
+				"maximum_lookahead": {
+					"type": "integer",
+					"minimum": 1,
+					"default": 60
+				},
+				"buffer_before": {
+					"type": "integer",
+					"minimum": 0,
+					"default": 0
+				},
+				"buffer_after": {
+					"type": "integer",
+					"minimum": 0,
+					"default": 0
+				},
 				"max_bookings_per_day": {
 					"type": ["integer", "null"],
 					"minimum": 1,
 					"default": null
 				},
-				"default": { "$ref": "#/$defs/WeeklySchedule" }
+				"default": {
+					"$ref": "#/$defs/WeeklySchedule"
+				}
 			}
 		},
 		"WeeklySchedule": {
@@ -180,13 +321,27 @@
 			"type": "object",
 			"additionalProperties": false,
 			"properties": {
-				"monday": { "$ref": "#/$defs/DaySchedule" },
-				"tuesday": { "$ref": "#/$defs/DaySchedule" },
-				"wednesday": { "$ref": "#/$defs/DaySchedule" },
-				"thursday": { "$ref": "#/$defs/DaySchedule" },
-				"friday": { "$ref": "#/$defs/DaySchedule" },
-				"saturday": { "$ref": "#/$defs/DaySchedule" },
-				"sunday": { "$ref": "#/$defs/DaySchedule" }
+				"monday": {
+					"$ref": "#/$defs/DaySchedule"
+				},
+				"tuesday": {
+					"$ref": "#/$defs/DaySchedule"
+				},
+				"wednesday": {
+					"$ref": "#/$defs/DaySchedule"
+				},
+				"thursday": {
+					"$ref": "#/$defs/DaySchedule"
+				},
+				"friday": {
+					"$ref": "#/$defs/DaySchedule"
+				},
+				"saturday": {
+					"$ref": "#/$defs/DaySchedule"
+				},
+				"sunday": {
+					"$ref": "#/$defs/DaySchedule"
+				}
 			}
 		},
 		"DaySchedule": {
@@ -204,10 +359,21 @@
 			"additionalProperties": false,
 			"required": ["id", "name", "duration", "slug", "booking_flow", "destination_calendar"],
 			"properties": {
-				"id": { "type": "string", "minLength": 1 },
-				"name": { "type": "string", "minLength": 1 },
-				"duration": { "type": "integer", "minimum": 1 },
-				"description": { "type": "string" },
+				"id": {
+					"type": "string",
+					"minLength": 1
+				},
+				"name": {
+					"type": "string",
+					"minLength": 1
+				},
+				"duration": {
+					"type": "integer",
+					"minimum": 1
+				},
+				"description": {
+					"type": "string"
+				},
 				"slug": {
 					"type": "string",
 					"pattern": "^[a-z0-9][a-z0-9-]*$"
@@ -216,31 +382,66 @@
 					"enum": ["public", "private"],
 					"default": "public"
 				},
-				"booking_flow": { "enum": ["auto", "requires_confirmation"] },
+				"booking_flow": {
+					"enum": ["auto", "requires_confirmation"]
+				},
 				"conflict_calendars": {
 					"type": "array",
-					"items": { "type": "string", "minLength": 1 },
+					"items": {
+						"type": "string",
+						"minLength": 1
+					},
 					"default": []
 				},
-				"destination_calendar": { "type": "string", "minLength": 1 },
-				"location": { "$ref": "#/$defs/Location" },
-				"slot_granularity": { "type": "integer", "minimum": 1 },
-				"minimum_notice": { "type": "integer", "minimum": 0 },
-				"maximum_lookahead": { "type": "integer", "minimum": 1 },
-				"buffer_before": { "type": "integer", "minimum": 0 },
-				"buffer_after": { "type": "integer", "minimum": 0 },
+				"destination_calendar": {
+					"type": "string",
+					"minLength": 1
+				},
+				"location": {
+					"$ref": "#/$defs/Location"
+				},
+				"slot_granularity": {
+					"type": "integer",
+					"minimum": 1
+				},
+				"minimum_notice": {
+					"type": "integer",
+					"minimum": 0
+				},
+				"maximum_lookahead": {
+					"type": "integer",
+					"minimum": 1
+				},
+				"buffer_before": {
+					"type": "integer",
+					"minimum": 0
+				},
+				"buffer_after": {
+					"type": "integer",
+					"minimum": 0
+				},
 				"max_bookings_per_day": {
 					"type": ["integer", "null"],
 					"minimum": 1
+				},
+				"image_url": {
+					"type": "string",
+					"minLength": 1
 				}
 			}
 		},
 		"Location": {
 			"title": "Location",
 			"oneOf": [
-				{ "$ref": "#/$defs/LocationFixed" },
-				{ "$ref": "#/$defs/LocationGuestProposes" },
-				{ "$ref": "#/$defs/LocationChoice" }
+				{
+					"$ref": "#/$defs/LocationFixed"
+				},
+				{
+					"$ref": "#/$defs/LocationGuestProposes"
+				},
+				{
+					"$ref": "#/$defs/LocationChoice"
+				}
 			]
 		},
 		"LocationFixed": {
@@ -249,8 +450,13 @@
 			"additionalProperties": false,
 			"required": ["mode", "fixed"],
 			"properties": {
-				"mode": { "const": "fixed" },
-				"fixed": { "type": "string", "minLength": 1 }
+				"mode": {
+					"const": "fixed"
+				},
+				"fixed": {
+					"type": "string",
+					"minLength": 1
+				}
 			}
 		},
 		"LocationGuestProposes": {
@@ -259,7 +465,9 @@
 			"additionalProperties": false,
 			"required": ["mode"],
 			"properties": {
-				"mode": { "const": "guest_proposes" }
+				"mode": {
+					"const": "guest_proposes"
+				}
 			}
 		},
 		"LocationChoice": {
@@ -268,11 +476,16 @@
 			"additionalProperties": false,
 			"required": ["mode", "choices"],
 			"properties": {
-				"mode": { "const": "choice" },
+				"mode": {
+					"const": "choice"
+				},
 				"choices": {
 					"type": "array",
 					"minItems": 1,
-					"items": { "type": "string", "minLength": 1 }
+					"items": {
+						"type": "string",
+						"minLength": 1
+					}
 				}
 			}
 		}

@@ -13,6 +13,12 @@ user:
   name: 'Your Name'
   timezone: 'UTC'
   email: 'you@example.com'
+  branding:
+    page_title: 'Welcome to my scheduling page'
+    description: 'A little bit about me and **why** I want to schedule a meeting.'
+    logo_url: '/public/logo.png'
+    avatar_url: '/public/avatar.jpg'
+    favicon_url: '/public/favicon.ico'
 
 calendars:
   - id: 'main'
@@ -36,3 +42,5 @@ event_types:
     slug: 'chat'
     booking_flow: 'auto'
     destination_calendar: 'main'
+    image_url: '/public/chat-icon.png'
+    description: 'A quick catch-up or intro call.'
