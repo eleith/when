@@ -1,10 +1,11 @@
 <script lang="ts">
 	import '$lib/styles/theme.css';
-	import favicon from '$lib/assets/favicon.svg';
+	import defaultFavicon from '$lib/assets/favicon.svg';
 
 	let { data, children } = $props();
 
 	let accent = $derived(data?.branding?.accent ?? { light: '#4f46e5', dark: '#4f46e5' });
+	let favicon = $derived(data?.branding?.favicon_url ?? defaultFavicon);
 </script>
 
 <svelte:head>

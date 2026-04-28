@@ -51,6 +51,7 @@
 		"ajv-formats": "^3.0.1",
 		"kysely": "^0.28.16",
 		"kysely-bun-sqlite": "^0.4.0",
+		"marked": "^18.0.2",
 		"nodemailer": "^8.0.6",
 		"pino": "^10.3.1",
 		"prom-client": "^15.1.3",

@@ -7,11 +7,15 @@
 </svelte:head>
 
 <main class="landing">
-	{#if data.user.branding?.logo_url}
-		<img src={data.user.branding.logo_url} alt={data.user.name} class="avatar" />
+	{#if data.user.branding?.avatar_url || data.user.branding?.logo_url}
+		<img src={data.user.branding?.avatar_url || data.user.branding?.logo_url} alt={data.user.name} class="avatar" />
 	{/if}
-	<h1>{data.user.name}</h1>
-	<p class="subtitle">Welcome to my scheduling page</p>
+	<h1>{data.user.branding?.page_title || data.user.name}</h1>
+	{#if data.user.branding?.descriptionHtml}
+		<div class="subtitle">{@html data.user.branding.descriptionHtml}</div>
+	{:else if !data.user.branding?.page_title}
+		<p class="subtitle">Welcome to my scheduling page</p>
+	{/if}
 
 	{#if data.eventTypes.length === 0}
 		<p class="empty">No meeting types are currently available.</p>
@@ -19,12 +23,16 @@
 		<div class="event-list">
 			{#each data.eventTypes as et (et.id)}
 				<a href="/schedule/{et.slug}" class="event-card">
-					<span class="event-dot"></span>
+					{#if et.image_url}
+						<img src={et.image_url} alt="" class="event-image" />
+					{:else}
+						<span class="event-dot"></span>
+					{/if}
 					<div class="event-info">
 						<h2>{et.name}</h2>
 						<p class="event-meta">{et.duration} min</p>
-						{#if et.description}
-							<p class="event-desc">{et.description}</p>
+						{#if et.descriptionHtml}
+							<div class="event-desc">{@html et.descriptionHtml}</div>
 						{/if}
 					</div>
 					<span class="arrow" aria-hidden="true">&rarr;</span>
@@ -97,6 +105,14 @@
 		height: 10px;
 		border-radius: 50%;
 		background: var(--accent);
+	}
+
+	.event-image {
+		flex-shrink: 0;
+		width: 48px;
+		height: 48px;
+		border-radius: var(--radius);
+		object-fit: cover;
 	}
 
 	.event-info {

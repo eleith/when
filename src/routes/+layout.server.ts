@@ -12,7 +12,8 @@ export const load: LayoutServerLoad = () => {
 					: typeof accent === 'string'
 						? { light: accent, dark: accent }
 						: accent,
-			logo_url: cfg.user.branding?.logo_url ?? null
+			logo_url: cfg.user.branding?.logo_url ?? null,
+			favicon_url: cfg.user.branding?.favicon_url ?? null
 		}
 	};
 };

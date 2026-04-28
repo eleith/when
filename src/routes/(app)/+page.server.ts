@@ -1,5 +1,6 @@
 import { getConfig } from '$lib/server/state';
 import type { PageServerLoad } from './$types';
+import { marked } from 'marked';
 
 export const load: PageServerLoad = () => {
 	const cfg = getConfig();
@@ -11,13 +12,19 @@ export const load: PageServerLoad = () => {
 			name: e.name,
 			slug: e.slug,
 			duration: e.duration,
-			description: e.description ?? null
+			descriptionHtml: e.description ? marked.parse(e.description) : null,
+			image_url: e.image_url ?? null
 		}));
 
 	return {
 		user: {
 			name: cfg.user.name,
-			branding: cfg.user.branding ?? null
+			branding: {
+				...cfg.user.branding,
+				descriptionHtml: cfg.user.branding?.description
+					? marked.parse(cfg.user.branding.description)
+					: null
+			}
 		},
 		eventTypes
 	};
