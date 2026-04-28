@@ -43,3 +43,4 @@ vite.config.ts.timestamp-*
 # Per-user / local tool state
 /.claude/
 
+/static/public

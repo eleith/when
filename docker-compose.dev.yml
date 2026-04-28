@@ -17,6 +17,7 @@ services:
       - ./tsconfig.json:/app/tsconfig.json
       - ./eslint.config.js:/app/eslint.config.js
       - ./data:/app/data
+      - ./data/public:/app/static/public
     environment:
       NODE_ENV: development
       AUTH_SECRET: ${AUTH_SECRET:-development-only-secret-please-change-it-32chars}
