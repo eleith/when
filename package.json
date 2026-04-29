@@ -46,9 +46,11 @@
 	},
 	"dependencies": {
 		"@auth/sveltekit": "^1.11.2",
+		"@internationalized/date": "^3.12.1",
 		"@js-temporal/polyfill": "^0.5.1",
 		"ajv": "^8.20.0",
 		"ajv-formats": "^3.0.1",
+		"bits-ui": "^2.18.0",
 		"kysely": "^0.28.16",
 		"kysely-bun-sqlite": "^0.4.0",
 		"marked": "^18.0.2",

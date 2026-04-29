@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { Temporal } from '@js-temporal/polyfill';
+	import { Calendar } from 'bits-ui';
+	import { CalendarDate, type DateValue } from '@internationalized/date';
 
 	let { data, form } = $props();
 
@@ -18,16 +20,22 @@
 	// User-controlled state — initialized in $effect below
 	let viewSlot = $state<string | null>(null);
 	let viewDate = $state<string | null>(null);
-	let currentMonth = $state(new Date());
 	let _init = $state(false);
+
+	function dateToStr(d: DateValue): string {
+		return `${d.year}-${String(d.month).padStart(2, '0')}-${String(d.day).padStart(2, '0')}`;
+	}
+
+	function strToCalendarDate(key: string): CalendarDate {
+		return new CalendarDate(Number(key.slice(0, 4)), Number(key.slice(5, 7)), Number(key.slice(8, 10)));
+	}
+
+	let calendarValue = $derived(viewDate ? strToCalendarDate(viewDate) : undefined);
 
 	$effect(() => {
 		if (_init) return;
 		viewSlot = data.selectedSlot;
 		viewDate = data.selectedSlot?.slice(0, 10) ?? firstDate;
-		if (viewDate) {
-			currentMonth = new Date(Number(viewDate.slice(0, 4)), Number(viewDate.slice(5, 7)) - 1, 1);
-		}
 		_init = true;
 	});
 
@@ -43,53 +51,16 @@
 			.sort();
 	});
 
-	// ---- calendar grid ----
-	let grid = $derived.by(() => {
-		const y = currentMonth.getFullYear();
-		const m = currentMonth.getMonth();
-		const firstDay = new Date(y, m, 1);
-		const lastDay = new Date(y, m + 1, 0);
-		const startDow = firstDay.getDay();
-		const daysInMonth = lastDay.getDate();
+	// ---- calendar helpers ----
+	function isDateUnavailable(date: DateValue): boolean {
+		return !availableDates.has(dateToStr(date));
+	}
 
-		const rows: ({ day: number; key: string } | null)[][] = [];
-		let week: ({ day: number; key: string } | null)[] = [];
-
-		const pad = (n: number) => String(n).padStart(2, '0');
-
-		for (let i = 0; i < startDow; i++) week.push(null);
-
-		for (let d = 1; d <= daysInMonth; d++) {
-			week.push({ day: d, key: `${y}-${pad(m + 1)}-${pad(d)}` });
-			if (week.length === 7) {
-				rows.push(week);
-				week = [];
-			}
-		}
-
-		if (week.length > 0) {
-			while (week.length < 7) week.push(null);
-			rows.push(week);
-		}
-
-		return rows;
-	});
-
-	let monthLabel = $derived(
-		currentMonth.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
-	);
-
-	const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+	function isDateDisabled(date: DateValue): boolean {
+		return dateToStr(date) < todayKey;
+	}
 
 	// ---- actions ----
-	function prevMonth() {
-		currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1);
-	}
-
-	function nextMonth() {
-		currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1);
-	}
-
 	const MOBILE_MQ = '(max-width: 768px)';
 
 	let timelineEl = $state<HTMLElement | null>(null);
@@ -100,22 +71,21 @@
 		el.scrollIntoView({ behavior: 'smooth', block: 'start' });
 	}
 
-	function selectDate(key: string) {
+	function onDateChange(date: DateValue | undefined) {
+		if (!date) return;
+		const key = dateToStr(date);
 		if (!availableDates.has(key)) return;
 		viewDate = key;
 		if (viewSlot && !viewSlot.startsWith(key)) {
 			viewSlot = null;
 			history.replaceState({}, '', '?');
 		}
-		const [y, m] = key.split('-').map(Number);
-		currentMonth = new Date(y, m - 1, 1);
 		scrollTo(timelineEl);
 	}
 
 	function selectSlot(iso: string) {
 		viewSlot = iso;
 		viewDate = iso.slice(0, 10);
-		currentMonth = new Date(Number(iso.slice(0, 4)), Number(iso.slice(5, 7)) - 1, 1);
 		history.replaceState({}, '', `?slot=${encodeURIComponent(iso)}`);
 		scrollTo(formEl);
 	}
@@ -323,14 +293,6 @@
 			return key;
 		}
 	}
-
-	function isToday(key: string) {
-		return key === todayKey;
-	}
-
-	function isPast(key: string) {
-		return key < todayKey;
-	}
 </script>
 
 <svelte:head>
@@ -373,44 +335,45 @@
 	{:else}
 		<div class="booking-body">
 				<div class="calendar-panel">
-					<div class="calendar-nav">
-						<button class="nav-btn" onclick={prevMonth} aria-label="Previous month">&lsaquo;</button
-						>
-						<span class="month-label">{monthLabel}</span>
-						<button class="nav-btn" onclick={nextMonth} aria-label="Next month">&rsaquo;</button>
-					</div>
-
-					<div class="calendar-grid">
-						<div class="day-headers">
-							{#each dayHeaders as h (h)}
-								<span class="day-header">{h}</span>
-							{/each}
-						</div>
-						{#each grid as week, wi (wi)}
-							<div class="week-row">
-								{#each week as cell, ci (cell?.key ?? `c${ci}`)}
-									{#if cell}
-										{@const key = cell.key}
-										{@const hasSlots = availableDates.has(key)}
-										<button
-											class="day-cell"
-											class:available={hasSlots}
-											class:selected={key === viewDate}
-											class:today={isToday(key)}
-											class:past={isPast(key)}
-											disabled={!hasSlots || isPast(key)}
-											onclick={() => selectDate(key)}
-											aria-label={fmtDate(key)}
-										>
-											{cell.day}
-										</button>
-									{:else}
-										<span class="day-cell empty"></span>
-									{/if}
-								{/each}
-							</div>
-						{/each}
-					</div>
+					<Calendar.Root
+						type="single"
+						fixedWeeks
+						weekdayFormat="short"
+						isDateUnavailable={isDateUnavailable}
+						isDateDisabled={isDateDisabled}
+						value={calendarValue}
+						onValueChange={onDateChange}
+					>
+						{#snippet children({ months, weekdays })}
+							<Calendar.Header class="cal-header">
+								<Calendar.PrevButton class="cal-nav-btn">&lsaquo;</Calendar.PrevButton>
+								<Calendar.Heading class="cal-heading" />
+								<Calendar.NextButton class="cal-nav-btn">&rsaquo;</Calendar.NextButton>
+							</Calendar.Header>
+							<Calendar.Grid class="cal-grid">
+								<Calendar.GridHead>
+									<Calendar.GridRow class="cal-weekdays">
+										{#each weekdays as day}
+											<Calendar.HeadCell class="cal-weekday">{day.slice(0, 2)}</Calendar.HeadCell>
+										{/each}
+									</Calendar.GridRow>
+								</Calendar.GridHead>
+								<Calendar.GridBody>
+									{#each months as month}
+										{#each month.weeks as weekDates}
+											<Calendar.GridRow class="cal-row">
+												{#each weekDates as date}
+													<Calendar.Cell {date} month={month.value} class="cal-cell">
+														<Calendar.Day class="cal-day">{date.day}</Calendar.Day>
+													</Calendar.Cell>
+												{/each}
+											</Calendar.GridRow>
+										{/each}
+									{/each}
+								</Calendar.GridBody>
+							</Calendar.Grid>
+						{/snippet}
+					</Calendar.Root>
 
 					<p class="tz-note">Times shown in {localTz.replace(/_/g, ' ')}</p>
 				</div>
@@ -641,15 +604,21 @@
 		flex: 0 0 270px;
 	}
 
-	/* ---- calendar nav ---- */
-	.calendar-nav {
+	/* ---- calendar (Bits UI) ---- */
+	.calendar-panel :global(.cal-header) {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		margin-bottom: var(--space-5);
+		margin-bottom: var(--space-4);
 	}
 
-	.nav-btn {
+	.calendar-panel :global(.cal-heading) {
+		font-weight: 600;
+		font-size: var(--font-size-md);
+		color: var(--text);
+	}
+
+	.calendar-panel :global(.cal-nav-btn) {
 		background: none;
 		border: none;
 		font-size: var(--font-size-2xl);
@@ -660,47 +629,46 @@
 		line-height: 1;
 	}
 
-	.nav-btn:hover {
+	.calendar-panel :global(.cal-nav-btn:hover) {
 		background: var(--surface-muted);
 		color: var(--text);
 	}
 
-	.month-label {
-		font-weight: 600;
-		font-size: var(--font-size-md);
-	}
-
-	/* ---- calendar grid ---- */
-	.calendar-grid {
+	.calendar-panel :global(.cal-grid) {
+		width: 100%;
 		user-select: none;
 	}
 
-	.day-headers {
-		display: grid;
-		grid-template-columns: repeat(7, 1fr);
-		margin-bottom: var(--space-1);
+	.calendar-panel :global(.cal-weekdays) {
+		display: flex;
+		width: 100%;
 	}
 
-	.day-header {
+	.calendar-panel :global(.cal-weekday) {
+		flex: 1;
 		text-align: center;
 		font-size: var(--font-size-xs);
 		color: var(--text-disabled);
 		font-weight: 600;
 		text-transform: uppercase;
 		padding: var(--space-2) 0;
-		letter-spacing: 0.025em;
 	}
 
-	.week-row {
-		display: grid;
-		grid-template-columns: repeat(7, 1fr);
+	.calendar-panel :global(.cal-row) {
+		display: flex;
+		width: 100%;
 	}
 
-	.day-cell {
-		aspect-ratio: 1;
+	.calendar-panel :global(.cal-cell) {
+		flex: 1;
+		padding: 0;
+	}
+
+	.calendar-panel :global(.cal-day) {
 		display: flex;
 		align-items: center;
 		justify-content: center;
+		aspect-ratio: 1;
 		font-size: var(--font-size-sm);
 		border: none;
 		background: none;
@@ -709,31 +677,33 @@
 		color: var(--text);
 		transition: background var(--transition);
 		position: relative;
+		width: 100%;
 	}
 
-	.day-cell.empty {
-		cursor: default;
+	.calendar-panel :global(.cal-day:hover:not([data-disabled]):not([data-selected])) {
+		background: var(--surface-muted);
 	}
 
-	.day-cell.past {
+	.calendar-panel :global(.cal-day[data-unavailable]) {
 		color: var(--border-strong);
 		cursor: default;
 	}
 
-	.day-cell:not(.past):not(.empty):not(:disabled):hover {
-		background: var(--surface-muted);
+	.calendar-panel :global(.cal-day[data-disabled]) {
+		color: var(--border-strong);
+		cursor: default;
 	}
 
-	.day-cell.available {
+	.calendar-panel :global(.cal-day:not([data-unavailable]):not([data-disabled]):not([data-selected])) {
 		font-weight: 600;
 		color: var(--accent);
 	}
 
-	.day-cell.available:not(.selected):hover {
+	.calendar-panel :global(.cal-day:not([data-unavailable]):not([data-disabled]):not([data-selected]):hover) {
 		background: var(--surface-accent);
 	}
 
-	.day-cell.today:not(.selected)::after {
+	.calendar-panel :global(.cal-day[data-today]:not([data-selected])::after) {
 		content: '';
 		position: absolute;
 		bottom: var(--space-1);
@@ -745,18 +715,17 @@
 		background: var(--accent);
 	}
 
-	.day-cell.selected {
+	.calendar-panel :global(.cal-day[data-selected]) {
 		background: var(--accent);
 		color: var(--text-on-accent);
 	}
 
-	.day-cell.selected.today::after {
+	.calendar-panel :global(.cal-day[data-selected][data-today]::after) {
 		background: var(--text-on-accent);
 	}
 
-	.day-cell:disabled {
-		cursor: default;
-		color: var(--border-strong);
+	.calendar-panel :global(.cal-day[data-outside-month]) {
+		visibility: hidden;
 	}
 
 	.tz-note {
