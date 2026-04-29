@@ -90,11 +90,6 @@
 		scrollTo(formEl);
 	}
 
-	function clearSlot() {
-		viewSlot = null;
-		history.replaceState({}, '', '?');
-	}
-
 	// ---- timeline day view ----
 	let timeline = $derived.by(() => {
 		if (!viewDate) return null;
@@ -260,6 +255,21 @@
 	}
 
 	// ---- formatting ----
+	function fmtSlot(iso: string): string {
+		try {
+			const instant = Temporal.Instant.from(iso);
+			return instant.toZonedDateTimeISO(localTz).toLocaleString(undefined, {
+				weekday: 'short',
+				month: 'short',
+				day: 'numeric',
+				hour: '2-digit',
+				minute: '2-digit'
+			});
+		} catch {
+			return iso;
+		}
+	}
+
 	function fmtDate(key: string): string {
 		try {
 			return Temporal.PlainDate.from(key).toLocaleString(undefined, {
@@ -280,17 +290,6 @@
 				.toLocaleString(undefined, { hour: '2-digit', minute: '2-digit' });
 		} catch {
 			return iso;
-		}
-	}
-
-	function fmtDateShort(key: string): string {
-		try {
-			return Temporal.PlainDate.from(key).toLocaleString(undefined, {
-				month: 'long',
-				day: 'numeric'
-			});
-		} catch {
-			return key;
 		}
 	}
 </script>
@@ -335,6 +334,7 @@
 	{:else}
 		<div class="booking-body">
 				<div class="calendar-panel">
+					<p class="step-label">1. Pick a day</p>
 					<Calendar.Root
 						type="single"
 						fixedWeeks
@@ -380,11 +380,12 @@
 
 			{#if viewDate && timeline}
 				<div class="timeline-container" bind:this={timelineEl}>
+						<p class="step-label">2. Pick a time</p>
 						<h2 class="slots-date">{fmtDate(viewDate)}</h2>
 						<div class="timeline-scroll">
 							<div
 								class="timeline"
-								style:height="{Math.max(600, (timeline.totalMs / 3600000) * 80)}px"
+								style:height="{(timeline.totalMs / 3600000) * 96}px"
 							>
 								{#each timeline.labels as { label, top }}
 									<div class="timeline-label" style:top="{top}%">{label}</div>
@@ -453,17 +454,15 @@
 					</div>
 			{:else}
 				<div class="timeline-container empty-state" bind:this={timelineEl}>
+					<p class="step-label">2. Pick a time</p>
 					<p>Select a highlighted date to see available times.</p>
 				</div>
 			{/if}
 
 			<div class="booking-form" bind:this={formEl}>
+				<p class="step-label">3. Fill in your details</p>
 				{#if viewSlot}
-						<div class="confirmed-slot">
-							<span class="slot-time">{fmtTime(viewSlot)}</span>
-							<span class="slot-date">&mdash; {fmtDateShort(viewSlot.slice(0, 10))}</span>
-						</div>
-						<button class="change-link" onclick={clearSlot}>Change</button>
+						<p class="confirmed-slot">{fmtSlot(viewSlot)}</p>
 
 						{#if form?.error}
 							<p class="form-error" role="alert">{form.error}</p>
@@ -477,7 +476,7 @@
 							{/if}
 
 							<div class="field">
-								<label for="name">Name</label>
+								<label for="name">What is your name?</label>
 								<input
 									id="name"
 									name="name"
@@ -488,7 +487,7 @@
 							</div>
 
 							<div class="field">
-								<label for="email">Email</label>
+								<label for="email">What is your email?</label>
 								<input
 									id="email"
 									name="email"
@@ -501,17 +500,17 @@
 
 							{#if data.eventType.location?.mode === 'fixed'}
 								<div class="field">
-									<span class="field-label">Location</span>
+									<span class="field-label">Where</span>
 									<p class="location-display">{data.eventType.location.fixed}</p>
 								</div>
 							{:else if data.eventType.location?.mode === 'guest_proposes'}
 								<div class="field">
-									<label for="location">Meeting location</label>
+									<label for="location">Where should we meet?</label>
 									<input id="location" name="location" required />
 								</div>
 							{:else if data.eventType.location?.mode === 'choice'}
 								<div class="field">
-									<label for="location">Meeting location</label>
+									<label for="location">Where should we meet?</label>
 									<select id="location" name="location" required>
 										{#each data.eventType.location.choices as choice (choice)}
 											<option value={choice}>{choice}</option>
@@ -521,7 +520,7 @@
 							{/if}
 
 							<div class="field">
-								<label for="notes">Notes <span class="optional">(optional)</span></label>
+								<label for="notes">Anything else?</label>
 								<textarea id="notes" name="notes" rows="3"></textarea>
 							</div>
 
@@ -577,6 +576,16 @@
 		text-align: center;
 		color: var(--text-muted);
 		padding: var(--space-9) 0;
+	}
+
+	/* ---- step labels ---- */
+	.step-label {
+		font-size: var(--font-size-xs);
+		font-weight: 600;
+		color: var(--text-disabled);
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		margin: 0 0 var(--space-4);
 	}
 
 	/* ---- two-column layout ---- */
@@ -751,9 +760,6 @@
 
 	.timeline-scroll {
 		position: relative;
-		overflow-y: auto;
-		overflow-x: hidden;
-		padding-right: var(--space-2);
 	}
 
 	.timeline {
@@ -896,32 +902,9 @@
 	}
 
 	.confirmed-slot {
-		display: flex;
-		align-items: baseline;
-		gap: var(--space-3);
-		margin-bottom: var(--space-1);
-		flex-wrap: wrap;
-	}
-
-	.slot-time {
-		font-size: var(--font-size-xl);
+		font-size: var(--font-size-lg);
 		font-weight: 600;
-	}
-
-	.slot-date {
-		color: var(--text-muted);
-		font-size: var(--font-size-md);
-	}
-
-	.change-link {
-		background: none;
-		border: none;
-		color: var(--accent);
-		cursor: pointer;
-		font-size: var(--font-size-sm);
-		padding: 0;
-		margin-bottom: var(--space-6);
-		text-decoration: underline;
+		margin: 0 0 var(--space-6);
 	}
 
 	.form-error {
@@ -944,11 +927,6 @@
 		font-weight: 600;
 		margin-bottom: var(--space-2);
 		color: var(--text-secondary);
-	}
-
-	.optional {
-		color: var(--text-disabled);
-		font-weight: 400;
 	}
 
 	.field input,

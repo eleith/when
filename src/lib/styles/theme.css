@@ -100,10 +100,3 @@ body {
 	color: var(--text);
 	font-family: var(--font-family);
 }
-
-button,
-input,
-select,
-textarea {
-	font-family: inherit;
-}
