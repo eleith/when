@@ -34,7 +34,6 @@ export const load: PageServerLoad = async ({ params, url }) => {
 		eventType: eventType
 			? { name: eventType.name, duration: eventType.duration, slug: eventType.slug }
 			: { name: row.event_type_id, duration: 0, slug: row.event_type_id },
-		user: { name: cfg.user.name, timezone: cfg.user.timezone },
 		token
 	};
 };

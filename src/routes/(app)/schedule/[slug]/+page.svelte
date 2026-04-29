@@ -337,18 +337,29 @@
 	<title>{data.eventType.name} — {data.user.name}</title>
 </svelte:head>
 
+<header class="page-banner">
+	<a href="/" class="banner-link">
+		{#if data.user.branding?.avatar_url || data.user.branding?.logo_url}
+			<img
+				src={data.user.branding?.avatar_url || data.user.branding?.logo_url}
+				alt={data.user.name}
+				class="banner-avatar"
+			/>
+		{/if}
+		<div class="banner-text">
+			<span class="banner-title">{data.user.branding?.page_title || data.user.name}</span>
+			{#if data.user.branding?.descriptionHtml}
+				<div class="banner-desc">{@html data.user.branding.descriptionHtml}</div>
+			{/if}
+		</div>
+	</a>
+</header>
+
 <div class="booking">
 	<header class="booking-header">
 		{#if data.reschedule}
 			<p class="reschedule-badge">Reschedule</p>
 		{/if}
-		<a href="/" class="host-info" aria-label="Back to all event types">
-			<span class="back-arrow" aria-hidden="true">&larr;</span>
-			{#if data.user.branding?.logo_url}
-				<img src={data.user.branding.logo_url} alt="" class="host-avatar" />
-			{/if}
-			<span class="host-name">{data.user.name}</span>
-		</a>
 		<h1 class="event-name">{data.eventType.name}</h1>
 		<p class="event-meta">
 			{data.eventType.duration} min
@@ -586,38 +597,6 @@
 		padding: var(--space-1) var(--space-4);
 		border-radius: var(--radius-pill);
 		margin-bottom: var(--space-3);
-	}
-
-	.host-info {
-		display: inline-flex;
-		align-items: center;
-		gap: var(--space-3);
-		margin-bottom: var(--space-4);
-		text-decoration: none;
-		color: inherit;
-		transition: opacity var(--transition);
-	}
-
-	.host-info:hover {
-		opacity: 0.8;
-	}
-
-	.back-arrow {
-		color: var(--text-disabled);
-		font-size: var(--font-size-lg);
-		line-height: 1;
-	}
-
-	.host-avatar {
-		width: 28px;
-		height: 28px;
-		border-radius: 50%;
-		object-fit: cover;
-	}
-
-	.host-name {
-		color: var(--text-muted);
-		font-size: var(--font-size-base);
 	}
 
 	.event-name {
@@ -1079,5 +1058,53 @@
 		.booking-form {
 			scroll-margin-top: var(--space-5);
 		}
+	}
+
+	/* ---- page banner (full-width) ---- */
+	.page-banner {
+		width: 100%;
+		border-bottom: 1px solid var(--border);
+		padding: var(--space-5) var(--space-7);
+	}
+
+	.banner-link {
+		display: flex;
+		align-items: center;
+		gap: var(--space-5);
+		text-decoration: none;
+		color: inherit;
+		max-width: 960px;
+	}
+
+	.banner-link:hover .banner-title {
+		opacity: 0.8;
+	}
+
+	.banner-avatar {
+		flex-shrink: 0;
+		width: 40px;
+		height: 40px;
+		border-radius: 50%;
+		object-fit: cover;
+	}
+
+	.banner-text {
+		min-width: 0;
+	}
+
+	.banner-title {
+		font-size: var(--font-size-md);
+		font-weight: 700;
+		transition: opacity var(--transition);
+	}
+
+	.banner-desc {
+		color: var(--text-muted);
+		font-size: var(--font-size-sm);
+		margin-top: var(--space-1);
+	}
+
+	.banner-desc :global(p) {
+		margin: 0;
 	}
 </style>

@@ -104,11 +104,6 @@ export const load: PageServerLoad = async ({ params, url }) => {
 			buffer_after: knobs.buffer_after,
 			minimum_notice: knobs.minimum_notice
 		},
-		user: {
-			name: cfg.user.name,
-			timezone: cfg.user.timezone,
-			branding: cfg.user.branding ?? null
-		},
 		slotsByDate,
 		workingWindows,
 		busyBlocks,

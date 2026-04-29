@@ -16,16 +16,5 @@ export const load: PageServerLoad = () => {
 			image_url: e.image_url ?? null
 		}));
 
-	return {
-		user: {
-			name: cfg.user.name,
-			branding: {
-				...cfg.user.branding,
-				descriptionHtml: cfg.user.branding?.description
-					? marked.parse(cfg.user.branding.description)
-					: null
-			}
-		},
-		eventTypes
-	};
+	return { eventTypes };
 };
