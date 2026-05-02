@@ -20,6 +20,7 @@
 	// User-controlled state — initialized in $effect below
 	let viewSlot = $state<string | null>(null);
 	let viewDate = $state<string | null>(null);
+	let step = $state<1 | 2 | 3>(1);
 	let _init = $state(false);
 
 	function dateToStr(d: DateValue): string {
@@ -36,6 +37,7 @@
 		if (_init) return;
 		viewSlot = data.selectedSlot;
 		viewDate = data.selectedSlot?.slice(0, 10) ?? firstDate;
+		if (viewSlot) step = 3;
 		_init = true;
 	});
 
@@ -61,16 +63,6 @@
 	}
 
 	// ---- actions ----
-	const MOBILE_MQ = '(max-width: 768px)';
-
-	let timelineEl = $state<HTMLElement | null>(null);
-	let formEl = $state<HTMLElement | null>(null);
-
-	function scrollTo(el: HTMLElement | null) {
-		if (!el || !window.matchMedia(MOBILE_MQ).matches) return;
-		el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-	}
-
 	function onDateChange(date: DateValue | undefined) {
 		if (!date) return;
 		const key = dateToStr(date);
@@ -80,14 +72,40 @@
 			viewSlot = null;
 			history.replaceState({}, '', '?');
 		}
-		scrollTo(timelineEl);
 	}
 
 	function selectSlot(iso: string) {
 		viewSlot = iso;
 		viewDate = iso.slice(0, 10);
 		history.replaceState({}, '', `?slot=${encodeURIComponent(iso)}`);
-		scrollTo(formEl);
+	}
+
+	function clearSlot() {
+		viewSlot = null;
+		history.replaceState({}, '', '?');
+	}
+
+	// ---- wizard ----
+	let nameInput = $state<HTMLInputElement | null>(null);
+	let stepTitle = $derived(step === 1 ? 'Pick a day' : step === 2 ? 'Pick a time' : 'Your details');
+	let canAdvance = $derived(step === 1 ? !!viewDate : step === 2 ? !!viewSlot : true);
+
+	$effect(() => {
+		if (step === 3 && viewSlot) {
+			nameInput?.focus();
+		}
+	});
+
+	function advance() {
+		if (!canAdvance || step === 3) return;
+		step = (step + 1) as 1 | 2 | 3;
+		window.scrollTo({ top: 0 });
+	}
+
+	function goBack() {
+		if (step === 1) return;
+		step = (step - 1) as 1 | 2 | 3;
+		window.scrollTo({ top: 0 });
 	}
 
 	// ---- timeline day view ----
@@ -221,37 +239,112 @@
 		};
 	});
 
-	// ---- timeline interaction ----
-	let hoverY = $state<number | null>(null);
+	// ---- timeline interaction (tap to place, tap-on-box to clear, drag to move) ----
+	const DRAG_THRESHOLD_PX = 6;
 
-	function handleTimelineMove(e: MouseEvent) {
-		const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-		hoverY = ((e.clientY - rect.top) / rect.height) * 100;
+	let trackEl = $state<HTMLElement | null>(null);
+	let dragYPercent = $state<number | null>(null);
+	let isDragging = $state(false);
+	let pointerStartMode: 'on-slot' | 'on-track' | null = null;
+	let pointerStartClientY = 0;
+
+	function pointToPercent(clientY: number): number {
+		if (!trackEl) return 0;
+		const rect = trackEl.getBoundingClientRect();
+		return ((clientY - rect.top) / rect.height) * 100;
 	}
 
-	function handleTimelineLeave() {
-		hoverY = null;
+	function isInBlock(
+		percent: number,
+		blocks?: Array<{ top: number; height: number }>
+	): boolean {
+		if (!blocks) return false;
+		return blocks.some((b) => percent >= b.top && percent <= b.top + b.height);
 	}
 
-	function handleTimelineClick(e: MouseEvent | TouchEvent) {
-		const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-		const clientY = 'changedTouches' in e ? e.changedTouches[0].clientY : (e as MouseEvent).clientY;
-		const clickY = ((clientY - rect.top) / rect.height) * 100;
+	function isUnavailable(percent: number): boolean {
+		if (!timeline) return true;
+		if (isInBlock(percent, timeline.busy)) return true;
+		if (isInBlock(percent, timeline.buffers)) return true;
+		if (timeline.past && percent <= timeline.past.top + timeline.past.height) return true;
+		return false;
+	}
 
-		let best = null;
+	function nearestSlotAt(percent: number) {
+		if (!timeline) return null;
+		let best: (typeof timeline.slots)[number] | null = null;
 		let minDiff = Infinity;
-
-		for (const s of timeline?.slots || []) {
-			const diff = Math.abs(s.top - clickY);
+		for (const s of timeline.slots) {
+			const center = s.top + s.height / 2;
+			const diff = Math.abs(center - percent);
 			if (diff < minDiff) {
 				minDiff = diff;
 				best = s;
 			}
 		}
+		return best;
+	}
 
-		if (best && minDiff < 10) {
-			selectSlot(best.iso);
+	function handleTrackPointerDown(e: PointerEvent) {
+		if (!trackEl) return;
+		const percent = pointToPercent(e.clientY);
+		const current = timeline?.slots.find((s) => s.iso === viewSlot);
+		const onSlot = !!current && percent >= current.top && percent <= current.top + current.height;
+
+		pointerStartMode = onSlot ? 'on-slot' : 'on-track';
+		pointerStartClientY = e.clientY;
+		isDragging = false;
+		dragYPercent = null;
+
+		if (onSlot) {
+			trackEl.setPointerCapture(e.pointerId);
 		}
+	}
+
+	function handleTrackPointerMove(e: PointerEvent) {
+		if (!pointerStartMode) return;
+		const dy = Math.abs(e.clientY - pointerStartClientY);
+		if (!isDragging && dy > DRAG_THRESHOLD_PX) {
+			isDragging = true;
+		}
+		if (isDragging && pointerStartMode === 'on-slot') {
+			dragYPercent = Math.max(0, Math.min(100, pointToPercent(e.clientY)));
+		}
+	}
+
+	function handleTrackPointerUp(e: PointerEvent) {
+		if (!pointerStartMode) {
+			return;
+		}
+
+		if (pointerStartMode === 'on-slot') {
+			if (isDragging && dragYPercent !== null) {
+				if (!isUnavailable(dragYPercent)) {
+					const best = nearestSlotAt(dragYPercent);
+					if (best && best.iso !== viewSlot) selectSlot(best.iso);
+				}
+			} else {
+				clearSlot();
+			}
+		} else {
+			if (!isDragging) {
+				const percent = pointToPercent(e.clientY);
+				if (!isUnavailable(percent)) {
+					const best = nearestSlotAt(percent);
+					if (best && best.iso !== viewSlot) selectSlot(best.iso);
+				}
+			}
+		}
+
+		pointerStartMode = null;
+		isDragging = false;
+		dragYPercent = null;
+	}
+
+	function handleTrackPointerCancel() {
+		pointerStartMode = null;
+		isDragging = false;
+		dragYPercent = null;
 	}
 
 	// ---- formatting ----
@@ -314,9 +407,19 @@
 			{/if}
 		</div>
 	</a>
+	<div class="banner-event">
+		{#if data.reschedule}
+			<p class="reschedule-badge">Reschedule</p>
+		{/if}
+		<h1 class="banner-event-name">{data.eventType.name}</h1>
+		<p class="banner-event-meta">
+			{data.eventType.duration} min{#if data.eventType.description}
+				&middot; {data.eventType.description}{/if}
+		</p>
+	</div>
 </header>
 
-<div class="booking">
+<div class="booking" data-step={step}>
 	<header class="booking-header">
 		{#if data.reschedule}
 			<p class="reschedule-badge">Reschedule</p>
@@ -332,6 +435,22 @@
 	{#if availableDates.size === 0}
 		<p class="empty">No availability in the near future.</p>
 	{:else}
+		<div class="wizard-bar">
+			<button
+				type="button"
+				class="back-btn"
+				onclick={goBack}
+				disabled={step === 1}
+				aria-label="Go back"
+			>
+				&lsaquo;
+			</button>
+			<h1 class="wizard-title">
+				<span class="wizard-step">Step {step} of 3:</span>
+				{stepTitle}
+			</h1>
+		</div>
+
 		<div class="booking-body">
 				<div class="calendar-panel">
 					<p class="step-label">1. Pick a day</p>
@@ -374,12 +493,10 @@
 							</Calendar.Grid>
 						{/snippet}
 					</Calendar.Root>
-
-					<p class="tz-note">Times shown in {localTz.replace(/_/g, ' ')}</p>
 				</div>
 
 			{#if viewDate && timeline}
-				<div class="timeline-container" bind:this={timelineEl}>
+				<div class="timeline-container">
 						<p class="step-label">2. Pick a time</p>
 						<h2 class="slots-date">{fmtDate(viewDate)}</h2>
 						<div class="timeline-scroll">
@@ -396,9 +513,11 @@
 								<!-- svelte-ignore a11y_no_static_element_interactions -->
 								<div
 									class="timeline-track"
-									onclick={handleTimelineClick}
-									onmousemove={handleTimelineMove}
-									onmouseleave={handleTimelineLeave}
+									bind:this={trackEl}
+									onpointerdown={handleTrackPointerDown}
+									onpointermove={handleTrackPointerMove}
+									onpointerup={handleTrackPointerUp}
+									onpointercancel={handleTrackPointerCancel}
 								>
 									<div class="hatch-bg"></div>
 
@@ -435,31 +554,39 @@
 									{#if viewSlot}
 										{@const s = timeline.slots.find((s) => s.iso === viewSlot)}
 										{#if s}
+											{@const preview =
+												isDragging && dragYPercent !== null
+													? nearestSlotAt(dragYPercent)
+													: null}
+											{@const overUnavailable =
+												isDragging && dragYPercent !== null && isUnavailable(dragYPercent)}
+											{@const dragTop =
+												isDragging && dragYPercent !== null
+													? Math.max(0, Math.min(100 - s.height, dragYPercent - s.height / 2))
+													: s.top}
 											<div
 												class="slot-block selected"
-												style:top="{s.top}%"
+												class:dragging={isDragging}
+												class:unavailable={overUnavailable}
+												style:top="{dragTop}%"
 												style:height="{s.height}%"
 											>
-												<span class="slot-text">{s.time}</span>
+												<span class="slot-text">{preview ? preview.time : s.time}</span>
 											</div>
 										{/if}
-									{/if}
-
-									{#if hoverY !== null}
-										<div class="timeline-cursor" style:top="{hoverY}%"></div>
 									{/if}
 								</div>
 							</div>
 						</div>
 					</div>
 			{:else}
-				<div class="timeline-container empty-state" bind:this={timelineEl}>
+				<div class="timeline-container empty-state">
 					<p class="step-label">2. Pick a time</p>
 					<p>Select a highlighted date to see available times.</p>
 				</div>
 			{/if}
 
-			<div class="booking-form" bind:this={formEl}>
+			<div class="booking-form">
 				<p class="step-label">3. Fill in your details</p>
 				{#if viewSlot}
 						<p class="confirmed-slot">{fmtSlot(viewSlot)}</p>
@@ -468,7 +595,7 @@
 							<p class="form-error" role="alert">{form.error}</p>
 						{/if}
 
-						<form method="POST" action={data.reschedule ? '?/reschedule' : '?/book'}>
+						<form id="booking-form" method="POST" action={data.reschedule ? '?/reschedule' : '?/book'}>
 							<input type="hidden" name="slot" value={viewSlot} />
 							{#if data.reschedule}
 								<input type="hidden" name="reschedule_id" value={data.reschedule.id} />
@@ -483,6 +610,7 @@
 									required
 									autocomplete="name"
 									value={data.reschedule?.name ?? ''}
+									bind:this={nameInput}
 								/>
 							</div>
 
@@ -534,6 +662,22 @@
 					</div>
 				{/if}
 				</div>
+		</div>
+
+		<div class="wizard-cta">
+			{#if step === 1}
+				<button type="button" class="cta-btn" onclick={advance} disabled={!canAdvance}>
+					Continue
+				</button>
+			{:else if step === 2}
+				<button type="button" class="cta-btn" onclick={advance} disabled={!canAdvance}>
+					Confirm
+				</button>
+			{:else}
+				<button type="submit" form="booking-form" class="cta-btn" disabled={!viewSlot}>
+					{data.reschedule ? 'Reschedule' : 'Book'}
+				</button>
+			{/if}
 		</div>
 	{/if}
 </div>
@@ -737,13 +881,6 @@
 		visibility: hidden;
 	}
 
-	.tz-note {
-		margin: var(--space-5) 0 0;
-		font-size: var(--font-size-xs);
-		color: var(--text-disabled);
-		text-align: center;
-	}
-
 	/* ---- timeline day view ---- */
 	.timeline-container {
 		background: var(--surface);
@@ -797,6 +934,7 @@
 		border-left: 1px solid var(--border-strong);
 		z-index: 2;
 		cursor: pointer;
+		touch-action: pan-y;
 	}
 
 	.hatch-bg {
@@ -869,18 +1007,22 @@
 		font-size: var(--font-size-sm);
 		color: var(--accent);
 		z-index: 5;
-		transition: all var(--transition);
-		pointer-events: none;
+		transition: top var(--transition);
+		cursor: grab;
+		touch-action: none;
 	}
 
-	.timeline-cursor {
-		position: absolute;
-		left: 0;
-		right: 0;
-		height: 1px;
-		background: var(--accent);
-		z-index: 7;
-		pointer-events: none;
+	.slot-block.dragging {
+		transition: none;
+		opacity: 0.85;
+		cursor: grabbing;
+		box-shadow: var(--shadow-md, 0 4px 10px rgba(0, 0, 0, 0.15));
+	}
+
+	.slot-block.unavailable {
+		background: var(--danger-bg);
+		border-color: var(--danger);
+		color: var(--danger);
 	}
 
 	.slot-text {
@@ -987,24 +1129,13 @@
 		min-height: 200px;
 	}
 
-	/* ---- responsive ---- */
-	@media (max-width: 768px) {
-		.booking-body {
-			flex-direction: column;
-		}
+	/* ---- wizard bar (mobile only) ---- */
+	.wizard-bar {
+		display: none;
+	}
 
-		.calendar-panel,
-		.booking-form,
-		.timeline-container {
-			width: 100%;
-			flex: 0 0 auto;
-		}
-
-		.calendar-panel,
-		.timeline-container,
-		.booking-form {
-			scroll-margin-top: var(--space-5);
-		}
+	.wizard-cta {
+		display: none;
 	}
 
 	/* ---- page banner (full-width) ---- */
@@ -1012,6 +1143,9 @@
 		width: 100%;
 		border-bottom: 1px solid var(--border);
 		padding: var(--space-5) var(--space-7);
+		display: flex;
+		align-items: center;
+		gap: var(--space-5);
 	}
 
 	.banner-link {
@@ -1020,7 +1154,44 @@
 		gap: var(--space-5);
 		text-decoration: none;
 		color: inherit;
+		flex: 1;
 		max-width: 960px;
+		min-width: 0;
+	}
+
+	.banner-event {
+		display: none;
+		flex: 1;
+		min-width: 0;
+	}
+
+	.banner-event-name {
+		font-size: var(--font-size-md);
+		font-weight: 700;
+		margin: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.banner-event-meta {
+		color: var(--text-muted);
+		font-size: var(--font-size-sm);
+		margin: var(--space-1) 0 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.banner-event .reschedule-badge {
+		font-size: var(--font-size-xs);
+		font-weight: 600;
+		display: inline-block;
+		background: var(--accent);
+		color: var(--text-on-accent);
+		padding: 2px var(--space-3);
+		border-radius: var(--radius-pill);
+		margin: 0 0 var(--space-1);
 	}
 
 	.banner-link:hover .banner-title {
@@ -1053,5 +1224,141 @@
 
 	.banner-desc :global(p) {
 		margin: 0;
+	}
+
+	/* ---- responsive ---- */
+	@media (max-width: 768px) {
+		.page-banner {
+			padding: var(--space-4) var(--space-5);
+		}
+
+		.banner-link {
+			flex: 0 0 auto;
+		}
+
+		.banner-text {
+			display: none;
+		}
+
+		.banner-event {
+			display: block;
+		}
+
+		.booking-header {
+			display: none;
+		}
+
+		.booking {
+			padding: var(--space-5) var(--space-5) calc(var(--space-9) + 64px);
+		}
+
+		.booking-body {
+			flex-direction: column;
+			gap: 0;
+		}
+
+		.calendar-panel,
+		.booking-form,
+		.timeline-container {
+			width: 100%;
+			flex: 0 0 auto;
+			padding: var(--space-5);
+		}
+
+		/* hide non-active panels */
+		.booking[data-step='1'] .timeline-container,
+		.booking[data-step='1'] .booking-form,
+		.booking[data-step='2'] .calendar-panel,
+		.booking[data-step='2'] .booking-form,
+		.booking[data-step='3'] .calendar-panel,
+		.booking[data-step='3'] .timeline-container {
+			display: none;
+		}
+
+		/* hide step labels and in-form submit (replaced by wizard chrome) */
+		.step-label {
+			display: none;
+		}
+
+		.submit-btn {
+			display: none;
+		}
+
+
+		.wizard-bar {
+			display: flex;
+			align-items: center;
+			gap: var(--space-3);
+			margin: calc(var(--space-5) * -1) calc(var(--space-5) * -1) var(--space-5);
+			padding: var(--space-6) var(--space-4) var(--space-3);
+		}
+
+		.page-banner {
+			border-bottom: none;
+		}
+
+		.back-btn {
+			background: none;
+			border: none;
+			font-size: var(--font-size-2xl);
+			color: var(--text);
+			cursor: pointer;
+			padding: var(--space-1) var(--space-3);
+			line-height: 1;
+			border-radius: var(--radius-sm);
+		}
+
+		.back-btn:disabled {
+			color: var(--border-strong);
+			cursor: default;
+		}
+
+		.wizard-title {
+			margin: 0;
+			font-size: var(--font-size-md);
+			font-weight: 600;
+			color: var(--text);
+		}
+
+		.wizard-step {
+			font-weight: 500;
+			color: var(--text-muted);
+			margin-right: var(--space-2);
+		}
+
+		.wizard-cta {
+			display: block;
+			position: fixed;
+			bottom: 0;
+			left: 0;
+			right: 0;
+			padding: var(--space-4) var(--space-5) calc(var(--space-4) + env(safe-area-inset-bottom));
+			background: var(--bg);
+			border-top: 1px solid var(--border);
+			z-index: 100;
+		}
+
+		.cta-btn {
+			width: 100%;
+			min-height: 56px;
+			padding: var(--space-4) var(--space-6);
+			background: var(--accent);
+			color: var(--text-on-accent);
+			border: none;
+			border-radius: var(--radius);
+			font-size: var(--font-size-md);
+			font-weight: 600;
+			cursor: pointer;
+			transition: opacity var(--transition);
+		}
+
+		.cta-btn:disabled {
+			opacity: 0.4;
+			cursor: not-allowed;
+		}
+
+		.cta-btn:not(:disabled):hover {
+			opacity: 0.9;
+		}
 	}
 </style>
