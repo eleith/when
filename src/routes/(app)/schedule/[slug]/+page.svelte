@@ -64,7 +64,14 @@
 
 	// ---- actions ----
 	function onDateChange(date: DateValue | undefined) {
-		if (!date) return;
+		if (!date) {
+			viewDate = null;
+			if (viewSlot) {
+				viewSlot = null;
+				history.replaceState({}, '', '?');
+			}
+			return;
+		}
 		const key = dateToStr(date);
 		if (!availableDates.has(key)) return;
 		viewDate = key;
@@ -420,41 +427,94 @@
 </header>
 
 <div class="booking" data-step={step}>
-	<header class="booking-header">
-		{#if data.reschedule}
-			<p class="reschedule-badge">Reschedule</p>
-		{/if}
-		<h1 class="event-name">{data.eventType.name}</h1>
-		<p class="event-meta">
-			{data.eventType.duration} min
-			{#if data.eventType.description}
-				&middot; {data.eventType.description}{/if}
-		</p>
-	</header>
-
 	{#if availableDates.size === 0}
 		<p class="empty">No availability in the near future.</p>
 	{:else}
-		<div class="wizard-bar">
-			<button
-				type="button"
-				class="back-btn"
-				onclick={goBack}
-				disabled={step === 1}
-				aria-label="Go back"
-			>
-				&lsaquo;
-			</button>
-			<h1 class="wizard-title">
-				<span class="wizard-step">Step {step} of 3:</span>
-				{stepTitle}
-			</h1>
-		</div>
+		<div class="card">
+			<aside class="card-context">
+				<section class="context-section">
+					<a href="/" class="context-provider">
+						{#if data.user.branding?.avatar_url || data.user.branding?.logo_url}
+							<img
+								src={data.user.branding?.avatar_url || data.user.branding?.logo_url}
+								alt={data.user.name}
+								class="context-provider-avatar"
+							/>
+						{/if}
+						<div class="context-provider-text">
+							<span class="context-provider-name"
+								>{data.user.branding?.page_title || data.user.name}</span
+							>
+							{#if data.user.branding?.descriptionHtml}
+								<div class="context-provider-desc">
+									{@html data.user.branding.descriptionHtml}
+								</div>
+							{/if}
+						</div>
+					</a>
+				</section>
 
-		<div class="booking-body">
-				<div class="calendar-panel">
-					<p class="step-label">1. Pick a day</p>
-					<Calendar.Root
+				<section class="context-section context-section-about">
+					<h3 class="context-section-label">About</h3>
+					{#if data.reschedule}
+						<p class="reschedule-badge">Reschedule</p>
+					{/if}
+					<h2 class="context-event-name">{data.eventType.name}</h2>
+					<p class="context-event-meta">{data.eventType.duration} min</p>
+					{#if data.eventType.description}
+						<p class="context-event-description">{data.eventType.description}</p>
+					{/if}
+				</section>
+
+				{#if (step >= 2 && viewDate) || (step >= 3 && viewSlot)}
+					<section class="context-section">
+						<h3 class="context-section-label">Your selections</h3>
+						<div class="context-summary">
+							{#if step >= 2 && viewDate}
+								<button
+									type="button"
+									class="context-summary-row"
+									onclick={() => (step = 1)}
+								>
+									<span class="context-summary-row-label">Date</span>
+									<span class="context-summary-value">{fmtDate(viewDate)}</span>
+								</button>
+							{/if}
+							{#if step >= 3 && viewSlot}
+								<button
+									type="button"
+									class="context-summary-row"
+									onclick={() => (step = 2)}
+								>
+									<span class="context-summary-row-label">Time</span>
+									<span class="context-summary-value">{fmtTime(viewSlot)}</span>
+								</button>
+							{/if}
+						</div>
+					</section>
+				{/if}
+			</aside>
+
+			<div class="card-stage">
+				<div class="wizard-bar">
+					<button
+						type="button"
+						class="back-btn"
+						onclick={goBack}
+						disabled={step === 1}
+						aria-label="Go back"
+					>
+						&lsaquo;
+					</button>
+					<h1 class="wizard-title">
+						<span class="wizard-step">Step {step} of 3:</span>
+						{stepTitle}
+					</h1>
+				</div>
+
+				<div class="booking-body">
+					<div class="calendar-panel">
+						<Calendar.Root
 						type="single"
 						fixedWeeks
 						weekdayFormat="short"
@@ -497,7 +557,6 @@
 
 			{#if viewDate && timeline}
 				<div class="timeline-container">
-						<p class="step-label">2. Pick a time</p>
 						<h2 class="slots-date">{fmtDate(viewDate)}</h2>
 						<div class="timeline-scroll">
 							<div
@@ -581,13 +640,11 @@
 					</div>
 			{:else}
 				<div class="timeline-container empty-state">
-					<p class="step-label">2. Pick a time</p>
 					<p>Select a highlighted date to see available times.</p>
 				</div>
 			{/if}
 
 			<div class="booking-form">
-				<p class="step-label">3. Fill in your details</p>
 				{#if viewSlot}
 						<p class="confirmed-slot">{fmtSlot(viewSlot)}</p>
 
@@ -662,22 +719,30 @@
 					</div>
 				{/if}
 				</div>
-		</div>
+				</div>
 
-		<div class="wizard-cta">
-			{#if step === 1}
-				<button type="button" class="cta-btn" onclick={advance} disabled={!canAdvance}>
-					Continue
-				</button>
-			{:else if step === 2}
-				<button type="button" class="cta-btn" onclick={advance} disabled={!canAdvance}>
-					Confirm
-				</button>
-			{:else}
-				<button type="submit" form="booking-form" class="cta-btn" disabled={!viewSlot}>
-					{data.reschedule ? 'Reschedule' : 'Book'}
-				</button>
-			{/if}
+				<div class="wizard-cta">
+					{#if step === 1 && viewDate}
+						<p class="cta-summary">You selected {fmtDate(viewDate)}</p>
+					{:else if step === 2 && viewSlot}
+						<p class="cta-summary">You selected {fmtTime(viewSlot)}</p>
+					{/if}
+
+					{#if step === 1}
+						<button type="button" class="cta-btn" onclick={advance} disabled={!canAdvance}>
+							Continue <span aria-hidden="true" class="cta-arrow">&rarr;</span>
+						</button>
+					{:else if step === 2}
+						<button type="button" class="cta-btn" onclick={advance} disabled={!canAdvance}>
+							Confirm <span aria-hidden="true" class="cta-arrow">&rarr;</span>
+						</button>
+					{:else}
+						<button type="submit" form="booking-form" class="cta-btn" disabled={!viewSlot}>
+							{data.reschedule ? 'Reschedule' : 'Book'}
+						</button>
+					{/if}
+				</div>
+			</div>
 		</div>
 	{/if}
 </div>
@@ -690,10 +755,6 @@
 		color: var(--text);
 	}
 
-	.booking-header {
-		margin-bottom: var(--space-7);
-	}
-
 	.reschedule-badge {
 		display: inline-block;
 		background: var(--accent);
@@ -702,18 +763,7 @@
 		font-weight: 600;
 		padding: var(--space-1) var(--space-4);
 		border-radius: var(--radius-pill);
-		margin-bottom: var(--space-3);
-	}
-
-	.event-name {
-		font-size: var(--font-size-2xl);
-		font-weight: 700;
-		margin: 0 0 var(--space-2);
-	}
-
-	.event-meta {
-		color: var(--text-muted);
-		margin: 0;
+		margin: 0 0 var(--space-3);
 	}
 
 	.empty {
@@ -722,39 +772,184 @@
 		padding: var(--space-9) 0;
 	}
 
-	/* ---- step labels ---- */
-	.step-label {
-		font-size: var(--font-size-xs);
-		font-weight: 600;
-		color: var(--text-disabled);
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-		margin: 0 0 var(--space-4);
-	}
-
-	/* ---- two-column layout ---- */
-	.booking-body {
-		display: flex;
-		gap: var(--space-7);
-		align-items: flex-start;
-	}
-
-	.calendar-panel {
-		flex-shrink: 0;
-		width: 250px;
+	/* ---- card layout ---- */
+	.card {
 		background: var(--surface);
 		border: 1px solid var(--border);
 		border-radius: var(--radius-md);
-		padding: var(--space-6);
+		display: flex;
+		overflow: hidden;
+		min-height: 520px;
 	}
 
-	.timeline-container {
-		flex: 1;
+	.card-context {
+		flex: 0 0 30%;
+		padding: var(--space-7);
+		border-right: 1px solid var(--border);
+		background: var(--surface-muted);
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-7);
+	}
+
+	.context-section {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-3);
+	}
+
+	.context-section-about {
+		padding: var(--space-6) 0;
+		border-top: 1px solid var(--border-strong);
+		border-bottom: 1px solid var(--border-strong);
+	}
+
+	.context-section-label {
+		margin: 0;
+		font-size: var(--font-size-xs);
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.08em;
+		color: var(--text-muted);
+	}
+
+	.context-provider {
+		display: flex;
+		align-items: center;
+		gap: var(--space-4);
+		text-decoration: none;
+		color: inherit;
 		min-width: 0;
 	}
 
+	.context-provider:hover .context-provider-name {
+		opacity: 0.8;
+	}
+
+	.context-provider-avatar {
+		flex-shrink: 0;
+		width: 40px;
+		height: 40px;
+		border-radius: 50%;
+		object-fit: cover;
+	}
+
+	.context-provider-text {
+		min-width: 0;
+	}
+
+	.context-provider-name {
+		font-size: var(--font-size-md);
+		font-weight: 700;
+		transition: opacity var(--transition);
+	}
+
+	.context-provider-desc {
+		color: var(--text-muted);
+		font-size: var(--font-size-sm);
+		margin-top: var(--space-1);
+	}
+
+	.context-provider-desc :global(p) {
+		margin: 0;
+	}
+
+	.context-event-name {
+		font-size: var(--font-size-xl);
+		font-weight: 700;
+		margin: 0 0 var(--space-2);
+		color: var(--text);
+	}
+
+	.context-event-meta {
+		color: var(--text-muted);
+		font-size: var(--font-size-sm);
+		margin: 0 0 var(--space-3);
+	}
+
+	.context-event-description {
+		color: var(--text-secondary);
+		font-size: var(--font-size-sm);
+		margin: 0;
+		line-height: 1.5;
+	}
+
+	.context-summary {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-2);
+	}
+
+	.context-summary-row {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--space-4);
+		text-align: left;
+		background: var(--surface);
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		padding: var(--space-3) var(--space-4);
+		cursor: pointer;
+		font: inherit;
+		color: inherit;
+		transition: border-color var(--transition);
+	}
+
+	.context-summary-row:hover {
+		border-color: var(--accent);
+	}
+
+	.context-summary-row-label {
+		color: var(--text-muted);
+		font-size: var(--font-size-sm);
+		font-weight: 500;
+	}
+
+	.context-summary-value {
+		color: var(--text);
+		font-weight: 600;
+		font-size: var(--font-size-sm);
+	}
+
+	.card-stage {
+		flex: 1;
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
+		padding: var(--space-7);
+	}
+
+	.booking-body {
+		flex: 1;
+		min-height: 0;
+	}
+
+	/* hide non-active step panels */
+	.booking[data-step='1'] .timeline-container,
+	.booking[data-step='1'] .booking-form,
+	.booking[data-step='2'] .calendar-panel,
+	.booking[data-step='2'] .booking-form,
+	.booking[data-step='3'] .calendar-panel,
+	.booking[data-step='3'] .timeline-container {
+		display: none;
+	}
+
+	.calendar-panel {
+		width: 100%;
+		max-width: 360px;
+		margin: 0 auto;
+	}
+
+	.timeline-container {
+		width: 100%;
+	}
+
 	.booking-form {
-		flex: 0 0 270px;
+		width: 100%;
+		max-width: 480px;
+		margin: 0 auto;
 	}
 
 	/* ---- calendar (Bits UI) ---- */
@@ -882,12 +1077,6 @@
 	}
 
 	/* ---- timeline day view ---- */
-	.timeline-container {
-		background: var(--surface);
-		border: 1px solid var(--border);
-		border-radius: var(--radius-md);
-		padding: var(--space-7);
-	}
 
 	.slots-date {
 		font-size: var(--font-size-lg);
@@ -897,6 +1086,24 @@
 
 	.timeline-scroll {
 		position: relative;
+		max-height: 60vh;
+		overflow-y: auto;
+		overflow-x: hidden;
+		scrollbar-width: thin;
+		scrollbar-color: var(--border-strong) transparent;
+	}
+
+	.timeline-scroll::-webkit-scrollbar {
+		width: 8px;
+	}
+
+	.timeline-scroll::-webkit-scrollbar-thumb {
+		background: var(--border-strong);
+		border-radius: 4px;
+	}
+
+	.timeline-scroll::-webkit-scrollbar-track {
+		background: transparent;
 	}
 
 	.timeline {
@@ -1036,17 +1243,11 @@
 	}
 
 	/* ---- booking form ---- */
-	.booking-form {
-		background: var(--surface);
-		border: 1px solid var(--border);
-		border-radius: var(--radius-md);
-		padding: var(--space-7);
-	}
-
 	.confirmed-slot {
 		font-size: var(--font-size-lg);
 		font-weight: 600;
 		margin: 0 0 var(--space-6);
+		display: none;
 	}
 
 	.form-error {
@@ -1100,21 +1301,7 @@
 	}
 
 	.submit-btn {
-		width: 100%;
-		padding: var(--space-4) var(--space-6);
-		background: var(--accent);
-		color: var(--text-on-accent);
-		border: none;
-		border-radius: var(--radius);
-		font-size: var(--font-size-md);
-		font-weight: 600;
-		cursor: pointer;
-		transition: opacity var(--transition);
-		margin-top: var(--space-2);
-	}
-
-	.submit-btn:hover {
-		opacity: 0.9;
+		display: none;
 	}
 
 	/* ---- form placeholder ---- */
@@ -1129,13 +1316,91 @@
 		min-height: 200px;
 	}
 
-	/* ---- wizard bar (mobile only) ---- */
+	/* ---- wizard chrome ---- */
 	.wizard-bar {
+		display: flex;
+		align-items: center;
+		gap: var(--space-3);
+		margin: 0 0 var(--space-6);
+	}
+
+	.back-btn {
 		display: none;
+		background: none;
+		border: none;
+		font-size: var(--font-size-2xl);
+		color: var(--text);
+		cursor: pointer;
+		padding: var(--space-1) var(--space-3);
+		line-height: 1;
+		border-radius: var(--radius-sm);
+	}
+
+	.back-btn:disabled {
+		color: var(--border-strong);
+		cursor: default;
+	}
+
+	.wizard-title {
+		margin: 0;
+		font-size: var(--font-size-md);
+		font-weight: 600;
+		color: var(--text);
+	}
+
+	.wizard-step {
+		font-weight: 500;
+		color: var(--text-muted);
+		margin-right: var(--space-2);
 	}
 
 	.wizard-cta {
-		display: none;
+		display: flex;
+		align-items: center;
+		justify-content: flex-end;
+		gap: var(--space-4);
+		margin-top: var(--space-6);
+		padding-top: var(--space-5);
+		border-top: 1px solid var(--border);
+	}
+
+	.cta-summary {
+		margin: 0 auto 0 0;
+		color: var(--text-secondary);
+		font-size: var(--font-size-sm);
+		font-weight: 500;
+	}
+
+	.cta-arrow {
+		display: inline-block;
+		margin-left: var(--space-2);
+		transition: transform var(--transition);
+	}
+
+	.cta-btn:not(:disabled):hover .cta-arrow {
+		transform: translateX(2px);
+	}
+
+	.cta-btn {
+		min-height: 44px;
+		padding: var(--space-3) var(--space-7);
+		background: var(--accent);
+		color: var(--text-on-accent);
+		border: none;
+		border-radius: var(--radius);
+		font-size: var(--font-size-md);
+		font-weight: 600;
+		cursor: pointer;
+		transition: opacity var(--transition);
+	}
+
+	.cta-btn:disabled {
+		opacity: 0.4;
+		cursor: not-allowed;
+	}
+
+	.cta-btn:not(:disabled):hover {
+		opacity: 0.9;
 	}
 
 	/* ---- page banner (full-width) ---- */
@@ -1226,6 +1491,13 @@
 		margin: 0;
 	}
 
+	/* ---- desktop-only: hide page banner (provider info moved to sidebar) ---- */
+	@media (min-width: 769px) {
+		.page-banner {
+			display: none;
+		}
+	}
+
 	/* ---- responsive ---- */
 	@media (max-width: 768px) {
 		.page-banner {
@@ -1244,90 +1516,60 @@
 			display: block;
 		}
 
-		.booking-header {
-			display: none;
-		}
-
 		.booking {
 			padding: var(--space-5) var(--space-5) calc(var(--space-9) + 64px);
 		}
 
-		.booking-body {
-			flex-direction: column;
-			gap: 0;
+		.card {
+			background: transparent;
+			border: none;
+			border-radius: 0;
+			min-height: 0;
+			display: block;
 		}
 
-		.calendar-panel,
-		.booking-form,
-		.timeline-container {
-			width: 100%;
-			flex: 0 0 auto;
-			padding: var(--space-5);
-		}
-
-		/* hide non-active panels */
-		.booking[data-step='1'] .timeline-container,
-		.booking[data-step='1'] .booking-form,
-		.booking[data-step='2'] .calendar-panel,
-		.booking[data-step='2'] .booking-form,
-		.booking[data-step='3'] .calendar-panel,
-		.booking[data-step='3'] .timeline-container {
+		.card-context {
 			display: none;
 		}
 
-		/* hide step labels and in-form submit (replaced by wizard chrome) */
-		.step-label {
-			display: none;
+		.card-stage {
+			padding: 0;
 		}
 
-		.submit-btn {
-			display: none;
+		.confirmed-slot {
+			display: block;
 		}
 
+		.back-btn {
+			display: block;
+		}
 
 		.wizard-bar {
-			display: flex;
-			align-items: center;
-			gap: var(--space-3);
 			margin: calc(var(--space-5) * -1) calc(var(--space-5) * -1) var(--space-5);
 			padding: var(--space-6) var(--space-4) var(--space-3);
 		}
 
-		.page-banner {
-			border-bottom: none;
+		.timeline-scroll {
+			max-height: none;
+			overflow: visible;
 		}
 
-		.back-btn {
-			background: none;
-			border: none;
-			font-size: var(--font-size-2xl);
-			color: var(--text);
-			cursor: pointer;
-			padding: var(--space-1) var(--space-3);
-			line-height: 1;
-			border-radius: var(--radius-sm);
+		.cta-summary {
+			display: none;
 		}
 
-		.back-btn:disabled {
-			color: var(--border-strong);
-			cursor: default;
-		}
-
-		.wizard-title {
-			margin: 0;
-			font-size: var(--font-size-md);
-			font-weight: 600;
-			color: var(--text);
-		}
-
-		.wizard-step {
-			font-weight: 500;
-			color: var(--text-muted);
-			margin-right: var(--space-2);
+		.cta-btn {
+			min-height: 56px;
+			width: 100%;
+			padding: var(--space-4) var(--space-6);
 		}
 
 		.wizard-cta {
 			display: block;
+			justify-content: initial;
+			border-top: none;
+			padding-top: 0;
+			margin: 0;
 			position: fixed;
 			bottom: 0;
 			left: 0;
@@ -1336,29 +1578,6 @@
 			background: var(--bg);
 			border-top: 1px solid var(--border);
 			z-index: 100;
-		}
-
-		.cta-btn {
-			width: 100%;
-			min-height: 56px;
-			padding: var(--space-4) var(--space-6);
-			background: var(--accent);
-			color: var(--text-on-accent);
-			border: none;
-			border-radius: var(--radius);
-			font-size: var(--font-size-md);
-			font-weight: 600;
-			cursor: pointer;
-			transition: opacity var(--transition);
-		}
-
-		.cta-btn:disabled {
-			opacity: 0.4;
-			cursor: not-allowed;
-		}
-
-		.cta-btn:not(:disabled):hover {
-			opacity: 0.9;
 		}
 	}
 </style>
