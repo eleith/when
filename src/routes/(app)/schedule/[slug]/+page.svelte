@@ -1,17 +1,70 @@
 <script lang="ts">
+	import { tick } from 'svelte';
 	import { Temporal } from '@js-temporal/polyfill';
-	import { Calendar } from 'bits-ui';
+	import { Calendar, Dialog } from 'bits-ui';
 	import { CalendarDate, type DateValue } from '@internationalized/date';
 
 	let { data, form } = $props();
 
-	let localTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+	let userTz = $state(Intl.DateTimeFormat().resolvedOptions().timeZone);
+
+	const ALL_TIMEZONES = Intl.supportedValuesOf('timeZone');
+
+	function getTzOffset(tz: string): string {
+		try {
+			const fmt = new Intl.DateTimeFormat('en', { timeZone: tz, timeZoneName: 'shortOffset' });
+			const parts = fmt.formatToParts(new Date());
+			return parts.find((p) => p.type === 'timeZoneName')?.value ?? '';
+		} catch {
+			return '';
+		}
+	}
+
+	type TzInfo = { city: string; offset: string; label: string; haystack: string };
+	const TZ_INFO = new Map<string, TzInfo>();
+	for (const tz of ALL_TIMEZONES) {
+		const city = tz.split('/').pop()?.replace(/_/g, ' ') ?? tz;
+		const offset = getTzOffset(tz);
+		const label = offset ? `${city} · ${offset}` : city;
+		const haystack = `${tz} ${city} ${offset}`.toLowerCase();
+		TZ_INFO.set(tz, { city, offset, label, haystack });
+	}
+
+	function fmtTzShort(tz: string): string {
+		return TZ_INFO.get(tz)?.label ?? tz.split('/').pop()?.replace(/_/g, ' ') ?? tz;
+	}
+
+	let tzPickerOpen = $state(false);
+	let tzSearch = $state('');
+	let tzSearchInput = $state<HTMLInputElement | null>(null);
+	let tzListEl = $state<HTMLUListElement | null>(null);
+
+	let filteredTimezones = $derived.by(() => {
+		const q = tzSearch.trim().toLowerCase();
+		if (!q) return ALL_TIMEZONES;
+		return ALL_TIMEZONES.filter((tz) => TZ_INFO.get(tz)?.haystack.includes(q));
+	});
+
+	$effect(() => {
+		if (!tzPickerOpen) return;
+		tick().then(() => {
+			tzSearchInput?.focus();
+			const selected = tzListEl?.querySelector('.tz-option.selected');
+			(selected as HTMLElement | null)?.scrollIntoView({ block: 'center' });
+		});
+	});
+
+	function selectTimezone(tz: string) {
+		userTz = tz;
+		tzPickerOpen = false;
+		tzSearch = '';
+	}
 
 	let allSlots = $derived(Object.values(data.slotsByDate as Record<string, string[]>).flat());
 	let availableDates = $derived.by(() => {
 		const set = new Set<string>();
 		for (const iso of allSlots) {
-			set.add(Temporal.Instant.from(iso).toZonedDateTimeISO(localTz).toPlainDate().toString());
+			set.add(Temporal.Instant.from(iso).toZonedDateTimeISO(userTz).toPlainDate().toString());
 		}
 		return set;
 	});
@@ -47,7 +100,7 @@
 		return allSlots
 			.filter(
 				(iso: string) =>
-					Temporal.Instant.from(iso).toZonedDateTimeISO(localTz).toPlainDate().toString() ===
+					Temporal.Instant.from(iso).toZonedDateTimeISO(userTz).toPlainDate().toString() ===
 					viewDate
 			)
 			.sort();
@@ -120,8 +173,8 @@
 		if (!viewDate) return null;
 
 		const dateObj = Temporal.PlainDate.from(viewDate);
-		const startOfDay = dateObj.toZonedDateTime(localTz).toInstant();
-		const endOfDay = dateObj.add({ days: 1 }).toZonedDateTime(localTz).toInstant();
+		const startOfDay = dateObj.toZonedDateTime(userTz).toInstant();
+		const endOfDay = dateObj.add({ days: 1 }).toZonedDateTime(userTz).toInstant();
 
 		const dayWindows = (data.workingWindows as { start: string; end: string }[])
 			.map((w) => ({
@@ -208,7 +261,7 @@
 
 		const labels = [];
 		let current = viewStart
-			.toZonedDateTimeISO(localTz)
+			.toZonedDateTimeISO(userTz)
 			.with({ minute: 0, second: 0, millisecond: 0, microsecond: 0, nanosecond: 0 });
 		if (Temporal.Instant.compare(current.toInstant(), viewStart) < 0) {
 			current = current.add({ hours: 1 });
@@ -358,7 +411,7 @@
 	function fmtSlot(iso: string): string {
 		try {
 			const instant = Temporal.Instant.from(iso);
-			return instant.toZonedDateTimeISO(localTz).toLocaleString(undefined, {
+			return instant.toZonedDateTimeISO(userTz).toLocaleString(undefined, {
 				weekday: 'short',
 				month: 'short',
 				day: 'numeric',
@@ -386,7 +439,7 @@
 		try {
 			const instant = Temporal.Instant.from(iso);
 			return instant
-				.toZonedDateTimeISO(localTz)
+				.toZonedDateTimeISO(userTz)
 				.toLocaleString(undefined, { hour: '2-digit', minute: '2-digit' });
 		} catch {
 			return iso;
@@ -487,7 +540,10 @@
 									onclick={() => (step = 2)}
 								>
 									<span class="context-summary-row-label">Time</span>
-									<span class="context-summary-value">{fmtTime(viewSlot)}</span>
+									<span class="context-summary-value">
+										{fmtTime(viewSlot)}
+										<span class="context-summary-tz">{fmtTzShort(userTz)}</span>
+									</span>
 								</button>
 							{/if}
 						</div>
@@ -557,7 +613,16 @@
 
 			{#if viewDate && timeline}
 				<div class="timeline-container">
-						<h2 class="slots-date">{fmtDate(viewDate)}</h2>
+						<div class="slots-header">
+							<h2 class="slots-date">{fmtDate(viewDate)}</h2>
+							<button
+								type="button"
+								class="slots-tz"
+								onclick={() => (tzPickerOpen = true)}
+							>
+								{fmtTzShort(userTz)}
+							</button>
+						</div>
 						<div class="timeline-scroll">
 							<div
 								class="timeline"
@@ -746,6 +811,47 @@
 		</div>
 	{/if}
 </div>
+
+<Dialog.Root bind:open={tzPickerOpen}>
+	<Dialog.Portal>
+		<Dialog.Overlay class="dialog-overlay" />
+		<Dialog.Content class="dialog-content tz-dialog">
+			<header class="tz-dialog-header">
+				<Dialog.Title class="tz-dialog-title">Choose timezone</Dialog.Title>
+				<Dialog.Close class="tz-dialog-close" aria-label="Close">&times;</Dialog.Close>
+			</header>
+			<input
+				class="tz-search"
+				type="search"
+				placeholder="Search timezone or city…"
+				bind:value={tzSearch}
+				bind:this={tzSearchInput}
+				autocomplete="off"
+			/>
+			<ul class="tz-list" bind:this={tzListEl}>
+				{#each filteredTimezones as tz (tz)}
+					{@const info = TZ_INFO.get(tz)}
+					<li>
+						<button
+							type="button"
+							class="tz-option"
+							class:selected={tz === userTz}
+							onclick={() => selectTimezone(tz)}
+						>
+							<span class="tz-option-city">{info?.city ?? tz}</span>
+							{#if info?.offset}
+								<span class="tz-option-offset">{info.offset}</span>
+							{/if}
+						</button>
+					</li>
+				{/each}
+				{#if filteredTimezones.length === 0}
+					<li class="tz-empty">No matches</li>
+				{/if}
+			</ul>
+		</Dialog.Content>
+	</Dialog.Portal>
+</Dialog.Root>
 
 <style>
 	.booking {
@@ -1078,10 +1184,47 @@
 
 	/* ---- timeline day view ---- */
 
+	.slots-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: baseline;
+		gap: var(--space-4);
+		margin: 0 0 var(--space-5);
+	}
+
 	.slots-date {
 		font-size: var(--font-size-lg);
 		font-weight: 600;
-		margin: 0 0 var(--space-5);
+		margin: 0;
+	}
+
+	.slots-tz {
+		background: none;
+		border: none;
+		padding: var(--space-1) var(--space-2);
+		margin: 0;
+		font: inherit;
+		font-size: var(--font-size-sm);
+		color: var(--text-muted);
+		white-space: nowrap;
+		cursor: pointer;
+		border-radius: var(--radius-sm);
+		text-decoration: underline;
+		text-decoration-style: dotted;
+		text-underline-offset: 3px;
+	}
+
+	.slots-tz:hover {
+		color: var(--text);
+		background: var(--surface-muted);
+	}
+
+	.context-summary-tz {
+		display: block;
+		font-size: var(--font-size-xs);
+		font-weight: 500;
+		color: var(--text-muted);
+		margin-top: var(--space-1);
 	}
 
 	.timeline-scroll {
@@ -1579,5 +1722,172 @@
 			border-top: 1px solid var(--border);
 			z-index: 100;
 		}
+	}
+
+	/* ---- timezone dialog ---- */
+	:global(.dialog-overlay) {
+		position: fixed;
+		inset: 0;
+		background: rgba(0, 0, 0, 0.45);
+		z-index: 200;
+		animation: tz-fade-in 0.15s ease-out;
+	}
+
+	:global(.dialog-content.tz-dialog) {
+		position: fixed;
+		bottom: 0;
+		left: 0;
+		right: 0;
+		z-index: 201;
+		display: flex;
+		flex-direction: column;
+		max-height: 80vh;
+		background: var(--surface);
+		border-top: 1px solid var(--border);
+		border-radius: var(--radius-md) var(--radius-md) 0 0;
+		padding: var(--space-5);
+		gap: var(--space-4);
+		box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.12);
+		animation: tz-slide-up 0.2s ease-out;
+	}
+
+	@media (min-width: 769px) {
+		:global(.dialog-content.tz-dialog) {
+			top: 50%;
+			bottom: auto;
+			left: 50%;
+			right: auto;
+			width: 400px;
+			max-width: calc(100vw - var(--space-7) * 2);
+			max-height: min(70vh, 520px);
+			transform: translate(-50%, -50%);
+			border: 1px solid var(--border);
+			border-radius: var(--radius-md);
+			animation: tz-fade-up-desktop 0.2s ease-out;
+		}
+	}
+
+	@keyframes tz-fade-in {
+		from { opacity: 0; }
+		to { opacity: 1; }
+	}
+
+	@keyframes tz-slide-up {
+		from { transform: translateY(100%); }
+		to { transform: translateY(0); }
+	}
+
+	@keyframes tz-fade-up-desktop {
+		from { transform: translate(-50%, calc(-50% + 8px)); opacity: 0; }
+		to { transform: translate(-50%, -50%); opacity: 1; }
+	}
+
+	.tz-dialog-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--space-4);
+	}
+
+	:global(.tz-dialog-title) {
+		margin: 0;
+		font-size: var(--font-size-lg);
+		font-weight: 600;
+	}
+
+	:global(.tz-dialog-close) {
+		background: none;
+		border: none;
+		font-size: var(--font-size-2xl);
+		line-height: 1;
+		color: var(--text-muted);
+		cursor: pointer;
+		padding: var(--space-1) var(--space-3);
+		border-radius: var(--radius-sm);
+	}
+
+	:global(.tz-dialog-close:hover) {
+		background: var(--surface-muted);
+		color: var(--text);
+	}
+
+	.tz-search {
+		width: 100%;
+		padding: var(--space-3) var(--space-4);
+		border: 1px solid var(--border-strong);
+		border-radius: var(--radius);
+		font-size: var(--font-size-md);
+		background: var(--surface);
+		color: var(--text);
+		box-sizing: border-box;
+	}
+
+	.tz-search:focus {
+		outline: none;
+		border-color: var(--accent);
+		box-shadow: var(--shadow-focus);
+	}
+
+	.tz-list {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		overflow-y: auto;
+		flex: 1;
+		min-height: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+	}
+
+	.tz-option {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: var(--space-4);
+		width: 100%;
+		text-align: left;
+		background: none;
+		border: none;
+		padding: var(--space-3) var(--space-4);
+		font: inherit;
+		color: inherit;
+		cursor: pointer;
+		border-radius: var(--radius-sm);
+	}
+
+	.tz-option:hover {
+		background: var(--surface-muted);
+	}
+
+	.tz-option.selected {
+		background: var(--surface-accent);
+		color: var(--accent);
+		font-weight: 600;
+	}
+
+	.tz-option-city {
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.tz-option-offset {
+		flex-shrink: 0;
+		font-size: var(--font-size-sm);
+		color: var(--text-muted);
+		font-variant-numeric: tabular-nums;
+	}
+
+	.tz-option.selected .tz-option-offset {
+		color: var(--accent);
+	}
+
+	.tz-empty {
+		padding: var(--space-5);
+		text-align: center;
+		color: var(--text-muted);
+		font-size: var(--font-size-sm);
 	}
 </style>
