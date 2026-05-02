@@ -581,9 +581,11 @@
 					>
 						{#snippet children({ months, weekdays })}
 							<Calendar.Header class="cal-header">
-								<Calendar.PrevButton class="cal-nav-btn">&lsaquo;</Calendar.PrevButton>
 								<Calendar.Heading class="cal-heading" />
-								<Calendar.NextButton class="cal-nav-btn">&rsaquo;</Calendar.NextButton>
+								<div class="cal-nav">
+									<Calendar.PrevButton class="cal-nav-btn">&lsaquo;</Calendar.PrevButton>
+									<Calendar.NextButton class="cal-nav-btn">&rsaquo;</Calendar.NextButton>
+								</div>
 							</Calendar.Header>
 							<Calendar.Grid class="cal-grid">
 								<Calendar.GridHead>
@@ -1070,6 +1072,12 @@
 		font-weight: 600;
 		font-size: var(--font-size-md);
 		color: var(--text);
+	}
+
+	.calendar-panel :global(.cal-nav) {
+		display: flex;
+		align-items: center;
+		gap: var(--space-1);
 	}
 
 	.calendar-panel :global(.cal-nav-btn) {
