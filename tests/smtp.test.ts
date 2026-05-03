@@ -4,7 +4,7 @@ import { sendEmail } from '../src/lib/server/smtp';
 import { setState } from '../src/lib/server/state';
 import { validConfig } from './fixtures/valid-config';
 
-test('sendEmail returns ok:false when smtp is not configured', async () => {
+test('sendEmail returns ok:false when SMTP is not configured', async () => {
 	const db = openDb(':memory:');
 	try {
 		setState({ config: { ...validConfig, smtp: undefined }, db });

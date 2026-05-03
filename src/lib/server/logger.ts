@@ -2,7 +2,7 @@ import pino, { type Logger, type LoggerOptions } from 'pino';
 
 const isDev = process.env.NODE_ENV !== 'production';
 
-const options: LoggerOptions = {
+export const loggerOptions: LoggerOptions = {
 	level: process.env.LOG_LEVEL ?? (isDev ? 'debug' : 'info'),
 	base: { app: 'when' },
 	redact: {
@@ -16,6 +16,7 @@ const options: LoggerOptions = {
 			'authorization',
 			'cookie',
 			'*.password',
+			'*.password_hash',
 			'*.client_secret',
 			'*.access_token',
 			'*.refresh_token',
@@ -33,4 +34,4 @@ const options: LoggerOptions = {
 		: {})
 };
 
-export const logger: Logger = pino(options);
+export const logger: Logger = pino(loggerOptions);

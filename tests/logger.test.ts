@@ -1,45 +1,47 @@
 import { expect, test } from 'bun:test';
-import pino from 'pino';
-import { logger } from '../src/lib/server/logger';
+import { logger, loggerOptions } from '../src/lib/server/logger';
 
-test('logger exposes standard levels', () => {
-	expect(typeof logger.trace).toBe('function');
-	expect(typeof logger.debug).toBe('function');
-	expect(typeof logger.info).toBe('function');
-	expect(typeof logger.warn).toBe('function');
-	expect(typeof logger.error).toBe('function');
-	expect(typeof logger.fatal).toBe('function');
+test('base label is set to app name', () => {
+	expect(loggerOptions.base).toEqual({ app: 'when' });
 });
 
-test('redact config scrubs sensitive keys', () => {
-	const chunks: string[] = [];
-	const sink = {
-		write(line: string) {
-			chunks.push(line);
-		}
-	};
-	const redacting = pino(
-		{
-			redact: {
-				paths: ['password', 'client_secret', 'cancel_token', '*.password'],
-				censor: '[REDACTED]'
-			}
-		},
-		sink
-	);
-	redacting.info(
-		{
-			password: 'hunter2-secret-value',
-			client_secret: 'cs-xyz-789',
-			cancel_token: 'ct-abc-123',
-			nested: { password: 'nested-pw-456' }
-		},
-		'boot'
-	);
-	const out = chunks.join('');
-	expect(out).not.toContain('hunter2-secret-value');
-	expect(out).not.toContain('cs-xyz-789');
-	expect(out).not.toContain('ct-abc-123');
-	expect(out).not.toContain('nested-pw-456');
-	expect(out).toContain('[REDACTED]');
+test('level defaults to debug in test environment', () => {
+	expect(loggerOptions.level).toBe('debug');
+});
+
+test('redact config uses [REDACTED] censor', () => {
+	const redact = loggerOptions.redact;
+	expect(typeof redact).toBe('object');
+	if (redact && typeof redact === 'object' && 'censor' in redact) {
+		expect(redact.censor).toBe('[REDACTED]');
+	}
+});
+
+test('redact paths cover sensitive keys at root and nested', () => {
+	const redact = loggerOptions.redact;
+	const paths: string[] = Array.isArray(redact)
+		? redact
+		: (redact && typeof redact === 'object' && 'paths' in redact)
+			? redact.paths
+			: [];
+	const rootKeys = [
+		'password', 'password_hash', 'client_secret',
+		'access_token', 'refresh_token', 'cancel_token',
+		'authorization', 'cookie'
+	];
+	const nestedKeys = [
+		'password', 'password_hash', 'client_secret', 'access_token', 'refresh_token', 'cancel_token'
+	];
+	for (const key of rootKeys) {
+		expect(paths).toContain(key);
+	}
+	for (const key of nestedKeys) {
+		expect(paths).toContain(`*.${key}`);
+	}
+});
+
+test('logger exposes expected levels', () => {
+	for (const level of ['trace', 'debug', 'info', 'warn', 'error', 'fatal']) {
+		expect(typeof (logger as unknown as Record<string, unknown>)[level]).toBe('function');
+	}
 });

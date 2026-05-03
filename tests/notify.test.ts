@@ -1,9 +1,4 @@
-import { expect, test } from 'bun:test';
-import {
-	notifyBookingCancelled,
-	notifyBookingConfirmed,
-	notifyBookingRescheduled
-} from '../src/lib/server/notify';
+import { expect, mock, test } from 'bun:test';
 import type { Appointment } from '../src/lib/server/db';
 import { validConfig } from './fixtures/valid-config';
 
@@ -26,25 +21,83 @@ const appointment: Appointment = {
 	updated_at: ''
 };
 
-const eventType = validConfig.event_types[0];
-const ctxBase = {
-	cfg: { ...validConfig, smtp: undefined },
-	appointment,
-	eventType,
-	cancelUrl: 'https://when.example.com/booked/appt-1?token=tok'
-};
+const smtp = { host: 'smtp.example.com', port: 587, user: 'u', pass: 'p' };
+const cancelUrl = 'https://when.example.com/booked/appt-1?token=tok';
 
-test('notifyBookingConfirmed skips when SMTP is not configured', async () => {
-	const result = await notifyBookingConfirmed(ctxBase);
-	expect(result).toEqual({ ok: true, skipped: true });
+test('notifyBookingConfirmed sends correct attendee email', async () => {
+	const sendStub = mock((_opts: unknown) => Promise.resolve({ ok: true } as const));
+	mock.module('../src/lib/server/smtp', () => ({ sendEmail: sendStub }));
+
+	const { notifyBookingConfirmed } = await import('../src/lib/server/notify');
+	await notifyBookingConfirmed({
+		cfg: { ...validConfig, smtp },
+		appointment,
+		eventType: validConfig.event_types[0],
+		cancelUrl
+	});
+
+	expect(sendStub).toHaveBeenCalledTimes(2);
+	const attendeeCall = sendStub.mock.calls[0]![0] as Record<string, unknown>;
+	expect(attendeeCall.to).toBe('booker@example.com');
+	expect(attendeeCall.subject).toContain('Confirmed');
+	expect(attendeeCall.subject).toContain('30 Minute Chat');
+	expect(attendeeCall.text).toContain('Cancel or reschedule:');
+	expect(attendeeCall.text).toContain(cancelUrl);
+	expect(attendeeCall.attachments).toBeArrayOfSize(1);
+	const att = (attendeeCall.attachments as Array<Record<string, unknown>>)[0];
+	expect(att.filename).toBe('appt-1.ics');
+	expect(att.contentType).toBe('text/calendar; charset=utf-8');
+	expect(att.content).toContain('BEGIN:VCALENDAR');
 });
 
-test('notifyBookingCancelled skips when SMTP is not configured', async () => {
-	const result = await notifyBookingCancelled(ctxBase);
-	expect(result).toEqual({ ok: true, skipped: true });
+test('notifyBookingCancelled does not include cancel link', async () => {
+	const sendStub = mock((_opts: unknown) => Promise.resolve({ ok: true } as const));
+	mock.module('../src/lib/server/smtp', () => ({ sendEmail: sendStub }));
+
+	const { notifyBookingCancelled } = await import('../src/lib/server/notify');
+	await notifyBookingCancelled({
+		cfg: { ...validConfig, smtp },
+		appointment,
+		eventType: validConfig.event_types[0],
+		cancelUrl
+	});
+
+	const attendeeCall = sendStub.mock.calls[0]![0] as Record<string, unknown>;
+	expect(attendeeCall.subject).toContain('Cancelled');
+	expect(attendeeCall.text).not.toContain('Cancel');
+	expect(attendeeCall.attachments).toBeUndefined();
 });
 
-test('notifyBookingRescheduled skips when SMTP is not configured', async () => {
-	const result = await notifyBookingRescheduled(ctxBase);
+test('notifyBookingRescheduled sends attendee email with ICS', async () => {
+	const sendStub = mock((_opts: unknown) => Promise.resolve({ ok: true } as const));
+	mock.module('../src/lib/server/smtp', () => ({ sendEmail: sendStub }));
+
+	const { notifyBookingRescheduled } = await import('../src/lib/server/notify');
+	await notifyBookingRescheduled({
+		cfg: { ...validConfig, smtp },
+		appointment,
+		eventType: validConfig.event_types[0],
+		cancelUrl
+	});
+
+	expect(sendStub).toHaveBeenCalledTimes(2);
+	const attendeeCall = sendStub.mock.calls[0]![0] as Record<string, unknown>;
+	expect(attendeeCall.subject).toContain('Rescheduled');
+	expect(attendeeCall.attachments).toBeArrayOfSize(1);
+});
+
+test('notify returns ok:true skipped:true when SMTP is not configured', async () => {
+	const sendStub = mock((_opts: unknown) => Promise.resolve({ ok: true } as const));
+	mock.module('../src/lib/server/smtp', () => ({ sendEmail: sendStub }));
+
+	const { notifyBookingConfirmed } = await import('../src/lib/server/notify');
+	const result = await notifyBookingConfirmed({
+		cfg: { ...validConfig, smtp: undefined },
+		appointment,
+		eventType: validConfig.event_types[0],
+		cancelUrl
+	});
+
 	expect(result).toEqual({ ok: true, skipped: true });
+	expect(sendStub).not.toHaveBeenCalled();
 });
