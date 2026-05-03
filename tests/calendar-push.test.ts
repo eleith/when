@@ -1,5 +1,9 @@
 import { expect, test } from 'bun:test';
-import { deleteCalDavEvent, putCalDavEvent, type FetchFn } from '../src/lib/server/calendar/caldav';
+import {
+	deleteCalDavEvent,
+	putCalDavEvent,
+	type FetchFn
+} from '../src/lib/server/calendar/adapters/caldav';
 import { deleteAppointmentFromCalendar, pushAppointment } from '../src/lib/server/calendar/push';
 import type { Appointment } from '../src/lib/server/db';
 import type { WhenConfiguration } from '../src/lib/server/config/schema';

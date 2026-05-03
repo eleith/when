@@ -1,8 +1,11 @@
 import { Temporal } from '@js-temporal/polyfill';
-import { logger } from '../logger';
-import type { BusyEvent } from './types';
-import type { Appointment } from '../db';
+import { logger } from '../../logger';
+import type { BusyEvent } from '../types';
+import type { Appointment } from '../../db';
 import type { FetchBusyOptions, FetchFn } from './caldav';
+import type { CalendarAdapter, PushOptions, PushResult, DeleteResult } from '../adapter';
+import type { WhenConfiguration, GoogleCalendar } from '../../config/schema';
+import type { ExpandWindow } from '../expand';
 
 export interface GoogleConfig {
 	client_id: string;
@@ -190,5 +193,36 @@ export async function deleteGoogleEvent(
 		// 410 Gone is also common for deleted items
 		const text = await res.text();
 		throw new Error(`Google Calendar DELETE failed: ${res.status} ${text}`);
+	}
+}
+
+export class GoogleAdapter implements CalendarAdapter {
+	constructor(private cal: GoogleCalendar) {}
+
+	async fetchBusy(window: ExpandWindow, opts?: { fetchImpl?: FetchFn }) {
+		return fetchGoogleBusy(this.cal, { start: window.start, end: window.end }, opts?.fetchImpl);
+	}
+
+	async pushAppointment(
+		cfg: WhenConfiguration,
+		appointment: Appointment,
+		eventTypeName: string,
+		opts: PushOptions
+	): Promise<PushResult> {
+		const result = await putGoogleEvent(this.cal, appointment, {
+			cancelUrl: opts.cancelUrl,
+			eventTypeName,
+			organizerName: cfg.user.name,
+			fetchImpl: opts.fetchImpl
+		});
+		return { ok: true, externalEventId: result.externalEventId, externalCalendarId: this.cal.id };
+	}
+
+	async deleteAppointment(
+		externalEventId: string,
+		opts?: { fetchImpl?: FetchFn }
+	): Promise<DeleteResult> {
+		await deleteGoogleEvent(this.cal, externalEventId, { fetchImpl: opts?.fetchImpl });
+		return { ok: true };
 	}
 }

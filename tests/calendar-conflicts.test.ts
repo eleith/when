@@ -1,6 +1,6 @@
 import { beforeEach, expect, test } from 'bun:test';
 import { Temporal } from '@js-temporal/polyfill';
-import type { FetchFn } from '../src/lib/server/calendar/caldav';
+import type { FetchFn } from '../src/lib/server/calendar/adapters/caldav';
 import { clearConflictCache, pullConflictBusy } from '../src/lib/server/calendar/conflicts';
 import type { Calendar } from '../src/lib/server/config/schema';
 
@@ -96,6 +96,41 @@ test('pulls a Google calendar and returns intervals', async () => {
 			end: Temporal.Instant.from('2026-04-15T13:00:00Z')
 		}
 	]);
+});
+
+test('pulls mixed CalDAV and Google calendars together', async () => {
+	const fakeFetch: FetchFn = async (input) => {
+		const url = input.toString();
+		if (url.includes('cal.example.com')) {
+			return new Response(sampleVevent, { status: 207 });
+		}
+		if (url.includes('oauth2')) {
+			return new Response(JSON.stringify({ access_token: 'tok', expires_in: 3600 }), {
+				status: 200
+			});
+		} else if (url.includes('events')) {
+			return new Response(
+				JSON.stringify({
+					items: [
+						{
+							id: 'g1',
+							start: { dateTime: '2026-04-16T12:00:00Z' },
+							end: { dateTime: '2026-04-16T13:00:00Z' }
+						}
+					]
+				}),
+				{ status: 200 }
+			);
+		}
+		return new Response('Not found', { status: 404 });
+	};
+
+	const intervals = await pullConflictBusy(calendars, ['work', 'g'], window, {
+		fetchImpl: fakeFetch,
+		now: 1_000
+	});
+
+	expect(intervals).toHaveLength(2);
 });
 
 test('caches results within 60s and re-fetches after TTL', async () => {

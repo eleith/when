@@ -1,10 +1,10 @@
 import { Temporal } from '@js-temporal/polyfill';
-import type { CalDavCalendar, Calendar, GoogleCalendar } from '../config/schema';
+import type { Calendar } from '../config/schema';
 import { logger } from '../logger';
 import type { Interval } from '../availability/types';
-import { fetchCalDavBusy, type FetchFn } from './caldav';
-import { fetchGoogleBusy } from './google';
+import type { FetchFn } from './adapters/caldav';
 import { expandBusy, type ExpandWindow } from './expand';
+import { getCalendarAdapter } from './adapter';
 
 interface CacheEntry {
 	intervals: Interval[];
@@ -62,22 +62,8 @@ export async function pullConflictBusy(
 		}
 
 		try {
-			let events;
-			if (cal.type === 'caldav') {
-				events = await fetchCalDavBusy(
-					toCalDavConfig(cal),
-					{ start: window.start, end: window.end },
-					opts.fetchImpl
-				);
-			} else if (cal.type === 'google') {
-				events = await fetchGoogleBusy(
-					cal as GoogleCalendar,
-					{ start: window.start, end: window.end },
-					opts.fetchImpl
-				);
-			} else {
-				continue;
-			}
+			const adapter = getCalendarAdapter(cal);
+			const events = await adapter.fetchBusy(window, { fetchImpl: opts.fetchImpl });
 
 			const occurrences = expandBusy(events, window);
 			const intervals: Interval[] = occurrences.map((o) => ({ start: o.start, end: o.end }));
@@ -89,10 +75,6 @@ export async function pullConflictBusy(
 	}
 
 	return out;
-}
-
-function toCalDavConfig(cal: CalDavCalendar): { url: string; username: string; password: string } {
-	return { url: cal.url, username: cal.username, password: cal.password };
 }
 
 /**

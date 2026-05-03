@@ -1,7 +1,12 @@
 import type { Temporal } from '@js-temporal/polyfill';
-import { logger } from '../logger';
-import { parseBusyEvents } from './parse';
-import type { BusyEvent } from './types';
+import { logger } from '../../logger';
+import { parseBusyEvents } from '../parse';
+import type { BusyEvent } from '../types';
+import type { CalendarAdapter, PushOptions, PushResult, DeleteResult } from '../adapter';
+import type { WhenConfiguration, CalDavCalendar } from '../../config/schema';
+import type { Appointment } from '../../db';
+import type { ExpandWindow } from '../expand';
+import { buildIcs } from '../../ics';
 
 export interface CalDavConfig {
 	url: string;
@@ -139,4 +144,51 @@ function decodeXmlEntities(s: string): string {
 		.replace(/&quot;/g, '"')
 		.replace(/&apos;/g, "'")
 		.replace(/&amp;/g, '&');
+}
+
+export class CalDavAdapter implements CalendarAdapter {
+	constructor(private cal: CalDavCalendar) {}
+
+	async fetchBusy(window: ExpandWindow, opts?: { fetchImpl?: FetchFn }) {
+		return fetchCalDavBusy(
+			{ url: this.cal.url, username: this.cal.username, password: this.cal.password },
+			{ start: window.start, end: window.end },
+			opts?.fetchImpl
+		);
+	}
+
+	async pushAppointment(
+		cfg: WhenConfiguration,
+		appointment: Appointment,
+		eventTypeName: string,
+		opts: PushOptions
+	): Promise<PushResult> {
+		const ics = buildIcs({
+			appointment,
+			eventTypeName,
+			organizerName: cfg.user.name,
+			organizerEmail: cfg.user.email,
+			cancelUrl: opts.cancelUrl
+		});
+
+		await putCalDavEvent(
+			{ url: this.cal.url, username: this.cal.username, password: this.cal.password },
+			appointment.id,
+			ics,
+			{ fetchImpl: opts.fetchImpl }
+		);
+		return { ok: true, externalEventId: appointment.id, externalCalendarId: this.cal.id };
+	}
+
+	async deleteAppointment(
+		externalEventId: string,
+		opts?: { fetchImpl?: FetchFn }
+	): Promise<DeleteResult> {
+		await deleteCalDavEvent(
+			{ url: this.cal.url, username: this.cal.username, password: this.cal.password },
+			externalEventId,
+			{ fetchImpl: opts?.fetchImpl }
+		);
+		return { ok: true };
+	}
 }

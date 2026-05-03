@@ -20,16 +20,16 @@ Defines the owner of the schedule and the visual appearance of the booking page.
 
 ```yaml
 user:
-  name: "Your Name"
-  email: "you@example.com"
-  timezone: "America/New_York" # IANA timezone identifier
+  name: 'Your Name'
+  email: 'you@example.com'
+  timezone: 'America/New_York' # IANA timezone identifier
   branding:
-    page_title: "Schedule a time with me"
-    description: "A little bit about me."
-    accent_color: "#ff5500" # Can also be an object with `light` and `dark`
-    logo_url: "/public/logo.png"
-    avatar_url: "/public/my-avatar.jpg"
-    favicon_url: "/public/favicon.ico"
+    page_title: 'Schedule a time with me'
+    description: 'A little bit about me.'
+    accent_color: '#ff5500' # Can also be an object with `light` and `dark`
+    logo_url: '/public/logo.png'
+    avatar_url: '/public/my-avatar.jpg'
+    favicon_url: '/public/favicon.ico'
 ```
 
 To use custom assets, place them in the `./data/public/` directory, which is served statically under the `/public/` path.
@@ -39,20 +39,22 @@ To use custom assets, place them in the `./data/public/` directory, which is ser
 The `auth` block must declare exactly one strategy for the `/admin` interface.
 
 **Credentials Auth:** Local username/password.
+
 ```yaml
 auth:
   credentials:
-    username: "admin"
-    password_hash: "${ADMIN_PASSWORD_HASH}" # generate with `bun run hash-password`
+    username: 'admin'
+    password_hash: '${ADMIN_PASSWORD_HASH}' # generate with `bun run hash-password`
 ```
 
 **OIDC Auth:** Single Sign-On via an external provider.
+
 ```yaml
 auth:
   oidc:
-    issuer: "https://auth.example.com"
-    client_id: "when"
-    client_secret: "${OIDC_CLIENT_SECRET}"
+    issuer: 'https://auth.example.com'
+    client_id: 'when'
+    client_secret: '${OIDC_CLIENT_SECRET}'
 ```
 
 ## Calendars
@@ -74,7 +76,7 @@ calendars:
     google_calendar_id: 'primary'
 ```
 
-*Note: For Google Calendar, use the `bun run setup-google` CLI tool to generate this block automatically.*
+_Note: For Google Calendar, use the `bun run setup-google` CLI tool to generate this block automatically._
 
 ## Availability
 
@@ -89,11 +91,11 @@ availability:
   buffer_after: 0 # Minutes to pad after a meeting
   max_bookings_per_day: null # Limit total meetings per day
   default:
-    monday: ["09:00-17:00"]
-    tuesday: ["09:00-17:00"]
-    wednesday: ["09:00-17:00"]
-    thursday: ["09:00-17:00"]
-    friday: ["09:00-13:00", "14:00-17:00"] # Supports multiple blocks
+    monday: ['09:00-17:00']
+    tuesday: ['09:00-17:00']
+    wednesday: ['09:00-17:00']
+    thursday: ['09:00-17:00']
+    friday: ['09:00-13:00', '14:00-17:00'] # Supports multiple blocks
     # saturday, sunday omitted = no availability
 ```
 
@@ -117,6 +119,7 @@ event_types:
 ```
 
 ### Location Modes
+
 - `fixed`: A static string (URL, phone number, address).
 - `choice`: Provide an array of `choices` for the user to select from.
 - `guest_proposes`: Ask the guest to input the location during booking.
