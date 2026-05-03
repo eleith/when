@@ -6,7 +6,6 @@ import { bootConfig } from './config/boot';
 import { loadEncryptionKey } from './crypto';
 import { openDb } from './db';
 import { runMigrations } from './db/migrate';
-import { logger } from './logger';
 import { env } from '$env/dynamic/private';
 
 export function defaultDbPath(): string {
@@ -22,8 +21,7 @@ export async function bootApp(): Promise<void> {
 	await loadEncryptionKey(rawKey);
 	const dbPath = process.env.DATABASE_PATH ?? defaultDbPath();
 	const db = openDb(dbPath);
-	const applied = await runMigrations(db);
-	logger.info({ db: dbPath, migrations: applied }, 'migrations applied');
+	await runMigrations(db);
 	makeAuth(config);
 	setState({ config, db });
 }
