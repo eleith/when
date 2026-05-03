@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { tick } from 'svelte';
+	import { replaceState } from '$app/navigation';
 	import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 	import { Temporal } from '@js-temporal/polyfill';
 	import { Calendar, Dialog } from 'bits-ui';
@@ -132,7 +133,7 @@
 			viewDate = null;
 			if (viewSlot) {
 				viewSlot = null;
-				history.replaceState({}, '', '?');
+				replaceState('?', {});
 			}
 			return;
 		}
@@ -141,19 +142,19 @@
 		viewDate = key;
 		if (viewSlot && !viewSlot.startsWith(key)) {
 			viewSlot = null;
-			history.replaceState({}, '', '?');
+			replaceState('?', {});
 		}
 	}
 
 	function selectSlot(iso: string) {
 		viewSlot = iso;
 		viewDate = iso.slice(0, 10);
-		history.replaceState({}, '', `?slot=${encodeURIComponent(iso)}`);
+		replaceState(`?slot=${encodeURIComponent(iso)}`, {});
 	}
 
 	function clearSlot() {
 		viewSlot = null;
-		history.replaceState({}, '', '?');
+		replaceState('?', {});
 	}
 
 	// ---- wizard ----
