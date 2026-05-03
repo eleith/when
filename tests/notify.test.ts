@@ -24,10 +24,15 @@ const appointment: Appointment = {
 const smtp = { host: 'smtp.example.com', port: 587, user: 'u', pass: 'p' };
 const cancelUrl = 'https://when.example.com/booked/appt-1?token=tok';
 
-test('notifyBookingConfirmed sends correct attendee email', async () => {
-	const sendStub = mock((_opts: unknown) => Promise.resolve({ ok: true } as const));
-	mock.module('../src/lib/server/smtp', () => ({ sendEmail: sendStub }));
+function stubSendEmail() {
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
+	const s = mock((_opts: unknown) => Promise.resolve({ ok: true } as const));
+	mock.module('../src/lib/server/smtp', () => ({ sendEmail: s }));
+	return s;
+}
 
+test('notifyBookingConfirmed sends correct attendee email', async () => {
+	const sendStub = stubSendEmail();
 	const { notifyBookingConfirmed } = await import('../src/lib/server/notify');
 	await notifyBookingConfirmed({
 		cfg: { ...validConfig, smtp },
@@ -51,9 +56,7 @@ test('notifyBookingConfirmed sends correct attendee email', async () => {
 });
 
 test('notifyBookingCancelled does not include cancel link', async () => {
-	const sendStub = mock((_opts: unknown) => Promise.resolve({ ok: true } as const));
-	mock.module('../src/lib/server/smtp', () => ({ sendEmail: sendStub }));
-
+	const sendStub = stubSendEmail();
 	const { notifyBookingCancelled } = await import('../src/lib/server/notify');
 	await notifyBookingCancelled({
 		cfg: { ...validConfig, smtp },
@@ -69,9 +72,7 @@ test('notifyBookingCancelled does not include cancel link', async () => {
 });
 
 test('notifyBookingRescheduled sends attendee email with ICS', async () => {
-	const sendStub = mock((_opts: unknown) => Promise.resolve({ ok: true } as const));
-	mock.module('../src/lib/server/smtp', () => ({ sendEmail: sendStub }));
-
+	const sendStub = stubSendEmail();
 	const { notifyBookingRescheduled } = await import('../src/lib/server/notify');
 	await notifyBookingRescheduled({
 		cfg: { ...validConfig, smtp },
@@ -87,9 +88,7 @@ test('notifyBookingRescheduled sends attendee email with ICS', async () => {
 });
 
 test('notify returns ok:true skipped:true when SMTP is not configured', async () => {
-	const sendStub = mock((_opts: unknown) => Promise.resolve({ ok: true } as const));
-	mock.module('../src/lib/server/smtp', () => ({ sendEmail: sendStub }));
-
+	const sendStub = stubSendEmail();
 	const { notifyBookingConfirmed } = await import('../src/lib/server/notify');
 	const result = await notifyBookingConfirmed({
 		cfg: { ...validConfig, smtp: undefined },

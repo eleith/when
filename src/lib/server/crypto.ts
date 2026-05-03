@@ -21,7 +21,10 @@ export async function loadEncryptionKey(raw: string): Promise<CryptoKey> {
 			`ENCRYPTION_KEY must decode to ${KEY_LENGTH} bytes (got ${decoded.length}); use base64 of 32 random bytes`
 		);
 	}
-	return crypto.subtle.importKey('raw', new Uint8Array(decoded), { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
+	return crypto.subtle.importKey('raw', new Uint8Array(decoded), { name: 'AES-GCM' }, false, [
+		'encrypt',
+		'decrypt'
+	]);
 }
 
 export async function encrypt(plaintext: string, key: CryptoKey): Promise<string> {

@@ -43,7 +43,11 @@
 	<dd>{data.eventType.name}</dd>
 
 	<dt>When</dt>
-	<dd class="when-row">{fmt(data.appointment.start_time)} <IconArrowRight class="when-arrow" aria-hidden="true" /> {fmt(data.appointment.end_time)}</dd>
+	<dd class="when-row">
+		{fmt(data.appointment.start_time)}
+		<IconArrowRight class="when-arrow" aria-hidden="true" />
+		{fmt(data.appointment.end_time)}
+	</dd>
 
 	{#if data.appointment.location}
 		<dt>Where</dt>

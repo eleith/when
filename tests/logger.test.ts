@@ -21,16 +21,26 @@ test('redact paths cover sensitive keys at root and nested', () => {
 	const redact = loggerOptions.redact;
 	const paths: string[] = Array.isArray(redact)
 		? redact
-		: (redact && typeof redact === 'object' && 'paths' in redact)
+		: redact && typeof redact === 'object' && 'paths' in redact
 			? redact.paths
 			: [];
 	const rootKeys = [
-		'password', 'password_hash', 'client_secret',
-		'access_token', 'refresh_token', 'cancel_token',
-		'authorization', 'cookie'
+		'password',
+		'password_hash',
+		'client_secret',
+		'access_token',
+		'refresh_token',
+		'cancel_token',
+		'authorization',
+		'cookie'
 	];
 	const nestedKeys = [
-		'password', 'password_hash', 'client_secret', 'access_token', 'refresh_token', 'cancel_token'
+		'password',
+		'password_hash',
+		'client_secret',
+		'access_token',
+		'refresh_token',
+		'cancel_token'
 	];
 	for (const key of rootKeys) {
 		expect(paths).toContain(key);

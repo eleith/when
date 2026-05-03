@@ -87,7 +87,11 @@
 	}
 
 	function strToCalendarDate(key: string): CalendarDate {
-		return new CalendarDate(Number(key.slice(0, 4)), Number(key.slice(5, 7)), Number(key.slice(8, 10)));
+		return new CalendarDate(
+			Number(key.slice(0, 4)),
+			Number(key.slice(5, 7)),
+			Number(key.slice(8, 10))
+		);
 	}
 
 	let calendarValue = $derived(viewDate ? strToCalendarDate(viewDate) : undefined);
@@ -320,10 +324,7 @@
 		return ((clientY - rect.top) / rect.height) * 100;
 	}
 
-	function isInBlock(
-		percent: number,
-		blocks?: Array<{ top: number; height: number }>
-	): boolean {
+	function isInBlock(percent: number, blocks?: Array<{ top: number; height: number }>): boolean {
 		if (!blocks) return false;
 		return blocks.some((b) => percent >= b.top && percent <= b.top + b.height);
 	}
@@ -579,222 +580,221 @@
 				<div class="booking-body">
 					<div class="calendar-panel">
 						<Calendar.Root
-						type="single"
-						fixedWeeks
-						weekdayFormat="short"
-						isDateUnavailable={isDateUnavailable}
-						isDateDisabled={isDateDisabled}
-						value={calendarValue}
-						onValueChange={onDateChange}
-					>
-						{#snippet children({ months, weekdays })}
-							<Calendar.Header class="cal-header">
-								<Calendar.Heading class="cal-heading" />
-								<div class="cal-nav">
-									<Calendar.PrevButton class="cal-nav-btn"><IconCaretLeft aria-hidden="true" /></Calendar.PrevButton>
-									<Calendar.NextButton class="cal-nav-btn"><IconCaretRight aria-hidden="true" /></Calendar.NextButton>
-								</div>
-							</Calendar.Header>
-							<Calendar.Grid class="cal-grid">
-								<Calendar.GridHead>
-									<Calendar.GridRow class="cal-weekdays">
-										{#each weekdays as day}
-											<Calendar.HeadCell class="cal-weekday">{day.slice(0, 2)}</Calendar.HeadCell>
+							type="single"
+							fixedWeeks
+							weekdayFormat="short"
+							{isDateUnavailable}
+							{isDateDisabled}
+							value={calendarValue}
+							onValueChange={onDateChange}
+						>
+							{#snippet children({ months, weekdays })}
+								<Calendar.Header class="cal-header">
+									<Calendar.Heading class="cal-heading" />
+									<div class="cal-nav">
+										<Calendar.PrevButton class="cal-nav-btn"
+											><IconCaretLeft aria-hidden="true" /></Calendar.PrevButton
+										>
+										<Calendar.NextButton class="cal-nav-btn"
+											><IconCaretRight aria-hidden="true" /></Calendar.NextButton
+										>
+									</div>
+								</Calendar.Header>
+								<Calendar.Grid class="cal-grid">
+									<Calendar.GridHead>
+										<Calendar.GridRow class="cal-weekdays">
+											{#each weekdays as day}
+												<Calendar.HeadCell class="cal-weekday">{day.slice(0, 2)}</Calendar.HeadCell>
+											{/each}
+										</Calendar.GridRow>
+									</Calendar.GridHead>
+									<Calendar.GridBody>
+										{#each months as month}
+											{#each month.weeks as weekDates}
+												<Calendar.GridRow class="cal-row">
+													{#each weekDates as date}
+														<Calendar.Cell {date} month={month.value} class="cal-cell">
+															<Calendar.Day class="cal-day">{date.day}</Calendar.Day>
+														</Calendar.Cell>
+													{/each}
+												</Calendar.GridRow>
+											{/each}
 										{/each}
-									</Calendar.GridRow>
-								</Calendar.GridHead>
-								<Calendar.GridBody>
-									{#each months as month}
-										{#each month.weeks as weekDates}
-											<Calendar.GridRow class="cal-row">
-												{#each weekDates as date}
-													<Calendar.Cell {date} month={month.value} class="cal-cell">
-														<Calendar.Day class="cal-day">{date.day}</Calendar.Day>
-													</Calendar.Cell>
-												{/each}
-											</Calendar.GridRow>
-										{/each}
-									{/each}
-								</Calendar.GridBody>
-							</Calendar.Grid>
-						{/snippet}
-					</Calendar.Root>
-				</div>
+									</Calendar.GridBody>
+								</Calendar.Grid>
+							{/snippet}
+						</Calendar.Root>
+					</div>
 
-			{#if viewDate && timeline}
-				<div class="timeline-container">
-						<div class="slots-header">
-							<h2 class="slots-date">{fmtDate(viewDate)}</h2>
-							<button
-								type="button"
-								class="slots-tz"
-								onclick={() => (tzPickerOpen = true)}
-							>
-								<IconGlobe class="slots-tz-icon" />
-								<span class="slots-tz-text">{fmtTzShort(userTz)}</span>
-							</button>
-						</div>
-						<div class="timeline-scroll">
-							<div
-								class="timeline"
-								style:height="{(timeline.totalMs / 3600000) * 96}px"
-							>
-								{#each timeline.labels as { label, top }}
-									<div class="timeline-label" style:top="{top}%">{label}</div>
-									<div class="timeline-gridline" style:top="{top}%"></div>
-								{/each}
-
-								<!-- svelte-ignore a11y_click_events_have_key_events -->
-								<!-- svelte-ignore a11y_no_static_element_interactions -->
-								<div
-									class="timeline-track"
-									bind:this={trackEl}
-									onpointerdown={handleTrackPointerDown}
-									onpointermove={handleTrackPointerMove}
-									onpointerup={handleTrackPointerUp}
-									onpointercancel={handleTrackPointerCancel}
-								>
-									<div class="hatch-bg"></div>
-
-									{#each timeline.working as w}
-										<div
-											class="working-window"
-											style:top="{w.top}%"
-											style:height="{w.height}%"
-										></div>
+					{#if viewDate && timeline}
+						<div class="timeline-container">
+							<div class="slots-header">
+								<h2 class="slots-date">{fmtDate(viewDate)}</h2>
+								<button type="button" class="slots-tz" onclick={() => (tzPickerOpen = true)}>
+									<IconGlobe class="slots-tz-icon" />
+									<span class="slots-tz-text">{fmtTzShort(userTz)}</span>
+								</button>
+							</div>
+							<div class="timeline-scroll">
+								<div class="timeline" style:height="{(timeline.totalMs / 3600000) * 96}px">
+									{#each timeline.labels as { label, top }}
+										<div class="timeline-label" style:top="{top}%">{label}</div>
+										<div class="timeline-gridline" style:top="{top}%"></div>
 									{/each}
 
-									{#if timeline.past}
-										<div
-											class="buffer-block"
-											style:top="{timeline.past.top}%"
-											style:height="{timeline.past.height}%"
-										></div>
-									{/if}
+									<!-- svelte-ignore a11y_click_events_have_key_events -->
+									<!-- svelte-ignore a11y_no_static_element_interactions -->
+									<div
+										class="timeline-track"
+										bind:this={trackEl}
+										onpointerdown={handleTrackPointerDown}
+										onpointermove={handleTrackPointerMove}
+										onpointerup={handleTrackPointerUp}
+										onpointercancel={handleTrackPointerCancel}
+									>
+										<div class="hatch-bg"></div>
 
-									{#each timeline.buffers as b}
-										<div
-											class="buffer-block"
-											style:top="{b.top}%"
-											style:height="{b.height}%"
-										></div>
-									{/each}
-
-									{#each timeline.busy as b}
-										<div class="busy-block" style:top="{b.top}%" style:height="{b.height}%">
-											<span class="busy-text">Busy</span>
-										</div>
-									{/each}
-
-									{#if viewSlot}
-										{@const s = timeline.slots.find((s) => s.iso === viewSlot)}
-										{#if s}
-											{@const preview =
-												isDragging && dragYPercent !== null
-													? nearestSlotAt(dragYPercent)
-													: null}
-											{@const overUnavailable =
-												isDragging && dragYPercent !== null && isUnavailable(dragYPercent)}
-											{@const dragTop =
-												isDragging && dragYPercent !== null
-													? Math.max(0, Math.min(100 - s.height, dragYPercent - s.height / 2))
-													: s.top}
+										{#each timeline.working as w}
 											<div
-												class="slot-block selected"
-												class:dragging={isDragging}
-												class:unavailable={overUnavailable}
-												style:top="{dragTop}%"
-												style:height="{s.height}%"
-											>
-												<span class="slot-text">{preview ? preview.time : s.time}</span>
-											</div>
+												class="working-window"
+												style:top="{w.top}%"
+												style:height="{w.height}%"
+											></div>
+										{/each}
+
+										{#if timeline.past}
+											<div
+												class="buffer-block"
+												style:top="{timeline.past.top}%"
+												style:height="{timeline.past.height}%"
+											></div>
 										{/if}
-									{/if}
+
+										{#each timeline.buffers as b}
+											<div
+												class="buffer-block"
+												style:top="{b.top}%"
+												style:height="{b.height}%"
+											></div>
+										{/each}
+
+										{#each timeline.busy as b}
+											<div class="busy-block" style:top="{b.top}%" style:height="{b.height}%">
+												<span class="busy-text">Busy</span>
+											</div>
+										{/each}
+
+										{#if viewSlot}
+											{@const s = timeline.slots.find((s) => s.iso === viewSlot)}
+											{#if s}
+												{@const preview =
+													isDragging && dragYPercent !== null ? nearestSlotAt(dragYPercent) : null}
+												{@const overUnavailable =
+													isDragging && dragYPercent !== null && isUnavailable(dragYPercent)}
+												{@const dragTop =
+													isDragging && dragYPercent !== null
+														? Math.max(0, Math.min(100 - s.height, dragYPercent - s.height / 2))
+														: s.top}
+												<div
+													class="slot-block selected"
+													class:dragging={isDragging}
+													class:unavailable={overUnavailable}
+													style:top="{dragTop}%"
+													style:height="{s.height}%"
+												>
+													<span class="slot-text">{preview ? preview.time : s.time}</span>
+												</div>
+											{/if}
+										{/if}
+									</div>
 								</div>
 							</div>
 						</div>
-					</div>
-			{:else}
-				<div class="timeline-container empty-state">
-					<p>Select a highlighted date to see available times.</p>
-				</div>
-			{/if}
+					{:else}
+						<div class="timeline-container empty-state">
+							<p>Select a highlighted date to see available times.</p>
+						</div>
+					{/if}
 
-			<div class="booking-form">
-				{#if viewSlot}
-						<p class="confirmed-slot">{fmtSlot(viewSlot)}</p>
+					<div class="booking-form">
+						{#if viewSlot}
+							<p class="confirmed-slot">{fmtSlot(viewSlot)}</p>
 
-						{#if form?.error}
-							<p class="form-error" role="alert">{form.error}</p>
+							{#if form?.error}
+								<p class="form-error" role="alert">{form.error}</p>
+							{/if}
+
+							<form
+								id="booking-form"
+								method="POST"
+								action={data.reschedule ? '?/reschedule' : '?/book'}
+							>
+								<input type="hidden" name="slot" value={viewSlot} />
+								{#if data.reschedule}
+									<input type="hidden" name="reschedule_id" value={data.reschedule.id} />
+									<input type="hidden" name="token" value={data.token} />
+								{/if}
+
+								<div class="field">
+									<label for="name">What is your name?</label>
+									<input
+										id="name"
+										name="name"
+										required
+										autocomplete="name"
+										value={data.reschedule?.name ?? ''}
+										bind:this={nameInput}
+									/>
+								</div>
+
+								<div class="field">
+									<label for="email">What is your email?</label>
+									<input
+										id="email"
+										name="email"
+										type="email"
+										required
+										autocomplete="email"
+										value={data.reschedule?.email ?? ''}
+									/>
+								</div>
+
+								{#if data.eventType.location?.mode === 'fixed'}
+									<div class="field">
+										<span class="field-label">Where</span>
+										<p class="location-display">{data.eventType.location.fixed}</p>
+									</div>
+								{:else if data.eventType.location?.mode === 'guest_proposes'}
+									<div class="field">
+										<label for="location">Where should we meet?</label>
+										<input id="location" name="location" required />
+									</div>
+								{:else if data.eventType.location?.mode === 'choice'}
+									<div class="field">
+										<label for="location">Where should we meet?</label>
+										<select id="location" name="location" required>
+											{#each data.eventType.location.choices as choice (choice)}
+												<option value={choice}>{choice}</option>
+											{/each}
+										</select>
+									</div>
+								{/if}
+
+								<div class="field">
+									<label for="notes">Anything else?</label>
+									<textarea id="notes" name="notes" rows="3"></textarea>
+								</div>
+
+								<button type="submit" class="submit-btn">
+									{data.reschedule ? 'Reschedule' : 'Book'}
+								</button>
+							</form>
+						{:else}
+							<div class="form-placeholder">
+								<p>Select a time on the timeline to continue</p>
+							</div>
 						{/if}
-
-						<form id="booking-form" method="POST" action={data.reschedule ? '?/reschedule' : '?/book'}>
-							<input type="hidden" name="slot" value={viewSlot} />
-							{#if data.reschedule}
-								<input type="hidden" name="reschedule_id" value={data.reschedule.id} />
-								<input type="hidden" name="token" value={data.token} />
-							{/if}
-
-							<div class="field">
-								<label for="name">What is your name?</label>
-								<input
-									id="name"
-									name="name"
-									required
-									autocomplete="name"
-									value={data.reschedule?.name ?? ''}
-									bind:this={nameInput}
-								/>
-							</div>
-
-							<div class="field">
-								<label for="email">What is your email?</label>
-								<input
-									id="email"
-									name="email"
-									type="email"
-									required
-									autocomplete="email"
-									value={data.reschedule?.email ?? ''}
-								/>
-							</div>
-
-							{#if data.eventType.location?.mode === 'fixed'}
-								<div class="field">
-									<span class="field-label">Where</span>
-									<p class="location-display">{data.eventType.location.fixed}</p>
-								</div>
-							{:else if data.eventType.location?.mode === 'guest_proposes'}
-								<div class="field">
-									<label for="location">Where should we meet?</label>
-									<input id="location" name="location" required />
-								</div>
-							{:else if data.eventType.location?.mode === 'choice'}
-								<div class="field">
-									<label for="location">Where should we meet?</label>
-									<select id="location" name="location" required>
-										{#each data.eventType.location.choices as choice (choice)}
-											<option value={choice}>{choice}</option>
-										{/each}
-									</select>
-								</div>
-							{/if}
-
-							<div class="field">
-								<label for="notes">Anything else?</label>
-								<textarea id="notes" name="notes" rows="3"></textarea>
-							</div>
-
-							<button type="submit" class="submit-btn">
-								{data.reschedule ? 'Reschedule' : 'Book'}
-							</button>
-						</form>
-				{:else}
-					<div class="form-placeholder">
-						<p>Select a time on the timeline to continue</p>
 					</div>
-				{/if}
-				</div>
 				</div>
 
 				<div class="wizard-cta">
@@ -1186,12 +1186,14 @@
 		cursor: default;
 	}
 
-	.calendar-panel :global(.cal-day:not([data-unavailable]):not([data-disabled]):not([data-selected])) {
+	.calendar-panel
+		:global(.cal-day:not([data-unavailable]):not([data-disabled]):not([data-selected])) {
 		font-weight: 600;
 		color: var(--accent);
 	}
 
-	.calendar-panel :global(.cal-day:not([data-unavailable]):not([data-disabled]):not([data-selected]):hover) {
+	.calendar-panel
+		:global(.cal-day:not([data-unavailable]):not([data-disabled]):not([data-selected]):hover) {
 		background: var(--surface-accent);
 	}
 
@@ -1844,18 +1846,32 @@
 	}
 
 	@keyframes tz-fade-in {
-		from { opacity: 0; }
-		to { opacity: 1; }
+		from {
+			opacity: 0;
+		}
+		to {
+			opacity: 1;
+		}
 	}
 
 	@keyframes tz-slide-up {
-		from { transform: translateY(100%); }
-		to { transform: translateY(0); }
+		from {
+			transform: translateY(100%);
+		}
+		to {
+			transform: translateY(0);
+		}
 	}
 
 	@keyframes tz-fade-up-desktop {
-		from { transform: translate(-50%, calc(-50% + 8px)); opacity: 0; }
-		to { transform: translate(-50%, -50%); opacity: 1; }
+		from {
+			transform: translate(-50%, calc(-50% + 8px));
+			opacity: 0;
+		}
+		to {
+			transform: translate(-50%, -50%);
+			opacity: 1;
+		}
 	}
 
 	.tz-dialog-header {

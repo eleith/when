@@ -4,6 +4,10 @@ import { getConfig } from './state';
 
 let transporter: nodemailer.Transporter | null = null;
 
+export function isSecurePort(port: number): boolean {
+	return port === 465;
+}
+
 function getTransporter(): nodemailer.Transporter {
 	if (transporter) return transporter;
 	const cfg = getConfig();
@@ -11,7 +15,7 @@ function getTransporter(): nodemailer.Transporter {
 	transporter = nodemailer.createTransport({
 		host: cfg.smtp.host,
 		port: cfg.smtp.port,
-		secure: cfg.smtp.port === 465,
+		secure: isSecurePort(cfg.smtp.port),
 		auth: { user: cfg.smtp.user, pass: cfg.smtp.pass }
 	});
 	return transporter;
