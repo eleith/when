@@ -27,7 +27,7 @@ export async function fetchCalDavBusy(
 	fetchImpl: FetchFn = fetch
 ): Promise<BusyEvent[]> {
 	const body = buildReportBody(opts.start, opts.end);
-	const auth = Buffer.from(`${cfg.username}:${cfg.password}`).toString('base64');
+	const auth = btoa(`${cfg.username}:${cfg.password}`);
 	const res = await fetchImpl(cfg.url, {
 		method: 'REPORT',
 		headers: {
@@ -61,7 +61,7 @@ export async function putCalDavEvent(
 	ics: string,
 	opts: { etag?: string | null; fetchImpl?: FetchFn } = {}
 ): Promise<{ url: string; etag: string | null }> {
-	const auth = Buffer.from(`${cfg.username}:${cfg.password}`).toString('base64');
+	const auth = btoa(`${cfg.username}:${cfg.password}`);
 	const url = joinPath(cfg.url, `${encodeURIComponent(uid)}.ics`);
 	const headers: Record<string, string> = {
 		Authorization: `Basic ${auth}`,
@@ -84,7 +84,7 @@ export async function deleteCalDavEvent(
 	uid: string,
 	opts: { etag?: string | null; fetchImpl?: FetchFn } = {}
 ): Promise<void> {
-	const auth = Buffer.from(`${cfg.username}:${cfg.password}`).toString('base64');
+	const auth = btoa(`${cfg.username}:${cfg.password}`);
 	const url = joinPath(cfg.url, `${encodeURIComponent(uid)}.ics`);
 	const headers: Record<string, string> = { Authorization: `Basic ${auth}` };
 	if (opts.etag) headers['If-Match'] = opts.etag;
@@ -117,6 +117,8 @@ export function buildReportBody(start: Temporal.Instant, end: Temporal.Instant):
 }
 
 export function extractCalendarData(xml: string): string[] {
+	// CalDAV XML responses are structurally predictable; regex extraction
+	// avoids pulling in a full XML parser for this single-purpose operation.
 	const re = /<[A-Za-z0-9]*:?calendar-data[^>]*>([\s\S]*?)<\/[A-Za-z0-9]*:?calendar-data>/g;
 	const out: string[] = [];
 	let m: RegExpExecArray | null;

@@ -16,6 +16,42 @@ export interface PushOptions {
 	fetchImpl?: FetchFn;
 }
 
+async function pushToCalDav(
+	cfg: WhenConfiguration,
+	appointment: Appointment,
+	eventTypeName: string,
+	calId: string,
+	caldav: { url: string; username: string; password: string },
+	opts: PushOptions
+): Promise<PushResult> {
+	const ics = buildIcs({
+		appointment,
+		eventTypeName,
+		organizerName: cfg.user.name,
+		organizerEmail: cfg.user.email,
+		cancelUrl: opts.cancelUrl
+	});
+
+	await putCalDavEvent(caldav, appointment.id, ics, { fetchImpl: opts.fetchImpl });
+	return { ok: true, externalEventId: appointment.id, externalCalendarId: calId };
+}
+
+async function pushToGoogle(
+	cfg: WhenConfiguration,
+	appointment: Appointment,
+	cal: GoogleCalendar,
+	eventTypeName: string,
+	opts: PushOptions
+): Promise<PushResult> {
+	const result = await putGoogleEvent(cal, appointment, {
+		cancelUrl: opts.cancelUrl,
+		eventTypeName,
+		organizerName: cfg.user.name,
+		fetchImpl: opts.fetchImpl
+	});
+	return { ok: true, externalEventId: result.externalEventId, externalCalendarId: cal.id };
+}
+
 /**
  * Create or update the appointment in its destination calendar.
  */
@@ -33,31 +69,18 @@ export async function pushAppointment(
 
 	try {
 		if (cal.type === 'caldav') {
-			const ics = buildIcs({
+			return await pushToCalDav(
+				cfg,
 				appointment,
 				eventTypeName,
-				organizerName: cfg.user.name,
-				organizerEmail: cfg.user.email,
-				cancelUrl: opts.cancelUrl
-			});
-
-			await putCalDavEvent(
+				cal.id,
 				{ url: cal.url, username: cal.username, password: cal.password },
-				appointment.id,
-				ics,
-				{ fetchImpl: opts.fetchImpl }
+				opts
 			);
-			return { ok: true, externalEventId: appointment.id, externalCalendarId: cal.id };
-		} else if (cal.type === 'google') {
-			const result = await putGoogleEvent(cal as GoogleCalendar, appointment, {
-				cancelUrl: opts.cancelUrl,
-				eventTypeName,
-				organizerName: cfg.user.name,
-				fetchImpl: opts.fetchImpl
-			});
-			return { ok: true, externalEventId: result.externalEventId, externalCalendarId: cal.id };
 		}
-
+		if (cal.type === 'google') {
+			return await pushToGoogle(cfg, appointment, cal as GoogleCalendar, eventTypeName, opts);
+		}
 		return { ok: false, reason: `unsupported calendar type` };
 	} catch (err) {
 		logger.error(
@@ -66,6 +89,25 @@ export async function pushAppointment(
 		);
 		return { ok: false, reason: String(err) };
 	}
+}
+
+async function deleteFromCalDav(
+	externalCalendarId: string,
+	externalEventId: string,
+	cal: { url: string; username: string; password: string },
+	opts: { fetchImpl?: FetchFn }
+): Promise<DeleteResult> {
+	await deleteCalDavEvent(cal, externalEventId, { fetchImpl: opts.fetchImpl });
+	return { ok: true };
+}
+
+async function deleteFromGoogle(
+	externalEventId: string,
+	cal: GoogleCalendar,
+	opts: { fetchImpl?: FetchFn }
+): Promise<DeleteResult> {
+	await deleteGoogleEvent(cal, externalEventId, { fetchImpl: opts.fetchImpl });
+	return { ok: true };
 }
 
 /**
@@ -83,19 +125,12 @@ export async function deleteAppointmentFromCalendar(
 
 	try {
 		if (cal.type === 'caldav') {
-			await deleteCalDavEvent(
-				{ url: cal.url, username: cal.username, password: cal.password },
-				externalEventId,
-				{ fetchImpl: opts.fetchImpl }
-			);
-		} else if (cal.type === 'google') {
-			await deleteGoogleEvent(cal as GoogleCalendar, externalEventId, {
-				fetchImpl: opts.fetchImpl
-			});
-		} else {
-			return { ok: false, reason: `unsupported calendar type` };
+			return await deleteFromCalDav(externalCalendarId, externalEventId, cal, opts);
 		}
-		return { ok: true };
+		if (cal.type === 'google') {
+			return await deleteFromGoogle(externalEventId, cal as GoogleCalendar, opts);
+		}
+		return { ok: false, reason: `unsupported calendar type` };
 	} catch (err) {
 		logger.error({ err, calendarId: cal.id, externalEventId }, `${cal.type} delete failed`);
 		return { ok: false, reason: String(err) };

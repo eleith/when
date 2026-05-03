@@ -131,12 +131,8 @@ export async function putGoogleEvent(
 	const token = await getGoogleAccessToken(cfg, opts.fetchImpl ?? fetch);
 	const calId = encodeURIComponent(cfg.google_calendar_id);
 
-	// If the appointment already has an external_event_id, we update it.
-	// Otherwise, we create a new one (or rely on Google's insert with a specific ID).
-	// Wait, Google's `insert` doesn't let you specify the `id` easily unless it's base32hex.
-	// Actually, we can just use the regular insert and store the generated `id` in external_event_id.
-	// For updates, we MUST have the existing externalEventId.
-
+	// Existing events are updated via PUT with the stored external_event_id;
+	// new events are created via POST and the returned event ID is stored.
 	const isUpdate = !!appointment.external_event_id;
 	const eventId = isUpdate ? appointment.external_event_id : '';
 
