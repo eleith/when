@@ -1,4 +1,6 @@
 <script lang="ts">
+	import IconArrowRight from 'virtual:icons/ph/arrow-right';
+
 	let { data } = $props();
 </script>
 
@@ -39,7 +41,7 @@
 							<div class="event-desc">{@html et.descriptionHtml}</div>
 						{/if}
 					</div>
-					<span class="arrow" aria-hidden="true">&rarr;</span>
+					<IconArrowRight class="arrow" aria-hidden="true" />
 				</a>
 			{/each}
 		</div>
@@ -143,7 +145,7 @@
 		line-height: 1.4;
 	}
 
-	.arrow {
+	:global(.arrow) {
 		color: var(--text-disabled);
 		font-size: var(--font-size-xl);
 		flex-shrink: 0;

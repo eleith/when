@@ -1,4 +1,5 @@
 <script lang="ts">
+	import IconArrowRight from 'virtual:icons/ph/arrow-right';
 	let { data } = $props();
 
 	let title = $derived(
@@ -42,7 +43,7 @@
 	<dd>{data.eventType.name}</dd>
 
 	<dt>When</dt>
-	<dd>{fmt(data.appointment.start_time)} &rarr; {fmt(data.appointment.end_time)}</dd>
+	<dd class="when-row">{fmt(data.appointment.start_time)} <IconArrowRight class="when-arrow" aria-hidden="true" /> {fmt(data.appointment.end_time)}</dd>
 
 	{#if data.appointment.location}
 		<dt>Where</dt>
@@ -74,6 +75,16 @@
 {/if}
 
 <style>
+	.when-row {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+	}
+
+	:global(.when-arrow) {
+		color: var(--text-muted);
+	}
+
 	.cancel-form {
 		margin-top: var(--space-7);
 	}

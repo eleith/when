@@ -3,6 +3,12 @@
 	import { Temporal } from '@js-temporal/polyfill';
 	import { Calendar, Dialog } from 'bits-ui';
 	import { CalendarDate, type DateValue } from '@internationalized/date';
+	import IconArrowRight from 'virtual:icons/ph/arrow-right';
+	import IconCalendarBlank from 'virtual:icons/ph/calendar-blank';
+	import IconCaretLeft from 'virtual:icons/ph/caret-left';
+	import IconCaretRight from 'virtual:icons/ph/caret-right';
+	import IconClock from 'virtual:icons/ph/clock';
+	import IconGlobe from 'virtual:icons/ph/globe';
 
 	let { data, form } = $props();
 
@@ -508,7 +514,6 @@
 				</section>
 
 				<section class="context-section context-section-about">
-					<h3 class="context-section-label">About</h3>
 					{#if data.reschedule}
 						<p class="reschedule-badge">Reschedule</p>
 					{/if}
@@ -521,16 +526,18 @@
 
 				{#if (step >= 2 && viewDate) || (step >= 3 && viewSlot)}
 					<section class="context-section">
-						<h3 class="context-section-label">Your selections</h3>
 						<div class="context-summary">
 							{#if step >= 2 && viewDate}
 								<button
 									type="button"
 									class="context-summary-row"
 									onclick={() => (step = 1)}
+									aria-label="Change date"
 								>
-									<span class="context-summary-row-label">Date</span>
-									<span class="context-summary-value">{fmtDate(viewDate)}</span>
+									<IconCalendarBlank class="context-summary-icon" aria-hidden="true" />
+									<div class="context-summary-value">
+										<span class="context-summary-text">{fmtDate(viewDate)}</span>
+									</div>
 								</button>
 							{/if}
 							{#if step >= 3 && viewSlot}
@@ -538,12 +545,13 @@
 									type="button"
 									class="context-summary-row"
 									onclick={() => (step = 2)}
+									aria-label="Change time"
 								>
-									<span class="context-summary-row-label">Time</span>
-									<span class="context-summary-value">
-										{fmtTime(viewSlot)}
+									<IconClock class="context-summary-icon" aria-hidden="true" />
+									<div class="context-summary-value">
+										<span class="context-summary-text">{fmtTime(viewSlot)}</span>
 										<span class="context-summary-tz">{fmtTzShort(userTz)}</span>
-									</span>
+									</div>
 								</button>
 							{/if}
 						</div>
@@ -583,8 +591,8 @@
 							<Calendar.Header class="cal-header">
 								<Calendar.Heading class="cal-heading" />
 								<div class="cal-nav">
-									<Calendar.PrevButton class="cal-nav-btn">&lsaquo;</Calendar.PrevButton>
-									<Calendar.NextButton class="cal-nav-btn">&rsaquo;</Calendar.NextButton>
+									<Calendar.PrevButton class="cal-nav-btn"><IconCaretLeft aria-hidden="true" /></Calendar.PrevButton>
+									<Calendar.NextButton class="cal-nav-btn"><IconCaretRight aria-hidden="true" /></Calendar.NextButton>
 								</div>
 							</Calendar.Header>
 							<Calendar.Grid class="cal-grid">
@@ -622,7 +630,8 @@
 								class="slots-tz"
 								onclick={() => (tzPickerOpen = true)}
 							>
-								{fmtTzShort(userTz)}
+								<IconGlobe class="slots-tz-icon" />
+								<span class="slots-tz-text">{fmtTzShort(userTz)}</span>
 							</button>
 						</div>
 						<div class="timeline-scroll">
@@ -789,6 +798,10 @@
 				</div>
 
 				<div class="wizard-cta">
+					<p class="cta-title">
+						<span class="wizard-step">Step {step} of 3:</span>
+						{stepTitle}
+					</p>
 					{#if step === 1 && viewDate}
 						<p class="cta-summary">You selected {fmtDate(viewDate)}</p>
 					{:else if step === 2 && viewSlot}
@@ -797,11 +810,11 @@
 
 					{#if step === 1}
 						<button type="button" class="cta-btn" onclick={advance} disabled={!canAdvance}>
-							Continue <span aria-hidden="true" class="cta-arrow">&rarr;</span>
+							Continue <IconArrowRight aria-hidden="true" class="cta-arrow" />
 						</button>
 					{:else if step === 2}
 						<button type="button" class="cta-btn" onclick={advance} disabled={!canAdvance}>
-							Confirm <span aria-hidden="true" class="cta-arrow">&rarr;</span>
+							Confirm <IconArrowRight aria-hidden="true" class="cta-arrow" />
 						</button>
 					{:else}
 						<button type="submit" form="booking-form" class="cta-btn" disabled={!viewSlot}>
@@ -912,15 +925,6 @@
 		border-bottom: 1px solid var(--border-strong);
 	}
 
-	.context-section-label {
-		margin: 0;
-		font-size: var(--font-size-xs);
-		font-weight: 600;
-		text-transform: uppercase;
-		letter-spacing: 0.08em;
-		color: var(--text-muted);
-	}
-
 	.context-provider {
 		display: flex;
 		align-items: center;
@@ -985,40 +989,66 @@
 	.context-summary {
 		display: flex;
 		flex-direction: column;
-		gap: var(--space-2);
+		gap: var(--space-8);
 	}
 
 	.context-summary-row {
 		display: flex;
 		flex-direction: row;
-		align-items: center;
-		justify-content: space-between;
-		gap: var(--space-4);
+		align-items: flex-start;
+		gap: var(--space-3);
 		text-align: left;
-		background: var(--surface);
-		border: 1px solid var(--border);
-		border-radius: var(--radius);
-		padding: var(--space-3) var(--space-4);
+		background: none;
+		border: none;
+		padding: 0;
+		margin: 0;
 		cursor: pointer;
 		font: inherit;
-		color: inherit;
-		transition: border-color var(--transition);
+		color: var(--text-muted);
+		position: relative;
+		z-index: 0;
+		transition: color var(--transition);
+	}
+
+	.context-summary-row::before {
+		content: '';
+		position: absolute;
+		inset: calc(var(--space-4) * -1);
+		background: transparent;
+		border-radius: var(--radius-sm);
+		transition: background var(--transition);
+		z-index: -1;
 	}
 
 	.context-summary-row:hover {
-		border-color: var(--accent);
+		color: var(--text);
 	}
 
-	.context-summary-row-label {
+	.context-summary-row:hover::before {
+		background: var(--surface);
+	}
+
+	:global(.context-summary-icon) {
+		font-size: var(--font-size-lg);
 		color: var(--text-muted);
-		font-size: var(--font-size-sm);
-		font-weight: 500;
+		flex-shrink: 0;
+	}
+
+	.context-summary-row:hover :global(.context-summary-icon) {
+		color: var(--text);
 	}
 
 	.context-summary-value {
 		color: var(--text);
-		font-weight: 600;
-		font-size: var(--font-size-sm);
+		font-weight: 500;
+		font-size: var(--font-size-md);
+		line-height: 1.4;
+	}
+
+	.context-summary-text {
+		text-decoration: underline;
+		text-decoration-style: dotted;
+		text-underline-offset: 3px;
 	}
 
 	.card-stage {
@@ -1083,7 +1113,7 @@
 	.calendar-panel :global(.cal-nav-btn) {
 		background: none;
 		border: none;
-		font-size: var(--font-size-2xl);
+		font-size: var(--font-size-xl);
 		color: var(--text-muted);
 		cursor: pointer;
 		padding: var(--space-1) var(--space-3);
@@ -1207,23 +1237,48 @@
 	}
 
 	.slots-tz {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-2);
 		background: none;
 		border: none;
-		padding: var(--space-1) var(--space-2);
+		padding: 0;
 		margin: 0;
 		font: inherit;
 		font-size: var(--font-size-sm);
 		color: var(--text-muted);
 		white-space: nowrap;
 		cursor: pointer;
+		position: relative;
+		z-index: 0;
+		transition: color var(--transition);
+	}
+
+	.slots-tz::before {
+		content: '';
+		position: absolute;
+		inset: calc(var(--space-4) * -1);
+		background: transparent;
 		border-radius: var(--radius-sm);
+		transition: background var(--transition);
+		z-index: -1;
+	}
+
+	.slots-tz-text {
 		text-decoration: underline;
 		text-decoration-style: dotted;
 		text-underline-offset: 3px;
 	}
 
+	:global(.slots-tz-icon) {
+		font-size: var(--font-size-base);
+	}
+
 	.slots-tz:hover {
 		color: var(--text);
+	}
+
+	.slots-tz:hover::before {
 		background: var(--surface-muted);
 	}
 
@@ -1473,6 +1528,8 @@
 		align-items: center;
 		gap: var(--space-3);
 		margin: 0 0 var(--space-6);
+		padding-bottom: var(--space-5);
+		border-bottom: 1px solid var(--border);
 	}
 
 	.back-btn {
@@ -1518,21 +1575,26 @@
 	.cta-summary {
 		margin: 0 auto 0 0;
 		color: var(--text-secondary);
-		font-size: var(--font-size-sm);
+		font-size: var(--font-size-md);
 		font-weight: 500;
+		display: flex;
+		align-items: center;
 	}
 
-	.cta-arrow {
+	:global(.cta-arrow) {
 		display: inline-block;
 		margin-left: var(--space-2);
 		transition: transform var(--transition);
 	}
 
-	.cta-btn:not(:disabled):hover .cta-arrow {
+	.cta-btn:not(:disabled):hover :global(.cta-arrow) {
 		transform: translateX(2px);
 	}
 
 	.cta-btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
 		min-height: 44px;
 		padding: var(--space-3) var(--space-7);
 		background: var(--accent);
@@ -1647,6 +1709,10 @@
 		.page-banner {
 			display: none;
 		}
+
+		.cta-title {
+			display: none;
+		}
 	}
 
 	/* ---- responsive ---- */
@@ -1691,13 +1757,8 @@
 			display: block;
 		}
 
-		.back-btn {
-			display: block;
-		}
-
 		.wizard-bar {
-			margin: calc(var(--space-5) * -1) calc(var(--space-5) * -1) var(--space-5);
-			padding: var(--space-6) var(--space-4) var(--space-3);
+			display: none;
 		}
 
 		.timeline-scroll {
@@ -1707,6 +1768,13 @@
 
 		.cta-summary {
 			display: none;
+		}
+
+		.cta-title {
+			margin: 0 0 var(--space-2);
+			font-size: var(--font-size-md);
+			font-weight: 600;
+			color: var(--text);
 		}
 
 		.cta-btn {
