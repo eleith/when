@@ -1,29 +1,27 @@
-import { logger } from './logger';
-
 const IV_LENGTH = 12;
 const KEY_LENGTH = 32;
 
-export async function loadEncryptionKey(env: NodeJS.ProcessEnv = process.env): Promise<CryptoKey> {
-	const raw = env.ENCRYPTION_KEY;
-	const bytes = new Uint8Array(KEY_LENGTH);
-	if (raw) {
-		const decoded = Buffer.from(raw, 'base64');
-		if (decoded.length !== KEY_LENGTH) {
-			throw new Error(
-				`ENCRYPTION_KEY must decode to ${KEY_LENGTH} bytes (got ${decoded.length}); use base64 of 32 random bytes`
-			);
-		}
-		bytes.set(decoded);
-	} else {
-		if (env.NODE_ENV === 'production') {
-			throw new Error('ENCRYPTION_KEY env var is required in production');
-		}
-		crypto.getRandomValues(bytes);
-		logger.warn(
-			'ENCRYPTION_KEY not set — generated an ephemeral dev key. Stored secrets will be lost on restart. Set ENCRYPTION_KEY to persist.'
+function base64ToBytes(b64: string): Uint8Array {
+	const bin = atob(b64);
+	const bytes = new Uint8Array(bin.length);
+	for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+	return bytes;
+}
+
+function bytesToBase64(bytes: Uint8Array): string {
+	let bin = '';
+	for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+	return btoa(bin);
+}
+
+export async function loadEncryptionKey(raw: string): Promise<CryptoKey> {
+	const decoded = base64ToBytes(raw);
+	if (decoded.length !== KEY_LENGTH) {
+		throw new Error(
+			`ENCRYPTION_KEY must decode to ${KEY_LENGTH} bytes (got ${decoded.length}); use base64 of 32 random bytes`
 		);
 	}
-	return crypto.subtle.importKey('raw', bytes, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
+	return crypto.subtle.importKey('raw', new Uint8Array(decoded), { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
 }
 
 export async function encrypt(plaintext: string, key: CryptoKey): Promise<string> {
@@ -35,18 +33,16 @@ export async function encrypt(plaintext: string, key: CryptoKey): Promise<string
 	const combined = new Uint8Array(iv.length + ciphertext.length);
 	combined.set(iv, 0);
 	combined.set(ciphertext, iv.length);
-	return Buffer.from(combined).toString('base64');
+	return bytesToBase64(combined);
 }
 
 export async function decrypt(blob: string, key: CryptoKey): Promise<string> {
-	const decoded = Buffer.from(blob, 'base64');
+	const decoded = base64ToBytes(blob);
 	if (decoded.length <= IV_LENGTH) {
 		throw new Error('ciphertext too short');
 	}
-	const combined = new Uint8Array(decoded.length);
-	combined.set(decoded);
-	const iv = combined.slice(0, IV_LENGTH);
-	const ciphertext = combined.slice(IV_LENGTH);
+	const iv = decoded.slice(0, IV_LENGTH);
+	const ciphertext = decoded.slice(IV_LENGTH);
 	const plaintext = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ciphertext);
 	return new TextDecoder().decode(plaintext);
 }

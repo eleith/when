@@ -9,6 +9,7 @@ import { loadEncryptionKey } from './crypto';
 import { openDb, type Database } from './db';
 import { runMigrations } from './db/migrate';
 import { logger } from './logger';
+import { env } from '$env/dynamic/private';
 
 export interface BootResult {
 	config: WhenConfiguration;
@@ -24,7 +25,9 @@ export function defaultDbPath(): string {
 export async function bootApp(): Promise<BootResult> {
 	requireAuthSecret();
 	const config = await bootConfig();
-	const encryptionKey = await loadEncryptionKey();
+	const rawKey = env.ENCRYPTION_KEY;
+	if (!rawKey) throw new Error('ENCRYPTION_KEY env var is required');
+	const encryptionKey = await loadEncryptionKey(rawKey);
 	const dbPath = process.env.DATABASE_PATH ?? defaultDbPath();
 	const db = openDb(dbPath);
 	const applied = await runMigrations(db);

@@ -2,32 +2,25 @@ import { expect, test } from 'bun:test';
 import { decrypt, encrypt, loadEncryptionKey } from '../src/lib/server/crypto';
 
 function randomKey(): string {
-	return Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString('base64');
+	const bytes = crypto.getRandomValues(new Uint8Array(32));
+	return btoa(String.fromCharCode(...bytes));
+}
+
+function shortKey(): string {
+	return btoa('short');
 }
 
 test('loadEncryptionKey reads a base64 32-byte key', async () => {
-	const key = await loadEncryptionKey({ ENCRYPTION_KEY: randomKey() });
+	const key = await loadEncryptionKey(randomKey());
 	expect(key.type).toBe('secret');
-});
-
-test('loadEncryptionKey generates an ephemeral key in dev', async () => {
-	const key = await loadEncryptionKey({});
-	expect(key.type).toBe('secret');
-});
-
-test('loadEncryptionKey refuses to start in production without the var', async () => {
-	await expect(loadEncryptionKey({ NODE_ENV: 'production' })).rejects.toThrow(
-		/ENCRYPTION_KEY env var is required/
-	);
 });
 
 test('loadEncryptionKey rejects wrong-length keys', async () => {
-	const shortKey = Buffer.from('short').toString('base64');
-	await expect(loadEncryptionKey({ ENCRYPTION_KEY: shortKey })).rejects.toThrow(/32 bytes/);
+	await expect(loadEncryptionKey(shortKey())).rejects.toThrow(/32 bytes/);
 });
 
 test('encrypt/decrypt round-trip', async () => {
-	const key = await loadEncryptionKey({ ENCRYPTION_KEY: randomKey() });
+	const key = await loadEncryptionKey(randomKey());
 	const blob = await encrypt('hello world', key);
 	expect(blob).not.toContain('hello');
 	const decoded = await decrypt(blob, key);
@@ -35,24 +28,24 @@ test('encrypt/decrypt round-trip', async () => {
 });
 
 test('each encrypt call uses a fresh IV (ciphertext differs)', async () => {
-	const key = await loadEncryptionKey({ ENCRYPTION_KEY: randomKey() });
+	const key = await loadEncryptionKey(randomKey());
 	const a = await encrypt('same plaintext', key);
 	const b = await encrypt('same plaintext', key);
 	expect(a).not.toBe(b);
 });
 
 test('decrypt with the wrong key fails', async () => {
-	const keyA = await loadEncryptionKey({ ENCRYPTION_KEY: randomKey() });
-	const keyB = await loadEncryptionKey({ ENCRYPTION_KEY: randomKey() });
+	const keyA = await loadEncryptionKey(randomKey());
+	const keyB = await loadEncryptionKey(randomKey());
 	const blob = await encrypt('secret', keyA);
 	await expect(decrypt(blob, keyB)).rejects.toThrow();
 });
 
 test('tampered ciphertext fails GCM auth', async () => {
-	const key = await loadEncryptionKey({ ENCRYPTION_KEY: randomKey() });
+	const key = await loadEncryptionKey(randomKey());
 	const blob = await encrypt('secret', key);
-	const bytes = Uint8Array.from(Buffer.from(blob, 'base64'));
-	bytes[bytes.length - 1] ^= 0xff;
-	const tampered = Buffer.from(bytes).toString('base64');
+	const decoded = Uint8Array.from(atob(blob), (c) => c.charCodeAt(0));
+	decoded[decoded.length - 1] ^= 0xff;
+	const tampered = btoa(String.fromCharCode(...decoded));
 	await expect(decrypt(tampered, key)).rejects.toThrow();
 });

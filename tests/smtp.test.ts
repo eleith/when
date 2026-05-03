@@ -8,7 +8,7 @@ import { validConfig } from './fixtures/valid-config';
 test('sendEmail returns ok:false when smtp is not configured', async () => {
 	const db = openDb(':memory:');
 	try {
-		const encryptionKey = await loadEncryptionKey({ NODE_ENV: 'test' });
+		const encryptionKey = await loadEncryptionKey(btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(32)))));
 		setState({ config: { ...validConfig, smtp: undefined }, db, encryptionKey });
 		const result = await sendEmail({
 			to: 'someone@example.com',
