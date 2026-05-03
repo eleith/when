@@ -2,10 +2,9 @@ import type { Kysely } from 'kysely';
 import type { WhenConfiguration } from './config/schema';
 import type { Database } from './db';
 
-interface AppState {
+export interface AppState {
 	config: WhenConfiguration;
 	db: Kysely<Database>;
-	encryptionKey: CryptoKey;
 }
 
 let state: AppState | null = null;
