@@ -18,6 +18,7 @@
 	{/if}
 	<h1>{data.user.branding?.page_title || data.user.name}</h1>
 	{#if data.user.branding?.descriptionHtml}
+		<!-- eslint-disable-next-line svelte/no-at-html-tags -->
 		<div class="subtitle">{@html data.user.branding.descriptionHtml}</div>
 	{:else if !data.user.branding?.page_title}
 		<p class="subtitle">Welcome to my scheduling page</p>
@@ -38,6 +39,7 @@
 						<h2>{et.name}</h2>
 						<p class="event-meta">{et.duration} min</p>
 						{#if et.descriptionHtml}
+							<!-- eslint-disable-next-line svelte/no-at-html-tags -->
 							<div class="event-desc">{@html et.descriptionHtml}</div>
 						{/if}
 					</div>

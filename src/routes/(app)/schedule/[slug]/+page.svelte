@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { tick } from 'svelte';
+	import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 	import { Temporal } from '@js-temporal/polyfill';
 	import { Calendar, Dialog } from 'bits-ui';
 	import { CalendarDate, type DateValue } from '@internationalized/date';
@@ -27,7 +28,7 @@
 	}
 
 	type TzInfo = { city: string; offset: string; label: string; haystack: string };
-	const TZ_INFO = new Map<string, TzInfo>();
+	const TZ_INFO = new SvelteMap<string, TzInfo>();
 	for (const tz of ALL_TIMEZONES) {
 		const city = tz.split('/').pop()?.replace(/_/g, ' ') ?? tz;
 		const offset = getTzOffset(tz);
@@ -68,7 +69,7 @@
 
 	let allSlots = $derived(Object.values(data.slotsByDate as Record<string, string[]>).flat());
 	let availableDates = $derived.by(() => {
-		const set = new Set<string>();
+		const set = new SvelteSet<string>();
 		for (const iso of allSlots) {
 			set.add(Temporal.Instant.from(iso).toZonedDateTimeISO(userTz).toPlainDate().toString());
 		}
@@ -470,6 +471,7 @@
 		<div class="banner-text">
 			<span class="banner-title">{data.user.branding?.page_title || data.user.name}</span>
 			{#if data.user.branding?.descriptionHtml}
+				<!-- eslint-disable-next-line svelte/no-at-html-tags -->
 				<div class="banner-desc">{@html data.user.branding.descriptionHtml}</div>
 			{/if}
 		</div>
@@ -506,9 +508,11 @@
 								>{data.user.branding?.page_title || data.user.name}</span
 							>
 							{#if data.user.branding?.descriptionHtml}
+								<!-- eslint-disable svelte/no-at-html-tags -->
 								<div class="context-provider-desc">
 									{@html data.user.branding.descriptionHtml}
 								</div>
+								<!-- eslint-enable svelte/no-at-html-tags -->
 							{/if}
 						</div>
 					</a>
@@ -603,16 +607,16 @@
 								<Calendar.Grid class="cal-grid">
 									<Calendar.GridHead>
 										<Calendar.GridRow class="cal-weekdays">
-											{#each weekdays as day}
+											{#each weekdays as day (day)}
 												<Calendar.HeadCell class="cal-weekday">{day.slice(0, 2)}</Calendar.HeadCell>
 											{/each}
 										</Calendar.GridRow>
 									</Calendar.GridHead>
 									<Calendar.GridBody>
-										{#each months as month}
-											{#each month.weeks as weekDates}
+										{#each months as month (month.value.toString())}
+											{#each month.weeks as weekDates, wi (wi)}
 												<Calendar.GridRow class="cal-row">
-													{#each weekDates as date}
+													{#each weekDates as date (date.toString())}
 														<Calendar.Cell {date} month={month.value} class="cal-cell">
 															<Calendar.Day class="cal-day">{date.day}</Calendar.Day>
 														</Calendar.Cell>
@@ -637,12 +641,11 @@
 							</div>
 							<div class="timeline-scroll">
 								<div class="timeline" style:height="{(timeline.totalMs / 3600000) * 96}px">
-									{#each timeline.labels as { label, top }}
+									{#each timeline.labels as { label, top } (label)}
 										<div class="timeline-label" style:top="{top}%">{label}</div>
 										<div class="timeline-gridline" style:top="{top}%"></div>
 									{/each}
 
-									<!-- svelte-ignore a11y_click_events_have_key_events -->
 									<!-- svelte-ignore a11y_no_static_element_interactions -->
 									<div
 										class="timeline-track"
@@ -654,7 +657,7 @@
 									>
 										<div class="hatch-bg"></div>
 
-										{#each timeline.working as w}
+										{#each timeline.working as w, wi (wi)}
 											<div
 												class="working-window"
 												style:top="{w.top}%"
@@ -670,7 +673,7 @@
 											></div>
 										{/if}
 
-										{#each timeline.buffers as b}
+										{#each timeline.buffers as b, bi (bi)}
 											<div
 												class="buffer-block"
 												style:top="{b.top}%"
@@ -678,7 +681,7 @@
 											></div>
 										{/each}
 
-										{#each timeline.busy as b}
+										{#each timeline.busy as b, bi (bi)}
 											<div class="busy-block" style:top="{b.top}%" style:height="{b.height}%">
 												<span class="busy-text">Busy</span>
 											</div>
