@@ -38,9 +38,5 @@ When an AI agent or LLM is working on this repository, they must strictly adhere
 
 For deep dives into specific areas, consult the `docs/` directory:
 
-- `docs/architecture.md` - Detailed architectural decisions.
-- `docs/features.md` - Core capabilities and workflows.
-- `docs/data.md` - Static config and SQLite schema definitions.
-- `docs/availability-algorithm.md` - Detailed specification of the slot-generation pipeline.
-- `docs/google-oauth.md` - How the Google Calendar OAuth integration works.
-- `docs/styling.md` - CSS variable system and hardcoded-value prohibition.
+- `docs/architecture.md` - Core architectural principles, project layout, and styling rules.
+- `docs/config.md` - Detailed breakdown of `config.yaml` configuration options.
