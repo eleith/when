@@ -3,15 +3,15 @@ import type { LayoutServerLoad } from './$types';
 
 export const load: LayoutServerLoad = () => {
 	const cfg = getConfig();
-	const accent = cfg.user.branding?.accent_color;
+	const primary = cfg.user.branding?.primary_color;
 	return {
 		branding: {
-			accent:
-				accent == null
+			primary:
+				primary == null
 					? null
-					: typeof accent === 'string'
-						? { light: accent, dark: accent }
-						: accent,
+					: typeof primary === 'string'
+						? { light: primary, dark: primary }
+						: primary,
 			logo_url: cfg.user.branding?.logo_url ?? null,
 			favicon_url: cfg.user.branding?.favicon_url ?? null
 		}

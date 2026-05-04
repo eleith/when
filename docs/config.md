@@ -26,7 +26,7 @@ user:
   branding:
     page_title: 'Schedule a time with me'
     description: 'A little bit about me.'
-    accent_color: '#ff5500' # Can also be an object with `light` and `dark`
+    primary_color: '#ff5500' # Can also be an object with `light` and `dark`. A muted tonal scale is derived from it.
     logo_url: '/public/logo.png'
     avatar_url: '/public/my-avatar.jpg'
     favicon_url: '/public/favicon.ico'

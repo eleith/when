@@ -24,7 +24,7 @@ When an AI agent or LLM is working on this repository, they must strictly adhere
 - **No Tailwind CSS:** Avoid utility-first CSS frameworks.
 - **Components:** Use **Bits UI** for headless, accessible component primitives.
 - **Styling:** Style components using Svelte's native `<style>` blocks (scoped CSS). Maintain a `reset.css` and a minimal `global.css`.
-- **Theming:** User-defined branding (from `config.yaml`) is injected as CSS Variables (e.g., `--accent`) at the root layout level.
+- **Theming:** User-defined branding (from `config.yaml`) is injected as CSS Variables (e.g., `--primary`) at the root layout level.
 - **Theme Variables Only:** All CSS values (colors, spacing, font sizes, radii, shadows, transitions) MUST use the custom properties defined in `src/lib/styles/theme.css`. Hardcoded values are forbidden. See `docs/styling.md`.
 
 ## 4. Security & Secrets

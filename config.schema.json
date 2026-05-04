@@ -129,8 +129,8 @@
 					"type": "string",
 					"minLength": 1
 				},
-				"accent_color": {
-					"description": "Accent color. Either a single hex string used in both modes, or an object with `light` and `dark` hex values.",
+				"primary_color": {
+					"description": "Primary brand color. A muted tonal scale is derived from it. Either a single hex string used in both modes, or an object with `light` and `dark` hex values.",
 					"oneOf": [
 						{
 							"$ref": "#/$defs/HexColor"

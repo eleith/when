@@ -882,8 +882,8 @@
 
 	.reschedule-badge {
 		display: inline-block;
-		background: var(--accent);
-		color: var(--text-on-accent);
+		background: var(--primary);
+		color: var(--text-on-primary);
 		font-size: var(--font-size-xs);
 		font-weight: 600;
 		padding: var(--space-1) var(--space-4);
@@ -1193,12 +1193,12 @@
 	.calendar-panel
 		:global(.cal-day:not([data-unavailable]):not([data-disabled]):not([data-selected])) {
 		font-weight: 600;
-		color: var(--accent-secondary);
+		color: var(--text);
 	}
 
 	.calendar-panel
 		:global(.cal-day:not([data-unavailable]):not([data-disabled]):not([data-selected]):hover) {
-		background: var(--accent-secondary-muted);
+		background: var(--primary-muted);
 	}
 
 	.calendar-panel :global(.cal-day[data-today]:not([data-selected])::after) {
@@ -1214,12 +1214,12 @@
 	}
 
 	.calendar-panel :global(.cal-day[data-selected]) {
-		background: var(--accent-secondary-muted);
-		color: var(--accent-secondary);
+		background: var(--primary-muted);
+		color: var(--primary);
 	}
 
 	.calendar-panel :global(.cal-day[data-selected][data-today]::after) {
-		background: var(--accent-secondary);
+		background: var(--primary);
 	}
 
 	.calendar-panel :global(.cal-day[data-outside-month]) {
@@ -1417,14 +1417,14 @@
 		position: absolute;
 		left: var(--space-4);
 		right: var(--space-4);
-		background: var(--accent-tertiary-muted);
-		border: 1px solid var(--accent-tertiary);
+		background: var(--primary-muted);
+		border: 1px solid var(--primary-border);
 		border-radius: var(--radius-sm);
 		display: flex;
 		align-items: flex-start;
 		padding: var(--space-1) var(--space-2);
 		font-size: var(--font-size-sm);
-		color: var(--accent-tertiary);
+		color: var(--primary);
 		z-index: 5;
 		transition: top var(--transition);
 		cursor: grab;
@@ -1502,7 +1502,7 @@
 	.field select:focus,
 	.field textarea:focus {
 		outline: none;
-		border-color: var(--accent-tertiary);
+		border-color: var(--primary);
 		box-shadow: var(--shadow-focus);
 	}
 
@@ -1603,8 +1603,8 @@
 		justify-content: center;
 		min-height: 44px;
 		padding: var(--space-3) var(--space-7);
-		background: var(--accent);
-		color: var(--text-on-accent);
+		background: var(--primary);
+		color: var(--text-on-primary);
 		border: none;
 		border-radius: var(--radius);
 		font-size: var(--font-size-md);
@@ -1671,8 +1671,8 @@
 		font-size: var(--font-size-xs);
 		font-weight: 600;
 		display: inline-block;
-		background: var(--accent);
-		color: var(--text-on-accent);
+		background: var(--primary);
+		color: var(--text-on-primary);
 		padding: 2px var(--space-3);
 		border-radius: var(--radius-pill);
 		margin: 0 0 var(--space-1);
@@ -1920,7 +1920,7 @@
 
 	.tz-search:focus {
 		outline: none;
-		border-color: var(--accent-tertiary);
+		border-color: var(--primary);
 		box-shadow: var(--shadow-focus);
 	}
 
@@ -1957,8 +1957,8 @@
 	}
 
 	.tz-option.selected {
-		background: var(--accent-secondary-muted);
-		color: var(--accent-secondary);
+		background: var(--primary-muted);
+		color: var(--primary);
 		font-weight: 600;
 	}
 
@@ -1977,7 +1977,7 @@
 	}
 
 	.tz-option.selected .tz-option-offset {
-		color: var(--accent-secondary);
+		color: var(--primary);
 	}
 
 	.tz-empty {

@@ -1,18 +1,13 @@
 :root {
 	color-scheme: light dark;
 
-	--accent-secondary: oklch(from var(--accent) l c calc(h + 35));
-	--accent-tertiary: oklch(from var(--accent) l c calc(h - 35));
-
 	--surface: #ffffff;
 	--surface-page: #f5f5f5;
 	--surface-muted: #e5e5e5;
 	--surface-active: color-mix(in srgb, var(--text) 8%, transparent);
 
-	--accent-muted: oklch(from var(--accent) 0.97 0.02 h);
-	--accent-border: oklch(from var(--accent) 0.92 0.05 h);
-	--accent-secondary-muted: oklch(from var(--accent-secondary) 0.97 0.02 h);
-	--accent-tertiary-muted: oklch(from var(--accent-tertiary) 0.97 0.02 h);
+	--primary-muted: oklch(from var(--primary) 0.97 0.02 h);
+	--primary-border: oklch(from var(--primary) 0.92 0.05 h);
 
 	--border: #e5e5e5;
 	--border-strong: #d4d4d4;
@@ -21,7 +16,7 @@
 	--text-secondary: #525252;
 	--text-muted: #737373;
 	--text-disabled: #a3a3a3;
-	--text-on-accent: #ffffff;
+	--text-on-primary: #ffffff;
 
 	--success: #059669;
 	--success-strong: #047857;
@@ -36,7 +31,7 @@
 	--warning: #d97706;
 
 	--shadow-card: 0 1px 6px rgba(0, 0, 0, 0.06);
-	--shadow-focus: 0 0 0 3px oklch(from var(--accent-tertiary) 0.6 c h / 0.3);
+	--shadow-focus: 0 0 0 3px oklch(from var(--primary) l c h / 0.35);
 
 	--space-1: 2px;
 	--space-2: 4px;
@@ -98,7 +93,7 @@
 		--warning: #fbbf24;
 
 		--shadow-card: 0 1px 6px rgba(0, 0, 0, 0.4);
-		--shadow-focus: 0 0 0 3px oklch(from var(--accent-tertiary) 0.5 c h / 0.3);
+		--shadow-focus: 0 0 0 3px oklch(from var(--primary) l c h / 0.45);
 	}
 }
 

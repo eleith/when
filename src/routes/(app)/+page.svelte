@@ -103,7 +103,7 @@
 	}
 
 	.event-card:hover {
-		border-color: var(--accent);
+		border-color: var(--primary);
 		box-shadow: var(--shadow-card);
 	}
 
@@ -112,7 +112,7 @@
 		width: 10px;
 		height: 10px;
 		border-radius: 50%;
-		background: var(--accent);
+		background: var(--primary);
 	}
 
 	.event-image {

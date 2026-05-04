@@ -50,7 +50,7 @@ A central factory function, `getCalendarAdapter(config)`, is the single source o
 
 All visual styling MUST use the CSS custom properties defined in `src/lib/styles/theme.css`. Hardcoded values (hex colors, pixel literals for layout, raw font sizes) are strictly forbidden within component `<style>` blocks.
 
-- **Colors:** Use semantic variables like `var(--accent)`, `var(--text)`, `var(--surface)`, `var(--border)`.
+- **Colors:** Use semantic variables like `var(--primary)`, `var(--primary-muted)`, `var(--text)`, `var(--surface)`, `var(--border)`. There is one brand hue (`--primary`) with a tonal scale (`--primary-muted`, `--primary-border`, `--text-on-primary`); avoid introducing additional brand hues.
 - **Spacing:** All padding, margins, and gaps must use `var(--space-1)` through `var(--space-10)`. Do not write raw pixel values for spacing.
 - **Typography:** Use `var(--font-size-*)` for font sizing.
 - **Radii:** Use `var(--radius-*)` (e.g., `var(--radius-md)`).
@@ -58,7 +58,7 @@ All visual styling MUST use the CSS custom properties defined in `src/lib/styles
 
 ### Dark Mode & Branding
 
-Dark mode is handled automatically by media queries within `theme.css`. Components do not need explicit dark mode overrides. The `--accent` color is injected at the root layout level based on the user's `config.yaml` branding settings, ensuring consistent theming across the application.
+Dark mode is handled automatically by media queries within `theme.css`. Components do not need explicit dark mode overrides. The `--primary` color is injected at the root layout level based on the user's `config.yaml` branding settings, with `--primary-muted` and `--primary-border` derived from it for the tonal scale.
 
 ## Testing
 

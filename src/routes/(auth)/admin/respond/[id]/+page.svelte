@@ -60,7 +60,7 @@
 	}
 
 	a {
-		color: var(--accent);
+		color: var(--primary);
 	}
 
 	.confirm-btn {
@@ -74,7 +74,7 @@
 
 	.confirm-accept {
 		background: var(--success);
-		color: var(--text-on-accent);
+		color: var(--text-on-primary);
 	}
 
 	.confirm-accept:hover {
@@ -83,7 +83,7 @@
 
 	.confirm-decline {
 		background: var(--danger);
-		color: var(--text-on-accent);
+		color: var(--text-on-primary);
 	}
 
 	.confirm-decline:hover {
