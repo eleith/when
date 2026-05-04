@@ -21,9 +21,10 @@ This document outlines the core architectural principles, project layout, and st
 ## Design Patterns
 
 ### Calendar Adapter Pattern
-To maintain the Open/Closed Principle and prevent deeply nested conditionals, "When" uses an Adapter pattern for external calendar integrations. 
 
-All external interactions (fetching busy times, pushing appointments, deleting events) are defined in a unified `CalendarAdapter` interface (`src/lib/server/calendar/adapter.ts`). Specific integrations (like CalDAV or Google Calendar) implement this interface in dedicated classes within the `src/lib/server/calendar/adapters/` directory. 
+To maintain the Open/Closed Principle and prevent deeply nested conditionals, "When" uses an Adapter pattern for external calendar integrations.
+
+All external interactions (fetching busy times, pushing appointments, deleting events) are defined in a unified `CalendarAdapter` interface (`src/lib/server/calendar/adapter.ts`). Specific integrations (like CalDAV or Google Calendar) implement this interface in dedicated classes within the `src/lib/server/calendar/adapters/` directory.
 
 A central factory function, `getCalendarAdapter(config)`, is the single source of truth for interpreting the `type` of a calendar from the user's `config.yaml`. The core scheduling engine interacts exclusively with this interface, making it trivial to add support for new calendar providers in the future without modifying core routing or availability logic.
 

@@ -21,11 +21,27 @@
 	.app-root {
 		min-height: 100vh;
 		--accent: var(--accent-light);
+
+		/* Derived Brand Palette */
+		--accent-secondary: oklch(from var(--accent) l c calc(h + 35));
+		--accent-tertiary: oklch(from var(--accent) l c calc(h - 35));
+
+		/* Tonal Scale (Light Mode) */
+		--accent-muted: oklch(from var(--accent) 0.97 0.02 h);
+		--accent-border: oklch(from var(--accent) 0.92 0.05 h);
+		--accent-secondary-muted: oklch(from var(--accent-secondary) 0.97 0.02 h);
+		--accent-tertiary-muted: oklch(from var(--accent-tertiary) 0.97 0.02 h);
 	}
 
 	@media (prefers-color-scheme: dark) {
 		.app-root {
 			--accent: var(--accent-dark);
+
+			/* Tonal Scale (Dark Mode) */
+			--accent-muted: oklch(from var(--accent) 0.15 0.05 h);
+			--accent-border: oklch(from var(--accent) 0.25 0.1 h);
+			--accent-secondary-muted: oklch(from var(--accent-secondary) 0.15 0.05 h);
+			--accent-tertiary-muted: oklch(from var(--accent-tertiary) 0.15 0.05 h);
 		}
 	}
 

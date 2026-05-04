@@ -1193,12 +1193,12 @@
 	.calendar-panel
 		:global(.cal-day:not([data-unavailable]):not([data-disabled]):not([data-selected])) {
 		font-weight: 600;
-		color: var(--accent);
+		color: var(--accent-secondary);
 	}
 
 	.calendar-panel
 		:global(.cal-day:not([data-unavailable]):not([data-disabled]):not([data-selected]):hover) {
-		background: var(--surface-accent);
+		background: var(--accent-secondary-muted);
 	}
 
 	.calendar-panel :global(.cal-day[data-today]:not([data-selected])::after) {
@@ -1210,16 +1210,16 @@
 		width: var(--space-2);
 		height: var(--space-2);
 		border-radius: 50%;
-		background: var(--accent);
+		background: var(--border-strong);
 	}
 
 	.calendar-panel :global(.cal-day[data-selected]) {
-		background: var(--accent);
-		color: var(--text-on-accent);
+		background: var(--accent-secondary-muted);
+		color: var(--accent-secondary);
 	}
 
 	.calendar-panel :global(.cal-day[data-selected][data-today]::after) {
-		background: var(--text-on-accent);
+		background: var(--accent-secondary);
 	}
 
 	.calendar-panel :global(.cal-day[data-outside-month]) {
@@ -1417,14 +1417,14 @@
 		position: absolute;
 		left: var(--space-4);
 		right: var(--space-4);
-		background: var(--surface-accent);
-		border: 1px solid var(--accent);
+		background: var(--accent-tertiary-muted);
+		border: 1px solid var(--accent-tertiary);
 		border-radius: var(--radius-sm);
 		display: flex;
 		align-items: flex-start;
 		padding: var(--space-1) var(--space-2);
 		font-size: var(--font-size-sm);
-		color: var(--accent);
+		color: var(--accent-tertiary);
 		z-index: 5;
 		transition: top var(--transition);
 		cursor: grab;
@@ -1502,7 +1502,7 @@
 	.field select:focus,
 	.field textarea:focus {
 		outline: none;
-		border-color: var(--accent);
+		border-color: var(--accent-tertiary);
 		box-shadow: var(--shadow-focus);
 	}
 
@@ -1920,7 +1920,7 @@
 
 	.tz-search:focus {
 		outline: none;
-		border-color: var(--accent);
+		border-color: var(--accent-tertiary);
 		box-shadow: var(--shadow-focus);
 	}
 
@@ -1957,8 +1957,8 @@
 	}
 
 	.tz-option.selected {
-		background: var(--surface-accent);
-		color: var(--accent);
+		background: var(--accent-secondary-muted);
+		color: var(--accent-secondary);
 		font-weight: 600;
 	}
 
@@ -1977,7 +1977,7 @@
 	}
 
 	.tz-option.selected .tz-option-offset {
-		color: var(--accent);
+		color: var(--accent-secondary);
 	}
 
 	.tz-empty {
