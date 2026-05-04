@@ -107,6 +107,10 @@
 		box-shadow: var(--shadow-card);
 	}
 
+	.event-card:hover :global(.arrow) {
+		color: var(--primary);
+	}
+
 	.event-dot {
 		flex-shrink: 0;
 		width: 10px;
@@ -151,5 +155,6 @@
 		color: var(--text-disabled);
 		font-size: var(--font-size-xl);
 		flex-shrink: 0;
+		transition: color var(--transition);
 	}
 </style>
