@@ -2,21 +2,6 @@
 	import IconArrowRight from 'virtual:icons/ph/arrow-right';
 	let { data } = $props();
 
-	let title = $derived(titleFor(data.appointment.status));
-
-	function titleFor(status: string): string {
-		if (status === 'cancelled') return 'Booking cancelled';
-		if (status === 'declined') return 'Booking declined';
-		if (status === 'pending') return 'Booking requested';
-		return 'Booking confirmed';
-	}
-
-	function clockStatusLabel(s: 'upcoming' | 'in_progress' | 'concluded'): string {
-		if (s === 'upcoming') return 'Upcoming';
-		if (s === 'in_progress') return 'In progress';
-		return 'Concluded';
-	}
-
 	function fmt(iso: string): string {
 		return new Date(iso).toLocaleString([], {
 			weekday: 'long',
@@ -29,7 +14,15 @@
 </script>
 
 <svelte:head>
-	<title>{title} — When</title>
+	{#if data.appointment.status === 'cancelled'}
+		<title>Booking cancelled — When</title>
+	{:else if data.appointment.status === 'declined'}
+		<title>Booking declined — When</title>
+	{:else if data.appointment.status === 'pending'}
+		<title>Booking requested — When</title>
+	{:else}
+		<title>Booking confirmed — When</title>
+	{/if}
 </svelte:head>
 
 {#if data.appointment.status === 'cancelled'}
@@ -52,7 +45,12 @@
 {/if}
 
 {#if data.clockStatus}
-	<p class="clock-status">{clockStatusLabel(data.clockStatus)}</p>
+	<p class="clock-status">
+		{#if data.clockStatus === 'upcoming'}Upcoming
+		{:else if data.clockStatus === 'in_progress'}In progress
+		{:else}Concluded
+		{/if}
+	</p>
 {/if}
 
 <dl>

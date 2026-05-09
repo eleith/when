@@ -28,6 +28,37 @@ All external interactions (fetching busy times, pushing appointments, deleting e
 
 A central factory function, `getCalendarAdapter(config)`, is the single source of truth for interpreting the `type` of a calendar from the user's `config.yaml`. The core scheduling engine interacts exclusively with this interface, making it trivial to add support for new calendar providers in the future without modifying core routing or availability logic.
 
+### Svelte templates own user-facing copy
+
+Per-component user-facing copy — page titles, status labels, button text, banner messages — belongs in the markup, not in `<script>`. If the only purpose of a function or `$derived` is to map a stable identifier to a display string, inline the mapping with `{#if}` chains directly where it renders.
+
+No — indirection through a script-side mapper:
+
+```svelte
+<script>
+	function clockStatusLabel(s) {
+		/* maps 'upcoming' → 'Upcoming', etc. */
+	}
+</script>
+
+<p>{clockStatusLabel(status)}</p>
+```
+
+Yes — copy lives where it renders:
+
+```svelte
+<p>
+	{#if status === 'upcoming'}Upcoming
+	{:else if status === 'in_progress'}In progress
+	{:else}Concluded
+	{/if}
+</p>
+```
+
+`<script>` is for behavior: formatting transforms (`fmt(iso)` → localized date string), event handlers, derived state computed from real data. Pure identifier-to-copy mappings duplicate the template's job; inlining keeps presentation in one place and makes diffs reviewable without flipping between sections.
+
+Exception: if a string repeats 3+ times in the same component, a `$derived` (still computed from data, not a mapper function) is cleaner than duplicating the conditional block.
+
 ## Directory Structure
 
 - `cli/`: Command-line tools (e.g., `hash-password.ts`, `setup-google.ts`).
