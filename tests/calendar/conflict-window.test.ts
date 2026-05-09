@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 import { Temporal } from '@js-temporal/polyfill';
-import { conflictPullWindow } from '../src/lib/server/calendar/conflicts';
+import { conflictPullWindow } from '../../src/lib/server/calendar/conflicts';
 
 const inst = (s: string): Temporal.Instant => Temporal.Instant.from(s);
 

@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test';
-import { resolveKnobs } from '../src/lib/server/availability/knobs';
-import { validConfig } from './fixtures/valid-config';
-import type { WhenConfiguration } from '../src/lib/server/config/schema';
+import { resolveKnobs } from '../../src/lib/server/availability/knobs';
+import { validConfig } from '../fixtures/valid-config';
+import type { WhenConfiguration } from '../../src/lib/server/config/schema';
 
 test('per-event override wins over global default', () => {
 	const cfg: WhenConfiguration = JSON.parse(JSON.stringify(validConfig));

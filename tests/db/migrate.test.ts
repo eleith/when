@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test';
 import { sql } from 'kysely';
-import { openDb } from '../src/lib/server/db';
-import { runMigrations } from '../src/lib/server/db/migrate';
+import { openDb } from '../../src/lib/server/db';
+import { runMigrations } from '../../src/lib/server/db/migrate';
 
 test('runMigrations creates appointments and oauth_tokens', async () => {
 	const db = openDb(':memory:');

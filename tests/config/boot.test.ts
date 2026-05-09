@@ -3,9 +3,9 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { stringify } from 'yaml';
-import { bootConfig } from '../src/lib/server/config/boot';
-import { ConfigError } from '../src/lib/server/config/load';
-import { validConfig } from './fixtures/valid-config';
+import { bootConfig } from '../../src/lib/server/config/boot';
+import { ConfigError } from '../../src/lib/server/config/load';
+import { validConfig } from '../fixtures/valid-config';
 
 let dir: string;
 beforeEach(async () => {

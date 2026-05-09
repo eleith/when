@@ -5,7 +5,7 @@ import {
 	extractCalendarData,
 	fetchCalDavBusy,
 	type FetchFn
-} from '../src/lib/server/calendar/adapters/caldav';
+} from '../../../src/lib/server/calendar/adapters/caldav';
 
 const inst = (s: string): Temporal.Instant => Temporal.Instant.from(s);
 

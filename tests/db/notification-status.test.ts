@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test';
 import {
 	mergeNotificationStatus,
 	parseNotificationStatus
-} from '../src/lib/server/db/notification-status';
+} from '../../src/lib/server/db/notification-status';
 
 test('parses null as empty', () => {
 	expect(parseNotificationStatus(null)).toEqual({});

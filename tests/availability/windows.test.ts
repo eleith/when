@@ -5,8 +5,8 @@ import {
 	candidateDates,
 	localToInstant,
 	weekdayOf
-} from '../src/lib/server/availability/windows';
-import type { WeeklySchedule } from '../src/lib/server/availability/types';
+} from '../../src/lib/server/availability/windows';
+import type { WeeklySchedule } from '../../src/lib/server/availability/types';
 
 const NYC = 'America/New_York';
 

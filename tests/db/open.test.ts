@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 import { sql } from 'kysely';
-import { openDb } from '../src/lib/server/db';
+import { openDb } from '../../src/lib/server/db';
 
 test('openDb returns a Kysely instance backed by bun:sqlite', async () => {
 	const db = openDb(':memory:');

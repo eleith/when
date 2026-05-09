@@ -1,8 +1,8 @@
 import { expect, test } from 'bun:test';
-import { buildProviders } from '../src/lib/server/auth/providers';
-import { requireAuthSecret } from '../src/lib/server/auth/secret';
-import { validConfig } from './fixtures/valid-config';
-import type { WhenConfiguration } from '../src/lib/server/config/schema';
+import { buildProviders } from '../../src/lib/server/auth/providers';
+import { requireAuthSecret } from '../../src/lib/server/auth/secret';
+import { validConfig } from '../fixtures/valid-config';
+import type { WhenConfiguration } from '../../src/lib/server/config/schema';
 
 test('credentials config produces a single Credentials provider', () => {
 	const providers = buildProviders(validConfig);

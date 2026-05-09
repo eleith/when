@@ -3,11 +3,11 @@ import {
 	deleteCalDavEvent,
 	putCalDavEvent,
 	type FetchFn
-} from '../src/lib/server/calendar/adapters/caldav';
-import { deleteAppointmentFromCalendar, pushAppointment } from '../src/lib/server/calendar/push';
-import type { Appointment } from '../src/lib/server/db';
-import type { WhenConfiguration } from '../src/lib/server/config/schema';
-import { validConfig } from './fixtures/valid-config';
+} from '../../src/lib/server/calendar/adapters/caldav';
+import { deleteAppointmentFromCalendar, pushAppointment } from '../../src/lib/server/calendar/push';
+import type { Appointment } from '../../src/lib/server/db';
+import type { WhenConfiguration } from '../../src/lib/server/config/schema';
+import { validConfig } from '../fixtures/valid-config';
 
 const caldavCfg = { url: 'https://cal.example.com/work/', username: 'jane', password: 'secret' };
 

@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test';
 import { Temporal } from '@js-temporal/polyfill';
-import { computeSlots } from '../src/lib/server/availability';
-import type { EventTypeKnobs, Interval } from '../src/lib/server/availability';
+import { computeSlots } from '../../src/lib/server/availability';
+import type { EventTypeKnobs, Interval } from '../../src/lib/server/availability';
 
 const NYC = 'America/New_York';
 const PARIS = 'Europe/Paris';

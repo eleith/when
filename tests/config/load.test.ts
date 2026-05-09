@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
-import { ConfigError, validateConfig } from '../src/lib/server/config/load';
-import { validConfig } from './fixtures/valid-config';
+import { ConfigError, validateConfig } from '../../src/lib/server/config/load';
+import { validConfig } from '../fixtures/valid-config';
 
 function clone<T>(v: T): T {
 	return JSON.parse(JSON.stringify(v));
