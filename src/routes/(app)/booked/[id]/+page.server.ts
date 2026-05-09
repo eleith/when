@@ -1,4 +1,5 @@
 import { error, fail } from '@sveltejs/kit';
+import { requireViewableAppointment } from '$lib/server/booking/access';
 import { deleteAppointmentFromCalendar } from '$lib/server/calendar/push';
 import { systemClock } from '$lib/server/clock';
 import { mergeNotificationStatus } from '$lib/server/db/notification-status';
@@ -10,13 +11,13 @@ export const load: PageServerLoad = async ({ params, url }) => {
 	const token = url.searchParams.get('token');
 	if (!token) error(404);
 
-	const row = await getDb()
+	const found = await getDb()
 		.selectFrom('appointments')
 		.selectAll()
 		.where('id', '=', params.id)
 		.executeTakeFirst();
 
-	if (!row || row.cancel_token !== token) error(404);
+	const row = requireViewableAppointment(found, token, systemClock.now());
 
 	const cfg = getConfig();
 	const eventType = cfg.event_types.find((e) => e.id === row.event_type_id);
