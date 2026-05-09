@@ -26,7 +26,8 @@ export const GET: RequestHandler = async ({ params, url }) => {
 		eventTypeName: eventType?.name ?? row.event_type_id,
 		organizerName: cfg.user.name,
 		organizerEmail: cfg.user.email,
-		cancelUrl
+		cancelUrl,
+		method: 'REQUEST'
 	});
 
 	return new Response(ics, {

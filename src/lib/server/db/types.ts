@@ -17,6 +17,7 @@ export interface AppointmentsTable {
 	external_event_id: string | null;
 	external_calendar_id: string | null;
 	notification_status: string | null;
+	ics_sequence: ColumnType<number, number | undefined, number>;
 	created_at: ColumnType<string, string | undefined, string>;
 	updated_at: ColumnType<string, string | undefined, string>;
 }

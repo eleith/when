@@ -168,7 +168,8 @@ export class CalDavAdapter implements CalendarAdapter {
 			eventTypeName,
 			organizerName: cfg.user.name,
 			organizerEmail: cfg.user.email,
-			cancelUrl: opts.cancelUrl
+			cancelUrl: opts.cancelUrl,
+			method: 'REQUEST'
 		});
 
 		await putCalDavEvent(

@@ -64,7 +64,20 @@ const responseToken: Migration = {
 	}
 };
 
+const icsSequence: Migration = {
+	async up(db: Kysely<unknown>): Promise<void> {
+		await db.schema
+			.alterTable('appointments')
+			.addColumn('ics_sequence', 'integer', (c) => c.notNull().defaultTo(0))
+			.execute();
+	},
+	async down(db: Kysely<unknown>): Promise<void> {
+		await db.schema.alterTable('appointments').dropColumn('ics_sequence').execute();
+	}
+};
+
 export const migrations: Record<string, Migration> = {
 	'0001_initial': initial,
-	'0002_response_token': responseToken
+	'0002_response_token': responseToken,
+	'0003_ics_sequence': icsSequence
 };

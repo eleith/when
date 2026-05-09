@@ -46,7 +46,8 @@ function attendeeIcs(ctx: NotifyContext) {
 			eventTypeName: eventTypeName(ctx),
 			organizerName: ctx.cfg.user.name,
 			organizerEmail: ctx.cfg.user.email,
-			cancelUrl: ctx.cancelUrl
+			cancelUrl: ctx.cancelUrl,
+			method: 'REQUEST'
 		}),
 		contentType: 'text/calendar; charset=utf-8'
 	};

@@ -212,6 +212,7 @@ export const actions: Actions = {
 				external_event_id: null,
 				external_calendar_id: null,
 				notification_status: null,
+				ics_sequence: 0,
 				created_at: '',
 				updated_at: ''
 			};

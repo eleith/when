@@ -103,7 +103,8 @@ export const actions: Actions = {
 									eventTypeName,
 									organizerName: cfg.user.name,
 									organizerEmail: cfg.user.email,
-									cancelUrl
+									cancelUrl,
+									method: 'REQUEST'
 								}),
 								contentType: 'text/calendar; charset=utf-8'
 							}

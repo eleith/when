@@ -17,6 +17,7 @@ const baseAppointment: Appointment = {
 	external_event_id: null,
 	external_calendar_id: null,
 	notification_status: null,
+	ics_sequence: 0,
 	created_at: '2026-04-25T10:00:00Z',
 	updated_at: '2026-04-25T10:00:00Z'
 };
@@ -25,7 +26,8 @@ const baseInput = {
 	eventTypeName: 'Chat',
 	organizerName: 'Jane Doe',
 	organizerEmail: 'jane@example.com',
-	cancelUrl: 'https://when.example.com/booked/appt-123?token=tok-abc'
+	cancelUrl: 'https://when.example.com/booked/appt-123?token=tok-abc',
+	method: 'REQUEST' as const
 };
 
 test('produces a VCALENDAR with the appointment as a VEVENT', () => {
@@ -87,4 +89,38 @@ test('ORGANIZER and ATTENDEE lines are present', () => {
 	const ics = buildIcs({ appointment: baseAppointment, ...baseInput });
 	expect(ics).toMatch(/ORGANIZER[;:][^\r\n]*jane@example\.com/);
 	expect(ics).toMatch(/ATTENDEE[;:][^\r\n]*booker@example\.com/);
+});
+
+test('METHOD:REQUEST is emitted at the calendar level for create/reschedule', () => {
+	const ics = buildIcs({ appointment: baseAppointment, ...baseInput });
+	expect(ics).toContain('METHOD:REQUEST');
+});
+
+test('METHOD:CANCEL is emitted when method is CANCEL, with STATUS:CANCELLED', () => {
+	const ics = buildIcs({ appointment: baseAppointment, ...baseInput, method: 'CANCEL' });
+	expect(ics).toContain('METHOD:CANCEL');
+	expect(ics).toContain('STATUS:CANCELLED');
+});
+
+test('SEQUENCE matches appointment.ics_sequence', () => {
+	const ics0 = buildIcs({ appointment: baseAppointment, ...baseInput });
+	expect(ics0).toMatch(/^SEQUENCE:0$/m);
+
+	const ics3 = buildIcs({
+		appointment: { ...baseAppointment, ics_sequence: 3 },
+		...baseInput
+	});
+	expect(ics3).toMatch(/^SEQUENCE:3$/m);
+});
+
+test('UID is stable across REQUEST and CANCEL for the same appointment', () => {
+	const create = buildIcs({ appointment: baseAppointment, ...baseInput });
+	const cancel = buildIcs({
+		appointment: { ...baseAppointment, ics_sequence: 1 },
+		...baseInput,
+		method: 'CANCEL'
+	});
+	const uidLine = (ics: string) => ics.match(/^UID:.+$/m)?.[0];
+	expect(uidLine(create)).toBe('UID:appt-123');
+	expect(uidLine(cancel)).toBe('UID:appt-123');
 });
