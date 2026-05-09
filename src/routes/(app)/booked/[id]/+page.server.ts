@@ -74,8 +74,17 @@ export const actions: Actions = {
 		if (!row || row.cancel_token !== token) {
 			return fail(403, { error: 'Invalid cancel token.' });
 		}
-		if (row.status === 'cancelled') {
-			return fail(400, { error: 'Booking is already cancelled.' });
+
+		const cfg = getConfig();
+		const eventType = cfg.event_types.find((e) => e.id === row.event_type_id);
+		const gate = resolveBookingActions({
+			row,
+			viewer: 'attendee',
+			now: systemClock.now(),
+			eventType
+		}).cancel;
+		if (!gate.allowed) {
+			return fail(409, { error: 'This booking can no longer be cancelled.' });
 		}
 
 		await getDb()
@@ -84,8 +93,6 @@ export const actions: Actions = {
 			.where('id', '=', params.id)
 			.execute();
 
-		const cfg = getConfig();
-		const eventType = cfg.event_types.find((e) => e.id === row.event_type_id);
 		let notif = row.notification_status;
 
 		if (row.external_event_id && row.external_calendar_id) {
