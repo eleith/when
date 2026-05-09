@@ -1,11 +1,26 @@
 import { error, fail } from '@sveltejs/kit';
 import { requireViewableAppointment } from '$lib/server/booking/access';
+import { resolveBookingActions } from '$lib/server/booking/actions';
 import { deleteAppointmentFromCalendar } from '$lib/server/calendar/push';
 import { systemClock } from '$lib/server/clock';
 import { mergeNotificationStatus } from '$lib/server/db/notification-status';
 import { notifyBookingCancelled } from '$lib/server/notify';
 import { getConfig, getDb } from '$lib/server/state';
+import type { Appointment } from '$lib/server/db';
 import type { Actions, PageServerLoad } from './$types';
+
+type ClockStatus = 'upcoming' | 'in_progress' | 'concluded';
+
+function computeClockStatus(
+	row: Pick<Appointment, 'status' | 'start_time' | 'end_time'>,
+	now: Date
+): ClockStatus | null {
+	if (row.status !== 'pending' && row.status !== 'confirmed') return null;
+	const nowMs = now.getTime();
+	if (nowMs < Date.parse(row.start_time)) return 'upcoming';
+	if (nowMs < Date.parse(row.end_time)) return 'in_progress';
+	return 'concluded';
+}
 
 export const load: PageServerLoad = async ({ params, url }) => {
 	const token = url.searchParams.get('token');
@@ -17,10 +32,14 @@ export const load: PageServerLoad = async ({ params, url }) => {
 		.where('id', '=', params.id)
 		.executeTakeFirst();
 
-	const row = requireViewableAppointment(found, token, systemClock.now());
+	const now = systemClock.now();
+	const row = requireViewableAppointment(found, token, now);
 
 	const cfg = getConfig();
 	const eventType = cfg.event_types.find((e) => e.id === row.event_type_id);
+
+	const actions = resolveBookingActions({ row, viewer: 'attendee', now, eventType });
+	const clockStatus = computeClockStatus(row, now);
 
 	return {
 		appointment: {
@@ -35,6 +54,8 @@ export const load: PageServerLoad = async ({ params, url }) => {
 		eventType: eventType
 			? { name: eventType.name, duration: eventType.duration, slug: eventType.slug }
 			: { name: row.event_type_id, duration: 0, slug: row.event_type_id },
+		actions,
+		clockStatus,
 		token
 	};
 };

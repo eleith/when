@@ -2,13 +2,20 @@
 	import IconArrowRight from 'virtual:icons/ph/arrow-right';
 	let { data } = $props();
 
-	let title = $derived(
-		data.appointment.status === 'cancelled'
-			? 'Booking cancelled'
-			: data.appointment.status === 'pending'
-				? 'Booking requested'
-				: 'Booking confirmed'
-	);
+	let title = $derived(titleFor(data.appointment.status));
+
+	function titleFor(status: string): string {
+		if (status === 'cancelled') return 'Booking cancelled';
+		if (status === 'declined') return 'Booking declined';
+		if (status === 'pending') return 'Booking requested';
+		return 'Booking confirmed';
+	}
+
+	function clockStatusLabel(s: 'upcoming' | 'in_progress' | 'concluded'): string {
+		if (s === 'upcoming') return 'Upcoming';
+		if (s === 'in_progress') return 'In progress';
+		return 'Concluded';
+	}
 
 	function fmt(iso: string): string {
 		return new Date(iso).toLocaleString([], {
@@ -28,6 +35,12 @@
 {#if data.appointment.status === 'cancelled'}
 	<h1>Booking cancelled</h1>
 	<p>This booking was previously cancelled.</p>
+{:else if data.appointment.status === 'declined'}
+	<h1>Booking declined</h1>
+	<p>
+		{data.user.name} declined this request.
+		<a href="/schedule/{data.eventType.slug}">Pick another time</a>.
+	</p>
 {:else if data.appointment.status === 'pending'}
 	<h1>Booking requested</h1>
 	<p>
@@ -36,6 +49,10 @@
 	</p>
 {:else}
 	<h1>You're booked</h1>
+{/if}
+
+{#if data.clockStatus}
+	<p class="clock-status">{clockStatusLabel(data.clockStatus)}</p>
 {/if}
 
 <dl>
@@ -65,13 +82,15 @@
 	>
 </p>
 
-{#if data.appointment.status === 'pending' || data.appointment.status === 'confirmed'}
+{#if data.actions.reschedule.allowed}
 	<p>
 		<a
 			href="/schedule/{data.eventType.slug}?reschedule={data.appointment
 				.id}&token={encodeURIComponent(data.token)}">Reschedule</a
 		>
 	</p>
+{/if}
+{#if data.actions.cancel.allowed}
 	<form method="POST" action="?/cancel" class="cancel-form">
 		<input type="hidden" name="token" value={data.token} />
 		<button type="submit" class="cancel-btn">Cancel booking</button>
@@ -87,6 +106,12 @@
 
 	:global(.when-arrow) {
 		color: var(--text-muted);
+	}
+
+	.clock-status {
+		color: var(--text-muted);
+		font-size: var(--font-size-sm);
+		margin-top: var(--space-2);
 	}
 
 	.cancel-form {
