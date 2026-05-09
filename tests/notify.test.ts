@@ -32,10 +32,10 @@ function stubSendEmail() {
 	return s;
 }
 
-test('notifyBookingConfirmed sends correct attendee email', async () => {
+test('notify(booking_confirmed) sends correct attendee email', async () => {
 	const sendStub = stubSendEmail();
-	const { notifyBookingConfirmed } = await import('../src/lib/server/notify');
-	await notifyBookingConfirmed({
+	const { notify } = await import('../src/lib/server/notify');
+	await notify('booking_confirmed', {
 		cfg: { ...validConfig, smtp },
 		appointment,
 		eventType: validConfig.event_types[0],
@@ -56,10 +56,10 @@ test('notifyBookingConfirmed sends correct attendee email', async () => {
 	expect(att.content).toContain('BEGIN:VCALENDAR');
 });
 
-test('notifyBookingCancelled does not include cancel link', async () => {
+test('notify(booking_cancelled_by_attendee) does not include cancel link', async () => {
 	const sendStub = stubSendEmail();
-	const { notifyBookingCancelled } = await import('../src/lib/server/notify');
-	await notifyBookingCancelled({
+	const { notify } = await import('../src/lib/server/notify');
+	await notify('booking_cancelled_by_attendee', {
 		cfg: { ...validConfig, smtp },
 		appointment,
 		eventType: validConfig.event_types[0],
@@ -72,10 +72,10 @@ test('notifyBookingCancelled does not include cancel link', async () => {
 	expect(attendeeCall.attachments).toBeUndefined();
 });
 
-test('notifyBookingRescheduled sends attendee email with ICS', async () => {
+test('notify(booking_rescheduled_by_attendee) sends attendee email with ICS', async () => {
 	const sendStub = stubSendEmail();
-	const { notifyBookingRescheduled } = await import('../src/lib/server/notify');
-	await notifyBookingRescheduled({
+	const { notify } = await import('../src/lib/server/notify');
+	await notify('booking_rescheduled_by_attendee', {
 		cfg: { ...validConfig, smtp },
 		appointment,
 		eventType: validConfig.event_types[0],
@@ -88,10 +88,33 @@ test('notifyBookingRescheduled sends attendee email with ICS', async () => {
 	expect(attendeeCall.attachments).toBeArrayOfSize(1);
 });
 
+test('notify(booking_pending_to_organizer) sends accept/decline email to organizer only', async () => {
+	const sendStub = stubSendEmail();
+	const { notify } = await import('../src/lib/server/notify');
+	const acceptUrl = 'https://when.example.com/admin/respond/appt-1?action=accept&token=rt';
+	const declineUrl = 'https://when.example.com/admin/respond/appt-1?action=decline&token=rt';
+	await notify('booking_pending_to_organizer', {
+		cfg: { ...validConfig, smtp },
+		appointment: { ...appointment, status: 'pending' },
+		eventType: validConfig.event_types[0],
+		cancelUrl,
+		acceptUrl,
+		declineUrl
+	});
+
+	expect(sendStub).toHaveBeenCalledTimes(1);
+	const organizerCall = sendStub.mock.calls[0]![0] as Record<string, unknown>;
+	expect(organizerCall.to).toBe(validConfig.user.email);
+	expect(organizerCall.subject).toContain('Booking request');
+	expect(organizerCall.text).toContain(acceptUrl);
+	expect(organizerCall.text).toContain(declineUrl);
+	expect(organizerCall.attachments).toBeUndefined();
+});
+
 test('notify returns ok:true skipped:true when SMTP is not configured', async () => {
 	const sendStub = stubSendEmail();
-	const { notifyBookingConfirmed } = await import('../src/lib/server/notify');
-	const result = await notifyBookingConfirmed({
+	const { notify } = await import('../src/lib/server/notify');
+	const result = await notify('booking_confirmed', {
 		cfg: { ...validConfig, smtp: undefined },
 		appointment,
 		eventType: validConfig.event_types[0],

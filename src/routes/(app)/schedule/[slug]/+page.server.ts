@@ -12,8 +12,7 @@ import type { Location } from '$lib/server/config/schema';
 import type { Appointment } from '$lib/server/db';
 import { mergeNotificationStatus } from '$lib/server/db/notification-status';
 import { logger } from '$lib/server/logger';
-import { notifyBookingConfirmed, notifyBookingRescheduled } from '$lib/server/notify';
-import { sendEmail } from '$lib/server/smtp';
+import { notify } from '$lib/server/notify';
 import { getConfig, getDb } from '$lib/server/state';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -247,7 +246,7 @@ export const actions: Actions = {
 					.execute();
 			}
 
-			const notifyResult = await notifyBookingConfirmed({
+			const notifyResult = await notify('booking_confirmed', {
 				cfg,
 				appointment: appt,
 				eventType,
@@ -274,16 +273,33 @@ export const actions: Actions = {
 		if (status === 'pending' && responseToken) {
 			const acceptUrl = `${url.origin}/admin/respond/${id}?action=accept&token=${encodeURIComponent(responseToken)}`;
 			const declineUrl = `${url.origin}/admin/respond/${id}?action=decline&token=${encodeURIComponent(responseToken)}`;
-			const result = await sendEmail({
-				to: cfg.user.email,
-				subject: `Booking request: ${eventType.name} from ${name}`,
-				text:
-					`${name} <${email}> has requested to book ${eventType.name}.\n\n` +
-					`When: ${start.toString()}\n` +
-					`Duration: ${eventType.duration} min\n` +
-					(resolvedLocation ? `Where: ${resolvedLocation}\n\n` : '\n') +
-					`Accept: ${acceptUrl}\n` +
-					`Decline: ${declineUrl}\n`
+			const cancelUrl = `${url.origin}/booked/${id}?token=${encodeURIComponent(cancelToken)}`;
+			const appt: Appointment = {
+				id,
+				event_type_id: eventType.id,
+				start_time: start.toString(),
+				end_time: end.toString(),
+				attendee_name: name,
+				attendee_email: email,
+				attendee_notes: notes || null,
+				location: resolvedLocation,
+				status,
+				cancel_token: cancelToken,
+				response_token: responseToken,
+				external_event_id: null,
+				external_calendar_id: null,
+				notification_status: null,
+				ics_sequence: 0,
+				created_at: '',
+				updated_at: ''
+			};
+			const result = await notify('booking_pending_to_organizer', {
+				cfg,
+				appointment: appt,
+				eventType,
+				cancelUrl,
+				acceptUrl,
+				declineUrl
 			});
 			if (!result.ok) {
 				const current = await getDb()
@@ -409,7 +425,7 @@ export const actions: Actions = {
 			}
 		}
 
-		const notifyResult = await notifyBookingRescheduled({
+		const notifyResult = await notify('booking_rescheduled_by_attendee', {
 			cfg,
 			appointment: updated,
 			eventType,
