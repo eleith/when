@@ -88,6 +88,27 @@ test('notify(booking_rescheduled_by_attendee) sends attendee email with ICS', as
 	expect(attendeeCall.attachments).toBeArrayOfSize(1);
 });
 
+test('notify(booking_pending_to_attendee) sends acknowledgement to attendee with cancel + reschedule, no ICS', async () => {
+	const sendStub = stubSendEmail();
+	const { notify } = await import('../src/lib/server/notify');
+	const rescheduleUrl = 'https://when.example.com/schedule/chat?reschedule=appt-1&token=tok';
+	await notify('booking_pending_to_attendee', {
+		cfg: { ...validConfig, smtp },
+		appointment: { ...appointment, status: 'pending' },
+		eventType: validConfig.event_types[0],
+		cancelUrl,
+		rescheduleUrl
+	});
+
+	expect(sendStub).toHaveBeenCalledTimes(1);
+	const attendeeCall = sendStub.mock.calls[0]![0] as Record<string, unknown>;
+	expect(attendeeCall.to).toBe('booker@example.com');
+	expect(attendeeCall.subject).toContain('Booking request received');
+	expect(attendeeCall.text).toContain(cancelUrl);
+	expect(attendeeCall.text).toContain(rescheduleUrl);
+	expect(attendeeCall.attachments).toBeUndefined();
+});
+
 test('notify(booking_pending_to_organizer) sends accept/decline email to organizer only', async () => {
 	const sendStub = stubSendEmail();
 	const { notify } = await import('../src/lib/server/notify');

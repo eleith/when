@@ -6,6 +6,7 @@ import { sendEmail } from './smtp';
 export type NotifyVariant =
 	| 'booking_confirmed'
 	| 'booking_pending_to_organizer'
+	| 'booking_pending_to_attendee'
 	| 'booking_cancelled_by_attendee'
 	| 'booking_rescheduled_by_attendee';
 
@@ -15,6 +16,8 @@ export interface NotifyContext {
 	eventType: EventType | undefined;
 	/** URL the booker can use to cancel or reschedule. Empty for variants that don't surface it. */
 	cancelUrl: string;
+	/** Public reschedule URL. Set for variants that surface a reschedule link. */
+	rescheduleUrl?: string;
 	/** Admin accept URL — set for `booking_pending_to_organizer`. */
 	acceptUrl?: string;
 	/** Admin decline URL — set for `booking_pending_to_organizer`. */
@@ -105,6 +108,30 @@ const registry: Record<NotifyVariant, NotifySpec> = {
 						whenLine(ctx.appointment),
 						whereLine(ctx.appointment),
 						ctx.appointment.attendee_notes ? `\nNotes: ${ctx.appointment.attendee_notes}` : null
+					)
+				}
+			];
+		}
+	},
+
+	booking_pending_to_attendee: {
+		envelopes(ctx) {
+			const name = eventTypeName(ctx);
+			return [
+				{
+					to: ctx.appointment.attendee_email,
+					subject: `Booking request received: ${name} with ${ctx.cfg.user.name}`,
+					text: lines(
+						`Thanks — we got your request to book ${name}.`,
+						``,
+						`${ctx.cfg.user.name} will review and confirm. You'll get a follow-up email at ${ctx.appointment.attendee_email} with the outcome.`,
+						``,
+						whenLine(ctx.appointment),
+						whereLine(ctx.appointment),
+						``,
+						`Need to change something before then?`,
+						`Cancel: ${ctx.cancelUrl}`,
+						ctx.rescheduleUrl ? `Reschedule: ${ctx.rescheduleUrl}` : null
 					)
 				}
 			];

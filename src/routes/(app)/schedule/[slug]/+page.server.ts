@@ -274,6 +274,7 @@ export const actions: Actions = {
 			const acceptUrl = `${url.origin}/admin/respond/${id}?action=accept&token=${encodeURIComponent(responseToken)}`;
 			const declineUrl = `${url.origin}/admin/respond/${id}?action=decline&token=${encodeURIComponent(responseToken)}`;
 			const cancelUrl = `${url.origin}/booked/${id}?token=${encodeURIComponent(cancelToken)}`;
+			const rescheduleUrl = `${url.origin}/schedule/${eventType.slug}?reschedule=${id}&token=${encodeURIComponent(cancelToken)}`;
 			const appt: Appointment = {
 				id,
 				event_type_id: eventType.id,
@@ -293,14 +294,24 @@ export const actions: Actions = {
 				created_at: '',
 				updated_at: ''
 			};
-			const result = await notify('booking_pending_to_organizer', {
-				cfg,
-				appointment: appt,
-				eventType,
-				cancelUrl,
-				acceptUrl,
-				declineUrl
-			});
+			const [organizerResult, attendeeResult] = await Promise.all([
+				notify('booking_pending_to_organizer', {
+					cfg,
+					appointment: appt,
+					eventType,
+					cancelUrl,
+					acceptUrl,
+					declineUrl
+				}),
+				notify('booking_pending_to_attendee', {
+					cfg,
+					appointment: appt,
+					eventType,
+					cancelUrl,
+					rescheduleUrl
+				})
+			]);
+			const result = { ok: organizerResult.ok && attendeeResult.ok };
 			if (!result.ok) {
 				const current = await getDb()
 					.selectFrom('appointments')
