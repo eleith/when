@@ -81,6 +81,21 @@ function attendeeIcs(ctx: NotifyContext): Attachment {
 	};
 }
 
+function cancelIcs(ctx: NotifyContext): Attachment {
+	return {
+		filename: `${ctx.appointment.id}.ics`,
+		content: buildIcs({
+			appointment: ctx.appointment,
+			eventTypeName: eventTypeName(ctx),
+			organizerName: ctx.cfg.user.name,
+			organizerEmail: ctx.cfg.user.email,
+			cancelUrl: ctx.cancelUrl,
+			method: 'CANCEL'
+		}),
+		contentType: 'text/calendar; charset=utf-8'
+	};
+}
+
 const registry: Record<NotifyVariant, NotifySpec> = {
 	booking_confirmed: {
 		envelopes(ctx) {
@@ -170,7 +185,8 @@ const registry: Record<NotifyVariant, NotifySpec> = {
 						``,
 						`What: ${name}`,
 						whenLine(ctx.appointment)
-					)
+					),
+					attachments: [cancelIcs(ctx)]
 				},
 				{
 					to: ctx.cfg.user.email,

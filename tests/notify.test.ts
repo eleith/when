@@ -56,12 +56,12 @@ test('notify(booking_confirmed) sends correct attendee email', async () => {
 	expect(att.content).toContain('BEGIN:VCALENDAR');
 });
 
-test('notify(booking_cancelled_by_attendee) does not include cancel link', async () => {
+test('notify(booking_cancelled_by_attendee) attaches METHOD:CANCEL ICS for attendee, admin gets none', async () => {
 	const sendStub = stubSendEmail();
 	const { notify } = await import('../src/lib/server/notify');
 	await notify('booking_cancelled_by_attendee', {
 		cfg: { ...validConfig, smtp },
-		appointment,
+		appointment: { ...appointment, status: 'cancelled', ics_sequence: 1 },
 		eventType: validConfig.event_types[0],
 		cancelUrl
 	});
@@ -69,7 +69,17 @@ test('notify(booking_cancelled_by_attendee) does not include cancel link', async
 	const attendeeCall = sendStub.mock.calls[0]![0] as Record<string, unknown>;
 	expect(attendeeCall.subject).toContain('Cancelled');
 	expect(attendeeCall.text).not.toContain('Cancel');
-	expect(attendeeCall.attachments).toBeUndefined();
+	expect(attendeeCall.attachments).toBeArrayOfSize(1);
+	const att = (attendeeCall.attachments as Array<Record<string, unknown>>)[0];
+	expect(att.filename).toBe('appt-1.ics');
+	expect(att.content).toContain('METHOD:CANCEL');
+	expect(att.content).toContain('STATUS:CANCELLED');
+	expect(att.content).toMatch(/^SEQUENCE:1$/m);
+	expect(att.content).toContain('UID:appt-1');
+
+	// Admin's calendar is updated via deleteAppointmentFromCalendar, not email.
+	const adminCall = sendStub.mock.calls[1]![0] as Record<string, unknown>;
+	expect(adminCall.attachments).toBeUndefined();
 });
 
 test('notify(booking_rescheduled_by_attendee) sends attendee email with ICS', async () => {
