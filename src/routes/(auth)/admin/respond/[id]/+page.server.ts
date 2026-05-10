@@ -1,11 +1,7 @@
 import { error, fail } from '@sveltejs/kit';
-import { transitionStatus } from '$lib/server/booking/status';
-import { pushAppointment } from '$lib/server/calendar/push';
+import { acceptAppointment } from '$lib/server/booking/accept';
+import { declineAppointment } from '$lib/server/booking/decline';
 import { systemClock } from '$lib/server/clock';
-import { mergeNotificationStatus } from '$lib/server/db/notification-status';
-import { buildIcs } from '$lib/server/ics';
-import { notify } from '$lib/server/notify';
-import { sendEmail } from '$lib/server/smtp';
 import { getConfig, getDb } from '$lib/server/state';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -76,86 +72,14 @@ export const actions: Actions = {
 			return { done: true, alreadyDecided: true, already, action, attendee, eventTypeName };
 		}
 
-		const newStatus = action === 'accept' ? 'confirmed' : 'declined';
-
-		const transition = await transitionStatus(
-			{ db: getDb(), clock: systemClock },
-			{ id: params.id, from: ['pending'], to: newStatus }
-		);
-		if (!transition.ok) {
-			return fail(409, { error: 'This booking is no longer pending.' });
-		}
-
-		const cancelUrl = `${url.origin}/booked/${row.id}?token=${encodeURIComponent(row.cancel_token)}`;
-
-		const emailResult =
+		const deps = { db: getDb(), cfg, clock: systemClock };
+		const result =
 			action === 'accept'
-				? await sendEmail({
-						to: row.attendee_email,
-						subject: `Confirmed: ${eventTypeName} with ${cfg.user.name}`,
-						text:
-							`Your booking has been confirmed.\n\n` +
-							`What: ${eventTypeName}\n` +
-							`When: ${row.start_time}\n` +
-							(row.location ? `Where: ${row.location}\n\n` : '\n') +
-							`Cancel: ${cancelUrl}\n`,
-						attachments: [
-							{
-								filename: `${row.id}.ics`,
-								content: buildIcs({
-									appointment: { ...row, status: 'confirmed' },
-									eventTypeName,
-									organizerName: cfg.user.name,
-									organizerEmail: cfg.user.email,
-									cancelUrl,
-									method: 'REQUEST'
-								}),
-								contentType: 'text/calendar; charset=utf-8'
-							}
-						]
-					})
-				: await notify('booking_declined', {
-						cfg,
-						appointment: { ...row, status: 'declined' },
-						eventType,
-						cancelUrl: ''
-					});
+				? await acceptAppointment(deps, { appointment: row, baseUrl: url.origin })
+				: await declineAppointment(deps, { appointment: row });
 
-		let notif = row.notification_status;
-		if (!emailResult.ok) {
-			notif = mergeNotificationStatus(notif, { email: 'failed' });
-			await getDb()
-				.updateTable('appointments')
-				.set({ notification_status: notif })
-				.where('id', '=', params.id)
-				.execute();
-		}
-
-		if (action === 'accept' && eventType) {
-			const pushed = await pushAppointment(
-				cfg,
-				{ ...row, status: 'confirmed' },
-				eventType.destination_calendar,
-				{ cancelUrl }
-			);
-			if (pushed.ok) {
-				await getDb()
-					.updateTable('appointments')
-					.set({
-						external_event_id: pushed.externalEventId,
-						external_calendar_id: pushed.externalCalendarId,
-						updated_at: systemClock.now().toISOString()
-					})
-					.where('id', '=', params.id)
-					.execute();
-			} else {
-				notif = mergeNotificationStatus(notif, { calendar_push: 'failed' });
-				await getDb()
-					.updateTable('appointments')
-					.set({ notification_status: notif })
-					.where('id', '=', params.id)
-					.execute();
-			}
+		if (!result.ok) {
+			return fail(409, { error: 'This booking is no longer pending.' });
 		}
 
 		return { done: true, alreadyDecided: false, already: null, action, attendee, eventTypeName };
