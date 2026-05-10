@@ -1,11 +1,11 @@
 import type { Kysely } from 'kysely';
 import { resolveBookingActions, type Viewer } from './actions';
+import { createNotificationTracker } from './side-effects';
 import { transitionStatus } from './status';
 import { deleteAppointmentFromCalendar } from '../calendar/push';
 import type { Clock } from '../clock';
 import type { WhenConfiguration } from '../config/schema';
 import type { Appointment, Database } from '../db';
-import { mergeNotificationStatus } from '../db/notification-status';
 import { notify } from '../notify';
 
 export interface CancelAppointmentDeps {
@@ -51,40 +51,38 @@ export async function cancelAppointment(
 	if (!transition.ok) return { ok: false, reason: 'conflict' };
 
 	const cancelled = transition.row;
-	let notif = cancelled.notification_status;
-
-	if (cancelled.external_event_id && cancelled.external_calendar_id) {
-		const result = await deleteAppointmentFromCalendar(
-			deps.cfg,
-			cancelled.external_calendar_id,
-			cancelled.external_event_id
-		);
-		if (!result.ok) {
-			notif = mergeNotificationStatus(notif, { calendar_push: 'failed' });
-		}
-	}
-
-	// TODO project 03: switch variant on initiator (attendee vs organizer cancel).
+	const tracker = createNotificationTracker(cancelled.notification_status);
 	const cancelUrl = `${input.baseUrl}/booked/${cancelled.id}?token=${encodeURIComponent(
 		cancelled.cancel_token
 	)}`;
-	const notifyResult = await notify('booking_cancelled_by_attendee', {
-		cfg: deps.cfg,
-		appointment: cancelled,
-		eventType,
-		cancelUrl
-	});
-	if (!notifyResult.ok) {
-		notif = mergeNotificationStatus(notif, { email: 'failed' });
+
+	if (cancelled.external_event_id && cancelled.external_calendar_id) {
+		await tracker.run('calendar_push', () =>
+			deleteAppointmentFromCalendar(
+				deps.cfg,
+				cancelled.external_calendar_id!,
+				cancelled.external_event_id!
+			)
+		);
 	}
 
-	if (notif !== cancelled.notification_status) {
+	// TODO project 03: switch variant on initiator (attendee vs organizer cancel).
+	await tracker.run('email', () =>
+		notify('booking_cancelled_by_attendee', {
+			cfg: deps.cfg,
+			appointment: cancelled,
+			eventType,
+			cancelUrl
+		})
+	);
+
+	if (tracker.changed()) {
 		await deps.db
 			.updateTable('appointments')
-			.set({ notification_status: notif })
+			.set({ notification_status: tracker.status() })
 			.where('id', '=', cancelled.id)
 			.execute();
 	}
 
-	return { ok: true, appointment: { ...cancelled, notification_status: notif } };
+	return { ok: true, appointment: { ...cancelled, notification_status: tracker.status() } };
 }

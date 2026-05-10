@@ -1,11 +1,11 @@
 import type { Kysely } from 'kysely';
 import { resolveBookingActions } from './actions';
+import { createNotificationTracker } from './side-effects';
 import { transitionStatus } from './status';
 import { pushAppointment } from '../calendar/push';
 import type { Clock } from '../clock';
 import type { WhenConfiguration } from '../config/schema';
 import type { Appointment, Database } from '../db';
-import { mergeNotificationStatus } from '../db/notification-status';
 import { notify } from '../notify';
 
 export interface AcceptAppointmentDeps {
@@ -44,48 +44,44 @@ export async function acceptAppointment(
 	if (!transition.ok) return { ok: false, reason: 'conflict' };
 
 	let row = transition.row;
-	let notif = row.notification_status;
+	const tracker = createNotificationTracker(row.notification_status);
 	const cancelUrl = `${input.baseUrl}/booked/${row.id}?token=${encodeURIComponent(
 		row.cancel_token
 	)}`;
 
 	let externalUpdate: { external_event_id: string; external_calendar_id: string } | null = null;
 	if (eventType) {
-		const pushed = await pushAppointment(deps.cfg, row, eventType.destination_calendar, {
-			cancelUrl
-		});
+		const pushed = await tracker.run('calendar_push', () =>
+			pushAppointment(deps.cfg, row, eventType.destination_calendar, { cancelUrl })
+		);
 		if (pushed.ok) {
 			externalUpdate = {
 				external_event_id: pushed.externalEventId,
 				external_calendar_id: pushed.externalCalendarId
 			};
-		} else {
-			notif = mergeNotificationStatus(notif, { calendar_push: 'failed' });
 		}
 	}
 
-	const notifyResult = await notify('booking_confirmed', {
-		cfg: deps.cfg,
-		appointment: row,
-		eventType,
-		cancelUrl
-	});
-	if (!notifyResult.ok) {
-		notif = mergeNotificationStatus(notif, { email: 'failed' });
-	}
+	await tracker.run('email', () =>
+		notify('booking_confirmed', {
+			cfg: deps.cfg,
+			appointment: row,
+			eventType,
+			cancelUrl
+		})
+	);
 
-	const needsUpdate = externalUpdate !== null || notif !== row.notification_status;
-	if (needsUpdate) {
+	if (externalUpdate !== null || tracker.changed()) {
 		await deps.db
 			.updateTable('appointments')
 			.set({
 				...(externalUpdate ?? {}),
-				notification_status: notif,
+				notification_status: tracker.status(),
 				updated_at: deps.clock.now().toISOString()
 			})
 			.where('id', '=', row.id)
 			.execute();
-		row = { ...row, ...(externalUpdate ?? {}), notification_status: notif };
+		row = { ...row, ...(externalUpdate ?? {}), notification_status: tracker.status() };
 	}
 
 	return { ok: true, appointment: row };

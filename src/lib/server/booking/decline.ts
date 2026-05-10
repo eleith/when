@@ -1,10 +1,10 @@
 import type { Kysely } from 'kysely';
 import { resolveBookingActions } from './actions';
+import { createNotificationTracker } from './side-effects';
 import { transitionStatus } from './status';
 import type { Clock } from '../clock';
 import type { WhenConfiguration } from '../config/schema';
 import type { Appointment, Database } from '../db';
-import { mergeNotificationStatus } from '../db/notification-status';
 import { notify } from '../notify';
 
 export interface DeclineAppointmentDeps {
@@ -42,27 +42,26 @@ export async function declineAppointment(
 	if (!transition.ok) return { ok: false, reason: 'conflict' };
 
 	const row = transition.row;
-	let notif = row.notification_status;
+	const tracker = createNotificationTracker(row.notification_status);
 
 	// Decline never has a calendar effect — pending bookings aren't pushed.
 
-	const notifyResult = await notify('booking_declined', {
-		cfg: deps.cfg,
-		appointment: row,
-		eventType,
-		cancelUrl: ''
-	});
-	if (!notifyResult.ok) {
-		notif = mergeNotificationStatus(notif, { email: 'failed' });
-	}
+	await tracker.run('email', () =>
+		notify('booking_declined', {
+			cfg: deps.cfg,
+			appointment: row,
+			eventType,
+			cancelUrl: ''
+		})
+	);
 
-	if (notif !== row.notification_status) {
+	if (tracker.changed()) {
 		await deps.db
 			.updateTable('appointments')
-			.set({ notification_status: notif })
+			.set({ notification_status: tracker.status() })
 			.where('id', '=', row.id)
 			.execute();
 	}
 
-	return { ok: true, appointment: { ...row, notification_status: notif } };
+	return { ok: true, appointment: { ...row, notification_status: tracker.status() } };
 }

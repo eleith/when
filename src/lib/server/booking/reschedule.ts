@@ -1,12 +1,12 @@
 import type { Kysely } from 'kysely';
 import { resolveBookingActions, type Viewer } from './actions';
 import { isRescheduleAllowed, isViewable } from './access';
+import { createNotificationTracker } from './side-effects';
 import { transitionStatus } from './status';
 import { pushAppointment } from '../calendar/push';
 import type { Clock } from '../clock';
 import type { EventType, WhenConfiguration } from '../config/schema';
 import type { Appointment, Database } from '../db';
-import { mergeNotificationStatus } from '../db/notification-status';
 import { notify } from '../notify';
 
 export type RescheduleErrorCode =
@@ -91,40 +91,36 @@ export async function rescheduleAppointment(
 	if (!transition.ok) return { ok: false, reason: 'conflict' };
 
 	const updated = transition.row;
-	let notif = updated.notification_status;
+	const tracker = createNotificationTracker(updated.notification_status);
 	const cancelUrl = `${input.baseUrl}/booked/${updated.id}?token=${encodeURIComponent(
 		updated.cancel_token
 	)}`;
 
 	if (updated.external_event_id && updated.external_calendar_id) {
-		const pushed = await pushAppointment(deps.cfg, updated, updated.external_calendar_id, {
-			cancelUrl
-		});
-		if (!pushed.ok) {
-			notif = mergeNotificationStatus(notif, { calendar_push: 'failed' });
-		}
+		await tracker.run('calendar_push', () =>
+			pushAppointment(deps.cfg, updated, updated.external_calendar_id!, { cancelUrl })
+		);
 	}
 
 	// TODO project 03: switch variant on initiator (attendee vs organizer reschedule).
-	const notifyResult = await notify('booking_rescheduled_by_attendee', {
-		cfg: deps.cfg,
-		appointment: updated,
-		eventType,
-		cancelUrl
-	});
-	if (!notifyResult.ok) {
-		notif = mergeNotificationStatus(notif, { email: 'failed' });
-	}
+	await tracker.run('email', () =>
+		notify('booking_rescheduled_by_attendee', {
+			cfg: deps.cfg,
+			appointment: updated,
+			eventType,
+			cancelUrl
+		})
+	);
 
-	if (notif !== updated.notification_status) {
+	if (tracker.changed()) {
 		await deps.db
 			.updateTable('appointments')
-			.set({ notification_status: notif })
+			.set({ notification_status: tracker.status() })
 			.where('id', '=', updated.id)
 			.execute();
 	}
 
-	return { ok: true, appointment: { ...updated, notification_status: notif } };
+	return { ok: true, appointment: { ...updated, notification_status: tracker.status() } };
 }
 
 export function classifyReschedule({
