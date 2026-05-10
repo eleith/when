@@ -5,7 +5,7 @@ import { mergeBlocks } from '$lib/server/availability/blocks';
 import { loadAppointmentBlocks } from '$lib/server/availability/db-blocks';
 import { resolveKnobsFor } from '$lib/server/availability/knobs';
 import { buildBaseWindows, candidateDates } from '$lib/server/availability/windows';
-import { transitionStatus } from '$lib/server/booking/status';
+import { rescheduleAppointment } from '$lib/server/booking/reschedule';
 import { conflictPullWindow, pullConflictBusy } from '$lib/server/calendar/conflicts';
 import { pushAppointment } from '$lib/server/calendar/push';
 import { systemClock } from '$lib/server/clock';
@@ -390,65 +390,21 @@ export const actions: Actions = {
 		const start = Temporal.Instant.from(slotStr);
 		const end = start.add({ minutes: eventType.duration });
 
-		let transition: Awaited<ReturnType<typeof transitionStatus>>;
-		try {
-			transition = await transitionStatus(
-				{ db: getDb(), clock: systemClock },
-				{
-					id: rescheduleId,
-					from: ['pending', 'confirmed'],
-					to: existing.status,
-					patch: {
-						start_time: start.toString(),
-						end_time: end.toString(),
-						ics_sequence: existing.ics_sequence + 1
-					}
-				}
-			);
-		} catch (err) {
-			if (isUniqueViolation(err)) {
+		const result = await rescheduleAppointment(
+			{ db: getDb(), cfg, clock: systemClock },
+			{
+				appointment: existing,
+				initiator: 'attendee',
+				newStart: start.toString(),
+				newEnd: end.toString(),
+				baseUrl: url.origin
+			}
+		);
+		if (!result.ok) {
+			if (result.reason === 'slot_taken') {
 				return fail(409, { error: 'That time was just taken. Please pick another.' });
 			}
-			logger.error(
-				{ err, eventTypeId: eventType.id, slot: slotStr, rescheduleId },
-				'failed to reschedule booking'
-			);
-			return fail(500, { error: 'Could not save the reschedule. Please try again.' });
-		}
-		if (!transition.ok) {
 			return fail(409, { error: 'Booking can no longer be rescheduled.' });
-		}
-		const updated: Appointment = transition.row;
-		const cancelUrl = `${url.origin}/booked/${rescheduleId}?token=${encodeURIComponent(existing.cancel_token)}`;
-		let notif = existing.notification_status;
-
-		if (existing.external_event_id && existing.external_calendar_id) {
-			const pushed = await pushAppointment(cfg, updated, existing.external_calendar_id, {
-				cancelUrl
-			});
-			if (!pushed.ok) {
-				notif = mergeNotificationStatus(notif, { calendar_push: 'failed' });
-				await getDb()
-					.updateTable('appointments')
-					.set({ notification_status: notif })
-					.where('id', '=', rescheduleId)
-					.execute();
-			}
-		}
-
-		const notifyResult = await notify('booking_rescheduled_by_attendee', {
-			cfg,
-			appointment: updated,
-			eventType,
-			cancelUrl
-		});
-		if (!notifyResult.ok) {
-			notif = mergeNotificationStatus(notif, { email: 'failed' });
-			await getDb()
-				.updateTable('appointments')
-				.set({ notification_status: notif })
-				.where('id', '=', rescheduleId)
-				.execute();
 		}
 
 		redirect(303, `/booked/${rescheduleId}?token=${encodeURIComponent(existing.cancel_token)}`);

@@ -1,6 +1,10 @@
 import { describe, expect, test } from 'bun:test';
-import { classifyReschedule } from '../../src/lib/server/booking/reschedule';
+import { classifyReschedule, rescheduleAppointment } from '../../src/lib/server/booking/reschedule';
+import { systemClock } from '../../src/lib/server/clock';
+import { openDb } from '../../src/lib/server/db';
 import type { Appointment } from '../../src/lib/server/db';
+import { runMigrations } from '../../src/lib/server/db/migrate';
+import { validConfig } from '../fixtures/valid-config';
 
 const now = new Date('2026-05-01T13:00:00Z');
 
@@ -182,5 +186,161 @@ describe('classifyReschedule', () => {
 			name: 'Booker',
 			email: 'booker@example.com'
 		});
+	});
+});
+
+const opBaseRow = {
+	event_type_id: '30-min-chat',
+	start_time: '2099-01-01T15:00:00Z',
+	end_time: '2099-01-01T15:30:00Z',
+	attendee_name: 'Booker',
+	attendee_email: 'booker@example.com',
+	attendee_notes: null,
+	location: null,
+	external_event_id: null,
+	external_calendar_id: null,
+	notification_status: null
+};
+
+async function makeDb() {
+	const db = openDb(':memory:');
+	await runMigrations(db);
+	return db;
+}
+
+async function fetchRow(db: Awaited<ReturnType<typeof makeDb>>, id: string) {
+	return db.selectFrom('appointments').selectAll().where('id', '=', id).executeTakeFirstOrThrow();
+}
+
+describe('rescheduleAppointment', () => {
+	test('happy path: confirmed booking moves time, ics_sequence bumps, status preserved', async () => {
+		const db = await makeDb();
+		try {
+			await db
+				.insertInto('appointments')
+				.values({ ...opBaseRow, id: 'r1', status: 'confirmed', cancel_token: 't1' })
+				.execute();
+			const row = await fetchRow(db, 'r1');
+
+			const result = await rescheduleAppointment(
+				{ db, cfg: validConfig, clock: systemClock },
+				{
+					appointment: row,
+					initiator: 'attendee',
+					newStart: '2099-01-02T10:00:00Z',
+					newEnd: '2099-01-02T10:30:00Z',
+					baseUrl: 'https://when.example.com'
+				}
+			);
+
+			expect(result.ok).toBe(true);
+			if (result.ok) {
+				expect(result.appointment.start_time).toBe('2099-01-02T10:00:00Z');
+				expect(result.appointment.end_time).toBe('2099-01-02T10:30:00Z');
+				expect(result.appointment.status).toBe('confirmed');
+				expect(result.appointment.ics_sequence).toBe(1);
+			}
+		} finally {
+			await db.destroy();
+		}
+	});
+
+	test('gated: cancelled booking returns { ok: false, reason: gated }', async () => {
+		const db = await makeDb();
+		try {
+			await db
+				.insertInto('appointments')
+				.values({ ...opBaseRow, id: 'r2', status: 'cancelled', cancel_token: 't2' })
+				.execute();
+			const row = await fetchRow(db, 'r2');
+
+			const result = await rescheduleAppointment(
+				{ db, cfg: validConfig, clock: systemClock },
+				{
+					appointment: row,
+					initiator: 'attendee',
+					newStart: '2099-01-02T10:00:00Z',
+					newEnd: '2099-01-02T10:30:00Z',
+					baseUrl: 'https://when.example.com'
+				}
+			);
+			expect(result).toEqual({ ok: false, reason: 'gated' });
+		} finally {
+			await db.destroy();
+		}
+	});
+
+	test('slot_taken: unique-index violation surfaces as slot_taken reason', async () => {
+		const db = await makeDb();
+		try {
+			// Existing booking we want to move
+			await db
+				.insertInto('appointments')
+				.values({ ...opBaseRow, id: 'r3a', status: 'confirmed', cancel_token: 't3a' })
+				.execute();
+			// Conflicting active booking in the target slot (same event_type, same start)
+			await db
+				.insertInto('appointments')
+				.values({
+					...opBaseRow,
+					id: 'r3b',
+					status: 'confirmed',
+					cancel_token: 't3b',
+					start_time: '2099-02-01T10:00:00Z',
+					end_time: '2099-02-01T10:30:00Z'
+				})
+				.execute();
+			const row = await fetchRow(db, 'r3a');
+
+			const result = await rescheduleAppointment(
+				{ db, cfg: validConfig, clock: systemClock },
+				{
+					appointment: row,
+					initiator: 'attendee',
+					newStart: '2099-02-01T10:00:00Z',
+					newEnd: '2099-02-01T10:30:00Z',
+					baseUrl: 'https://when.example.com'
+				}
+			);
+			expect(result).toEqual({ ok: false, reason: 'slot_taken' });
+
+			// Original row unchanged
+			const persisted = await fetchRow(db, 'r3a');
+			expect(persisted.start_time).toBe('2099-01-01T15:00:00Z');
+		} finally {
+			await db.destroy();
+		}
+	});
+
+	test('conflict: row already cancelled by concurrent caller surfaces as conflict', async () => {
+		const db = await makeDb();
+		try {
+			await db
+				.insertInto('appointments')
+				.values({ ...opBaseRow, id: 'r4', status: 'confirmed', cancel_token: 't4' })
+				.execute();
+			const row = await fetchRow(db, 'r4');
+
+			// Concurrent cancel lands first
+			await db
+				.updateTable('appointments')
+				.set({ status: 'cancelled' })
+				.where('id', '=', 'r4')
+				.execute();
+
+			const result = await rescheduleAppointment(
+				{ db, cfg: validConfig, clock: systemClock },
+				{
+					appointment: row,
+					initiator: 'attendee',
+					newStart: '2099-01-02T10:00:00Z',
+					newEnd: '2099-01-02T10:30:00Z',
+					baseUrl: 'https://when.example.com'
+				}
+			);
+			expect(result).toEqual({ ok: false, reason: 'conflict' });
+		} finally {
+			await db.destroy();
+		}
 	});
 });
