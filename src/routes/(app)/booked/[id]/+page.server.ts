@@ -1,6 +1,7 @@
 import { error, fail } from '@sveltejs/kit';
 import { requireViewableAppointment } from '$lib/server/booking/access';
 import { resolveBookingActions } from '$lib/server/booking/actions';
+import { transitionStatus } from '$lib/server/booking/status';
 import { deleteAppointmentFromCalendar } from '$lib/server/calendar/push';
 import { systemClock } from '$lib/server/clock';
 import { mergeNotificationStatus } from '$lib/server/db/notification-status';
@@ -87,11 +88,18 @@ export const actions: Actions = {
 			return fail(409, { error: 'This booking can no longer be cancelled.' });
 		}
 
-		await getDb()
-			.updateTable('appointments')
-			.set({ status: 'cancelled', updated_at: systemClock.now().toISOString() })
-			.where('id', '=', params.id)
-			.execute();
+		const transition = await transitionStatus(
+			{ db: getDb(), clock: systemClock },
+			{
+				id: params.id,
+				from: ['pending', 'confirmed'],
+				to: 'cancelled',
+				patch: { ics_sequence: row.ics_sequence + 1 }
+			}
+		);
+		if (!transition.ok) {
+			return fail(409, { error: 'This booking can no longer be cancelled.' });
+		}
 
 		let notif = row.notification_status;
 

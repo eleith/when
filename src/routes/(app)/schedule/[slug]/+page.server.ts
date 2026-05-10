@@ -5,6 +5,7 @@ import { mergeBlocks } from '$lib/server/availability/blocks';
 import { loadAppointmentBlocks } from '$lib/server/availability/db-blocks';
 import { resolveKnobsFor } from '$lib/server/availability/knobs';
 import { buildBaseWindows, candidateDates } from '$lib/server/availability/windows';
+import { transitionStatus } from '$lib/server/booking/status';
 import { conflictPullWindow, pullConflictBusy } from '$lib/server/calendar/conflicts';
 import { pushAppointment } from '$lib/server/calendar/push';
 import { systemClock } from '$lib/server/clock';
@@ -361,10 +362,6 @@ export const actions: Actions = {
 			return fail(403, { error: 'Invalid reschedule token.' });
 		}
 
-		if (existing.status !== 'pending' && existing.status !== 'confirmed') {
-			return fail(400, { error: 'Booking can no longer be rescheduled.' });
-		}
-
 		// Re-validate the slot is currently available (excluding this appointment from blocks).
 		const knobs = resolveKnobsFor(cfg, eventType);
 		const userTz = cfg.user.timezone;
@@ -393,16 +390,21 @@ export const actions: Actions = {
 		const start = Temporal.Instant.from(slotStr);
 		const end = start.add({ minutes: eventType.duration });
 
+		let transition: Awaited<ReturnType<typeof transitionStatus>>;
 		try {
-			await getDb()
-				.updateTable('appointments')
-				.set({
-					start_time: start.toString(),
-					end_time: end.toString(),
-					updated_at: systemClock.now().toISOString()
-				})
-				.where('id', '=', rescheduleId)
-				.execute();
+			transition = await transitionStatus(
+				{ db: getDb(), clock: systemClock },
+				{
+					id: rescheduleId,
+					from: ['pending', 'confirmed'],
+					to: existing.status,
+					patch: {
+						start_time: start.toString(),
+						end_time: end.toString(),
+						ics_sequence: existing.ics_sequence + 1
+					}
+				}
+			);
 		} catch (err) {
 			if (isUniqueViolation(err)) {
 				return fail(409, { error: 'That time was just taken. Please pick another.' });
@@ -413,12 +415,10 @@ export const actions: Actions = {
 			);
 			return fail(500, { error: 'Could not save the reschedule. Please try again.' });
 		}
-
-		const updated: Appointment = {
-			...existing,
-			start_time: start.toString(),
-			end_time: end.toString()
-		};
+		if (!transition.ok) {
+			return fail(409, { error: 'Booking can no longer be rescheduled.' });
+		}
+		const updated: Appointment = transition.row;
 		const cancelUrl = `${url.origin}/booked/${rescheduleId}?token=${encodeURIComponent(existing.cancel_token)}`;
 		let notif = existing.notification_status;
 

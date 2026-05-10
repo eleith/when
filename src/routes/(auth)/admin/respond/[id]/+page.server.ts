@@ -1,4 +1,5 @@
 import { error, fail } from '@sveltejs/kit';
+import { transitionStatus } from '$lib/server/booking/status';
 import { pushAppointment } from '$lib/server/calendar/push';
 import { systemClock } from '$lib/server/clock';
 import { mergeNotificationStatus } from '$lib/server/db/notification-status';
@@ -77,11 +78,13 @@ export const actions: Actions = {
 
 		const newStatus = action === 'accept' ? 'confirmed' : 'declined';
 
-		await getDb()
-			.updateTable('appointments')
-			.set({ status: newStatus, updated_at: systemClock.now().toISOString() })
-			.where('id', '=', params.id)
-			.execute();
+		const transition = await transitionStatus(
+			{ db: getDb(), clock: systemClock },
+			{ id: params.id, from: ['pending'], to: newStatus }
+		);
+		if (!transition.ok) {
+			return fail(409, { error: 'This booking is no longer pending.' });
+		}
 
 		const cancelUrl = `${url.origin}/booked/${row.id}?token=${encodeURIComponent(row.cancel_token)}`;
 
