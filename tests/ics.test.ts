@@ -113,6 +113,14 @@ test('SEQUENCE matches appointment.ics_sequence', () => {
 	expect(ics3).toMatch(/^SEQUENCE:3$/m);
 });
 
+test('omits METHOD when method is undefined (CalDAV calendar object resource)', () => {
+	const ics = buildIcs({ appointment: baseAppointment, ...baseInput, method: undefined });
+	expect(ics).not.toMatch(/^METHOD:/m);
+	// STATUS still derives from appointment.status.
+	expect(ics).toContain('STATUS:CONFIRMED');
+	expect(ics).toContain('UID:appt-123');
+});
+
 test('UID is stable across REQUEST and CANCEL for the same appointment', () => {
 	const create = buildIcs({ appointment: baseAppointment, ...baseInput });
 	const cancel = buildIcs({

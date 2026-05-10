@@ -11,7 +11,14 @@ export interface IcsInput {
 	organizerEmail: string;
 	/** Public URL the booker can use to cancel or reschedule. */
 	cancelUrl: string;
-	method: IcsMethod;
+	/**
+	 * Set for scheduling messages (iMIP email attachments, user-downloaded
+	 * ICS): emits a calendar-level `METHOD` line and forces the corresponding
+	 * event STATUS. Leave undefined for a calendar object resource (e.g. a
+	 * CalDAV PUT body) — RFC 5545 forbids METHOD on stored objects, and many
+	 * servers (Nextcloud, Radicale) reject such PUTs with 415.
+	 */
+	method?: IcsMethod;
 	clock?: Clock;
 }
 
@@ -36,15 +43,15 @@ export function buildIcs(input: IcsInput): string {
 	const calendar: IcsCalendar = {
 		prodId: '-//When//EN',
 		version: '2.0',
-		method,
 		events: [event]
 	};
+	if (method) calendar.method = method;
 
 	return generateIcsCalendar(calendar);
 }
 
 function eventStatus(
-	method: IcsMethod,
+	method: IcsMethod | undefined,
 	appointmentStatus: AppointmentStatus
 ): 'CANCELLED' | 'TENTATIVE' | 'CONFIRMED' {
 	if (method === 'CANCEL') return 'CANCELLED';
