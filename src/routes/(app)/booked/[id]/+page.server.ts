@@ -1,11 +1,10 @@
-import { error, fail } from '@sveltejs/kit';
+import { error } from '@sveltejs/kit';
 import { requireViewableAppointment } from '$lib/server/booking/access';
 import { resolveBookingActions } from '$lib/server/booking/actions';
-import { cancelAppointment } from '$lib/server/booking/cancel';
 import { systemClock } from '$lib/server/clock';
 import { getConfig, getDb } from '$lib/server/state';
 import type { Appointment } from '$lib/server/db';
-import type { Actions, PageServerLoad } from './$types';
+import type { PageServerLoad } from './$types';
 
 type ClockStatus = 'upcoming' | 'in_progress' | 'concluded';
 
@@ -56,31 +55,4 @@ export const load: PageServerLoad = async ({ params, url }) => {
 		clockStatus,
 		token
 	};
-};
-
-export const actions: Actions = {
-	cancel: async ({ request, params, url }) => {
-		const form = await request.formData();
-		const token = String(form.get('token') ?? '');
-
-		const row = await getDb()
-			.selectFrom('appointments')
-			.selectAll()
-			.where('id', '=', params.id)
-			.executeTakeFirst();
-
-		if (!row || row.cancel_token !== token) {
-			return fail(403, { error: 'Invalid cancel token.' });
-		}
-
-		const result = await cancelAppointment(
-			{ db: getDb(), cfg: getConfig(), clock: systemClock },
-			{ appointment: row, initiator: 'attendee', baseUrl: url.origin }
-		);
-		if (!result.ok) {
-			return fail(409, { error: 'This booking can no longer be cancelled.' });
-		}
-
-		return { cancelled: true };
-	}
 };

@@ -73,12 +73,14 @@
 	<dd>{data.appointment.attendee_name} &lt;{data.appointment.attendee_email}&gt;</dd>
 </dl>
 
-<p>
-	<a
-		href="/booked/{data.appointment.id}/ics?token={encodeURIComponent(data.token)}"
-		download="when-{data.appointment.id}.ics">Download .ics</a
-	>
-</p>
+{#if data.appointment.status === 'confirmed'}
+	<p>
+		<a
+			href="/booked/{data.appointment.id}/ics?token={encodeURIComponent(data.token)}"
+			download="when-{data.appointment.id}.ics">Download .ics</a
+		>
+	</p>
+{/if}
 
 {#if data.actions.reschedule.allowed}
 	<p>
@@ -89,10 +91,12 @@
 	</p>
 {/if}
 {#if data.actions.cancel.allowed}
-	<form method="POST" action="?/cancel" class="cancel-form">
-		<input type="hidden" name="token" value={data.token} />
-		<button type="submit" class="cancel-btn">Cancel booking</button>
-	</form>
+	<p class="cancel-link-row">
+		<a
+			href="/booked/{data.appointment.id}/cancel?token={encodeURIComponent(data.token)}"
+			class="cancel-link">Cancel booking</a
+		>
+	</p>
 {/if}
 
 <style>
@@ -112,22 +116,15 @@
 		margin-top: var(--space-2);
 	}
 
-	.cancel-form {
+	.cancel-link-row {
 		margin-top: var(--space-7);
 	}
 
-	.cancel-btn {
-		background: none;
-		border: 1px solid var(--border-strong);
-		border-radius: var(--radius);
-		padding: var(--space-3) var(--space-5);
+	.cancel-link {
 		color: var(--danger);
-		cursor: pointer;
-		font-size: var(--font-size-base);
 	}
 
-	.cancel-btn:hover {
-		background: var(--danger-bg);
-		border-color: var(--danger-border);
+	.cancel-link:hover {
+		color: var(--danger-strong);
 	}
 </style>
