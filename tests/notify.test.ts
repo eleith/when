@@ -132,6 +132,30 @@ test('notify(booking_pending_to_organizer) sends accept/decline email to organiz
 	expect(organizerCall.attachments).toBeUndefined();
 });
 
+test('notify(booking_declined) sends to attendee and admin, no ICS', async () => {
+	const sendStub = stubSendEmail();
+	const { notify } = await import('../src/lib/server/notify');
+	await notify('booking_declined', {
+		cfg: { ...validConfig, smtp },
+		appointment: { ...appointment, status: 'declined' },
+		eventType: validConfig.event_types[0],
+		cancelUrl: ''
+	});
+
+	expect(sendStub).toHaveBeenCalledTimes(2);
+	const attendeeCall = sendStub.mock.calls[0]![0] as Record<string, unknown>;
+	expect(attendeeCall.to).toBe('booker@example.com');
+	expect(attendeeCall.subject).toContain('Declined');
+	expect(attendeeCall.text).toContain('declined');
+	expect(attendeeCall.attachments).toBeUndefined();
+
+	const adminCall = sendStub.mock.calls[1]![0] as Record<string, unknown>;
+	expect(adminCall.to).toBe(validConfig.user.email);
+	expect(adminCall.subject).toContain('Declined');
+	expect(adminCall.text).toContain('You declined');
+	expect(adminCall.attachments).toBeUndefined();
+});
+
 test('notify returns ok:true skipped:true when SMTP is not configured', async () => {
 	const sendStub = stubSendEmail();
 	const { notify } = await import('../src/lib/server/notify');

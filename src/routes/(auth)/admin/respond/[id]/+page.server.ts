@@ -3,6 +3,7 @@ import { pushAppointment } from '$lib/server/calendar/push';
 import { systemClock } from '$lib/server/clock';
 import { mergeNotificationStatus } from '$lib/server/db/notification-status';
 import { buildIcs } from '$lib/server/ics';
+import { notify } from '$lib/server/notify';
 import { sendEmail } from '$lib/server/smtp';
 import { getConfig, getDb } from '$lib/server/state';
 import type { Actions, PageServerLoad } from './$types';
@@ -110,13 +111,11 @@ export const actions: Actions = {
 							}
 						]
 					})
-				: await sendEmail({
-						to: row.attendee_email,
-						subject: `Declined: ${eventTypeName} with ${cfg.user.name}`,
-						text:
-							`Your booking request was declined.\n\n` +
-							`What: ${eventTypeName}\n` +
-							`When: ${row.start_time}\n`
+				: await notify('booking_declined', {
+						cfg,
+						appointment: { ...row, status: 'declined' },
+						eventType,
+						cancelUrl: ''
 					});
 
 		let notif = row.notification_status;
