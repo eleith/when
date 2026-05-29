@@ -58,215 +58,176 @@
 		}
 	}
 
-	function fmtLegacy(iso: string): string {
-		return new Date(iso).toLocaleString([], {
-			weekday: 'long',
-			month: 'long',
-			day: 'numeric',
-			hour: '2-digit',
-			minute: '2-digit'
-		});
-	}
+	let status = $derived(data.appointment.status);
+	let isPendingPastStart = $derived(status === 'pending' && data.clockStatus !== 'upcoming');
+	let canRebook = $derived(status === 'declined' || status === 'cancelled');
 </script>
 
 <svelte:head>
-	{#if data.appointment.status === 'cancelled'}
+	{#if status === 'cancelled'}
 		<title>Booking cancelled — When</title>
-	{:else if data.appointment.status === 'declined'}
+	{:else if status === 'declined'}
 		<title>Booking declined — When</title>
-	{:else if data.appointment.status === 'pending'}
+	{:else if status === 'pending'}
 		<title>Booking requested — When</title>
 	{:else}
 		<title>Booking confirmed — When</title>
 	{/if}
 </svelte:head>
 
-{#if data.appointment.status === 'confirmed'}
-	<div class="page">
-		<header class="status-banner">
-			<p class="status-label">Confirmed</p>
-			{#if data.clockStatus}
-				<p class="clock-label">
-					{#if data.clockStatus === 'upcoming'}Upcoming
-					{:else if data.clockStatus === 'in_progress'}In progress
-					{:else}Concluded
-					{/if}
-				</p>
-			{/if}
-		</header>
-
-		<article class="card">
-			<section class="card-section card-section-header">
-				<h1 class="event-name">{data.eventType.name}</h1>
-				<p class="event-meta">
-					{data.eventType.duration} min{#if data.eventType.description}
-						&middot; {data.eventType.description}{/if}
-				</p>
-			</section>
-
-			<section class="card-section detail-list">
-				<div class="detail-row">
-					<IconCalendarBlank class="detail-icon" aria-hidden="true" />
-					<div class="detail-text">
-						<div class="detail-primary">{fmtDateShort(data.appointment.start_time)}</div>
-						<div class="detail-secondary">{fmtWeekday(data.appointment.start_time)}</div>
-					</div>
-				</div>
-				<div class="detail-row">
-					<IconClock class="detail-icon" aria-hidden="true" />
-					<div class="detail-text">
-						<div class="detail-primary">
-							{fmtTimeRange(data.appointment.start_time, data.appointment.end_time)}
-						</div>
-						<div class="detail-secondary">{fmtTzShort(userTz)}</div>
-					</div>
-				</div>
-				{#if data.appointment.location}
-					<div class="detail-row">
-						<IconMapPin class="detail-icon" aria-hidden="true" />
-						<div class="detail-text">
-							<div class="detail-primary">{data.appointment.location}</div>
-						</div>
-					</div>
+<div class="page">
+	<header class="status-banner">
+		<p
+			class="status-label"
+			class:status-confirmed={status === 'confirmed'}
+			class:status-pending={status === 'pending'}
+			class:status-declined={status === 'declined'}
+			class:status-cancelled={status === 'cancelled'}
+		>
+			{#if status === 'confirmed'}Confirmed
+			{:else if status === 'pending'}Pending
+			{:else if status === 'declined'}Declined
+			{:else}Cancelled{/if}
+		</p>
+		{#if data.clockStatus}
+			<p class="clock-label">
+				{#if data.clockStatus === 'upcoming'}Upcoming
+				{:else if data.clockStatus === 'in_progress'}In progress
+				{:else}Concluded
 				{/if}
-				<div class="detail-row">
-					<IconUser class="detail-icon" aria-hidden="true" />
-					<div class="detail-text">
-						<div class="detail-primary">{data.appointment.attendee_name}</div>
-						<div class="detail-secondary">Attendee (you)</div>
-					</div>
-				</div>
-				<div class="detail-row">
-					<IconUser class="detail-icon" aria-hidden="true" />
-					<div class="detail-text">
-						<div class="detail-primary">{data.user.name}</div>
-						<div class="detail-secondary">Attendee</div>
-					</div>
-				</div>
-			</section>
-		</article>
-
-		{#if data.calendarLinks}
-			<section class="add-to-calendar">
-				<header class="atc-header">
-					<IconCalendarPlus class="atc-header-icon" aria-hidden="true" />
-					<h2 class="atc-title">Add to your calendar</h2>
-				</header>
-				<div class="atc-links">
-					<a
-						class="atc-link"
-						href={data.calendarLinks.google}
-						target="_blank"
-						rel="noopener noreferrer">Google</a
-					>
-					<a
-						class="atc-link"
-						href={data.calendarLinks.outlook}
-						target="_blank"
-						rel="noopener noreferrer">Outlook</a
-					>
-					<a class="atc-link" href={data.calendarLinks.ics}>Apple</a>
-					<a
-						class="atc-link"
-						href={data.calendarLinks.ics}
-						download="when-{data.appointment.id}.ics">ICS</a
-					>
-				</div>
-			</section>
+			</p>
 		{/if}
+	</header>
 
-		{#if data.actions.reschedule.allowed || data.actions.cancel.allowed}
-			<section class="changes">
-				<header class="changes-header">
-					<IconPencilSimple class="changes-header-icon" aria-hidden="true" />
-					<h2 class="changes-title">Change of plans?</h2>
-				</header>
-				<div class="changes-links">
-					{#if data.actions.reschedule.allowed}
-						<a
-							class="changes-link changes-link-reschedule"
-							href="/booked/{data.appointment.id}/reschedule?token={encodeURIComponent(data.token)}"
-						>
-							Reschedule
-							<IconArrowRight class="action-arrow" aria-hidden="true" />
-						</a>
-					{/if}
-					{#if data.actions.cancel.allowed}
-						<a
-							class="changes-link changes-link-cancel"
-							href="/booked/{data.appointment.id}/cancel?token={encodeURIComponent(data.token)}"
-						>
-							Cancel booking
-						</a>
-					{/if}
-				</div>
-			</section>
-		{/if}
-	</div>
-{:else}
-	<!-- pending/declined/cancelled keep barebones treatment; commit 7 polishes them -->
-	{#if data.appointment.status === 'cancelled'}
-		<h1>Booking cancelled</h1>
-		<p>This booking was previously cancelled.</p>
-	{:else if data.appointment.status === 'declined'}
-		<h1>Booking declined</h1>
-		<p>
-			{data.user.name} declined this request.
-			<a href="/schedule/{data.eventType.slug}">Pick another time</a>.
-		</p>
-	{:else}
-		<h1>Booking requested</h1>
-		<p>
-			{data.user.name} will review and confirm your request. You'll get an email at
-			<strong>{data.appointment.attendee_email}</strong> with the outcome.
-		</p>
-	{/if}
-
-	{#if data.clockStatus}
-		<p class="clock-status">
-			{#if data.clockStatus === 'upcoming'}Upcoming
-			{:else if data.clockStatus === 'in_progress'}In progress
-			{:else}Concluded
+	{#if status === 'pending'}
+		<p class="status-sub">
+			{#if isPendingPastStart}
+				This time has passed — still awaiting confirmation.
+			{:else}
+				Waiting for {data.user.name} to confirm.
 			{/if}
 		</p>
+	{:else if status === 'declined'}
+		<p class="status-sub">{data.user.name} declined this request.</p>
+	{:else if status === 'cancelled'}
+		<p class="status-sub">This booking was cancelled.</p>
 	{/if}
 
-	<dl>
-		<dt>Event</dt>
-		<dd>{data.eventType.name}</dd>
+	<article class="card">
+		<section class="card-section card-section-header">
+			<h1 class="event-name">{data.eventType.name}</h1>
+			<p class="event-meta">
+				{data.eventType.duration} min{#if data.eventType.description}
+					&middot; {data.eventType.description}{/if}
+			</p>
+		</section>
 
-		<dt>When</dt>
-		<dd class="legacy-when-row">
-			{fmtLegacy(data.appointment.start_time)}
-			<IconArrowRight class="when-arrow" aria-hidden="true" />
-			{fmtLegacy(data.appointment.end_time)}
-		</dd>
+		<section class="card-section detail-list">
+			<div class="detail-row">
+				<IconCalendarBlank class="detail-icon" aria-hidden="true" />
+				<div class="detail-text">
+					<div class="detail-primary">{fmtDateShort(data.appointment.start_time)}</div>
+					<div class="detail-secondary">{fmtWeekday(data.appointment.start_time)}</div>
+				</div>
+			</div>
+			<div class="detail-row">
+				<IconClock class="detail-icon" aria-hidden="true" />
+				<div class="detail-text">
+					<div class="detail-primary">
+						{fmtTimeRange(data.appointment.start_time, data.appointment.end_time)}
+					</div>
+					<div class="detail-secondary">{fmtTzShort(userTz)}</div>
+				</div>
+			</div>
+			{#if data.appointment.location}
+				<div class="detail-row">
+					<IconMapPin class="detail-icon" aria-hidden="true" />
+					<div class="detail-text">
+						<div class="detail-primary">{data.appointment.location}</div>
+					</div>
+				</div>
+			{/if}
+			<div class="detail-row">
+				<IconUser class="detail-icon" aria-hidden="true" />
+				<div class="detail-text">
+					<div class="detail-primary">{data.appointment.attendee_name}</div>
+					<div class="detail-secondary">Attendee (you)</div>
+				</div>
+			</div>
+			<div class="detail-row">
+				<IconUser class="detail-icon" aria-hidden="true" />
+				<div class="detail-text">
+					<div class="detail-primary">{data.user.name}</div>
+					<div class="detail-secondary">Attendee</div>
+				</div>
+			</div>
+		</section>
+	</article>
 
-		{#if data.appointment.location}
-			<dt>Where</dt>
-			<dd>{data.appointment.location}</dd>
-		{/if}
-
-		<dt>Attendee</dt>
-		<dd>{data.appointment.attendee_name} &lt;{data.appointment.attendee_email}&gt;</dd>
-	</dl>
-
-	{#if data.actions.reschedule.allowed}
-		<p>
-			<a href="/booked/{data.appointment.id}/reschedule?token={encodeURIComponent(data.token)}"
-				>Reschedule</a
-			>
-		</p>
+	{#if data.calendarLinks}
+		<section class="add-to-calendar">
+			<header class="atc-header">
+				<IconCalendarPlus class="atc-header-icon" aria-hidden="true" />
+				<h2 class="atc-title">Add to your calendar</h2>
+			</header>
+			<div class="atc-links">
+				<a
+					class="atc-link"
+					href={data.calendarLinks.google}
+					target="_blank"
+					rel="noopener noreferrer">Google</a
+				>
+				<a
+					class="atc-link"
+					href={data.calendarLinks.outlook}
+					target="_blank"
+					rel="noopener noreferrer">Outlook</a
+				>
+				<a class="atc-link" href={data.calendarLinks.ics}>Apple</a>
+				<a class="atc-link" href={data.calendarLinks.ics} download="when-{data.appointment.id}.ics"
+					>ICS</a
+				>
+			</div>
+		</section>
 	{/if}
-	{#if data.actions.cancel.allowed}
-		<p class="cancel-link-row">
-			<a
-				href="/booked/{data.appointment.id}/cancel?token={encodeURIComponent(data.token)}"
-				class="cancel-link">Cancel booking</a
-			>
-		</p>
+
+	{#if data.actions.reschedule.allowed || data.actions.cancel.allowed}
+		<section class="changes">
+			<header class="changes-header">
+				<IconPencilSimple class="changes-header-icon" aria-hidden="true" />
+				<h2 class="changes-title">Change of plans?</h2>
+			</header>
+			<div class="changes-links">
+				{#if data.actions.reschedule.allowed}
+					<a
+						class="changes-link changes-link-reschedule"
+						href="/booked/{data.appointment.id}/reschedule?token={encodeURIComponent(data.token)}"
+					>
+						Reschedule
+						<IconArrowRight class="action-arrow" aria-hidden="true" />
+					</a>
+				{/if}
+				{#if data.actions.cancel.allowed}
+					<a
+						class="changes-link changes-link-cancel"
+						href="/booked/{data.appointment.id}/cancel?token={encodeURIComponent(data.token)}"
+					>
+						Cancel booking
+					</a>
+				{/if}
+			</div>
+		</section>
 	{/if}
-{/if}
+
+	{#if canRebook}
+		<section class="rebook">
+			<a class="rebook-btn" href="/schedule/{data.eventType.slug}">
+				Pick another time
+				<IconArrowRight class="action-arrow" aria-hidden="true" />
+			</a>
+		</section>
+	{/if}
+</div>
 
 <style>
 	.page {
@@ -281,14 +242,29 @@
 		display: flex;
 		align-items: baseline;
 		gap: var(--space-3);
-		margin: 0 0 var(--space-6);
+		margin: 0 0 var(--space-3);
 	}
 
 	.status-label {
 		font-size: var(--font-size-2xl);
 		font-weight: 700;
 		margin: 0;
+	}
+
+	.status-confirmed {
 		color: var(--primary);
+	}
+
+	.status-pending {
+		color: var(--text-secondary);
+	}
+
+	.status-declined {
+		color: var(--danger);
+	}
+
+	.status-cancelled {
+		color: var(--text-muted);
 	}
 
 	.clock-label {
@@ -298,6 +274,21 @@
 		padding: 2px var(--space-3);
 		background: var(--surface-muted);
 		border-radius: var(--radius-pill);
+	}
+
+	.status-sub {
+		color: var(--text-muted);
+		font-size: var(--font-size-md);
+		margin: 0 0 var(--space-6);
+	}
+
+	.status-banner + .card,
+	.status-banner + .status-sub + .card {
+		margin-top: 0;
+	}
+
+	.card {
+		margin-top: var(--space-3);
 	}
 
 	/* ---- card ---- */
@@ -494,6 +485,35 @@
 		transform: translateX(2px);
 	}
 
+	/* ---- rebook CTA (declined / cancelled) ---- */
+	.rebook {
+		margin-top: var(--space-8);
+		display: flex;
+		justify-content: center;
+	}
+
+	.rebook-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-2);
+		padding: var(--space-4) var(--space-7);
+		background: var(--primary);
+		color: var(--text-on-primary);
+		border-radius: var(--radius);
+		font-size: var(--font-size-md);
+		font-weight: 600;
+		text-decoration: none;
+		transition: opacity var(--transition);
+	}
+
+	.rebook-btn:hover {
+		opacity: 0.9;
+	}
+
+	.rebook-btn:hover :global(.action-arrow) {
+		transform: translateX(2px);
+	}
+
 	@media (max-width: 768px) {
 		.page {
 			padding: var(--space-5) var(--space-5) var(--space-9);
@@ -512,34 +532,11 @@
 			justify-content: center;
 			min-height: 48px;
 		}
-	}
 
-	/* ---- legacy markup (pending/declined/cancelled, polished in commit 7) ---- */
-	.legacy-when-row {
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-	}
-
-	:global(.when-arrow) {
-		color: var(--text-muted);
-	}
-
-	.clock-status {
-		color: var(--text-muted);
-		font-size: var(--font-size-sm);
-		margin-top: var(--space-2);
-	}
-
-	.cancel-link-row {
-		margin-top: var(--space-7);
-	}
-
-	.cancel-link {
-		color: var(--danger);
-	}
-
-	.cancel-link:hover {
-		color: var(--danger-strong);
+		.rebook-btn {
+			width: 100%;
+			justify-content: center;
+			min-height: 56px;
+		}
 	}
 </style>
