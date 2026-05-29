@@ -133,9 +133,6 @@
 		</div>
 	</a>
 	<div class="banner-event">
-		{#if data.reschedule}
-			<p class="reschedule-badge">Reschedule</p>
-		{/if}
 		<h1 class="banner-event-name">{data.eventType.name}</h1>
 		<p class="banner-event-meta">
 			{data.eventType.duration} min{#if data.eventType.description}
@@ -175,9 +172,6 @@
 				</section>
 
 				<section class="context-section context-section-about">
-					{#if data.reschedule}
-						<p class="reschedule-badge">Reschedule</p>
-					{/if}
 					<h2 class="context-event-name">{data.eventType.name}</h2>
 					<p class="context-event-meta">{data.eventType.duration} min</p>
 					{#if data.eventType.description}
@@ -256,39 +250,17 @@
 								<p class="form-error" role="alert">{form.error}</p>
 							{/if}
 
-							<form
-								id="booking-form"
-								method="POST"
-								action={data.reschedule ? '?/reschedule' : '?/book'}
-							>
+							<form id="booking-form" method="POST" action="?/book">
 								<input type="hidden" name="slot" value={viewSlot} />
-								{#if data.reschedule}
-									<input type="hidden" name="reschedule_id" value={data.reschedule.id} />
-									<input type="hidden" name="token" value={data.token} />
-								{/if}
 
 								<div class="field">
 									<label for="name">What is your name?</label>
-									<input
-										id="name"
-										name="name"
-										required
-										autocomplete="name"
-										value={data.reschedule?.name ?? ''}
-										bind:this={nameInput}
-									/>
+									<input id="name" name="name" required autocomplete="name" bind:this={nameInput} />
 								</div>
 
 								<div class="field">
 									<label for="email">What is your email?</label>
-									<input
-										id="email"
-										name="email"
-										type="email"
-										required
-										autocomplete="email"
-										value={data.reschedule?.email ?? ''}
-									/>
+									<input id="email" name="email" type="email" required autocomplete="email" />
 								</div>
 
 								{#if data.eventType.location?.mode === 'fixed'}
@@ -317,9 +289,7 @@
 									<textarea id="notes" name="notes" rows="3"></textarea>
 								</div>
 
-								<button type="submit" class="submit-btn">
-									{data.reschedule ? 'Reschedule' : 'Book'}
-								</button>
+								<button type="submit" class="submit-btn">Book</button>
 							</form>
 						{:else}
 							<div class="form-placeholder">
@@ -350,7 +320,7 @@
 						</button>
 					{:else}
 						<button type="submit" form="booking-form" class="cta-btn" disabled={!viewSlot}>
-							{data.reschedule ? 'Reschedule' : 'Book'}
+							Book
 						</button>
 					{/if}
 				</div>
@@ -365,17 +335,6 @@
 		margin: 0 auto;
 		padding: var(--space-8) var(--space-6) var(--space-10);
 		color: var(--text);
-	}
-
-	.reschedule-badge {
-		display: inline-block;
-		background: var(--primary);
-		color: var(--text-on-primary);
-		font-size: var(--font-size-xs);
-		font-weight: 600;
-		padding: var(--space-1) var(--space-4);
-		border-radius: var(--radius-pill);
-		margin: 0 0 var(--space-3);
 	}
 
 	.empty {
@@ -790,17 +749,6 @@
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
-	}
-
-	.banner-event .reschedule-badge {
-		font-size: var(--font-size-xs);
-		font-weight: 600;
-		display: inline-block;
-		background: var(--primary);
-		color: var(--text-on-primary);
-		padding: 2px var(--space-3);
-		border-radius: var(--radius-pill);
-		margin: 0 0 var(--space-1);
 	}
 
 	.banner-link:hover .banner-title {

@@ -84,9 +84,8 @@
 
 {#if data.actions.reschedule.allowed}
 	<p>
-		<a
-			href="/schedule/{data.eventType.slug}?reschedule={data.appointment
-				.id}&token={encodeURIComponent(data.token)}">Reschedule</a
+		<a href="/booked/{data.appointment.id}/reschedule?token={encodeURIComponent(data.token)}"
+			>Reschedule</a
 		>
 	</p>
 {/if}
