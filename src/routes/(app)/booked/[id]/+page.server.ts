@@ -1,6 +1,7 @@
 import { error } from '@sveltejs/kit';
 import { requireViewableAppointment } from '$lib/server/booking/access';
 import { resolveBookingActions } from '$lib/server/booking/actions';
+import { buildAddToCalendarLinks } from '$lib/server/calendar-links';
 import { systemClock } from '$lib/server/clock';
 import { getConfig, getDb } from '$lib/server/state';
 import type { Appointment } from '$lib/server/db';
@@ -38,6 +39,25 @@ export const load: PageServerLoad = async ({ params, url }) => {
 	const actions = resolveBookingActions({ row, viewer: 'attendee', now, eventType });
 	const clockStatus = computeClockStatus(row, now);
 
+	const tokenEnc = encodeURIComponent(token);
+	const bookedUrl = `${url.origin}/booked/${row.id}?token=${tokenEnc}`;
+	const icsUrl = `${url.origin}/booked/${row.id}/ics?token=${tokenEnc}`;
+
+	const eventName = eventType?.name ?? row.event_type_id;
+	const calendarLinks =
+		row.status === 'confirmed'
+			? buildAddToCalendarLinks(
+					{
+						start: row.start_time,
+						end: row.end_time,
+						title: `${eventName} with ${cfg.user.name}`,
+						description: `View or change this booking: ${bookedUrl}`,
+						location: row.location ?? undefined
+					},
+					icsUrl
+				)
+			: null;
+
 	return {
 		appointment: {
 			id: row.id,
@@ -45,12 +65,19 @@ export const load: PageServerLoad = async ({ params, url }) => {
 			end_time: row.end_time,
 			attendee_name: row.attendee_name,
 			attendee_email: row.attendee_email,
+			attendee_notes: row.attendee_notes,
 			location: row.location,
 			status: row.status
 		},
 		eventType: eventType
-			? { name: eventType.name, duration: eventType.duration, slug: eventType.slug }
-			: { name: row.event_type_id, duration: 0, slug: row.event_type_id },
+			? {
+					name: eventType.name,
+					duration: eventType.duration,
+					slug: eventType.slug,
+					description: eventType.description ?? null
+				}
+			: { name: row.event_type_id, duration: 0, slug: row.event_type_id, description: null },
+		calendarLinks,
 		actions,
 		clockStatus,
 		token
