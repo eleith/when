@@ -189,9 +189,12 @@ export const actions: Actions = {
 				created_at: '',
 				updated_at: ''
 			};
-			const cancelUrl = `${url.origin}/booked/${id}?token=${encodeURIComponent(cancelToken)}`;
+			const cancelTokenEnc = encodeURIComponent(cancelToken);
+			const bookedUrl = `${url.origin}/booked/${id}?token=${cancelTokenEnc}`;
+			const cancelUrl = `${url.origin}/booked/${id}/cancel?token=${cancelTokenEnc}`;
+			const rescheduleUrl = `${url.origin}/booked/${id}/reschedule?token=${cancelTokenEnc}`;
 			const pushed = await pushAppointment(cfg, appt, eventType.destination_calendar, {
-				cancelUrl
+				cancelUrl: bookedUrl
 			});
 			if (pushed.ok) {
 				await getDb()
@@ -224,7 +227,9 @@ export const actions: Actions = {
 				cfg,
 				appointment: appt,
 				eventType,
-				cancelUrl
+				cancelUrl,
+				rescheduleUrl,
+				bookedUrl
 			});
 			if (!notifyResult.ok) {
 				const current = await getDb()
@@ -247,8 +252,10 @@ export const actions: Actions = {
 		if (status === 'pending' && responseToken) {
 			const acceptUrl = `${url.origin}/admin/respond/${id}?action=accept&token=${encodeURIComponent(responseToken)}`;
 			const declineUrl = `${url.origin}/admin/respond/${id}?action=decline&token=${encodeURIComponent(responseToken)}`;
-			const cancelUrl = `${url.origin}/booked/${id}?token=${encodeURIComponent(cancelToken)}`;
-			const rescheduleUrl = `${url.origin}/booked/${id}/reschedule?token=${encodeURIComponent(cancelToken)}`;
+			const cancelTokenEnc = encodeURIComponent(cancelToken);
+			const bookedUrl = `${url.origin}/booked/${id}?token=${cancelTokenEnc}`;
+			const cancelUrl = `${url.origin}/booked/${id}/cancel?token=${cancelTokenEnc}`;
+			const rescheduleUrl = `${url.origin}/booked/${id}/reschedule?token=${cancelTokenEnc}`;
 			const appt: Appointment = {
 				id,
 				event_type_id: eventType.id,
@@ -274,6 +281,8 @@ export const actions: Actions = {
 					appointment: appt,
 					eventType,
 					cancelUrl,
+					rescheduleUrl,
+					bookedUrl,
 					acceptUrl,
 					declineUrl
 				}),
@@ -282,7 +291,8 @@ export const actions: Actions = {
 					appointment: appt,
 					eventType,
 					cancelUrl,
-					rescheduleUrl
+					rescheduleUrl,
+					bookedUrl
 				})
 			]);
 			const result = { ok: organizerResult.ok && attendeeResult.ok };

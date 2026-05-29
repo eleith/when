@@ -23,7 +23,9 @@ const appointment: Appointment = {
 };
 
 const smtp = { host: 'smtp.example.com', port: 587, user: 'u', pass: 'p' };
-const cancelUrl = 'https://when.example.com/booked/appt-1?token=tok';
+const bookedUrl = 'https://when.example.com/booked/appt-1?token=tok';
+const cancelUrl = 'https://when.example.com/booked/appt-1/cancel?token=tok';
+const rescheduleUrl = 'https://when.example.com/booked/appt-1/reschedule?token=tok';
 
 function stubSendEmail() {
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -39,7 +41,9 @@ test('notify(booking_confirmed) sends correct attendee email', async () => {
 		cfg: { ...validConfig, smtp },
 		appointment,
 		eventType: validConfig.event_types[0],
-		cancelUrl
+		cancelUrl,
+		rescheduleUrl,
+		bookedUrl
 	});
 
 	expect(sendStub).toHaveBeenCalledTimes(2);
@@ -47,13 +51,16 @@ test('notify(booking_confirmed) sends correct attendee email', async () => {
 	expect(attendeeCall.to).toBe('booker@example.com');
 	expect(attendeeCall.subject).toContain('Confirmed');
 	expect(attendeeCall.subject).toContain('30 Minute Chat');
-	expect(attendeeCall.text).toContain('Cancel or reschedule:');
-	expect(attendeeCall.text).toContain(cancelUrl);
+	expect(attendeeCall.text).toContain(`Cancel: ${cancelUrl}`);
+	expect(attendeeCall.text).toContain(`Reschedule: ${rescheduleUrl}`);
 	expect(attendeeCall.attachments).toBeArrayOfSize(1);
 	const att = (attendeeCall.attachments as Array<Record<string, unknown>>)[0];
 	expect(att.filename).toBe('appt-1.ics');
 	expect(att.contentType).toBe('text/calendar; charset=utf-8');
 	expect(att.content).toContain('BEGIN:VCALENDAR');
+	// ICS folds long lines at column 75 with `\r\n `; unfold before substring match.
+	const unfolded = (att.content as string).replace(/\r\n /g, '');
+	expect(unfolded).toContain(bookedUrl);
 });
 
 test('notify(booking_cancelled_by_attendee) attaches METHOD:CANCEL ICS for attendee, admin gets none', async () => {
@@ -63,12 +70,14 @@ test('notify(booking_cancelled_by_attendee) attaches METHOD:CANCEL ICS for atten
 		cfg: { ...validConfig, smtp },
 		appointment: { ...appointment, status: 'cancelled', ics_sequence: 1 },
 		eventType: validConfig.event_types[0],
-		cancelUrl
+		cancelUrl,
+		rescheduleUrl,
+		bookedUrl
 	});
 
 	const attendeeCall = sendStub.mock.calls[0]![0] as Record<string, unknown>;
 	expect(attendeeCall.subject).toContain('Cancelled');
-	expect(attendeeCall.text).not.toContain('Cancel');
+	expect(attendeeCall.text).not.toContain('Cancel:');
 	expect(attendeeCall.attachments).toBeArrayOfSize(1);
 	const att = (attendeeCall.attachments as Array<Record<string, unknown>>)[0];
 	expect(att.filename).toBe('appt-1.ics');
@@ -89,33 +98,37 @@ test('notify(booking_rescheduled_by_attendee) sends attendee email with ICS', as
 		cfg: { ...validConfig, smtp },
 		appointment,
 		eventType: validConfig.event_types[0],
-		cancelUrl
+		cancelUrl,
+		rescheduleUrl,
+		bookedUrl
 	});
 
 	expect(sendStub).toHaveBeenCalledTimes(2);
 	const attendeeCall = sendStub.mock.calls[0]![0] as Record<string, unknown>;
 	expect(attendeeCall.subject).toContain('Rescheduled');
+	expect(attendeeCall.text).toContain(`Reschedule again: ${rescheduleUrl}`);
+	expect(attendeeCall.text).toContain(`Cancel: ${cancelUrl}`);
 	expect(attendeeCall.attachments).toBeArrayOfSize(1);
 });
 
 test('notify(booking_pending_to_attendee) sends acknowledgement to attendee with cancel + reschedule, no ICS', async () => {
 	const sendStub = stubSendEmail();
 	const { notify } = await import('../src/lib/server/notify');
-	const rescheduleUrl = 'https://when.example.com/schedule/chat?reschedule=appt-1&token=tok';
 	await notify('booking_pending_to_attendee', {
 		cfg: { ...validConfig, smtp },
 		appointment: { ...appointment, status: 'pending' },
 		eventType: validConfig.event_types[0],
 		cancelUrl,
-		rescheduleUrl
+		rescheduleUrl,
+		bookedUrl
 	});
 
 	expect(sendStub).toHaveBeenCalledTimes(1);
 	const attendeeCall = sendStub.mock.calls[0]![0] as Record<string, unknown>;
 	expect(attendeeCall.to).toBe('booker@example.com');
 	expect(attendeeCall.subject).toContain('Booking request received');
-	expect(attendeeCall.text).toContain(cancelUrl);
-	expect(attendeeCall.text).toContain(rescheduleUrl);
+	expect(attendeeCall.text).toContain(`Cancel: ${cancelUrl}`);
+	expect(attendeeCall.text).toContain(`Reschedule: ${rescheduleUrl}`);
 	expect(attendeeCall.attachments).toBeUndefined();
 });
 
@@ -129,6 +142,8 @@ test('notify(booking_pending_to_organizer) sends accept/decline email to organiz
 		appointment: { ...appointment, status: 'pending' },
 		eventType: validConfig.event_types[0],
 		cancelUrl,
+		rescheduleUrl,
+		bookedUrl,
 		acceptUrl,
 		declineUrl
 	});
@@ -149,7 +164,9 @@ test('notify(booking_declined) sends to attendee and admin, no ICS', async () =>
 		cfg: { ...validConfig, smtp },
 		appointment: { ...appointment, status: 'declined' },
 		eventType: validConfig.event_types[0],
-		cancelUrl: ''
+		cancelUrl: '',
+		rescheduleUrl: '',
+		bookedUrl: ''
 	});
 
 	expect(sendStub).toHaveBeenCalledTimes(2);
@@ -173,7 +190,9 @@ test('notify returns ok:true skipped:true when SMTP is not configured', async ()
 		cfg: { ...validConfig, smtp: undefined },
 		appointment,
 		eventType: validConfig.event_types[0],
-		cancelUrl
+		cancelUrl,
+		rescheduleUrl,
+		bookedUrl
 	});
 
 	expect(result).toEqual({ ok: true, skipped: true });

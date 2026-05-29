@@ -15,10 +15,12 @@ export interface NotifyContext {
 	cfg: WhenConfiguration;
 	appointment: Appointment;
 	eventType: EventType | undefined;
-	/** URL the booker can use to cancel or reschedule. Empty for variants that don't surface it. */
+	/** Public cancel route: `/booked/[id]/cancel?token=…`. Empty for variants that don't surface it. */
 	cancelUrl: string;
-	/** Public reschedule URL. Set for variants that surface a reschedule link. */
-	rescheduleUrl?: string;
+	/** Public reschedule route: `/booked/[id]/reschedule?token=…`. Empty for variants that don't surface it. */
+	rescheduleUrl: string;
+	/** Public booking landing page: `/booked/[id]?token=…`. Empty for variants that don't surface it. */
+	bookedUrl: string;
 	/** Admin accept URL — set for `booking_pending_to_organizer`. */
 	acceptUrl?: string;
 	/** Admin decline URL — set for `booking_pending_to_organizer`. */
@@ -74,7 +76,7 @@ function attendeeIcs(ctx: NotifyContext): Attachment {
 			eventTypeName: eventTypeName(ctx),
 			organizerName: ctx.cfg.user.name,
 			organizerEmail: ctx.cfg.user.email,
-			cancelUrl: ctx.cancelUrl,
+			cancelUrl: ctx.bookedUrl,
 			method: 'REQUEST'
 		}),
 		contentType: 'text/calendar; charset=utf-8'
@@ -89,7 +91,7 @@ function cancelIcs(ctx: NotifyContext): Attachment {
 			eventTypeName: eventTypeName(ctx),
 			organizerName: ctx.cfg.user.name,
 			organizerEmail: ctx.cfg.user.email,
-			cancelUrl: ctx.cancelUrl,
+			cancelUrl: ctx.bookedUrl,
 			method: 'CANCEL'
 		}),
 		contentType: 'text/calendar; charset=utf-8'
@@ -111,7 +113,8 @@ const registry: Record<NotifyVariant, NotifySpec> = {
 						whenLine(ctx.appointment),
 						whereLine(ctx.appointment),
 						``,
-						`Cancel or reschedule: ${ctx.cancelUrl}`
+						`Reschedule: ${ctx.rescheduleUrl}`,
+						`Cancel: ${ctx.cancelUrl}`
 					),
 					attachments: [attendeeIcs(ctx)]
 				},
@@ -146,8 +149,8 @@ const registry: Record<NotifyVariant, NotifySpec> = {
 						whereLine(ctx.appointment),
 						``,
 						`Need to change something before then?`,
-						`Cancel: ${ctx.cancelUrl}`,
-						ctx.rescheduleUrl ? `Reschedule: ${ctx.rescheduleUrl}` : null
+						`Reschedule: ${ctx.rescheduleUrl}`,
+						`Cancel: ${ctx.cancelUrl}`
 					)
 				}
 			];
@@ -215,7 +218,8 @@ const registry: Record<NotifyVariant, NotifySpec> = {
 						whenLine(ctx.appointment),
 						whereLine(ctx.appointment),
 						``,
-						`Cancel or reschedule again: ${ctx.cancelUrl}`
+						`Reschedule again: ${ctx.rescheduleUrl}`,
+						`Cancel: ${ctx.cancelUrl}`
 					),
 					attachments: [attendeeIcs(ctx)]
 				},

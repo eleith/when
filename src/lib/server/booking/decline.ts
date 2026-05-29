@@ -51,7 +51,9 @@ export async function declineAppointment(
 			cfg: deps.cfg,
 			appointment: row,
 			eventType,
-			cancelUrl: ''
+			cancelUrl: '',
+			rescheduleUrl: '',
+			bookedUrl: ''
 		})
 	);
 

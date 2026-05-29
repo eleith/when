@@ -45,14 +45,15 @@ export async function acceptAppointment(
 
 	let row = transition.row;
 	const tracker = createNotificationTracker(row.notification_status);
-	const cancelUrl = `${input.baseUrl}/booked/${row.id}?token=${encodeURIComponent(
-		row.cancel_token
-	)}`;
+	const token = encodeURIComponent(row.cancel_token);
+	const bookedUrl = `${input.baseUrl}/booked/${row.id}?token=${token}`;
+	const cancelUrl = `${input.baseUrl}/booked/${row.id}/cancel?token=${token}`;
+	const rescheduleUrl = `${input.baseUrl}/booked/${row.id}/reschedule?token=${token}`;
 
 	let externalUpdate: { external_event_id: string; external_calendar_id: string } | null = null;
 	if (eventType) {
 		const pushed = await tracker.run('calendar_push', () =>
-			pushAppointment(deps.cfg, row, eventType.destination_calendar, { cancelUrl })
+			pushAppointment(deps.cfg, row, eventType.destination_calendar, { cancelUrl: bookedUrl })
 		);
 		if (pushed.ok) {
 			externalUpdate = {
@@ -67,7 +68,9 @@ export async function acceptAppointment(
 			cfg: deps.cfg,
 			appointment: row,
 			eventType,
-			cancelUrl
+			cancelUrl,
+			rescheduleUrl,
+			bookedUrl
 		})
 	);
 
