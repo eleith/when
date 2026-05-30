@@ -7,7 +7,15 @@
 	import IconUser from 'virtual:icons/ph/user';
 	import IconWarning from 'virtual:icons/ph/warning';
 
-	let { data } = $props();
+	let { data, form } = $props();
+
+	let acceptBtn = $state<HTMLButtonElement | null>(null);
+	let declineBtn = $state<HTMLButtonElement | null>(null);
+
+	$effect(() => {
+		if (data.focus === 'accept') acceptBtn?.focus();
+		else if (data.focus === 'decline') declineBtn?.focus();
+	});
 
 	let browserTz = $state(Intl.DateTimeFormat().resolvedOptions().timeZone);
 
@@ -158,7 +166,37 @@
 		</section>
 	</article>
 
-	<!-- Actions land in commits 6–8. -->
+	{#if form?.error}
+		<p class="form-error" role="alert">{form.error}</p>
+	{:else if form?.success === 'accepted'}
+		<p class="form-success">Accepted. The attendee has been notified.</p>
+	{:else if form?.success === 'declined'}
+		<p class="form-success">Declined. The attendee has been notified.</p>
+	{/if}
+
+	{#if data.actions.accept.allowed || data.actions.decline.allowed}
+		<section class="actions">
+			<header class="actions-header">
+				<h2 class="actions-title">Respond</h2>
+			</header>
+			<div class="actions-row">
+				{#if data.actions.accept.allowed}
+					<form method="POST" action="?/accept">
+						<button type="submit" class="action-btn accept-btn" bind:this={acceptBtn}>
+							Accept
+						</button>
+					</form>
+				{/if}
+				{#if data.actions.decline.allowed}
+					<form method="POST" action="?/decline">
+						<button type="submit" class="action-btn decline-btn" bind:this={declineBtn}>
+							Decline
+						</button>
+					</form>
+				{/if}
+			</div>
+		</section>
+	{/if}
 </div>
 
 <style>
@@ -315,6 +353,82 @@
 	.notes {
 		white-space: pre-wrap;
 		line-height: 1.5;
+	}
+
+	.form-error {
+		background: var(--danger-bg);
+		color: var(--danger);
+		padding: var(--space-3) var(--space-5);
+		border-radius: var(--radius);
+		font-size: var(--font-size-sm);
+		margin: var(--space-5) 0 0;
+	}
+
+	.form-success {
+		background: var(--primary-muted);
+		color: var(--primary);
+		padding: var(--space-3) var(--space-5);
+		border-radius: var(--radius);
+		font-size: var(--font-size-sm);
+		margin: var(--space-5) 0 0;
+	}
+
+	/* ---- actions section ---- */
+	.actions {
+		margin-top: var(--space-7);
+	}
+
+	.actions-header {
+		margin: 0 0 var(--space-4);
+	}
+
+	.actions-title {
+		font-size: var(--font-size-md);
+		font-weight: 600;
+		margin: 0;
+	}
+
+	.actions-row {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-3);
+	}
+
+	.action-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-2);
+		padding: var(--space-3) var(--space-6);
+		border-radius: var(--radius);
+		font-size: var(--font-size-md);
+		font-weight: 600;
+		cursor: pointer;
+		border: 1px solid;
+		transition:
+			background var(--transition),
+			color var(--transition),
+			border-color var(--transition);
+	}
+
+	.accept-btn {
+		background: var(--primary);
+		color: var(--text-on-primary);
+		border-color: var(--primary);
+	}
+
+	.accept-btn:hover {
+		opacity: 0.9;
+	}
+
+	.decline-btn {
+		background: transparent;
+		color: var(--danger);
+		border-color: var(--border-strong);
+	}
+
+	.decline-btn:hover {
+		background: var(--danger-bg);
+		border-color: var(--danger);
 	}
 
 	@media (max-width: 768px) {

@@ -1,8 +1,10 @@
-import { error } from '@sveltejs/kit';
+import { error, fail } from '@sveltejs/kit';
+import { acceptAppointment } from '$lib/server/booking/accept';
 import { resolveBookingActions } from '$lib/server/booking/actions';
+import { declineAppointment } from '$lib/server/booking/decline';
 import { systemClock } from '$lib/server/clock';
 import { getConfig, getDb } from '$lib/server/state';
-import type { PageServerLoad } from './$types';
+import type { Actions, PageServerLoad } from './$types';
 
 function isFocusAction(v: string | null): v is 'accept' | 'decline' | 'cancel' | 'reschedule' {
 	return v === 'accept' || v === 'decline' || v === 'cancel' || v === 'reschedule';
@@ -62,4 +64,48 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 		cancelToken: row.cancel_token,
 		responseToken: row.response_token
 	};
+};
+
+export const actions: Actions = {
+	accept: async ({ params, url, locals }) => {
+		await locals.auth();
+
+		const row = await getDb()
+			.selectFrom('appointments')
+			.selectAll()
+			.where('id', '=', params.id)
+			.executeTakeFirst();
+
+		if (!row) return fail(404, { error: 'Booking not found.' });
+
+		const result = await acceptAppointment(
+			{ db: getDb(), cfg: getConfig(), clock: systemClock },
+			{ appointment: row, baseUrl: url.origin }
+		);
+		if (!result.ok) {
+			return fail(409, { error: 'This booking can no longer be accepted.' });
+		}
+		return { success: 'accepted' };
+	},
+
+	decline: async ({ params, locals }) => {
+		await locals.auth();
+
+		const row = await getDb()
+			.selectFrom('appointments')
+			.selectAll()
+			.where('id', '=', params.id)
+			.executeTakeFirst();
+
+		if (!row) return fail(404, { error: 'Booking not found.' });
+
+		const result = await declineAppointment(
+			{ db: getDb(), cfg: getConfig(), clock: systemClock },
+			{ appointment: row }
+		);
+		if (!result.ok) {
+			return fail(409, { error: 'This booking can no longer be declined.' });
+		}
+		return { success: 'declined' };
+	}
 };
