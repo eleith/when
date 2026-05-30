@@ -67,9 +67,12 @@ export async function cancelAppointment(
 		);
 	}
 
-	// TODO project 03: switch variant on initiator (attendee vs organizer cancel).
+	const variant =
+		input.initiator === 'organizer'
+			? 'booking_cancelled_by_organizer'
+			: 'booking_cancelled_by_attendee';
 	await tracker.run('email', () =>
-		notify('booking_cancelled_by_attendee', {
+		notify(variant, {
 			cfg: deps.cfg,
 			appointment: cancelled,
 			eventType,

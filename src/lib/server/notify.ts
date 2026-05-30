@@ -8,6 +8,7 @@ export type NotifyVariant =
 	| 'booking_pending_to_organizer'
 	| 'booking_pending_to_attendee'
 	| 'booking_cancelled_by_attendee'
+	| 'booking_cancelled_by_organizer'
 	| 'booking_rescheduled_by_attendee'
 	| 'booking_declined';
 
@@ -196,6 +197,34 @@ const registry: Record<NotifyVariant, NotifySpec> = {
 					subject: `Cancelled: ${name} with ${ctx.appointment.attendee_name}`,
 					text: lines(
 						`${ctx.appointment.attendee_name} <${ctx.appointment.attendee_email}> cancelled ${name}.`,
+						``,
+						whenLine(ctx.appointment)
+					)
+				}
+			];
+		}
+	},
+
+	booking_cancelled_by_organizer: {
+		envelopes(ctx) {
+			const name = eventTypeName(ctx);
+			return [
+				{
+					to: ctx.appointment.attendee_email,
+					subject: `Cancelled: ${name} with ${ctx.cfg.user.name}`,
+					text: lines(
+						`${ctx.cfg.user.name} cancelled this booking.`,
+						``,
+						`What: ${name}`,
+						whenLine(ctx.appointment)
+					),
+					attachments: [cancelIcs(ctx)]
+				},
+				{
+					to: ctx.cfg.user.email,
+					subject: `Cancelled: ${name} with ${ctx.appointment.attendee_name}`,
+					text: lines(
+						`You cancelled ${ctx.appointment.attendee_name}'s <${ctx.appointment.attendee_email}> booking for ${name}.`,
 						``,
 						whenLine(ctx.appointment)
 					)
