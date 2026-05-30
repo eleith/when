@@ -239,11 +239,6 @@
 		text-decoration: none;
 		font-weight: 600;
 		font-size: var(--font-size-md);
-		transition: color var(--transition);
-	}
-
-	.row-link:hover {
-		color: var(--primary);
 	}
 
 	.attendee-email {
