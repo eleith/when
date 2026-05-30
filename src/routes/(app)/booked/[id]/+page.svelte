@@ -11,11 +11,19 @@
 	import IconPencilSimple from 'virtual:icons/ph/pencil-simple';
 	import IconUser from 'virtual:icons/ph/user';
 	import IconWarningCircle from 'virtual:icons/ph/warning-circle';
+	import IconWarning from 'virtual:icons/ph/warning';
+	import IconNote from 'virtual:icons/ph/note';
 
-	let { data } = $props();
+	let { data, form } = $props();
 
 	let userTz = $state('UTC');
 	let cancelDialogOpen = $state(false);
+
+	let acceptBtn = $state<HTMLButtonElement | null>(null);
+	let declineBtn = $state<HTMLButtonElement | null>(null);
+	let cancelBtn = $state<HTMLButtonElement | null>(null);
+	let rescheduleLink = $state<HTMLAnchorElement | null>(null);
+	let confirmCancel = $state(false);
 
 	$effect(() => {
 		cancelDialogOpen = data.showCancelModal;
@@ -25,9 +33,9 @@
 		userTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
 	});
 
-	function fmtDateShort(iso: string): string {
+	function fmtDateShort(iso: string, tz = userTz): string {
 		try {
-			return Temporal.Instant.from(iso).toZonedDateTimeISO(userTz).toLocaleString(undefined, {
+			return Temporal.Instant.from(iso).toZonedDateTimeISO(tz).toLocaleString(undefined, {
 				year: 'numeric',
 				month: 'numeric',
 				day: 'numeric'
@@ -37,20 +45,20 @@
 		}
 	}
 
-	function fmtWeekday(iso: string): string {
+	function fmtWeekday(iso: string, tz = userTz): string {
 		try {
 			return Temporal.Instant.from(iso)
-				.toZonedDateTimeISO(userTz)
+				.toZonedDateTimeISO(tz)
 				.toLocaleString(undefined, { weekday: 'long' });
 		} catch {
 			return '';
 		}
 	}
 
-	function fmtTimeRange(start: string, end: string): string {
+	function fmtTimeRange(start: string, end: string, tz = userTz): string {
 		try {
-			const s = Temporal.Instant.from(start).toZonedDateTimeISO(userTz);
-			const e = Temporal.Instant.from(end).toZonedDateTimeISO(userTz);
+			const s = Temporal.Instant.from(start).toZonedDateTimeISO(tz);
+			const e = Temporal.Instant.from(end).toZonedDateTimeISO(tz);
 			const time = (z: Temporal.ZonedDateTime) =>
 				z.toLocaleString(undefined, { hour: '2-digit', minute: '2-digit' });
 			return `${time(s)} – ${time(e)}`;
@@ -74,6 +82,7 @@
 	let status = $derived(data.appointment.status);
 	let isPendingPastStart = $derived(status === 'pending' && data.clockStatus !== 'upcoming');
 	let canRebook = $derived(status === 'declined' || status === 'cancelled');
+	let differentTz = $derived(data.organizerTz !== userTz);
 </script>
 
 <svelte:head>
@@ -89,6 +98,12 @@
 </svelte:head>
 
 <div class="page">
+	{#if data.isAdmin}
+		<nav class="breadcrumbs">
+			<a href="/admin">← All bookings</a>
+		</nav>
+	{/if}
+
 	<header class="status-banner">
 		<p
 			class="status-label"
@@ -133,6 +148,16 @@
 		</aside>
 	{/if}
 
+	{#if data.isAdmin && data.appointment.notification_status}
+		<aside class="notif-warning">
+			<IconWarning class="notif-icon" aria-hidden="true" />
+			<div>
+				<p class="notif-title">Some notifications didn't send</p>
+				<p class="notif-detail">{data.appointment.notification_status}</p>
+			</div>
+		</aside>
+	{/if}
+
 	<article class="card">
 		<section class="card-section card-section-header">
 			<h1 class="event-name">{data.eventType.name}</h1>
@@ -146,17 +171,33 @@
 			<div class="detail-row">
 				<IconCalendarBlank class="detail-icon" aria-hidden="true" />
 				<div class="detail-text">
-					<div class="detail-primary">{fmtDateShort(data.appointment.start_time)}</div>
-					<div class="detail-secondary">{fmtWeekday(data.appointment.start_time)}</div>
+					<div class="detail-primary">
+						{fmtDateShort(data.appointment.start_time, data.isAdmin ? data.organizerTz : userTz)}
+					</div>
+					<div class="detail-secondary">
+						{fmtWeekday(data.appointment.start_time, data.isAdmin ? data.organizerTz : userTz)}
+					</div>
 				</div>
 			</div>
 			<div class="detail-row">
 				<IconClock class="detail-icon" aria-hidden="true" />
 				<div class="detail-text">
 					<div class="detail-primary">
-						{fmtTimeRange(data.appointment.start_time, data.appointment.end_time)}
+						{fmtTimeRange(
+							data.appointment.start_time,
+							data.appointment.end_time,
+							data.isAdmin ? data.organizerTz : userTz
+						)}
 					</div>
-					<div class="detail-secondary">{fmtTzShort(userTz)}</div>
+					<div class="detail-secondary">
+						{fmtTzShort(data.isAdmin ? data.organizerTz : userTz)}
+					</div>
+					{#if data.isAdmin && differentTz}
+						<div class="detail-secondary tz-extra">
+							{fmtTimeRange(data.appointment.start_time, data.appointment.end_time, userTz)}
+							&middot; {fmtTzShort(userTz)} (local)
+						</div>
+					{/if}
 				</div>
 			</div>
 			{#if data.appointment.location}
@@ -171,16 +212,33 @@
 				<IconUser class="detail-icon" aria-hidden="true" />
 				<div class="detail-text">
 					<div class="detail-primary">{data.appointment.attendee_name}</div>
-					<div class="detail-secondary">Attendee (you)</div>
+					<div class="detail-secondary">
+						{#if data.isAdmin}
+							{data.appointment.attendee_email}
+						{:else}
+							Attendee (you)
+						{/if}
+					</div>
 				</div>
 			</div>
-			<div class="detail-row">
-				<IconUser class="detail-icon" aria-hidden="true" />
-				<div class="detail-text">
-					<div class="detail-primary">{data.user.name}</div>
-					<div class="detail-secondary">Attendee</div>
+			{#if !data.isAdmin}
+				<div class="detail-row">
+					<IconUser class="detail-icon" aria-hidden="true" />
+					<div class="detail-text">
+						<div class="detail-primary">{data.user.name}</div>
+						<div class="detail-secondary">Attendee</div>
+					</div>
 				</div>
-			</div>
+			{/if}
+			{#if data.isAdmin && data.appointment.attendee_notes}
+				<div class="detail-row">
+					<IconNote class="detail-icon" aria-hidden="true" />
+					<div class="detail-text">
+						<div class="detail-primary">Notes</div>
+						<div class="detail-secondary notes">{data.appointment.attendee_notes}</div>
+					</div>
+				</div>
+			{/if}
 		</section>
 	</article>
 
@@ -211,43 +269,119 @@
 		</section>
 	{/if}
 
-	{#if data.actions.reschedule.allowed || data.actions.cancel.allowed}
-		<section class="changes">
-			<header class="changes-header">
-				<IconPencilSimple class="changes-header-icon" aria-hidden="true" />
-				<h2 class="changes-title">Change of plans?</h2>
-			</header>
-			<div class="changes-links">
-				{#if data.actions.reschedule.allowed}
-					<a
-						class="changes-link changes-link-reschedule"
-						href="/schedule/{data.eventType.slug}?reschedule={data.appointment
-							.id}&token={encodeURIComponent(data.token)}"
-					>
-						Reschedule
-						<IconArrowRight class="action-arrow" aria-hidden="true" />
-					</a>
-				{/if}
-				{#if data.actions.cancel.allowed}
-					<button
-						type="button"
-						class="changes-link changes-link-cancel"
-						onclick={() => (cancelDialogOpen = true)}
-					>
-						Cancel booking
-					</button>
-				{/if}
-			</div>
-		</section>
+	{#if form?.error}
+		<p class="form-error" role="alert">{form.error}</p>
+	{:else if form?.success === 'accepted'}
+		<p class="form-success">Accepted. The attendee has been notified.</p>
+	{:else if form?.success === 'declined'}
+		<p class="form-success">Declined. The attendee has been notified.</p>
+	{:else if form?.success === 'cancelled'}
+		<p class="form-success">Cancelled. The attendee has been notified.</p>
 	{/if}
 
-	{#if canRebook}
-		<section class="rebook">
-			<a class="rebook-btn" href="/schedule/{data.eventType.slug}">
-				Pick another time
-				<IconArrowRight class="action-arrow" aria-hidden="true" />
-			</a>
-		</section>
+	{#if data.isAdmin}
+		{#if data.actions.accept.allowed || data.actions.decline.allowed || data.actions.cancel.allowed || data.actions.reschedule.allowed}
+			<section class="actions">
+				<header class="actions-header">
+					<h2 class="actions-title">Actions</h2>
+				</header>
+				<div class="actions-row">
+					{#if data.actions.accept.allowed}
+						<form method="POST" action="?/accept">
+							<button type="submit" class="action-btn accept-btn" bind:this={acceptBtn}>
+								Accept
+							</button>
+						</form>
+					{/if}
+					{#if data.actions.decline.allowed}
+						<form method="POST" action="?/decline">
+							<button type="submit" class="action-btn decline-btn" bind:this={declineBtn}>
+								Decline
+							</button>
+						</form>
+					{/if}
+					{#if data.actions.reschedule.allowed}
+						<a
+							class="action-btn reschedule-btn"
+							href="/schedule/{data.eventType.slug}?reschedule={data.appointment
+								.id}&token={encodeURIComponent(data.token)}"
+							bind:this={rescheduleLink}
+						>
+							Reschedule
+						</a>
+					{/if}
+					{#if data.actions.cancel.allowed && !confirmCancel}
+						<button
+							type="button"
+							class="action-btn cancel-btn"
+							bind:this={cancelBtn}
+							onclick={() => (confirmCancel = true)}
+						>
+							Cancel booking
+						</button>
+					{/if}
+				</div>
+
+				{#if data.actions.cancel.allowed && confirmCancel}
+					<div class="confirm-row" role="group" aria-label="Confirm cancellation">
+						<p class="confirm-prompt">
+							Cancel this booking? <strong>{data.appointment.attendee_name}</strong> will be notified.
+						</p>
+						<div class="actions-row">
+							<form method="POST" action="?/cancel">
+								<button type="submit" class="action-btn confirm-cancel-btn"> Yes, cancel </button>
+							</form>
+							<button
+								type="button"
+								class="action-btn keep-btn"
+								onclick={() => (confirmCancel = false)}
+							>
+								Keep
+							</button>
+						</div>
+					</div>
+				{/if}
+			</section>
+		{/if}
+	{:else}
+		{#if data.actions.reschedule.allowed || data.actions.cancel.allowed}
+			<section class="changes">
+				<header class="changes-header">
+					<IconPencilSimple class="changes-header-icon" aria-hidden="true" />
+					<h2 class="changes-title">Change of plans?</h2>
+				</header>
+				<div class="changes-links">
+					{#if data.actions.reschedule.allowed}
+						<a
+							class="changes-link changes-link-reschedule"
+							href="/schedule/{data.eventType.slug}?reschedule={data.appointment
+								.id}&token={encodeURIComponent(data.token)}"
+						>
+							Reschedule
+							<IconArrowRight class="action-arrow" aria-hidden="true" />
+						</a>
+					{/if}
+					{#if data.actions.cancel.allowed}
+						<button
+							type="button"
+							class="changes-link changes-link-cancel"
+							onclick={() => (cancelDialogOpen = true)}
+						>
+							Cancel booking
+						</button>
+					{/if}
+				</div>
+			</section>
+		{/if}
+
+		{#if canRebook}
+			<section class="rebook">
+				<a class="rebook-btn" href="/schedule/{data.eventType.slug}">
+					Pick another time
+					<IconArrowRight class="action-arrow" aria-hidden="true" />
+				</a>
+			</section>
+		{/if}
 	{/if}
 </div>
 
@@ -815,5 +949,185 @@
 			text-align: center;
 			min-height: 48px;
 		}
+	}
+
+	/* ---- administrative overrides & actions ---- */
+	.breadcrumbs {
+		font-size: var(--font-size-sm);
+		margin: 0 0 var(--space-5);
+	}
+
+	.breadcrumbs a {
+		color: var(--text-muted);
+		text-decoration: none;
+	}
+
+	.breadcrumbs a:hover {
+		color: var(--text);
+	}
+
+	.notif-warning {
+		display: flex;
+		gap: var(--space-3);
+		padding: var(--space-4) var(--space-5);
+		background: var(--warning-bg, var(--surface-muted));
+		border: 1px solid var(--warning-border, var(--border-strong));
+		border-radius: var(--radius);
+		margin: 0 0 var(--space-5);
+		color: var(--warning, var(--text));
+	}
+
+	:global(.notif-icon) {
+		font-size: var(--font-size-lg);
+		flex-shrink: 0;
+		margin-top: 2px;
+	}
+
+	.notif-title {
+		margin: 0 0 var(--space-1);
+		font-size: var(--font-size-sm);
+		font-weight: 600;
+	}
+
+	.notif-detail {
+		margin: 0;
+		font-size: var(--font-size-xs);
+		font-family: var(--font-mono, monospace);
+		word-break: break-all;
+		color: var(--text-muted);
+	}
+
+	.tz-extra {
+		margin-top: var(--space-2);
+		font-style: italic;
+	}
+
+	.notes {
+		white-space: pre-wrap;
+		line-height: 1.5;
+	}
+
+	.form-error {
+		background: var(--danger-bg);
+		color: var(--danger);
+		padding: var(--space-3) var(--space-5);
+		border-radius: var(--radius);
+		font-size: var(--font-size-sm);
+		margin: var(--space-5) 0 0;
+	}
+
+	.form-success {
+		background: var(--primary-muted);
+		color: var(--primary);
+		padding: var(--space-3) var(--space-5);
+		border-radius: var(--radius);
+		font-size: var(--font-size-sm);
+		margin: var(--space-5) 0 0;
+	}
+
+	.actions {
+		margin-top: var(--space-7);
+	}
+
+	.actions-header {
+		margin: 0 0 var(--space-4);
+	}
+
+	.actions-title {
+		font-size: var(--font-size-md);
+		font-weight: 600;
+		margin: 0;
+	}
+
+	.actions-row {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-3);
+	}
+
+	.action-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-2);
+		padding: var(--space-3) var(--space-6);
+		border-radius: var(--radius);
+		font-size: var(--font-size-md);
+		font-weight: 600;
+		cursor: pointer;
+		border: 1px solid;
+		transition:
+			background var(--transition),
+			color var(--transition),
+			border-color var(--transition);
+	}
+
+	.accept-btn {
+		background: var(--primary);
+		color: var(--text-on-primary);
+		border-color: var(--primary);
+	}
+
+	.accept-btn:hover {
+		opacity: 0.9;
+	}
+
+	.decline-btn,
+	.cancel-btn {
+		background: transparent;
+		color: var(--danger);
+		border-color: var(--border-strong);
+	}
+
+	.decline-btn:hover,
+	.cancel-btn:hover {
+		background: var(--danger-bg);
+		border-color: var(--danger);
+	}
+
+	.reschedule-btn {
+		background: transparent;
+		color: var(--text);
+		border-color: var(--border-strong);
+		text-decoration: none;
+	}
+
+	.reschedule-btn:hover {
+		background: var(--surface-muted);
+		border-color: var(--primary);
+	}
+
+	.confirm-row {
+		margin-top: var(--space-5);
+		padding: var(--space-5);
+		background: var(--danger-bg);
+		border: 1px solid var(--danger-border, var(--danger));
+		border-radius: var(--radius);
+	}
+
+	.confirm-prompt {
+		margin: 0 0 var(--space-4);
+		color: var(--text);
+		font-size: var(--font-size-sm);
+		line-height: 1.5;
+	}
+
+	.confirm-cancel-btn {
+		background: var(--danger);
+		color: var(--text-on-primary);
+		border-color: var(--danger);
+	}
+
+	.confirm-cancel-btn:hover {
+		opacity: 0.9;
+	}
+
+	.keep-btn {
+		background: var(--surface);
+		color: var(--text);
+		border-color: var(--border-strong);
+	}
+
+	.keep-btn:hover {
+		background: var(--surface-muted);
 	}
 </style>
