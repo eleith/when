@@ -105,7 +105,7 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 
 export const actions: Actions = {
 	accept: async ({ params, url, locals }) => {
-		await locals.auth();
+		if (!(await locals.auth())) return fail(403, { error: 'Not authorized.' });
 
 		const row = await getDb()
 			.selectFrom('appointments')
@@ -126,7 +126,7 @@ export const actions: Actions = {
 	},
 
 	decline: async ({ params, locals }) => {
-		await locals.auth();
+		if (!(await locals.auth())) return fail(403, { error: 'Not authorized.' });
 
 		const row = await getDb()
 			.selectFrom('appointments')
@@ -147,7 +147,7 @@ export const actions: Actions = {
 	},
 
 	cancel: async ({ params, url, locals }) => {
-		await locals.auth();
+		if (!(await locals.auth())) return fail(403, { error: 'Not authorized.' });
 
 		const row = await getDb()
 			.selectFrom('appointments')
