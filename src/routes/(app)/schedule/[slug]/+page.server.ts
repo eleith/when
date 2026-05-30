@@ -6,14 +6,11 @@ import { loadAppointmentBlocks } from '$lib/server/availability/db-blocks';
 import { resolveKnobsFor } from '$lib/server/availability/knobs';
 import { buildBaseWindows, candidateDates } from '$lib/server/availability/windows';
 import { conflictPullWindow, pullConflictBusy } from '$lib/server/calendar/conflicts';
-import { pushAppointment } from '$lib/server/calendar/push';
 import { systemClock } from '$lib/server/clock';
 import type { Location } from '$lib/server/config/schema';
-import type { Appointment } from '$lib/server/db';
-import { mergeNotificationStatus } from '$lib/server/db/notification-status';
 import { logger } from '$lib/server/logger';
-import { notify } from '$lib/server/notify';
 import { getConfig, getDb } from '$lib/server/state';
+import { createAppointment } from '$lib/server/booking/create';
 import { classifyReschedule, rescheduleAppointment } from '$lib/server/booking/reschedule';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -235,184 +232,32 @@ export const actions: Actions = {
 			redirect(303, `/booked/${rescheduleRow.id}?token=${encodeURIComponent(token)}&rescheduled=1`);
 		}
 		const end = start.add({ minutes: eventType.duration });
-		const id = crypto.randomUUID();
-		const cancelToken = crypto.randomUUID();
-		const status = eventType.booking_flow === 'requires_confirmation' ? 'pending' : 'confirmed';
-		const responseToken =
-			eventType.booking_flow === 'requires_confirmation' ? crypto.randomUUID() : null;
 
+		let created;
 		try {
-			await getDb()
-				.insertInto('appointments')
-				.values({
-					id,
-					event_type_id: eventType.id,
-					start_time: start.toString(),
-					end_time: end.toString(),
-					attendee_name: name,
-					attendee_email: email,
-					attendee_notes: notes || null,
+			created = await createAppointment(
+				{ db: getDb(), cfg, clock: systemClock },
+				{
+					eventType,
+					start: start.toString(),
+					end: end.toString(),
+					attendee: { name, email, notes: notes || null },
 					location: resolvedLocation,
-					status,
-					cancel_token: cancelToken,
-					response_token: responseToken,
-					external_event_id: null,
-					external_calendar_id: null,
-					notification_status: null
-				})
-				.execute();
+					baseUrl: url.origin
+				}
+			);
 		} catch (err) {
-			if (isUniqueViolation(err)) {
-				return fail(409, { error: 'That time was just taken. Please pick another.' });
-			}
 			logger.error({ err, eventTypeId: eventType.id, slot: slotStr }, 'failed to insert booking');
 			return fail(500, { error: 'Could not save the booking. Please try again.' });
 		}
-
-		if (status === 'confirmed') {
-			const appt: Appointment = {
-				id,
-				event_type_id: eventType.id,
-				start_time: start.toString(),
-				end_time: end.toString(),
-				attendee_name: name,
-				attendee_email: email,
-				attendee_notes: notes || null,
-				location: resolvedLocation,
-				status,
-				cancel_token: cancelToken,
-				response_token: responseToken,
-				external_event_id: null,
-				external_calendar_id: null,
-				notification_status: null,
-				ics_sequence: 0,
-				created_at: '',
-				updated_at: ''
-			};
-			const cancelTokenEnc = encodeURIComponent(cancelToken);
-			const bookedUrl = `${url.origin}/booked/${id}?token=${cancelTokenEnc}`;
-			const cancelUrl = `${url.origin}/booked/${id}?token=${cancelTokenEnc}&cancel=1`;
-			const rescheduleUrl = `${url.origin}/schedule/${eventType.slug}?reschedule=${id}&token=${cancelTokenEnc}`;
-			const pushed = await pushAppointment(cfg, appt, eventType.destination_calendar, {
-				cancelUrl: bookedUrl
-			});
-			if (pushed.ok) {
-				await getDb()
-					.updateTable('appointments')
-					.set({
-						external_event_id: pushed.externalEventId,
-						external_calendar_id: pushed.externalCalendarId,
-						updated_at: systemClock.now().toISOString()
-					})
-					.where('id', '=', id)
-					.execute();
-			} else {
-				const current = await getDb()
-					.selectFrom('appointments')
-					.select('notification_status')
-					.where('id', '=', id)
-					.executeTakeFirst();
-				await getDb()
-					.updateTable('appointments')
-					.set({
-						notification_status: mergeNotificationStatus(current?.notification_status ?? null, {
-							calendar_push: 'failed'
-						})
-					})
-					.where('id', '=', id)
-					.execute();
-			}
-
-			const notifyResult = await notify('booking_confirmed', {
-				cfg,
-				appointment: appt,
-				eventType,
-				cancelUrl,
-				rescheduleUrl,
-				bookedUrl
-			});
-			if (!notifyResult.ok) {
-				const current = await getDb()
-					.selectFrom('appointments')
-					.select('notification_status')
-					.where('id', '=', id)
-					.executeTakeFirst();
-				await getDb()
-					.updateTable('appointments')
-					.set({
-						notification_status: mergeNotificationStatus(current?.notification_status ?? null, {
-							email: 'failed'
-						})
-					})
-					.where('id', '=', id)
-					.execute();
-			}
+		if (!created.ok) {
+			return fail(409, { error: 'That time was just taken. Please pick another.' });
 		}
 
-		if (status === 'pending' && responseToken) {
-			const manageUrl = `${url.origin}/signin?callbackUrl=${encodeURIComponent(`/booked/${id}`)}`;
-			const cancelTokenEnc = encodeURIComponent(cancelToken);
-			const bookedUrl = `${url.origin}/booked/${id}?token=${cancelTokenEnc}`;
-			const cancelUrl = `${url.origin}/booked/${id}?token=${cancelTokenEnc}&cancel=1`;
-			const rescheduleUrl = `${url.origin}/schedule/${eventType.slug}?reschedule=${id}&token=${cancelTokenEnc}`;
-			const appt: Appointment = {
-				id,
-				event_type_id: eventType.id,
-				start_time: start.toString(),
-				end_time: end.toString(),
-				attendee_name: name,
-				attendee_email: email,
-				attendee_notes: notes || null,
-				location: resolvedLocation,
-				status,
-				cancel_token: cancelToken,
-				response_token: responseToken,
-				external_event_id: null,
-				external_calendar_id: null,
-				notification_status: null,
-				ics_sequence: 0,
-				created_at: '',
-				updated_at: ''
-			};
-			const [organizerResult, attendeeResult] = await Promise.all([
-				notify('booking_pending_to_organizer', {
-					cfg,
-					appointment: appt,
-					eventType,
-					cancelUrl,
-					rescheduleUrl,
-					bookedUrl,
-					manageUrl
-				}),
-				notify('booking_pending_to_attendee', {
-					cfg,
-					appointment: appt,
-					eventType,
-					cancelUrl,
-					rescheduleUrl,
-					bookedUrl
-				})
-			]);
-			const result = { ok: organizerResult.ok && attendeeResult.ok };
-			if (!result.ok) {
-				const current = await getDb()
-					.selectFrom('appointments')
-					.select('notification_status')
-					.where('id', '=', id)
-					.executeTakeFirst();
-				await getDb()
-					.updateTable('appointments')
-					.set({
-						notification_status: mergeNotificationStatus(current?.notification_status ?? null, {
-							email: 'failed'
-						})
-					})
-					.where('id', '=', id)
-					.execute();
-			}
-		}
-
-		redirect(303, `/booked/${id}?token=${encodeURIComponent(cancelToken)}`);
+		redirect(
+			303,
+			`/booked/${created.appointment.id}?token=${encodeURIComponent(created.appointment.cancel_token)}`
+		);
 	}
 };
 
@@ -430,12 +275,6 @@ function resolveLocation(loc: Location | null, input: FormDataEntryValue | null)
 		return { fail: 'Pick a valid location option.' };
 	}
 	return submitted;
-}
-
-function isUniqueViolation(err: unknown): boolean {
-	if (!err || typeof err !== 'object') return false;
-	const msg = String((err as { message?: unknown }).message ?? '');
-	return /UNIQUE constraint failed/i.test(msg);
 }
 
 async function pullSlotDayBusy(
