@@ -279,7 +279,7 @@
 			>
 				<input type="hidden" name="token" value={data.token} />
 				<button type="submit" class="cancel-confirm-btn">Yes, cancel booking</button>
-				<Dialog.Close class="cancel-cancel-btn">Keep booking</Dialog.Close>
+				<Dialog.Close type="button" class="cancel-cancel-btn">Keep booking</Dialog.Close>
 			</form>
 		</Dialog.Content>
 	</Dialog.Portal>
