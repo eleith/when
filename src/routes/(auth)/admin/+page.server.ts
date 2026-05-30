@@ -1,7 +1,6 @@
 import { signOutAction } from '$lib/server/auth';
 import { systemClock } from '$lib/server/clock';
 import { getConfig, getDb } from '$lib/server/state';
-import type { WhenConfiguration } from '$lib/server/config/schema';
 import type { Appointment } from '$lib/server/db';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -24,21 +23,7 @@ function deriveDisplayStatus(
 	return 'concluded';
 }
 
-function sanitizeConfig(cfg: WhenConfiguration): unknown {
-	const s = JSON.parse(JSON.stringify(cfg));
-	if ('credentials' in s.auth) s.auth.credentials.password_hash = '***';
-	if ('oidc' in s.auth) s.auth.oidc.client_secret = '***';
-	if (s.smtp) s.smtp.pass = '***';
-	for (const cal of s.calendars) {
-		if (cal.type === 'caldav') cal.password = '***';
-		if (cal.type === 'google') cal.client_secret = '***';
-	}
-	return s;
-}
-
-export const load: PageServerLoad = async ({ locals }) => {
-	const session = (await locals.auth())!;
-
+export const load: PageServerLoad = async () => {
 	const cfg = getConfig();
 	const rows = await getDb()
 		.selectFrom('appointments')
@@ -55,7 +40,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 		is_past: nowMs >= Date.parse(r.end_time)
 	}));
 
-	return { session, appointments, config: sanitizeConfig(cfg) };
+	return { appointments };
 };
 
 export const actions: Actions = {
