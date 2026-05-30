@@ -86,17 +86,15 @@ test('renderBookingRescheduledByOrganizer: attendee headline names the organizer
 	expect(attendee!.html).toContain(`${validConfig.user.name} moved this booking to a new time.`);
 });
 
-test('renderBookingPendingToOrganizer: includes accept and decline URLs', () => {
+test('renderBookingPendingToOrganizer: includes the review link', () => {
 	const envelopes = renderers.booking_pending_to_organizer(
 		ctx({
 			appointment: { ...baseAppointment, status: 'pending' },
-			acceptUrl: 'https://when.example.com/accept',
-			declineUrl: 'https://when.example.com/decline'
+			manageUrl: 'https://when.example.com/signin?callbackUrl=%2Fbooked%2Fappt-1'
 		})
 	);
 	expect(envelopes).toHaveLength(1);
-	expect(envelopes[0].html).toContain('https://when.example.com/accept');
-	expect(envelopes[0].html).toContain('https://when.example.com/decline');
+	expect(envelopes[0].html).toContain('https://when.example.com/signin?callbackUrl=%2Fbooked%2Fappt-1');
 });
 
 test('default brand color is used when primary_color is unset', () => {

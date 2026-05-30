@@ -23,10 +23,8 @@ export interface NotifyContext {
 	rescheduleUrl: string;
 	/** Public booking landing page: `/booked/[id]?token=…`. Empty for variants that don't surface it. */
 	bookedUrl: string;
-	/** Admin accept URL — set for `booking_pending_to_organizer`. */
-	acceptUrl?: string;
-	/** Admin decline URL — set for `booking_pending_to_organizer`. */
-	declineUrl?: string;
+	/** Login-gated organizer review link — set for `booking_pending_to_organizer`. */
+	manageUrl?: string;
 }
 
 export interface NotifyResult {

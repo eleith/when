@@ -198,8 +198,7 @@ test('notify(booking_pending_to_attendee) sends acknowledgement to attendee with
 test('notify(booking_pending_to_organizer) sends accept/decline email to organizer only', async () => {
 	const sendStub = stubSendEmail();
 	const { notify } = await import('../src/lib/server/notify');
-	const acceptUrl = 'https://when.example.com/admin/respond/appt-1?action=accept&token=rt';
-	const declineUrl = 'https://when.example.com/admin/respond/appt-1?action=decline&token=rt';
+	const manageUrl = 'https://when.example.com/signin?callbackUrl=%2Fbooked%2Fappt-1';
 	await notify('booking_pending_to_organizer', {
 		cfg: { ...validConfig, smtp },
 		appointment: { ...appointment, status: 'pending' },
@@ -207,16 +206,14 @@ test('notify(booking_pending_to_organizer) sends accept/decline email to organiz
 		cancelUrl,
 		rescheduleUrl,
 		bookedUrl,
-		acceptUrl,
-		declineUrl
+		manageUrl
 	});
 
 	expect(sendStub).toHaveBeenCalledTimes(1);
 	const organizerCall = sendStub.mock.calls[0]![0] as Record<string, unknown>;
 	expect(organizerCall.to).toBe(validConfig.user.email);
 	expect(organizerCall.subject).toContain('Booking request');
-	expect(organizerCall.text).toContain(acceptUrl);
-	expect(organizerCall.text).toContain(declineUrl);
+	expect(organizerCall.text).toContain(manageUrl);
 	expect(organizerCall.attachments).toBeUndefined();
 });
 
@@ -267,8 +264,7 @@ test('every variant fires sendEmail with a populated html body', async () => {
 			cancelUrl,
 			rescheduleUrl,
 			bookedUrl,
-			acceptUrl: 'https://when.example.com/accept',
-			declineUrl: 'https://when.example.com/decline'
+			manageUrl: 'https://when.example.com/manage'
 		});
 	}
 	const calls = sendStub.mock.calls;

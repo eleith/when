@@ -15,8 +15,7 @@ export function renderBookingPendingToOrganizer(ctx: NotifyContext): Envelope[] 
 	const name = eventTypeName(ctx);
 	const tz = ctx.cfg.user.timezone;
 	const brand = deriveBrand(ctx);
-	const acceptUrl = ctx.acceptUrl ?? '';
-	const declineUrl = ctx.declineUrl ?? '';
+	const manageUrl = ctx.manageUrl ?? '';
 
 	const body = [
 		heading(`Booking request: ${name}`),
@@ -28,13 +27,7 @@ export function renderBookingPendingToOrganizer(ctx: NotifyContext): Envelope[] 
 			{ label: 'Duration', value: ctx.eventType ? `${ctx.eventType.duration} min` : undefined },
 			{ label: 'Where', value: ctx.appointment.location ?? undefined }
 		]),
-		actionRow(
-			[
-				{ href: acceptUrl, label: 'Accept', kind: 'primary' },
-				{ href: declineUrl, label: 'Decline', kind: 'danger' }
-			],
-			brand.primaryColor ?? ''
-		)
+		actionRow([{ href: manageUrl, label: 'Review request', kind: 'primary' }], brand.primaryColor ?? '')
 	].join('');
 
 	return [
@@ -48,8 +41,7 @@ export function renderBookingPendingToOrganizer(ctx: NotifyContext): Envelope[] 
 				ctx.eventType ? `Duration: ${ctx.eventType.duration} min` : null,
 				ctx.appointment.location ? `Where: ${ctx.appointment.location}` : null,
 				'',
-				`Accept: ${acceptUrl}`,
-				`Decline: ${declineUrl}`
+				`Review request: ${manageUrl}`
 			),
 			html: wrap({ brand, body })
 		}

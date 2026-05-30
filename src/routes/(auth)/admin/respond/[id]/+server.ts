@@ -1,11 +1,11 @@
 import { redirect } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 
-// Legacy: emails sent before project 03 commit 9 pointed at /admin/respond/[id]?action=…&token=….
-// New canonical surface is /booked/[id]. The detail page reads `?action=accept|decline`
-// from the query to pre-focus the relevant button.
-const handler: RequestHandler = ({ params, url }) => {
-	redirect(301, `/booked/${params.id}${url.search}`);
+// Legacy: old organizer emails linked here with a response_token to accept/decline
+// in one click. That flow is retired — the organizer now signs in and acts from the
+// login-gated /booked/[id] detail page. Route stale links through sign-in.
+const handler: RequestHandler = ({ params }) => {
+	redirect(301, `/signin?callbackUrl=${encodeURIComponent(`/booked/${params.id}`)}`);
 };
 
 export const GET = handler;

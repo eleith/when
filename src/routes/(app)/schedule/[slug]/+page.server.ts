@@ -350,8 +350,7 @@ export const actions: Actions = {
 		}
 
 		if (status === 'pending' && responseToken) {
-			const acceptUrl = `${url.origin}/admin/respond/${id}?action=accept&token=${encodeURIComponent(responseToken)}`;
-			const declineUrl = `${url.origin}/admin/respond/${id}?action=decline&token=${encodeURIComponent(responseToken)}`;
+			const manageUrl = `${url.origin}/signin?callbackUrl=${encodeURIComponent(`/booked/${id}`)}`;
 			const cancelTokenEnc = encodeURIComponent(cancelToken);
 			const bookedUrl = `${url.origin}/booked/${id}?token=${cancelTokenEnc}`;
 			const cancelUrl = `${url.origin}/booked/${id}?token=${cancelTokenEnc}&cancel=1`;
@@ -383,8 +382,7 @@ export const actions: Actions = {
 					cancelUrl,
 					rescheduleUrl,
 					bookedUrl,
-					acceptUrl,
-					declineUrl
+					manageUrl
 				}),
 				notify('booking_pending_to_attendee', {
 					cfg,
