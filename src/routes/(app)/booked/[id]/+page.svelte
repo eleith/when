@@ -19,10 +19,6 @@
 	let userTz = $state('UTC');
 	let cancelDialogOpen = $state(false);
 
-	let acceptBtn = $state<HTMLButtonElement | null>(null);
-	let declineBtn = $state<HTMLButtonElement | null>(null);
-	let cancelBtn = $state<HTMLButtonElement | null>(null);
-	let rescheduleLink = $state<HTMLAnchorElement | null>(null);
 	let confirmCancel = $state(false);
 
 	$effect(() => {
@@ -288,16 +284,12 @@
 				<div class="actions-row">
 					{#if data.actions.accept.allowed}
 						<form method="POST" action="?/accept">
-							<button type="submit" class="action-btn accept-btn" bind:this={acceptBtn}>
-								Accept
-							</button>
+							<button type="submit" class="action-btn accept-btn"> Accept </button>
 						</form>
 					{/if}
 					{#if data.actions.decline.allowed}
 						<form method="POST" action="?/decline">
-							<button type="submit" class="action-btn decline-btn" bind:this={declineBtn}>
-								Decline
-							</button>
+							<button type="submit" class="action-btn decline-btn"> Decline </button>
 						</form>
 					{/if}
 					{#if data.actions.reschedule.allowed}
@@ -305,7 +297,6 @@
 							class="action-btn reschedule-btn"
 							href="/schedule/{data.eventType.slug}?reschedule={data.appointment
 								.id}&token={encodeURIComponent(data.token)}"
-							bind:this={rescheduleLink}
 						>
 							Reschedule
 						</a>
@@ -314,7 +305,6 @@
 						<button
 							type="button"
 							class="action-btn cancel-btn"
-							bind:this={cancelBtn}
 							onclick={() => (confirmCancel = true)}
 						>
 							Cancel booking
