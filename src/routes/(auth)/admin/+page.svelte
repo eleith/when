@@ -50,7 +50,10 @@
 						<td>{a.event_type_name}</td>
 						<td>{fmt(a.start_time)}</td>
 						<td>
-							<span class="status status-{a.status}">{a.status}</span>
+							<span class="status status-{a.display_status}">
+								{#if a.display_status === 'in_progress'}in progress
+								{:else}{a.display_status}{/if}
+							</span>
 							{#if a.notification_status}
 								<span class="notif-warn" title={a.notification_status}>&#9888;</span>
 							{/if}
@@ -157,6 +160,14 @@
 
 	.status-pending {
 		color: var(--warning);
+	}
+
+	.status-in_progress {
+		color: var(--primary);
+	}
+
+	.status-concluded {
+		color: var(--text-muted);
 	}
 
 	.status-cancelled {

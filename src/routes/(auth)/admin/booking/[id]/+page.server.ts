@@ -1,10 +1,25 @@
 import { error, fail } from '@sveltejs/kit';
 import { acceptAppointment } from '$lib/server/booking/accept';
 import { resolveBookingActions } from '$lib/server/booking/actions';
+import { cancelAppointment } from '$lib/server/booking/cancel';
 import { declineAppointment } from '$lib/server/booking/decline';
 import { systemClock } from '$lib/server/clock';
+import type { Appointment } from '$lib/server/db';
 import { getConfig, getDb } from '$lib/server/state';
 import type { Actions, PageServerLoad } from './$types';
+
+type ClockStatus = 'upcoming' | 'in_progress' | 'concluded';
+
+function computeClockStatus(
+	row: Pick<Appointment, 'status' | 'start_time' | 'end_time'>,
+	now: Date
+): ClockStatus | null {
+	if (row.status !== 'pending' && row.status !== 'confirmed') return null;
+	const nowMs = now.getTime();
+	if (nowMs < Date.parse(row.start_time)) return 'upcoming';
+	if (nowMs < Date.parse(row.end_time)) return 'in_progress';
+	return 'concluded';
+}
 
 function isFocusAction(v: string | null): v is 'accept' | 'decline' | 'cancel' | 'reschedule' {
 	return v === 'accept' || v === 'decline' || v === 'cancel' || v === 'reschedule';
@@ -26,6 +41,7 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 
 	const now = systemClock.now();
 	const actions = resolveBookingActions({ row, viewer: 'organizer', now, eventType });
+	const clockStatus = computeClockStatus(row, now);
 
 	const focusRaw = url.searchParams.get('action');
 	const focus = isFocusAction(focusRaw) ? focusRaw : null;
@@ -60,6 +76,7 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 				},
 		organizerTz: cfg.user.timezone,
 		actions,
+		clockStatus,
 		focus,
 		cancelToken: row.cancel_token,
 		responseToken: row.response_token
@@ -107,5 +124,26 @@ export const actions: Actions = {
 			return fail(409, { error: 'This booking can no longer be declined.' });
 		}
 		return { success: 'declined' };
+	},
+
+	cancel: async ({ params, url, locals }) => {
+		await locals.auth();
+
+		const row = await getDb()
+			.selectFrom('appointments')
+			.selectAll()
+			.where('id', '=', params.id)
+			.executeTakeFirst();
+
+		if (!row) return fail(404, { error: 'Booking not found.' });
+
+		const result = await cancelAppointment(
+			{ db: getDb(), cfg: getConfig(), clock: systemClock },
+			{ appointment: row, initiator: 'organizer', baseUrl: url.origin }
+		);
+		if (!result.ok) {
+			return fail(409, { error: 'This booking can no longer be cancelled.' });
+		}
+		return { success: 'cancelled' };
 	}
 };

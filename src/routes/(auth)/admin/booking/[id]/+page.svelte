@@ -11,10 +11,13 @@
 
 	let acceptBtn = $state<HTMLButtonElement | null>(null);
 	let declineBtn = $state<HTMLButtonElement | null>(null);
+	let cancelBtn = $state<HTMLButtonElement | null>(null);
+	let confirmCancel = $state(false);
 
 	$effect(() => {
 		if (data.focus === 'accept') acceptBtn?.focus();
 		else if (data.focus === 'decline') declineBtn?.focus();
+		else if (data.focus === 'cancel') cancelBtn?.focus();
 	});
 
 	let browserTz = $state(Intl.DateTimeFormat().resolvedOptions().timeZone);
@@ -91,6 +94,14 @@
 			{:else if status === 'declined'}Declined
 			{:else}Cancelled{/if}
 		</p>
+		{#if data.clockStatus}
+			<p class="clock-label">
+				{#if data.clockStatus === 'upcoming'}Upcoming
+				{:else if data.clockStatus === 'in_progress'}In progress
+				{:else}Concluded
+				{/if}
+			</p>
+		{/if}
 	</header>
 
 	{#if data.appointment.notification_status}
@@ -172,12 +183,14 @@
 		<p class="form-success">Accepted. The attendee has been notified.</p>
 	{:else if form?.success === 'declined'}
 		<p class="form-success">Declined. The attendee has been notified.</p>
+	{:else if form?.success === 'cancelled'}
+		<p class="form-success">Cancelled. The attendee has been notified.</p>
 	{/if}
 
-	{#if data.actions.accept.allowed || data.actions.decline.allowed}
+	{#if data.actions.accept.allowed || data.actions.decline.allowed || data.actions.cancel.allowed}
 		<section class="actions">
 			<header class="actions-header">
-				<h2 class="actions-title">Respond</h2>
+				<h2 class="actions-title">Actions</h2>
 			</header>
 			<div class="actions-row">
 				{#if data.actions.accept.allowed}
@@ -194,7 +207,37 @@
 						</button>
 					</form>
 				{/if}
+				{#if data.actions.cancel.allowed && !confirmCancel}
+					<button
+						type="button"
+						class="action-btn cancel-btn"
+						bind:this={cancelBtn}
+						onclick={() => (confirmCancel = true)}
+					>
+						Cancel booking
+					</button>
+				{/if}
 			</div>
+
+			{#if data.actions.cancel.allowed && confirmCancel}
+				<div class="confirm-row" role="group" aria-label="Confirm cancellation">
+					<p class="confirm-prompt">
+						Cancel this booking? <strong>{data.appointment.attendee_name}</strong> will be notified.
+					</p>
+					<div class="actions-row">
+						<form method="POST" action="?/cancel">
+							<button type="submit" class="action-btn confirm-cancel-btn"> Yes, cancel </button>
+						</form>
+						<button
+							type="button"
+							class="action-btn keep-btn"
+							onclick={() => (confirmCancel = false)}
+						>
+							Keep
+						</button>
+					</div>
+				</div>
+			{/if}
 		</section>
 	{/if}
 </div>
@@ -222,6 +265,9 @@
 	}
 
 	.status-banner {
+		display: flex;
+		align-items: baseline;
+		gap: var(--space-3);
 		margin: 0 0 var(--space-5);
 	}
 
@@ -229,6 +275,15 @@
 		font-size: var(--font-size-2xl);
 		font-weight: 700;
 		margin: 0;
+	}
+
+	.clock-label {
+		font-size: var(--font-size-sm);
+		color: var(--text-muted);
+		margin: 0;
+		padding: 2px var(--space-3);
+		background: var(--surface-muted);
+		border-radius: var(--radius-pill);
 	}
 
 	.status-confirmed {
@@ -420,15 +475,52 @@
 		opacity: 0.9;
 	}
 
-	.decline-btn {
+	.decline-btn,
+	.cancel-btn {
 		background: transparent;
 		color: var(--danger);
 		border-color: var(--border-strong);
 	}
 
-	.decline-btn:hover {
+	.decline-btn:hover,
+	.cancel-btn:hover {
 		background: var(--danger-bg);
 		border-color: var(--danger);
+	}
+
+	.confirm-row {
+		margin-top: var(--space-5);
+		padding: var(--space-5);
+		background: var(--danger-bg);
+		border: 1px solid var(--danger-border, var(--danger));
+		border-radius: var(--radius);
+	}
+
+	.confirm-prompt {
+		margin: 0 0 var(--space-4);
+		color: var(--text);
+		font-size: var(--font-size-sm);
+		line-height: 1.5;
+	}
+
+	.confirm-cancel-btn {
+		background: var(--danger);
+		color: var(--text-on-primary);
+		border-color: var(--danger);
+	}
+
+	.confirm-cancel-btn:hover {
+		opacity: 0.9;
+	}
+
+	.keep-btn {
+		background: var(--surface);
+		color: var(--text);
+		border-color: var(--border-strong);
+	}
+
+	.keep-btn:hover {
+		background: var(--surface-muted);
 	}
 
 	@media (max-width: 768px) {
