@@ -61,6 +61,11 @@ test('notify(booking_confirmed) sends correct attendee email', async () => {
 	// ICS folds long lines at column 75 with `\r\n `; unfold before substring match.
 	const unfolded = (att.content as string).replace(/\r\n /g, '');
 	expect(unfolded).toContain(bookedUrl);
+
+	// HTML wired through
+	expect(attendeeCall.html).toContain('<!doctype html>');
+	expect(attendeeCall.html).toContain(cancelUrl);
+	expect(attendeeCall.html).toContain(rescheduleUrl);
 });
 
 test('notify(booking_cancelled_by_attendee) attaches METHOD:CANCEL ICS for attendee, admin gets none', async () => {
@@ -239,6 +244,41 @@ test('notify(booking_declined) sends to attendee and admin, no ICS', async () =>
 	expect(adminCall.subject).toContain('Declined');
 	expect(adminCall.text).toContain('You declined');
 	expect(adminCall.attachments).toBeUndefined();
+});
+
+test('every variant fires sendEmail with a populated html body', async () => {
+	const variants = [
+		'booking_confirmed',
+		'booking_pending_to_attendee',
+		'booking_pending_to_organizer',
+		'booking_cancelled_by_attendee',
+		'booking_cancelled_by_organizer',
+		'booking_rescheduled_by_attendee',
+		'booking_rescheduled_by_organizer',
+		'booking_declined'
+	] as const;
+	const sendStub = stubSendEmail();
+	const { notify } = await import('../src/lib/server/notify');
+	for (const variant of variants) {
+		await notify(variant, {
+			cfg: { ...validConfig, smtp },
+			appointment: { ...appointment, status: 'pending' },
+			eventType: validConfig.event_types[0],
+			cancelUrl,
+			rescheduleUrl,
+			bookedUrl,
+			acceptUrl: 'https://when.example.com/accept',
+			declineUrl: 'https://when.example.com/decline'
+		});
+	}
+	const calls = sendStub.mock.calls;
+	expect(calls.length).toBeGreaterThan(0);
+	for (const call of calls) {
+		const env = call[0] as Record<string, unknown>;
+		expect(env.html).toBeTruthy();
+		expect(env.html).toContain('<!doctype html>');
+		expect(env.html).toContain('Powered by When');
+	}
 });
 
 test('notify returns ok:true skipped:true when SMTP is not configured', async () => {
