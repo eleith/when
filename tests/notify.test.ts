@@ -139,6 +139,36 @@ test('notify(booking_rescheduled_by_attendee) sends attendee email with ICS', as
 	expect(attendeeCall.attachments).toBeArrayOfSize(1);
 });
 
+test('notify(booking_rescheduled_by_organizer) tells attendee the organizer moved the booking and attaches REQUEST ICS', async () => {
+	const sendStub = stubSendEmail();
+	const { notify } = await import('../src/lib/server/notify');
+	await notify('booking_rescheduled_by_organizer', {
+		cfg: { ...validConfig, smtp },
+		appointment: { ...appointment, ics_sequence: 1 },
+		eventType: validConfig.event_types[0],
+		cancelUrl,
+		rescheduleUrl,
+		bookedUrl
+	});
+
+	expect(sendStub).toHaveBeenCalledTimes(2);
+	const attendeeCall = sendStub.mock.calls[0]![0] as Record<string, unknown>;
+	expect(attendeeCall.to).toBe('booker@example.com');
+	expect(attendeeCall.subject).toContain('Rescheduled');
+	expect(attendeeCall.text).toContain(`${validConfig.user.name} moved this booking to a new time.`);
+	expect(attendeeCall.text).toContain(`Reschedule: ${rescheduleUrl}`);
+	expect(attendeeCall.text).toContain(`Cancel: ${cancelUrl}`);
+	expect(attendeeCall.attachments).toBeArrayOfSize(1);
+	const att = (attendeeCall.attachments as Array<Record<string, unknown>>)[0];
+	expect(att.content).toContain('METHOD:REQUEST');
+	expect(att.content).toMatch(/^SEQUENCE:1$/m);
+
+	const adminCall = sendStub.mock.calls[1]![0] as Record<string, unknown>;
+	expect(adminCall.to).toBe(validConfig.user.email);
+	expect(adminCall.text).toContain('You rescheduled');
+	expect(adminCall.attachments).toBeUndefined();
+});
+
 test('notify(booking_pending_to_attendee) sends acknowledgement to attendee with cancel + reschedule, no ICS', async () => {
 	const sendStub = stubSendEmail();
 	const { notify } = await import('../src/lib/server/notify');

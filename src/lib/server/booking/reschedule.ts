@@ -103,9 +103,12 @@ export async function rescheduleAppointment(
 		);
 	}
 
-	// TODO project 03: switch variant on initiator (attendee vs organizer reschedule).
+	const variant =
+		input.initiator === 'organizer'
+			? 'booking_rescheduled_by_organizer'
+			: 'booking_rescheduled_by_attendee';
 	await tracker.run('email', () =>
-		notify('booking_rescheduled_by_attendee', {
+		notify(variant, {
 			cfg: deps.cfg,
 			appointment: updated,
 			eventType,

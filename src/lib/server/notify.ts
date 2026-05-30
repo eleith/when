@@ -10,6 +10,7 @@ export type NotifyVariant =
 	| 'booking_cancelled_by_attendee'
 	| 'booking_cancelled_by_organizer'
 	| 'booking_rescheduled_by_attendee'
+	| 'booking_rescheduled_by_organizer'
 	| 'booking_declined';
 
 export interface NotifyContext {
@@ -257,6 +258,38 @@ const registry: Record<NotifyVariant, NotifySpec> = {
 					subject: `Rescheduled: ${name} with ${ctx.appointment.attendee_name}`,
 					text: lines(
 						`${ctx.appointment.attendee_name} <${ctx.appointment.attendee_email}> rescheduled ${name}.`,
+						``,
+						whenLine(ctx.appointment)
+					)
+				}
+			];
+		}
+	},
+
+	booking_rescheduled_by_organizer: {
+		envelopes(ctx) {
+			const name = eventTypeName(ctx);
+			return [
+				{
+					to: ctx.appointment.attendee_email,
+					subject: `Rescheduled: ${name} with ${ctx.cfg.user.name}`,
+					text: lines(
+						`${ctx.cfg.user.name} moved this booking to a new time.`,
+						``,
+						`What: ${name}`,
+						whenLine(ctx.appointment),
+						whereLine(ctx.appointment),
+						``,
+						`Reschedule: ${ctx.rescheduleUrl}`,
+						`Cancel: ${ctx.cancelUrl}`
+					),
+					attachments: [attendeeIcs(ctx)]
+				},
+				{
+					to: ctx.cfg.user.email,
+					subject: `Rescheduled: ${name} with ${ctx.appointment.attendee_name}`,
+					text: lines(
+						`You rescheduled ${ctx.appointment.attendee_name}'s <${ctx.appointment.attendee_email}> booking for ${name}.`,
 						``,
 						whenLine(ctx.appointment)
 					)
