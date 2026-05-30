@@ -12,12 +12,14 @@
 	let acceptBtn = $state<HTMLButtonElement | null>(null);
 	let declineBtn = $state<HTMLButtonElement | null>(null);
 	let cancelBtn = $state<HTMLButtonElement | null>(null);
+	let rescheduleLink = $state<HTMLAnchorElement | null>(null);
 	let confirmCancel = $state(false);
 
 	$effect(() => {
 		if (data.focus === 'accept') acceptBtn?.focus();
 		else if (data.focus === 'decline') declineBtn?.focus();
 		else if (data.focus === 'cancel') cancelBtn?.focus();
+		else if (data.focus === 'reschedule') rescheduleLink?.focus();
 	});
 
 	let browserTz = $state(Intl.DateTimeFormat().resolvedOptions().timeZone);
@@ -187,7 +189,7 @@
 		<p class="form-success">Cancelled. The attendee has been notified.</p>
 	{/if}
 
-	{#if data.actions.accept.allowed || data.actions.decline.allowed || data.actions.cancel.allowed}
+	{#if data.actions.accept.allowed || data.actions.decline.allowed || data.actions.cancel.allowed || data.actions.reschedule.allowed}
 		<section class="actions">
 			<header class="actions-header">
 				<h2 class="actions-title">Actions</h2>
@@ -206,6 +208,17 @@
 							Decline
 						</button>
 					</form>
+				{/if}
+				{#if data.actions.reschedule.allowed}
+					<a
+						class="action-btn reschedule-btn"
+						href="/booked/{data.appointment.id}/reschedule?token={encodeURIComponent(
+							data.cancelToken
+						)}"
+						bind:this={rescheduleLink}
+					>
+						Reschedule
+					</a>
 				{/if}
 				{#if data.actions.cancel.allowed && !confirmCancel}
 					<button
@@ -486,6 +499,18 @@
 	.cancel-btn:hover {
 		background: var(--danger-bg);
 		border-color: var(--danger);
+	}
+
+	.reschedule-btn {
+		background: transparent;
+		color: var(--text);
+		border-color: var(--border-strong);
+		text-decoration: none;
+	}
+
+	.reschedule-btn:hover {
+		background: var(--surface-muted);
+		border-color: var(--primary);
 	}
 
 	.confirm-row {

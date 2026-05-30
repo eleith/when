@@ -121,7 +121,10 @@ export const load: PageServerLoad = async ({ params, url }) => {
 };
 
 export const actions: Actions = {
-	default: async ({ params, request, url }) => {
+	default: async ({ params, request, url, locals }) => {
+		const session = await locals.auth();
+		const initiator: 'attendee' | 'organizer' = session ? 'organizer' : 'attendee';
+
 		const form = await request.formData();
 		const slotStr = String(form.get('slot') ?? '');
 		const token = String(form.get('token') ?? '');
@@ -178,7 +181,7 @@ export const actions: Actions = {
 			{ db: getDb(), cfg, clock: systemClock },
 			{
 				appointment: row,
-				initiator: 'attendee',
+				initiator,
 				newStart: start.toString(),
 				newEnd: end.toString(),
 				baseUrl: url.origin
