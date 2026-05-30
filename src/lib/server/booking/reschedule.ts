@@ -18,7 +18,7 @@ export type RescheduleErrorCode =
 
 export type RescheduleContext =
 	| { kind: 'fresh' }
-	| { kind: 'reschedule'; id: string; name: string; email: string }
+	| { kind: 'reschedule' }
 	| { kind: 'error'; code: RescheduleErrorCode };
 
 export interface ClassifyRescheduleInput {
@@ -155,10 +155,5 @@ export function classifyReschedule({
 	if (!isRescheduleAllowed(existing, now, eventType.minimum_notice ?? 0)) {
 		return { kind: 'error', code: 'minimum_notice' };
 	}
-	return {
-		kind: 'reschedule',
-		id: existing.id,
-		name: existing.attendee_name,
-		email: existing.attendee_email
-	};
+	return { kind: 'reschedule' };
 }

@@ -97,6 +97,8 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 		clockStatus,
 		justRescheduled,
 		showCancelModal,
+		// Admins are trusted with the attendee's cancel_token so reschedule/cancel
+		// links work without a token in the URL; attendees only ever see their own.
 		token: isAdmin ? (token ?? row.cancel_token) : (token ?? ''),
 		isAdmin,
 		organizerTz: cfg.user.timezone

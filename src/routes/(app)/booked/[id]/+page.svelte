@@ -77,6 +77,8 @@
 	let isPendingPastStart = $derived(status === 'pending' && data.clockStatus !== 'upcoming');
 	let canRebook = $derived(status === 'declined' || status === 'cancelled');
 	let differentTz = $derived(data.organizerTz !== userTz);
+	// Organizer sees times in their own configured zone; attendees in the browser's.
+	let displayTz = $derived(data.isAdmin ? data.organizerTz : userTz);
 </script>
 
 <svelte:head>
@@ -166,10 +168,10 @@
 				<IconCalendarBlank class="detail-icon" aria-hidden="true" />
 				<div class="detail-text">
 					<div class="detail-primary">
-						{fmtDateShort(data.appointment.start_time, data.isAdmin ? data.organizerTz : userTz)}
+						{fmtDateShort(data.appointment.start_time, displayTz)}
 					</div>
 					<div class="detail-secondary">
-						{fmtWeekday(data.appointment.start_time, data.isAdmin ? data.organizerTz : userTz)}
+						{fmtWeekday(data.appointment.start_time, displayTz)}
 					</div>
 				</div>
 			</div>
@@ -177,14 +179,10 @@
 				<IconClock class="detail-icon" aria-hidden="true" />
 				<div class="detail-text">
 					<div class="detail-primary">
-						{fmtTimeRange(
-							data.appointment.start_time,
-							data.appointment.end_time,
-							data.isAdmin ? data.organizerTz : userTz
-						)}
+						{fmtTimeRange(data.appointment.start_time, data.appointment.end_time, displayTz)}
 					</div>
 					<div class="detail-secondary">
-						{fmtTzShort(data.isAdmin ? data.organizerTz : userTz)}
+						{fmtTzShort(displayTz)}
 					</div>
 					{#if data.isAdmin && differentTz}
 						<div class="detail-secondary tz-extra">

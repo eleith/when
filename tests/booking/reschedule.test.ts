@@ -52,10 +52,7 @@ describe('classifyReschedule', () => {
 			now
 		});
 		expect(ctx).toEqual({
-			kind: 'reschedule',
-			id: 'appt-1',
-			name: 'Booker',
-			email: 'booker@example.com'
+			kind: 'reschedule'
 		});
 	});
 
@@ -181,10 +178,7 @@ describe('classifyReschedule', () => {
 				now: justBeforeStart
 			})
 		).toEqual({
-			kind: 'reschedule',
-			id: 'appt-1',
-			name: 'Booker',
-			email: 'booker@example.com'
+			kind: 'reschedule'
 		});
 	});
 });
