@@ -34,13 +34,13 @@ export interface NotifyResult {
 	skipped: boolean;
 }
 
-interface Attachment {
+export interface Attachment {
 	filename: string;
 	content: string;
 	contentType: string;
 }
 
-interface Envelope {
+export interface Envelope {
 	to: string;
 	subject: string;
 	text: string;
