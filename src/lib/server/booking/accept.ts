@@ -48,7 +48,9 @@ export async function acceptAppointment(
 	const token = encodeURIComponent(row.cancel_token);
 	const bookedUrl = `${input.baseUrl}/booked/${row.id}?token=${token}`;
 	const cancelUrl = `${input.baseUrl}/booked/${row.id}?token=${token}&cancel=1`;
-	const rescheduleUrl = `${input.baseUrl}/booked/${row.id}/reschedule?token=${token}`;
+	const rescheduleUrl = eventType
+		? `${input.baseUrl}/schedule/${eventType.slug}?reschedule=${row.id}&token=${token}`
+		: `${input.baseUrl}/booked/${row.id}?token=${token}`;
 
 	let externalUpdate: { external_event_id: string; external_calendar_id: string } | null = null;
 	if (eventType) {

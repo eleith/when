@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { replaceState } from '$app/navigation';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { Temporal } from '@js-temporal/polyfill';
@@ -9,7 +10,11 @@
 
 	let { data, form } = $props();
 
-	let userTz = $state(Intl.DateTimeFormat().resolvedOptions().timeZone);
+	let userTz = $state('UTC');
+
+	onMount(() => {
+		userTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+	});
 
 	function fmtTzShort(tz: string): string {
 		try {
@@ -142,9 +147,47 @@
 </header>
 
 <div class="booking" data-step={step}>
-	{#if availableDates.size === 0}
+	{#if data.rescheduleError}
+		<div class="card reschedule-error-card">
+			<h1 class="error-title">Can't reschedule this booking</h1>
+			<p class="error-reason">
+				{#if data.rescheduleError === 'token'}
+					This link doesn't match a booking. Check your email for the latest reschedule link.
+				{:else if data.rescheduleError === 'event_type'}
+					This booking's event type no longer exists.
+				{:else if data.rescheduleError === 'past_window'}
+					This booking is too old to reschedule.
+				{:else if data.rescheduleError === 'terminal'}
+					This booking has already been cancelled or declined.
+				{:else if data.rescheduleError === 'minimum_notice'}
+					It's too close to the start time to reschedule.
+				{/if}
+			</p>
+			<a class="error-back-btn" href="/">Return home</a>
+		</div>
+	{:else if availableDates.size === 0}
 		<p class="empty">No availability in the near future.</p>
 	{:else}
+		{#if data.rescheduleAppt}
+			<aside class="reschedule-banner">
+				<div class="reschedule-banner-content">
+					<span class="reschedule-banner-text">
+						Rescheduling booking currently set for <strong
+							>{fmtSlot(data.rescheduleAppt.start_time)}</strong
+						>.
+					</span>
+					<a
+						class="reschedule-keep-link"
+						href="/booked/{data.rescheduleAppt.id}?token={encodeURIComponent(
+							data.rescheduleToken || ''
+						)}"
+					>
+						Keep original booking
+					</a>
+				</div>
+			</aside>
+		{/if}
+
 		<div class="card">
 			<aside class="card-context">
 				<section class="context-section">
@@ -240,6 +283,7 @@
 						bind:selectedSlot={viewSlot}
 						bind:viewDate
 						bind:userTz
+						originalSlot={data.rescheduleAppt?.start_time ?? null}
 					/>
 
 					<div class="booking-form">
@@ -252,15 +296,33 @@
 
 							<form id="booking-form" method="POST" action="?/book">
 								<input type="hidden" name="slot" value={viewSlot} />
+								{#if data.rescheduleAppt}
+									<input type="hidden" name="reschedule" value={data.rescheduleAppt.id} />
+									<input type="hidden" name="token" value={data.rescheduleToken} />
+								{/if}
 
 								<div class="field">
 									<label for="name">What is your name?</label>
-									<input id="name" name="name" required autocomplete="name" bind:this={nameInput} />
+									<input
+										id="name"
+										name="name"
+										required
+										autocomplete="name"
+										bind:this={nameInput}
+										value={data.rescheduleAppt?.attendee_name ?? ''}
+									/>
 								</div>
 
 								<div class="field">
 									<label for="email">What is your email?</label>
-									<input id="email" name="email" type="email" required autocomplete="email" />
+									<input
+										id="email"
+										name="email"
+										type="email"
+										required
+										autocomplete="email"
+										value={data.rescheduleAppt?.attendee_email ?? ''}
+									/>
 								</div>
 
 								{#if data.eventType.location?.mode === 'fixed'}
@@ -286,10 +348,17 @@
 
 								<div class="field">
 									<label for="notes">Anything else?</label>
-									<textarea id="notes" name="notes" rows="3"></textarea>
+									<textarea
+										id="notes"
+										name="notes"
+										rows="3"
+										value={data.rescheduleAppt?.attendee_notes ?? ''}
+									></textarea>
 								</div>
 
-								<button type="submit" class="submit-btn">Book</button>
+								<button type="submit" class="submit-btn">
+									{#if data.rescheduleAppt}Confirm Reschedule{:else}Book{/if}
+								</button>
 							</form>
 						{:else}
 							<div class="form-placeholder">
@@ -320,7 +389,7 @@
 						</button>
 					{:else}
 						<button type="submit" form="booking-form" class="cta-btn" disabled={!viewSlot}>
-							Book
+							{#if data.rescheduleAppt}Confirm Reschedule{:else}Book{/if}
 						</button>
 					{/if}
 				</div>
@@ -877,5 +946,84 @@
 			border-top: 1px solid var(--border);
 			z-index: 100;
 		}
+	}
+
+	/* ---- reschedule styling overrides ---- */
+	.reschedule-banner {
+		padding: 0 0 var(--space-4);
+		margin-bottom: var(--space-6);
+		border-bottom: 1px solid var(--border);
+		color: var(--text-secondary);
+	}
+
+	.reschedule-banner-content {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--space-4);
+		flex-wrap: wrap;
+	}
+
+	.reschedule-banner-text {
+		font-size: var(--font-size-sm);
+		line-height: 1.4;
+	}
+
+	.reschedule-banner-text strong {
+		color: var(--text);
+		font-weight: 600;
+	}
+
+	.reschedule-keep-link {
+		font-size: var(--font-size-sm);
+		font-weight: 500;
+		color: var(--text-muted);
+		text-decoration: underline;
+		transition: color var(--transition);
+	}
+
+	.reschedule-keep-link:hover {
+		color: var(--text);
+	}
+
+	.reschedule-error-card {
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		padding: var(--space-8);
+		text-align: center;
+		min-height: 320px;
+		width: 100%;
+		gap: var(--space-4);
+	}
+
+	.error-title {
+		font-size: var(--font-size-2xl);
+		font-weight: 700;
+		margin: 0 0 var(--space-2);
+	}
+
+	.error-reason {
+		color: var(--text-muted);
+		font-size: var(--font-size-md);
+		line-height: 1.5;
+		margin: 0 0 var(--space-4);
+		max-width: 480px;
+	}
+
+	.error-back-btn {
+		display: inline-flex;
+		align-items: center;
+		padding: var(--space-3) var(--space-6);
+		background: var(--primary);
+		color: var(--text-on-primary);
+		border-radius: var(--radius);
+		font-weight: 600;
+		text-decoration: none;
+		transition: opacity var(--transition);
+	}
+
+	.error-back-btn:hover {
+		opacity: 0.9;
 	}
 </style>

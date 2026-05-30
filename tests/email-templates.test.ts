@@ -30,8 +30,8 @@ function ctx(overrides: Partial<NotifyContext> = {}): NotifyContext {
 		cfg: validConfig,
 		appointment: baseAppointment,
 		eventType: validConfig.event_types[0],
-		cancelUrl: 'https://when.example.com/booked/appt-1/cancel?token=tok',
-		rescheduleUrl: 'https://when.example.com/booked/appt-1/reschedule?token=tok',
+		cancelUrl: 'https://when.example.com/booked/appt-1?token=tok&cancel=1',
+		rescheduleUrl: 'https://when.example.com/schedule/30-min?reschedule=appt-1&token=tok',
 		bookedUrl: 'https://when.example.com/booked/appt-1?token=tok',
 		...overrides
 	};
@@ -56,8 +56,10 @@ test('renderBookingConfirmed: attendee email contains action URLs and includes I
 	const envelopes = renderers.booking_confirmed(ctx({}));
 	const attendee = envelopes.find((e) => e.to === 'booker@example.com');
 	expect(attendee).toBeDefined();
-	expect(attendee!.html).toContain('https://when.example.com/booked/appt-1/cancel?token=tok');
-	expect(attendee!.html).toContain('https://when.example.com/booked/appt-1/reschedule?token=tok');
+	expect(attendee!.html).toContain('https://when.example.com/booked/appt-1?token=tok&amp;cancel=1');
+	expect(attendee!.html).toContain(
+		'https://when.example.com/schedule/30-min?reschedule=appt-1&amp;token=tok'
+	);
 	expect(attendee!.attachments).toBeArrayOfSize(1);
 	expect(attendee!.attachments![0].content).toContain('METHOD:REQUEST');
 });

@@ -24,8 +24,8 @@ const appointment: Appointment = {
 
 const smtp = { host: 'smtp.example.com', port: 587, user: 'u', pass: 'p' };
 const bookedUrl = 'https://when.example.com/booked/appt-1?token=tok';
-const cancelUrl = 'https://when.example.com/booked/appt-1/cancel?token=tok';
-const rescheduleUrl = 'https://when.example.com/booked/appt-1/reschedule?token=tok';
+const cancelUrl = 'https://when.example.com/booked/appt-1?token=tok&cancel=1';
+const rescheduleUrl = 'https://when.example.com/schedule/30-min?reschedule=appt-1&token=tok';
 
 function stubSendEmail() {
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -64,8 +64,8 @@ test('notify(booking_confirmed) sends correct attendee email', async () => {
 
 	// HTML wired through
 	expect(attendeeCall.html).toContain('<!doctype html>');
-	expect(attendeeCall.html).toContain(cancelUrl);
-	expect(attendeeCall.html).toContain(rescheduleUrl);
+	expect(attendeeCall.html).toContain(cancelUrl.replace(/&/g, '&amp;'));
+	expect(attendeeCall.html).toContain(rescheduleUrl.replace(/&/g, '&amp;'));
 });
 
 test('notify(booking_cancelled_by_attendee) attaches METHOD:CANCEL ICS for attendee, admin gets none', async () => {

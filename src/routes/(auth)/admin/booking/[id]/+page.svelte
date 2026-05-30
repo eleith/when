@@ -212,9 +212,8 @@
 				{#if data.actions.reschedule.allowed}
 					<a
 						class="action-btn reschedule-btn"
-						href="/booked/{data.appointment.id}/reschedule?token={encodeURIComponent(
-							data.cancelToken
-						)}"
+						href="/schedule/{data.eventType.slug}?reschedule={data.appointment
+							.id}&token={encodeURIComponent(data.cancelToken)}"
 						bind:this={rescheduleLink}
 					>
 						Reschedule

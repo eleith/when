@@ -221,7 +221,8 @@
 				{#if data.actions.reschedule.allowed}
 					<a
 						class="changes-link changes-link-reschedule"
-						href="/booked/{data.appointment.id}/reschedule?token={encodeURIComponent(data.token)}"
+						href="/schedule/{data.eventType.slug}?reschedule={data.appointment
+							.id}&token={encodeURIComponent(data.token)}"
 					>
 						Reschedule
 						<IconArrowRight class="action-arrow" aria-hidden="true" />

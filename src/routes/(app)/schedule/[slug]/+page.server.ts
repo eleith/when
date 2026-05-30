@@ -14,6 +14,7 @@ import { mergeNotificationStatus } from '$lib/server/db/notification-status';
 import { logger } from '$lib/server/logger';
 import { notify } from '$lib/server/notify';
 import { getConfig, getDb } from '$lib/server/state';
+import { classifyReschedule, rescheduleAppointment } from '$lib/server/booking/reschedule';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params, url }) => {
@@ -21,12 +22,60 @@ export const load: PageServerLoad = async ({ params, url }) => {
 	const eventType = cfg.event_types.find((e) => e.slug === params.slug);
 	if (!eventType) error(404, `No event type with slug "${params.slug}"`);
 
+	const rescheduleId = url.searchParams.get('reschedule');
+	const rescheduleToken = url.searchParams.get('token');
+	let rescheduleAppt = null;
+	let rescheduleError: string | null = null;
+
+	const now = systemClock.now();
+
+	if (rescheduleId && rescheduleToken) {
+		const found = await getDb()
+			.selectFrom('appointments')
+			.selectAll()
+			.where('id', '=', rescheduleId)
+			.executeTakeFirst();
+		if (!found) {
+			rescheduleError = 'token';
+		} else {
+			const ctx = classifyReschedule({
+				rescheduleId,
+				token: rescheduleToken,
+				existing: found,
+				eventType,
+				now
+			});
+			if (ctx.kind === 'error') {
+				rescheduleError = ctx.code;
+			} else if (ctx.kind === 'reschedule') {
+				rescheduleAppt = {
+					id: found.id,
+					start_time: found.start_time,
+					end_time: found.end_time,
+					attendee_name: found.attendee_name,
+					attendee_email: found.attendee_email,
+					attendee_notes: found.attendee_notes,
+					location: found.location
+				};
+			}
+		}
+	}
+
 	const knobs = resolveKnobsFor(cfg, eventType);
 	const userTz = cfg.user.timezone;
 	const nowInstant = Temporal.Instant.fromEpochMilliseconds(systemClock.nowMs());
 	const rangeEnd = nowInstant.add({ hours: 24 * knobs.maximum_lookahead });
 
-	const blocks = await loadAppointmentBlocks(getDb(), eventType.id, nowInstant, rangeEnd, userTz);
+	let blocks = await loadAppointmentBlocks(getDb(), eventType.id, nowInstant, rangeEnd, userTz);
+	if (rescheduleAppt) {
+		blocks = {
+			appointments: blocks.appointments.filter(
+				(a) => a.start.toString() !== rescheduleAppt.start_time
+			),
+			perDayCount: blocks.perDayCount
+		};
+	}
+
 	const remoteBusy = await pullConflictBusy(
 		cfg.calendars,
 		eventType.conflict_calendars ?? [],
@@ -82,7 +131,10 @@ export const load: PageServerLoad = async ({ params, url }) => {
 		slotsByDate,
 		workingWindows,
 		busyBlocks,
-		selectedSlot
+		selectedSlot,
+		rescheduleAppt,
+		rescheduleError,
+		rescheduleToken: rescheduleToken ?? null
 	};
 };
 
@@ -98,6 +150,9 @@ export const actions: Actions = {
 		const email = String(form.get('email') ?? '').trim();
 		const notes = String(form.get('notes') ?? '').trim();
 		const locationInput = form.get('location');
+
+		const rescheduleId = String(form.get('reschedule') ?? '').trim();
+		const token = String(form.get('token') ?? '').trim();
 
 		if (!slotStr || !name || !email) {
 			return fail(400, { error: 'Name, email, and slot are required.' });
@@ -117,7 +172,30 @@ export const actions: Actions = {
 		const userTz = cfg.user.timezone;
 		const nowInstant = Temporal.Instant.fromEpochMilliseconds(systemClock.nowMs());
 		const rangeEnd = nowInstant.add({ hours: 24 * knobs.maximum_lookahead });
-		const blocks = await loadAppointmentBlocks(getDb(), eventType.id, nowInstant, rangeEnd, userTz);
+
+		let blocks = await loadAppointmentBlocks(getDb(), eventType.id, nowInstant, rangeEnd, userTz);
+		let rescheduleRow = null;
+
+		if (rescheduleId && token) {
+			rescheduleRow = await getDb()
+				.selectFrom('appointments')
+				.selectAll()
+				.where('id', '=', rescheduleId)
+				.executeTakeFirst();
+			if (!rescheduleRow || rescheduleRow.cancel_token !== token) {
+				return fail(403, { error: 'Invalid reschedule token.' });
+			}
+			if (rescheduleRow.start_time === slotStr) {
+				return fail(400, { error: 'Please select a new time slot.' });
+			}
+			blocks = {
+				appointments: blocks.appointments.filter(
+					(a) => a.start.toString() !== rescheduleRow!.start_time
+				),
+				perDayCount: blocks.perDayCount
+			};
+		}
+
 		const remoteBusy = await pullSlotDayBusy(cfg, eventType, slotStr, userTz);
 		const slots = computeSlots({
 			knobs,
@@ -134,6 +212,28 @@ export const actions: Actions = {
 		}
 
 		const start = Temporal.Instant.from(slotStr);
+
+		if (rescheduleRow) {
+			const end = start.add({ minutes: eventType.duration });
+			const result = await rescheduleAppointment(
+				{ db: getDb(), cfg, clock: systemClock },
+				{
+					appointment: rescheduleRow,
+					initiator: 'attendee',
+					newStart: start.toString(),
+					newEnd: end.toString(),
+					baseUrl: url.origin
+				}
+			);
+			if (!result.ok) {
+				if (result.reason === 'slot_taken') {
+					return fail(409, { error: 'That time was just taken. Please pick another.' });
+				}
+				return fail(409, { error: 'This booking can no longer be rescheduled.' });
+			}
+
+			redirect(303, `/booked/${rescheduleRow.id}?token=${encodeURIComponent(token)}&rescheduled=1`);
+		}
 		const end = start.add({ minutes: eventType.duration });
 		const id = crypto.randomUUID();
 		const cancelToken = crypto.randomUUID();
@@ -191,8 +291,8 @@ export const actions: Actions = {
 			};
 			const cancelTokenEnc = encodeURIComponent(cancelToken);
 			const bookedUrl = `${url.origin}/booked/${id}?token=${cancelTokenEnc}`;
-			const cancelUrl = `${url.origin}/booked/${id}/cancel?token=${cancelTokenEnc}`;
-			const rescheduleUrl = `${url.origin}/booked/${id}/reschedule?token=${cancelTokenEnc}`;
+			const cancelUrl = `${url.origin}/booked/${id}?token=${cancelTokenEnc}&cancel=1`;
+			const rescheduleUrl = `${url.origin}/schedule/${eventType.slug}?reschedule=${id}&token=${cancelTokenEnc}`;
 			const pushed = await pushAppointment(cfg, appt, eventType.destination_calendar, {
 				cancelUrl: bookedUrl
 			});
@@ -254,8 +354,8 @@ export const actions: Actions = {
 			const declineUrl = `${url.origin}/admin/respond/${id}?action=decline&token=${encodeURIComponent(responseToken)}`;
 			const cancelTokenEnc = encodeURIComponent(cancelToken);
 			const bookedUrl = `${url.origin}/booked/${id}?token=${cancelTokenEnc}`;
-			const cancelUrl = `${url.origin}/booked/${id}/cancel?token=${cancelTokenEnc}`;
-			const rescheduleUrl = `${url.origin}/booked/${id}/reschedule?token=${cancelTokenEnc}`;
+			const cancelUrl = `${url.origin}/booked/${id}?token=${cancelTokenEnc}&cancel=1`;
+			const rescheduleUrl = `${url.origin}/schedule/${eventType.slug}?reschedule=${id}&token=${cancelTokenEnc}`;
 			const appt: Appointment = {
 				id,
 				event_type_id: eventType.id,

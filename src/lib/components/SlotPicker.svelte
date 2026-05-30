@@ -23,6 +23,7 @@
 		selectedSlot: string | null;
 		viewDate?: string | null;
 		userTz?: string;
+		originalSlot?: string | null;
 	}
 
 	let {
@@ -32,7 +33,8 @@
 		eventType,
 		selectedSlot = $bindable(),
 		viewDate = $bindable(null),
-		userTz = $bindable(Intl.DateTimeFormat().resolvedOptions().timeZone)
+		userTz = $bindable(Intl.DateTimeFormat().resolvedOptions().timeZone),
+		originalSlot = null
 	}: Props = $props();
 
 	const ALL_TIMEZONES = Intl.supportedValuesOf('timeZone');
@@ -153,6 +155,8 @@
 	}
 
 	function selectSlot(iso: string) {
+		const s = timeline?.slots.find((slot) => slot.iso === iso);
+		if (s?.isOriginal) return;
 		selectedSlot = iso;
 		viewDate = iso.slice(0, 10);
 	}
@@ -247,7 +251,8 @@
 				iso,
 				time: fmtTime(iso),
 				top: toPercent(start),
-				height: toPercent(end) - toPercent(start)
+				height: toPercent(end) - toPercent(start),
+				isOriginal: iso === originalSlot
 			};
 		});
 
@@ -369,7 +374,7 @@
 			if (isDragging && dragYPercent !== null) {
 				if (!isUnavailable(dragYPercent)) {
 					const best = nearestSlotAt(dragYPercent);
-					if (best && best.iso !== selectedSlot) selectSlot(best.iso);
+					if (best && best.iso !== selectedSlot && !best.isOriginal) selectSlot(best.iso);
 				}
 			} else {
 				clearSlot();
@@ -379,7 +384,7 @@
 				const percent = pointToPercent(e.clientY);
 				if (!isUnavailable(percent)) {
 					const best = nearestSlotAt(percent);
-					if (best && best.iso !== selectedSlot) selectSlot(best.iso);
+					if (best && best.iso !== selectedSlot && !best.isOriginal) selectSlot(best.iso);
 				}
 			}
 		}
@@ -537,6 +542,17 @@
 								<span class="slot-text">{preview ? preview.time : s.time}</span>
 							</div>
 						{/if}
+					{/if}
+
+					{#if timeline.slots.some((s) => s.isOriginal)}
+						{@const orig = timeline.slots.find((s) => s.isOriginal)!}
+						<div
+							class="slot-block original-booking"
+							style:top="{orig.top}%"
+							style:height="{orig.height}%"
+						>
+							<span class="slot-text">{orig.time} (Current)</span>
+						</div>
 					{/if}
 				</div>
 			</div>
@@ -931,6 +947,14 @@
 		transition: top var(--transition);
 		cursor: grab;
 		touch-action: none;
+	}
+
+	.slot-block.original-booking {
+		background: var(--surface-muted);
+		border: 1px dashed var(--border-strong);
+		color: var(--text-secondary);
+		cursor: not-allowed;
+		z-index: 4;
 	}
 
 	.slot-block.dragging {

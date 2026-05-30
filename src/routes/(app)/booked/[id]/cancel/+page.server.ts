@@ -1,6 +1,4 @@
-import { error, fail, redirect } from '@sveltejs/kit';
-import { requireViewableAppointment } from '$lib/server/booking/access';
-import { resolveBookingActions } from '$lib/server/booking/actions';
+import { fail, redirect } from '@sveltejs/kit';
 import { cancelAppointment } from '$lib/server/booking/cancel';
 import { systemClock } from '$lib/server/clock';
 import { getConfig, getDb } from '$lib/server/state';
