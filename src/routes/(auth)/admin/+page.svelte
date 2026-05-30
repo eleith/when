@@ -45,7 +45,7 @@
 			<tbody>
 				{#each data.appointments as a (a.id)}
 					<tr>
-						<td>{a.attendee_name}</td>
+						<td><a href="/admin/booking/{a.id}" class="row-link">{a.attendee_name}</a></td>
 						<td>{a.attendee_email}</td>
 						<td>{a.event_type_name}</td>
 						<td>{fmt(a.start_time)}</td>
@@ -171,6 +171,17 @@
 		color: var(--warning);
 		margin-left: var(--space-2);
 		cursor: help;
+	}
+
+	.row-link {
+		color: var(--text);
+		text-decoration: none;
+		font-weight: 600;
+	}
+
+	.row-link:hover {
+		color: var(--primary);
+		text-decoration: underline;
 	}
 
 	.action-form {
