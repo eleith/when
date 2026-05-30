@@ -76,8 +76,20 @@ const icsSequence: Migration = {
 	}
 };
 
+// Organizer accept/decline moved from one-click token links to the login-gated
+// /booked/[id] detail page, so the per-booking response_token is no longer used.
+const dropResponseToken: Migration = {
+	async up(db: Kysely<unknown>): Promise<void> {
+		await db.schema.alterTable('appointments').dropColumn('response_token').execute();
+	},
+	async down(db: Kysely<unknown>): Promise<void> {
+		await db.schema.alterTable('appointments').addColumn('response_token', 'text').execute();
+	}
+};
+
 export const migrations: Record<string, Migration> = {
 	'0001_initial': initial,
 	'0002_response_token': responseToken,
-	'0003_ics_sequence': icsSequence
+	'0003_ics_sequence': icsSequence,
+	'0004_drop_response_token': dropResponseToken
 };

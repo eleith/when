@@ -50,7 +50,6 @@ export async function createAppointment(
 		eventType.booking_flow === 'requires_confirmation' ? 'pending' : 'confirmed';
 	const id = crypto.randomUUID();
 	const cancelToken = crypto.randomUUID();
-	const responseToken = status === 'pending' ? crypto.randomUUID() : null;
 
 	let appointment: Appointment = {
 		id,
@@ -63,7 +62,6 @@ export async function createAppointment(
 		location: input.location,
 		status,
 		cancel_token: cancelToken,
-		response_token: responseToken,
 		external_event_id: null,
 		external_calendar_id: null,
 		notification_status: null,
@@ -86,7 +84,6 @@ export async function createAppointment(
 				location: input.location,
 				status,
 				cancel_token: cancelToken,
-				response_token: responseToken,
 				external_event_id: null,
 				external_calendar_id: null,
 				notification_status: null

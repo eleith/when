@@ -13,7 +13,6 @@ const appointment: Appointment = {
 	location: null,
 	status: 'confirmed',
 	cancel_token: 'tok',
-	response_token: null,
 	external_event_id: null,
 	external_calendar_id: null,
 	notification_status: null,

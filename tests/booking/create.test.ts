@@ -41,7 +41,6 @@ describe('createAppointment', () => {
 			expect(result.ok).toBe(true);
 			if (result.ok) {
 				expect(result.appointment.status).toBe('confirmed');
-				expect(result.appointment.response_token).toBeNull();
 				const persisted = await db
 					.selectFrom('appointments')
 					.selectAll()
@@ -56,7 +55,7 @@ describe('createAppointment', () => {
 		}
 	});
 
-	test('requires_confirmation flow inserts a pending booking with a response token', async () => {
+	test('requires_confirmation flow inserts a pending booking', async () => {
 		const db = await makeDb();
 		try {
 			const reqType = { ...pushFailType, booking_flow: 'requires_confirmation' as const };
@@ -72,7 +71,6 @@ describe('createAppointment', () => {
 			expect(result.ok).toBe(true);
 			if (result.ok) {
 				expect(result.appointment.status).toBe('pending');
-				expect(result.appointment.response_token).not.toBeNull();
 			}
 		} finally {
 			await db.destroy();
@@ -95,7 +93,6 @@ describe('createAppointment', () => {
 					location: null,
 					status: 'confirmed',
 					cancel_token: 'tok-existing',
-					response_token: null,
 					external_event_id: null,
 					external_calendar_id: null,
 					notification_status: null

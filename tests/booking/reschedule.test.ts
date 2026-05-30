@@ -19,7 +19,6 @@ const existing: Appointment = {
 	location: null,
 	status: 'confirmed',
 	cancel_token: 'tok-good',
-	response_token: null,
 	external_event_id: null,
 	external_calendar_id: null,
 	notification_status: null,

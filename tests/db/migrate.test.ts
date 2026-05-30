@@ -62,13 +62,13 @@ test('partial unique index rejects concurrent active slot but allows cancelled',
 	}
 });
 
-test('response_token column is present after migrations', async () => {
+test('response_token column is dropped after migrations', async () => {
 	const db = openDb(':memory:');
 	try {
 		await runMigrations(db);
 		const cols = await sql<{ name: string }>`PRAGMA table_info(appointments)`.execute(db);
 		const colNames = cols.rows.map((r) => r.name);
-		expect(colNames).toContain('response_token');
+		expect(colNames).not.toContain('response_token');
 	} finally {
 		await db.destroy();
 	}
