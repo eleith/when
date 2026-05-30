@@ -17,7 +17,7 @@ export interface NotifyContext {
 	cfg: WhenConfiguration;
 	appointment: Appointment;
 	eventType: EventType | undefined;
-	/** Public cancel route: `/booked/[id]/cancel?token=…`. Empty for variants that don't surface it. */
+	/** Public cancel deep link: `/booked/[id]?token=…&cancel=1`. Empty for variants that don't surface it. */
 	cancelUrl: string;
 	/** Public reschedule route: `/booked/[id]/reschedule?token=…`. Empty for variants that don't surface it. */
 	rescheduleUrl: string;

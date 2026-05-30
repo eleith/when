@@ -19,8 +19,6 @@
 	let userTz = $state('UTC');
 	let cancelDialogOpen = $state(false);
 
-	let confirmCancel = $state(false);
-
 	$effect(() => {
 		cancelDialogOpen = data.showCancelModal;
 	});
@@ -301,36 +299,16 @@
 							Reschedule
 						</a>
 					{/if}
-					{#if data.actions.cancel.allowed && !confirmCancel}
+					{#if data.actions.cancel.allowed}
 						<button
 							type="button"
 							class="action-btn cancel-btn"
-							onclick={() => (confirmCancel = true)}
+							onclick={() => (cancelDialogOpen = true)}
 						>
 							Cancel booking
 						</button>
 					{/if}
 				</div>
-
-				{#if data.actions.cancel.allowed && confirmCancel}
-					<div class="confirm-row" role="group" aria-label="Confirm cancellation">
-						<p class="confirm-prompt">
-							Cancel this booking? <strong>{data.appointment.attendee_name}</strong> will be notified.
-						</p>
-						<div class="actions-row">
-							<form method="POST" action="?/cancel">
-								<button type="submit" class="action-btn confirm-cancel-btn"> Yes, cancel </button>
-							</form>
-							<button
-								type="button"
-								class="action-btn keep-btn"
-								onclick={() => (confirmCancel = false)}
-							>
-								Keep
-							</button>
-						</div>
-					</div>
-				{/if}
 			</section>
 		{/if}
 	{:else}
@@ -392,15 +370,16 @@
 			</aside>
 
 			<p class="cancel-dialog-desc">
-				This will cancel the booking for <strong>{data.eventType.name}</strong> with
-				<strong>{data.user.name}</strong> and notify both of you.
+				{#if data.isAdmin}
+					This will cancel the booking for <strong>{data.eventType.name}</strong> with
+					<strong>{data.appointment.attendee_name}</strong> and notify them.
+				{:else}
+					This will cancel the booking for <strong>{data.eventType.name}</strong> with
+					<strong>{data.user.name}</strong> and notify both of you.
+				{/if}
 			</p>
 
-			<form
-				method="POST"
-				action="/booked/{data.appointment.id}/cancel"
-				class="cancel-dialog-actions"
-			>
+			<form method="POST" action="?/cancel" class="cancel-dialog-actions">
 				<input type="hidden" name="token" value={data.token} />
 				<button type="submit" class="cancel-confirm-btn">Yes, cancel booking</button>
 				<Dialog.Close type="button" class="cancel-cancel-btn">Keep booking</Dialog.Close>
@@ -1084,40 +1063,5 @@
 	.reschedule-btn:hover {
 		background: var(--surface-muted);
 		border-color: var(--primary);
-	}
-
-	.confirm-row {
-		margin-top: var(--space-5);
-		padding: var(--space-5);
-		background: var(--danger-bg);
-		border: 1px solid var(--danger-border, var(--danger));
-		border-radius: var(--radius);
-	}
-
-	.confirm-prompt {
-		margin: 0 0 var(--space-4);
-		color: var(--text);
-		font-size: var(--font-size-sm);
-		line-height: 1.5;
-	}
-
-	.confirm-cancel-btn {
-		background: var(--danger);
-		color: var(--text-on-primary);
-		border-color: var(--danger);
-	}
-
-	.confirm-cancel-btn:hover {
-		opacity: 0.9;
-	}
-
-	.keep-btn {
-		background: var(--surface);
-		color: var(--text);
-		border-color: var(--border-strong);
-	}
-
-	.keep-btn:hover {
-		background: var(--surface-muted);
 	}
 </style>

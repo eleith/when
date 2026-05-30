@@ -1,4 +1,4 @@
-import { error, fail } from '@sveltejs/kit';
+import { error, fail, redirect } from '@sveltejs/kit';
 import { requireViewableAppointment } from '$lib/server/booking/access';
 import { resolveBookingActions } from '$lib/server/booking/actions';
 import { buildAddToCalendarLinks } from '$lib/server/calendar-links';
@@ -146,8 +146,11 @@ export const actions: Actions = {
 		return { success: 'declined' };
 	},
 
-	cancel: async ({ params, url, locals }) => {
-		if (!(await locals.auth())) return fail(403, { error: 'Not authorized.' });
+	// Cancellation is shared by the organizer (authenticated) and the attendee
+	// (token-bearing). The session decides the initiator; without one a valid
+	// cancel_token is required.
+	cancel: async ({ params, url, request, locals }) => {
+		const session = await locals.auth();
 
 		const row = await getDb()
 			.selectFrom('appointments')
@@ -157,12 +160,29 @@ export const actions: Actions = {
 
 		if (!row) return fail(404, { error: 'Booking not found.' });
 
+		let initiator: 'organizer' | 'attendee';
+		let attendeeToken: string | null = null;
+		if (session) {
+			initiator = 'organizer';
+		} else {
+			const form = await request.formData();
+			attendeeToken = String(form.get('token') ?? '');
+			if (row.cancel_token !== attendeeToken) {
+				return fail(403, { error: 'Invalid cancel token.' });
+			}
+			initiator = 'attendee';
+		}
+
 		const result = await cancelAppointment(
 			{ db: getDb(), cfg: getConfig(), clock: systemClock },
-			{ appointment: row, initiator: 'organizer', baseUrl: url.origin }
+			{ appointment: row, initiator, baseUrl: url.origin }
 		);
 		if (!result.ok) {
 			return fail(409, { error: 'This booking can no longer be cancelled.' });
+		}
+
+		if (attendeeToken !== null) {
+			redirect(303, `/booked/${row.id}?token=${encodeURIComponent(attendeeToken)}`);
 		}
 		return { success: 'cancelled' };
 	}
