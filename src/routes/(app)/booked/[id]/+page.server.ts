@@ -38,6 +38,7 @@ export const load: PageServerLoad = async ({ params, url }) => {
 
 	const actions = resolveBookingActions({ row, viewer: 'attendee', now, eventType });
 	const clockStatus = computeClockStatus(row, now);
+	const justRescheduled = url.searchParams.get('rescheduled') === '1';
 
 	const tokenEnc = encodeURIComponent(token);
 	const bookedUrl = `${url.origin}/booked/${row.id}?token=${tokenEnc}`;
@@ -80,6 +81,7 @@ export const load: PageServerLoad = async ({ params, url }) => {
 		calendarLinks,
 		actions,
 		clockStatus,
+		justRescheduled,
 		token
 	};
 };

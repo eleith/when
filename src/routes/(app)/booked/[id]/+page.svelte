@@ -2,6 +2,7 @@
 	import { Temporal } from '@js-temporal/polyfill';
 	import IconArrowRight from 'virtual:icons/ph/arrow-right';
 	import IconCalendarBlank from 'virtual:icons/ph/calendar-blank';
+	import IconCheckCircle from 'virtual:icons/ph/check-circle';
 	import IconCalendarPlus from 'virtual:icons/ph/calendar-plus';
 	import IconClock from 'virtual:icons/ph/clock';
 	import IconMapPin from 'virtual:icons/ph/map-pin';
@@ -111,6 +112,13 @@
 		<p class="status-sub">{data.user.name} declined this request.</p>
 	{:else if status === 'cancelled'}
 		<p class="status-sub">This booking was cancelled.</p>
+	{/if}
+
+	{#if data.justRescheduled}
+		<aside class="flash">
+			<IconCheckCircle class="flash-icon" aria-hidden="true" />
+			<p class="flash-text">Your booking has been rescheduled.</p>
+		</aside>
 	{/if}
 
 	<article class="card">
@@ -280,6 +288,30 @@
 		color: var(--text-muted);
 		font-size: var(--font-size-md);
 		margin: 0 0 var(--space-6);
+	}
+
+	/* ---- flash banner ---- */
+	.flash {
+		display: flex;
+		align-items: center;
+		gap: var(--space-3);
+		padding: var(--space-3) var(--space-5);
+		background: var(--primary-muted);
+		border: 1px solid var(--primary-border);
+		border-radius: var(--radius);
+		margin: 0 0 var(--space-4);
+		color: var(--primary);
+	}
+
+	:global(.flash-icon) {
+		font-size: var(--font-size-lg);
+		flex-shrink: 0;
+	}
+
+	.flash-text {
+		margin: 0;
+		font-size: var(--font-size-sm);
+		line-height: 1.5;
 	}
 
 	.status-banner + .card,

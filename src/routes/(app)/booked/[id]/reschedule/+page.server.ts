@@ -173,7 +173,6 @@ export const actions: Actions = {
 
 		const start = Temporal.Instant.from(slotStr);
 		const end = start.add({ minutes: eventType.duration });
-		const originalStart = row.start_time;
 
 		const result = await rescheduleAppointment(
 			{ db: getDb(), cfg, clock: systemClock },
@@ -192,10 +191,7 @@ export const actions: Actions = {
 			return fail(409, { error: 'This booking can no longer be rescheduled.' });
 		}
 
-		redirect(
-			303,
-			`/booked/${row.id}?token=${encodeURIComponent(token)}&moved_from=${encodeURIComponent(originalStart)}`
-		);
+		redirect(303, `/booked/${row.id}?token=${encodeURIComponent(token)}&rescheduled=1`);
 	}
 };
 
