@@ -44,7 +44,7 @@
 			</thead>
 			<tbody>
 				{#each data.appointments as a (a.id)}
-					<tr>
+					<tr class:past={a.is_past}>
 						<td><a href="/admin/booking/{a.id}" class="row-link">{a.attendee_name}</a></td>
 						<td>{a.attendee_email}</td>
 						<td>{a.event_type_name}</td>
@@ -59,23 +59,11 @@
 							{/if}
 						</td>
 						<td>
-							{#if a.status === 'pending' && a.response_token}
-								<form
-									method="POST"
-									action="/admin/respond/{a.id}?action=accept&token={a.response_token}"
-									class="action-form"
-								>
-									<input type="hidden" name="action" value="accept" />
-									<input type="hidden" name="token" value={a.response_token} />
+							{#if a.status === 'pending' && !a.is_past}
+								<form method="POST" action="/admin/booking/{a.id}?/accept" class="action-form">
 									<button type="submit" class="action-btn accept">Accept</button>
 								</form>
-								<form
-									method="POST"
-									action="/admin/respond/{a.id}?action=decline&token={a.response_token}"
-									class="action-form"
-								>
-									<input type="hidden" name="action" value="decline" />
-									<input type="hidden" name="token" value={a.response_token} />
+								<form method="POST" action="/admin/booking/{a.id}?/decline" class="action-form">
 									<button type="submit" class="action-btn decline">Decline</button>
 								</form>
 							{/if}
@@ -193,6 +181,18 @@
 	.row-link:hover {
 		color: var(--primary);
 		text-decoration: underline;
+	}
+
+	tr.past td {
+		color: var(--text-muted);
+	}
+
+	tr.past .row-link {
+		color: var(--text-muted);
+	}
+
+	tr.past .row-link:hover {
+		color: var(--primary);
 	}
 
 	.action-form {
