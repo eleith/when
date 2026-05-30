@@ -54,7 +54,7 @@ export async function cancelAppointment(
 	const tracker = createNotificationTracker(cancelled.notification_status);
 	const token = encodeURIComponent(cancelled.cancel_token);
 	const bookedUrl = `${input.baseUrl}/booked/${cancelled.id}?token=${token}`;
-	const cancelUrl = `${input.baseUrl}/booked/${cancelled.id}/cancel?token=${token}`;
+	const cancelUrl = `${input.baseUrl}/booked/${cancelled.id}?token=${token}&cancel=1`;
 	const rescheduleUrl = `${input.baseUrl}/booked/${cancelled.id}/reschedule?token=${token}`;
 
 	if (cancelled.external_event_id && cancelled.external_calendar_id) {

@@ -1,5 +1,7 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { Temporal } from '@js-temporal/polyfill';
+	import { Dialog } from 'bits-ui';
 	import IconArrowRight from 'virtual:icons/ph/arrow-right';
 	import IconCalendarBlank from 'virtual:icons/ph/calendar-blank';
 	import IconCheckCircle from 'virtual:icons/ph/check-circle';
@@ -8,10 +10,20 @@
 	import IconMapPin from 'virtual:icons/ph/map-pin';
 	import IconPencilSimple from 'virtual:icons/ph/pencil-simple';
 	import IconUser from 'virtual:icons/ph/user';
+	import IconWarningCircle from 'virtual:icons/ph/warning-circle';
 
 	let { data } = $props();
 
-	let userTz = $state(Intl.DateTimeFormat().resolvedOptions().timeZone);
+	let userTz = $state('UTC');
+	let cancelDialogOpen = $state(false);
+
+	$effect(() => {
+		cancelDialogOpen = data.showCancelModal;
+	});
+
+	onMount(() => {
+		userTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+	});
 
 	function fmtDateShort(iso: string): string {
 		try {
@@ -216,12 +228,13 @@
 					</a>
 				{/if}
 				{#if data.actions.cancel.allowed}
-					<a
+					<button
+						type="button"
 						class="changes-link changes-link-cancel"
-						href="/booked/{data.appointment.id}/cancel?token={encodeURIComponent(data.token)}"
+						onclick={() => (cancelDialogOpen = true)}
 					>
 						Cancel booking
-					</a>
+					</button>
 				{/if}
 			</div>
 		</section>
@@ -236,6 +249,40 @@
 		</section>
 	{/if}
 </div>
+
+<Dialog.Root bind:open={cancelDialogOpen}>
+	<Dialog.Portal>
+		<Dialog.Overlay class="dialog-overlay" />
+		<Dialog.Content class="dialog-content cancel-dialog">
+			<div class="cancel-dialog-header">
+				<Dialog.Title class="cancel-dialog-title">Cancel booking?</Dialog.Title>
+				<Dialog.Close class="cancel-dialog-close" aria-label="Close">&times;</Dialog.Close>
+			</div>
+
+			<aside class="warning-banner">
+				<IconWarningCircle class="warning-icon" aria-hidden="true" />
+				<p class="warning-text">
+					This action cannot be undone. An email notification will be sent immediately.
+				</p>
+			</aside>
+
+			<p class="cancel-dialog-desc">
+				This will cancel the booking for <strong>{data.eventType.name}</strong> with
+				<strong>{data.user.name}</strong> and notify both of you.
+			</p>
+
+			<form
+				method="POST"
+				action="/booked/{data.appointment.id}/cancel"
+				class="cancel-dialog-actions"
+			>
+				<input type="hidden" name="token" value={data.token} />
+				<button type="submit" class="cancel-confirm-btn">Yes, cancel booking</button>
+				<Dialog.Close class="cancel-cancel-btn">Keep booking</Dialog.Close>
+			</form>
+		</Dialog.Content>
+	</Dialog.Portal>
+</Dialog.Root>
 
 <style>
 	.page {
@@ -481,6 +528,9 @@
 		text-decoration: none;
 		font-size: var(--font-size-sm);
 		font-weight: 600;
+		background: transparent;
+		cursor: pointer;
+		font-family: inherit;
 		transition:
 			background var(--transition),
 			border-color var(--transition),
@@ -569,6 +619,200 @@
 			width: 100%;
 			justify-content: center;
 			min-height: 56px;
+		}
+	}
+
+	/* ---- cancel dialog ---- */
+	:global(.dialog-overlay) {
+		position: fixed;
+		inset: 0;
+		background: rgba(0, 0, 0, 0.45);
+		z-index: 200;
+		animation: cancel-fade-in 0.15s ease-out;
+	}
+
+	:global(.dialog-content.cancel-dialog) {
+		position: fixed;
+		bottom: 0;
+		left: 0;
+		right: 0;
+		z-index: 201;
+		display: flex;
+		flex-direction: column;
+		max-height: 80vh;
+		background: var(--surface);
+		border-top: 1px solid var(--border);
+		border-radius: var(--radius-md) var(--radius-md) 0 0;
+		padding: var(--space-6);
+		gap: var(--space-5);
+		box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.12);
+		animation: cancel-slide-up 0.2s ease-out;
+	}
+
+	@media (min-width: 769px) {
+		:global(.dialog-content.cancel-dialog) {
+			top: 50%;
+			bottom: auto;
+			left: 50%;
+			right: auto;
+			width: 440px;
+			max-width: calc(100vw - var(--space-7) * 2);
+			max-height: min(70vh, 520px);
+			transform: translate(-50%, -50%);
+			border: 1px solid var(--border);
+			border-radius: var(--radius-md);
+			animation: cancel-fade-up-desktop 0.2s ease-out;
+		}
+	}
+
+	@keyframes cancel-fade-in {
+		from {
+			opacity: 0;
+		}
+		to {
+			opacity: 1;
+		}
+	}
+
+	@keyframes cancel-slide-up {
+		from {
+			transform: translateY(100%);
+		}
+		to {
+			transform: translateY(0);
+		}
+	}
+
+	@keyframes cancel-fade-up-desktop {
+		from {
+			transform: translate(-50%, calc(-50% + 8px));
+			opacity: 0;
+		}
+		to {
+			transform: translate(-50%, -50%);
+			opacity: 1;
+		}
+	}
+
+	.cancel-dialog-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--space-4);
+	}
+
+	:global(.cancel-dialog-title) {
+		margin: 0;
+		font-size: var(--font-size-xl);
+		font-weight: 700;
+	}
+
+	:global(.cancel-dialog-close) {
+		background: none;
+		border: none;
+		font-size: var(--font-size-2xl);
+		line-height: 1;
+		color: var(--text-muted);
+		cursor: pointer;
+		padding: var(--space-1) var(--space-3);
+		border-radius: var(--radius-sm);
+	}
+
+	:global(.cancel-dialog-close:hover) {
+		background: var(--surface-muted);
+		color: var(--text);
+	}
+
+	/* ---- warning banner inside modal ---- */
+	.warning-banner {
+		display: flex;
+		align-items: center;
+		gap: var(--space-3);
+		padding: var(--space-4) var(--space-5);
+		background: var(--danger-bg);
+		border: 1px solid var(--danger-border);
+		border-radius: var(--radius);
+		color: var(--danger-strong);
+	}
+
+	:global(.warning-icon) {
+		font-size: var(--font-size-lg);
+		flex-shrink: 0;
+	}
+
+	.warning-text {
+		margin: 0;
+		font-size: var(--font-size-sm);
+		line-height: 1.5;
+		font-weight: 500;
+	}
+
+	.cancel-dialog-desc {
+		color: var(--text-secondary);
+		font-size: var(--font-size-md);
+		line-height: 1.5;
+		margin: 0;
+	}
+
+	.cancel-dialog-actions {
+		display: flex;
+		gap: var(--space-4);
+		align-items: center;
+		margin-top: var(--space-2);
+	}
+
+	.cancel-confirm-btn {
+		background: var(--danger);
+		color: var(--text-on-primary);
+		border: 1px solid var(--danger);
+		border-radius: var(--radius);
+		padding: var(--space-3) var(--space-6);
+		font-size: var(--font-size-md);
+		font-weight: 600;
+		cursor: pointer;
+		transition:
+			background var(--transition),
+			border-color var(--transition);
+	}
+
+	.cancel-confirm-btn:hover {
+		background: var(--danger-strong);
+		border-color: var(--danger-strong);
+	}
+
+	:global(.cancel-cancel-btn) {
+		background: none;
+		border: 1px solid var(--border-strong);
+		border-radius: var(--radius);
+		padding: var(--space-3) var(--space-6);
+		font-size: var(--font-size-md);
+		font-weight: 600;
+		color: var(--text);
+		cursor: pointer;
+		transition: background var(--transition);
+	}
+
+	:global(.cancel-cancel-btn:hover) {
+		background: var(--surface-muted);
+	}
+
+	@media (max-width: 768px) {
+		.cancel-dialog-actions {
+			flex-direction: column;
+			align-items: stretch;
+			gap: var(--space-3);
+		}
+
+		.cancel-confirm-btn {
+			width: 100%;
+			text-align: center;
+			min-height: 48px;
+		}
+
+		:global(.cancel-cancel-btn) {
+			width: 100%;
+			text-align: center;
+			min-height: 48px;
 		}
 	}
 </style>
