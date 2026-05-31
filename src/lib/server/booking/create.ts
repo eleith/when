@@ -7,7 +7,8 @@ import type { EventType, WhenConfiguration } from '../config/schema';
 import type { Appointment, Database } from '../db';
 import { sendEmails } from '../email/send';
 import { bookingConfirmed } from '../emails/booking-confirmed';
-import { notify } from '../notify';
+import { bookingPendingToAttendee } from '../emails/booking-pending-to-attendee';
+import { bookingPendingToOrganizer } from '../emails/booking-pending-to-organizer';
 
 export interface CreateAppointmentDeps {
 	db: Kysely<Database>;
@@ -117,24 +118,10 @@ export async function createAppointment(
 		);
 	} else {
 		await tracker.run('email', async () => {
+			const args = { cfg, appointment, eventType, baseUrl: input.baseUrl };
 			const [organizer, attendee] = await Promise.all([
-				notify('booking_pending_to_organizer', {
-					cfg,
-					appointment,
-					eventType,
-					cancelUrl: links.cancel,
-					rescheduleUrl: links.reschedule,
-					bookedUrl: links.booked,
-					manageUrl: links.manage
-				}),
-				notify('booking_pending_to_attendee', {
-					cfg,
-					appointment,
-					eventType,
-					cancelUrl: links.cancel,
-					rescheduleUrl: links.reschedule,
-					bookedUrl: links.booked
-				})
+				sendEmails(cfg, bookingPendingToOrganizer(args)),
+				sendEmails(cfg, bookingPendingToAttendee(args))
 			]);
 			return { ok: organizer.ok && attendee.ok };
 		});
