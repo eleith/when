@@ -11,9 +11,9 @@ This document outlines the core architectural principles, project layout, and st
 
 ## Core Technologies
 
-- **Runtime & Tooling:** Bun (Runtime, Package Manager, Test Runner).
-- **Framework:** SvelteKit.
-- **Database:** SQLite (`bun:sqlite`), managed via Kysely (Query Builder). Migrations run on boot and are idempotent.
+- **Runtime & Tooling:** Node 24 (Runtime), pnpm (Package Manager), Vitest (Test Runner), `tsx` for TypeScript CLIs.
+- **Framework:** SvelteKit, built with `@sveltejs/adapter-node`.
+- **Database:** SQLite via Node's built-in `node:sqlite` (`DatabaseSync`) behind a small vendored Kysely dialect (`src/lib/server/db/node-sqlite-dialect.ts`). Migrations run on boot and are idempotent.
 - **Validation:** Zod for runtime data boundary validation.
 - **Time Math:** `@js-temporal/polyfill` for all zoned datetime math. Never call `new Date()` inline in domain logic; inject a `Clock` service (`now()`) to enable pinned times in tests.
 - **Calendar Data:** Outbound `.ics` and inbound CalDAV iCal both go through `ts-ics`.
@@ -71,7 +71,7 @@ Exception: if a string repeats 3+ times in the same component, a `$derived` (sti
   - `src/lib/server/db/`: Kysely setup and migrations.
 - `src/lib/styles/`: Global CSS and theme variables.
 - `src/routes/`: SvelteKit pages and API endpoints.
-- `tests/`: Bun unit tests.
+- `tests/`: Vitest unit tests.
 
 ## Styling & Theming
 

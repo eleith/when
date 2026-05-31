@@ -44,7 +44,7 @@ The `auth` block must declare exactly one strategy for the `/admin` interface.
 auth:
   credentials:
     username: 'admin'
-    password_hash: '${ADMIN_PASSWORD_HASH}' # generate with `bun run hash-password`
+    password_hash: '${ADMIN_PASSWORD_HASH}' # generate with `pnpm hash-password`
 ```
 
 **OIDC Auth:** Single Sign-On via an external provider.
@@ -76,7 +76,7 @@ calendars:
     google_calendar_id: 'primary'
 ```
 
-_Note: For Google Calendar, use the `bun run setup-google` CLI tool to generate this block automatically._
+_Note: For Google Calendar, use the `pnpm setup-google` CLI tool to generate this block automatically._
 
 ## Availability
 

@@ -12,8 +12,8 @@ When an AI agent or LLM is working on this repository, they must strictly adhere
 
 ## 2. Architectural Constraints
 
-- **The Stack:** Bun (Runtime, Package Manager, Test Runner), SvelteKit (Framework), TypeScript (`strict: true`), SQLite (`bun:sqlite`), Kysely (Query Builder), Zod (Validation).
-- **Embrace Bun:** Go "all in" on Bun. Use `Bun.serve`, `Bun.file`, `bun:sqlite` freely. Do not abstract for a theoretical Node.js fallback.
+- **The Stack:** Node 24 (Runtime), pnpm (Package Manager), Vitest (Test Runner), SvelteKit (Framework, `@sveltejs/adapter-node`), TypeScript (`strict: true`), SQLite (`node:sqlite`), Kysely (Query Builder), Zod (Validation).
+- **Use Node built-ins:** Target Node 24 and lean on the standard library — `node:sqlite` (`DatabaseSync`) for the database, `node:fs/promises`, `node:http`, etc. Password hashing/verification uses `@node-rs/argon2`. Run package scripts with `pnpm`; run TypeScript CLIs under `tsx`. There is no Bun in this project.
 - **Type Safety Everywhere:** External inputs (YAML, API, forms) MUST be validated with Zod. Database interactions MUST use Kysely.
 - **Database & State:** State lives entirely in `data.sqlite` and `config.yaml`. Database migrations run automatically on container startup.
 - **Time & Timezones:** Never call `new Date()` or `Date.now()` inline in domain logic. Inject a `Clock` service (`now()`) so tests can pin time. Use `@js-temporal/polyfill` for all zoned datetime math.

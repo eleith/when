@@ -9,7 +9,7 @@ integration, configurable via a YAML file.
 2. Generate a password hash for the admin login (skip if using OIDC):
 
    ```sh
-   bun run hash-password
+   pnpm hash-password
    ```
 
    Save the output as `ADMIN_PASSWORD_HASH` in your environment.
@@ -50,7 +50,7 @@ mounts `./data`).
 | ----------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
 | `AUTH_SECRET`           | always          | Auth.js JWT signing secret. 32+ random bytes, base64-encoded.                                                                        |
 | `ENCRYPTION_KEY`        | production      | Base64 of 32 random bytes. Used to encrypt OAuth refresh tokens at the column level. In dev, an ephemeral key is generated + warned. |
-| `ADMIN_PASSWORD_HASH`   | credentials auth | argon2id hash of the admin password. Generate with `bun run hash-password`.                                                          |
+| `ADMIN_PASSWORD_HASH`   | credentials auth | argon2id hash of the admin password. Generate with `pnpm hash-password`.                                                          |
 | `OIDC_CLIENT_SECRET`    | oidc auth       | OIDC provider client secret (any name works; whatever the yaml's `${...}` interpolation references).                                 |
 | `CALDAV_PASSWORD`       | caldav calendar | CalDAV password / app password.                                                                                                      |
 | `SMTP_USER` / `SMTP_PASS` | requires_confirmation events | SMTP credentials.                                                                                                                    |
@@ -76,29 +76,29 @@ For full details on configuring "When" and developing for it, please see the `do
 
 ## CLI helpers
 
-Run inside the container or with `bun run` in a checkout:
+Run inside the container or with `pnpm` in a checkout:
 
-- `bun run hash-password` — interactive prompt; emits an argon2id hash.
-- `bun run setup-google` — interactive prompt; opens your browser to authenticate with Google and generates the required `config.yaml` block for a Google Calendar (requires a Google Cloud OAuth 2.0 Client ID of type "Desktop app").
-- `bun run validate-config` — parses + validates `config.yaml` without
+- `pnpm hash-password` — interactive prompt; emits an argon2id hash.
+- `pnpm setup-google` — interactive prompt; opens your browser to authenticate with Google and generates the required `config.yaml` block for a Google Calendar (requires a Google Cloud OAuth 2.0 Client ID of type "Desktop app").
+- `pnpm validate-config` — parses + validates `config.yaml` without
   starting the server. Exits non-zero on validation errors.
 
 ## Local development
 
 ```sh
-bun install
-bun run dev
+pnpm install
+pnpm dev
 ```
 
 Or with hot-reload in Docker:
 
 ```sh
-bun run dev:docker
+pnpm dev:docker
 ```
 
 Run the test suite:
 
 ```sh
-bun test           # unit tests
-bun run test:e2e   # Playwright (requires browsers installed)
+pnpm test          # unit tests (Vitest)
+pnpm test:e2e      # Playwright (requires browsers installed)
 ```
