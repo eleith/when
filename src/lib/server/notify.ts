@@ -1,7 +1,11 @@
 import type { EventType, WhenConfiguration } from './config/schema';
 import type { Appointment } from './db';
 import { renderers } from './email-templates';
-import { sendEmail } from './smtp';
+import { sendEmails, type SendResult } from './email/send';
+
+// Re-exported so the existing renderers (which import from '../notify') keep working
+// during the migration to typed email builders.
+export type { Envelope, Attachment } from './email/send';
 
 export type NotifyVariant =
 	| 'booking_confirmed'
@@ -27,30 +31,8 @@ export interface NotifyContext {
 	manageUrl?: string;
 }
 
-export interface NotifyResult {
-	ok: boolean;
-	skipped: boolean;
-}
-
-export interface Attachment {
-	filename: string;
-	content: string;
-	contentType: string;
-}
-
-export interface Envelope {
-	to: string;
-	subject: string;
-	text: string;
-	html?: string;
-	attachments?: Attachment[];
-}
-
-const SKIP: NotifyResult = { ok: true, skipped: true };
+export type NotifyResult = SendResult;
 
 export async function notify(variant: NotifyVariant, ctx: NotifyContext): Promise<NotifyResult> {
-	if (!ctx.cfg.smtp) return SKIP;
-	const envelopes = renderers[variant](ctx);
-	const results = await Promise.all(envelopes.map((e) => sendEmail(e)));
-	return { ok: results.every((r) => r.ok), skipped: false };
+	return sendEmails(ctx.cfg, renderers[variant](ctx));
 }
