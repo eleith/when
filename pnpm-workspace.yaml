@@ -1,3 +1,5 @@
+allowBuilds:
+  esbuild: set this to true or false
 # Allow esbuild (pulled in by Vite) to run its install script. It's the only
 # dependency with a build step; everything else (incl. @node-rs/argon2 prebuilds)
 # needs none.
