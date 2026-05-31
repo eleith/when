@@ -27,7 +27,10 @@ export function renderBookingPendingToOrganizer(ctx: NotifyContext): Envelope[] 
 			{ label: 'Duration', value: ctx.eventType ? `${ctx.eventType.duration} min` : undefined },
 			{ label: 'Where', value: ctx.appointment.location ?? undefined }
 		]),
-		actionRow([{ href: manageUrl, label: 'Review request', kind: 'primary' }], brand.primaryColor ?? '')
+		actionRow(
+			[{ href: manageUrl, label: 'Review request', kind: 'primary' }],
+			brand.primaryColor ?? ''
+		)
 	].join('');
 
 	return [

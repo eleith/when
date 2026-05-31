@@ -17,7 +17,9 @@ const eventType = validConfig.event_types[0];
 // fails-soft (no network) and createAppointment records calendar_push = 'failed'.
 const cfgPushFails = {
 	...validConfig,
-	event_types: [{ ...eventType, destination_calendar: 'no-such-calendar' }] as typeof validConfig.event_types
+	event_types: [
+		{ ...eventType, destination_calendar: 'no-such-calendar' }
+	] as typeof validConfig.event_types
 };
 const pushFailType = cfgPushFails.event_types[0];
 

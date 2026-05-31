@@ -50,7 +50,9 @@ async function readFromTty(prompt: string): Promise<string> {
 async function readFromPipe(): Promise<string> {
 	const chunks: Buffer[] = [];
 	for await (const chunk of process.stdin) chunks.push(chunk as Buffer);
-	return Buffer.concat(chunks).toString('utf8').replace(/\r?\n$/, '');
+	return Buffer.concat(chunks)
+		.toString('utf8')
+		.replace(/\r?\n$/, '');
 }
 
 const raw = process.stdin.isTTY ? await readFromTty('Password: ') : await readFromPipe();

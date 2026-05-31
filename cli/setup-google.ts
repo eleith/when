@@ -68,9 +68,7 @@ async function main() {
 			if (code) {
 				resolveCode(code);
 				res.writeHead(200, { 'Content-Type': 'text/html' });
-				res.end(
-					'Authentication successful! You can close this window and return to the terminal.'
-				);
+				res.end('Authentication successful! You can close this window and return to the terminal.');
 				return;
 			}
 			res.writeHead(400, { 'Content-Type': 'text/plain' });

@@ -113,7 +113,14 @@ export async function createAppointment(
 			};
 		}
 		await tracker.run('email', () =>
-			notify('booking_confirmed', { cfg, appointment, eventType, cancelUrl, rescheduleUrl, bookedUrl })
+			notify('booking_confirmed', {
+				cfg,
+				appointment,
+				eventType,
+				cancelUrl,
+				rescheduleUrl,
+				bookedUrl
+			})
 		);
 	} else {
 		const manageUrl = `${input.baseUrl}/signin?callbackUrl=${encodeURIComponent(`/booked/${id}`)}`;
