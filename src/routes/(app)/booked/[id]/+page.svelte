@@ -17,11 +17,9 @@
 	let { data, form } = $props();
 
 	let userTz = $state('UTC');
-	let cancelDialogOpen = $state(false);
-
-	$effect(() => {
-		cancelDialogOpen = data.showCancelModal;
-	});
+	// Writable derived: tracks the server's `cancel=1` flag but can be toggled
+	// locally to open/close the dialog.
+	let cancelDialogOpen = $derived(data.showCancelModal);
 
 	onMount(() => {
 		userTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
