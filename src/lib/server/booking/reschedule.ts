@@ -8,7 +8,9 @@ import { pushAppointment } from '../calendar/push';
 import type { Clock } from '../clock';
 import type { EventType, WhenConfiguration } from '../config/schema';
 import type { Appointment, Database } from '../db';
-import { notify } from '../notify';
+import { bookingRescheduledByAttendee } from '../emails/booking-rescheduled-by-attendee';
+import { bookingRescheduledByOrganizer } from '../emails/booking-rescheduled-by-organizer';
+import { sendEmails } from '../email/send';
 
 export type RescheduleErrorCode =
 	| 'token'
@@ -101,19 +103,13 @@ export async function rescheduleAppointment(
 		);
 	}
 
-	const variant =
-		input.initiator === 'organizer'
-			? 'booking_rescheduled_by_organizer'
-			: 'booking_rescheduled_by_attendee';
+	const builder =
+		input.initiator === 'organizer' ? bookingRescheduledByOrganizer : bookingRescheduledByAttendee;
 	await tracker.run('email', () =>
-		notify(variant, {
-			cfg: deps.cfg,
-			appointment: updated,
-			eventType,
-			cancelUrl: links.cancel,
-			rescheduleUrl: links.reschedule,
-			bookedUrl: links.booked
-		})
+		sendEmails(
+			deps.cfg,
+			builder({ cfg: deps.cfg, appointment: updated, eventType, baseUrl: input.baseUrl })
+		)
 	);
 
 	if (tracker.changed()) {
