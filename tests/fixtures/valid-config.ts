@@ -1,4 +1,4 @@
-import type { WhenConfiguration } from '../../src/lib/server/config/schema';
+import type { WhenConfiguration } from '$lib/server/config/schema';
 
 export const validConfig: WhenConfiguration = {
 	auth: {

@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { decrypt, encrypt, loadEncryptionKey } from '../src/lib/server/crypto';
+import { decrypt, encrypt, loadEncryptionKey } from '$lib/server/crypto';
 
 function randomKey(): string {
 	const bytes = crypto.getRandomValues(new Uint8Array(32));

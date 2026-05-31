@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
-import { buildIcs } from '../src/lib/server/ics';
-import type { Appointment } from '../src/lib/server/db';
+import { buildIcs } from '$lib/server/ics';
+import type { Appointment } from '$lib/server/db';
 
 const baseAppointment: Appointment = {
 	id: 'appt-123',

@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'vitest';
-import { createAppointment } from '../../src/lib/server/booking/create';
-import { systemClock } from '../../src/lib/server/clock';
-import { openDb } from '../../src/lib/server/db';
-import { runMigrations } from '../../src/lib/server/db/migrate';
+import { createAppointment } from '$lib/server/booking/create';
+import { systemClock } from '$lib/server/clock';
+import { openDb } from '$lib/server/db';
+import { runMigrations } from '$lib/server/db/migrate';
 import { validConfig } from '../fixtures/valid-config';
 
 async function makeDb() {

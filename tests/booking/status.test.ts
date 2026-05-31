@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'vitest';
-import { transitionStatus } from '../../src/lib/server/booking/status';
-import { systemClock } from '../../src/lib/server/clock';
-import { openDb } from '../../src/lib/server/db';
-import { runMigrations } from '../../src/lib/server/db/migrate';
+import { transitionStatus } from '$lib/server/booking/status';
+import { systemClock } from '$lib/server/clock';
+import { openDb } from '$lib/server/db';
+import { runMigrations } from '$lib/server/db/migrate';
 
 const baseRow = {
 	event_type_id: 'chat',

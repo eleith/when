@@ -1,8 +1,8 @@
 import { expect, test } from 'vitest';
-import type { NotifyContext } from '../src/lib/server/notify';
-import type { Appointment } from '../src/lib/server/db';
-import { renderers } from '../src/lib/server/email-templates';
-import { DEFAULT_PRIMARY_COLOR } from '../src/lib/server/email-templates/layout';
+import type { NotifyContext } from '$lib/server/notify';
+import type { Appointment } from '$lib/server/db';
+import { renderers } from '$lib/server/email-templates';
+import { DEFAULT_PRIMARY_COLOR } from '$lib/server/email-templates/layout';
 import { validConfig } from './fixtures/valid-config';
 
 const baseAppointment: Appointment = {

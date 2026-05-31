@@ -1,5 +1,5 @@
 import { sveltekit } from '@sveltejs/kit/vite';
-import { defineConfig } from 'vite';
+import { defineConfig } from 'vitest/config';
 import Icons from 'unplugin-icons/vite';
 
 export default defineConfig({
@@ -8,5 +8,9 @@ export default defineConfig({
 		Icons({
 			compiler: 'svelte'
 		})
-	]
+	],
+	test: {
+		include: ['tests/**/*.test.ts'],
+		environment: 'node'
+	}
 });

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { buildLink } from '../../src/lib/server/calendar-links/google';
+import { buildLink } from '$lib/server/calendar-links/google';
 
 const baseInput = {
 	start: '2026-04-27T13:00:00Z',

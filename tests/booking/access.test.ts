@@ -5,8 +5,8 @@ import {
 	isRescheduleAllowed,
 	isViewable,
 	requireViewableAppointment
-} from '../../src/lib/server/booking/access';
-import type { Appointment } from '../../src/lib/server/db';
+} from '$lib/server/booking/access';
+import type { Appointment } from '$lib/server/db';
 
 const baseRow: Appointment = {
 	id: 'appt-1',

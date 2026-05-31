@@ -1,9 +1,9 @@
 import { describe, expect, test } from 'vitest';
-import { classifyReschedule, rescheduleAppointment } from '../../src/lib/server/booking/reschedule';
-import { systemClock } from '../../src/lib/server/clock';
-import { openDb } from '../../src/lib/server/db';
-import type { Appointment } from '../../src/lib/server/db';
-import { runMigrations } from '../../src/lib/server/db/migrate';
+import { classifyReschedule, rescheduleAppointment } from '$lib/server/booking/reschedule';
+import { systemClock } from '$lib/server/clock';
+import { openDb } from '$lib/server/db';
+import type { Appointment } from '$lib/server/db';
+import { runMigrations } from '$lib/server/db/migrate';
 import { validConfig } from '../fixtures/valid-config';
 
 const now = new Date('2026-05-01T13:00:00Z');

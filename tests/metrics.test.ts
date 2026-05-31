@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { configValid, register } from '../src/lib/server/metrics';
+import { configValid, register } from '$lib/server/metrics';
 
 test('configValid gauge starts at 0', async () => {
 	const json = await register.getMetricsAsJSON();

@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { logger, loggerOptions } from '../src/lib/server/logger';
+import { logger, loggerOptions } from '$lib/server/logger';
 
 test('base label is set to app name', () => {
 	expect(loggerOptions.base).toEqual({ app: 'when' });

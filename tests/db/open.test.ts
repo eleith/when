@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
 import { sql } from 'kysely';
-import { openDb } from '../../src/lib/server/db';
+import { openDb } from '$lib/server/db';
 
 test('openDb returns a Kysely instance backed by node:sqlite', async () => {
 	const db = openDb(':memory:');

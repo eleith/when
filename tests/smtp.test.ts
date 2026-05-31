@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest';
-import { openDb } from '../src/lib/server/db';
-import { isSecurePort, sendEmail } from '../src/lib/server/smtp';
-import { setState } from '../src/lib/server/state';
+import { openDb } from '$lib/server/db';
+import { isSecurePort, sendEmail } from '$lib/server/smtp';
+import { setState } from '$lib/server/state';
 import { validConfig } from './fixtures/valid-config';
 
 test('isSecurePort returns true only for port 465', () => {

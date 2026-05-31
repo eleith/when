@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'vitest';
-import { acceptAppointment } from '../../src/lib/server/booking/accept';
-import { systemClock } from '../../src/lib/server/clock';
-import { openDb } from '../../src/lib/server/db';
-import { runMigrations } from '../../src/lib/server/db/migrate';
+import { acceptAppointment } from '$lib/server/booking/accept';
+import { systemClock } from '$lib/server/clock';
+import { openDb } from '$lib/server/db';
+import { runMigrations } from '$lib/server/db/migrate';
 import { validConfig } from '../fixtures/valid-config';
 
 const baseRow = {

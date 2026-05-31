@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { buildAddToCalendarLinks } from '../../src/lib/server/calendar-links';
+import { buildAddToCalendarLinks } from '$lib/server/calendar-links';
 
 const input = {
 	start: '2026-04-27T13:00:00Z',
