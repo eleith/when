@@ -19,11 +19,14 @@ function envelope(to: string, spec: EnvelopeSpec): Envelope {
 }
 
 /** Envelope addressed to the booking's attendee. */
-export function attendeeEnvelope(i: BookingEmailInput, spec: EnvelopeSpec): Envelope {
+export function attendeeEnvelope(
+	i: Pick<BookingEmailInput, 'appointment'>,
+	spec: EnvelopeSpec
+): Envelope {
 	return envelope(i.appointment.attendee_email, spec);
 }
 
 /** Envelope addressed to the organizer (the single configured user). */
-export function organizerEnvelope(i: BookingEmailInput, spec: EnvelopeSpec): Envelope {
+export function organizerEnvelope(i: Pick<BookingEmailInput, 'cfg'>, spec: EnvelopeSpec): Envelope {
 	return envelope(i.cfg.user.email, spec);
 }

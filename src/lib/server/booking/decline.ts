@@ -5,7 +5,8 @@ import { transitionStatus } from './status';
 import type { Clock } from '../clock';
 import type { WhenConfiguration } from '../config/schema';
 import type { Appointment, Database } from '../db';
-import { notify } from '../notify';
+import { sendEmails } from '../email/send';
+import { bookingDeclined } from '../emails/booking-declined';
 
 export interface DeclineAppointmentDeps {
 	db: Kysely<Database>;
@@ -47,14 +48,7 @@ export async function declineAppointment(
 	// Decline never has a calendar effect — pending bookings aren't pushed.
 
 	await tracker.run('email', () =>
-		notify('booking_declined', {
-			cfg: deps.cfg,
-			appointment: row,
-			eventType,
-			cancelUrl: '',
-			rescheduleUrl: '',
-			bookedUrl: ''
-		})
+		sendEmails(deps.cfg, bookingDeclined({ cfg: deps.cfg, appointment: row, eventType }))
 	);
 
 	if (tracker.changed()) {
