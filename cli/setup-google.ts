@@ -1,6 +1,7 @@
-import readline from 'readline/promises';
+import readline from 'node:readline/promises';
 import { spawn } from 'node:child_process';
-import { serve } from 'bun';
+import { createServer } from 'node:http';
+import type { AddressInfo } from 'node:net';
 
 const rl = readline.createInterface({
 	input: process.stdin,
@@ -60,28 +61,29 @@ async function main() {
 		resolveCode = resolve;
 	});
 
-	const server = serve({
-		port: 0,
-		async fetch(req) {
-			const url = new URL(req.url);
-			if (url.pathname === '/callback') {
-				const code = url.searchParams.get('code');
-				if (code) {
-					resolveCode(code);
-					return new Response(
-						'Authentication successful! You can close this window and return to the terminal.',
-						{
-							headers: { 'Content-Type': 'text/html' }
-						}
-					);
-				}
-				return new Response('Error: No code found in the callback URL.', { status: 400 });
+	const server = createServer((req, res) => {
+		const url = new URL(req.url ?? '/', 'http://localhost');
+		if (url.pathname === '/callback') {
+			const code = url.searchParams.get('code');
+			if (code) {
+				resolveCode(code);
+				res.writeHead(200, { 'Content-Type': 'text/html' });
+				res.end(
+					'Authentication successful! You can close this window and return to the terminal.'
+				);
+				return;
 			}
-			return new Response('Not found', { status: 404 });
+			res.writeHead(400, { 'Content-Type': 'text/plain' });
+			res.end('Error: No code found in the callback URL.');
+			return;
 		}
+		res.writeHead(404, { 'Content-Type': 'text/plain' });
+		res.end('Not found');
 	});
+	await new Promise<void>((resolve) => server.listen(0, resolve));
 
-	const redirectUri = `http://localhost:${server.port}/callback`;
+	const port = (server.address() as AddressInfo).port;
+	const redirectUri = `http://localhost:${port}/callback`;
 
 	const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
 	authUrl.searchParams.set('client_id', clientId);
@@ -95,7 +97,7 @@ async function main() {
 
 	console.log('Waiting for authorization...');
 	const code = await codePromise;
-	server.stop();
+	server.close();
 
 	console.log('\nExchanging authorization code for tokens...');
 
