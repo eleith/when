@@ -1,3 +1,4 @@
+import { access } from 'node:fs/promises';
 import { join } from 'node:path';
 import { logger } from '../logger';
 import { configValid } from '../metrics';
@@ -12,8 +13,11 @@ export function defaultConfigPath(): string {
 
 export async function bootConfig(path: string = defaultConfigPath()): Promise<WhenConfiguration> {
 	configValid.set(0);
-	const file = Bun.file(path);
-	if (!(await file.exists())) {
+	const exists = await access(path).then(
+		() => true,
+		() => false
+	);
+	if (!exists) {
 		logger.fatal(
 			{ path },
 			'config.yaml not found; copy config.example.yaml from the repo as a starting point'

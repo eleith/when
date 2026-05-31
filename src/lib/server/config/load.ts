@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises';
 import Ajv, { type ErrorObject } from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
 import { parse as parseYaml } from 'yaml';
@@ -40,7 +41,7 @@ export function validateConfig(raw: unknown): WhenConfiguration {
 }
 
 export async function loadConfigFile(path: string): Promise<WhenConfiguration> {
-	const source = await Bun.file(path).text();
+	const source = await readFile(path, 'utf8');
 	let parsed: unknown;
 	try {
 		parsed = parseYaml(source);
