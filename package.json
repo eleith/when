@@ -9,10 +9,10 @@
 		"pnpm": ">=11"
 	},
 	"scripts": {
-		"dev": "vite dev",
-		"build": "vite build",
+		"dev": "pnpm generate:types && vite dev",
+		"build": "pnpm generate:types && vite build",
 		"preview": "vite preview",
-		"prepare": "svelte-kit sync && pnpm generate:types || echo ''",
+		"prepare": "svelte-kit sync",
 		"generate:types": "json2ts --input config.schema.json --output src/lib/server/config/schema.d.ts --no-bannerComment",
 		"check": "pnpm generate:types && svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
