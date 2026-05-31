@@ -5,6 +5,7 @@ WORKDIR /app
 RUN corepack enable
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/web/package.json ./apps/web/
 # --ignore-scripts: the `prepare` (svelte-kit sync) script can't run before the
 # source is copied; the build below runs sync + type generation itself.
 RUN pnpm install --frozen-lockfile --ignore-scripts
@@ -21,10 +22,13 @@ ENV HOST=0.0.0.0
 RUN corepack enable
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/web/package.json ./apps/web/
 RUN pnpm install --frozen-lockfile --prod --ignore-scripts
 
-COPY --from=builder /app/build ./build
+COPY --from=builder /app/apps/web/build ./apps/web/build
+
+RUN mkdir -p /app/data && chown -R node:node /app/data
 
 USER node
 EXPOSE 3000
-CMD ["node", "build/index.js"]
+CMD ["node", "apps/web/build/index.js"]
