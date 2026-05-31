@@ -1,4 +1,5 @@
 import Credentials from '@auth/sveltekit/providers/credentials';
+import { verify as verifyArgon2 } from '@node-rs/argon2';
 import type { WhenConfiguration } from '../config/schema';
 
 export function buildProviders(cfg: WhenConfiguration) {
@@ -15,7 +16,8 @@ export function buildProviders(cfg: WhenConfiguration) {
 					const u = typeof raw?.username === 'string' ? raw.username : '';
 					const p = typeof raw?.password === 'string' ? raw.password : '';
 					if (u !== username) return null;
-					const ok = await Bun.password.verify(p, password_hash);
+					// @node-rs/argon2 verify takes (hash, password) — reversed from Bun's.
+					const ok = await verifyArgon2(password_hash, p);
 					return ok ? { id: 'admin', name: username } : null;
 				}
 			})
