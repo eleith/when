@@ -5,6 +5,8 @@ import { pushAppointment } from '../calendar/push';
 import type { Clock } from '../clock';
 import type { EventType, WhenConfiguration } from '../config/schema';
 import type { Appointment, Database } from '../db';
+import { sendEmails } from '../email/send';
+import { bookingConfirmed } from '../emails/booking-confirmed';
 import { notify } from '../notify';
 
 export interface CreateAppointmentDeps {
@@ -111,14 +113,7 @@ export async function createAppointment(
 			};
 		}
 		await tracker.run('email', () =>
-			notify('booking_confirmed', {
-				cfg,
-				appointment,
-				eventType,
-				cancelUrl: links.cancel,
-				rescheduleUrl: links.reschedule,
-				bookedUrl: links.booked
-			})
+			sendEmails(cfg, bookingConfirmed({ cfg, appointment, eventType, baseUrl: input.baseUrl }))
 		);
 	} else {
 		await tracker.run('email', async () => {

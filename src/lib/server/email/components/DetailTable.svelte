@@ -1,5 +1,5 @@
 <script lang="ts">
-	export type DetailRow = { label: string; value: string | null | undefined };
+	type DetailRow = { label: string; value: string | null | undefined };
 	let { rows }: { rows: DetailRow[] } = $props();
 	const shown = $derived(rows.filter((r): r is { label: string; value: string } => !!r.value));
 </script>

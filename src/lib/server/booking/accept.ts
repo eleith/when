@@ -7,7 +7,8 @@ import { pushAppointment } from '../calendar/push';
 import type { Clock } from '../clock';
 import type { WhenConfiguration } from '../config/schema';
 import type { Appointment, Database } from '../db';
-import { notify } from '../notify';
+import { sendEmails } from '../email/send';
+import { bookingConfirmed } from '../emails/booking-confirmed';
 
 export interface AcceptAppointmentDeps {
 	db: Kysely<Database>;
@@ -62,14 +63,10 @@ export async function acceptAppointment(
 	}
 
 	await tracker.run('email', () =>
-		notify('booking_confirmed', {
-			cfg: deps.cfg,
-			appointment: row,
-			eventType,
-			cancelUrl: links.cancel,
-			rescheduleUrl: links.reschedule,
-			bookedUrl: links.booked
-		})
+		sendEmails(
+			deps.cfg,
+			bookingConfirmed({ cfg: deps.cfg, appointment: row, eventType, baseUrl: input.baseUrl })
+		)
 	);
 
 	if (externalUpdate !== null || tracker.changed()) {
