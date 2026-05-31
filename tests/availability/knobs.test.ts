@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
 import { resolveKnobs } from '$lib/server/availability/knobs';
-import { validConfig } from '../fixtures/valid-config';
+import { validConfig } from '$lib/server/__fixtures__/valid-config';
 import type { WhenConfiguration } from '$lib/server/config/schema';
 
 test('per-event override wins over global default', () => {

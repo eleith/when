@@ -3,7 +3,7 @@ import type { NotifyContext } from '$lib/server/notify';
 import type { Appointment } from '$lib/server/db';
 import { renderers } from '$lib/server/email-templates';
 import { DEFAULT_PRIMARY_COLOR } from '$lib/server/email-templates/layout';
-import { validConfig } from './fixtures/valid-config';
+import { validConfig } from '$lib/server/__fixtures__/valid-config';
 
 const baseAppointment: Appointment = {
 	id: 'appt-1',

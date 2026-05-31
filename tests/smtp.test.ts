@@ -2,7 +2,7 @@ import { expect, test } from 'vitest';
 import { openDb } from '$lib/server/db';
 import { isSecurePort, sendEmail } from '$lib/server/smtp';
 import { setState } from '$lib/server/state';
-import { validConfig } from './fixtures/valid-config';
+import { validConfig } from '$lib/server/__fixtures__/valid-config';
 
 test('isSecurePort returns true only for port 465', () => {
 	expect(isSecurePort(465)).toBe(true);

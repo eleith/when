@@ -3,7 +3,7 @@ import { acceptAppointment } from '$lib/server/booking/accept';
 import { systemClock } from '$lib/server/clock';
 import { openDb } from '$lib/server/db';
 import { runMigrations } from '$lib/server/db/migrate';
-import { validConfig } from '../fixtures/valid-config';
+import { validConfig } from '$lib/server/__fixtures__/valid-config';
 
 const baseRow = {
 	event_type_id: '30-min-chat',

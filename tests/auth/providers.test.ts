@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest';
 import { buildProviders } from '$lib/server/auth/providers';
 import { requireAuthSecret } from '$lib/server/auth/secret';
-import { validConfig } from '../fixtures/valid-config';
+import { validConfig } from '$lib/server/__fixtures__/valid-config';
 import type { WhenConfiguration } from '$lib/server/config/schema';
 
 test('credentials config produces a single Credentials provider', () => {

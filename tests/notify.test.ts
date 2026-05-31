@@ -1,6 +1,6 @@
 import { beforeEach, expect, test, vi } from 'vitest';
 import type { Appointment } from '$lib/server/db';
-import { validConfig } from './fixtures/valid-config';
+import { validConfig } from '$lib/server/__fixtures__/valid-config';
 
 // Hoisted so the vi.mock factory below can reference it. One shared mock,
 // cleared between tests.

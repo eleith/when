@@ -3,7 +3,7 @@ import { createAppointment } from '$lib/server/booking/create';
 import { systemClock } from '$lib/server/clock';
 import { openDb } from '$lib/server/db';
 import { runMigrations } from '$lib/server/db/migrate';
-import { validConfig } from '../fixtures/valid-config';
+import { validConfig } from '$lib/server/__fixtures__/valid-config';
 
 async function makeDb() {
 	const db = openDb(':memory:');
