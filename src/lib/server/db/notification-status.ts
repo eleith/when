@@ -15,10 +15,3 @@ export function parseNotificationStatus(raw: string | null): NotificationStatus 
 	}
 	return {};
 }
-
-export function mergeNotificationStatus(
-	existing: string | null,
-	patch: NotificationStatus
-): string {
-	return JSON.stringify({ ...parseNotificationStatus(existing), ...patch });
-}
