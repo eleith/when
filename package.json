@@ -1,6 +1,6 @@
-{
 	"name": "when-monorepo",
 	"private": true,
+	"packageManager": "pnpm@11.5.0",
 	"scripts": {
 		"dev": "pnpm --filter @when/web dev",
 		"build": "pnpm --filter @when/web build",
