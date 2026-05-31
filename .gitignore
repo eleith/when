@@ -2,10 +2,10 @@ node_modules
 .pnpm-store/
 
 # User config (real values; example lives in config.example.yaml)
-/config.yaml
+/apps/web/config.yaml
 
 # Runtime data (sqlite + WAL/SHM files)
-/data/
+/apps/web/data/
 
 # Output
 .output

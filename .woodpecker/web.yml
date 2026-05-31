@@ -12,7 +12,6 @@ when:
         - "package.json"
         - "pnpm-workspace.yaml"
         - "pnpm-lock.yaml"
-        - "Dockerfile"
   - event: tag
     ref: "refs/tags/web/v*"
 
@@ -79,7 +78,7 @@ steps:
     settings:
       repo: git.eleith.com/eleith/when
       username: eleith
-      dockerfile: Dockerfile
+      dockerfile: apps/web/Dockerfile
       context: .
       registry: https://git.eleith.com
       tags:
@@ -95,7 +94,7 @@ steps:
     settings:
       repo: git.eleith.com/eleith/when
       username: eleith
-      dockerfile: Dockerfile
+      dockerfile: apps/web/Dockerfile
       context: .
       registry: https://git.eleith.com
       tags_file: .tags

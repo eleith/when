@@ -1,0 +1,26 @@
+services:
+  when-dev:
+    build:
+      context: ../..
+      dockerfile: apps/web/Dockerfile.dev
+    user: '${UID:-1000}:${GID:-1000}'
+    ports:
+      - '5173:5173'
+    volumes:
+      - ../../.env:/app/apps/web/.env
+      - ./src:/app/apps/web/src
+      - ./static:/app/apps/web/static
+      - ./config.yaml:/app/apps/web/config.yaml
+      - ./config.schema.json:/app/apps/web/config.schema.json
+      - ./svelte.config.js:/app/apps/web/svelte.config.js
+      - ./vite.config.ts:/app/apps/web/vite.config.ts
+      - ./tsconfig.json:/app/apps/web/tsconfig.json
+      - ./eslint.config.js:/app/apps/web/eslint.config.js
+      - ./data:/app/apps/web/data
+      - ./data/public:/app/apps/web/static/public
+    environment:
+      NODE_ENV: development
+      AUTH_SECRET: ${AUTH_SECRET:-development-only-secret-please-change-it-32chars}
+
+volumes:
+  when-dev-data:

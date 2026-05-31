@@ -1,11 +1,13 @@
 services:
   when:
-    build: .
+    build:
+      context: ../..
+      dockerfile: apps/web/Dockerfile
     platform: linux/amd64
     ports:
       - '3000:3000'
     volumes:
       - ./config.yaml:/app/config.yaml
       - ./data:/app/data
-      - ./data/public:/app/build/client/public
+      - ./data/public:/app/apps/web/build/client/public
     restart: unless-stopped

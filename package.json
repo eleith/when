@@ -4,6 +4,7 @@
 	"packageManager": "pnpm@11.5.0",
 	"scripts": {
 		"dev": "pnpm --filter @when/web dev",
+		"dev:docker": "pnpm --filter @when/web dev:docker",
 		"build": "pnpm --filter @when/web build",
 		"preview": "pnpm --filter @when/web preview",
 		"check": "pnpm --filter @when/web check",
