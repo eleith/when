@@ -15,8 +15,9 @@ node_modules
 .vscode
 .npmrc
 mise.toml
-/.svelte-kit
-/build
+.svelte-kit/
+build/
+coverage/
 
 # OS
 .DS_Store
@@ -33,14 +34,13 @@ vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
 # Playwright
-/test-results/
-/playwright-report/
-/blob-report/
-/playwright/.cache/
-/coverage
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
 
 # Generated from config.schema.json by `pnpm generate:types`
-/src/lib/server/config/schema.d.ts
+src/lib/server/config/schema.d.ts
 
 # Per-user / local tool state
 /.claude/

@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { makeAuth } from './auth';
 import { requireAuthSecret } from './auth/secret';
@@ -10,7 +11,14 @@ import { env } from '$env/dynamic/private';
 
 export function defaultDbPath(): string {
 	if (process.env.NODE_ENV === 'production') return '/app/data/when.sqlite';
-	return join(process.cwd(), 'data', 'when.sqlite');
+	if (process.env.DATABASE_PATH) return process.env.DATABASE_PATH;
+
+	const localPath = join(process.cwd(), 'data', 'when.sqlite');
+	const parentDir = join(process.cwd(), '..', '..', 'data');
+	if (!existsSync(localPath) && existsSync(parentDir)) {
+		return join(parentDir, 'when.sqlite');
+	}
+	return localPath;
 }
 
 export async function bootApp(): Promise<void> {

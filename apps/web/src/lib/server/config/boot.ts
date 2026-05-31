@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import { access } from 'node:fs/promises';
 import { join } from 'node:path';
 import { logger } from '../logger';
@@ -8,7 +9,15 @@ import type { WhenConfiguration } from './schema';
 
 export function defaultConfigPath(): string {
 	if (process.env.NODE_ENV === 'production') return '/app/config.yaml';
-	return join(process.cwd(), 'config.yaml');
+	if (process.env.CONFIG_PATH) return process.env.CONFIG_PATH;
+
+	const localPath = join(process.cwd(), 'config.yaml');
+	if (existsSync(localPath)) return localPath;
+
+	const parentPath = join(process.cwd(), '..', '..', 'config.yaml');
+	if (existsSync(parentPath)) return parentPath;
+
+	return localPath;
 }
 
 export async function bootConfig(path: string = defaultConfigPath()): Promise<WhenConfiguration> {
