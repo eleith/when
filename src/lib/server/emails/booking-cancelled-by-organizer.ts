@@ -30,7 +30,7 @@ export function bookingCancelledByOrganizer(i: BookingEmailInput): Envelope[] {
 				`${i.cfg.user.name} cancelled this booking.`,
 				'',
 				`What: ${eventName}`,
-				`When: ${a.start_time}`
+				`When: ${when}`
 			),
 			ics: cancelIcs(i, links.booked)
 		}),
@@ -46,7 +46,7 @@ export function bookingCancelledByOrganizer(i: BookingEmailInput): Envelope[] {
 			text: lines(
 				`You cancelled ${a.attendee_name} <${a.attendee_email}> booking for ${eventName}.`,
 				'',
-				`When: ${a.start_time}`
+				`When: ${when}`
 			)
 		})
 	];

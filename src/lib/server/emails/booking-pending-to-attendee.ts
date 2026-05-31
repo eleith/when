@@ -31,7 +31,7 @@ export function bookingPendingToAttendee(i: BookingEmailInput): Envelope[] {
 				'',
 				`${i.cfg.user.name} will review and confirm. You'll get a follow-up email at ${a.attendee_email} with the outcome.`,
 				'',
-				`When: ${a.start_time}`,
+				`When: ${when}`,
 				a.location ? `Where: ${a.location}` : null,
 				'',
 				'Need to change something before then?',

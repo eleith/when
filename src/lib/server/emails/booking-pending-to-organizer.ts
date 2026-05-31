@@ -35,7 +35,7 @@ export function bookingPendingToOrganizer(i: BookingEmailInput): Envelope[] {
 			text: lines(
 				`${a.attendee_name} <${a.attendee_email}> has requested to book ${eventName}.`,
 				'',
-				`When: ${a.start_time}`,
+				`When: ${when}`,
 				duration ? `Duration: ${duration}` : null,
 				a.location ? `Where: ${a.location}` : null,
 				'',

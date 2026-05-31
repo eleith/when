@@ -31,7 +31,7 @@ export function bookingRescheduledByAttendee(i: BookingEmailInput): Envelope[] {
 				'Your booking has been moved to a new time.',
 				'',
 				`What: ${eventName}`,
-				`When: ${a.start_time}`,
+				`When: ${when}`,
 				a.location ? `Where: ${a.location}` : null,
 				'',
 				`Reschedule again: ${links.reschedule}`,
@@ -51,7 +51,7 @@ export function bookingRescheduledByAttendee(i: BookingEmailInput): Envelope[] {
 			text: lines(
 				`${a.attendee_name} <${a.attendee_email}> rescheduled ${eventName}.`,
 				'',
-				`When: ${a.start_time}`
+				`When: ${when}`
 			)
 		})
 	];

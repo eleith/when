@@ -27,7 +27,7 @@ export function bookingDeclined(i: Omit<BookingEmailInput, 'baseUrl'>): Envelope
 				'Your booking request was declined.',
 				'',
 				`What: ${eventName}`,
-				`When: ${a.start_time}`
+				`When: ${when}`
 			)
 		}),
 		organizerEnvelope(i, {
@@ -42,7 +42,7 @@ export function bookingDeclined(i: Omit<BookingEmailInput, 'baseUrl'>): Envelope
 			text: lines(
 				`You declined ${a.attendee_name}'s <${a.attendee_email}> request for ${eventName}.`,
 				'',
-				`When: ${a.start_time}`
+				`When: ${when}`
 			)
 		})
 	];

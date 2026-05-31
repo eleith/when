@@ -31,7 +31,7 @@ export function bookingConfirmed(i: BookingEmailInput): Envelope[] {
 				'Your booking is confirmed.',
 				'',
 				`What: ${eventName}`,
-				`When: ${a.start_time}`,
+				`When: ${when}`,
 				a.location ? `Where: ${a.location}` : null,
 				'',
 				`Reschedule: ${links.reschedule}`,
@@ -53,7 +53,7 @@ export function bookingConfirmed(i: BookingEmailInput): Envelope[] {
 			text: lines(
 				`${a.attendee_name} <${a.attendee_email}> just booked ${eventName}.`,
 				'',
-				`When: ${a.start_time}`,
+				`When: ${when}`,
 				a.location ? `Where: ${a.location}` : null,
 				a.attendee_notes ? `\nNotes: ${a.attendee_notes}` : null
 			)

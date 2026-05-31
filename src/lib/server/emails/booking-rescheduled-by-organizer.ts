@@ -32,7 +32,7 @@ export function bookingRescheduledByOrganizer(i: BookingEmailInput): Envelope[] 
 				`${i.cfg.user.name} moved this booking to a new time.`,
 				'',
 				`What: ${eventName}`,
-				`When: ${a.start_time}`,
+				`When: ${when}`,
 				a.location ? `Where: ${a.location}` : null,
 				'',
 				`Reschedule: ${links.reschedule}`,
@@ -52,7 +52,7 @@ export function bookingRescheduledByOrganizer(i: BookingEmailInput): Envelope[] 
 			text: lines(
 				`You rescheduled ${a.attendee_name} <${a.attendee_email}> booking for ${eventName}.`,
 				'',
-				`When: ${a.start_time}`
+				`When: ${when}`
 			)
 		})
 	];
