@@ -18,3 +18,19 @@ export function requestIcs(i: BookingEmailInput, bookedUrl: string): Attachment 
 		contentType: 'text/calendar; charset=utf-8'
 	};
 }
+
+/** A `METHOD:CANCEL` invite for a cancelled booking (attendee attachment). */
+export function cancelIcs(i: BookingEmailInput, bookedUrl: string): Attachment {
+	return {
+		filename: `${i.appointment.id}.ics`,
+		content: buildIcs({
+			appointment: i.appointment,
+			eventTypeName: eventTypeName(i.eventType, i.appointment),
+			organizerName: i.cfg.user.name,
+			organizerEmail: i.cfg.user.email,
+			cancelUrl: bookedUrl,
+			method: 'CANCEL'
+		}),
+		contentType: 'text/calendar; charset=utf-8'
+	};
+}
