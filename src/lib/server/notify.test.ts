@@ -6,7 +6,7 @@ import { validConfig } from '$lib/server/__fixtures__/valid-config';
 // cleared between tests.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const sendEmail = vi.hoisted(() => vi.fn(async (_opts: unknown) => ({ ok: true as const })));
-vi.mock('../src/lib/server/smtp', () => ({ sendEmail }));
+vi.mock('./smtp', () => ({ sendEmail }));
 
 beforeEach(() => {
 	sendEmail.mockClear();
@@ -42,7 +42,7 @@ function stubSendEmail() {
 
 test('notify(booking_confirmed) sends correct attendee email', async () => {
 	const sendStub = stubSendEmail();
-	const { notify } = await import('../src/lib/server/notify');
+	const { notify } = await import('./notify');
 	await notify('booking_confirmed', {
 		cfg: { ...validConfig, smtp },
 		appointment,
@@ -76,7 +76,7 @@ test('notify(booking_confirmed) sends correct attendee email', async () => {
 
 test('notify(booking_cancelled_by_attendee) attaches METHOD:CANCEL ICS for attendee, admin gets none', async () => {
 	const sendStub = stubSendEmail();
-	const { notify } = await import('../src/lib/server/notify');
+	const { notify } = await import('./notify');
 	await notify('booking_cancelled_by_attendee', {
 		cfg: { ...validConfig, smtp },
 		appointment: { ...appointment, status: 'cancelled', ics_sequence: 1 },
@@ -104,7 +104,7 @@ test('notify(booking_cancelled_by_attendee) attaches METHOD:CANCEL ICS for atten
 
 test('notify(booking_cancelled_by_organizer) tells attendee the organizer cancelled and attaches METHOD:CANCEL ICS', async () => {
 	const sendStub = stubSendEmail();
-	const { notify } = await import('../src/lib/server/notify');
+	const { notify } = await import('./notify');
 	await notify('booking_cancelled_by_organizer', {
 		cfg: { ...validConfig, smtp },
 		appointment: { ...appointment, status: 'cancelled', ics_sequence: 1 },
@@ -132,7 +132,7 @@ test('notify(booking_cancelled_by_organizer) tells attendee the organizer cancel
 
 test('notify(booking_rescheduled_by_attendee) sends attendee email with ICS', async () => {
 	const sendStub = stubSendEmail();
-	const { notify } = await import('../src/lib/server/notify');
+	const { notify } = await import('./notify');
 	await notify('booking_rescheduled_by_attendee', {
 		cfg: { ...validConfig, smtp },
 		appointment,
@@ -152,7 +152,7 @@ test('notify(booking_rescheduled_by_attendee) sends attendee email with ICS', as
 
 test('notify(booking_rescheduled_by_organizer) tells attendee the organizer moved the booking and attaches REQUEST ICS', async () => {
 	const sendStub = stubSendEmail();
-	const { notify } = await import('../src/lib/server/notify');
+	const { notify } = await import('./notify');
 	await notify('booking_rescheduled_by_organizer', {
 		cfg: { ...validConfig, smtp },
 		appointment: { ...appointment, ics_sequence: 1 },
@@ -182,7 +182,7 @@ test('notify(booking_rescheduled_by_organizer) tells attendee the organizer move
 
 test('notify(booking_pending_to_attendee) sends acknowledgement to attendee with cancel + reschedule, no ICS', async () => {
 	const sendStub = stubSendEmail();
-	const { notify } = await import('../src/lib/server/notify');
+	const { notify } = await import('./notify');
 	await notify('booking_pending_to_attendee', {
 		cfg: { ...validConfig, smtp },
 		appointment: { ...appointment, status: 'pending' },
@@ -203,7 +203,7 @@ test('notify(booking_pending_to_attendee) sends acknowledgement to attendee with
 
 test('notify(booking_pending_to_organizer) sends accept/decline email to organizer only', async () => {
 	const sendStub = stubSendEmail();
-	const { notify } = await import('../src/lib/server/notify');
+	const { notify } = await import('./notify');
 	const manageUrl = 'https://when.example.com/signin?callbackUrl=%2Fbooked%2Fappt-1';
 	await notify('booking_pending_to_organizer', {
 		cfg: { ...validConfig, smtp },
@@ -225,7 +225,7 @@ test('notify(booking_pending_to_organizer) sends accept/decline email to organiz
 
 test('notify(booking_declined) sends to attendee and admin, no ICS', async () => {
 	const sendStub = stubSendEmail();
-	const { notify } = await import('../src/lib/server/notify');
+	const { notify } = await import('./notify');
 	await notify('booking_declined', {
 		cfg: { ...validConfig, smtp },
 		appointment: { ...appointment, status: 'declined' },
@@ -261,7 +261,7 @@ test('every variant fires sendEmail with a populated html body', async () => {
 		'booking_declined'
 	] as const;
 	const sendStub = stubSendEmail();
-	const { notify } = await import('../src/lib/server/notify');
+	const { notify } = await import('./notify');
 	for (const variant of variants) {
 		await notify(variant, {
 			cfg: { ...validConfig, smtp },
@@ -285,7 +285,7 @@ test('every variant fires sendEmail with a populated html body', async () => {
 
 test('notify returns ok:true skipped:true when SMTP is not configured', async () => {
 	const sendStub = stubSendEmail();
-	const { notify } = await import('../src/lib/server/notify');
+	const { notify } = await import('./notify');
 	const result = await notify('booking_confirmed', {
 		cfg: { ...validConfig, smtp: undefined },
 		appointment,

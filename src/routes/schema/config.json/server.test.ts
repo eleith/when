@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { GET } from '../../../src/routes/schema/config.json/+server';
+import { GET } from './+server';
 
 test('GET /schema/config.json returns the canonical JSON Schema', async () => {
 	const res = GET();
