@@ -1,11 +1,14 @@
-FROM oven/bun:1.3.13-alpine
+FROM node:24-alpine
 
 WORKDIR /app
 
-# Install deps first for layer caching.
-COPY package.json bun.lock ./
+# Global pnpm so the container works no matter which host UID/GID it runs as
+# (this image is run with `user: ${UID}:${GID}` from docker-compose.dev.yml).
+RUN npm install -g pnpm@11.5.0
 
-RUN bun install --frozen-lockfile
+# Install deps first for layer caching.
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN pnpm install --frozen-lockfile
 
 # Copy the rest of the project so the image is self-contained.
 COPY . .
@@ -22,4 +25,4 @@ RUN mkdir -p /app/data /app/.svelte-kit && \
     chmod 777 /app /app/node_modules /app/data /app/.svelte-kit
 
 EXPOSE 5173
-CMD ["bun", "run", "dev", "--host", "0.0.0.0"]
+CMD ["pnpm", "run", "dev", "--host", "0.0.0.0"]
