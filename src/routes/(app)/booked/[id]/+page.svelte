@@ -77,6 +77,12 @@
 	let differentTz = $derived(data.organizerTz !== userTz);
 	// Organizer sees times in their own configured zone; attendees in the browser's.
 	let displayTz = $derived(data.isAdmin ? data.organizerTz : userTz);
+
+	function fmtFailureLabel(key: string): string {
+		if (key === 'email') return 'Email';
+		if (key === 'calendar_push') return 'Calendar Sync';
+		return key;
+	}
 </script>
 
 <svelte:head>
@@ -142,12 +148,14 @@
 		</aside>
 	{/if}
 
-	{#if data.isAdmin && data.appointment.notification_status}
+	{#if data.isAdmin && data.appointment.notification_failures && data.appointment.notification_failures.length > 0}
 		<aside class="notif-warning">
 			<IconWarning class="notif-icon" aria-hidden="true" />
 			<div>
 				<p class="notif-title">Some notifications didn't send</p>
-				<p class="notif-detail">{data.appointment.notification_status}</p>
+				<p class="notif-detail">
+					Failed: {data.appointment.notification_failures.map(fmtFailureLabel).join(', ')}
+				</p>
 			</div>
 		</aside>
 	{/if}

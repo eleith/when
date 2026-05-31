@@ -30,6 +30,12 @@
 		}
 		goto(`/booked/${id}`);
 	}
+
+	function fmtFailureLabel(key: string): string {
+		if (key === 'email') return 'Email';
+		if (key === 'calendar_push') return 'Calendar Sync';
+		return key;
+	}
 </script>
 
 <svelte:head>
@@ -85,8 +91,13 @@
 											{a.display_status}
 										{/if}
 									</span>
-									{#if a.notification_status}
-										<span class="notif-warn" title={a.notification_status}>
+									{#if a.notification_failures && a.notification_failures.length > 0}
+										<span
+											class="notif-warn"
+											title="Failed notifications: {a.notification_failures
+												.map(fmtFailureLabel)
+												.join(', ')}"
+										>
 											<IconWarning aria-hidden="true" />
 										</span>
 									{/if}

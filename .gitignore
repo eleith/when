@@ -37,6 +37,7 @@ vite.config.ts.timestamp-*
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+/coverage
 
 # Generated from config.schema.json by `pnpm generate:types`
 /src/lib/server/config/schema.d.ts

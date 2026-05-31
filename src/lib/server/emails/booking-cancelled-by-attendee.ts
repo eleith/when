@@ -25,12 +25,7 @@ export function bookingCancelledByAttendee(i: BookingEmailInput): Envelope[] {
 				eventName,
 				when
 			}),
-			text: lines(
-				'Your booking has been cancelled.',
-				'',
-				`What: ${eventName}`,
-				`When: ${when}`
-			),
+			text: lines('Your booking has been cancelled.', '', `What: ${eventName}`, `When: ${when}`),
 			ics: cancelIcs(i, links.booked)
 		}),
 		organizerEnvelope(i, {

@@ -3,6 +3,7 @@ import { systemClock } from '$lib/server/clock';
 import { getConfig, getDb } from '$lib/server/state';
 import type { Appointment } from '$lib/server/db';
 import type { Actions, PageServerLoad } from './$types';
+import { parseNotificationStatus } from '$lib/server/db/notification-status';
 
 type DisplayStatus =
 	| 'pending'
@@ -33,12 +34,20 @@ export const load: PageServerLoad = async () => {
 
 	const now = systemClock.now();
 	const nowMs = now.getTime();
-	const appointments = rows.map((r) => ({
-		...r,
-		event_type_name: cfg.event_types.find((e) => e.id === r.event_type_id)?.name ?? r.event_type_id,
-		display_status: deriveDisplayStatus(r, now),
-		is_past: nowMs >= Date.parse(r.end_time)
-	}));
+	const appointments = rows.map((r) => {
+		const notifObj = parseNotificationStatus(r.notification_status);
+		const notification_failures = (Object.keys(notifObj) as Array<keyof typeof notifObj>).filter(
+			(k) => notifObj[k] === 'failed'
+		);
+		return {
+			...r,
+			event_type_name:
+				cfg.event_types.find((e) => e.id === r.event_type_id)?.name ?? r.event_type_id,
+			display_status: deriveDisplayStatus(r, now),
+			is_past: nowMs >= Date.parse(r.end_time),
+			notification_failures
+		};
+	});
 
 	return { appointments };
 };

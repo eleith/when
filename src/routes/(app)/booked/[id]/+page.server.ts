@@ -9,6 +9,7 @@ import type { Actions, PageServerLoad } from './$types';
 import { acceptAppointment } from '$lib/server/booking/accept';
 import { declineAppointment } from '$lib/server/booking/decline';
 import { cancelAppointment } from '$lib/server/booking/cancel';
+import { parseNotificationStatus } from '$lib/server/db/notification-status';
 
 type ClockStatus = 'upcoming' | 'in_progress' | 'concluded';
 
@@ -72,6 +73,11 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 				)
 			: null;
 
+	const notifObj = parseNotificationStatus(row.notification_status);
+	const notification_failures = (Object.keys(notifObj) as Array<keyof typeof notifObj>).filter(
+		(k) => notifObj[k] === 'failed'
+	);
+
 	return {
 		appointment: {
 			id: row.id,
@@ -82,7 +88,7 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 			attendee_notes: row.attendee_notes,
 			location: row.location,
 			status: row.status,
-			notification_status: row.notification_status
+			notification_failures
 		},
 		eventType: eventType
 			? {
