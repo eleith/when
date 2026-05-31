@@ -1,11 +1,11 @@
-#!/usr/bin/env bun
 //
 // Usage:
-//   bun run hash-password
+//   pnpm hash-password
 //     — interactive: prompts for the password (input hidden), Enter to submit.
 //
-//   printf 'pw' | bun run hash-password
+//   printf 'pw' | pnpm hash-password
 //     — non-interactive: reads stdin to end. Useful in scripts.
+import { hash as hashArgon2, Algorithm } from '@node-rs/argon2';
 
 async function readFromTty(prompt: string): Promise<string> {
 	process.stderr.write(prompt);
@@ -48,7 +48,9 @@ async function readFromTty(prompt: string): Promise<string> {
 }
 
 async function readFromPipe(): Promise<string> {
-	return (await Bun.stdin.text()).replace(/\r?\n$/, '');
+	const chunks: Buffer[] = [];
+	for await (const chunk of process.stdin) chunks.push(chunk as Buffer);
+	return Buffer.concat(chunks).toString('utf8').replace(/\r?\n$/, '');
 }
 
 const raw = process.stdin.isTTY ? await readFromTty('Password: ') : await readFromPipe();
@@ -57,5 +59,5 @@ if (!raw) {
 	process.exit(1);
 }
 
-const hash = await Bun.password.hash(raw, { algorithm: 'argon2id' });
+const hash = await hashArgon2(raw, { algorithm: Algorithm.Argon2id });
 console.log(hash);
