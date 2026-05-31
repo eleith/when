@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, expect, test } from 'vitest';
 import { Temporal } from '@js-temporal/polyfill';
 import type { Kysely } from 'kysely';
-import { loadAppointmentBlocks } from '$lib/server/availability/db-blocks';
+import { loadAppointmentBlocks } from './db-blocks';
 import { openDb, type Database } from '$lib/server/db';
 import { runMigrations } from '$lib/server/db/migrate';
 

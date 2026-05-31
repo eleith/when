@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { createNotificationTracker } from '$lib/server/booking/side-effects';
+import { createNotificationTracker } from './side-effects';
 
 describe('createNotificationTracker', () => {
 	test('starts unchanged with the given initial status', () => {

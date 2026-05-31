@@ -1,11 +1,6 @@
 import { expect, test } from 'vitest';
 import { Temporal } from '@js-temporal/polyfill';
-import {
-	buildBaseWindows,
-	candidateDates,
-	localToInstant,
-	weekdayOf
-} from '$lib/server/availability/windows';
+import { buildBaseWindows, candidateDates, localToInstant, weekdayOf } from './windows';
 import type { WeeklySchedule } from '$lib/server/availability/types';
 
 const NYC = 'America/New_York';

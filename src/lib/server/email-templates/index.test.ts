@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest';
 import type { NotifyContext } from '$lib/server/notify';
 import type { Appointment } from '$lib/server/db';
-import { renderers } from '$lib/server/email-templates';
+import { renderers } from '.';
 import { DEFAULT_PRIMARY_COLOR } from '$lib/server/email-templates/layout';
 import { validConfig } from '$lib/server/__fixtures__/valid-config';
 

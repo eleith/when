@@ -3,7 +3,7 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { stringify } from 'yaml';
-import { bootConfig } from '$lib/server/config/boot';
+import { bootConfig } from './boot';
 import { ConfigError } from '$lib/server/config/load';
 import { validConfig } from '$lib/server/__fixtures__/valid-config';
 

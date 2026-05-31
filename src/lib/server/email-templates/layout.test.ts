@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { DEFAULT_PRIMARY_COLOR, wrap } from '$lib/server/email-templates/layout';
+import { DEFAULT_PRIMARY_COLOR, wrap } from './layout';
 import { escapeHtml } from '$lib/server/email-templates/escape';
 
 test('wrap returns a complete HTML document with doctype, head, and body', () => {

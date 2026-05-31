@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { buildProviders } from '$lib/server/auth/providers';
+import { buildProviders } from './providers';
 import { requireAuthSecret } from '$lib/server/auth/secret';
 import { validConfig } from '$lib/server/__fixtures__/valid-config';
 import type { WhenConfiguration } from '$lib/server/config/schema';

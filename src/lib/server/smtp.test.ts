@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
 import { openDb } from '$lib/server/db';
-import { isSecurePort, sendEmail } from '$lib/server/smtp';
+import { isSecurePort, sendEmail } from './smtp';
 import { setState } from '$lib/server/state';
 import { validConfig } from '$lib/server/__fixtures__/valid-config';
 

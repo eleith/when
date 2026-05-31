@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { buildLink } from '$lib/server/calendar-links/outlook';
+import { buildLink } from './outlook';
 
 const baseInput = {
 	start: '2026-04-27T13:00:00Z',

@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
 import { Temporal } from '@js-temporal/polyfill';
-import { mergeBlocks, overlapsAny } from '$lib/server/availability/blocks';
+import { mergeBlocks, overlapsAny } from './blocks';
 import { generateSlots } from '$lib/server/availability/slots';
 
 const I = (s: string) => Temporal.Instant.from(s);

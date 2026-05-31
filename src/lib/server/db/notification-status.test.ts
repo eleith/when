@@ -1,8 +1,5 @@
 import { expect, test } from 'vitest';
-import {
-	mergeNotificationStatus,
-	parseNotificationStatus
-} from '$lib/server/db/notification-status';
+import { mergeNotificationStatus, parseNotificationStatus } from './notification-status';
 
 test('parses null as empty', () => {
 	expect(parseNotificationStatus(null)).toEqual({});

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { classifyReschedule, rescheduleAppointment } from '$lib/server/booking/reschedule';
+import { classifyReschedule, rescheduleAppointment } from './reschedule';
 import { systemClock } from '$lib/server/clock';
 import { openDb } from '$lib/server/db';
 import type { Appointment } from '$lib/server/db';

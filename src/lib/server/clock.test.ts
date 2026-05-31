@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { systemClock } from '$lib/server/clock';
+import { systemClock } from './clock';
 
 test('systemClock returns a fresh Date', () => {
 	const a = systemClock.now();

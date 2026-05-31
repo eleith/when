@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { acceptAppointment } from '$lib/server/booking/accept';
+import { acceptAppointment } from './accept';
 import { systemClock } from '$lib/server/clock';
 import { openDb } from '$lib/server/db';
 import { runMigrations } from '$lib/server/db/migrate';
