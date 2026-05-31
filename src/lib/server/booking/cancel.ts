@@ -1,6 +1,6 @@
 import type { Kysely } from 'kysely';
 import { resolveBookingActions, type Viewer } from './actions';
-import { createNotificationTracker } from './side-effects';
+import { recordNotificationFailure } from './notifications';
 import { transitionStatus } from './status';
 import { deleteAppointmentFromCalendar } from '../calendar/push';
 import type { Clock } from '../clock';
@@ -47,40 +47,41 @@ export async function cancelAppointment(
 			id: input.appointment.id,
 			from: ['pending', 'confirmed'],
 			to: 'cancelled',
-			patch: { ics_sequence: input.appointment.ics_sequence + 1 }
+			patch: {
+				ics_sequence: input.appointment.ics_sequence + 1,
+				notification_status: null
+			}
 		}
 	);
 	if (!transition.ok) return { ok: false, reason: 'conflict' };
 
 	const cancelled = transition.row;
-	const tracker = createNotificationTracker(cancelled.notification_status);
+	let notificationStatus: string | null = null;
 
 	if (cancelled.external_event_id && cancelled.external_calendar_id) {
-		await tracker.run('calendar_push', () =>
-			deleteAppointmentFromCalendar(
-				deps.cfg,
-				cancelled.external_calendar_id!,
-				cancelled.external_event_id!
-			)
+		const deleted = await deleteAppointmentFromCalendar(
+			deps.cfg,
+			cancelled.external_calendar_id!,
+			cancelled.external_event_id!
 		);
+		if (!deleted.ok) {
+			await recordNotificationFailure(deps.db, cancelled.id, 'calendar_push');
+			notificationStatus = '{"calendar_push":"failed"}';
+		}
 	}
 
 	const builder =
 		input.initiator === 'organizer' ? bookingCancelledByOrganizer : bookingCancelledByAttendee;
-	await tracker.run('email', () =>
-		sendEmails(
-			deps.cfg,
-			builder({ cfg: deps.cfg, appointment: cancelled, eventType, baseUrl: input.baseUrl })
-		)
+	const emailed = await sendEmails(
+		deps.cfg,
+		builder({ cfg: deps.cfg, appointment: cancelled, eventType, baseUrl: input.baseUrl })
 	);
-
-	if (tracker.changed()) {
-		await deps.db
-			.updateTable('appointments')
-			.set({ notification_status: tracker.status() })
-			.where('id', '=', cancelled.id)
-			.execute();
+	if (!emailed.ok) {
+		await recordNotificationFailure(deps.db, cancelled.id, 'email');
+		notificationStatus = notificationStatus
+			? '{"calendar_push":"failed","email":"failed"}'
+			: '{"email":"failed"}';
 	}
 
-	return { ok: true, appointment: { ...cancelled, notification_status: tracker.status() } };
+	return { ok: true, appointment: { ...cancelled, notification_status: notificationStatus } };
 }
