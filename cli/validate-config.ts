@@ -1,4 +1,3 @@
-#!/usr/bin/env bun
 import { ConfigError, loadConfigFile } from '../src/lib/server/config/load';
 import { MissingEnvVarsError } from '../src/lib/server/config/interpolate';
 

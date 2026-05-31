@@ -20,9 +20,9 @@
 		"format": "prettier --write .",
 		"test": "bun test",
 		"test:e2e": "playwright test",
-		"validate-config": "bun ./cli/validate-config.ts",
-		"hash-password": "bun ./cli/hash-password.ts",
-		"setup-google": "bun ./cli/setup-google.ts",
+		"validate-config": "tsx ./cli/validate-config.ts",
+		"hash-password": "tsx ./cli/hash-password.ts",
+		"setup-google": "tsx ./cli/setup-google.ts",
 		"dev:docker": "docker compose -f docker-compose.dev.yml up"
 	},
 	"devDependencies": {
