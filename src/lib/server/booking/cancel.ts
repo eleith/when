@@ -1,13 +1,14 @@
 import type { Kysely } from 'kysely';
 import { resolveBookingActions, type Viewer } from './actions';
-import { bookingLinks } from './links';
 import { createNotificationTracker } from './side-effects';
 import { transitionStatus } from './status';
 import { deleteAppointmentFromCalendar } from '../calendar/push';
 import type { Clock } from '../clock';
 import type { WhenConfiguration } from '../config/schema';
 import type { Appointment, Database } from '../db';
-import { notify } from '../notify';
+import { bookingCancelledByAttendee } from '../emails/booking-cancelled-by-attendee';
+import { bookingCancelledByOrganizer } from '../emails/booking-cancelled-by-organizer';
+import { sendEmails } from '../email/send';
 
 export interface CancelAppointmentDeps {
 	db: Kysely<Database>;
@@ -53,7 +54,6 @@ export async function cancelAppointment(
 
 	const cancelled = transition.row;
 	const tracker = createNotificationTracker(cancelled.notification_status);
-	const links = bookingLinks({ baseUrl: input.baseUrl, appointment: cancelled, eventType });
 
 	if (cancelled.external_event_id && cancelled.external_calendar_id) {
 		await tracker.run('calendar_push', () =>
@@ -65,19 +65,13 @@ export async function cancelAppointment(
 		);
 	}
 
-	const variant =
-		input.initiator === 'organizer'
-			? 'booking_cancelled_by_organizer'
-			: 'booking_cancelled_by_attendee';
+	const builder =
+		input.initiator === 'organizer' ? bookingCancelledByOrganizer : bookingCancelledByAttendee;
 	await tracker.run('email', () =>
-		notify(variant, {
-			cfg: deps.cfg,
-			appointment: cancelled,
-			eventType,
-			cancelUrl: links.cancel,
-			rescheduleUrl: links.reschedule,
-			bookedUrl: links.booked
-		})
+		sendEmails(
+			deps.cfg,
+			builder({ cfg: deps.cfg, appointment: cancelled, eventType, baseUrl: input.baseUrl })
+		)
 	);
 
 	if (tracker.changed()) {
