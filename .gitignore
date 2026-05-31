@@ -38,7 +38,7 @@ vite.config.ts.timestamp-*
 /blob-report/
 /playwright/.cache/
 
-# Generated from config.schema.json by `bun run generate:types`
+# Generated from config.schema.json by `pnpm generate:types`
 /src/lib/server/config/schema.d.ts
 
 # Per-user / local tool state

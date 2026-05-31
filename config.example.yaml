@@ -7,7 +7,7 @@
 auth:
   credentials:
     username: admin
-    password_hash: '${ADMIN_PASSWORD_HASH}' # generate via `bunx when hash-password`
+    password_hash: '${ADMIN_PASSWORD_HASH}' # generate via `pnpm hash-password`
 
 user:
   name: 'Your Name'

@@ -81,7 +81,7 @@
 		},
 		"CredentialsAuth": {
 			"title": "CredentialsAuth",
-			"description": "Local username/password. `password_hash` is an argon2/bcrypt hash (generate with `bunx when hash-password`).",
+			"description": "Local username/password. `password_hash` is an argon2/bcrypt hash (generate with `pnpm hash-password`).",
 			"type": "object",
 			"additionalProperties": false,
 			"required": ["username", "password_hash"],
