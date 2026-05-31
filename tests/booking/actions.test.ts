@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { resolveBookingActions } from '../../src/lib/server/booking/actions';
 import type { AppointmentStatus } from '../../src/lib/server/db';
 

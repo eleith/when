@@ -1,4 +1,4 @@
-import { expect, test } from 'bun:test';
+import { expect, test } from 'vitest';
 import type { NotifyContext } from '../src/lib/server/notify';
 import type { Appointment } from '../src/lib/server/db';
 import { renderers } from '../src/lib/server/email-templates';
@@ -59,7 +59,7 @@ test('renderBookingConfirmed: attendee email contains action URLs and includes I
 	expect(attendee!.html).toContain(
 		'https://when.example.com/schedule/30-min?reschedule=appt-1&amp;token=tok'
 	);
-	expect(attendee!.attachments).toBeArrayOfSize(1);
+	expect(attendee!.attachments).toHaveLength(1);
 	expect(attendee!.attachments![0].content).toContain('METHOD:REQUEST');
 });
 
@@ -68,7 +68,7 @@ test('renderBookingCancelledByAttendee: attendee envelope attaches METHOD:CANCEL
 		ctx({ appointment: { ...baseAppointment, status: 'cancelled', ics_sequence: 1 } })
 	);
 	const attendee = envelopes.find((e) => e.to === 'booker@example.com');
-	expect(attendee!.attachments).toBeArrayOfSize(1);
+	expect(attendee!.attachments).toHaveLength(1);
 	expect(attendee!.attachments![0].content).toContain('METHOD:CANCEL');
 });
 

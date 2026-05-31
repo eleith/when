@@ -1,6 +1,16 @@
-import { expect, mock, test } from 'bun:test';
+import { beforeEach, expect, test, vi } from 'vitest';
 import type { Appointment } from '../src/lib/server/db';
 import { validConfig } from './fixtures/valid-config';
+
+// Hoisted so the vi.mock factory below can reference it. One shared mock,
+// cleared between tests.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const sendEmail = vi.hoisted(() => vi.fn(async (_opts: unknown) => ({ ok: true as const })));
+vi.mock('../src/lib/server/smtp', () => ({ sendEmail }));
+
+beforeEach(() => {
+	sendEmail.mockClear();
+});
 
 const appointment: Appointment = {
 	id: 'appt-1',
@@ -27,10 +37,7 @@ const cancelUrl = 'https://when.example.com/booked/appt-1?token=tok&cancel=1';
 const rescheduleUrl = 'https://when.example.com/schedule/30-min?reschedule=appt-1&token=tok';
 
 function stubSendEmail() {
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars
-	const s = mock((_opts: unknown) => Promise.resolve({ ok: true } as const));
-	mock.module('../src/lib/server/smtp', () => ({ sendEmail: s }));
-	return s;
+	return sendEmail;
 }
 
 test('notify(booking_confirmed) sends correct attendee email', async () => {
@@ -52,7 +59,7 @@ test('notify(booking_confirmed) sends correct attendee email', async () => {
 	expect(attendeeCall.subject).toContain('30 Minute Chat');
 	expect(attendeeCall.text).toContain(`Cancel: ${cancelUrl}`);
 	expect(attendeeCall.text).toContain(`Reschedule: ${rescheduleUrl}`);
-	expect(attendeeCall.attachments).toBeArrayOfSize(1);
+	expect(attendeeCall.attachments).toHaveLength(1);
 	const att = (attendeeCall.attachments as Array<Record<string, unknown>>)[0];
 	expect(att.filename).toBe('appt-1.ics');
 	expect(att.contentType).toBe('text/calendar; charset=utf-8');
@@ -82,7 +89,7 @@ test('notify(booking_cancelled_by_attendee) attaches METHOD:CANCEL ICS for atten
 	const attendeeCall = sendStub.mock.calls[0]![0] as Record<string, unknown>;
 	expect(attendeeCall.subject).toContain('Cancelled');
 	expect(attendeeCall.text).not.toContain('Cancel:');
-	expect(attendeeCall.attachments).toBeArrayOfSize(1);
+	expect(attendeeCall.attachments).toHaveLength(1);
 	const att = (attendeeCall.attachments as Array<Record<string, unknown>>)[0];
 	expect(att.filename).toBe('appt-1.ics');
 	expect(att.content).toContain('METHOD:CANCEL');
@@ -111,7 +118,7 @@ test('notify(booking_cancelled_by_organizer) tells attendee the organizer cancel
 	expect(attendeeCall.to).toBe('booker@example.com');
 	expect(attendeeCall.subject).toContain('Cancelled');
 	expect(attendeeCall.text).toContain(`${validConfig.user.name} cancelled this booking.`);
-	expect(attendeeCall.attachments).toBeArrayOfSize(1);
+	expect(attendeeCall.attachments).toHaveLength(1);
 	const att = (attendeeCall.attachments as Array<Record<string, unknown>>)[0];
 	expect(att.content).toContain('METHOD:CANCEL');
 	expect(att.content).toMatch(/^SEQUENCE:1$/m);
@@ -140,7 +147,7 @@ test('notify(booking_rescheduled_by_attendee) sends attendee email with ICS', as
 	expect(attendeeCall.subject).toContain('Rescheduled');
 	expect(attendeeCall.text).toContain(`Reschedule again: ${rescheduleUrl}`);
 	expect(attendeeCall.text).toContain(`Cancel: ${cancelUrl}`);
-	expect(attendeeCall.attachments).toBeArrayOfSize(1);
+	expect(attendeeCall.attachments).toHaveLength(1);
 });
 
 test('notify(booking_rescheduled_by_organizer) tells attendee the organizer moved the booking and attaches REQUEST ICS', async () => {
@@ -162,7 +169,7 @@ test('notify(booking_rescheduled_by_organizer) tells attendee the organizer move
 	expect(attendeeCall.text).toContain(`${validConfig.user.name} moved this booking to a new time.`);
 	expect(attendeeCall.text).toContain(`Reschedule: ${rescheduleUrl}`);
 	expect(attendeeCall.text).toContain(`Cancel: ${cancelUrl}`);
-	expect(attendeeCall.attachments).toBeArrayOfSize(1);
+	expect(attendeeCall.attachments).toHaveLength(1);
 	const att = (attendeeCall.attachments as Array<Record<string, unknown>>)[0];
 	expect(att.content).toContain('METHOD:REQUEST');
 	expect(att.content).toMatch(/^SEQUENCE:1$/m);

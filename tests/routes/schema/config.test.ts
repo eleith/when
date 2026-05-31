@@ -1,4 +1,4 @@
-import { expect, test } from 'bun:test';
+import { expect, test } from 'vitest';
 import { GET } from '../../../src/routes/schema/config.json/+server';
 
 test('GET /schema/config.json returns the canonical JSON Schema', async () => {

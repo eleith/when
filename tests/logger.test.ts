@@ -1,4 +1,4 @@
-import { expect, test } from 'bun:test';
+import { expect, test } from 'vitest';
 import { logger, loggerOptions } from '../src/lib/server/logger';
 
 test('base label is set to app name', () => {

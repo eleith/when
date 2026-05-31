@@ -1,5 +1,5 @@
-import { afterEach, beforeEach, expect, test } from 'bun:test';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { afterEach, beforeEach, expect, test } from 'vitest';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { stringify } from 'yaml';
@@ -22,13 +22,13 @@ test('missing config throws', async () => {
 
 test('invalid config throws ConfigError', async () => {
 	const cfgPath = join(dir, 'config.yaml');
-	await Bun.write(cfgPath, 'auth: {}\nuser: {}\n');
+	await writeFile(cfgPath, 'auth: {}\nuser: {}\n');
 	await expect(bootConfig(cfgPath)).rejects.toBeInstanceOf(ConfigError);
 });
 
 test('valid config loads and returns typed object', async () => {
 	const cfgPath = join(dir, 'config.yaml');
-	await Bun.write(cfgPath, stringify(validConfig));
+	await writeFile(cfgPath, stringify(validConfig));
 	const cfg = await bootConfig(cfgPath);
 	expect(cfg.user.name).toBe('Jane Doe');
 	expect(cfg.event_types[0].slug).toBe('30-min');

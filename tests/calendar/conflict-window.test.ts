@@ -1,4 +1,4 @@
-import { expect, test } from 'bun:test';
+import { expect, test } from 'vitest';
 import { Temporal } from '@js-temporal/polyfill';
 import { conflictPullWindow } from '../../src/lib/server/calendar/conflicts';
 

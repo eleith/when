@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { createAppointment } from '../../src/lib/server/booking/create';
 import { systemClock } from '../../src/lib/server/clock';
 import { openDb } from '../../src/lib/server/db';

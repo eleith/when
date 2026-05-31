@@ -1,4 +1,4 @@
-import { expect, test } from 'bun:test';
+import { expect, test } from 'vitest';
 import { ConfigError, validateConfig } from '../../src/lib/server/config/load';
 import { validConfig } from '../fixtures/valid-config';
 

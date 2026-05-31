@@ -1,5 +1,5 @@
-import { expect, test } from 'bun:test';
+import { expect, test } from 'vitest';
 
-test('bun:test harness is wired up', () => {
+test('vitest harness is wired up', () => {
 	expect(1 + 1).toBe(2);
 });

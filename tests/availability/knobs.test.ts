@@ -1,4 +1,4 @@
-import { expect, test } from 'bun:test';
+import { expect, test } from 'vitest';
 import { resolveKnobs } from '../../src/lib/server/availability/knobs';
 import { validConfig } from '../fixtures/valid-config';
 import type { WhenConfiguration } from '../../src/lib/server/config/schema';

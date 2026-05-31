@@ -1,4 +1,4 @@
-import { expect, test } from 'bun:test';
+import { expect, test } from 'vitest';
 import { buildIcs } from '../src/lib/server/ics';
 import type { Appointment } from '../src/lib/server/db';
 

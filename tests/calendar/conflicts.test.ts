@@ -1,4 +1,4 @@
-import { beforeEach, expect, test } from 'bun:test';
+import { beforeEach, expect, test } from 'vitest';
 import { Temporal } from '@js-temporal/polyfill';
 import type { FetchFn } from '../../src/lib/server/calendar/adapters/caldav';
 import { clearConflictCache, pullConflictBusy } from '../../src/lib/server/calendar/conflicts';

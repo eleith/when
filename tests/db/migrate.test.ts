@@ -1,4 +1,4 @@
-import { expect, test } from 'bun:test';
+import { expect, test } from 'vitest';
 import { sql } from 'kysely';
 import { openDb } from '../../src/lib/server/db';
 import { runMigrations } from '../../src/lib/server/db/migrate';

@@ -1,4 +1,4 @@
-import { expect, test } from 'bun:test';
+import { expect, test } from 'vitest';
 import { configValid, register } from '../src/lib/server/metrics';
 
 test('configValid gauge starts at 0', async () => {

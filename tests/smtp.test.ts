@@ -1,4 +1,4 @@
-import { expect, test } from 'bun:test';
+import { expect, test } from 'vitest';
 import { openDb } from '../src/lib/server/db';
 import { isSecurePort, sendEmail } from '../src/lib/server/smtp';
 import { setState } from '../src/lib/server/state';

@@ -1,4 +1,4 @@
-import { expect, test } from 'bun:test';
+import { expect, test } from 'vitest';
 import {
 	deleteCalDavEvent,
 	putCalDavEvent,
@@ -67,7 +67,7 @@ test('putCalDavEvent forwards If-Match when etag is provided', async () => {
 	let captured: RequestInit | null = null;
 	const fakeFetch: FetchFn = async (_url, init) => {
 		captured = init as RequestInit;
-		return new Response('', { status: 204 });
+		return new Response(null, { status: 204 });
 	};
 	await putCalDavEvent(caldavCfg, 'appt-xyz', 'BEGIN:VCALENDAR\nEND:VCALENDAR', {
 		fetchImpl: fakeFetch,
@@ -179,7 +179,7 @@ test('pushAppointment surfaces network failures as ok:false', async () => {
 });
 
 test('deleteAppointmentFromCalendar returns ok on success', async () => {
-	const fakeFetch: FetchFn = async () => new Response('', { status: 204 });
+	const fakeFetch: FetchFn = async () => new Response(null, { status: 204 });
 	const result = await deleteAppointmentFromCalendar(cfgWithCalDav, 'work', 'appt-xyz', {
 		fetchImpl: fakeFetch
 	});

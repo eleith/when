@@ -1,4 +1,4 @@
-import { expect, test } from 'bun:test';
+import { expect, test } from 'vitest';
 import { interpolate, MissingEnvVarsError } from '../../src/lib/server/config/interpolate';
 
 test('replaces single env var in a string', () => {

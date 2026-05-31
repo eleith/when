@@ -1,4 +1,4 @@
-import { expect, test } from 'bun:test';
+import { expect, test } from 'vitest';
 import { decrypt, encrypt, loadEncryptionKey } from '../src/lib/server/crypto';
 
 function randomKey(): string {

@@ -1,4 +1,4 @@
-import { expect, test } from 'bun:test';
+import { expect, test } from 'vitest';
 import { buildProviders } from '../../src/lib/server/auth/providers';
 import { requireAuthSecret } from '../../src/lib/server/auth/secret';
 import { validConfig } from '../fixtures/valid-config';

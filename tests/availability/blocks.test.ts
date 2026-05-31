@@ -1,4 +1,4 @@
-import { expect, test } from 'bun:test';
+import { expect, test } from 'vitest';
 import { Temporal } from '@js-temporal/polyfill';
 import { mergeBlocks, overlapsAny } from '../../src/lib/server/availability/blocks';
 import { generateSlots } from '../../src/lib/server/availability/slots';

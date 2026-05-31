@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, expect, test } from 'bun:test';
+import { afterEach, beforeEach, expect, test } from 'vitest';
 import { Temporal } from '@js-temporal/polyfill';
 import type { Kysely } from 'kysely';
 import { loadAppointmentBlocks } from '../../src/lib/server/availability/db-blocks';
