@@ -1,4 +1,5 @@
 node_modules
+.pnpm-store/
 
 # User config (real values; example lives in config.example.yaml)
 /config.yaml
