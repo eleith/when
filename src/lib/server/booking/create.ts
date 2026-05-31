@@ -1,4 +1,5 @@
 import type { Kysely } from 'kysely';
+import { bookingLinks } from './links';
 import { createNotificationTracker } from './side-effects';
 import { pushAppointment } from '../calendar/push';
 import type { Clock } from '../clock';
@@ -94,17 +95,14 @@ export async function createAppointment(
 		throw err;
 	}
 
-	const token = encodeURIComponent(cancelToken);
-	const bookedUrl = `${input.baseUrl}/booked/${id}?token=${token}`;
-	const cancelUrl = `${input.baseUrl}/booked/${id}?token=${token}&cancel=1`;
-	const rescheduleUrl = `${input.baseUrl}/schedule/${eventType.slug}?reschedule=${id}&token=${token}`;
+	const links = bookingLinks({ baseUrl: input.baseUrl, appointment, eventType });
 
 	const tracker = createNotificationTracker(null);
 	let externalUpdate: { external_event_id: string; external_calendar_id: string } | null = null;
 
 	if (status === 'confirmed') {
 		const pushed = await tracker.run('calendar_push', () =>
-			pushAppointment(cfg, appointment, eventType.destination_calendar, { cancelUrl: bookedUrl })
+			pushAppointment(cfg, appointment, eventType.destination_calendar, { cancelUrl: links.booked })
 		);
 		if (pushed.ok) {
 			externalUpdate = {
@@ -117,31 +115,30 @@ export async function createAppointment(
 				cfg,
 				appointment,
 				eventType,
-				cancelUrl,
-				rescheduleUrl,
-				bookedUrl
+				cancelUrl: links.cancel,
+				rescheduleUrl: links.reschedule,
+				bookedUrl: links.booked
 			})
 		);
 	} else {
-		const manageUrl = `${input.baseUrl}/signin?callbackUrl=${encodeURIComponent(`/booked/${id}`)}`;
 		await tracker.run('email', async () => {
 			const [organizer, attendee] = await Promise.all([
 				notify('booking_pending_to_organizer', {
 					cfg,
 					appointment,
 					eventType,
-					cancelUrl,
-					rescheduleUrl,
-					bookedUrl,
-					manageUrl
+					cancelUrl: links.cancel,
+					rescheduleUrl: links.reschedule,
+					bookedUrl: links.booked,
+					manageUrl: links.manage
 				}),
 				notify('booking_pending_to_attendee', {
 					cfg,
 					appointment,
 					eventType,
-					cancelUrl,
-					rescheduleUrl,
-					bookedUrl
+					cancelUrl: links.cancel,
+					rescheduleUrl: links.reschedule,
+					bookedUrl: links.booked
 				})
 			]);
 			return { ok: organizer.ok && attendee.ok };

@@ -1,5 +1,6 @@
 import type { Kysely } from 'kysely';
 import { resolveBookingActions } from './actions';
+import { bookingLinks } from './links';
 import { createNotificationTracker } from './side-effects';
 import { transitionStatus } from './status';
 import { pushAppointment } from '../calendar/push';
@@ -45,17 +46,12 @@ export async function acceptAppointment(
 
 	let row = transition.row;
 	const tracker = createNotificationTracker(row.notification_status);
-	const token = encodeURIComponent(row.cancel_token);
-	const bookedUrl = `${input.baseUrl}/booked/${row.id}?token=${token}`;
-	const cancelUrl = `${input.baseUrl}/booked/${row.id}?token=${token}&cancel=1`;
-	const rescheduleUrl = eventType
-		? `${input.baseUrl}/schedule/${eventType.slug}?reschedule=${row.id}&token=${token}`
-		: `${input.baseUrl}/booked/${row.id}?token=${token}`;
+	const links = bookingLinks({ baseUrl: input.baseUrl, appointment: row, eventType });
 
 	let externalUpdate: { external_event_id: string; external_calendar_id: string } | null = null;
 	if (eventType) {
 		const pushed = await tracker.run('calendar_push', () =>
-			pushAppointment(deps.cfg, row, eventType.destination_calendar, { cancelUrl: bookedUrl })
+			pushAppointment(deps.cfg, row, eventType.destination_calendar, { cancelUrl: links.booked })
 		);
 		if (pushed.ok) {
 			externalUpdate = {
@@ -70,9 +66,9 @@ export async function acceptAppointment(
 			cfg: deps.cfg,
 			appointment: row,
 			eventType,
-			cancelUrl,
-			rescheduleUrl,
-			bookedUrl
+			cancelUrl: links.cancel,
+			rescheduleUrl: links.reschedule,
+			bookedUrl: links.booked
 		})
 	);
 
