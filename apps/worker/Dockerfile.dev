@@ -1,0 +1,17 @@
+# syntax=docker/dockerfile:1
+# Build context: the monorepo root. Dev image — full workspace install, live
+# reload via `tsx watch`. Source/config/data are bind-mounted by compose.
+
+FROM node:24-alpine
+WORKDIR /m
+
+# COREPACK_HOME is a shared, world-readable path so cached pnpm works at runtime
+# under whatever host UID/GID docker-compose.dev.yml runs the container as.
+ENV COREPACK_HOME=/usr/local/corepack
+RUN corepack enable
+
+COPY . .
+RUN pnpm install --frozen-lockfile && chmod -R a+rX "$COREPACK_HOME"
+
+EXPOSE 9000
+CMD ["pnpm", "--filter", "@when/worker", "dev"]

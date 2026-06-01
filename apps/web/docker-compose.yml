@@ -11,3 +11,15 @@ services:
       - ./data:/app/data
       - ./data/public:/app/build/client/public
     restart: unless-stopped
+
+  # Same config.yaml + data dir as web → same when.sqlite, plus the openworkflow
+  # queue.sqlite (both under ./data, resolved relative to the config file).
+  worker:
+    build:
+      context: ../..
+      dockerfile: apps/worker/Dockerfile
+    platform: linux/amd64
+    volumes:
+      - ./config.yaml:/app/config.yaml
+      - ./data:/app/data
+    restart: unless-stopped

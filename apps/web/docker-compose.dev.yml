@@ -21,5 +21,33 @@ services:
       NODE_ENV: development
       AUTH_SECRET: ${AUTH_SECRET:-development-only-secret-please-change-it-32chars}
 
+  # Worker shares the same config.yaml + data dir as web, so it opens the same
+  # when.sqlite and the openworkflow queue.sqlite (paths resolve relative to the
+  # config file). tsx watches the bind-mounted source for live reload.
+  worker-dev:
+    build:
+      context: ../..
+      dockerfile: apps/worker/Dockerfile.dev
+    user: '${UID:-1000}:${GID:-1000}'
+    ports:
+      - '9000:9000'
+    env_file:
+      - ../../.env
+    environment:
+      NODE_ENV: development
+    volumes:
+      - ../worker/src:/m/apps/worker/src
+      - ./config.yaml:/m/apps/worker/config.yaml
+      - ./data:/m/apps/worker/data
+    depends_on:
+      - mailpit
+
+  # Local SMTP sink; the worker will deliver booking emails here (UI on :8025).
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - '8025:8025'
+      - '1025:1025'
+
 volumes:
   when-dev-data:
