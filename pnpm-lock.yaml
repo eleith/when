@@ -261,6 +261,52 @@ importers:
         specifier: 'catalog:'
         version: 4.1.7(@opentelemetry/api@1.9.1)(@types/node@24.12.4)(@vitest/coverage-v8@4.1.7)(vite@8.0.14(@types/node@24.12.4)(esbuild@0.28.0)(tsx@4.22.3)(yaml@2.9.0))
 
+  packages/jobs:
+    dependencies:
+      '@when/config':
+        specifier: workspace:*
+        version: link:../config
+      '@when/db':
+        specifier: workspace:*
+        version: link:../db
+      openworkflow:
+        specifier: ^0.9.0
+        version: 0.9.0
+    devDependencies:
+      '@eslint/js':
+        specifier: 'catalog:'
+        version: 10.0.1(eslint@10.4.1)
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.12.4
+      '@vitest/coverage-v8':
+        specifier: 'catalog:'
+        version: 4.1.7(vitest@4.1.7)
+      eslint:
+        specifier: 'catalog:'
+        version: 10.4.1
+      eslint-config-prettier:
+        specifier: 'catalog:'
+        version: 10.1.8(eslint@10.4.1)
+      globals:
+        specifier: 'catalog:'
+        version: 17.6.0
+      prettier:
+        specifier: 'catalog:'
+        version: 3.8.3
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      typescript-eslint:
+        specifier: 'catalog:'
+        version: 8.60.0(eslint@10.4.1)(typescript@6.0.3)
+      vite:
+        specifier: 'catalog:'
+        version: 8.0.14(@types/node@24.12.4)(esbuild@0.28.0)(tsx@4.22.3)(yaml@2.9.0)
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.7(@opentelemetry/api@1.9.1)(@types/node@24.12.4)(@vitest/coverage-v8@4.1.7)(vite@8.0.14(@types/node@24.12.4)(esbuild@0.28.0)(tsx@4.22.3)(yaml@2.9.0))
+
 packages:
 
   '@antfu/install-pkg@1.1.0':
@@ -1756,6 +1802,15 @@ packages:
 
   once@1.4.0:
     resolution: {integrity: sha512-lNaJgI+2Q5URQBkccEKHTQOPaXdUxnZZElQTZY0MFUAuaEqe1E+Nyvgdz/aIyNi6Z9MzO5dv1H8n58/GELp3+w==}
+
+  openworkflow@0.9.0:
+    resolution: {integrity: sha512-Ii6qkAh4ozbTHH5w7PdjjNYGF7u8xV2rsvTaBleo21rRlS8sEzrvDdxWsHawiY1VLfI1nfuRf8I3NDerlrugtg==}
+    engines: {node: '>=20'}
+    peerDependencies:
+      postgres: ^3.4.9
+    peerDependenciesMeta:
+      postgres:
+        optional: true
 
   optionator@0.9.4:
     resolution: {integrity: sha512-6IpQ7mKUxRcZNLIObR0hz7lxsapSSIYNZJwXPGeF0mTVqGKFIXj1DQcMoT22S3ROcLyY/rz0PWaWZ9ayWmad9g==}
@@ -3514,6 +3569,8 @@ snapshots:
   once@1.4.0:
     dependencies:
       wrappy: 1.0.2
+
+  openworkflow@0.9.0: {}
 
   optionator@0.9.4:
     dependencies:
