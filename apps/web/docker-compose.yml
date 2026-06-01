@@ -9,5 +9,5 @@ services:
     volumes:
       - ./config.yaml:/app/config.yaml
       - ./data:/app/data
-      - ./data/public:/app/apps/web/build/client/public
+      - ./data/public:/app/build/client/public
     restart: unless-stopped

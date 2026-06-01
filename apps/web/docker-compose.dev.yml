@@ -11,7 +11,6 @@ services:
       - ./src:/app/apps/web/src
       - ./static:/app/apps/web/static
       - ./config.yaml:/app/apps/web/config.yaml
-      - ./config.schema.json:/app/apps/web/config.schema.json
       - ./svelte.config.js:/app/apps/web/svelte.config.js
       - ./vite.config.ts:/app/apps/web/vite.config.ts
       - ./tsconfig.json:/app/apps/web/tsconfig.json

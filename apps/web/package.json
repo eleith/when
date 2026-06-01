@@ -8,6 +8,9 @@
 		"node": ">=24",
 		"pnpm": ">=11"
 	},
+	"files": [
+		"build"
+	],
 	"scripts": {
 		"dev": "vite dev",
 		"build": "vite build",

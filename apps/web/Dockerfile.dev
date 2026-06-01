@@ -8,13 +8,12 @@ WORKDIR /app
 ENV COREPACK_HOME=/usr/local/corepack
 RUN corepack enable
 
-# Install deps first for layer caching. --ignore-scripts: `prepare` (svelte-kit
-# sync) can't run before the source is copied; `pnpm dev` runs sync itself.
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-RUN pnpm install --frozen-lockfile --ignore-scripts
-
-# Copy the rest of the project so the image is self-contained.
+# Copy the whole workspace first so the @when/* members are present for the
+# frozen-lockfile install (pnpm needs every workspace package.json to resolve the
+# workspace:* deps). --ignore-scripts: `prepare` (svelte-kit sync) is run by
+# `pnpm dev` itself at startup.
 COPY . .
+RUN pnpm install --frozen-lockfile --ignore-scripts
 
 # Runtime-writable dirs (the host-mapped UID needs write here):
 #   /app                  — vite drops a .timestamp-*.mjs next to vite.config.ts
