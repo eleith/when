@@ -6,7 +6,7 @@ import {
 } from '$lib/server/calendar/adapters/caldav';
 import { deleteAppointmentFromCalendar, pushAppointment } from './push';
 import type { Appointment } from '$lib/server/db';
-import type { WhenConfiguration } from '$lib/server/config/schema';
+import type { WhenConfiguration } from '@when/config';
 import { validConfig } from '$lib/server/__fixtures__/valid-config';
 
 const caldavCfg = { url: 'https://cal.example.com/work/', username: 'jane', password: 'secret' };

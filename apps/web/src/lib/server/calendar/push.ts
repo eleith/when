@@ -1,4 +1,4 @@
-import type { WhenConfiguration } from '../config/schema';
+import type { WhenConfiguration } from '@when/config';
 import type { Appointment } from '../db';
 import { logger } from '../logger';
 import type { FetchFn } from './adapters/caldav';

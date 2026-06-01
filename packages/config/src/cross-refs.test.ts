@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
-import { ConfigError, validateConfig } from '$lib/server/config/load';
-import { validConfig } from '$lib/server/__fixtures__/valid-config';
+import { ConfigError, validateConfig } from './load';
+import { validConfig } from './__fixtures__/valid-config';
 
 function clone<T>(v: T): T {
 	return JSON.parse(JSON.stringify(v));

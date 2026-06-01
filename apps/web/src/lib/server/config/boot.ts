@@ -3,9 +3,8 @@ import { access } from 'node:fs/promises';
 import { join } from 'node:path';
 import { logger } from '../logger';
 import { configValid } from '../metrics';
-import { ConfigError, loadConfigFile } from './load';
-import { MissingEnvVarsError } from './interpolate';
-import type { WhenConfiguration } from './schema';
+import { ConfigError, loadConfigFile, MissingEnvVarsError } from '@when/config';
+import type { WhenConfiguration } from '@when/config';
 
 export function defaultConfigPath(): string {
 	if (process.env.NODE_ENV === 'production') return '/app/config.yaml';

@@ -1,5 +1,5 @@
-import { ConfigError, loadConfigFile } from '../src/lib/server/config/load';
-import { MissingEnvVarsError } from '../src/lib/server/config/interpolate';
+import { ConfigError, loadConfigFile } from '@when/config';
+import { MissingEnvVarsError } from '@when/config';
 
 const path = process.argv[2] ?? './config.yaml';
 

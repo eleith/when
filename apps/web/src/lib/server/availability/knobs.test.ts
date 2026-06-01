@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest';
 import { resolveKnobs } from './knobs';
 import { validConfig } from '$lib/server/__fixtures__/valid-config';
-import type { WhenConfiguration } from '$lib/server/config/schema';
+import type { WhenConfiguration } from '@when/config';
 
 test('per-event override wins over global default', () => {
 	const cfg: WhenConfiguration = JSON.parse(JSON.stringify(validConfig));

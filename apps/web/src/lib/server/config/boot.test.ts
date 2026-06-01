@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { stringify } from 'yaml';
 import { bootConfig } from './boot';
-import { ConfigError } from '$lib/server/config/load';
+import { ConfigError } from '@when/config';
 import { validConfig } from '$lib/server/__fixtures__/valid-config';
 
 let dir: string;

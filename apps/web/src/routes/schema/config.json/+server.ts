@@ -1,4 +1,4 @@
-import { schema } from '$lib/server/config/load';
+import { schema } from '@when/config';
 
 export function GET(): Response {
 	return new Response(JSON.stringify(schema, null, 2), {

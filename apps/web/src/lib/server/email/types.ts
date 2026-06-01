@@ -1,4 +1,4 @@
-import type { EventType, WhenConfiguration } from '../config/schema';
+import type { EventType, WhenConfiguration } from '@when/config';
 import type { Appointment } from '../db';
 
 /** The common domain input every booking email builder takes. */

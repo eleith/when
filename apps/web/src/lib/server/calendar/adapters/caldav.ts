@@ -3,7 +3,7 @@ import { logger } from '../../logger';
 import { parseBusyEvents } from '../parse';
 import type { BusyEvent } from '../types';
 import type { CalendarAdapter, PushOptions, PushResult, DeleteResult } from '../adapter';
-import type { WhenConfiguration, CalDavCalendar } from '../../config/schema';
+import type { WhenConfiguration, CalDavCalendar } from '@when/config';
 import type { Appointment } from '../../db';
 import type { ExpandWindow } from '../expand';
 import { buildIcs } from '../../ics';

@@ -1,5 +1,5 @@
 import { Temporal } from '@js-temporal/polyfill';
-import type { EventType, WhenConfiguration } from '../config/schema';
+import type { EventType, WhenConfiguration } from '@when/config';
 import type { Appointment } from '../db';
 
 export function eventTypeName(

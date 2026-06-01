@@ -1,4 +1,4 @@
-import type { WhenConfiguration } from '@when/config';
+import type { WhenConfiguration } from '../schema';
 
 export const validConfig: WhenConfiguration = {
 	auth: {

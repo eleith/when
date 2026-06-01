@@ -2,4 +2,3 @@
 .svelte-kit/
 build/
 static/
-src/lib/server/config/schema.d.ts

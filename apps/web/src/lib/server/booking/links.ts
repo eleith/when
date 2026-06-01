@@ -1,4 +1,4 @@
-import type { EventType } from '../config/schema';
+import type { EventType } from '@when/config';
 import type { Appointment } from '../db';
 
 export interface BookingLinks {

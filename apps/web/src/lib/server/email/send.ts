@@ -1,4 +1,4 @@
-import type { WhenConfiguration } from '../config/schema';
+import type { WhenConfiguration } from '@when/config';
 import { sendEmail } from '../smtp';
 
 export interface Attachment {

@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import Ajv, { type ErrorObject } from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
 import { parse as parseYaml } from 'yaml';
-import schema from '../../../../config.schema.json' with { type: 'json' };
+import schema from './config.schema.json' with { type: 'json' };
 import type { WhenConfiguration } from './schema';
 import { interpolate } from './interpolate';
 import { checkCrossRefs } from './cross-refs';

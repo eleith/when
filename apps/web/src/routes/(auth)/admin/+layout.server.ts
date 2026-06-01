@@ -1,5 +1,5 @@
 import { getConfig } from '$lib/server/state';
-import type { WhenConfiguration } from '$lib/server/config/schema';
+import type { WhenConfiguration } from '@when/config';
 import type { LayoutServerLoad } from './$types';
 
 function sanitizeConfig(cfg: WhenConfiguration): unknown {

@@ -1,4 +1,4 @@
-import type { EventType, WhenConfiguration } from '../config/schema';
+import type { EventType, WhenConfiguration } from '@when/config';
 import type { EventTypeKnobs } from './types';
 
 export function resolveKnobs(cfg: WhenConfiguration, eventTypeId: string): EventTypeKnobs {

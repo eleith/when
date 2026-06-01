@@ -1,6 +1,6 @@
 import { SvelteKitAuth } from '@auth/sveltekit';
 import type { RequestEvent } from '@sveltejs/kit';
-import type { WhenConfiguration } from '../config/schema';
+import type { WhenConfiguration } from '@when/config';
 import { buildProviders } from './providers';
 import { requireAuthSecret } from './secret';
 

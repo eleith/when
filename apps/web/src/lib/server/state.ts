@@ -1,5 +1,5 @@
 import type { Kysely } from 'kysely';
-import type { WhenConfiguration } from './config/schema';
+import type { WhenConfiguration } from '@when/config';
 import type { Database } from './db';
 
 export interface AppState {

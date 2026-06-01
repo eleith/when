@@ -1,5 +1,5 @@
 import { Temporal } from '@js-temporal/polyfill';
-import type { Calendar } from '../config/schema';
+import type { Calendar } from '@when/config';
 import { logger } from '../logger';
 import type { Interval } from '../availability/types';
 import type { FetchFn } from './adapters/caldav';

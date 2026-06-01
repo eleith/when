@@ -1,4 +1,4 @@
-import type { EventType } from '$lib/server/config/schema';
+import type { EventType } from '@when/config';
 import type { Appointment, AppointmentStatus } from '$lib/server/db';
 import { isCancelAllowed, isRescheduleAllowed } from './access';
 

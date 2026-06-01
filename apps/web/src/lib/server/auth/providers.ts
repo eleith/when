@@ -1,6 +1,6 @@
 import Credentials from '@auth/sveltekit/providers/credentials';
 import { verify as verifyArgon2 } from '@node-rs/argon2';
-import type { WhenConfiguration } from '../config/schema';
+import type { WhenConfiguration } from '@when/config';
 
 export function buildProviders(cfg: WhenConfiguration) {
 	if ('credentials' in cfg.auth) {

@@ -4,7 +4,7 @@ import type { BusyEvent } from '../types';
 import type { Appointment } from '../../db';
 import type { FetchBusyOptions, FetchFn } from './caldav';
 import type { CalendarAdapter, PushOptions, PushResult, DeleteResult } from '../adapter';
-import type { WhenConfiguration, GoogleCalendar } from '../../config/schema';
+import type { WhenConfiguration, GoogleCalendar } from '@when/config';
 import type { ExpandWindow } from '../expand';
 
 export interface GoogleConfig {

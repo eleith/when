@@ -7,7 +7,7 @@ import { resolveKnobsFor } from '$lib/server/availability/knobs';
 import { buildBaseWindows, candidateDates } from '$lib/server/availability/windows';
 import { conflictPullWindow, pullConflictBusy } from '$lib/server/calendar/conflicts';
 import { systemClock } from '$lib/server/clock';
-import type { Location } from '$lib/server/config/schema';
+import type { Location } from '@when/config';
 import { logger } from '$lib/server/logger';
 import { getConfig, getDb } from '$lib/server/state';
 import { createAppointment } from '$lib/server/booking/create';
