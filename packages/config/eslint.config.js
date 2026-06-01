@@ -4,7 +4,7 @@ import prettier from 'eslint-config-prettier';
 import globals from 'globals';
 
 export default ts.config(
-	{ ignores: ['dist/', 'src/schema.d.ts'] },
+	{ ignores: ['dist/', 'coverage/', 'src/schema.d.ts'] },
 	js.configs.recommended,
 	...ts.configs.recommended,
 	prettier,
