@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import { resolveBookingActions } from './actions';
-import type { AppointmentStatus } from '$lib/server/db';
+import type { AppointmentStatus } from '@when/db';
 
 const startTime = '2026-05-01T15:00:00Z';
 const before = new Date('2026-05-01T14:00:00Z');

@@ -1,7 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import { recordNotificationFailure } from './notifications';
-import { openDb } from '$lib/server/db';
-import { runMigrations } from '$lib/server/db/migrate';
+import { openDb, runMigrations } from '@when/db';
 
 const baseRow = {
 	event_type_id: '30-min-chat',

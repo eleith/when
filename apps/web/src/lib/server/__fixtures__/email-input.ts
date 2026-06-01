@@ -1,4 +1,4 @@
-import type { Appointment } from '$lib/server/db';
+import type { Appointment } from '@when/db';
 import type { BookingEmailInput } from '$lib/server/email/types';
 import { validConfig } from './valid-config';
 

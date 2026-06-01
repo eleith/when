@@ -4,7 +4,7 @@ import { recordNotificationFailure } from './notifications';
 import { pushAppointment } from '../calendar/push';
 import type { Clock } from '../clock';
 import type { EventType, WhenConfiguration } from '@when/config';
-import type { Appointment, Database } from '../db';
+import type { Appointment, Database } from '@when/db';
 import { sendEmails } from '../email/send';
 import { bookingConfirmed } from '../emails/booking-confirmed';
 import { bookingPendingToAttendee } from '../emails/booking-pending-to-attendee';

@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest';
 import { bookingRescheduledByOrganizer } from './booking-rescheduled-by-organizer';
 import { validConfig } from '$lib/server/__fixtures__/valid-config';
-import type { Appointment } from '$lib/server/db';
+import type { Appointment } from '@when/db';
 
 const appointment: Appointment = {
 	id: 'appt-1',

@@ -1,5 +1,5 @@
 import { error } from '@sveltejs/kit';
-import type { Appointment, AppointmentStatus } from '$lib/server/db';
+import type { Appointment, AppointmentStatus } from '@when/db';
 
 export const BOOKING_VIEW_GRACE_DAYS = 14;
 

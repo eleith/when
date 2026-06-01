@@ -1,8 +1,7 @@
 import { describe, expect, test } from 'vitest';
 import { transitionStatus } from './status';
 import { systemClock } from '$lib/server/clock';
-import { openDb } from '$lib/server/db';
-import { runMigrations } from '$lib/server/db/migrate';
+import { openDb, runMigrations } from '@when/db';
 
 const baseRow = {
 	event_type_id: 'chat',

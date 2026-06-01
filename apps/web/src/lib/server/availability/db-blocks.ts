@@ -1,6 +1,6 @@
 import { Temporal } from '@js-temporal/polyfill';
 import type { Kysely } from 'kysely';
-import type { Database } from '../db';
+import type { Database } from '@when/db';
 import type { Interval } from './types';
 
 export interface DbBlocksResult {

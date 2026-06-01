@@ -6,7 +6,7 @@ import {
 	isViewable,
 	requireViewableAppointment
 } from './access';
-import type { Appointment } from '$lib/server/db';
+import type { Appointment } from '@when/db';
 
 const baseRow: Appointment = {
 	id: 'appt-1',

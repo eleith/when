@@ -1,5 +1,5 @@
 import type { WhenConfiguration } from '@when/config';
-import type { Appointment } from '../db';
+import type { Appointment } from '@when/db';
 import { logger } from '../logger';
 import type { FetchFn } from './adapters/caldav';
 import {

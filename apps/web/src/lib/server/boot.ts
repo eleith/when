@@ -5,8 +5,8 @@ import { requireAuthSecret } from './auth/secret';
 import { setState } from './state';
 import { bootConfig } from './config/boot';
 import { loadEncryptionKey } from './crypto';
-import { openDb } from './db';
-import { runMigrations } from './db/migrate';
+import { openDb, runMigrations } from '@when/db';
+import { logger } from './logger';
 import { env } from '$env/dynamic/private';
 
 export function defaultDbPath(): string {
@@ -29,7 +29,8 @@ export async function bootApp(): Promise<void> {
 	await loadEncryptionKey(rawKey);
 	const dbPath = process.env.DATABASE_PATH ?? defaultDbPath();
 	const db = openDb(dbPath);
-	await runMigrations(db);
+	const applied = await runMigrations(db);
+	if (applied.length > 0) logger.info({ migrations: applied }, 'migrations applied');
 	makeAuth(config);
 	setState({ config, db });
 }

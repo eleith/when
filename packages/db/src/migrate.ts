@@ -1,8 +1,11 @@
 import { Migrator, type Kysely } from 'kysely';
 import type { Database } from './types';
 import { migrations } from './migrations';
-import { logger } from '../logger';
 
+/**
+ * Apply all pending migrations and return the names that were applied. Stays
+ * logger-agnostic so it can run in any app; the caller logs the result.
+ */
 export async function runMigrations(db: Kysely<Database>): Promise<string[]> {
 	const migrator = new Migrator({
 		db,
@@ -15,9 +18,5 @@ export async function runMigrations(db: Kysely<Database>): Promise<string[]> {
 
 	const { error, results } = await migrator.migrateToLatest();
 	if (error) throw error instanceof Error ? error : new Error(String(error));
-	const names = (results ?? []).map((r) => r.migrationName);
-	if (names.length > 0) {
-		logger.info({ migrations: names }, 'migrations applied');
-	}
-	return names;
+	return (results ?? []).map((r) => r.migrationName);
 }

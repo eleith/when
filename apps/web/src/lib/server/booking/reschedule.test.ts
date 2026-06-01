@@ -1,9 +1,7 @@
 import { describe, expect, test } from 'vitest';
 import { classifyReschedule, rescheduleAppointment } from './reschedule';
 import { systemClock } from '$lib/server/clock';
-import { openDb } from '$lib/server/db';
-import type { Appointment } from '$lib/server/db';
-import { runMigrations } from '$lib/server/db/migrate';
+import { openDb, runMigrations, type Appointment } from '@when/db';
 import { validConfig } from '$lib/server/__fixtures__/valid-config';
 
 const now = new Date('2026-05-01T13:00:00Z');

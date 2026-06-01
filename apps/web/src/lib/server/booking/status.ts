@@ -1,6 +1,6 @@
 import type { Kysely } from 'kysely';
 import type { Clock } from '../clock';
-import type { Appointment, AppointmentStatus, AppointmentUpdate, Database } from '../db';
+import type { Appointment, AppointmentStatus, AppointmentUpdate, Database } from '@when/db';
 
 export interface TransitionStatusDeps {
 	db: Kysely<Database>;

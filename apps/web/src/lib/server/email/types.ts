@@ -1,5 +1,5 @@
 import type { EventType, WhenConfiguration } from '@when/config';
-import type { Appointment } from '../db';
+import type { Appointment } from '@when/db';
 
 /** The common domain input every booking email builder takes. */
 export interface BookingEmailInput {

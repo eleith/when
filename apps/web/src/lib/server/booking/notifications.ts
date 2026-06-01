@@ -1,7 +1,6 @@
 import type { Kysely } from 'kysely';
 import { sql } from 'kysely';
-import type { Database } from '../db';
-import type { NotificationStatus } from '../db/notification-status';
+import type { Database, NotificationStatus } from '@when/db';
 
 export type NotificationFailureKey = keyof NotificationStatus;
 

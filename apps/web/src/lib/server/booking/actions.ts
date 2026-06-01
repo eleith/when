@@ -1,5 +1,5 @@
 import type { EventType } from '@when/config';
-import type { Appointment, AppointmentStatus } from '$lib/server/db';
+import type { Appointment, AppointmentStatus } from '@when/db';
 import { isCancelAllowed, isRescheduleAllowed } from './access';
 
 export type ActionReason = 'past_start' | 'minimum_notice' | 'terminal_status' | 'wrong_viewer';

@@ -1,9 +1,8 @@
 import { signOutAction } from '$lib/server/auth';
 import { systemClock } from '$lib/server/clock';
 import { getConfig, getDb } from '$lib/server/state';
-import type { Appointment } from '$lib/server/db';
+import { parseNotificationStatus, type Appointment } from '@when/db';
 import type { Actions, PageServerLoad } from './$types';
-import { parseNotificationStatus } from '$lib/server/db/notification-status';
 
 type DisplayStatus =
 	| 'pending'

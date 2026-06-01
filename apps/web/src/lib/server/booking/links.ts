@@ -1,5 +1,5 @@
 import type { EventType } from '@when/config';
-import type { Appointment } from '../db';
+import type { Appointment } from '@when/db';
 
 export interface BookingLinks {
 	/** Booking landing page. */

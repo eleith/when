@@ -1,5 +1,5 @@
 import type { Calendar, CalDavCalendar, GoogleCalendar, WhenConfiguration } from '@when/config';
-import type { Appointment } from '../db';
+import type { Appointment } from '@when/db';
 import type { ExpandWindow } from './expand';
 import type { BusyEvent } from './types';
 import { CalDavAdapter } from './adapters/caldav';

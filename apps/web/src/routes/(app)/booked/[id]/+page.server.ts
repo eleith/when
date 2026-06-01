@@ -4,12 +4,11 @@ import { resolveBookingActions } from '$lib/server/booking/actions';
 import { buildAddToCalendarLinks } from '$lib/server/calendar-links';
 import { systemClock } from '$lib/server/clock';
 import { getConfig, getDb } from '$lib/server/state';
-import type { Appointment } from '$lib/server/db';
+import { parseNotificationStatus, type Appointment } from '@when/db';
 import type { Actions, PageServerLoad } from './$types';
 import { acceptAppointment } from '$lib/server/booking/accept';
 import { declineAppointment } from '$lib/server/booking/decline';
 import { cancelAppointment } from '$lib/server/booking/cancel';
-import { parseNotificationStatus } from '$lib/server/db/notification-status';
 
 type ClockStatus = 'upcoming' | 'in_progress' | 'concluded';
 

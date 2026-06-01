@@ -1,7 +1,7 @@
 import { Temporal } from '@js-temporal/polyfill';
 import { logger } from '../../logger';
 import type { BusyEvent } from '../types';
-import type { Appointment } from '../../db';
+import type { Appointment } from '@when/db';
 import type { FetchBusyOptions, FetchFn } from './caldav';
 import type { CalendarAdapter, PushOptions, PushResult, DeleteResult } from '../adapter';
 import type { WhenConfiguration, GoogleCalendar } from '@when/config';

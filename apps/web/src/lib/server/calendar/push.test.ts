@@ -5,7 +5,7 @@ import {
 	type FetchFn
 } from '$lib/server/calendar/adapters/caldav';
 import { deleteAppointmentFromCalendar, pushAppointment } from './push';
-import type { Appointment } from '$lib/server/db';
+import type { Appointment } from '@when/db';
 import type { WhenConfiguration } from '@when/config';
 import { validConfig } from '$lib/server/__fixtures__/valid-config';
 

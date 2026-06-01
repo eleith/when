@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
 import { sql } from 'kysely';
-import { openDb } from '$lib/server/db';
+import { openDb } from './index';
 import { runMigrations } from './migrate';
 
 test('runMigrations creates appointments and oauth_tokens', async () => {

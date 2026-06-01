@@ -5,7 +5,7 @@ import { transitionStatus } from './status';
 import { deleteAppointmentFromCalendar } from '../calendar/push';
 import type { Clock } from '../clock';
 import type { WhenConfiguration } from '@when/config';
-import type { Appointment, Database } from '../db';
+import type { Appointment, Database } from '@when/db';
 import { bookingCancelledByAttendee } from '../emails/booking-cancelled-by-attendee';
 import { bookingCancelledByOrganizer } from '../emails/booking-cancelled-by-organizer';
 import { sendEmails } from '../email/send';

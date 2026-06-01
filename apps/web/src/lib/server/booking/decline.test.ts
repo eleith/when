@@ -1,8 +1,7 @@
 import { describe, expect, test } from 'vitest';
 import { declineAppointment } from './decline';
 import { systemClock } from '$lib/server/clock';
-import { openDb } from '$lib/server/db';
-import { runMigrations } from '$lib/server/db/migrate';
+import { openDb, runMigrations } from '@when/db';
 import { validConfig } from '$lib/server/__fixtures__/valid-config';
 
 const baseRow = {

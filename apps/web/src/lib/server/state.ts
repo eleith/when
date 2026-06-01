@@ -1,6 +1,6 @@
 import type { Kysely } from 'kysely';
 import type { WhenConfiguration } from '@when/config';
-import type { Database } from './db';
+import type { Database } from '@when/db';
 
 export interface AppState {
 	config: WhenConfiguration;

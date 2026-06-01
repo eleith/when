@@ -7,7 +7,7 @@ import { transitionStatus } from './status';
 import { pushAppointment } from '../calendar/push';
 import type { Clock } from '../clock';
 import type { EventType, WhenConfiguration } from '@when/config';
-import type { Appointment, Database } from '../db';
+import type { Appointment, Database } from '@when/db';
 import { bookingRescheduledByAttendee } from '../emails/booking-rescheduled-by-attendee';
 import { bookingRescheduledByOrganizer } from '../emails/booking-rescheduled-by-organizer';
 import { sendEmails } from '../email/send';

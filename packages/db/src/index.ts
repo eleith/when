@@ -14,6 +14,10 @@ export type {
 	NewAppointment,
 	AppointmentUpdate
 } from './types';
+export { runMigrations } from './migrate';
+export { migrations } from './migrations';
+export { parseNotificationStatus } from './notification-status';
+export type { NotificationStatus, NotificationOutcome } from './notification-status';
 
 export function openDb(path: string): Kysely<Database> {
 	if (path !== ':memory:') {
