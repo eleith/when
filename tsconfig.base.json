@@ -1,0 +1,20 @@
+{
+	"// note": "Shared compiler options for workspace LIBRARIES (packages/*). Each package extends this and sets its own include/outDir. Apps (SvelteKit web, Vite worker) keep their own tsconfig.",
+	"compilerOptions": {
+		"target": "ES2023",
+		"lib": ["ES2023"],
+		"module": "NodeNext",
+		"moduleResolution": "NodeNext",
+		"types": ["node"],
+		"strict": true,
+		"esModuleInterop": true,
+		"forceConsistentCasingInFileNames": true,
+		"resolveJsonModule": true,
+		"isolatedModules": true,
+		"verbatimModuleSyntax": true,
+		"skipLibCheck": true,
+		"declaration": true,
+		"declarationMap": true,
+		"sourceMap": true
+	}
+}
