@@ -9,6 +9,12 @@ export default ts.config(
 	...ts.configs.recommended,
 	prettier,
 	{
-		languageOptions: { globals: { ...globals.node } }
+		languageOptions: { globals: { ...globals.node } },
+		rules: {
+			'@typescript-eslint/no-unused-vars': [
+				'error',
+				{ argsIgnorePattern: '^_', varsIgnorePattern: '^_' }
+			]
+		}
 	}
 );
