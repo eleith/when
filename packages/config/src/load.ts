@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises';
+import { dirname, resolve } from 'node:path';
 import Ajv, { type ErrorObject } from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
 import { parse as parseYaml } from 'yaml';
@@ -50,7 +51,20 @@ export async function loadConfigFile(path: string): Promise<WhenConfiguration> {
 			{ path: '/', message: err instanceof Error ? err.message : String(err) }
 		]);
 	}
-	return validateConfig(parsed);
+	const config = validateConfig(parsed);
+	resolveDatabasePaths(config, path);
+	return config;
+}
+
+/**
+ * Resolve the database paths to absolute, in place. Relative paths are taken
+ * against the config file's directory so web and worker (sharing one
+ * config.yaml) open the same files; `DATABASE_PATH` / `QUEUE_DB_PATH` override.
+ */
+function resolveDatabasePaths(config: WhenConfiguration, configPath: string): void {
+	const dir = dirname(configPath);
+	config.database.app = process.env.DATABASE_PATH ?? resolve(dir, config.database.app);
+	config.database.queue = process.env.QUEUE_DB_PATH ?? resolve(dir, config.database.queue);
 }
 
 function toIssue(err: ErrorObject): ConfigIssue {

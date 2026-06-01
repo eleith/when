@@ -5,7 +5,7 @@
 	"description": "Canonical schema for the When self-hosted scheduling app's config.yaml.",
 	"type": "object",
 	"additionalProperties": false,
-	"required": ["auth", "user", "calendars", "availability", "event_types"],
+	"required": ["auth", "user", "calendars", "availability", "event_types", "database"],
 	"properties": {
 		"auth": {
 			"$ref": "#/$defs/Auth"
@@ -31,9 +31,34 @@
 			"items": {
 				"$ref": "#/$defs/EventType"
 			}
+		},
+		"database": {
+			"$ref": "#/$defs/DatabaseConfig",
+			"default": {}
 		}
 	},
 	"$defs": {
+		"DatabaseConfig": {
+			"title": "DatabaseConfig",
+			"description": "On-disk SQLite paths. Relative paths resolve against this config file's directory, so web and worker (which load the same config.yaml) open the same files.",
+			"type": "object",
+			"additionalProperties": false,
+			"required": ["app", "queue"],
+			"properties": {
+				"app": {
+					"type": "string",
+					"description": "Application database (appointments, oauth tokens).",
+					"minLength": 1,
+					"default": "./data/when.sqlite"
+				},
+				"queue": {
+					"type": "string",
+					"description": "openworkflow job queue database.",
+					"minLength": 1,
+					"default": "./data/openworkflow.sqlite"
+				}
+			}
+		},
 		"Auth": {
 			"title": "Auth",
 			"description": "Admin auth strategy. Exactly one of `oidc` or `credentials` must be declared.",

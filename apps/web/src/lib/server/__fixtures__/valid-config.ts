@@ -40,5 +40,9 @@ export const validConfig: WhenConfiguration = {
 			booking_flow: 'auto',
 			destination_calendar: 'my-google-cal'
 		}
-	]
+	],
+	database: {
+		app: './data/when.sqlite',
+		queue: './data/openworkflow.sqlite'
+	}
 };

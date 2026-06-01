@@ -29,6 +29,7 @@ export interface WhenConfiguration {
    * @minItems 1
    */
   event_types: [EventType, ...EventType[]];
+  database: DatabaseConfig;
 }
 export interface OidcAuth {
   issuer: string;
@@ -144,4 +145,17 @@ export interface LocationChoice {
    * @minItems 1
    */
   choices: [string, ...string[]];
+}
+/**
+ * On-disk SQLite paths. Relative paths resolve against this config file's directory, so web and worker (which load the same config.yaml) open the same files.
+ */
+export interface DatabaseConfig {
+  /**
+   * Application database (appointments, oauth tokens).
+   */
+  app: string;
+  /**
+   * openworkflow job queue database.
+   */
+  queue: string;
 }
