@@ -31,7 +31,12 @@ test('createClient builds a node:sqlite client that can enqueue a run', async ()
 		kind: 'confirmed',
 		appointment,
 		eventType: undefined,
-		baseUrl: 'https://when.example.com'
+		links: {
+			booked: 'https://when.example.com/booked/appt-1',
+			cancel: 'https://when.example.com/booked/appt-1?cancel=1',
+			reschedule: 'https://when.example.com/schedule/30-min',
+			manage: 'https://when.example.com/signin'
+		}
 	};
 
 	const handle = await client.runWorkflow(sendBookingEmail, input);

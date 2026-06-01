@@ -62,6 +62,7 @@
 		"@node-rs/argon2": "^2.0.2",
 		"@when/config": "workspace:*",
 		"@when/db": "workspace:*",
+		"@when/jobs": "workspace:*",
 		"bits-ui": "^2.18.0",
 		"kysely": "^0.28.16",
 		"marked": "^18.0.2",

@@ -1,16 +1,11 @@
 import type { EventType } from '@when/config';
 import type { Appointment } from '@when/db';
+import type { BookingLinks } from '@when/jobs';
 
-export interface BookingLinks {
-	/** Booking landing page. */
-	booked: string;
-	/** Landing page with the cancel dialog open. */
-	cancel: string;
-	/** Reschedule flow for this booking (falls back to the landing page if the event type is gone). */
-	reschedule: string;
-	/** Sign-in deep link back to the booking (organizer review). */
-	manage: string;
-}
+// The shape is the producer↔worker contract (it travels in the job payload), so
+// it lives in @when/jobs; web owns the function that builds it. Re-export so
+// existing web imports of BookingLinks keep working.
+export type { BookingLinks };
 
 export interface BookingLinksInput {
 	/** Request origin, e.g. `https://when.example.com`. */
