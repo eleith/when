@@ -46,8 +46,8 @@ Relative paths resolve against the config file's directory, so web and worker
 
 ## Scripts
 
-- `pnpm dev` — build, then `node --watch dist/src/index.js` (rebuild for source
-  changes, or run `tsc -p tsconfig.build.json --watch` alongside).
+- `pnpm dev` — build once, then `tsc --watch` + `node --watch dist/src/index.js`
+  (source changes rebuild and restart).
 - `pnpm build` — `tsc -p tsconfig.build.json` → `dist/`.
 - `pnpm start` — `node dist/src/index.js`.
 - `pnpm check` / `pnpm lint` / `pnpm test` / `pnpm test:coverage`.

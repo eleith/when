@@ -8,7 +8,7 @@
 		"package.json"
 	],
 	"scripts": {
-		"dev": "tsc -p tsconfig.build.json && node --watch dist/src/index.js",
+		"dev": "tsc -p tsconfig.build.json && (tsc -p tsconfig.build.json --watch --preserveWatchOutput & node --watch dist/src/index.js)",
 		"build": "tsc -p tsconfig.build.json",
 		"start": "node dist/src/index.js",
 		"check": "tsc --noEmit",

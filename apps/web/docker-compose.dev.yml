@@ -23,7 +23,7 @@ services:
 
   # Worker shares the same config.yaml + data dir as web, so it opens the same
   # when.sqlite and the openworkflow queue.sqlite (paths resolve relative to the
-  # config file). tsx watches the bind-mounted source for live reload.
+  # config file). tsc --watch + node --watch rebuild/restart on source changes.
   worker-dev:
     build:
       context: ../..

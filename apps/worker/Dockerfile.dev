@@ -1,6 +1,7 @@
 # syntax=docker/dockerfile:1
-# Build context: the monorepo root. Dev image — full workspace install, live
-# reload via `tsx watch`. Source/config/data are bind-mounted by compose.
+# Build context: the monorepo root. Dev image — full workspace install with the
+# @when/* packages prebuilt; live reload via `tsc --watch` + `node --watch`.
+# Source, config, and data are bind-mounted by compose.
 
 FROM node:24-alpine
 WORKDIR /m
@@ -11,7 +12,15 @@ ENV COREPACK_HOME=/usr/local/corepack
 RUN corepack enable
 
 COPY . .
-RUN pnpm install --frozen-lockfile && chmod -R a+rX "$COREPACK_HOME"
+# Build the @when/* packages so the worker's tsc build + runtime can resolve
+# their dist/. The worker's own dist is (re)built at container start from the
+# bind-mounted src by `pnpm dev`.
+RUN pnpm install --frozen-lockfile && pnpm build:packages && chmod -R a+rX "$COREPACK_HOME"
+
+# Runtime-writable dirs for the host UID: the worker writes its tsc output to
+# dist/ and its sqlite files to data/.
+RUN mkdir -p /m/apps/worker/dist /m/apps/worker/data && \
+    chmod -R 777 /m/apps/worker/dist /m/apps/worker/data
 
 EXPOSE 9000
 CMD ["pnpm", "--filter", "@when/worker", "dev"]
