@@ -15,6 +15,11 @@ RUN corepack enable
 COPY . .
 RUN pnpm install --frozen-lockfile --ignore-scripts
 
+# Build the @when/* packages to dist/ so `vite dev` can resolve them — they are
+# build packages now. The dev compose mounts only apps/web sources, so this dist
+# survives at /app/packages/*/dist; changing a package needs an image rebuild.
+RUN pnpm build:packages
+
 # Runtime-writable dirs (the host-mapped UID needs write here):
 #   /app                  — vite drops a .timestamp-*.mjs next to vite.config.ts
 #   /app/node_modules     — vite/svelte-kit create .vite/ and .cache/ subdirs

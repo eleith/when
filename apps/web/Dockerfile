@@ -12,10 +12,13 @@ WORKDIR /m
 RUN corepack enable
 
 # --- builder: install the workspace and build the SvelteKit app --------------
+# `@when/web...` (note the trailing `...`) builds the @when/* workspace packages
+# first, in dependency order, then web — required now that they are build
+# packages whose `dist/` the SvelteKit build imports.
 FROM base AS builder
 COPY . .
 RUN pnpm install --frozen-lockfile
-RUN pnpm --filter @when/web build
+RUN pnpm --filter "@when/web..." build
 
 # --- pruner: self-contained prod deployment (no dev deps) --------------------
 FROM builder AS pruner
