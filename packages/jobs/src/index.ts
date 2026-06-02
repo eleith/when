@@ -5,5 +5,10 @@ export type {
 	SendBookingEmailInput,
 	SendBookingEmailResult
 } from './specs.js';
-export { createBackend, createClient } from './queue.js';
-export type { QueueOptions } from './queue.js';
+export {
+	initOpenWorkflow,
+	getOpenWorkflow,
+	getWorkflowRun,
+	getStepAttempts
+} from './openworkflow.js';
+export type { InitOpenWorkflowOptions, WorkflowRunRow, StepAttemptRow } from './openworkflow.js';
