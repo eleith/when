@@ -4,12 +4,13 @@
 	"private": true,
 	"type": "module",
 	"files": [
-		"build"
+		"dist/*",
+		"package.json"
 	],
 	"scripts": {
-		"dev": "tsx watch src/index.ts",
-		"build": "vite build",
-		"start": "node build/index.js",
+		"dev": "tsc -p tsconfig.build.json && node --watch dist/src/index.js",
+		"build": "tsc -p tsconfig.build.json",
+		"start": "node dist/src/index.js",
 		"check": "tsc --noEmit",
 		"lint": "prettier --check . && eslint .",
 		"test": "vitest run",
@@ -29,7 +30,6 @@
 		"eslint-config-prettier": "catalog:",
 		"globals": "catalog:",
 		"prettier": "catalog:",
-		"tsx": "^4.22.3",
 		"typescript": "catalog:",
 		"typescript-eslint": "catalog:",
 		"vite": "catalog:",

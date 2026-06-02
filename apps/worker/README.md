@@ -12,7 +12,7 @@ worker boots — loads config, migrates the app DB, connects the queue, starts a
 ## Run it
 
 ```sh
-# from the repo root; build is a Vite SSR bundle (build/index.js)
+# from the repo root; build is a tsc compile to dist/ (run with node)
 pnpm --filter @when/worker build && pnpm --filter @when/worker start
 
 # or watch mode in dev, pointed at the shared config. The app + queue DB paths
@@ -46,7 +46,8 @@ Relative paths resolve against the config file's directory, so web and worker
 
 ## Scripts
 
-- `pnpm dev` — `tsx watch` the entrypoint.
-- `pnpm build` — Vite SSR bundle to `build/`.
-- `pnpm start` — run the built bundle.
+- `pnpm dev` — build, then `node --watch dist/src/index.js` (rebuild for source
+  changes, or run `tsc -p tsconfig.build.json --watch` alongside).
+- `pnpm build` — `tsc -p tsconfig.build.json` → `dist/`.
+- `pnpm start` — `node dist/src/index.js`.
 - `pnpm check` / `pnpm lint` / `pnpm test` / `pnpm test:coverage`.

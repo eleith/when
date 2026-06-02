@@ -1,9 +1,11 @@
 import { loadConfigFile } from '@when/config';
 import { openDb, runMigrations } from '@when/db';
-import { resolveConfigPath } from './services/paths';
-import { createQueueClient } from './services/queue';
-import { createHealthServer } from './services/health';
-import { createLogger, log } from './services/logger';
+import { initOpenWorkflow } from '@when/jobs';
+import { resolveConfigPath } from './services/paths.js';
+import { setWorkerContext } from './services/context.js';
+import { createHealthServer } from './services/health.js';
+import { createLogger, log } from './services/logger.js';
+import { registerWorkflows } from './workflows/index.js';
 
 const DEFAULT_PORT = 9000;
 
@@ -17,15 +19,28 @@ async function main(): Promise<void> {
 	const applied = await runMigrations(db);
 	if (applied.length > 0) logger.info('migrations applied', { migrations: applied });
 
-	// Connect the queue and start polling. No workflows are registered yet —
-	// the worker boots and idles until send-booking-email lands in a later step.
-	const client = createQueueClient(config.database.queue);
+	// Context is what workflow implementations reach for at run time.
+	setWorkerContext({ config, logger, db });
+
+	// Connect the openworkflow client, register handlers, then start polling.
+	const client = initOpenWorkflow({ dbPath: config.database.queue });
+	registerWorkflows();
 	const worker = client.newWorker();
 	await worker.start();
 	logger.info('worker started');
 
 	const port = Number(process.env.PORT) || DEFAULT_PORT;
-	createHealthServer().listen(port, () => logger.info('health server listening', { port }));
+	const server = createHealthServer();
+	server.listen(port, () => logger.info('health server listening', { port }));
+
+	const shutdown = async (signal: string): Promise<void> => {
+		logger.info('worker shutting down', { signal });
+		server.close();
+		await worker.stop();
+		process.exit(0);
+	};
+	process.on('SIGTERM', () => void shutdown('SIGTERM'));
+	process.on('SIGINT', () => void shutdown('SIGINT'));
 }
 
 main().catch((err) => {

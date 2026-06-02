@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, expect, test } from 'vitest';
 import { join } from 'node:path';
-import { resolveConfigPath } from './paths';
+import { resolveConfigPath } from './paths.js';
 
 const saved = { ...process.env };
 

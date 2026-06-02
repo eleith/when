@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, expect, test } from 'vitest';
 import type { AddressInfo } from 'node:net';
 import type { Server } from 'node:http';
-import { createHealthServer } from './health';
+import { createHealthServer } from './health.js';
 
 let server: Server;
 let base: string;
