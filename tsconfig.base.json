@@ -11,6 +11,6 @@
 		"resolveJsonModule": true,
 		"verbatimModuleSyntax": true,
 		"skipLibCheck": true,
-		"declaration": false
+		"declaration": true
 	}
 }

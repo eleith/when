@@ -4,9 +4,9 @@ import Ajv, { type ErrorObject } from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
 import { parse as parseYaml } from 'yaml';
 import schema from './config.schema.json' with { type: 'json' };
-import type { WhenConfiguration } from './schema';
-import { interpolate } from './interpolate';
-import { checkCrossRefs } from './cross-refs';
+import type { WhenConfiguration } from './schema.js';
+import { interpolate } from './interpolate.js';
+import { checkCrossRefs } from './cross-refs.js';
 
 export { schema };
 

@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest';
 import { sql } from 'kysely';
-import { openDb } from './index';
-import { runMigrations } from './migrate';
+import { openDb } from './index.js';
+import { runMigrations } from './migrate.js';
 
 test('runMigrations creates appointments and oauth_tokens', async () => {
 	const db = openDb(':memory:');

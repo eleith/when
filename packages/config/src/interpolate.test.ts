@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { interpolate, MissingEnvVarsError } from './interpolate';
+import { interpolate, MissingEnvVarsError } from './interpolate.js';
 
 test('replaces single env var in a string', () => {
 	const result = interpolate({ host: '${SMTP_HOST}' }, { SMTP_HOST: 'smtp.example.com' });

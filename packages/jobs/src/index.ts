@@ -1,9 +1,9 @@
-export { sendBookingEmail } from './specs';
+export { sendBookingEmail } from './specs.js';
 export type {
 	BookingEmailKind,
 	BookingLinks,
 	SendBookingEmailInput,
 	SendBookingEmailResult
-} from './specs';
-export { createBackend, createClient } from './queue';
-export type { QueueOptions } from './queue';
+} from './specs.js';
+export { createBackend, createClient } from './queue.js';
+export type { QueueOptions } from './queue.js';

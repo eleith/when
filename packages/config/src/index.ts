@@ -1,5 +1,5 @@
-export { loadConfigFile, validateConfig, ConfigError, schema } from './load';
-export type { ConfigIssue } from './load';
-export { interpolate, MissingEnvVarsError } from './interpolate';
-export { checkCrossRefs } from './cross-refs';
-export type * from './schema';
+export { loadConfigFile, validateConfig, ConfigError, schema } from './load.js';
+export type { ConfigIssue } from './load.js';
+export { interpolate, MissingEnvVarsError } from './interpolate.js';
+export { checkCrossRefs } from './cross-refs.js';
+export type * from './schema.js';

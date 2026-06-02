@@ -1,5 +1,5 @@
-import type { WhenConfiguration } from './schema';
-import type { ConfigIssue } from './load';
+import type { WhenConfiguration } from './schema.js';
+import type { ConfigIssue } from './load.js';
 
 export function checkCrossRefs(cfg: WhenConfiguration): ConfigIssue[] {
 	const issues: ConfigIssue[] = [];

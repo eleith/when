@@ -1,6 +1,13 @@
-import { defineWorkflowSpec } from 'openworkflow';
+import { defineWorkflowSpec, type Workflow } from 'openworkflow';
 import type { Appointment } from '@when/db';
 import type { EventType } from '@when/config';
+
+/**
+ * openworkflow exports `Workflow` but not the bare `WorkflowSpec` type, so the
+ * inferred type of a `defineWorkflowSpec(...)` result can't be named for
+ * declaration emit (TS2883). Recover the spec type via `Workflow['spec']`.
+ */
+type WorkflowSpec<Input, Output> = Workflow<Input, Output, Input>['spec'];
 
 /**
  * Which booking notification to send. Each value maps — in the worker — to one
@@ -51,6 +58,7 @@ export type SendBookingEmailResult = 'sent' | 'skipped';
  * from this spec (`runWorkflow(sendBookingEmail, input)`); the worker provides
  * the implementation in `@when/worker`.
  */
-export const sendBookingEmail = defineWorkflowSpec<SendBookingEmailInput, SendBookingEmailResult>({
-	name: 'send-booking-email'
-});
+export const sendBookingEmail: WorkflowSpec<SendBookingEmailInput, SendBookingEmailResult> =
+	defineWorkflowSpec<SendBookingEmailInput, SendBookingEmailResult>({
+		name: 'send-booking-email'
+	});

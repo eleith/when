@@ -3,8 +3,8 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { stringify } from 'yaml';
-import { validateConfig, loadConfigFile } from './load';
-import { validConfig } from './__fixtures__/valid-config';
+import { validateConfig, loadConfigFile } from './load.js';
+import { validConfig } from './__fixtures__/valid-config.js';
 
 test('database paths default when the section is omitted', () => {
 	const { database: _omit, ...withoutDatabase } = validConfig;

@@ -1,6 +1,6 @@
 import { Migrator, type Kysely } from 'kysely';
-import type { Database } from './types';
-import { migrations } from './migrations';
+import type { Database } from './types.js';
+import { migrations } from './migrations.js';
 
 /**
  * Apply all pending migrations and return the names that were applied. Stays

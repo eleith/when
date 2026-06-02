@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { parseNotificationStatus } from './notification-status';
+import { parseNotificationStatus } from './notification-status.js';
 
 test('parses null as empty', () => {
 	expect(parseNotificationStatus(null)).toEqual({});

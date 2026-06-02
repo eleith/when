@@ -2,10 +2,10 @@ import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { Kysely } from 'kysely';
-import { NodeSqliteDialect } from './node-sqlite-dialect';
-import type { Database } from './types';
+import { NodeSqliteDialect } from './node-sqlite-dialect.js';
+import type { Database } from './types.js';
 
-export type { Database } from './types';
+export type { Database } from './types.js';
 export type {
 	AppointmentsTable,
 	OauthTokensTable,
@@ -13,11 +13,11 @@ export type {
 	Appointment,
 	NewAppointment,
 	AppointmentUpdate
-} from './types';
-export { runMigrations } from './migrate';
-export { migrations } from './migrations';
-export { parseNotificationStatus } from './notification-status';
-export type { NotificationStatus, NotificationOutcome } from './notification-status';
+} from './types.js';
+export { runMigrations } from './migrate.js';
+export { migrations } from './migrations.js';
+export { parseNotificationStatus } from './notification-status.js';
+export type { NotificationStatus, NotificationOutcome } from './notification-status.js';
 
 export function openDb(path: string): Kysely<Database> {
 	if (path !== ':memory:') {

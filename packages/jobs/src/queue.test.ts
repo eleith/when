@@ -1,8 +1,8 @@
 import { expect, test } from 'vitest';
 import type { Appointment } from '@when/db';
-import { createClient } from './queue';
-import { sendBookingEmail } from './specs';
-import type { SendBookingEmailInput } from './specs';
+import { createClient } from './queue.js';
+import { sendBookingEmail } from './specs.js';
+import type { SendBookingEmailInput } from './specs.js';
 
 const appointment: Appointment = {
 	id: 'appt-1',

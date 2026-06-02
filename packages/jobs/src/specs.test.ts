@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { sendBookingEmail } from './specs';
+import { sendBookingEmail } from './specs.js';
 
 test('sendBookingEmail carries the shared workflow name', () => {
 	// The name is the contract between producer (web) and worker — both resolve
