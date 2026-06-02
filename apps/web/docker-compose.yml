@@ -3,6 +3,7 @@ services:
     build:
       context: ../..
       dockerfile: apps/web/Dockerfile
+      target: prod
     platform: linux/amd64
     ports:
       - '3000:3000'
@@ -18,6 +19,7 @@ services:
     build:
       context: ../..
       dockerfile: apps/worker/Dockerfile
+      target: prod
     platform: linux/amd64
     volumes:
       - ./config.yaml:/app/config.yaml

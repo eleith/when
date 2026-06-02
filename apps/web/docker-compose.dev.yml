@@ -2,21 +2,22 @@ services:
   when-dev:
     build:
       context: ../..
-      dockerfile: apps/web/Dockerfile.dev
+      dockerfile: apps/web/Dockerfile
+      target: dev
     user: '${UID:-1000}:${GID:-1000}'
     ports:
       - '5173:5173'
     volumes:
-      - ../../.env:/app/apps/web/.env
-      - ./src:/app/apps/web/src
-      - ./static:/app/apps/web/static
-      - ./config.yaml:/app/apps/web/config.yaml
-      - ./svelte.config.js:/app/apps/web/svelte.config.js
-      - ./vite.config.ts:/app/apps/web/vite.config.ts
-      - ./tsconfig.json:/app/apps/web/tsconfig.json
-      - ./eslint.config.js:/app/apps/web/eslint.config.js
-      - ./data:/app/apps/web/data
-      - ./data/public:/app/apps/web/static/public
+      - ../../.env:/m/apps/web/.env
+      - ./src:/m/apps/web/src
+      - ./static:/m/apps/web/static
+      - ./config.yaml:/m/apps/web/config.yaml
+      - ./svelte.config.js:/m/apps/web/svelte.config.js
+      - ./vite.config.ts:/m/apps/web/vite.config.ts
+      - ./tsconfig.json:/m/apps/web/tsconfig.json
+      - ./eslint.config.js:/m/apps/web/eslint.config.js
+      - ./data:/m/apps/web/data
+      - ./data/public:/m/apps/web/static/public
     environment:
       NODE_ENV: development
       AUTH_SECRET: ${AUTH_SECRET:-development-only-secret-please-change-it-32chars}
@@ -27,7 +28,8 @@ services:
   worker-dev:
     build:
       context: ../..
-      dockerfile: apps/worker/Dockerfile.dev
+      dockerfile: apps/worker/Dockerfile
+      target: dev
     user: '${UID:-1000}:${GID:-1000}'
     ports:
       - '9000:9000'
