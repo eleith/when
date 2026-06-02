@@ -1,0 +1,67 @@
+workspace:
+  base: /workspace
+  path: src
+
+when:
+  - event: push
+    branch: main
+    path:
+      include:
+        - ".woodpecker/config.yml"
+        - "packages/config/**"
+        - "pnpm-lock.yaml"
+        - "pnpm-workspace.yaml"
+
+steps:
+  prepare:
+    image: node:24
+    commands:
+      - corepack enable
+      - pnpm install --frozen-lockfile
+
+  build:
+    image: node:24
+    commands:
+      - corepack enable
+      - pnpm --filter "@when/config..." build
+
+  test:
+    image: node:24
+    commands:
+      - corepack enable
+      - pnpm --filter @when/config lint
+      - pnpm --filter @when/config test
+
+  notify-success:
+    image: deblan/woodpecker-email:3.2.0
+    settings:
+      dsn:
+        from_secret: woodpecker_email_dsn
+      from:
+        address:
+          from_secret: woodpecker_email_from_address
+        name:
+          from_secret: woodpecker_email_from_name
+      recipients:
+        from_secret: woodpecker_email_recipient
+      level: success
+      recipients_only: true
+    when:
+      - status: [success]
+
+  notify-failure:
+    image: deblan/woodpecker-email:3.2.0
+    settings:
+      dsn:
+        from_secret: woodpecker_email_dsn
+      from:
+        address:
+          from_secret: woodpecker_email_from_address
+        name:
+          from_secret: woodpecker_email_from_name
+      recipients:
+        from_secret: woodpecker_email_recipient
+      level: failure
+      recipients_only: true
+    when:
+      - status: [failure]

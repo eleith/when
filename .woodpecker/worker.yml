@@ -7,14 +7,16 @@ when:
     branch: main
     path:
       include:
-        - ".woodpecker/web.yml"
-        - "apps/web/**"
-        - "packages/**"
+        - ".woodpecker/worker.yml"
+        - "apps/worker/**"
+        - "packages/config/**"
+        - "packages/db/**"
+        - "packages/jobs/**"
         - "package.json"
         - "pnpm-workspace.yaml"
         - "pnpm-lock.yaml"
   - event: tag
-    ref: "refs/tags/web/v*"
+    ref: "refs/tags/worker/v*"
 
 steps:
   prepare:
@@ -22,29 +24,31 @@ steps:
     commands:
       - corepack enable
       - pnpm install --frozen-lockfile
-      - pnpm build:packages
+      - pnpm --filter @when/config --filter @when/db --filter @when/jobs build
 
   lint:
     image: node:24
     commands:
       - corepack enable
-      - cd apps/web
-      - touch config.yaml
-      - touch .env
-      - pnpm run check
-      - pnpm run lint
+      - pnpm --filter @when/worker check
+      - pnpm --filter @when/worker lint
 
   test:
     image: node:24
     commands:
       - corepack enable
-      - cd apps/web
-      - pnpm run test
+      - pnpm --filter @when/worker test
+
+  build:
+    image: node:24
+    commands:
+      - corepack enable
+      - pnpm --filter @when/worker build
 
   check-version:
     image: node:24
     commands:
-      - cd apps/web
+      - cd apps/worker
       - |
         VERSION_FROM_PKG=$(node -p "require('./package.json').version")
 
@@ -53,7 +57,7 @@ steps:
           exit 1
         fi
     environment:
-      VERSION_FROM_TAG: ${CI_COMMIT_TAG#web/v}
+      VERSION_FROM_TAG: ${CI_COMMIT_TAG#worker/v}
     when:
       - event: tag
 
@@ -61,7 +65,7 @@ steps:
     image: alpine/git:latest
     commands:
       - |
-        VERSION_FULL="${CI_COMMIT_TAG#web/v}"
+        VERSION_FULL="${CI_COMMIT_TAG#worker/v}"
         VERSION_MAJOR=$(echo "$VERSION_FULL" | cut -d. -f1)
         VERSION_MINOR=$(echo "$VERSION_FULL" | cut -d. -f2)
 
@@ -78,9 +82,9 @@ steps:
   build-docker-main:
     image: woodpeckerci/plugin-docker-buildx:6.0.3
     settings:
-      repo: git.eleith.com/eleith/when
+      repo: git.eleith.com/eleith/when-worker
       username: eleith
-      dockerfile: apps/web/Dockerfile
+      dockerfile: apps/worker/Dockerfile
       context: .
       registry: https://git.eleith.com
       tags:
@@ -94,9 +98,9 @@ steps:
   build-docker-tag:
     image: woodpeckerci/plugin-docker-buildx:6.0.3
     settings:
-      repo: git.eleith.com/eleith/when
+      repo: git.eleith.com/eleith/when-worker
       username: eleith
-      dockerfile: apps/web/Dockerfile
+      dockerfile: apps/worker/Dockerfile
       context: .
       registry: https://git.eleith.com
       tags_file: .tags
