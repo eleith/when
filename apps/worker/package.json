@@ -8,8 +8,9 @@
 		"package.json"
 	],
 	"scripts": {
-		"dev": "tsc -p tsconfig.build.json && (tsc -p tsconfig.build.json --watch --preserveWatchOutput & node --watch dist/src/index.js)",
-		"build": "tsc -p tsconfig.build.json",
+		"dev": "pnpm build && (tsc -p tsconfig.build.json --watch --preserveWatchOutput & node --watch dist/src/index.js)",
+		"build": "tsc -p tsconfig.build.json && pnpm build:assets",
+		"build:assets": "mkdir -p dist/src/email/templates && cp -r src/email/templates/. dist/src/email/templates/",
 		"start": "node dist/src/index.js",
 		"check": "tsc --noEmit",
 		"lint": "prettier --check . && eslint .",
@@ -20,10 +21,13 @@
 		"@when/config": "workspace:*",
 		"@when/db": "workspace:*",
 		"@when/jobs": "workspace:*",
-		"openworkflow": "^0.9.0"
+		"eta": "4.6.0",
+		"mjml": "5.3.0",
+		"openworkflow": "0.9.0"
 	},
 	"devDependencies": {
 		"@eslint/js": "catalog:",
+		"@types/mjml": "5.0.0",
 		"@types/node": "catalog:",
 		"@vitest/coverage-v8": "catalog:",
 		"eslint": "catalog:",

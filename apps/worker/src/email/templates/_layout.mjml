@@ -1,0 +1,23 @@
+<mjml>
+  <mj-head>
+    <mj-attributes>
+      <mj-all font-family="Arial, Helvetica, sans-serif" />
+      <mj-text font-size="14px" color="#222222" line-height="1.5" />
+    </mj-attributes>
+  </mj-head>
+  <mj-body background-color="#f4f4f5">
+    <mj-section>
+      <mj-column>
+        <mj-text font-size="18px" font-weight="bold"><%= it.orgName %></mj-text>
+      </mj-column>
+    </mj-section>
+    <%~ it.body %>
+    <mj-section>
+      <mj-column>
+        <mj-text font-size="12px" color="#888888">
+          <a href="<%= it.footerHref %>">Manage your booking</a>
+        </mj-text>
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>
