@@ -1,0 +1,47 @@
+import type { WhenConfiguration } from '@when/config';
+import type { Appointment } from '@when/db';
+import type { BookingLinks } from '@when/jobs';
+import type { BookingEmailInput } from '../types.js';
+
+export const sampleAppointment: Appointment = {
+	id: 'appt-1',
+	event_type_id: '30-min',
+	start_time: '2026-01-05T15:00:00Z',
+	end_time: '2026-01-05T15:30:00Z',
+	attendee_name: 'Jane Doe',
+	attendee_email: 'jane@example.com',
+	attendee_notes: 'Looking forward to it',
+	location: 'Zoom',
+	status: 'confirmed',
+	cancel_token: 'tok-1',
+	external_event_id: null,
+	external_calendar_id: null,
+	notification_status: null,
+	ics_sequence: 0,
+	created_at: '2026-01-01T09:00:00Z',
+	updated_at: '2026-01-01T09:00:00Z'
+};
+
+// Only the fields the email code reads; cast past the full config shape.
+export const sampleConfig = {
+	user: {
+		name: 'Acme Scheduling',
+		email: 'owner@acme.test',
+		timezone: 'America/New_York',
+		branding: { primary_color: '#2563eb' }
+	}
+} as unknown as WhenConfiguration;
+
+export const sampleLinks: BookingLinks = {
+	booked: 'https://when.example.com/booked/appt-1',
+	cancel: 'https://when.example.com/booked/appt-1?cancel=1',
+	reschedule: 'https://when.example.com/schedule/30-min',
+	manage: 'https://when.example.com/signin'
+};
+
+export const sampleInput: BookingEmailInput = {
+	cfg: sampleConfig,
+	appointment: sampleAppointment,
+	eventType: undefined,
+	links: sampleLinks
+};
