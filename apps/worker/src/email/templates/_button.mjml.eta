@@ -1,0 +1,8 @@
+<%
+// kind -> email-safe button styling (primary uses the brand color)
+const kind = it.kind || 'secondary';
+const bg = kind === 'primary' ? it.primaryColor : '#ffffff';
+const fg = kind === 'primary' ? '#ffffff' : kind === 'danger' ? '#b91c1c' : '#1a1a1a';
+const border = kind === 'primary' ? 'none' : kind === 'danger' ? '1px solid #fecaca' : '1px solid #d1d5db';
+%>
+<mj-button href="<%= it.href %>" align="left" background-color="<%= bg %>" color="<%= fg %>" border="<%= border %>" border-radius="6px" font-weight="600" font-size="14px" inner-padding="10px 18px" padding="4px 8px 8px 0"><%= it.label %></mj-button>

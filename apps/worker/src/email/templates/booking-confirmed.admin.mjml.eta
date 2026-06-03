@@ -1,0 +1,8 @@
+<% layout("./_layout.mjml.eta", { brand: it.brand }) %>
+<mj-text font-size="18px" font-weight="700">New booking: <%= it.eventName %></mj-text>
+<mj-text><%= it.attendeeLine %> just booked <%= it.eventName %>.</mj-text>
+<%~ include("./_detail-table.mjml.eta", { rows: [
+  { label: "When", value: it.when },
+  { label: "Where", value: it.location },
+  { label: "Notes", value: it.notes }
+] }) %>

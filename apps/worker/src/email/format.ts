@@ -32,13 +32,19 @@ export function fmtWhen(start: string, end: string, tz: string): string {
 	}
 }
 
+const DEFAULT_PRIMARY_COLOR = '#2563eb';
+
 export interface Brand {
 	name: string;
-	primaryColor?: string;
+	/** `branding.logo_url`, shown in the email header when present. */
+	logoUrl?: string;
+	/** `branding.primary_color` (light), or the default. Drives strip/buttons/links. */
+	primaryColor: string;
 }
 
 export function deriveBrand(cfg: WhenConfiguration): Brand {
-	const raw = cfg.user.branding?.primary_color;
-	const primaryColor = typeof raw === 'string' ? raw : raw?.light;
-	return { name: cfg.user.name, primaryColor };
+	const branding = cfg.user.branding;
+	const raw = branding?.primary_color;
+	const primaryColor = (typeof raw === 'string' ? raw : raw?.light) ?? DEFAULT_PRIMARY_COLOR;
+	return { name: cfg.user.name, logoUrl: branding?.logo_url, primaryColor };
 }
