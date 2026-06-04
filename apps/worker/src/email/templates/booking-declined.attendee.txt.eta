@@ -1,0 +1,4 @@
+Your booking request was declined.
+
+What: <%= it.eventName %>
+When: <%= it.when %>

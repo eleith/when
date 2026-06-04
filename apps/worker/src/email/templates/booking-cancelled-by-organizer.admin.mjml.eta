@@ -1,0 +1,4 @@
+<% layout("./_layout.mjml.eta", { brand: it.brand }) %>
+<mj-text font-size="18px" font-weight="700">Cancelled: <%= it.eventName %></mj-text>
+<mj-text>You cancelled <%= it.attendeeLine %> booking for <%= it.eventName %>.</mj-text>
+<%~ include("./_detail-table.mjml.eta", { rows: [{ label: "When", value: it.when }] }) %>
