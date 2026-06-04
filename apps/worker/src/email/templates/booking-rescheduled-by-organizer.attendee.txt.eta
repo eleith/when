@@ -1,0 +1,10 @@
+<%= it.userName %> moved this booking to a new time.
+
+What: <%= it.eventName %>
+When: <%= it.when %>
+<% if (it.location) { -%>
+Where: <%= it.location %>
+<% } -%>
+
+Reschedule: <%= it.links.reschedule %>
+Cancel: <%= it.links.cancel %>

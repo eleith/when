@@ -1,0 +1,12 @@
+Thanks — we got your request to book <%= it.eventName %>.
+
+<%= it.brand.name %> will review and confirm. You'll get a follow-up email at <%= it.attendeeEmail %> with the outcome.
+
+When: <%= it.when %>
+<% if (it.location) { -%>
+Where: <%= it.location %>
+<% } -%>
+
+Need to change something before then?
+Reschedule: <%= it.links.reschedule %>
+Cancel: <%= it.links.cancel %>
