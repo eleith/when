@@ -60,5 +60,13 @@ export type SendBookingEmailResult = 'sent' | 'skipped';
  */
 export const sendBookingEmail: WorkflowSpec<SendBookingEmailInput, SendBookingEmailResult> =
 	defineWorkflowSpec<SendBookingEmailInput, SendBookingEmailResult>({
-		name: 'send-booking-email'
+		name: 'send-booking-email',
+		// Workflow-level backstop for unexpected errors. SMTP send retries are set
+		// per-step in the worker (the expected failure path is recorded, not thrown).
+		retryPolicy: {
+			maximumAttempts: 3,
+			initialInterval: '1m',
+			backoffCoefficient: 2,
+			maximumInterval: '15m'
+		}
 	});
