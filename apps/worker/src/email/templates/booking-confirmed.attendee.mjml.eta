@@ -1,9 +1,0 @@
-<% layout("./_layout.mjml.eta", { brand: it.brand, footerHref: it.links.booked }) %>
-<mj-text font-size="18px" font-weight="700">Your booking is confirmed.</mj-text>
-<%~ include("./_detail-table.mjml.eta", { rows: [
-  { label: "What", value: it.eventName },
-  { label: "When", value: it.when },
-  { label: "Where", value: it.location }
-] }) %>
-<%~ include("./_button.mjml.eta", { href: it.links.reschedule, kind: "secondary", label: "Reschedule", primaryColor: it.brand.primaryColor }) %>
-<%~ include("./_button.mjml.eta", { href: it.links.cancel, kind: "danger", label: "Cancel", primaryColor: it.brand.primaryColor }) %>

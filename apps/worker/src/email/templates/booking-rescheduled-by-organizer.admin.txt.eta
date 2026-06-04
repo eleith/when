@@ -1,3 +1,0 @@
-You rescheduled <%= it.attendeeLine %> booking for <%= it.eventName %>.
-
-When: <%= it.when %>

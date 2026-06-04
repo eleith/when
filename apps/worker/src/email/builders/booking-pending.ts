@@ -1,22 +1,24 @@
 import { deriveBrand, eventTypeName, fmtWhen } from '../format.js';
-import { requestIcs } from '../ics.js';
 import { attendeeEnvelope, organizerEnvelope, type Envelope } from '../recipients.js';
 import { toSpec } from '../render.js';
 import type { EmailContent } from '../content.js';
 import type { BookingEmailInput } from '../types.js';
 
-export function bookingConfirmed(i: BookingEmailInput): Envelope[] {
+export function bookingPending(i: BookingEmailInput): Envelope[] {
 	const a = i.appointment;
 	const brand = deriveBrand(i.cfg);
 	const eventName = eventTypeName(i.eventType, a);
 	const when = fmtWhen(a.start_time, a.end_time, i.cfg.user.timezone);
+	const duration = i.eventType ? `${i.eventType.duration} min` : null;
 
 	const attendee: EmailContent = {
 		brand,
-		heading: 'Your booking is confirmed.',
-		paragraphs: [],
+		heading: `Booking request received: ${eventName}`,
+		paragraphs: [
+			`${brand.name} will review and confirm. You'll get a follow-up email at ${a.attendee_email} with the outcome.`,
+			'Need to change something before then?'
+		],
 		rows: [
-			{ label: 'What', value: eventName },
 			{ label: 'When', value: when },
 			{ label: 'Where', value: a.location }
 		],
@@ -26,23 +28,23 @@ export function bookingConfirmed(i: BookingEmailInput): Envelope[] {
 		],
 		footerHref: i.links.booked
 	};
-	const admin: EmailContent = {
+	const organizer: EmailContent = {
 		brand,
-		heading: `New booking: ${eventName}`,
-		paragraphs: [`${a.attendee_name} <${a.attendee_email}> just booked ${eventName}.`],
+		heading: `Booking request: ${eventName}`,
+		paragraphs: [`${a.attendee_name} <${a.attendee_email}> has requested to book ${eventName}.`],
 		rows: [
 			{ label: 'When', value: when },
-			{ label: 'Where', value: a.location },
-			{ label: 'Notes', value: a.attendee_notes }
+			{ label: 'Duration', value: duration },
+			{ label: 'Where', value: a.location }
 		],
-		actions: []
+		actions: [{ href: i.links.manage, label: 'Review request', variant: 'primary' }]
 	};
 
 	return [
 		attendeeEnvelope(
 			i,
-			toSpec(attendee, `Confirmed: ${eventName} with ${brand.name}`, requestIcs(i, i.links.booked))
+			toSpec(attendee, `Booking request received: ${eventName} with ${brand.name}`)
 		),
-		organizerEnvelope(i, toSpec(admin, `New booking: ${eventName} with ${a.attendee_name}`))
+		organizerEnvelope(i, toSpec(organizer, `Booking request: ${eventName} from ${a.attendee_name}`))
 	];
 }

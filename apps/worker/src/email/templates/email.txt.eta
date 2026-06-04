@@ -1,0 +1,18 @@
+<%= it.heading %>
+<% it.paragraphs.forEach((p) => { -%>
+
+<%= p %>
+<% }) -%>
+<% const rows = it.rows.filter((r) => r.value); -%>
+<% if (rows.length) { -%>
+
+<% rows.forEach((r) => { -%>
+<%= r.label %>: <%= r.value %>
+<% }) -%>
+<% } -%>
+<% if (it.actions.length) { -%>
+
+<% it.actions.forEach((a) => { -%>
+<%= a.label %>: <%= a.href %>
+<% }) -%>
+<% } -%>

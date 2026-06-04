@@ -1,3 +1,0 @@
-<%= it.attendeeLine %> cancelled <%= it.eventName %>.
-
-When: <%= it.when %>

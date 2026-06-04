@@ -1,9 +1,0 @@
-<% layout("./_layout.mjml.eta", { brand: it.brand }) %>
-<mj-text font-size="18px" font-weight="700">Booking request: <%= it.eventName %></mj-text>
-<mj-text><%= it.attendeeLine %> has requested to book <%= it.eventName %>.</mj-text>
-<%~ include("./_detail-table.mjml.eta", { rows: [
-  { label: "When", value: it.when },
-  { label: "Duration", value: it.duration },
-  { label: "Where", value: it.location }
-] }) %>
-<%~ include("./_button.mjml.eta", { href: it.manageUrl, kind: "primary", label: "Review request", primaryColor: it.brand.primaryColor }) %>

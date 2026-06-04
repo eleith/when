@@ -1,34 +1,41 @@
 import { deriveBrand, eventTypeName, fmtWhen } from '../format.js';
 import { cancelIcs } from '../ics.js';
 import { attendeeEnvelope, organizerEnvelope, type Envelope } from '../recipients.js';
-import { renderHtmlBody, renderTextBody } from '../render.js';
+import { toSpec } from '../render.js';
+import type { EmailContent } from '../content.js';
 import type { BookingEmailInput } from '../types.js';
 
-export async function bookingCancelledByOrganizer(i: BookingEmailInput): Promise<Envelope[]> {
+export function bookingCancelledByOrganizer(i: BookingEmailInput): Envelope[] {
 	const a = i.appointment;
 	const brand = deriveBrand(i.cfg);
 	const eventName = eventTypeName(i.eventType, a);
 	const when = fmtWhen(a.start_time, a.end_time, i.cfg.user.timezone);
 
-	const attendee = { brand, eventName, when, userName: i.cfg.user.name };
-	const admin = {
+	const attendee: EmailContent = {
 		brand,
-		eventName,
-		when,
-		attendeeLine: `${a.attendee_name} <${a.attendee_email}>`
+		heading: `${brand.name} cancelled this booking.`,
+		paragraphs: [],
+		rows: [
+			{ label: 'What', value: eventName },
+			{ label: 'When', value: when }
+		],
+		actions: []
+	};
+	const admin: EmailContent = {
+		brand,
+		heading: `Cancelled: ${eventName}`,
+		paragraphs: [
+			`You cancelled ${a.attendee_name} <${a.attendee_email}> booking for ${eventName}.`
+		],
+		rows: [{ label: 'When', value: when }],
+		actions: []
 	};
 
 	return [
-		attendeeEnvelope(i, {
-			subject: `Cancelled: ${eventName} with ${brand.name}`,
-			html: await renderHtmlBody('booking-cancelled-by-organizer.attendee', attendee),
-			text: await renderTextBody('booking-cancelled-by-organizer.attendee', attendee),
-			ics: cancelIcs(i, i.links.booked)
-		}),
-		organizerEnvelope(i, {
-			subject: `Cancelled: ${eventName} with ${a.attendee_name}`,
-			html: await renderHtmlBody('booking-cancelled-by-organizer.admin', admin),
-			text: await renderTextBody('booking-cancelled-by-organizer.admin', admin)
-		})
+		attendeeEnvelope(
+			i,
+			toSpec(attendee, `Cancelled: ${eventName} with ${brand.name}`, cancelIcs(i, i.links.booked))
+		),
+		organizerEnvelope(i, toSpec(admin, `Cancelled: ${eventName} with ${a.attendee_name}`))
 	];
 }

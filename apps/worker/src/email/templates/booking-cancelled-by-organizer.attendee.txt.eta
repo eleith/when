@@ -1,4 +1,0 @@
-<%= it.userName %> cancelled this booking.
-
-What: <%= it.eventName %>
-When: <%= it.when %>

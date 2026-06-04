@@ -1,3 +1,0 @@
-You cancelled <%= it.attendeeLine %> booking for <%= it.eventName %>.
-
-When: <%= it.when %>

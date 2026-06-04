@@ -1,3 +1,0 @@
-<%= it.attendeeLine %> rescheduled <%= it.eventName %>.
-
-When: <%= it.when %>

@@ -1,3 +1,0 @@
-You declined <%= it.attendeeLine %> request for <%= it.eventName %>.
-
-When: <%= it.when %>
