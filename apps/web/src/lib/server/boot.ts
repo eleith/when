@@ -4,6 +4,7 @@ import { setState } from './state';
 import { bootConfig } from './config/boot';
 import { loadEncryptionKey } from './crypto';
 import { openDb, runMigrations } from '@when/db';
+import { initOpenWorkflow } from '@when/jobs';
 import { logger } from './logger';
 import { env } from '$env/dynamic/private';
 
@@ -16,6 +17,7 @@ export async function bootApp(): Promise<void> {
 	const db = openDb(config.database.app);
 	const applied = await runMigrations(db);
 	if (applied.length > 0) logger.info({ migrations: applied }, 'migrations applied');
+	initOpenWorkflow({ dbPath: config.database.queue });
 	makeAuth(config);
 	setState({ config, db });
 }
