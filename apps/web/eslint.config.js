@@ -42,14 +42,5 @@ export default defineConfig(
 			// back if/when route renames bite.
 			'svelte/no-navigation-without-resolve': 'off'
 		}
-	},
-	{
-		// Email components render a complete standalone HTML document, so they
-		// legitimately use raw <head>/<body> (the rule assumes app components,
-		// where those belong to app.html / svelte:head).
-		files: ['src/lib/server/email/**/*.svelte'],
-		rules: {
-			'svelte/no-raw-special-elements': 'off'
-		}
 	}
 );
