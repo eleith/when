@@ -11,7 +11,7 @@ type WorkflowSpec<Input, Output> = Workflow<Input, Output, Input>['spec'];
 
 /**
  * Which booking notification to send. Each value maps — in the worker — to one
- * or more email builders, and to a single `notification_status.email` outcome
+ * or more email builders, and to a single `email_notification_status` outcome
  * for the appointment.
  */
 export type BookingEmailKind =
