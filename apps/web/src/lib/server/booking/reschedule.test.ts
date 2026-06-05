@@ -19,7 +19,8 @@ const existing: Appointment = {
 	cancel_token: 'tok-good',
 	external_event_id: null,
 	external_calendar_id: null,
-	notification_status: null,
+	email_notification_status: null,
+	calendar_push_notification_status: null,
 	ics_sequence: 0,
 	created_at: '',
 	updated_at: ''
@@ -190,7 +191,8 @@ const opBaseRow = {
 	location: null,
 	external_event_id: null,
 	external_calendar_id: null,
-	notification_status: null
+	email_notification_status: null,
+	calendar_push_notification_status: null
 };
 
 async function makeDb() {

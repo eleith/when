@@ -14,7 +14,8 @@ const baseRow = {
 	location: null,
 	external_event_id: null,
 	external_calendar_id: null,
-	notification_status: null
+	email_notification_status: null,
+	calendar_push_notification_status: null
 };
 
 async function makeDb() {
@@ -29,7 +30,7 @@ async function fetchRow(db: Awaited<ReturnType<typeof makeDb>>, id: string) {
 
 // Use a config whose destination_calendar refers to a non-existent calendar id, so
 // pushAppointment fails-soft with { ok: false } and the operation marks
-// notification_status.calendar_push = 'failed'. This avoids real network calls.
+// calendar_push_notification_status = 'failed'. This avoids real network calls.
 const cfgPushFails = {
 	...validConfig,
 	event_types: [
@@ -57,9 +58,7 @@ describe('acceptAppointment', () => {
 				expect(result.appointment.status).toBe('confirmed');
 				const persisted = await fetchRow(db, 'a1');
 				expect(persisted.status).toBe('confirmed');
-				// Push failed → notification_status records it.
-				const notif = JSON.parse(persisted.notification_status ?? '{}');
-				expect(notif.calendar_push).toBe('failed');
+				expect(persisted.calendar_push_notification_status).toBe('failed');
 			}
 		} finally {
 			await db.destroy();

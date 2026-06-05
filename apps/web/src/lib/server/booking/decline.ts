@@ -1,10 +1,9 @@
 import type { Kysely } from 'kysely';
 import { resolveBookingActions } from './actions';
-import { recordNotificationFailure } from './notifications';
 import { transitionStatus } from './status';
 import type { Clock } from '../clock';
 import type { WhenConfiguration } from '@when/config';
-import type { Appointment, Database } from '@when/db';
+import type { Appointment, Database, NotificationOutcome } from '@when/db';
 import { sendEmails } from '../email/send';
 import { bookingDeclined } from '../emails/booking-declined';
 
@@ -42,7 +41,7 @@ export async function declineAppointment(
 			id: input.appointment.id,
 			from: ['pending'],
 			to: 'declined',
-			patch: { notification_status: null }
+			patch: { email_notification_status: null, calendar_push_notification_status: null }
 		}
 	);
 	if (!transition.ok) return { ok: false, reason: 'conflict' };
@@ -55,10 +54,16 @@ export async function declineAppointment(
 		deps.cfg,
 		bookingDeclined({ cfg: deps.cfg, appointment: row, eventType })
 	);
-	if (!emailed.ok) {
-		await recordNotificationFailure(deps.db, row.id, 'email');
-		return { ok: true, appointment: { ...row, notification_status: '{"email":"failed"}' } };
-	}
+	const notify = {
+		email_notification_status: (emailed.ok ? 'ok' : 'failed') as NotificationOutcome,
+		calendar_push_notification_status: null
+	};
 
-	return { ok: true, appointment: row };
+	await deps.db
+		.updateTable('appointments')
+		.set({ ...notify, updated_at: deps.clock.now().toISOString() })
+		.where('id', '=', row.id)
+		.execute();
+
+	return { ok: true, appointment: { ...row, ...notify } };
 }

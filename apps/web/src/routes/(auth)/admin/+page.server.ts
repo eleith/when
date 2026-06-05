@@ -1,7 +1,8 @@
 import { signOutAction } from '$lib/server/auth';
 import { systemClock } from '$lib/server/clock';
 import { getConfig, getDb } from '$lib/server/state';
-import { parseNotificationStatus, type Appointment } from '@when/db';
+import { notificationFailures } from '$lib/server/booking/notification-status';
+import type { Appointment } from '@when/db';
 import type { Actions, PageServerLoad } from './$types';
 
 type DisplayStatus =
@@ -34,10 +35,7 @@ export const load: PageServerLoad = async () => {
 	const now = systemClock.now();
 	const nowMs = now.getTime();
 	const appointments = rows.map((r) => {
-		const notifObj = parseNotificationStatus(r.notification_status);
-		const notification_failures = (Object.keys(notifObj) as Array<keyof typeof notifObj>).filter(
-			(k) => notifObj[k] === 'failed'
-		);
+		const notification_failures = notificationFailures(r);
 		return {
 			...r,
 			event_type_name:

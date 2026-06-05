@@ -1,12 +1,11 @@
 import type { Kysely } from 'kysely';
 import { resolveBookingActions } from './actions';
 import { bookingLinks } from './links';
-import { recordNotificationFailure } from './notifications';
 import { transitionStatus } from './status';
 import { pushAppointment } from '../calendar/push';
 import type { Clock } from '../clock';
 import type { WhenConfiguration } from '@when/config';
-import type { Appointment, Database } from '@when/db';
+import type { Appointment, Database, NotificationOutcome } from '@when/db';
 import { sendEmails } from '../email/send';
 import { bookingConfirmed } from '../emails/booking-confirmed';
 
@@ -45,7 +44,7 @@ export async function acceptAppointment(
 			id: input.appointment.id,
 			from: ['pending'],
 			to: 'confirmed',
-			patch: { notification_status: null }
+			patch: { email_notification_status: null, calendar_push_notification_status: null }
 		}
 	);
 	if (!transition.ok) return { ok: false, reason: 'conflict' };
@@ -54,7 +53,7 @@ export async function acceptAppointment(
 	const links = bookingLinks({ baseUrl: input.baseUrl, appointment: row, eventType });
 
 	let externalUpdate: { external_event_id: string; external_calendar_id: string } | null = null;
-	let notificationStatus: string | null = null;
+	let calendarPush: NotificationOutcome | null = null;
 
 	if (eventType) {
 		const pushed = await pushAppointment(deps.cfg, row, eventType.destination_calendar, {
@@ -65,9 +64,9 @@ export async function acceptAppointment(
 				external_event_id: pushed.externalEventId,
 				external_calendar_id: pushed.externalCalendarId
 			};
+			calendarPush = 'ok';
 		} else {
-			await recordNotificationFailure(deps.db, row.id, 'calendar_push');
-			notificationStatus = '{"calendar_push":"failed"}';
+			calendarPush = 'failed';
 		}
 	}
 
@@ -75,25 +74,17 @@ export async function acceptAppointment(
 		deps.cfg,
 		bookingConfirmed({ cfg: deps.cfg, appointment: row, eventType, baseUrl: input.baseUrl })
 	);
-	if (!emailed.ok) {
-		await recordNotificationFailure(deps.db, row.id, 'email');
-		notificationStatus = notificationStatus
-			? '{"calendar_push":"failed","email":"failed"}'
-			: '{"email":"failed"}';
-	}
+	const notify = {
+		email_notification_status: (emailed.ok ? 'ok' : 'failed') as NotificationOutcome,
+		calendar_push_notification_status: calendarPush
+	};
 
-	if (externalUpdate !== null || notificationStatus !== null) {
-		await deps.db
-			.updateTable('appointments')
-			.set({
-				...(externalUpdate ?? {}),
-				notification_status: notificationStatus,
-				updated_at: deps.clock.now().toISOString()
-			})
-			.where('id', '=', row.id)
-			.execute();
-		row = { ...row, ...(externalUpdate ?? {}), notification_status: notificationStatus };
-	}
+	await deps.db
+		.updateTable('appointments')
+		.set({ ...(externalUpdate ?? {}), ...notify, updated_at: deps.clock.now().toISOString() })
+		.where('id', '=', row.id)
+		.execute();
+	row = { ...row, ...(externalUpdate ?? {}), ...notify };
 
 	return { ok: true, appointment: row };
 }

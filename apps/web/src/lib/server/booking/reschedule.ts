@@ -2,12 +2,11 @@ import type { Kysely } from 'kysely';
 import { resolveBookingActions, type Viewer } from './actions';
 import { isRescheduleAllowed, isViewable } from './access';
 import { bookingLinks } from './links';
-import { recordNotificationFailure } from './notifications';
 import { transitionStatus } from './status';
 import { pushAppointment } from '../calendar/push';
 import type { Clock } from '../clock';
 import type { EventType, WhenConfiguration } from '@when/config';
-import type { Appointment, Database } from '@when/db';
+import type { Appointment, Database, NotificationOutcome } from '@when/db';
 import { bookingRescheduledByAttendee } from '../emails/booking-rescheduled-by-attendee';
 import { bookingRescheduledByOrganizer } from '../emails/booking-rescheduled-by-organizer';
 import { sendEmails } from '../email/send';
@@ -84,7 +83,8 @@ export async function rescheduleAppointment(
 					start_time: input.newStart,
 					end_time: input.newEnd,
 					ics_sequence: input.appointment.ics_sequence + 1,
-					notification_status: null
+					email_notification_status: null,
+					calendar_push_notification_status: null
 				}
 			}
 		);
@@ -96,16 +96,13 @@ export async function rescheduleAppointment(
 
 	const updated = transition.row;
 	const links = bookingLinks({ baseUrl: input.baseUrl, appointment: updated, eventType });
-	let notificationStatus: string | null = null;
+	let calendarPush: NotificationOutcome | null = null;
 
 	if (updated.external_event_id && updated.external_calendar_id) {
 		const pushed = await pushAppointment(deps.cfg, updated, updated.external_calendar_id!, {
 			cancelUrl: links.booked
 		});
-		if (!pushed.ok) {
-			await recordNotificationFailure(deps.db, updated.id, 'calendar_push');
-			notificationStatus = '{"calendar_push":"failed"}';
-		}
+		calendarPush = pushed.ok ? 'ok' : 'failed';
 	}
 
 	const builder =
@@ -114,14 +111,18 @@ export async function rescheduleAppointment(
 		deps.cfg,
 		builder({ cfg: deps.cfg, appointment: updated, eventType, baseUrl: input.baseUrl })
 	);
-	if (!emailed.ok) {
-		await recordNotificationFailure(deps.db, updated.id, 'email');
-		notificationStatus = notificationStatus
-			? '{"calendar_push":"failed","email":"failed"}'
-			: '{"email":"failed"}';
-	}
+	const notify = {
+		email_notification_status: (emailed.ok ? 'ok' : 'failed') as NotificationOutcome,
+		calendar_push_notification_status: calendarPush
+	};
 
-	return { ok: true, appointment: { ...updated, notification_status: notificationStatus } };
+	await deps.db
+		.updateTable('appointments')
+		.set({ ...notify, updated_at: deps.clock.now().toISOString() })
+		.where('id', '=', updated.id)
+		.execute();
+
+	return { ok: true, appointment: { ...updated, ...notify } };
 }
 
 export function classifyReschedule({

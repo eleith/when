@@ -4,7 +4,8 @@ import { resolveBookingActions } from '$lib/server/booking/actions';
 import { buildAddToCalendarLinks } from '$lib/server/calendar-links';
 import { systemClock } from '$lib/server/clock';
 import { getConfig, getDb } from '$lib/server/state';
-import { parseNotificationStatus, type Appointment } from '@when/db';
+import { notificationFailures } from '$lib/server/booking/notification-status';
+import type { Appointment } from '@when/db';
 import type { Actions, PageServerLoad } from './$types';
 import { acceptAppointment } from '$lib/server/booking/accept';
 import { declineAppointment } from '$lib/server/booking/decline';
@@ -72,10 +73,7 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 				)
 			: null;
 
-	const notifObj = parseNotificationStatus(row.notification_status);
-	const notification_failures = (Object.keys(notifObj) as Array<keyof typeof notifObj>).filter(
-		(k) => notifObj[k] === 'failed'
-	);
+	const notification_failures = notificationFailures(row);
 
 	return {
 		appointment: {

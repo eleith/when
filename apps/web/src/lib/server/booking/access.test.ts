@@ -21,7 +21,8 @@ const baseRow: Appointment = {
 	cancel_token: 'tok-abc',
 	external_event_id: null,
 	external_calendar_id: null,
-	notification_status: null,
+	email_notification_status: null,
+	calendar_push_notification_status: null,
 	ics_sequence: 0,
 	created_at: '',
 	updated_at: ''

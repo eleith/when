@@ -48,8 +48,7 @@ describe('createAppointment', () => {
 					.where('id', '=', result.appointment.id)
 					.executeTakeFirstOrThrow();
 				expect(persisted.status).toBe('confirmed');
-				const notif = JSON.parse(persisted.notification_status ?? '{}');
-				expect(notif.calendar_push).toBe('failed');
+				expect(persisted.calendar_push_notification_status).toBe('failed');
 			}
 		} finally {
 			await db.destroy();
@@ -96,7 +95,8 @@ describe('createAppointment', () => {
 					cancel_token: 'tok-existing',
 					external_event_id: null,
 					external_calendar_id: null,
-					notification_status: null
+					email_notification_status: null,
+					calendar_push_notification_status: null
 				})
 				.execute();
 
