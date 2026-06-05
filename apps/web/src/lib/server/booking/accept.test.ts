@@ -1,8 +1,11 @@
-import { describe, expect, test } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { acceptAppointment } from './accept';
 import { systemClock } from '$lib/server/clock';
 import { openDb, runMigrations } from '@when/db';
 import { validConfig } from '$lib/server/__fixtures__/valid-config';
+
+vi.mock('../workflow', () => ({ enqueueBookingEmail: vi.fn() }));
+import { enqueueBookingEmail } from '../workflow';
 
 const baseRow = {
 	event_type_id: '30-min-chat',
@@ -39,6 +42,8 @@ const cfgPushFails = {
 };
 
 describe('acceptAppointment', () => {
+	beforeEach(() => vi.mocked(enqueueBookingEmail).mockReset());
+
 	test('happy path: pending → confirmed; calendar_push tracked when push fails', async () => {
 		const db = await makeDb();
 		try {
@@ -59,6 +64,10 @@ describe('acceptAppointment', () => {
 				const persisted = await fetchRow(db, 'a1');
 				expect(persisted.status).toBe('confirmed');
 				expect(persisted.calendar_push_notification_status).toBe('failed');
+				expect(persisted.email_notification_status).toBe('queued');
+				expect(enqueueBookingEmail).toHaveBeenCalledWith(
+					expect.objectContaining({ kind: 'confirmed' })
+				);
 			}
 		} finally {
 			await db.destroy();

@@ -1,13 +1,12 @@
 import type { Kysely } from 'kysely';
 import { resolveBookingActions } from './actions';
 import { bookingLinks } from './links';
+import { enqueueBookingEmail } from '../workflow';
 import { transitionStatus } from './status';
 import { pushAppointment } from '../calendar/push';
 import type { Clock } from '../clock';
 import type { WhenConfiguration } from '@when/config';
 import type { Appointment, Database, NotificationOutcome } from '@when/db';
-import { sendEmails } from '../email/send';
-import { bookingConfirmed } from '../emails/booking-confirmed';
 
 export interface AcceptAppointmentDeps {
 	db: Kysely<Database>;
@@ -70,12 +69,8 @@ export async function acceptAppointment(
 		}
 	}
 
-	const emailed = await sendEmails(
-		deps.cfg,
-		bookingConfirmed({ cfg: deps.cfg, appointment: row, eventType, baseUrl: input.baseUrl })
-	);
 	const notify = {
-		email_notification_status: (emailed.ok ? 'ok' : 'failed') as NotificationOutcome,
+		email_notification_status: 'queued' as const,
 		calendar_push_notification_status: calendarPush
 	};
 
@@ -85,6 +80,8 @@ export async function acceptAppointment(
 		.where('id', '=', row.id)
 		.execute();
 	row = { ...row, ...(externalUpdate ?? {}), ...notify };
+
+	await enqueueBookingEmail({ kind: 'confirmed', appointment: row, eventType, links });
 
 	return { ok: true, appointment: row };
 }
