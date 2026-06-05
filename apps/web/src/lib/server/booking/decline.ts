@@ -1,11 +1,11 @@
 import type { Kysely } from 'kysely';
 import { resolveBookingActions } from './actions';
+import { bookingLinks } from './links';
+import { enqueueBookingEmail } from '../workflow';
 import { transitionStatus } from './status';
 import type { Clock } from '../clock';
 import type { WhenConfiguration } from '@when/config';
-import type { Appointment, Database, NotificationOutcome } from '@when/db';
-import { sendEmails } from '../email/send';
-import { bookingDeclined } from '../emails/booking-declined';
+import type { Appointment, Database } from '@when/db';
 
 export interface DeclineAppointmentDeps {
 	db: Kysely<Database>;
@@ -15,6 +15,7 @@ export interface DeclineAppointmentDeps {
 
 export interface DeclineAppointmentInput {
 	appointment: Appointment;
+	baseUrl: string;
 }
 
 export type DeclineAppointmentResult =
@@ -49,13 +50,8 @@ export async function declineAppointment(
 	const row = transition.row;
 
 	// Decline never has a calendar effect — pending bookings aren't pushed.
-
-	const emailed = await sendEmails(
-		deps.cfg,
-		bookingDeclined({ cfg: deps.cfg, appointment: row, eventType })
-	);
 	const notify = {
-		email_notification_status: (emailed.ok ? 'ok' : 'failed') as NotificationOutcome,
+		email_notification_status: 'queued' as const,
 		calendar_push_notification_status: null
 	};
 
@@ -65,5 +61,9 @@ export async function declineAppointment(
 		.where('id', '=', row.id)
 		.execute();
 
-	return { ok: true, appointment: { ...row, ...notify } };
+	const appointment = { ...row, ...notify };
+	const links = bookingLinks({ baseUrl: input.baseUrl, appointment, eventType });
+	await enqueueBookingEmail({ kind: 'declined', appointment, eventType, links });
+
+	return { ok: true, appointment };
 }

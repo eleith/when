@@ -130,7 +130,7 @@ export const actions: Actions = {
 		return { success: 'accepted' };
 	},
 
-	decline: async ({ params, locals }) => {
+	decline: async ({ params, url, locals }) => {
 		if (!(await locals.auth())) return fail(403, { error: 'Not authorized.' });
 
 		const row = await getDb()
@@ -143,7 +143,7 @@ export const actions: Actions = {
 
 		const result = await declineAppointment(
 			{ db: getDb(), cfg: getConfig(), clock: systemClock },
-			{ appointment: row }
+			{ appointment: row, baseUrl: url.origin }
 		);
 		if (!result.ok) {
 			return fail(409, { error: 'This booking can no longer be declined.' });

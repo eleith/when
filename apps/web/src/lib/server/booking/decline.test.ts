@@ -1,8 +1,11 @@
-import { describe, expect, test } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { declineAppointment } from './decline';
 import { systemClock } from '$lib/server/clock';
 import { openDb, runMigrations } from '@when/db';
 import { validConfig } from '$lib/server/__fixtures__/valid-config';
+
+vi.mock('../workflow', () => ({ enqueueBookingEmail: vi.fn() }));
+import { enqueueBookingEmail } from '../workflow';
 
 const baseRow = {
 	event_type_id: '30-min-chat',
@@ -29,6 +32,8 @@ async function fetchRow(db: Awaited<ReturnType<typeof makeDb>>, id: string) {
 }
 
 describe('declineAppointment', () => {
+	beforeEach(() => vi.mocked(enqueueBookingEmail).mockReset());
+
 	test('happy path: pending → declined', async () => {
 		const db = await makeDb();
 		try {
@@ -40,7 +45,7 @@ describe('declineAppointment', () => {
 
 			const result = await declineAppointment(
 				{ db, cfg: validConfig, clock: systemClock },
-				{ appointment: row }
+				{ appointment: row, baseUrl: 'https://when.example.com' }
 			);
 
 			expect(result.ok).toBe(true);
@@ -48,6 +53,10 @@ describe('declineAppointment', () => {
 				expect(result.appointment.status).toBe('declined');
 				const persisted = await fetchRow(db, 'd1');
 				expect(persisted.status).toBe('declined');
+				expect(persisted.email_notification_status).toBe('queued');
+				expect(enqueueBookingEmail).toHaveBeenCalledWith(
+					expect.objectContaining({ kind: 'declined' })
+				);
 			}
 		} finally {
 			await db.destroy();
@@ -65,7 +74,7 @@ describe('declineAppointment', () => {
 
 			const result = await declineAppointment(
 				{ db, cfg: validConfig, clock: systemClock },
-				{ appointment: row }
+				{ appointment: row, baseUrl: 'https://when.example.com' }
 			);
 			expect(result).toEqual({ ok: false, reason: 'gated' });
 		} finally {
@@ -89,7 +98,7 @@ describe('declineAppointment', () => {
 
 			const result = await declineAppointment(
 				{ db, cfg: validConfig, clock: systemClock },
-				{ appointment: row }
+				{ appointment: row, baseUrl: 'https://when.example.com' }
 			);
 			expect(result).toEqual({ ok: false, reason: 'conflict' });
 		} finally {
