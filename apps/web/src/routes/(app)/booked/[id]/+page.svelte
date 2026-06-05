@@ -13,6 +13,7 @@
 	import IconWarningCircle from 'virtual:icons/ph/warning-circle';
 	import IconWarning from 'virtual:icons/ph/warning';
 	import IconNote from 'virtual:icons/ph/note';
+	import NotificationChips from '$lib/components/NotificationChips.svelte';
 
 	let { data, form } = $props();
 
@@ -77,12 +78,6 @@
 	let differentTz = $derived(data.organizerTz !== userTz);
 	// Organizer sees times in their own configured zone; attendees in the browser's.
 	let displayTz = $derived(data.isAdmin ? data.organizerTz : userTz);
-
-	function fmtFailureLabel(key: string): string {
-		if (key === 'email') return 'Email';
-		if (key === 'calendar_push') return 'Calendar Sync';
-		return key;
-	}
 </script>
 
 <svelte:head>
@@ -148,14 +143,21 @@
 		</aside>
 	{/if}
 
-	{#if data.isAdmin && data.appointment.notification_failures && data.appointment.notification_failures.length > 0}
-		<aside class="notif-warning">
-			<IconWarning class="notif-icon" aria-hidden="true" />
+	{#if data.isAdmin && data.appointment.notifications.length > 0}
+		{@const hasFailure = data.appointment.notifications.some((n) => n.state === 'failed')}
+		<aside class="notif-warning" class:notif-pending={!hasFailure}>
+			{#if hasFailure}
+				<IconWarning class="notif-icon" aria-hidden="true" />
+			{:else}
+				<IconClock class="notif-icon" aria-hidden="true" />
+			{/if}
 			<div>
-				<p class="notif-title">Some notifications didn't send</p>
-				<p class="notif-detail">
-					Failed: {data.appointment.notification_failures.map(fmtFailureLabel).join(', ')}
+				<p class="notif-title">
+					{#if hasFailure}Some notifications didn't send{:else}Notifications sending…{/if}
 				</p>
+				<div class="notif-chips">
+					<NotificationChips notifications={data.appointment.notifications} />
+				</div>
 			</div>
 		</aside>
 	{/if}
@@ -950,6 +952,12 @@
 		color: var(--warning, var(--text));
 	}
 
+	.notif-warning.notif-pending {
+		background: var(--surface-muted);
+		border-color: var(--border-strong);
+		color: var(--text);
+	}
+
 	:global(.notif-icon) {
 		font-size: var(--font-size-lg);
 		flex-shrink: 0;
@@ -962,12 +970,11 @@
 		font-weight: 600;
 	}
 
-	.notif-detail {
-		margin: 0;
-		font-size: var(--font-size-xs);
-		font-family: var(--font-mono, monospace);
-		word-break: break-all;
-		color: var(--text-muted);
+	.notif-chips {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-2);
+		margin-top: var(--space-1);
 	}
 
 	.tz-extra {

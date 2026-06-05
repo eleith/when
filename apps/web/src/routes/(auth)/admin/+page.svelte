@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import IconCalendarBlank from 'virtual:icons/ph/calendar-blank';
-	import IconWarning from 'virtual:icons/ph/warning';
 	import IconCheck from 'virtual:icons/ph/check';
 	import IconX from 'virtual:icons/ph/x';
+	import NotificationChips from '$lib/components/NotificationChips.svelte';
 
 	let { data } = $props();
 
@@ -29,12 +29,6 @@
 			return;
 		}
 		goto(`/booked/${id}`);
-	}
-
-	function fmtFailureLabel(key: string): string {
-		if (key === 'email') return 'Email';
-		if (key === 'calendar_push') return 'Calendar Sync';
-		return key;
 	}
 </script>
 
@@ -91,15 +85,8 @@
 											{a.display_status}
 										{/if}
 									</span>
-									{#if a.notification_failures && a.notification_failures.length > 0}
-										<span
-											class="notif-warn"
-											title="Failed notifications: {a.notification_failures
-												.map(fmtFailureLabel)
-												.join(', ')}"
-										>
-											<IconWarning aria-hidden="true" />
-										</span>
+									{#if a.notifications.length > 0}
+										<NotificationChips notifications={a.notifications} />
 									{/if}
 								</div>
 							</td>
@@ -321,13 +308,6 @@
 	.status-declined {
 		background: var(--danger-bg);
 		color: var(--danger-strong);
-	}
-
-	.notif-warn {
-		display: inline-flex;
-		color: var(--warning);
-		font-size: var(--font-size-sm);
-		cursor: help;
 	}
 
 	/* actions alignment */

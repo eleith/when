@@ -1,7 +1,7 @@
 import { signOutAction } from '$lib/server/auth';
 import { systemClock } from '$lib/server/clock';
 import { getConfig, getDb } from '$lib/server/state';
-import { notificationFailures } from '$lib/server/booking/notification-status';
+import { notificationStates } from '$lib/notifications';
 import type { Appointment } from '@when/db';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -35,14 +35,14 @@ export const load: PageServerLoad = async () => {
 	const now = systemClock.now();
 	const nowMs = now.getTime();
 	const appointments = rows.map((r) => {
-		const notification_failures = notificationFailures(r);
+		const notifications = notificationStates(r);
 		return {
 			...r,
 			event_type_name:
 				cfg.event_types.find((e) => e.id === r.event_type_id)?.name ?? r.event_type_id,
 			display_status: deriveDisplayStatus(r, now),
 			is_past: nowMs >= Date.parse(r.end_time),
-			notification_failures
+			notifications
 		};
 	});
 

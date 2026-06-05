@@ -4,7 +4,7 @@ import { resolveBookingActions } from '$lib/server/booking/actions';
 import { buildAddToCalendarLinks } from '$lib/server/calendar-links';
 import { systemClock } from '$lib/server/clock';
 import { getConfig, getDb } from '$lib/server/state';
-import { notificationFailures } from '$lib/server/booking/notification-status';
+import { notificationStates } from '$lib/notifications';
 import type { Appointment } from '@when/db';
 import type { Actions, PageServerLoad } from './$types';
 import { acceptAppointment } from '$lib/server/booking/accept';
@@ -73,7 +73,7 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 				)
 			: null;
 
-	const notification_failures = notificationFailures(row);
+	const notifications = notificationStates(row);
 
 	return {
 		appointment: {
@@ -85,7 +85,7 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 			attendee_notes: row.attendee_notes,
 			location: row.location,
 			status: row.status,
-			notification_failures
+			notifications
 		},
 		eventType: eventType
 			? {
