@@ -1,8 +1,11 @@
-import { describe, expect, test } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { createAppointment } from './create';
 import { systemClock } from '$lib/server/clock';
 import { openDb, runMigrations } from '@when/db';
 import { validConfig } from '$lib/server/__fixtures__/valid-config';
+
+vi.mock('../workflow', () => ({ enqueueBookingEmail: vi.fn() }));
+import { enqueueBookingEmail } from '../workflow';
 
 async function makeDb() {
 	const db = openDb(':memory:');
@@ -31,6 +34,8 @@ const input = {
 };
 
 describe('createAppointment', () => {
+	beforeEach(() => vi.mocked(enqueueBookingEmail).mockReset());
+
 	test('auto flow inserts a confirmed booking; calendar_push tracked when push fails', async () => {
 		const db = await makeDb();
 		try {
@@ -49,6 +54,11 @@ describe('createAppointment', () => {
 					.executeTakeFirstOrThrow();
 				expect(persisted.status).toBe('confirmed');
 				expect(persisted.calendar_push_notification_status).toBe('failed');
+				expect(persisted.email_notification_status).toBe('queued');
+				expect(enqueueBookingEmail).toHaveBeenCalledTimes(1);
+				expect(vi.mocked(enqueueBookingEmail).mock.calls[0][0]).toMatchObject({
+					kind: 'confirmed'
+				});
 			}
 		} finally {
 			await db.destroy();
@@ -71,6 +81,10 @@ describe('createAppointment', () => {
 			expect(result.ok).toBe(true);
 			if (result.ok) {
 				expect(result.appointment.status).toBe('pending');
+				expect(result.appointment.email_notification_status).toBe('queued');
+				expect(enqueueBookingEmail).toHaveBeenCalledWith(
+					expect.objectContaining({ kind: 'pending' })
+				);
 			}
 		} finally {
 			await db.destroy();
@@ -105,6 +119,7 @@ describe('createAppointment', () => {
 				{ ...input, eventType: pushFailType }
 			);
 			expect(result).toEqual({ ok: false, reason: 'slot_taken' });
+			expect(enqueueBookingEmail).not.toHaveBeenCalled();
 		} finally {
 			await db.destroy();
 		}

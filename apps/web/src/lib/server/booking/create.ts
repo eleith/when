@@ -1,13 +1,11 @@
 import type { Kysely } from 'kysely';
 import { bookingLinks } from './links';
+import { enqueueBookingEmail } from '../workflow';
 import { pushAppointment } from '../calendar/push';
 import type { Clock } from '../clock';
 import type { EventType, WhenConfiguration } from '@when/config';
 import type { Appointment, Database, NotificationOutcome } from '@when/db';
-import { sendEmails } from '../email/send';
-import { bookingConfirmed } from '../emails/booking-confirmed';
-import { bookingPendingToAttendee } from '../emails/booking-pending-to-attendee';
-import { bookingPendingToOrganizer } from '../emails/booking-pending-to-organizer';
+import type { BookingEmailKind } from '@when/jobs';
 
 export interface CreateAppointmentDeps {
 	db: Kysely<Database>;
@@ -74,7 +72,7 @@ export async function createAppointment(
 
 	let externalUpdate: { external_event_id: string; external_calendar_id: string } | null = null;
 	let calendarPush: NotificationOutcome | null = null;
-	let email: NotificationOutcome;
+	const kind: BookingEmailKind = status === 'confirmed' ? 'confirmed' : 'pending';
 
 	if (status === 'confirmed') {
 		const pushed = await pushAppointment(cfg, appointment, eventType.destination_calendar, {
@@ -89,22 +87,10 @@ export async function createAppointment(
 		} else {
 			calendarPush = 'failed';
 		}
-		const emailed = await sendEmails(
-			cfg,
-			bookingConfirmed({ cfg, appointment, eventType, baseUrl: input.baseUrl })
-		);
-		email = emailed.ok ? 'ok' : 'failed';
-	} else {
-		const args = { cfg, appointment, eventType, baseUrl: input.baseUrl };
-		const [organizer, attendee] = await Promise.all([
-			sendEmails(cfg, bookingPendingToOrganizer(args)),
-			sendEmails(cfg, bookingPendingToAttendee(args))
-		]);
-		email = organizer.ok && attendee.ok ? 'ok' : 'failed';
 	}
 
 	const notify = {
-		email_notification_status: email,
+		email_notification_status: 'queued' as const,
 		calendar_push_notification_status: calendarPush
 	};
 	await db
@@ -113,6 +99,8 @@ export async function createAppointment(
 		.where('id', '=', id)
 		.execute();
 	appointment = { ...appointment, ...(externalUpdate ?? {}), ...notify };
+
+	await enqueueBookingEmail({ kind, appointment, eventType, links });
 
 	return { ok: true, appointment };
 }
