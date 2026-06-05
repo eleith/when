@@ -2,14 +2,12 @@ import type { Kysely } from 'kysely';
 import { resolveBookingActions, type Viewer } from './actions';
 import { isRescheduleAllowed, isViewable } from './access';
 import { bookingLinks } from './links';
+import { enqueueBookingEmail } from '../workflow';
 import { transitionStatus } from './status';
 import { pushAppointment } from '../calendar/push';
 import type { Clock } from '../clock';
 import type { EventType, WhenConfiguration } from '@when/config';
 import type { Appointment, Database, NotificationOutcome } from '@when/db';
-import { bookingRescheduledByAttendee } from '../emails/booking-rescheduled-by-attendee';
-import { bookingRescheduledByOrganizer } from '../emails/booking-rescheduled-by-organizer';
-import { sendEmails } from '../email/send';
 
 export type RescheduleErrorCode =
 	| 'token'
@@ -105,14 +103,8 @@ export async function rescheduleAppointment(
 		calendarPush = pushed.ok ? 'ok' : 'failed';
 	}
 
-	const builder =
-		input.initiator === 'organizer' ? bookingRescheduledByOrganizer : bookingRescheduledByAttendee;
-	const emailed = await sendEmails(
-		deps.cfg,
-		builder({ cfg: deps.cfg, appointment: updated, eventType, baseUrl: input.baseUrl })
-	);
 	const notify = {
-		email_notification_status: (emailed.ok ? 'ok' : 'failed') as NotificationOutcome,
+		email_notification_status: 'queued' as const,
 		calendar_push_notification_status: calendarPush
 	};
 
@@ -122,7 +114,12 @@ export async function rescheduleAppointment(
 		.where('id', '=', updated.id)
 		.execute();
 
-	return { ok: true, appointment: { ...updated, ...notify } };
+	const appointment = { ...updated, ...notify };
+	const kind =
+		input.initiator === 'organizer' ? 'rescheduled-by-organizer' : 'rescheduled-by-attendee';
+	await enqueueBookingEmail({ kind, appointment, eventType, links });
+
+	return { ok: true, appointment };
 }
 
 export function classifyReschedule({

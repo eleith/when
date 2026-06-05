@@ -1,8 +1,11 @@
-import { describe, expect, test } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { classifyReschedule, rescheduleAppointment } from './reschedule';
 import { systemClock } from '$lib/server/clock';
 import { openDb, runMigrations, type Appointment } from '@when/db';
 import { validConfig } from '$lib/server/__fixtures__/valid-config';
+
+vi.mock('../workflow', () => ({ enqueueBookingEmail: vi.fn() }));
+import { enqueueBookingEmail } from '../workflow';
 
 const now = new Date('2026-05-01T13:00:00Z');
 
@@ -206,6 +209,8 @@ async function fetchRow(db: Awaited<ReturnType<typeof makeDb>>, id: string) {
 }
 
 describe('rescheduleAppointment', () => {
+	beforeEach(() => vi.mocked(enqueueBookingEmail).mockReset());
+
 	test('happy path: confirmed booking moves time, ics_sequence bumps, status preserved', async () => {
 		const db = await makeDb();
 		try {
@@ -232,6 +237,10 @@ describe('rescheduleAppointment', () => {
 				expect(result.appointment.end_time).toBe('2099-01-02T10:30:00Z');
 				expect(result.appointment.status).toBe('confirmed');
 				expect(result.appointment.ics_sequence).toBe(1);
+				expect(result.appointment.email_notification_status).toBe('queued');
+				expect(enqueueBookingEmail).toHaveBeenCalledWith(
+					expect.objectContaining({ kind: 'rescheduled-by-attendee' })
+				);
 			}
 		} finally {
 			await db.destroy();
