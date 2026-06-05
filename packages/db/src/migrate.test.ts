@@ -37,8 +37,7 @@ test('partial unique index rejects concurrent active slot but allows cancelled',
 			attendee_notes: null,
 			location: null,
 			external_event_id: null,
-			external_calendar_id: null,
-			notification_status: null
+			external_calendar_id: null
 		};
 
 		await db
@@ -69,6 +68,20 @@ test('response_token column is dropped after migrations', async () => {
 		const cols = await sql<{ name: string }>`PRAGMA table_info(appointments)`.execute(db);
 		const colNames = cols.rows.map((r) => r.name);
 		expect(colNames).not.toContain('response_token');
+	} finally {
+		await db.destroy();
+	}
+});
+
+test('notification_status is split into typed per-channel columns', async () => {
+	const db = openDb(':memory:');
+	try {
+		await runMigrations(db);
+		const cols = await sql<{ name: string }>`PRAGMA table_info(appointments)`.execute(db);
+		const colNames = cols.rows.map((r) => r.name);
+		expect(colNames).toContain('email_notification_status');
+		expect(colNames).toContain('calendar_push_notification_status');
+		expect(colNames).not.toContain('notification_status');
 	} finally {
 		await db.destroy();
 	}

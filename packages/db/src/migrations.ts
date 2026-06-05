@@ -87,9 +87,50 @@ const dropResponseToken: Migration = {
 	}
 };
 
+// Split the single JSON notification_status column into one typed column per
+// channel, so web and worker write a typed value rather than a shared JSON shape.
+const notificationStatusColumns: Migration = {
+	async up(db: Kysely<unknown>): Promise<void> {
+		await db.schema
+			.alterTable('appointments')
+			.addColumn('email_notification_status', 'text')
+			.execute();
+		await db.schema
+			.alterTable('appointments')
+			.addColumn('calendar_push_notification_status', 'text')
+			.execute();
+		await sql`
+			UPDATE appointments SET
+				email_notification_status = json_extract(notification_status, '$.email'),
+				calendar_push_notification_status = json_extract(notification_status, '$.calendar_push')
+			WHERE notification_status IS NOT NULL
+		`.execute(db);
+		await db.schema.alterTable('appointments').dropColumn('notification_status').execute();
+	},
+	async down(db: Kysely<unknown>): Promise<void> {
+		await db.schema.alterTable('appointments').addColumn('notification_status', 'text').execute();
+		await sql`
+			UPDATE appointments SET notification_status = (
+				SELECT json_group_object(key, value) FROM (
+					SELECT 'email' AS key, email_notification_status AS value
+					UNION ALL
+					SELECT 'calendar_push', calendar_push_notification_status
+				) WHERE value IS NOT NULL
+			)
+			WHERE email_notification_status IS NOT NULL OR calendar_push_notification_status IS NOT NULL
+		`.execute(db);
+		await db.schema
+			.alterTable('appointments')
+			.dropColumn('calendar_push_notification_status')
+			.execute();
+		await db.schema.alterTable('appointments').dropColumn('email_notification_status').execute();
+	}
+};
+
 export const migrations: Record<string, Migration> = {
 	'0001_initial': initial,
 	'0002_response_token': responseToken,
 	'0003_ics_sequence': icsSequence,
-	'0004_drop_response_token': dropResponseToken
+	'0004_drop_response_token': dropResponseToken,
+	'0005_notification_status_columns': notificationStatusColumns
 };

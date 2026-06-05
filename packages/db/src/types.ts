@@ -2,6 +2,16 @@ import type { ColumnType, Insertable, Selectable, Updateable } from 'kysely';
 
 export type AppointmentStatus = 'pending' | 'confirmed' | 'declined' | 'cancelled';
 
+export type NotificationOutcome = 'ok' | 'failed';
+export type NotificationChannel = 'email' | 'calendar_push';
+
+// Insert-optional: callers may omit it (defaults to SQL NULL = not attempted).
+type NotificationColumn = ColumnType<
+	NotificationOutcome | null,
+	NotificationOutcome | null | undefined,
+	NotificationOutcome | null
+>;
+
 export interface AppointmentsTable {
 	id: string;
 	event_type_id: string;
@@ -15,7 +25,8 @@ export interface AppointmentsTable {
 	cancel_token: string;
 	external_event_id: string | null;
 	external_calendar_id: string | null;
-	notification_status: string | null;
+	email_notification_status: NotificationColumn;
+	calendar_push_notification_status: NotificationColumn;
 	ics_sequence: ColumnType<number, number | undefined, number>;
 	created_at: ColumnType<string, string | undefined, string>;
 	updated_at: ColumnType<string, string | undefined, string>;

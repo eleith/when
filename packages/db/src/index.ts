@@ -12,12 +12,12 @@ export type {
 	AppointmentStatus,
 	Appointment,
 	NewAppointment,
-	AppointmentUpdate
+	AppointmentUpdate,
+	NotificationOutcome,
+	NotificationChannel
 } from './types.js';
 export { runMigrations } from './migrate.js';
 export { migrations } from './migrations.js';
-export { parseNotificationStatus } from './notification-status.js';
-export type { NotificationStatus, NotificationOutcome } from './notification-status.js';
 
 export function openDb(path: string): Kysely<Database> {
 	if (path !== ':memory:') {
