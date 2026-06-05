@@ -2,7 +2,7 @@ import type { ColumnType, Insertable, Selectable, Updateable } from 'kysely';
 
 export type AppointmentStatus = 'pending' | 'confirmed' | 'declined' | 'cancelled';
 
-export type NotificationOutcome = 'ok' | 'failed';
+export type NotificationOutcome = 'queued' | 'ok' | 'failed';
 export type NotificationChannel = 'email' | 'calendar_push';
 
 // Insert-optional: callers may omit it (defaults to SQL NULL = not attempted).
