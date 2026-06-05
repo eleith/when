@@ -3,9 +3,14 @@
 Single-user appointment scheduling. Booking page, admin UI, CalDAV
 integration, configurable via a YAML file.
 
+"When" runs as two services: the **web** app and a background **worker** that
+sends booking emails off the request path. They share one `config.yaml` and
+data dir (the worker drains the job queue web writes to). The bundled
+`apps/web/docker-compose.yml` runs both.
+
 ## Quick start (Docker)
 
-1. Copy `config.example.yaml` to `config.yaml` and fill it in.
+1. Copy `apps/web/config.example.yaml` to `apps/web/config.yaml` and fill it in.
 2. Generate a password hash for the admin login (skip if using OIDC):
 
    ```sh
@@ -30,14 +35,14 @@ integration, configurable via a YAML file.
 
    Save it as `AUTH_SECRET`.
 
-5. Bring up the container:
+5. Bring up the services (web + worker):
 
    ```sh
-   docker compose up -d
+   docker compose -f apps/web/docker-compose.yml up -d
    ```
 
    The booking page is at `http://localhost:3000/`, the admin UI at
-   `/admin`.
+   `/admin`. The worker delivers booking emails in the background.
 
 The container runs migrations on boot. SQLite lives at
 `/app/data/when.db` inside the container; mount that path to a volume
@@ -53,7 +58,7 @@ mounts `./data`).
 | `ADMIN_PASSWORD_HASH`   | credentials auth | argon2id hash of the admin password. Generate with `pnpm hash-password`.                                                          |
 | `OIDC_CLIENT_SECRET`    | oidc auth       | OIDC provider client secret (any name works; whatever the yaml's `${...}` interpolation references).                                 |
 | `CALDAV_PASSWORD`       | caldav calendar | CalDAV password / app password.                                                                                                      |
-| `SMTP_USER` / `SMTP_PASS` | requires_confirmation events | SMTP credentials.                                                                                                                    |
+| `SMTP_USER` / `SMTP_PASS` | booking emails  | SMTP credentials. The worker sends all booking emails; without SMTP configured, none are sent.                                       |
 
 Any string value in `config.yaml` may reference `${ENV_VAR}` and the
 substitution happens before schema validation, so secrets stay in the
@@ -89,6 +94,15 @@ Run inside the container or with `pnpm` in a checkout:
 pnpm install
 pnpm dev
 ```
+
+`pnpm dev` runs only the web app. To also deliver booking emails locally, run
+the worker against the same config in a second terminal:
+
+```sh
+CONFIG_PATH=apps/web/config.yaml pnpm --filter @when/worker dev
+```
+
+See [`apps/worker/README.md`](apps/worker/README.md) for details.
 
 Or with hot-reload in Docker:
 
