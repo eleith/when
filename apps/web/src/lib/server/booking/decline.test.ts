@@ -32,7 +32,10 @@ async function fetchRow(db: Awaited<ReturnType<typeof makeDb>>, id: string) {
 }
 
 describe('declineAppointment', () => {
-	beforeEach(() => vi.mocked(enqueueBookingEmail).mockReset());
+	beforeEach(() => {
+		vi.mocked(enqueueBookingEmail).mockReset();
+		vi.mocked(enqueueBookingEmail).mockImplementation(async (_db, input) => input.appointment);
+	});
 
 	test('happy path: pending → declined', async () => {
 		const db = await makeDb();
@@ -53,8 +56,8 @@ describe('declineAppointment', () => {
 				expect(result.appointment.status).toBe('declined');
 				const persisted = await fetchRow(db, 'd1');
 				expect(persisted.status).toBe('declined');
-				expect(persisted.email_notification_status).toBe('queued');
 				expect(enqueueBookingEmail).toHaveBeenCalledWith(
+					expect.anything(),
 					expect.objectContaining({ kind: 'declined' })
 				);
 			}

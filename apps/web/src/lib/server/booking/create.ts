@@ -89,18 +89,22 @@ export async function createAppointment(
 		}
 	}
 
-	const notify = {
-		email_notification_status: 'queued' as const,
-		calendar_push_notification_status: calendarPush
-	};
 	await db
 		.updateTable('appointments')
-		.set({ ...(externalUpdate ?? {}), ...notify, updated_at: clock.now().toISOString() })
+		.set({
+			...(externalUpdate ?? {}),
+			calendar_push_notification_status: calendarPush,
+			updated_at: clock.now().toISOString()
+		})
 		.where('id', '=', id)
 		.execute();
-	appointment = { ...appointment, ...(externalUpdate ?? {}), ...notify };
+	appointment = {
+		...appointment,
+		...(externalUpdate ?? {}),
+		calendar_push_notification_status: calendarPush
+	};
 
-	await enqueueBookingEmail({ kind, appointment, eventType, links });
+	appointment = await enqueueBookingEmail(db, { kind, appointment, eventType, links });
 
 	return { ok: true, appointment };
 }

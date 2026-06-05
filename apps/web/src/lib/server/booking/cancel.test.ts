@@ -39,7 +39,10 @@ async function fetchRow(db: Awaited<ReturnType<typeof makeDb>>, id: string) {
 }
 
 describe('cancelAppointment', () => {
-	beforeEach(() => vi.mocked(enqueueBookingEmail).mockReset());
+	beforeEach(() => {
+		vi.mocked(enqueueBookingEmail).mockReset();
+		vi.mocked(enqueueBookingEmail).mockImplementation(async (_db, input) => input.appointment);
+	});
 
 	test('happy path: confirmed booking transitions to cancelled, ics_sequence bumps', async () => {
 		const db = await makeDb();
@@ -61,8 +64,8 @@ describe('cancelAppointment', () => {
 			const persisted = await fetchRow(db, 'a1');
 			expect(persisted.status).toBe('cancelled');
 			expect(persisted.ics_sequence).toBe(1);
-			expect(persisted.email_notification_status).toBe('queued');
 			expect(enqueueBookingEmail).toHaveBeenCalledWith(
+				expect.anything(),
 				expect.objectContaining({ kind: 'cancelled-by-attendee' })
 			);
 		} finally {

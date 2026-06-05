@@ -34,7 +34,10 @@ const input = {
 };
 
 describe('createAppointment', () => {
-	beforeEach(() => vi.mocked(enqueueBookingEmail).mockReset());
+	beforeEach(() => {
+		vi.mocked(enqueueBookingEmail).mockReset();
+		vi.mocked(enqueueBookingEmail).mockImplementation(async (_db, input) => input.appointment);
+	});
 
 	test('auto flow inserts a confirmed booking; calendar_push tracked when push fails', async () => {
 		const db = await makeDb();
@@ -54,9 +57,8 @@ describe('createAppointment', () => {
 					.executeTakeFirstOrThrow();
 				expect(persisted.status).toBe('confirmed');
 				expect(persisted.calendar_push_notification_status).toBe('failed');
-				expect(persisted.email_notification_status).toBe('queued');
 				expect(enqueueBookingEmail).toHaveBeenCalledTimes(1);
-				expect(vi.mocked(enqueueBookingEmail).mock.calls[0][0]).toMatchObject({
+				expect(vi.mocked(enqueueBookingEmail).mock.calls[0][1]).toMatchObject({
 					kind: 'confirmed'
 				});
 			}
@@ -81,8 +83,8 @@ describe('createAppointment', () => {
 			expect(result.ok).toBe(true);
 			if (result.ok) {
 				expect(result.appointment.status).toBe('pending');
-				expect(result.appointment.email_notification_status).toBe('queued');
 				expect(enqueueBookingEmail).toHaveBeenCalledWith(
+					expect.anything(),
 					expect.objectContaining({ kind: 'pending' })
 				);
 			}

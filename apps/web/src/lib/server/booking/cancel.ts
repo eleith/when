@@ -66,21 +66,24 @@ export async function cancelAppointment(
 		calendarPush = deleted.ok ? 'ok' : 'failed';
 	}
 
-	const notify = {
-		email_notification_status: 'queued' as const,
-		calendar_push_notification_status: calendarPush
-	};
-
 	await deps.db
 		.updateTable('appointments')
-		.set({ ...notify, updated_at: deps.clock.now().toISOString() })
+		.set({
+			calendar_push_notification_status: calendarPush,
+			updated_at: deps.clock.now().toISOString()
+		})
 		.where('id', '=', cancelled.id)
 		.execute();
 
-	const appointment = { ...cancelled, ...notify };
 	const kind = input.initiator === 'organizer' ? 'cancelled-by-organizer' : 'cancelled-by-attendee';
-	const links = bookingLinks({ baseUrl: input.baseUrl, appointment, eventType });
-	await enqueueBookingEmail({ kind, appointment, eventType, links });
+	const updated = { ...cancelled, calendar_push_notification_status: calendarPush };
+	const links = bookingLinks({ baseUrl: input.baseUrl, appointment: updated, eventType });
+	const appointment = await enqueueBookingEmail(deps.db, {
+		kind,
+		appointment: updated,
+		eventType,
+		links
+	});
 
 	return { ok: true, appointment };
 }

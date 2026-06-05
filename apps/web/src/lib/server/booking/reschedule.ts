@@ -103,21 +103,23 @@ export async function rescheduleAppointment(
 		calendarPush = pushed.ok ? 'ok' : 'failed';
 	}
 
-	const notify = {
-		email_notification_status: 'queued' as const,
-		calendar_push_notification_status: calendarPush
-	};
-
 	await deps.db
 		.updateTable('appointments')
-		.set({ ...notify, updated_at: deps.clock.now().toISOString() })
+		.set({
+			calendar_push_notification_status: calendarPush,
+			updated_at: deps.clock.now().toISOString()
+		})
 		.where('id', '=', updated.id)
 		.execute();
 
-	const appointment = { ...updated, ...notify };
 	const kind =
 		input.initiator === 'organizer' ? 'rescheduled-by-organizer' : 'rescheduled-by-attendee';
-	await enqueueBookingEmail({ kind, appointment, eventType, links });
+	const appointment = await enqueueBookingEmail(deps.db, {
+		kind,
+		appointment: { ...updated, calendar_push_notification_status: calendarPush },
+		eventType,
+		links
+	});
 
 	return { ok: true, appointment };
 }

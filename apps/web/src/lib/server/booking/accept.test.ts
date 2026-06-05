@@ -42,7 +42,10 @@ const cfgPushFails = {
 };
 
 describe('acceptAppointment', () => {
-	beforeEach(() => vi.mocked(enqueueBookingEmail).mockReset());
+	beforeEach(() => {
+		vi.mocked(enqueueBookingEmail).mockReset();
+		vi.mocked(enqueueBookingEmail).mockImplementation(async (_db, input) => input.appointment);
+	});
 
 	test('happy path: pending → confirmed; calendar_push tracked when push fails', async () => {
 		const db = await makeDb();
@@ -64,8 +67,8 @@ describe('acceptAppointment', () => {
 				const persisted = await fetchRow(db, 'a1');
 				expect(persisted.status).toBe('confirmed');
 				expect(persisted.calendar_push_notification_status).toBe('failed');
-				expect(persisted.email_notification_status).toBe('queued');
 				expect(enqueueBookingEmail).toHaveBeenCalledWith(
+					expect.anything(),
 					expect.objectContaining({ kind: 'confirmed' })
 				);
 			}

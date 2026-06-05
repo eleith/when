@@ -209,7 +209,10 @@ async function fetchRow(db: Awaited<ReturnType<typeof makeDb>>, id: string) {
 }
 
 describe('rescheduleAppointment', () => {
-	beforeEach(() => vi.mocked(enqueueBookingEmail).mockReset());
+	beforeEach(() => {
+		vi.mocked(enqueueBookingEmail).mockReset();
+		vi.mocked(enqueueBookingEmail).mockImplementation(async (_db, input) => input.appointment);
+	});
 
 	test('happy path: confirmed booking moves time, ics_sequence bumps, status preserved', async () => {
 		const db = await makeDb();
@@ -237,8 +240,8 @@ describe('rescheduleAppointment', () => {
 				expect(result.appointment.end_time).toBe('2099-01-02T10:30:00Z');
 				expect(result.appointment.status).toBe('confirmed');
 				expect(result.appointment.ics_sequence).toBe(1);
-				expect(result.appointment.email_notification_status).toBe('queued');
 				expect(enqueueBookingEmail).toHaveBeenCalledWith(
+					expect.anything(),
 					expect.objectContaining({ kind: 'rescheduled-by-attendee' })
 				);
 			}

@@ -50,20 +50,13 @@ export async function declineAppointment(
 	const row = transition.row;
 
 	// Decline never has a calendar effect — pending bookings aren't pushed.
-	const notify = {
-		email_notification_status: 'queued' as const,
-		calendar_push_notification_status: null
-	};
-
-	await deps.db
-		.updateTable('appointments')
-		.set({ ...notify, updated_at: deps.clock.now().toISOString() })
-		.where('id', '=', row.id)
-		.execute();
-
-	const appointment = { ...row, ...notify };
-	const links = bookingLinks({ baseUrl: input.baseUrl, appointment, eventType });
-	await enqueueBookingEmail({ kind: 'declined', appointment, eventType, links });
+	const links = bookingLinks({ baseUrl: input.baseUrl, appointment: row, eventType });
+	const appointment = await enqueueBookingEmail(deps.db, {
+		kind: 'declined',
+		appointment: row,
+		eventType,
+		links
+	});
 
 	return { ok: true, appointment };
 }
