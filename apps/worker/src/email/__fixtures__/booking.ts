@@ -16,7 +16,8 @@ export const sampleAppointment: Appointment = {
 	cancel_token: 'tok-1',
 	external_event_id: null,
 	external_calendar_id: null,
-	notification_status: null,
+	email_notification_status: null,
+	calendar_push_notification_status: null,
 	ics_sequence: 0,
 	created_at: '2026-01-01T09:00:00Z',
 	updated_at: '2026-01-01T09:00:00Z'

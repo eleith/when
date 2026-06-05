@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { openDb, parseNotificationStatus, runMigrations } from '@when/db';
+import { openDb, runMigrations } from '@when/db';
 import type { Database } from '@when/db';
 import type { Kysely } from 'kysely';
 import type { SendBookingEmailInput } from '@when/jobs';
@@ -45,7 +45,6 @@ async function seedDb(): Promise<Kysely<Database>> {
 			location: null,
 			external_event_id: null,
 			external_calendar_id: null,
-			notification_status: null,
 			status: 'confirmed',
 			cancel_token: 'tok-1'
 		})
@@ -56,10 +55,10 @@ async function seedDb(): Promise<Kysely<Database>> {
 async function readEmailStatus(db: Kysely<Database>) {
 	const row = await db
 		.selectFrom('appointments')
-		.select('notification_status')
+		.select('email_notification_status')
 		.where('id', '=', 'appt-1')
 		.executeTakeFirstOrThrow();
-	return parseNotificationStatus(row.notification_status).email;
+	return row.email_notification_status;
 }
 
 describe('runSendBookingEmail', () => {

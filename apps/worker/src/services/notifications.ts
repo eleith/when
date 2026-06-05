@@ -1,23 +1,21 @@
-import { sql, type Kysely } from 'kysely';
-import type { Database, NotificationOutcome, NotificationStatus } from '@when/db';
+import { type Kysely } from 'kysely';
+import type {
+	AppointmentUpdate,
+	Database,
+	NotificationChannel,
+	NotificationOutcome
+} from '@when/db';
 
-/**
- * Record one notification outcome on an appointment, merging into
- * `notification_status` via an atomic `json_set` (sibling keys stay intact).
- * App-local, like web's `recordNotificationFailure` — the worker owns its
- * queries; `@when/db` stays schema + types.
- */
 export async function setNotificationStatus(
 	db: Kysely<Database>,
 	id: string,
-	key: keyof NotificationStatus,
+	channel: NotificationChannel,
 	outcome: NotificationOutcome
 ): Promise<void> {
-	await db
-		.updateTable('appointments')
-		.set({
-			notification_status: sql`json_set(coalesce(notification_status, '{}'), ${'$.' + key}, ${outcome})`
-		})
-		.where('id', '=', id)
-		.execute();
+	const patch: AppointmentUpdate =
+		channel === 'email'
+			? { email_notification_status: outcome }
+			: { calendar_push_notification_status: outcome };
+
+	await db.updateTable('appointments').set(patch).where('id', '=', id).execute();
 }
