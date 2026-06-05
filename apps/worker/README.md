@@ -5,9 +5,12 @@ web app (and, later, jobs it schedules itself). Built on
 [openworkflow](https://openworkflow.dev) over `node:sqlite`, so it shares the
 `when.sqlite` app DB and owns the `queue.sqlite` job DB.
 
-The first job is sending booking emails (added in a later step). For now the
-worker boots — loads config, migrates the app DB, connects the queue, starts an
-(empty) worker, and serves `/health` — then idles.
+Its job is sending booking emails: web enqueues a `send-booking-email` run when a
+booking is created, confirmed, cancelled, rescheduled, or declined, and the
+worker renders the email(s), sends them over SMTP, and records the per-channel
+outcome on the appointment (`email_notification_status`). On boot it loads
+config, migrates the app DB, connects the queue, registers its workflows, starts
+polling, and serves `/health`.
 
 ## Run it
 
@@ -51,3 +54,13 @@ Relative paths resolve against the config file's directory, so web and worker
 - `pnpm build` — `tsc -p tsconfig.build.json` → `dist/`.
 - `pnpm start` — `node dist/src/index.js`.
 - `pnpm check` / `pnpm lint` / `pnpm test` / `pnpm test:coverage`.
+
+## Recurring jobs (future)
+
+openworkflow has no native cron yet. When the worker needs periodic work — e.g. a
+calendar refresh — schedule it itself: a `setInterval` that calls
+`getOpenWorkflow().runWorkflow(spec, input, { idempotencyKey })` with a
+time-bucketed key (e.g. `calendar-refresh:2026-06-05T12`), so a given bucket runs
+at most once even if the interval double-fires or the process restarts (the same
+pattern luzzle uses for its purge job). Swap to native cron once openworkflow
+ships it.
