@@ -1,8 +1,11 @@
-import { describe, expect, test } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { cancelAppointment } from './cancel';
 import { systemClock } from '$lib/server/clock';
 import { openDb, runMigrations } from '@when/db';
 import { validConfig } from '$lib/server/__fixtures__/valid-config';
+
+vi.mock('../workflow', () => ({ enqueueBookingEmail: vi.fn() }));
+import { enqueueBookingEmail } from '../workflow';
 
 const baseRow = {
 	event_type_id: '30-min-chat',
@@ -36,6 +39,8 @@ async function fetchRow(db: Awaited<ReturnType<typeof makeDb>>, id: string) {
 }
 
 describe('cancelAppointment', () => {
+	beforeEach(() => vi.mocked(enqueueBookingEmail).mockReset());
+
 	test('happy path: confirmed booking transitions to cancelled, ics_sequence bumps', async () => {
 		const db = await makeDb();
 		try {
@@ -56,6 +61,10 @@ describe('cancelAppointment', () => {
 			const persisted = await fetchRow(db, 'a1');
 			expect(persisted.status).toBe('cancelled');
 			expect(persisted.ics_sequence).toBe(1);
+			expect(persisted.email_notification_status).toBe('queued');
+			expect(enqueueBookingEmail).toHaveBeenCalledWith(
+				expect.objectContaining({ kind: 'cancelled-by-attendee' })
+			);
 		} finally {
 			await db.destroy();
 		}

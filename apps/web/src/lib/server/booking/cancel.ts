@@ -1,13 +1,12 @@
 import type { Kysely } from 'kysely';
 import { resolveBookingActions, type Viewer } from './actions';
+import { bookingLinks } from './links';
+import { enqueueBookingEmail } from '../workflow';
 import { transitionStatus } from './status';
 import { deleteAppointmentFromCalendar } from '../calendar/push';
 import type { Clock } from '../clock';
 import type { WhenConfiguration } from '@when/config';
 import type { Appointment, Database, NotificationOutcome } from '@when/db';
-import { bookingCancelledByAttendee } from '../emails/booking-cancelled-by-attendee';
-import { bookingCancelledByOrganizer } from '../emails/booking-cancelled-by-organizer';
-import { sendEmails } from '../email/send';
 
 export interface CancelAppointmentDeps {
 	db: Kysely<Database>;
@@ -67,14 +66,8 @@ export async function cancelAppointment(
 		calendarPush = deleted.ok ? 'ok' : 'failed';
 	}
 
-	const builder =
-		input.initiator === 'organizer' ? bookingCancelledByOrganizer : bookingCancelledByAttendee;
-	const emailed = await sendEmails(
-		deps.cfg,
-		builder({ cfg: deps.cfg, appointment: cancelled, eventType, baseUrl: input.baseUrl })
-	);
 	const notify = {
-		email_notification_status: (emailed.ok ? 'ok' : 'failed') as NotificationOutcome,
+		email_notification_status: 'queued' as const,
 		calendar_push_notification_status: calendarPush
 	};
 
@@ -84,5 +77,10 @@ export async function cancelAppointment(
 		.where('id', '=', cancelled.id)
 		.execute();
 
-	return { ok: true, appointment: { ...cancelled, ...notify } };
+	const appointment = { ...cancelled, ...notify };
+	const kind = input.initiator === 'organizer' ? 'cancelled-by-organizer' : 'cancelled-by-attendee';
+	const links = bookingLinks({ baseUrl: input.baseUrl, appointment, eventType });
+	await enqueueBookingEmail({ kind, appointment, eventType, links });
+
+	return { ok: true, appointment };
 }
