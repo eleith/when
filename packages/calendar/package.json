@@ -1,0 +1,41 @@
+{
+	"name": "@when/calendar",
+	"version": "0.0.1",
+	"private": true,
+	"type": "module",
+	"exports": {
+		".": {
+			"types": "./dist/src/index.d.ts",
+			"import": "./dist/src/index.js"
+		}
+	},
+	"files": [
+		"dist/*",
+		"package.json"
+	],
+	"scripts": {
+		"build": "tsc -p tsconfig.json && tsc -p tsconfig.build.json",
+		"lint": "prettier --check . && eslint .",
+		"test": "vitest run",
+		"test:coverage": "vitest run --coverage"
+	},
+	"dependencies": {
+		"@js-temporal/polyfill": "0.5.1",
+		"@when/config": "workspace:*",
+		"@when/db": "workspace:*",
+		"ts-ics": "2.4.4"
+	},
+	"devDependencies": {
+		"@eslint/js": "catalog:",
+		"@types/node": "catalog:",
+		"@vitest/coverage-v8": "catalog:",
+		"eslint": "catalog:",
+		"eslint-config-prettier": "catalog:",
+		"globals": "catalog:",
+		"prettier": "catalog:",
+		"typescript": "catalog:",
+		"typescript-eslint": "catalog:",
+		"vite": "catalog:",
+		"vitest": "catalog:"
+	}
+}
