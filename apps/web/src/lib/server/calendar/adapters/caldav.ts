@@ -6,7 +6,7 @@ import type { CalendarAdapter, PushOptions, PushResult, DeleteResult } from '../
 import type { WhenConfiguration, CalDavCalendar } from '@when/config';
 import type { Appointment } from '@when/db';
 import type { ExpandWindow } from '../expand';
-import { buildIcs } from '../../ics';
+import { buildIcs } from '@when/calendar';
 
 export interface CalDavConfig {
 	url: string;

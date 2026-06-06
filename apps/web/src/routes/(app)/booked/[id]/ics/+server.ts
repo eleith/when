@@ -1,7 +1,7 @@
 import { error } from '@sveltejs/kit';
 import { requireViewableAppointment } from '$lib/server/booking/access';
 import { systemClock } from '$lib/server/clock';
-import { buildIcs } from '$lib/server/ics';
+import { buildIcs } from '@when/calendar';
 import { getConfig, getDb } from '$lib/server/state';
 import type { RequestHandler } from './$types';
 

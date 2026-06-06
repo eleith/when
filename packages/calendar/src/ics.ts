@@ -1,5 +1,5 @@
 import { generateIcsCalendar, type IcsCalendar, type IcsEvent } from 'ts-ics';
-import { systemClock, type Clock } from './clock';
+import { systemClock, type Clock } from './clock.js';
 import type { Appointment, AppointmentStatus } from '@when/db';
 
 export type IcsMethod = 'REQUEST' | 'CANCEL';

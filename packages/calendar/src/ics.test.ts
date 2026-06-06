@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { buildIcs } from './ics';
+import { buildIcs } from './ics.js';
 import type { Appointment } from '@when/db';
 
 const baseAppointment: Appointment = {
