@@ -1,7 +1,8 @@
 import { expect, test } from 'vitest';
-import { sql } from 'kysely';
+import { Migrator, sql } from 'kysely';
 import { openDb } from './index.js';
 import { runMigrations } from './migrate.js';
+import { migrations } from './migrations/index.js';
 
 test('runMigrations creates appointments and oauth_tokens', async () => {
 	const db = openDb(':memory:');
@@ -127,6 +128,82 @@ test('calendar_sync_status.health defaults to unknown', async () => {
 			.where('calendar_id', '=', 'work')
 			.executeTakeFirstOrThrow();
 		expect(row.health).toBe('unknown');
+	} finally {
+		await db.destroy();
+	}
+});
+
+test('0007 adds the appointment calendar columns', async () => {
+	const db = openDb(':memory:');
+	try {
+		await runMigrations(db);
+		const cols = await sql<{ name: string }>`PRAGMA table_info(appointments)`.execute(db);
+		const colNames = cols.rows.map((r) => r.name);
+		expect(colNames).toContain('calendar_revision');
+		expect(colNames).toContain('calendar_synced_revision');
+		expect(colNames).toContain('has_possible_conflict');
+		expect(colNames).toContain('calendar_push_failing_since');
+	} finally {
+		await db.destroy();
+	}
+});
+
+test('0007 backfills synced_revision only for already-published rows', async () => {
+	const db = openDb(':memory:');
+	try {
+		const migrator = new Migrator({
+			db,
+			provider: { getMigrations: async () => migrations }
+		});
+		// Migrate up to just before the new columns, then seed two rows.
+		const before = await migrator.migrateTo('0006_calendar_mirror_tables');
+		expect(before.error).toBeUndefined();
+
+		const base = {
+			event_type_id: 'chat',
+			start_time: '2026-05-01T10:00:00Z',
+			end_time: '2026-05-01T10:30:00Z',
+			attendee_name: 'A',
+			attendee_email: 'a@example.com',
+			attendee_notes: null,
+			location: null,
+			status: 'confirmed' as const
+		};
+		await db
+			.insertInto('appointments')
+			.values({
+				...base,
+				id: 'pub',
+				cancel_token: 't1',
+				external_event_id: 'ext-1',
+				external_calendar_id: 'work'
+			})
+			.execute();
+		await db
+			.insertInto('appointments')
+			.values({
+				...base,
+				id: 'unpub',
+				start_time: '2026-05-01T11:00:00Z',
+				end_time: '2026-05-01T11:30:00Z',
+				cancel_token: 't2',
+				external_event_id: null,
+				external_calendar_id: null
+			})
+			.execute();
+
+		const after = await migrator.migrateTo('0007_appointment_calendar_columns');
+		expect(after.error).toBeUndefined();
+
+		const rows = await db
+			.selectFrom('appointments')
+			.select(['id', 'calendar_revision', 'calendar_synced_revision'])
+			.execute();
+		const pub = rows.find((r) => r.id === 'pub')!;
+		const unpub = rows.find((r) => r.id === 'unpub')!;
+		// Published row is marked in sync (synced === revision); never-published stays NULL.
+		expect(pub.calendar_synced_revision).toBe(pub.calendar_revision);
+		expect(unpub.calendar_synced_revision).toBeNull();
 	} finally {
 		await db.destroy();
 	}

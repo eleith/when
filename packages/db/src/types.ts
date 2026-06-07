@@ -4,13 +4,11 @@ export type AppointmentStatus = 'pending' | 'confirmed' | 'declined' | 'cancelle
 
 export type CalendarHealth = 'good' | 'bad' | 'unknown';
 
-// Insert-optional nullable text: callers may omit it (defaults to SQL NULL).
 type NullableText = ColumnType<string | null, string | null | undefined, string | null>;
 
 export type NotificationOutcome = 'queued' | 'ok' | 'failed';
 export type NotificationChannel = 'email' | 'calendar_push';
 
-// Insert-optional: callers may omit it (defaults to SQL NULL = not attempted).
 type NotificationColumn = ColumnType<
 	NotificationOutcome | null,
 	NotificationOutcome | null | undefined,
@@ -32,6 +30,10 @@ export interface AppointmentsTable {
 	external_calendar_id: string | null;
 	email_notification_status: NotificationColumn;
 	calendar_push_notification_status: NotificationColumn;
+	calendar_revision: ColumnType<number, number | undefined, number>;
+	calendar_synced_revision: ColumnType<number | null, number | null | undefined, number | null>;
+	has_possible_conflict: ColumnType<number, number | undefined, number>;
+	calendar_push_failing_since: NullableText;
 	ics_sequence: ColumnType<number, number | undefined, number>;
 	created_at: ColumnType<string, string | undefined, string>;
 	updated_at: ColumnType<string, string | undefined, string>;
@@ -45,8 +47,6 @@ export interface OauthTokensTable {
 	updated_at: ColumnType<string, string | undefined, string>;
 }
 
-// Pre-expanded busy intervals mirrored from an external calendar — the local
-// read model web queries instead of calling a provider.
 export interface ExternalCalendarBusyTable {
 	id: Generated<number>;
 	calendar_id: string;
@@ -54,8 +54,6 @@ export interface ExternalCalendarBusyTable {
 	end_time: string;
 }
 
-// One row per calendar the worker communicates with: refresh timing and the
-// persisted health used for edge-triggered alerts.
 export interface CalendarSyncStatusTable {
 	calendar_id: string;
 	last_refresh_at: NullableText;

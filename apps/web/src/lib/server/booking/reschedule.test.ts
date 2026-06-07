@@ -24,6 +24,10 @@ const existing: Appointment = {
 	external_calendar_id: null,
 	email_notification_status: null,
 	calendar_push_notification_status: null,
+	calendar_revision: 0,
+	calendar_synced_revision: null,
+	has_possible_conflict: 0,
+	calendar_push_failing_since: null,
 	ics_sequence: 0,
 	created_at: '',
 	updated_at: ''
