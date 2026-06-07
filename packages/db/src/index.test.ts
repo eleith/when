@@ -8,3 +8,10 @@ test('openDb returns a Kysely instance backed by node:sqlite', async () => {
 	expect(result.rows[0]?.v).toBe(1);
 	await db.destroy();
 });
+
+test('openDb sets a busy_timeout so concurrent writers wait', async () => {
+	const db = openDb(':memory:');
+	const result = await sql<{ timeout: number }>`PRAGMA busy_timeout`.execute(db);
+	expect(result.rows[0]?.timeout).toBe(5000);
+	await db.destroy();
+});
