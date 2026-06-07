@@ -9,10 +9,18 @@ export type { Database } from './types.js';
 export type {
 	AppointmentsTable,
 	OauthTokensTable,
+	ExternalCalendarBusyTable,
+	CalendarSyncStatusTable,
 	AppointmentStatus,
+	CalendarHealth,
 	Appointment,
 	NewAppointment,
 	AppointmentUpdate,
+	ExternalCalendarBusy,
+	NewExternalCalendarBusy,
+	CalendarSyncStatus,
+	NewCalendarSyncStatus,
+	CalendarSyncStatusUpdate,
 	NotificationOutcome,
 	NotificationChannel
 } from './types.js';

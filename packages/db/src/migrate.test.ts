@@ -13,7 +13,12 @@ test('runMigrations creates appointments and oauth_tokens', async () => {
 			SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'kysely_%'
 		`.execute(db);
 		const tableNames = tables.rows.map((r) => r.name).sort();
-		expect(tableNames).toEqual(['appointments', 'oauth_tokens']);
+		expect(tableNames).toEqual([
+			'appointments',
+			'calendar_sync_status',
+			'external_calendar_busy',
+			'oauth_tokens'
+		]);
 
 		const indexes = await sql<{ name: string }>`
 			SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='appointments'
@@ -82,6 +87,46 @@ test('notification_status is split into typed per-channel columns', async () => 
 		expect(colNames).toContain('email_notification_status');
 		expect(colNames).toContain('calendar_push_notification_status');
 		expect(colNames).not.toContain('notification_status');
+	} finally {
+		await db.destroy();
+	}
+});
+
+test('calendar mirror tables and busy range index exist', async () => {
+	const db = openDb(':memory:');
+	try {
+		await runMigrations(db);
+
+		const busyCols = await sql<{ name: string }>`PRAGMA table_info(external_calendar_busy)`.execute(
+			db
+		);
+		expect(busyCols.rows.map((r) => r.name).sort()).toEqual([
+			'calendar_id',
+			'end_time',
+			'id',
+			'start_time'
+		]);
+
+		const indexes = await sql<{ name: string }>`
+			SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='external_calendar_busy'
+		`.execute(db);
+		expect(indexes.rows.map((r) => r.name)).toContain('external_calendar_busy_range');
+	} finally {
+		await db.destroy();
+	}
+});
+
+test('calendar_sync_status.health defaults to unknown', async () => {
+	const db = openDb(':memory:');
+	try {
+		await runMigrations(db);
+		await db.insertInto('calendar_sync_status').values({ calendar_id: 'work' }).execute();
+		const row = await db
+			.selectFrom('calendar_sync_status')
+			.selectAll()
+			.where('calendar_id', '=', 'work')
+			.executeTakeFirstOrThrow();
+		expect(row.health).toBe('unknown');
 	} finally {
 		await db.destroy();
 	}
