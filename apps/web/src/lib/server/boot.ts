@@ -5,10 +5,12 @@ import { bootConfig } from './config/boot';
 import { loadEncryptionKey } from './crypto';
 import { openDb, runMigrations } from '@when/db';
 import { initOpenWorkflow } from '@when/jobs';
+import { setLogger } from '@when/calendar';
 import { logger } from './logger';
 import { env } from '$env/dynamic/private';
 
 export async function bootApp(): Promise<void> {
+	setLogger(logger);
 	requireAuthSecret();
 	const config = await bootConfig();
 	const rawKey = env.ENCRYPTION_KEY;
