@@ -17,7 +17,7 @@ export type {
 	NotificationChannel
 } from './types.js';
 export { runMigrations } from './migrate.js';
-export { migrations } from './migrations.js';
+export { migrations } from './migrations/index.js';
 
 export function openDb(path: string): Kysely<Database> {
 	if (path !== ':memory:') {
