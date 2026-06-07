@@ -1,9 +1,9 @@
 import type { Calendar, CalDavCalendar, GoogleCalendar, WhenConfiguration } from '@when/config';
 import type { Appointment } from '@when/db';
-import type { ExpandWindow } from './expand';
-import type { BusyEvent } from './types';
-import { CalDavAdapter } from './adapters/caldav';
-import { GoogleAdapter } from './adapters/google';
+import type { ExpandWindow } from './expand.js';
+import type { BusyEvent } from './types.js';
+import { CalDavAdapter } from './adapters/caldav.js';
+import { GoogleAdapter } from './adapters/google.js';
 
 export type FetchFn = (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
 

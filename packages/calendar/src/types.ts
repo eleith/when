@@ -16,3 +16,9 @@ export interface BusyEvent {
 	exdates?: Temporal.Instant[];
 	recurrenceId?: Temporal.Instant;
 }
+
+/** A UTC time interval (busy block or availability window). */
+export interface Interval {
+	start: Temporal.Instant;
+	end: Temporal.Instant;
+}

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, test } from 'vitest';
 import { Temporal } from '@js-temporal/polyfill';
-import type { FetchFn } from '$lib/server/calendar/adapters/caldav';
-import { clearConflictCache, conflictPullWindow, pullConflictBusy } from './conflicts';
+import type { FetchFn } from './adapters/caldav.js';
+import { clearConflictCache, conflictPullWindow, pullConflictBusy } from './conflicts.js';
 import type { Calendar } from '@when/config';
 
 const inst = (s: string): Temporal.Instant => Temporal.Instant.from(s);

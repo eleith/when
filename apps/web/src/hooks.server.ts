@@ -1,7 +1,10 @@
 import { sequence } from '@sveltejs/kit/hooks';
+import { setLogger } from '@when/calendar';
 import { getAuth } from '$lib/server/auth';
 import { bootApp } from '$lib/server/boot';
 import { logger } from '$lib/server/logger';
+
+setLogger(logger);
 
 try {
 	await bootApp();

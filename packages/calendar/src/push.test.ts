@@ -1,13 +1,9 @@
 import { expect, test } from 'vitest';
-import {
-	deleteCalDavEvent,
-	putCalDavEvent,
-	type FetchFn
-} from '$lib/server/calendar/adapters/caldav';
-import { deleteAppointmentFromCalendar, pushAppointment } from './push';
+import { deleteCalDavEvent, putCalDavEvent, type FetchFn } from './adapters/caldav.js';
+import { deleteAppointmentFromCalendar, pushAppointment } from './push.js';
 import type { Appointment } from '@when/db';
 import type { WhenConfiguration } from '@when/config';
-import { validConfig } from '$lib/server/__fixtures__/valid-config';
+import { validConfig } from './__fixtures__/valid-config.js';
 
 const caldavCfg = { url: 'https://cal.example.com/work/', username: 'jane', password: 'secret' };
 

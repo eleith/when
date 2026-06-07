@@ -1,7 +1,7 @@
 import { Temporal } from '@js-temporal/polyfill';
 import { convertIcsCalendar, getEventEnd, type IcsEvent } from 'ts-ics';
-import { logger } from '../logger';
-import type { BusyEvent } from './types';
+import { logger } from './logger.js';
+import type { BusyEvent } from './types.js';
 
 /**
  * Parse a VCALENDAR string into BusyEvents. Tolerates malformed input by

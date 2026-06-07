@@ -3,7 +3,7 @@ import { resolveBookingActions, type Viewer } from './actions';
 import { bookingLinks } from './links';
 import { enqueueBookingEmail } from '../workflow';
 import { transitionStatus } from './status';
-import { deleteAppointmentFromCalendar } from '../calendar/push';
+import { deleteAppointmentFromCalendar } from '@when/calendar';
 import type { Clock } from '../clock';
 import type { WhenConfiguration } from '@when/config';
 import type { Appointment, Database, NotificationOutcome } from '@when/db';

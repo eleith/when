@@ -1,6 +1,6 @@
 import { Temporal } from '@js-temporal/polyfill';
 import { extendByRecurrenceRule } from 'ts-ics';
-import type { BusyEvent } from './types';
+import type { BusyEvent } from './types.js';
 
 export interface BusyOccurrence {
 	uid: string;

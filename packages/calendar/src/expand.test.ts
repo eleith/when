@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest';
 import { Temporal } from '@js-temporal/polyfill';
-import { expandBusy, type ExpandWindow } from './expand';
-import type { BusyEvent } from '$lib/server/calendar/types';
+import { expandBusy, type ExpandWindow } from './expand.js';
+import type { BusyEvent } from './types.js';
 
 const inst = (s: string): Temporal.Instant => Temporal.Instant.from(s);
 

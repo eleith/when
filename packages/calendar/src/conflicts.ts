@@ -1,10 +1,10 @@
 import { Temporal } from '@js-temporal/polyfill';
 import type { Calendar } from '@when/config';
-import { logger } from '../logger';
-import type { Interval } from '../availability/types';
-import type { FetchFn } from './adapters/caldav';
-import { expandBusy, type ExpandWindow } from './expand';
-import { getCalendarAdapter } from './adapter';
+import { logger } from './logger.js';
+import type { Interval } from './types.js';
+import type { FetchFn } from './adapters/caldav.js';
+import { expandBusy, type ExpandWindow } from './expand.js';
+import { getCalendarAdapter } from './adapter.js';
 
 interface CacheEntry {
 	intervals: Interval[];

@@ -1,17 +1,44 @@
 import { Temporal } from '@js-temporal/polyfill';
-import { logger } from '../../logger';
-import type { BusyEvent } from '../types';
+import { logger } from '../logger.js';
+import type { BusyEvent } from '../types.js';
 import type { Appointment } from '@when/db';
-import type { FetchBusyOptions, FetchFn } from './caldav';
-import type { CalendarAdapter, PushOptions, PushResult, DeleteResult } from '../adapter';
+import type { FetchBusyOptions, FetchFn } from './caldav.js';
+import type { CalendarAdapter, PushOptions, PushResult, DeleteResult } from '../adapter.js';
 import type { WhenConfiguration, GoogleCalendar } from '@when/config';
-import type { ExpandWindow } from '../expand';
+import type { ExpandWindow } from '../expand.js';
 
 export interface GoogleConfig {
 	client_id: string;
 	client_secret: string;
 	refresh_token: string;
 	google_calendar_id: string;
+}
+
+interface GoogleTokenResponse {
+	access_token: string;
+	expires_in: number;
+}
+
+/** A Google event time: `dateTime` for timed events, `date` for all-day. */
+interface GoogleEventTime {
+	dateTime?: string;
+	date?: string;
+}
+
+interface GoogleEvent {
+	id: string;
+	status?: string;
+	transparency?: string;
+	start: GoogleEventTime;
+	end: GoogleEventTime;
+}
+
+interface GoogleEventsResponse {
+	items?: GoogleEvent[];
+}
+
+interface GoogleEventResult {
+	id: string;
 }
 
 const tokenCache = new Map<string, { token: string; expiresAt: number }>();
@@ -41,7 +68,7 @@ export async function getGoogleAccessToken(
 		throw new Error(`Google token refresh failed: ${res.status} ${res.statusText}`);
 	}
 
-	const data = await res.json();
+	const data = (await res.json()) as GoogleTokenResponse;
 	const token = data.access_token;
 	const expiresAt = Date.now() + (data.expires_in - 60) * 1000;
 	tokenCache.set(cacheKey, { token, expiresAt });
@@ -74,7 +101,7 @@ export async function fetchGoogleBusy(
 		throw new Error(`Google Calendar fetch failed: ${res.status} ${res.statusText}`);
 	}
 
-	const data = await res.json();
+	const data = (await res.json()) as GoogleEventsResponse;
 	const out: BusyEvent[] = [];
 
 	for (const item of data.items || []) {
@@ -87,7 +114,7 @@ export async function fetchGoogleBusy(
 		try {
 			if (item.start?.dateTime) {
 				startInst = Temporal.Instant.from(item.start.dateTime);
-				endInst = Temporal.Instant.from(item.end.dateTime);
+				endInst = Temporal.Instant.from(item.end.dateTime!);
 			} else if (item.start?.date) {
 				// All-day event
 				// Google dates are YYYY-MM-DD. We assume UTC for the comparison window
@@ -168,7 +195,7 @@ export async function putGoogleEvent(
 		throw new Error(`Google Calendar ${method} failed: ${res.status} ${text}`);
 	}
 
-	const data = await res.json();
+	const data = (await res.json()) as GoogleEventResult;
 	return { externalEventId: data.id };
 }
 

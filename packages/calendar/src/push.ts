@@ -1,13 +1,13 @@
 import type { WhenConfiguration } from '@when/config';
 import type { Appointment } from '@when/db';
-import { logger } from '../logger';
-import type { FetchFn } from './adapters/caldav';
+import { logger } from './logger.js';
+import type { FetchFn } from './adapters/caldav.js';
 import {
 	getCalendarAdapter,
 	type PushOptions,
 	type PushResult,
 	type DeleteResult
-} from './adapter';
+} from './adapter.js';
 
 export type { PushOptions, PushResult, DeleteResult };
 

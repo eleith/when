@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
 import { Temporal } from '@js-temporal/polyfill';
-import { buildReportBody, extractCalendarData, fetchCalDavBusy, type FetchFn } from './caldav';
+import { buildReportBody, extractCalendarData, fetchCalDavBusy, type FetchFn } from './caldav.js';
 
 const inst = (s: string): Temporal.Instant => Temporal.Instant.from(s);
 

@@ -4,7 +4,7 @@ import { isRescheduleAllowed, isViewable } from './access';
 import { bookingLinks } from './links';
 import { enqueueBookingEmail } from '../workflow';
 import { transitionStatus } from './status';
-import { pushAppointment } from '../calendar/push';
+import { pushAppointment } from '@when/calendar';
 import type { Clock } from '../clock';
 import type { EventType, WhenConfiguration } from '@when/config';
 import type { Appointment, Database, NotificationOutcome } from '@when/db';

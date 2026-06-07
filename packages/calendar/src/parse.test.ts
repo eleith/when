@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { parseBusyEvents } from './parse';
+import { parseBusyEvents } from './parse.js';
 
 const single = `BEGIN:VCALENDAR
 VERSION:2.0

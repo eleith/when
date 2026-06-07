@@ -5,7 +5,7 @@ import { mergeBlocks } from '$lib/server/availability/blocks';
 import { loadAppointmentBlocks } from '$lib/server/availability/db-blocks';
 import { resolveKnobsFor } from '$lib/server/availability/knobs';
 import { buildBaseWindows, candidateDates } from '$lib/server/availability/windows';
-import { conflictPullWindow, pullConflictBusy } from '$lib/server/calendar/conflicts';
+import { conflictPullWindow, pullConflictBusy } from '@when/calendar';
 import { systemClock } from '$lib/server/clock';
 import type { Location } from '@when/config';
 import { logger } from '$lib/server/logger';

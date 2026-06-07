@@ -1,12 +1,12 @@
 import type { Temporal } from '@js-temporal/polyfill';
-import { logger } from '../../logger';
-import { parseBusyEvents } from '../parse';
-import type { BusyEvent } from '../types';
-import type { CalendarAdapter, PushOptions, PushResult, DeleteResult } from '../adapter';
+import { logger } from '../logger.js';
+import { parseBusyEvents } from '../parse.js';
+import type { BusyEvent } from '../types.js';
+import type { CalendarAdapter, PushOptions, PushResult, DeleteResult } from '../adapter.js';
 import type { WhenConfiguration, CalDavCalendar } from '@when/config';
 import type { Appointment } from '@when/db';
-import type { ExpandWindow } from '../expand';
-import { buildIcs } from '@when/calendar';
+import type { ExpandWindow } from '../expand.js';
+import { buildIcs } from '../ics.js';
 
 export interface CalDavConfig {
 	url: string;
