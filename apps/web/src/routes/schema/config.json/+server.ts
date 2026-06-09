@@ -1,7 +1,7 @@
-import { schema } from '@when/config';
+import { externalSchema } from '@when/config';
 
 export function GET(): Response {
-	return new Response(JSON.stringify(schema, null, 2), {
+	return new Response(JSON.stringify(externalSchema, null, 2), {
 		status: 200,
 		headers: {
 			'content-type': 'application/json; charset=utf-8',

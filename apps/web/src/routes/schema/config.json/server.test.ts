@@ -10,3 +10,10 @@ test('GET /schema/config.json returns the canonical JSON Schema', async () => {
 	expect(body.title).toBe('When configuration');
 	expect(body.$defs?.Auth).toBeDefined();
 });
+
+test('serves the relaxed schema so editors do not flag defaulted fields', async () => {
+	const body = await (await GET()).json();
+	// `database` has a default, so it is not required of the user.
+	expect(body.required).not.toContain('database');
+	expect(body.$defs?.DatabaseConfig?.required).toBeUndefined();
+});

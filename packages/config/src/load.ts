@@ -4,11 +4,14 @@ import Ajv, { type ErrorObject } from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
 import { parse as parseYaml } from 'yaml';
 import schema from './config.schema.json' with { type: 'json' };
+import externalSchema from './config.external.schema.json' with { type: 'json' };
 import type { WhenConfiguration } from './schema.js';
 import { interpolate } from './interpolate.js';
 import { checkCrossRefs } from './cross-refs.js';
 
-export { schema };
+// `schema` validates (ajv fills defaults); `externalSchema` is the relaxed copy
+// editors point `$schema` at, so defaulted fields aren't flagged as missing.
+export { schema, externalSchema };
 
 const ajv = new Ajv({ allErrors: true, useDefaults: true, strict: false });
 addFormats(ajv);

@@ -1,3 +1,4 @@
 dist/
 coverage/
 src/schema.ts
+src/config.external.schema.json

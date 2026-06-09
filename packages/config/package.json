@@ -15,8 +15,9 @@
 	],
 	"scripts": {
 		"generate:types": "json2ts --input src/config.schema.json --output src/schema.ts --no-bannerComment",
-		"build:assets": "cp src/config.schema.json dist/src/config.schema.json",
-		"build": "pnpm generate:types && tsc -p tsconfig.json && tsc -p tsconfig.build.json && pnpm build:assets",
+		"generate:external-schema": "node scripts/generate-external-schema.js",
+		"build:assets": "cp src/config.schema.json src/config.external.schema.json dist/src/",
+		"build": "pnpm generate:types && pnpm generate:external-schema && tsc -p tsconfig.json && tsc -p tsconfig.build.json && pnpm build:assets",
 		"lint": "prettier --check . && eslint .",
 		"test": "vitest run",
 		"test:coverage": "vitest run --coverage"
