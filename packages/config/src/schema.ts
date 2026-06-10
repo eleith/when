@@ -93,7 +93,7 @@ export interface CalendarSync {
   /**
    * Minutes between the worker's busy-time refreshes for this calendar.
    */
-  refresh_interval_minutes?: number;
+  refresh_interval?: number;
 }
 export interface CalDavCalendar {
   id: string;

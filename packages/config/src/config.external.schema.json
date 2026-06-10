@@ -345,7 +345,7 @@
 			"type": "object",
 			"additionalProperties": false,
 			"properties": {
-				"refresh_interval_minutes": {
+				"refresh_interval": {
 					"type": "integer",
 					"description": "Minutes between the worker's busy-time refreshes for this calendar.",
 					"minimum": 1,
