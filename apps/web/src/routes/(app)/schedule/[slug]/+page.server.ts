@@ -5,7 +5,8 @@ import { mergeBlocks } from '$lib/server/availability/blocks';
 import { loadAppointmentBlocks } from '$lib/server/availability/db-blocks';
 import { resolveKnobsFor } from '$lib/server/availability/knobs';
 import { buildBaseWindows, candidateDates } from '$lib/server/availability/windows';
-import { conflictPullWindow, pullConflictBusy } from '@when/calendar';
+import { pullConflictBusy } from '@when/calendar';
+import { getBusyIntervals } from '@when/db';
 import { systemClock } from '$lib/server/clock';
 import type { Location } from '@when/config';
 import { logger } from '$lib/server/logger';
@@ -73,11 +74,12 @@ export const load: PageServerLoad = async ({ params, url }) => {
 		};
 	}
 
-	const remoteBusy = await pullConflictBusy(
-		cfg.calendars,
-		eventType.conflict_calendars ?? [],
-		conflictPullWindow(nowInstant, userTz, knobs.maximum_lookahead)
-	);
+	const remoteBusy = (
+		await getBusyIntervals(getDb(), eventType.conflict_calendars ?? [], {
+			start: nowInstant.toString(),
+			end: rangeEnd.toString()
+		})
+	).map((b) => ({ start: Temporal.Instant.from(b.start), end: Temporal.Instant.from(b.end) }));
 	const slots = computeSlots({
 		knobs,
 		rangeStart: nowInstant,
