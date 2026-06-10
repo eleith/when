@@ -1,7 +1,12 @@
 import { expect, test } from 'vitest';
 import { openDb } from './index.js';
 import { runMigrations } from './migrate.js';
-import { replaceCalendarBusy, recordRefreshResult, listOwnEventIds } from './calendar-busy.js';
+import {
+	replaceCalendarBusy,
+	recordRefreshResult,
+	listOwnEventIds,
+	getBusyIntervals
+} from './calendar-busy.js';
 
 async function freshDb() {
 	const db = openDb(':memory:');
@@ -156,6 +161,57 @@ test('listOwnEventIds returns ids for the calendar, including cancelled, excludi
 			.execute();
 		const ids = await listOwnEventIds(db, 'work');
 		expect(ids.sort()).toEqual(['e1', 'e2']);
+	} finally {
+		await db.destroy();
+	}
+});
+
+test('getBusyIntervals returns overlapping intervals for the given calendars only', async () => {
+	const db = await freshDb();
+	try {
+		await replaceCalendarBusy(db, 'work', [
+			{ start: '2026-05-01T09:00:00Z', end: '2026-05-01T10:00:00Z' },
+			{ start: '2026-06-01T09:00:00Z', end: '2026-06-01T10:00:00Z' }
+		]);
+		await replaceCalendarBusy(db, 'home', [
+			{ start: '2026-05-01T12:00:00Z', end: '2026-05-01T13:00:00Z' }
+		]);
+		const intervals = await getBusyIntervals(db, ['work'], {
+			start: '2026-05-01T00:00:00Z',
+			end: '2026-05-02T00:00:00Z'
+		});
+		expect(intervals).toEqual([{ start: '2026-05-01T09:00:00Z', end: '2026-05-01T10:00:00Z' }]);
+	} finally {
+		await db.destroy();
+	}
+});
+
+test('getBusyIntervals includes intervals that straddle the window edges', async () => {
+	const db = await freshDb();
+	try {
+		await replaceCalendarBusy(db, 'work', [
+			{ start: '2026-04-30T23:00:00Z', end: '2026-05-01T01:00:00Z' },
+			{ start: '2026-05-01T23:30:00Z', end: '2026-05-02T00:30:00Z' }
+		]);
+		const intervals = await getBusyIntervals(db, ['work'], {
+			start: '2026-05-01T00:00:00Z',
+			end: '2026-05-02T00:00:00Z'
+		});
+		expect(intervals).toHaveLength(2);
+	} finally {
+		await db.destroy();
+	}
+});
+
+test('getBusyIntervals returns [] for no calendars', async () => {
+	const db = await freshDb();
+	try {
+		await replaceCalendarBusy(db, 'work', [
+			{ start: '2026-05-01T09:00:00Z', end: '2026-05-01T10:00:00Z' }
+		]);
+		expect(
+			await getBusyIntervals(db, [], { start: '2026-05-01T00:00:00Z', end: '2026-05-02T00:00:00Z' })
+		).toEqual([]);
 	} finally {
 		await db.destroy();
 	}

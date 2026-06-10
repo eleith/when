@@ -23,6 +23,22 @@ export async function replaceCalendarBusy(
 	});
 }
 
+export async function getBusyIntervals(
+	db: Kysely<Database>,
+	calendarIds: string[],
+	window: BusyInterval
+): Promise<BusyInterval[]> {
+	if (calendarIds.length === 0) return [];
+	const rows = await db
+		.selectFrom('external_calendar_busy')
+		.select(['start_time', 'end_time'])
+		.where('calendar_id', 'in', calendarIds)
+		.where('end_time', '>', window.start)
+		.where('start_time', '<', window.end)
+		.execute();
+	return rows.map((r) => ({ start: r.start_time, end: r.end_time }));
+}
+
 export interface RefreshResult {
 	at: string;
 	error?: string | null;
