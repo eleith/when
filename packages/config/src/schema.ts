@@ -84,6 +84,16 @@ export interface GoogleCalendar {
   client_secret: string;
   refresh_token: string;
   google_calendar_id: string;
+  sync?: CalendarSync;
+}
+/**
+ * Per-calendar sync cadence.
+ */
+export interface CalendarSync {
+  /**
+   * Minutes between the worker's busy-time refreshes for this calendar.
+   */
+  refresh_interval_minutes?: number;
 }
 export interface CalDavCalendar {
   id: string;
@@ -91,6 +101,7 @@ export interface CalDavCalendar {
   url: string;
   username: string;
   password: string;
+  sync?: CalendarSync;
 }
 /**
  * Global availability defaults. Each knob is overridable per event type.

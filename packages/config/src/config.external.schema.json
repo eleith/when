@@ -297,6 +297,9 @@
 				"google_calendar_id": {
 					"type": "string",
 					"minLength": 1
+				},
+				"sync": {
+					"$ref": "#/$defs/CalendarSync"
 				}
 			}
 		},
@@ -330,6 +333,23 @@
 				"password": {
 					"type": "string",
 					"minLength": 1
+				},
+				"sync": {
+					"$ref": "#/$defs/CalendarSync"
+				}
+			}
+		},
+		"CalendarSync": {
+			"title": "CalendarSync",
+			"description": "Per-calendar sync cadence.",
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"refresh_interval_minutes": {
+					"type": "integer",
+					"description": "Minutes between the worker's busy-time refreshes for this calendar.",
+					"minimum": 1,
+					"default": 10
 				}
 			}
 		},
