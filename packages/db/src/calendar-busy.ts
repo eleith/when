@@ -82,3 +82,43 @@ export async function listOwnEventIds(db: Kysely<Database>, calendarId: string):
 		.execute();
 	return rows.map((r) => r.external_event_id).filter((id): id is string => id !== null);
 }
+
+export interface UpcomingAppointment {
+	id: string;
+	event_type_id: string;
+	start_time: string;
+	end_time: string;
+}
+
+export async function listUpcomingActiveAppointments(
+	db: Kysely<Database>,
+	now: string
+): Promise<UpcomingAppointment[]> {
+	return db
+		.selectFrom('appointments')
+		.select(['id', 'event_type_id', 'start_time', 'end_time'])
+		.where('end_time', '>=', now)
+		.where('status', 'in', ['pending', 'confirmed'])
+		.execute();
+}
+
+export async function setPossibleConflicts(
+	db: Kysely<Database>,
+	flaggedIds: string[],
+	clearedIds: string[]
+): Promise<void> {
+	if (flaggedIds.length > 0) {
+		await db
+			.updateTable('appointments')
+			.set({ has_possible_conflict: 1 })
+			.where('id', 'in', flaggedIds)
+			.execute();
+	}
+	if (clearedIds.length > 0) {
+		await db
+			.updateTable('appointments')
+			.set({ has_possible_conflict: 0 })
+			.where('id', 'in', clearedIds)
+			.execute();
+	}
+}

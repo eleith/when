@@ -5,7 +5,9 @@ import {
 	replaceCalendarBusy,
 	recordRefreshResult,
 	listOwnEventIds,
-	getBusyIntervals
+	getBusyIntervals,
+	listUpcomingActiveAppointments,
+	setPossibleConflicts
 } from './calendar-busy.js';
 
 async function freshDb() {
@@ -212,6 +214,91 @@ test('getBusyIntervals returns [] for no calendars', async () => {
 		expect(
 			await getBusyIntervals(db, [], { start: '2026-05-01T00:00:00Z', end: '2026-05-02T00:00:00Z' })
 		).toEqual([]);
+	} finally {
+		await db.destroy();
+	}
+});
+
+test('listUpcomingActiveAppointments returns only upcoming pending + confirmed', async () => {
+	const db = await freshDb();
+	try {
+		const now = '2026-05-01T12:00:00Z';
+		await db
+			.insertInto('appointments')
+			.values([
+				appt({
+					id: 'c-future',
+					cancel_token: 'a',
+					status: 'confirmed',
+					start_time: '2026-05-01T14:00:00Z',
+					end_time: '2026-05-01T14:30:00Z'
+				}),
+				appt({
+					id: 'p-future',
+					cancel_token: 'b',
+					status: 'pending',
+					start_time: '2026-05-02T10:00:00Z',
+					end_time: '2026-05-02T10:30:00Z'
+				}),
+				appt({
+					id: 'cancelled',
+					cancel_token: 'c',
+					status: 'cancelled',
+					start_time: '2026-05-01T15:00:00Z',
+					end_time: '2026-05-01T15:30:00Z'
+				}),
+				appt({
+					id: 'past',
+					cancel_token: 'd',
+					status: 'confirmed',
+					start_time: '2026-04-30T10:00:00Z',
+					end_time: '2026-04-30T10:30:00Z'
+				})
+			])
+			.execute();
+		const upcoming = await listUpcomingActiveAppointments(db, now);
+		expect(upcoming.map((a) => a.id).sort()).toEqual(['c-future', 'p-future']);
+	} finally {
+		await db.destroy();
+	}
+});
+
+test('setPossibleConflicts flags and clears ids, no-ops on empty', async () => {
+	const db = await freshDb();
+	try {
+		await db
+			.insertInto('appointments')
+			.values([
+				appt({ id: '1', cancel_token: 'a' }),
+				appt({
+					id: '2',
+					cancel_token: 'b',
+					start_time: '2026-05-01T11:00:00Z',
+					end_time: '2026-05-01T11:30:00Z'
+				})
+			])
+			.execute();
+		await setPossibleConflicts(db, ['1'], []);
+		await setPossibleConflicts(db, [], []);
+		let rows = await db
+			.selectFrom('appointments')
+			.select(['id', 'has_possible_conflict'])
+			.orderBy('id')
+			.execute();
+		expect(rows).toEqual([
+			{ id: '1', has_possible_conflict: 1 },
+			{ id: '2', has_possible_conflict: 0 }
+		]);
+		await setPossibleConflicts(db, ['2'], ['1']);
+		rows = await db
+			.selectFrom('appointments')
+			.select(['id', 'has_possible_conflict'])
+			.orderBy('id')
+			.execute();
+		expect(rows).toEqual([
+			{ id: '1', has_possible_conflict: 0 },
+			{ id: '2', has_possible_conflict: 1 }
+		]);
 	} finally {
 		await db.destroy();
 	}
