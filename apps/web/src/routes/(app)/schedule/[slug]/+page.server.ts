@@ -5,7 +5,6 @@ import { mergeBlocks } from '$lib/server/availability/blocks';
 import { loadAppointmentBlocks } from '$lib/server/availability/db-blocks';
 import { resolveKnobsFor } from '$lib/server/availability/knobs';
 import { buildBaseWindows, candidateDates } from '$lib/server/availability/windows';
-import { pullConflictBusy } from '@when/calendar';
 import { getBusyIntervals } from '@when/db';
 import { systemClock } from '$lib/server/clock';
 import type { Location } from '@when/config';
@@ -195,7 +194,12 @@ export const actions: Actions = {
 			};
 		}
 
-		const remoteBusy = await pullSlotDayBusy(cfg, eventType, slotStr, userTz);
+		const remoteBusy = await slotDayBusy(
+			getDb(),
+			eventType.conflict_calendars ?? [],
+			slotStr,
+			userTz
+		);
 		const slots = computeSlots({
 			knobs,
 			rangeStart: nowInstant,
@@ -279,9 +283,9 @@ function resolveLocation(loc: Location | null, input: FormDataEntryValue | null)
 	return submitted;
 }
 
-async function pullSlotDayBusy(
-	cfg: ReturnType<typeof getConfig>,
-	eventType: ReturnType<typeof getConfig>['event_types'][number],
+async function slotDayBusy(
+	db: ReturnType<typeof getDb>,
+	conflictCalendars: string[],
 	slotStr: string,
 	userTz: string
 ) {
@@ -289,10 +293,10 @@ async function pullSlotDayBusy(
 	const date = slot.toZonedDateTimeISO(userTz).toPlainDate();
 	const dayStart = date.toZonedDateTime(userTz).toInstant();
 	const dayEnd = date.add({ days: 1 }).toZonedDateTime(userTz).toInstant();
-	return pullConflictBusy(
-		cfg.calendars,
-		eventType.conflict_calendars ?? [],
-		{ start: dayStart, end: dayEnd },
-		{ bypassCache: true }
-	);
+	return (
+		await getBusyIntervals(db, conflictCalendars, {
+			start: dayStart.toString(),
+			end: dayEnd.toString()
+		})
+	).map((b) => ({ start: Temporal.Instant.from(b.start), end: Temporal.Instant.from(b.end) }));
 }
