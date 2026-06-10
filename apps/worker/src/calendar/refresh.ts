@@ -4,6 +4,7 @@ import type { ExpandWindow, FetchFn } from '@when/calendar';
 import { fetchBusyIntervals } from '@when/calendar';
 import { listOwnEventIds, recordRefreshResult, replaceCalendarBusy } from '@when/db';
 import type { WorkerContext } from '../services/context.js';
+import { flagConflicts } from './conflicts.js';
 
 const DEFAULT_MAX_LOOKAHEAD_DAYS = 60;
 
@@ -78,4 +79,10 @@ export async function refreshCalendars(
 		}
 		await refreshCalendar(ctx, cal, refreshWindow(ctx.config, id, now), { ...opts, now });
 	}
+}
+
+export async function refreshCycle(ctx: WorkerContext, opts: RefreshOptions = {}): Promise<void> {
+	const now = opts.now ?? Temporal.Now.instant();
+	await refreshCalendars(ctx, { ...opts, now });
+	await flagConflicts(ctx, { now });
 }

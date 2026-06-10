@@ -7,7 +7,7 @@ import { setWorkerContext, type WorkerContext } from './services/context.js';
 import { createHealthServer } from './services/health.js';
 import { createLogger, log } from './services/logger.js';
 import { registerWorkflows } from './workflows/index.js';
-import { refreshCalendars } from './calendar/refresh.js';
+import { refreshCycle } from './calendar/refresh.js';
 import { createRefreshScheduler, refreshIntervalMinutes } from './calendar/scheduler.js';
 
 const DEFAULT_PORT = 9000;
@@ -41,7 +41,7 @@ async function main(): Promise<void> {
 	logger.info('worker started');
 
 	const refresh = createRefreshScheduler(
-		() => refreshCalendars(ctx),
+		() => refreshCycle(ctx),
 		refreshIntervalMinutes(config) * 60_000
 	);
 	refresh.start();
