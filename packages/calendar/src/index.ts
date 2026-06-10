@@ -11,6 +11,9 @@ export type { Clock } from './clock.js';
 export { pullConflictBusy, conflictPullWindow, clearConflictCache } from './conflicts.js';
 export type { PullOptions } from './conflicts.js';
 
+// Worker refresh: fetch + expand one calendar's busy intervals, filtering our own events.
+export { fetchBusyIntervals } from './busy.js';
+
 // Pushing appointments to a destination calendar.
 export { pushAppointment, deleteAppointmentFromCalendar } from './push.js';
 export type { PushOptions, PushResult, DeleteResult } from './push.js';
