@@ -26,6 +26,8 @@ export type {
 } from './types.js';
 export { runMigrations } from './migrate.js';
 export { migrations } from './migrations/index.js';
+export { replaceCalendarBusy, recordRefreshResult, listOwnEventIds } from './calendar-busy.js';
+export type { BusyInterval, RefreshResult } from './calendar-busy.js';
 
 export function openDb(path: string): Kysely<Database> {
 	if (path !== ':memory:') {

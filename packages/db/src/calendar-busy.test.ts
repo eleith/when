@@ -1,0 +1,162 @@
+import { expect, test } from 'vitest';
+import { openDb } from './index.js';
+import { runMigrations } from './migrate.js';
+import { replaceCalendarBusy, recordRefreshResult, listOwnEventIds } from './calendar-busy.js';
+
+async function freshDb() {
+	const db = openDb(':memory:');
+	await runMigrations(db);
+	return db;
+}
+
+const appt = (over: Record<string, unknown>) => ({
+	id: 'a',
+	event_type_id: 'chat',
+	start_time: '2026-05-01T10:00:00Z',
+	end_time: '2026-05-01T10:30:00Z',
+	attendee_name: 'A',
+	attendee_email: 'a@example.com',
+	attendee_notes: null,
+	location: null,
+	status: 'confirmed' as const,
+	cancel_token: 't',
+	external_event_id: null,
+	external_calendar_id: null,
+	...over
+});
+
+test('replaceCalendarBusy replaces the whole set for a calendar', async () => {
+	const db = await freshDb();
+	try {
+		await replaceCalendarBusy(db, 'work', [
+			{ start: '2026-05-01T09:00:00Z', end: '2026-05-01T09:30:00Z' },
+			{ start: '2026-05-01T11:00:00Z', end: '2026-05-01T11:30:00Z' }
+		]);
+		await replaceCalendarBusy(db, 'work', [
+			{ start: '2026-05-02T09:00:00Z', end: '2026-05-02T09:30:00Z' }
+		]);
+		const rows = await db
+			.selectFrom('external_calendar_busy')
+			.selectAll()
+			.where('calendar_id', '=', 'work')
+			.execute();
+		expect(rows.map((r) => r.start_time)).toEqual(['2026-05-02T09:00:00Z']);
+	} finally {
+		await db.destroy();
+	}
+});
+
+test('replaceCalendarBusy with an empty set clears the calendar', async () => {
+	const db = await freshDb();
+	try {
+		await replaceCalendarBusy(db, 'work', [
+			{ start: '2026-05-01T09:00:00Z', end: '2026-05-01T09:30:00Z' }
+		]);
+		await replaceCalendarBusy(db, 'work', []);
+		const rows = await db.selectFrom('external_calendar_busy').selectAll().execute();
+		expect(rows).toHaveLength(0);
+	} finally {
+		await db.destroy();
+	}
+});
+
+test('replaceCalendarBusy leaves other calendars untouched', async () => {
+	const db = await freshDb();
+	try {
+		await replaceCalendarBusy(db, 'work', [
+			{ start: '2026-05-01T09:00:00Z', end: '2026-05-01T09:30:00Z' }
+		]);
+		await replaceCalendarBusy(db, 'home', [
+			{ start: '2026-05-01T12:00:00Z', end: '2026-05-01T12:30:00Z' }
+		]);
+		await replaceCalendarBusy(db, 'work', []);
+		const home = await db
+			.selectFrom('external_calendar_busy')
+			.selectAll()
+			.where('calendar_id', '=', 'home')
+			.execute();
+		expect(home).toHaveLength(1);
+	} finally {
+		await db.destroy();
+	}
+});
+
+test('recordRefreshResult: success sets both timestamps and clears error', async () => {
+	const db = await freshDb();
+	try {
+		await recordRefreshResult(db, 'work', { at: 't1', error: 'boom' });
+		await recordRefreshResult(db, 'work', { at: 't2' });
+		const row = await db
+			.selectFrom('calendar_sync_status')
+			.selectAll()
+			.where('calendar_id', '=', 'work')
+			.executeTakeFirstOrThrow();
+		expect(row.last_refresh_at).toBe('t2');
+		expect(row.last_successful_refresh_at).toBe('t2');
+		expect(row.error).toBeNull();
+	} finally {
+		await db.destroy();
+	}
+});
+
+test('recordRefreshResult: failure records error but keeps the last success time', async () => {
+	const db = await freshDb();
+	try {
+		await recordRefreshResult(db, 'work', { at: 't1' });
+		await recordRefreshResult(db, 'work', { at: 't2', error: 'down' });
+		const row = await db
+			.selectFrom('calendar_sync_status')
+			.selectAll()
+			.where('calendar_id', '=', 'work')
+			.executeTakeFirstOrThrow();
+		expect(row.last_refresh_at).toBe('t2');
+		expect(row.last_successful_refresh_at).toBe('t1');
+		expect(row.error).toBe('down');
+	} finally {
+		await db.destroy();
+	}
+});
+
+test('listOwnEventIds returns ids for the calendar, including cancelled, excluding others', async () => {
+	const db = await freshDb();
+	try {
+		await db
+			.insertInto('appointments')
+			.values([
+				appt({
+					id: '1',
+					cancel_token: 't1',
+					external_event_id: 'e1',
+					external_calendar_id: 'work'
+				}),
+				appt({
+					id: '2',
+					start_time: '2026-05-01T11:00:00Z',
+					end_time: '2026-05-01T11:30:00Z',
+					cancel_token: 't2',
+					status: 'cancelled',
+					external_event_id: 'e2',
+					external_calendar_id: 'work'
+				}),
+				appt({
+					id: '3',
+					start_time: '2026-05-01T12:00:00Z',
+					end_time: '2026-05-01T12:30:00Z',
+					cancel_token: 't3',
+					external_event_id: 'e3',
+					external_calendar_id: 'home'
+				}),
+				appt({
+					id: '4',
+					start_time: '2026-05-01T13:00:00Z',
+					end_time: '2026-05-01T13:30:00Z',
+					cancel_token: 't4'
+				})
+			])
+			.execute();
+		const ids = await listOwnEventIds(db, 'work');
+		expect(ids.sort()).toEqual(['e1', 'e2']);
+	} finally {
+		await db.destroy();
+	}
+});
