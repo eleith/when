@@ -7,10 +7,6 @@ export { buildIcs } from './ics.js';
 export type { IcsInput, IcsMethod } from './ics.js';
 export type { Clock } from './clock.js';
 
-// Reading busy times from conflict calendars.
-export { pullConflictBusy, conflictPullWindow, clearConflictCache } from './conflicts.js';
-export type { PullOptions } from './conflicts.js';
-
 // Worker refresh: fetch + expand one calendar's busy intervals, filtering our own events.
 export { fetchBusyIntervals } from './busy.js';
 
