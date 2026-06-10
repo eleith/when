@@ -3,9 +3,12 @@
 	import IconCalendarBlank from 'virtual:icons/ph/calendar-blank';
 	import IconCheck from 'virtual:icons/ph/check';
 	import IconX from 'virtual:icons/ph/x';
+	import IconWarning from 'virtual:icons/ph/warning';
 	import NotificationChips from '$lib/components/NotificationChips.svelte';
 
 	let { data } = $props();
+
+	let conflictCount = $derived(data.appointments.filter((a) => a.possible_conflict).length);
 
 	function fmt(iso: string): string {
 		return new Date(iso).toLocaleString([], {
@@ -40,6 +43,15 @@
 	<h1 class="page-title">Bookings</h1>
 	<p class="page-subtitle">Manage appointments and requests</p>
 </div>
+
+{#if conflictCount > 0}
+	<div class="review-banner" role="alert">
+		<IconWarning class="review-icon" aria-hidden="true" />
+		<span>
+			{conflictCount} possible conflict{#if conflictCount !== 1}s{/if} — please review.
+		</span>
+	</div>
+{/if}
 
 {#if data.appointments.length === 0}
 	<div class="card empty-card">
@@ -87,6 +99,15 @@
 									</span>
 									{#if a.notifications.length > 0}
 										<NotificationChips notifications={a.notifications} />
+									{/if}
+									{#if a.possible_conflict}
+										<span
+											class="conflict-chip"
+											title="This time overlaps a busy event on a conflict calendar"
+										>
+											<IconWarning class="conflict-icon" aria-hidden="true" />
+											Conflict
+										</span>
 									{/if}
 								</div>
 							</td>
@@ -267,10 +288,36 @@
 		font-size: var(--font-size-sm);
 	}
 
+	.review-banner {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		padding: var(--space-3) var(--space-4);
+		margin-bottom: var(--space-4);
+		border-radius: var(--radius-md);
+		background: color-mix(in srgb, var(--warning) 12%, transparent);
+		color: var(--warning);
+		font-weight: 600;
+		font-size: var(--font-size-sm);
+	}
+
 	.status-wrapper {
 		display: inline-flex;
 		align-items: center;
 		gap: var(--space-2);
+	}
+
+	.conflict-chip {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-1);
+		font-size: var(--font-size-xs);
+		font-weight: 600;
+		padding: var(--space-1) var(--space-2);
+		border-radius: var(--radius-sm);
+		background: color-mix(in srgb, var(--warning) 12%, transparent);
+		color: var(--warning);
+		white-space: nowrap;
 	}
 
 	.status-badge {

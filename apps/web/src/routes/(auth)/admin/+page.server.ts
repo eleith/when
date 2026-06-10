@@ -42,6 +42,7 @@ export const load: PageServerLoad = async () => {
 				cfg.event_types.find((e) => e.id === r.event_type_id)?.name ?? r.event_type_id,
 			display_status: deriveDisplayStatus(r, now),
 			is_past: nowMs >= Date.parse(r.end_time),
+			possible_conflict: r.has_possible_conflict === 1,
 			notifications
 		};
 	});
