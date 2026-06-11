@@ -16,7 +16,11 @@ export function dispatch(input: SendBookingEmailInput, cfg: WhenConfiguration): 
 		cfg,
 		appointment: input.appointment,
 		eventType: input.eventType,
-		links: bookingLinks(cfg.url.app, input.appointment, input.eventType)
+		links: bookingLinks({
+			baseUrl: cfg.url.app,
+			appointment: input.appointment,
+			eventType: input.eventType
+		})
 	};
 
 	switch (input.kind) {

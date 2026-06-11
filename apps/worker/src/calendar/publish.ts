@@ -22,7 +22,11 @@ export async function reconcileAppointment(
 			await markSynced(ctx.db, row.id, revision);
 			return;
 		}
-		const cancelUrl = bookingLinks(ctx.config.url.app, row, eventType).booked;
+		const cancelUrl = bookingLinks({
+			baseUrl: ctx.config.url.app,
+			appointment: row,
+			eventType
+		}).booked;
 		const pushed = await pushAppointment(ctx.config, row, target, {
 			cancelUrl,
 			fetchImpl: opts.fetchImpl
