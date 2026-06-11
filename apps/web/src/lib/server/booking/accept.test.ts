@@ -4,8 +4,8 @@ import { systemClock } from '$lib/server/clock';
 import { openDb, runMigrations } from '@when/db';
 import { validConfig } from '$lib/server/__fixtures__/valid-config';
 
-vi.mock('../workflow', () => ({ enqueueBookingEmail: vi.fn() }));
-import { enqueueBookingEmail } from '../workflow';
+vi.mock('../workflow', () => ({ enqueueBookingEmail: vi.fn(), enqueuePublishKick: vi.fn() }));
+import { enqueueBookingEmail, enqueuePublishKick } from '../workflow';
 
 const baseRow = {
 	event_type_id: '30-min-chat',
@@ -31,23 +31,14 @@ async function fetchRow(db: Awaited<ReturnType<typeof makeDb>>, id: string) {
 	return db.selectFrom('appointments').selectAll().where('id', '=', id).executeTakeFirstOrThrow();
 }
 
-// Use a config whose destination_calendar refers to a non-existent calendar id, so
-// pushAppointment fails-soft with { ok: false } and the operation marks
-// calendar_push_notification_status = 'failed'. This avoids real network calls.
-const cfgPushFails = {
-	...validConfig,
-	event_types: [
-		{ ...validConfig.event_types[0], destination_calendar: 'no-such-calendar' }
-	] as typeof validConfig.event_types
-};
-
 describe('acceptAppointment', () => {
 	beforeEach(() => {
 		vi.mocked(enqueueBookingEmail).mockReset();
 		vi.mocked(enqueueBookingEmail).mockImplementation(async (_db, input) => input.appointment);
+		vi.mocked(enqueuePublishKick).mockReset();
 	});
 
-	test('happy path: pending → confirmed; calendar_push tracked when push fails', async () => {
+	test('happy path: pending → confirmed; bumps revision, queues publish, wakes the worker', async () => {
 		const db = await makeDb();
 		try {
 			await db
@@ -57,7 +48,7 @@ describe('acceptAppointment', () => {
 			const row = await fetchRow(db, 'a1');
 
 			const result = await acceptAppointment(
-				{ db, cfg: cfgPushFails, clock: systemClock },
+				{ db, cfg: validConfig, clock: systemClock },
 				{ appointment: row, baseUrl: 'https://when.example.com' }
 			);
 
@@ -66,7 +57,9 @@ describe('acceptAppointment', () => {
 				expect(result.appointment.status).toBe('confirmed');
 				const persisted = await fetchRow(db, 'a1');
 				expect(persisted.status).toBe('confirmed');
-				expect(persisted.calendar_push_notification_status).toBe('failed');
+				expect(persisted.calendar_push_notification_status).toBe('queued');
+				expect(persisted.calendar_revision).toBe(1);
+				expect(enqueuePublishKick).toHaveBeenCalledTimes(1);
 				expect(enqueueBookingEmail).toHaveBeenCalledWith(
 					expect.anything(),
 					expect.objectContaining({ kind: 'confirmed' })
@@ -87,7 +80,7 @@ describe('acceptAppointment', () => {
 			const row = await fetchRow(db, 'a2');
 
 			const result = await acceptAppointment(
-				{ db, cfg: cfgPushFails, clock: systemClock },
+				{ db, cfg: validConfig, clock: systemClock },
 				{ appointment: row, baseUrl: 'https://when.example.com' }
 			);
 			expect(result).toEqual({ ok: false, reason: 'gated' });
@@ -111,7 +104,7 @@ describe('acceptAppointment', () => {
 				.execute();
 
 			const result = await acceptAppointment(
-				{ db, cfg: cfgPushFails, clock: systemClock },
+				{ db, cfg: validConfig, clock: systemClock },
 				{ appointment: row, baseUrl: 'https://when.example.com' }
 			);
 			expect(result).toEqual({ ok: false, reason: 'conflict' });

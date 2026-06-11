@@ -1,13 +1,11 @@
 import type { Kysely } from 'kysely';
 import { resolveBookingActions, type Viewer } from './actions';
 import { isRescheduleAllowed, isViewable } from './access';
-import { bookingLinks } from './links';
-import { enqueueBookingEmail } from '../workflow';
+import { enqueueBookingEmail, enqueuePublishKick } from '../workflow';
 import { transitionStatus } from './status';
-import { pushAppointment } from '@when/calendar';
 import type { Clock } from '../clock';
 import type { EventType, WhenConfiguration } from '@when/config';
-import type { Appointment, Database, NotificationOutcome } from '@when/db';
+import type { Appointment, Database } from '@when/db';
 
 export type RescheduleErrorCode =
 	| 'token'
@@ -82,8 +80,9 @@ export async function rescheduleAppointment(
 					end_time: input.newEnd,
 					ics_sequence: input.appointment.ics_sequence + 1,
 					email_notification_status: null,
-					calendar_push_notification_status: null
-				}
+					calendar_push_notification_status: 'queued'
+				},
+				bumpCalendarRevision: true
 			}
 		);
 	} catch (err) {
@@ -92,33 +91,14 @@ export async function rescheduleAppointment(
 	}
 	if (!transition.ok) return { ok: false, reason: 'conflict' };
 
-	const updated = transition.row;
-	const links = bookingLinks({ baseUrl: input.baseUrl, appointment: updated, eventType });
-	let calendarPush: NotificationOutcome | null = null;
-
-	if (updated.external_event_id && updated.external_calendar_id) {
-		const pushed = await pushAppointment(deps.cfg, updated, updated.external_calendar_id!, {
-			cancelUrl: links.booked
-		});
-		calendarPush = pushed.ok ? 'ok' : 'failed';
-	}
-
-	await deps.db
-		.updateTable('appointments')
-		.set({
-			calendar_push_notification_status: calendarPush,
-			updated_at: deps.clock.now().toISOString()
-		})
-		.where('id', '=', updated.id)
-		.execute();
-
 	const kind =
 		input.initiator === 'organizer' ? 'rescheduled-by-organizer' : 'rescheduled-by-attendee';
 	const appointment = await enqueueBookingEmail(deps.db, {
 		kind,
-		appointment: { ...updated, calendar_push_notification_status: calendarPush },
+		appointment: transition.row,
 		eventType
 	});
+	await enqueuePublishKick();
 
 	return { ok: true, appointment };
 }

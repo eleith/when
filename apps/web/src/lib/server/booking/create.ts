@@ -1,10 +1,8 @@
 import type { Kysely } from 'kysely';
-import { bookingLinks } from './links';
-import { enqueueBookingEmail } from '../workflow';
-import { pushAppointment } from '@when/calendar';
+import { enqueueBookingEmail, enqueuePublishKick } from '../workflow';
 import type { Clock } from '../clock';
 import type { EventType, WhenConfiguration } from '@when/config';
-import type { Appointment, Database, NotificationOutcome } from '@when/db';
+import type { Appointment, Database } from '@when/db';
 import type { BookingEmailKind } from '@when/jobs';
 
 export interface CreateAppointmentDeps {
@@ -35,7 +33,7 @@ function isUniqueViolation(err: unknown): boolean {
 }
 
 export async function createAppointment(
-	{ db, cfg, clock }: CreateAppointmentDeps,
+	{ db }: CreateAppointmentDeps,
 	input: CreateAppointmentInput
 ): Promise<CreateAppointmentResult> {
 	const id = `appt-${crypto.randomUUID()}`;
@@ -59,7 +57,10 @@ export async function createAppointment(
 				status,
 				cancel_token: cancelToken,
 				external_event_id: null,
-				external_calendar_id: null
+				external_calendar_id: null,
+				// A confirmed booking is out of sync (synced stays NULL) and the worker
+				// will publish it; a pending one isn't published until accepted.
+				calendar_push_notification_status: status === 'confirmed' ? 'queued' : null
 			})
 			.returningAll()
 			.executeTakeFirstOrThrow();
@@ -68,43 +69,9 @@ export async function createAppointment(
 		throw err;
 	}
 
-	const links = bookingLinks({ baseUrl: input.baseUrl, appointment, eventType });
-
-	let externalUpdate: { external_event_id: string; external_calendar_id: string } | null = null;
-	let calendarPush: NotificationOutcome | null = null;
 	const kind: BookingEmailKind = status === 'confirmed' ? 'confirmed' : 'pending';
-
-	if (status === 'confirmed') {
-		const pushed = await pushAppointment(cfg, appointment, eventType.destination_calendar, {
-			cancelUrl: links.booked
-		});
-		if (pushed.ok) {
-			externalUpdate = {
-				external_event_id: pushed.externalEventId,
-				external_calendar_id: pushed.externalCalendarId
-			};
-			calendarPush = 'ok';
-		} else {
-			calendarPush = 'failed';
-		}
-	}
-
-	await db
-		.updateTable('appointments')
-		.set({
-			...(externalUpdate ?? {}),
-			calendar_push_notification_status: calendarPush,
-			updated_at: clock.now().toISOString()
-		})
-		.where('id', '=', id)
-		.execute();
-	appointment = {
-		...appointment,
-		...(externalUpdate ?? {}),
-		calendar_push_notification_status: calendarPush
-	};
-
 	appointment = await enqueueBookingEmail(db, { kind, appointment, eventType });
+	if (status === 'confirmed') await enqueuePublishKick();
 
 	return { ok: true, appointment };
 }

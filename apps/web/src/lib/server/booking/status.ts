@@ -1,4 +1,4 @@
-import type { Kysely } from 'kysely';
+import { sql, type Kysely } from 'kysely';
 import type { Clock } from '../clock';
 import type { Appointment, AppointmentStatus, AppointmentUpdate, Database } from '@when/db';
 
@@ -13,6 +13,8 @@ export interface TransitionStatusInput {
 	to: AppointmentStatus;
 	/** Optional column updates applied atomically with the status write. */
 	patch?: Omit<AppointmentUpdate, 'id' | 'status' | 'updated_at'>;
+	/** Increment calendar_revision atomically, marking the calendar out of date. */
+	bumpCalendarRevision?: boolean;
 }
 
 export type TransitionResult =
@@ -28,6 +30,7 @@ export async function transitionStatus(
 		.set({
 			...input.patch,
 			status: input.to,
+			...(input.bumpCalendarRevision ? { calendar_revision: sql`calendar_revision + 1` } : {}),
 			updated_at: deps.clock.now().toISOString()
 		})
 		.where('id', '=', input.id)

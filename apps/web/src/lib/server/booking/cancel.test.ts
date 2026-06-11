@@ -4,8 +4,8 @@ import { systemClock } from '$lib/server/clock';
 import { openDb, runMigrations } from '@when/db';
 import { validConfig } from '$lib/server/__fixtures__/valid-config';
 
-vi.mock('../workflow', () => ({ enqueueBookingEmail: vi.fn() }));
-import { enqueueBookingEmail } from '../workflow';
+vi.mock('../workflow', () => ({ enqueueBookingEmail: vi.fn(), enqueuePublishKick: vi.fn() }));
+import { enqueueBookingEmail, enqueuePublishKick } from '../workflow';
 
 const baseRow = {
 	event_type_id: '30-min-chat',
@@ -42,12 +42,19 @@ describe('cancelAppointment', () => {
 	beforeEach(() => {
 		vi.mocked(enqueueBookingEmail).mockReset();
 		vi.mocked(enqueueBookingEmail).mockImplementation(async (_db, input) => input.appointment);
+		vi.mocked(enqueuePublishKick).mockReset();
 	});
 
-	test('happy path: confirmed booking transitions to cancelled, ics_sequence bumps', async () => {
+	test('happy path: a published booking is cancelled, queued for deletion, and wakes the worker', async () => {
 		const db = await makeDb();
 		try {
-			await insert(db, { id: 'a1', status: 'confirmed', cancel_token: 't1' });
+			await insert(db, {
+				id: 'a1',
+				status: 'confirmed',
+				cancel_token: 't1',
+				external_event_id: 'ext-1',
+				external_calendar_id: 'my-google-cal'
+			});
 			const row = await fetchRow(db, 'a1');
 
 			const result = await cancelAppointment(
@@ -64,6 +71,9 @@ describe('cancelAppointment', () => {
 			const persisted = await fetchRow(db, 'a1');
 			expect(persisted.status).toBe('cancelled');
 			expect(persisted.ics_sequence).toBe(1);
+			expect(persisted.calendar_push_notification_status).toBe('queued');
+			expect(persisted.calendar_revision).toBe(1);
+			expect(enqueuePublishKick).toHaveBeenCalledTimes(1);
 			expect(enqueueBookingEmail).toHaveBeenCalledWith(
 				expect.anything(),
 				expect.objectContaining({ kind: 'cancelled-by-attendee' })

@@ -1,11 +1,10 @@
 import type { Kysely } from 'kysely';
 import { resolveBookingActions, type Viewer } from './actions';
-import { enqueueBookingEmail } from '../workflow';
+import { enqueueBookingEmail, enqueuePublishKick } from '../workflow';
 import { transitionStatus } from './status';
-import { deleteAppointmentFromCalendar } from '@when/calendar';
 import type { Clock } from '../clock';
 import type { WhenConfiguration } from '@when/config';
-import type { Appointment, Database, NotificationOutcome } from '@when/db';
+import type { Appointment, Database } from '@when/db';
 
 export interface CancelAppointmentDeps {
 	db: Kysely<Database>;
@@ -38,6 +37,8 @@ export async function cancelAppointment(
 	}).cancel;
 	if (!gate.allowed) return { ok: false, reason: 'gated' };
 
+	// A published booking needs its event deleted; bump the revision and queue it
+	// for the worker. A never-published one just settles to in-sync on the scan.
 	const transition = await transitionStatus(
 		{ db: deps.db, clock: deps.clock },
 		{
@@ -47,40 +48,20 @@ export async function cancelAppointment(
 			patch: {
 				ics_sequence: input.appointment.ics_sequence + 1,
 				email_notification_status: null,
-				calendar_push_notification_status: null
-			}
+				calendar_push_notification_status: input.appointment.external_event_id ? 'queued' : null
+			},
+			bumpCalendarRevision: true
 		}
 	);
 	if (!transition.ok) return { ok: false, reason: 'conflict' };
 
-	const cancelled = transition.row;
-	let calendarPush: NotificationOutcome | null = null;
-
-	if (cancelled.external_event_id && cancelled.external_calendar_id) {
-		const deleted = await deleteAppointmentFromCalendar(
-			deps.cfg,
-			cancelled.external_calendar_id!,
-			cancelled.external_event_id!
-		);
-		calendarPush = deleted.ok ? 'ok' : 'failed';
-	}
-
-	await deps.db
-		.updateTable('appointments')
-		.set({
-			calendar_push_notification_status: calendarPush,
-			updated_at: deps.clock.now().toISOString()
-		})
-		.where('id', '=', cancelled.id)
-		.execute();
-
 	const kind = input.initiator === 'organizer' ? 'cancelled-by-organizer' : 'cancelled-by-attendee';
-	const updated = { ...cancelled, calendar_push_notification_status: calendarPush };
 	const appointment = await enqueueBookingEmail(deps.db, {
 		kind,
-		appointment: updated,
+		appointment: transition.row,
 		eventType
 	});
+	await enqueuePublishKick();
 
 	return { ok: true, appointment };
 }
