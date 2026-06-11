@@ -1,6 +1,6 @@
 import type { EventType, WhenConfiguration } from '@when/config';
 import type { Appointment } from '@when/db';
-import type { BookingLinks } from './links.js';
+import type { BookingLinks } from '../links.js';
 
 export interface BookingEmailInput {
 	cfg: WhenConfiguration;

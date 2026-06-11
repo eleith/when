@@ -1,6 +1,6 @@
 import type { WhenConfiguration } from '@when/config';
 import type { Appointment } from '@when/db';
-import type { BookingLinks } from '../links.js';
+import type { BookingLinks } from '../../links.js';
 import type { BookingEmailInput } from '../types.js';
 
 export const sampleAppointment: Appointment = {
