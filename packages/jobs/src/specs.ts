@@ -70,3 +70,20 @@ export const sendBookingEmail: WorkflowSpec<SendBookingEmailInput, SendBookingEm
 			maximumInterval: '15m'
 		}
 	});
+
+export type PublishNowInput = Record<string, never>;
+export type PublishNowResult = 'requested';
+
+// Payload-free wake-up the worker handles by running its publish scan.
+export const publishNow: WorkflowSpec<PublishNowInput, PublishNowResult> = defineWorkflowSpec<
+	PublishNowInput,
+	PublishNowResult
+>({
+	name: 'publish-now',
+	retryPolicy: {
+		maximumAttempts: 1,
+		initialInterval: '1s',
+		backoffCoefficient: 2,
+		maximumInterval: '1s'
+	}
+});
