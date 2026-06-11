@@ -7,10 +7,14 @@ import { setWorkerContext, type WorkerContext } from './services/context.js';
 import { createHealthServer } from './services/health.js';
 import { createLogger, log } from './services/logger.js';
 import { registerWorkflows } from './workflows/index.js';
+import { registerPublishNowWorkflow } from './workflows/publish-now.js';
 import { refreshCycle } from './calendar/refresh.js';
 import { createRefreshScheduler, refreshIntervalMinutes } from './calendar/scheduler.js';
+import { scanOnce } from './calendar/publish.js';
+import { createPublishScanner } from './calendar/publish-scanner.js';
 
 const DEFAULT_PORT = 9000;
+const PUBLISH_FLOOR_MS = 10 * 60_000;
 
 async function main(): Promise<void> {
 	const logger = createLogger();
@@ -33,12 +37,27 @@ async function main(): Promise<void> {
 		error: (obj, msg) => logger.error(msg, obj as Record<string, unknown>)
 	});
 
+	// Reconcile each calendar to the current appointment row; web wakes it via the
+	// publish-now job, and a floor timer scans even when idle.
+	const publish = createPublishScanner(async () => {
+		try {
+			await scanOnce(ctx);
+		} catch (err) {
+			logger.error('publish scan failed', {
+				error: err instanceof Error ? err.message : String(err)
+			});
+		}
+	}, PUBLISH_FLOOR_MS);
+
 	// Connect the openworkflow client, register handlers, then start polling.
 	const client = initOpenWorkflow({ dbPath: config.database.queue });
 	registerWorkflows();
+	registerPublishNowWorkflow(publish);
 	const worker = client.newWorker();
 	await worker.start();
 	logger.info('worker started');
+
+	publish.requestScan();
 
 	const refresh = createRefreshScheduler(
 		() => refreshCycle(ctx),
@@ -54,6 +73,7 @@ async function main(): Promise<void> {
 	const shutdown = async (signal: string): Promise<void> => {
 		logger.info('worker shutting down', { signal });
 		refresh.stop();
+		publish.stop();
 		server.close();
 		await worker.stop();
 		process.exit(0);
