@@ -7,7 +7,9 @@ import {
 	listOwnEventIds,
 	getBusyIntervals,
 	listUpcomingActiveAppointments,
-	setPossibleConflicts
+	setPossibleConflicts,
+	listOutOfSyncAppointments,
+	markSynced
 } from './calendar-busy.js';
 
 async function freshDb() {
@@ -299,6 +301,78 @@ test('setPossibleConflicts flags and clears ids, no-ops on empty', async () => {
 			{ id: '1', has_possible_conflict: 0 },
 			{ id: '2', has_possible_conflict: 1 }
 		]);
+	} finally {
+		await db.destroy();
+	}
+});
+
+test('listOutOfSyncAppointments returns rows whose revision differs from synced, including never-synced', async () => {
+	const db = await freshDb();
+	try {
+		await db
+			.insertInto('appointments')
+			.values([
+				appt({
+					id: 'bumped',
+					cancel_token: 'a',
+					calendar_revision: 1,
+					calendar_synced_revision: 0
+				}),
+				appt({
+					id: 'in-sync',
+					cancel_token: 'b',
+					start_time: '2026-05-01T11:00:00Z',
+					end_time: '2026-05-01T11:30:00Z',
+					calendar_revision: 0,
+					calendar_synced_revision: 0
+				}),
+				appt({
+					id: 'never-synced',
+					cancel_token: 'c',
+					start_time: '2026-05-01T12:00:00Z',
+					end_time: '2026-05-01T12:30:00Z',
+					calendar_revision: 0
+				})
+			])
+			.execute();
+		const rows = await listOutOfSyncAppointments(db);
+		expect(rows.map((r) => r.id).sort()).toEqual(['bumped', 'never-synced']);
+	} finally {
+		await db.destroy();
+	}
+});
+
+test('markSynced sets the synced revision and any provided fields, leaving others untouched', async () => {
+	const db = await freshDb();
+	try {
+		await db
+			.insertInto('appointments')
+			.values(appt({ id: '1', cancel_token: 'a' }))
+			.execute();
+		await markSynced(db, '1', 2, {
+			external_event_id: 'ext',
+			external_calendar_id: 'cal',
+			calendar_push_notification_status: 'ok'
+		});
+		let row = await db
+			.selectFrom('appointments')
+			.selectAll()
+			.where('id', '=', '1')
+			.executeTakeFirstOrThrow();
+		expect(row.calendar_synced_revision).toBe(2);
+		expect(row.external_event_id).toBe('ext');
+		expect(row.external_calendar_id).toBe('cal');
+		expect(row.calendar_push_notification_status).toBe('ok');
+
+		await markSynced(db, '1', 3);
+		row = await db
+			.selectFrom('appointments')
+			.selectAll()
+			.where('id', '=', '1')
+			.executeTakeFirstOrThrow();
+		expect(row.calendar_synced_revision).toBe(3);
+		expect(row.external_event_id).toBe('ext');
+		expect(row.calendar_push_notification_status).toBe('ok');
 	} finally {
 		await db.destroy();
 	}

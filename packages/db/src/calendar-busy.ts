@@ -1,5 +1,5 @@
-import type { Kysely } from 'kysely';
-import type { Database } from './types.js';
+import { sql, type Kysely } from 'kysely';
+import type { Appointment, Database, NotificationOutcome } from './types.js';
 
 export interface BusyInterval {
 	start: string;
@@ -121,4 +121,33 @@ export async function setPossibleConflicts(
 			.where('id', 'in', clearedIds)
 			.execute();
 	}
+}
+
+// Stale = the calendar doesn't reflect the current row. `is not` is SQLite's
+// null-safe comparison, so a never-synced row (synced NULL) counts as stale.
+export async function listOutOfSyncAppointments(db: Kysely<Database>): Promise<Appointment[]> {
+	return db
+		.selectFrom('appointments')
+		.selectAll()
+		.where(sql<boolean>`calendar_revision is not calendar_synced_revision`)
+		.execute();
+}
+
+export interface MarkSyncedFields {
+	external_event_id?: string | null;
+	external_calendar_id?: string | null;
+	calendar_push_notification_status?: NotificationOutcome | null;
+}
+
+export async function markSynced(
+	db: Kysely<Database>,
+	id: string,
+	revision: number,
+	fields: MarkSyncedFields = {}
+): Promise<void> {
+	await db
+		.updateTable('appointments')
+		.set({ calendar_synced_revision: revision, ...fields })
+		.where('id', '=', id)
+		.execute();
 }

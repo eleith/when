@@ -32,9 +32,16 @@ export {
 	listOwnEventIds,
 	getBusyIntervals,
 	listUpcomingActiveAppointments,
-	setPossibleConflicts
+	setPossibleConflicts,
+	listOutOfSyncAppointments,
+	markSynced
 } from './calendar-busy.js';
-export type { BusyInterval, RefreshResult, UpcomingAppointment } from './calendar-busy.js';
+export type {
+	BusyInterval,
+	RefreshResult,
+	UpcomingAppointment,
+	MarkSyncedFields
+} from './calendar-busy.js';
 
 export function openDb(path: string): Kysely<Database> {
 	if (path !== ':memory:') {
