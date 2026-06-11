@@ -44,5 +44,6 @@ export const validConfig: WhenConfiguration = {
 	database: {
 		app: './data/when.sqlite',
 		queue: './data/openworkflow.sqlite'
-	}
+	},
+	url: { app: 'localhost:3000' }
 };

@@ -41,9 +41,27 @@
 		"database": {
 			"$ref": "#/$defs/DatabaseConfig",
 			"default": {}
+		},
+		"url": {
+			"$ref": "#/$defs/Url",
+			"default": {}
 		}
 	},
 	"$defs": {
+		"Url": {
+			"title": "Url",
+			"description": "Public URLs for the app.",
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"app": {
+					"type": "string",
+					"description": "Public base URL of the app, used to build links in emails and calendar events.",
+					"minLength": 1,
+					"default": "localhost:3000"
+				}
+			}
+		},
 		"DatabaseConfig": {
 			"title": "DatabaseConfig",
 			"description": "On-disk SQLite paths. Relative paths resolve against this config file's directory, so web and worker (which load the same config.yaml) open the same files.",

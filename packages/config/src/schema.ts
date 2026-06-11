@@ -30,6 +30,7 @@ export interface WhenConfiguration {
    */
   event_types: [EventType, ...EventType[]];
   database: DatabaseConfig;
+  url: Url;
 }
 export interface OidcAuth {
   issuer: string;
@@ -169,4 +170,13 @@ export interface DatabaseConfig {
    * openworkflow job queue database.
    */
   queue: string;
+}
+/**
+ * Public URLs for the app.
+ */
+export interface Url {
+  /**
+   * Public base URL of the app, used to build links in emails and calendar events.
+   */
+  app: string;
 }
