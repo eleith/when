@@ -36,8 +36,7 @@ async function seed() {
 const input = {
 	kind: 'confirmed',
 	appointment: { id: 'appt-1' },
-	eventType: undefined,
-	links: { booked: '', cancel: '', reschedule: '', manage: '' }
+	eventType: undefined
 } as unknown as SendBookingEmailInput;
 
 describe('enqueueBookingEmail', () => {

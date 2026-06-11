@@ -52,13 +52,7 @@ describe('client singleton', () => {
 		const input: SendBookingEmailInput = {
 			kind: 'confirmed',
 			appointment,
-			eventType: undefined,
-			links: {
-				booked: 'https://when.example.com/booked/appt-1',
-				cancel: 'https://when.example.com/booked/appt-1?cancel=1',
-				reschedule: 'https://when.example.com/schedule/30-min',
-				manage: 'https://when.example.com/signin'
-			}
+			eventType: undefined
 		};
 
 		const handle = await getOpenWorkflow().runWorkflow(sendBookingEmail, input);

@@ -117,8 +117,7 @@ export async function rescheduleAppointment(
 	const appointment = await enqueueBookingEmail(deps.db, {
 		kind,
 		appointment: { ...updated, calendar_push_notification_status: calendarPush },
-		eventType,
-		links
+		eventType
 	});
 
 	return { ok: true, appointment };

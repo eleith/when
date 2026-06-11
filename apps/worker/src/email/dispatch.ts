@@ -8,6 +8,7 @@ import { bookingPending } from './builders/booking-pending.js';
 import { bookingRescheduledByAttendee } from './builders/booking-rescheduled-by-attendee.js';
 import { bookingRescheduledByOrganizer } from './builders/booking-rescheduled-by-organizer.js';
 import type { Envelope } from './recipients.js';
+import { bookingLinks } from './links.js';
 import type { BookingEmailInput } from './types.js';
 
 export function dispatch(input: SendBookingEmailInput, cfg: WhenConfiguration): Envelope[] {
@@ -15,7 +16,7 @@ export function dispatch(input: SendBookingEmailInput, cfg: WhenConfiguration): 
 		cfg,
 		appointment: input.appointment,
 		eventType: input.eventType,
-		links: input.links
+		links: bookingLinks(cfg.url.app, input.appointment, input.eventType)
 	};
 
 	switch (input.kind) {

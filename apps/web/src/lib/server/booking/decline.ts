@@ -1,6 +1,5 @@
 import type { Kysely } from 'kysely';
 import { resolveBookingActions } from './actions';
-import { bookingLinks } from './links';
 import { enqueueBookingEmail } from '../workflow';
 import { transitionStatus } from './status';
 import type { Clock } from '../clock';
@@ -50,12 +49,10 @@ export async function declineAppointment(
 	const row = transition.row;
 
 	// Decline never has a calendar effect — pending bookings aren't pushed.
-	const links = bookingLinks({ baseUrl: input.baseUrl, appointment: row, eventType });
 	const appointment = await enqueueBookingEmail(deps.db, {
 		kind: 'declined',
 		appointment: row,
-		eventType,
-		links
+		eventType
 	});
 
 	return { ok: true, appointment };

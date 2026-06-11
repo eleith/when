@@ -1,7 +1,6 @@
 export { sendBookingEmail, publishNow } from './specs.js';
 export type {
 	BookingEmailKind,
-	BookingLinks,
 	SendBookingEmailInput,
 	SendBookingEmailResult,
 	PublishNowInput,

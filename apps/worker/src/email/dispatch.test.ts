@@ -5,8 +5,7 @@ import { sampleInput } from './__fixtures__/booking.js';
 
 const base = {
 	appointment: sampleInput.appointment,
-	eventType: sampleInput.eventType,
-	links: sampleInput.links
+	eventType: sampleInput.eventType
 };
 const run = (kind: BookingEmailKind) => dispatch({ kind, ...base }, sampleInput.cfg);
 

@@ -104,7 +104,7 @@ export async function createAppointment(
 		calendar_push_notification_status: calendarPush
 	};
 
-	appointment = await enqueueBookingEmail(db, { kind, appointment, eventType, links });
+	appointment = await enqueueBookingEmail(db, { kind, appointment, eventType });
 
 	return { ok: true, appointment };
 }

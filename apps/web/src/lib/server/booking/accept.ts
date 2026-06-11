@@ -83,8 +83,7 @@ export async function acceptAppointment(
 	const appointment = await enqueueBookingEmail(deps.db, {
 		kind: 'confirmed',
 		appointment: row,
-		eventType,
-		links
+		eventType
 	});
 
 	return { ok: true, appointment };

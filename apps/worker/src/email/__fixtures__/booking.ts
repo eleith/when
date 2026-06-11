@@ -1,6 +1,6 @@
 import type { WhenConfiguration } from '@when/config';
 import type { Appointment } from '@when/db';
-import type { BookingLinks } from '@when/jobs';
+import type { BookingLinks } from '../links.js';
 import type { BookingEmailInput } from '../types.js';
 
 export const sampleAppointment: Appointment = {
@@ -34,7 +34,8 @@ export const sampleConfig = {
 		email: 'owner@acme.test',
 		timezone: 'America/New_York',
 		branding: { primary_color: '#2563eb' }
-	}
+	},
+	url: { app: 'https://when.example.com' }
 } as unknown as WhenConfiguration;
 
 export const sampleLinks: BookingLinks = {

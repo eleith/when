@@ -1,6 +1,5 @@
 import type { Kysely } from 'kysely';
 import { resolveBookingActions, type Viewer } from './actions';
-import { bookingLinks } from './links';
 import { enqueueBookingEmail } from '../workflow';
 import { transitionStatus } from './status';
 import { deleteAppointmentFromCalendar } from '@when/calendar';
@@ -77,12 +76,10 @@ export async function cancelAppointment(
 
 	const kind = input.initiator === 'organizer' ? 'cancelled-by-organizer' : 'cancelled-by-attendee';
 	const updated = { ...cancelled, calendar_push_notification_status: calendarPush };
-	const links = bookingLinks({ baseUrl: input.baseUrl, appointment: updated, eventType });
 	const appointment = await enqueueBookingEmail(deps.db, {
 		kind,
 		appointment: updated,
-		eventType,
-		links
+		eventType
 	});
 
 	return { ok: true, appointment };

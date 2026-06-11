@@ -14,8 +14,7 @@ import { runSendBookingEmail } from './send-booking-email.js';
 const input: SendBookingEmailInput = {
 	kind: 'confirmed',
 	appointment: sampleInput.appointment,
-	eventType: sampleInput.eventType,
-	links: sampleInput.links
+	eventType: sampleInput.eventType
 };
 
 function makeStep() {
