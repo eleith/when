@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { replaceState } from '$app/navigation';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { Temporal } from '@js-temporal/polyfill';
 	import IconArrowRight from 'virtual:icons/ph/arrow-right';
@@ -40,20 +39,6 @@
 	let viewSlot = $state<string | null>(null);
 	let viewDate = $state<string | null>(null);
 	let step = $state<1 | 2 | 3>(1);
-	let _init = $state(false);
-
-	$effect(() => {
-		if (_init) return;
-		viewSlot = data.selectedSlot;
-		if (viewSlot) step = 3;
-		_init = true;
-	});
-
-	$effect(() => {
-		if (!_init) return;
-		if (viewSlot) replaceState(`?slot=${encodeURIComponent(viewSlot)}`, {});
-		else replaceState('?', {});
-	});
 
 	let nameInput = $state<HTMLInputElement | null>(null);
 	let stepTitle = $derived(step === 1 ? 'Pick a day' : step === 2 ? 'Pick a time' : 'Your details');

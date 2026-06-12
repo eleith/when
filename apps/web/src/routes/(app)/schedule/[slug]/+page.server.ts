@@ -93,10 +93,6 @@ export const load: PageServerLoad = async ({ params, url }) => {
 		(slotsByDate[date] ??= []).push(s.toString());
 	}
 
-	const requestedSlot = url.searchParams.get('slot');
-	const selectedSlot =
-		requestedSlot && slots.some((s) => s.toString() === requestedSlot) ? requestedSlot : null;
-
 	const dates = candidateDates(nowInstant, rangeEnd, userTz);
 	const workingWindows: { start: string; end: string }[] = [];
 	for (const date of dates) {
@@ -126,7 +122,6 @@ export const load: PageServerLoad = async ({ params, url }) => {
 		slotsByDate,
 		workingWindows,
 		busyBlocks,
-		selectedSlot,
 		rescheduleAppt,
 		rescheduleError,
 		rescheduleToken: rescheduleToken ?? null
