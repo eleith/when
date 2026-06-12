@@ -1,5 +1,11 @@
 import { deleteAppointmentFromCalendar, pushAppointment, type FetchFn } from '@when/calendar';
-import { listOutOfSyncAppointments, markSynced, type Appointment } from '@when/db';
+import { Temporal } from '@js-temporal/polyfill';
+import {
+	listOutOfSyncAppointments,
+	markSynced,
+	recordPublishFailure,
+	type Appointment
+} from '@when/db';
 import type { WorkerContext } from '../services/context.js';
 import { bookingLinks } from '../links.js';
 
@@ -35,9 +41,11 @@ export async function reconcileAppointment(
 			await markSynced(ctx.db, row.id, revision, {
 				external_event_id: pushed.externalEventId,
 				external_calendar_id: pushed.externalCalendarId,
-				calendar_push_notification_status: 'ok'
+				calendar_push_notification_status: 'ok',
+				calendar_push_failing_since: null
 			});
 		} else {
+			await recordPublishFailure(ctx.db, row.id, Temporal.Now.instant().toString());
 			ctx.logger.error('calendar sync failed; will retry next scan', {
 				appointmentId: row.id,
 				reason: pushed.reason
@@ -57,9 +65,11 @@ export async function reconcileAppointment(
 			await markSynced(ctx.db, row.id, revision, {
 				external_event_id: null,
 				external_calendar_id: null,
-				calendar_push_notification_status: 'ok'
+				calendar_push_notification_status: 'ok',
+				calendar_push_failing_since: null
 			});
 		} else {
+			await recordPublishFailure(ctx.db, row.id, Temporal.Now.instant().toString());
 			ctx.logger.error('calendar delete failed; will retry next scan', {
 				appointmentId: row.id,
 				reason: deleted.reason

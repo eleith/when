@@ -9,7 +9,8 @@ import {
 	listUpcomingActiveAppointments,
 	setPossibleConflicts,
 	listOutOfSyncAppointments,
-	markSynced
+	markSynced,
+	recordPublishFailure
 } from './calendar-busy.js';
 
 async function freshDb() {
@@ -373,6 +374,35 @@ test('markSynced sets the synced revision and any provided fields, leaving other
 		expect(row.calendar_synced_revision).toBe(3);
 		expect(row.external_event_id).toBe('ext');
 		expect(row.calendar_push_notification_status).toBe('ok');
+	} finally {
+		await db.destroy();
+	}
+});
+
+test('recordPublishFailure stamps the first failure and keeps it across later failures', async () => {
+	const db = await freshDb();
+	try {
+		await db
+			.insertInto('appointments')
+			.values(appt({ id: 'a', calendar_revision: 1 }))
+			.execute();
+
+		await recordPublishFailure(db, 'a', '2026-05-01T10:00:00Z');
+		await recordPublishFailure(db, 'a', '2026-05-01T10:40:00Z');
+		const row = await db
+			.selectFrom('appointments')
+			.select('calendar_push_failing_since')
+			.where('id', '=', 'a')
+			.executeTakeFirstOrThrow();
+		expect(row.calendar_push_failing_since).toBe('2026-05-01T10:00:00Z');
+
+		await markSynced(db, 'a', 1, { calendar_push_failing_since: null });
+		const cleared = await db
+			.selectFrom('appointments')
+			.select('calendar_push_failing_since')
+			.where('id', '=', 'a')
+			.executeTakeFirstOrThrow();
+		expect(cleared.calendar_push_failing_since).toBeNull();
 	} finally {
 		await db.destroy();
 	}

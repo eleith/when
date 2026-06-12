@@ -81,6 +81,29 @@ test('confirmed without an external event is created and marked synced', async (
 	}
 });
 
+test('a failing publish stamps failing_since; a later success clears it', async () => {
+	const ctx = await ctxWith();
+	try {
+		await insert(ctx, { id: '1', cancel_token: 't1', calendar_revision: 1 });
+
+		await reconcileAppointment(ctx, await onlyRow(ctx), {
+			fetchImpl: recordingFetch(500).fetchImpl
+		});
+		let row = await rowById(ctx.db, '1');
+		expect(row.calendar_push_failing_since).not.toBeNull();
+		expect(row.calendar_synced_revision).toBeNull(); // still out of sync — will retry
+
+		await reconcileAppointment(ctx, await onlyRow(ctx), {
+			fetchImpl: recordingFetch(201).fetchImpl
+		});
+		row = await rowById(ctx.db, '1');
+		expect(row.calendar_push_failing_since).toBeNull();
+		expect(row.calendar_push_notification_status).toBe('ok');
+	} finally {
+		await ctx.db.destroy();
+	}
+});
+
 test('confirmed with an external event is updated', async () => {
 	const ctx = await ctxWith();
 	try {

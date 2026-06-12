@@ -35,7 +35,8 @@ export {
 	listUpcomingActiveAppointments,
 	setPossibleConflicts,
 	listOutOfSyncAppointments,
-	markSynced
+	markSynced,
+	recordPublishFailure
 } from './calendar-busy.js';
 export type {
 	BusyInterval,
