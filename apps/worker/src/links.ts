@@ -1,9 +1,8 @@
 import type { EventType } from '@when/config';
 import type { Appointment } from '@when/db';
 
-// Kept identical to web's booking/links.ts (we duplicate rather than share a
-// package, so mirror any edit there to here). The worker passes config.url.app
-// as baseUrl since it has no request to derive an origin from.
+// Builds web's booking action URLs. The worker has no incoming request to derive
+// an origin from, so it passes config.url.app as the base URL.
 
 export interface BookingLinks {
 	booked: string;
