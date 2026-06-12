@@ -12,6 +12,7 @@ import { logger } from '$lib/server/logger';
 import { getConfig, getDb } from '$lib/server/state';
 import { createAppointment } from '$lib/server/booking/create';
 import { classifyReschedule, rescheduleAppointment } from '$lib/server/booking/reschedule';
+import { bookingDeps } from '$lib/server/booking/deps';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params, url }) => {
@@ -210,15 +211,12 @@ export const actions: Actions = {
 
 		if (rescheduleRow) {
 			const end = start.add({ minutes: eventType.duration });
-			const result = await rescheduleAppointment(
-				{ db: getDb(), cfg, clock: systemClock },
-				{
-					appointment: rescheduleRow,
-					initiator: 'attendee',
-					newStart: start.toString(),
-					newEnd: end.toString()
-				}
-			);
+			const result = await rescheduleAppointment(bookingDeps(), {
+				appointment: rescheduleRow,
+				initiator: 'attendee',
+				newStart: start.toString(),
+				newEnd: end.toString()
+			});
 			if (!result.ok) {
 				if (result.reason === 'slot_taken') {
 					return fail(409, { error: 'That time was just taken. Please pick another.' });
@@ -232,16 +230,13 @@ export const actions: Actions = {
 
 		let created;
 		try {
-			created = await createAppointment(
-				{ db: getDb(), cfg, clock: systemClock },
-				{
-					eventType,
-					start: start.toString(),
-					end: end.toString(),
-					attendee: { name, email, notes: notes || null },
-					location: resolvedLocation
-				}
-			);
+			created = await createAppointment(bookingDeps(), {
+				eventType,
+				start: start.toString(),
+				end: end.toString(),
+				attendee: { name, email, notes: notes || null },
+				location: resolvedLocation
+			});
 		} catch (err) {
 			logger.error({ err, eventTypeId: eventType.id, slot: slotStr }, 'failed to insert booking');
 			return fail(500, { error: 'Could not save the booking. Please try again.' });

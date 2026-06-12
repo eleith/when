@@ -10,6 +10,7 @@ import type { Actions, PageServerLoad } from './$types';
 import { acceptAppointment } from '$lib/server/booking/accept';
 import { declineAppointment } from '$lib/server/booking/decline';
 import { cancelAppointment } from '$lib/server/booking/cancel';
+import { bookingDeps } from '$lib/server/booking/deps';
 
 type ClockStatus = 'upcoming' | 'in_progress' | 'concluded';
 
@@ -112,10 +113,7 @@ export const actions: Actions = {
 
 		if (!row) return fail(404, { error: 'Booking not found.' });
 
-		const result = await acceptAppointment(
-			{ db: getDb(), cfg: getConfig(), clock: systemClock },
-			{ appointment: row }
-		);
+		const result = await acceptAppointment(bookingDeps(), { appointment: row });
 		if (!result.ok) {
 			return fail(409, { error: 'This booking can no longer be accepted.' });
 		}
@@ -129,10 +127,7 @@ export const actions: Actions = {
 
 		if (!row) return fail(404, { error: 'Booking not found.' });
 
-		const result = await declineAppointment(
-			{ db: getDb(), cfg: getConfig(), clock: systemClock },
-			{ appointment: row }
-		);
+		const result = await declineAppointment(bookingDeps(), { appointment: row });
 		if (!result.ok) {
 			return fail(409, { error: 'This booking can no longer be declined.' });
 		}
@@ -162,10 +157,7 @@ export const actions: Actions = {
 			initiator = 'attendee';
 		}
 
-		const result = await cancelAppointment(
-			{ db: getDb(), cfg: getConfig(), clock: systemClock },
-			{ appointment: row, initiator }
-		);
+		const result = await cancelAppointment(bookingDeps(), { appointment: row, initiator });
 		if (!result.ok) {
 			return fail(409, { error: 'This booking can no longer be cancelled.' });
 		}
