@@ -1,4 +1,5 @@
 import { registerSendBookingEmailWorkflow } from './send-booking-email.js';
+import { registerSendOwnerAlertWorkflow } from './send-owner-alert.js';
 
 /**
  * Register every workflow implementation on the openworkflow singleton. Called
@@ -6,4 +7,5 @@ import { registerSendBookingEmailWorkflow } from './send-booking-email.js';
  */
 export function registerWorkflows(): void {
 	registerSendBookingEmailWorkflow();
+	registerSendOwnerAlertWorkflow();
 }

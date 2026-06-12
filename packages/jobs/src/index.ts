@@ -1,8 +1,11 @@
-export { sendBookingEmail, syncCalendars } from './specs.js';
+export { sendBookingEmail, sendOwnerAlert, syncCalendars } from './specs.js';
 export type {
 	BookingEmailKind,
 	SendBookingEmailInput,
 	SendBookingEmailResult,
+	OwnerAlertKind,
+	SendOwnerAlertInput,
+	SendOwnerAlertResult,
 	SyncCalendarsInput,
 	SyncCalendarsResult
 } from './specs.js';
