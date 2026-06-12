@@ -85,6 +85,21 @@ export async function evaluateHealth(
 		if (target) failingCalendars.add(target);
 	}
 
+	// A publish stuck past the threshold is no longer just "queued"; mark it failed
+	// so the admin chips reflect it (a later success resets it to ok in the scan).
+	if (failing.length > 0) {
+		await ctx.db
+			.updateTable('appointments')
+			.set({ calendar_push_notification_status: 'failed' })
+			.where(
+				'id',
+				'in',
+				failing.map((a) => a.id)
+			)
+			.where('calendar_push_notification_status', '=', 'queued')
+			.execute();
+	}
+
 	for (const status of await listCalendarSyncStatus(ctx.db)) {
 		const next = deriveHealth(status, failingCalendars.has(status.calendar_id), now, startedAt);
 		if (next.health === status.health) continue;

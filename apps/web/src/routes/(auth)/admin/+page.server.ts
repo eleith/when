@@ -2,7 +2,7 @@ import { signOutAction } from '$lib/server/auth';
 import { systemClock } from '$lib/server/clock';
 import { getConfig, getDb } from '$lib/server/state';
 import { notificationStates } from '$lib/notifications';
-import type { Appointment } from '@when/db';
+import { listCalendarSyncStatus, type Appointment } from '@when/db';
 import type { Actions, PageServerLoad } from './$types';
 
 type DisplayStatus =
@@ -47,7 +47,14 @@ export const load: PageServerLoad = async () => {
 		};
 	});
 
-	return { appointments };
+	const calendars = (await listCalendarSyncStatus(getDb())).map((s) => ({
+		id: s.calendar_id,
+		health: s.health,
+		reason: s.health_reason,
+		since: s.health_changed_at
+	}));
+
+	return { appointments, calendars };
 };
 
 export const actions: Actions = {

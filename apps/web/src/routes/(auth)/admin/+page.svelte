@@ -9,6 +9,7 @@
 	let { data } = $props();
 
 	let conflictCount = $derived(data.appointments.filter((a) => a.possible_conflict).length);
+	let badCalendars = $derived(data.calendars.filter((c) => c.health === 'bad'));
 
 	function fmt(iso: string): string {
 		return new Date(iso).toLocaleString([], {
@@ -50,6 +51,20 @@
 		<span>
 			{conflictCount} possible conflict{#if conflictCount !== 1}s{/if} — please review.
 		</span>
+	</div>
+{/if}
+
+{#if badCalendars.length > 0}
+	<div class="review-banner" role="alert">
+		<IconWarning class="review-icon" aria-hidden="true" />
+		<div class="health-banner-body">
+			<strong>Calendar sync problem.</strong>
+			<ul class="health-list">
+				{#each badCalendars as c (c.id)}
+					<li><span class="health-cal">{c.id}</span> — {c.reason ?? 'not syncing'}</li>
+				{/each}
+			</ul>
+		</div>
 	</div>
 {/if}
 
@@ -299,6 +314,26 @@
 		color: var(--warning);
 		font-weight: 600;
 		font-size: var(--font-size-sm);
+	}
+
+	.review-banner:has(.health-banner-body) {
+		align-items: flex-start;
+	}
+
+	.health-banner-body {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-1);
+	}
+
+	.health-list {
+		margin: 0;
+		padding-left: var(--space-4);
+		font-weight: 500;
+	}
+
+	.health-cal {
+		font-weight: 700;
 	}
 
 	.status-wrapper {

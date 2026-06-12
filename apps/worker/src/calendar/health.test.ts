@@ -108,6 +108,7 @@ test('a publish failing past the threshold makes the target calendar bad', async
 				appt({
 					id: '1',
 					external_calendar_id: 'work',
+					calendar_push_notification_status: 'queued',
 					calendar_push_failing_since: START.subtract({ minutes: 40 }).toString()
 				})
 			)
@@ -116,6 +117,14 @@ test('a publish failing past the threshold makes the target calendar bad', async
 		await evaluateHealth(ctx, { now: START.add({ minutes: 5 }), startedAt: START });
 		expect(await health(ctx, 'work')).toBe('bad');
 		expect(runWorkflow.mock.calls[0][1]).toMatchObject({ kind: 'broke' });
+
+		// the stuck publish is now surfaced as failed (not just queued)
+		const row = await ctx.db
+			.selectFrom('appointments')
+			.select('calendar_push_notification_status')
+			.where('id', '=', '1')
+			.executeTakeFirstOrThrow();
+		expect(row.calendar_push_notification_status).toBe('failed');
 	} finally {
 		await ctx.db.destroy();
 	}
