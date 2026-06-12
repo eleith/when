@@ -12,7 +12,7 @@ import { logger } from '$lib/server/logger';
 import { getConfig, getDb } from '$lib/server/state';
 import { createAppointment } from '$lib/server/booking/create';
 import { classifyReschedule, rescheduleAppointment } from '$lib/server/booking/reschedule';
-import { bookingDeps } from '$lib/server/booking/deps';
+import { bookingContext } from '$lib/server/booking/context';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params, url }) => {
@@ -211,7 +211,7 @@ export const actions: Actions = {
 
 		if (rescheduleRow) {
 			const end = start.add({ minutes: eventType.duration });
-			const result = await rescheduleAppointment(bookingDeps(), {
+			const result = await rescheduleAppointment(bookingContext(), {
 				appointment: rescheduleRow,
 				initiator: 'attendee',
 				newStart: start.toString(),
@@ -230,7 +230,7 @@ export const actions: Actions = {
 
 		let created;
 		try {
-			created = await createAppointment(bookingDeps(), {
+			created = await createAppointment(bookingContext(), {
 				eventType,
 				start: start.toString(),
 				end: end.toString(),

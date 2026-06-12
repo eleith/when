@@ -1,11 +1,10 @@
-import type { Kysely } from 'kysely';
 import { resolveBookingActions, type Viewer } from './actions';
 import { isRescheduleAllowed, isViewable } from './access';
 import { enqueueBookingEmail, enqueueCalendarSync } from '../workflow';
+import type { BookingContext } from './context';
 import { rescheduleBooking, type TransitionOutcome } from './transitions';
-import type { Clock } from '../clock';
-import type { EventType, WhenConfiguration } from '@when/config';
-import type { Appointment, Database } from '@when/db';
+import type { EventType } from '@when/config';
+import type { Appointment } from '@when/db';
 
 export type RescheduleErrorCode =
 	| 'token'
@@ -25,12 +24,6 @@ export interface ClassifyRescheduleInput {
 	existing: Appointment | undefined;
 	eventType: Pick<EventType, 'id' | 'minimum_notice'>;
 	now: Date;
-}
-
-export interface RescheduleAppointmentDeps {
-	db: Kysely<Database>;
-	cfg: WhenConfiguration;
-	clock: Clock;
 }
 
 export interface RescheduleAppointmentInput {
@@ -53,22 +46,22 @@ function isUniqueViolation(err: unknown): boolean {
 }
 
 export async function rescheduleAppointment(
-	deps: RescheduleAppointmentDeps,
+	ctx: BookingContext,
 	input: RescheduleAppointmentInput
 ): Promise<RescheduleAppointmentResult> {
-	const eventType = deps.cfg.event_types.find((e) => e.id === input.appointment.event_type_id);
+	const eventType = ctx.cfg.event_types.find((e) => e.id === input.appointment.event_type_id);
 
 	const gate = resolveBookingActions({
 		row: input.appointment,
 		viewer: input.initiator,
-		now: deps.clock.now(),
+		now: ctx.clock.now(),
 		eventType
 	}).reschedule;
 	if (!gate.allowed) return { ok: false, reason: 'gated' };
 
 	let result: TransitionOutcome;
 	try {
-		result = await rescheduleBooking(deps.db, input.appointment.id, {
+		result = await rescheduleBooking(ctx.db, input.appointment.id, {
 			newStart: input.newStart,
 			newEnd: input.newEnd
 		});
@@ -80,7 +73,7 @@ export async function rescheduleAppointment(
 
 	const kind =
 		input.initiator === 'organizer' ? 'rescheduled-by-organizer' : 'rescheduled-by-attendee';
-	const appointment = await enqueueBookingEmail(deps.db, input.appointment.id, kind);
+	const appointment = await enqueueBookingEmail(ctx.db, input.appointment.id, kind);
 	await enqueueCalendarSync();
 
 	return { ok: true, appointment };

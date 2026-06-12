@@ -1,15 +1,8 @@
-import type { Kysely } from 'kysely';
 import { enqueueBookingEmail, enqueueCalendarSync } from '../workflow';
-import type { Clock } from '../clock';
-import type { EventType, WhenConfiguration } from '@when/config';
-import type { Appointment, Database } from '@when/db';
+import type { BookingContext } from './context';
+import type { EventType } from '@when/config';
+import type { Appointment } from '@when/db';
 import type { BookingEmailKind } from '@when/jobs';
-
-export interface CreateAppointmentDeps {
-	db: Kysely<Database>;
-	cfg: WhenConfiguration;
-	clock: Clock;
-}
 
 export interface CreateAppointmentInput {
 	eventType: EventType;
@@ -32,7 +25,7 @@ function isUniqueViolation(err: unknown): boolean {
 }
 
 export async function createAppointment(
-	{ db }: CreateAppointmentDeps,
+	ctx: BookingContext,
 	input: CreateAppointmentInput
 ): Promise<CreateAppointmentResult> {
 	const id = `appt-${crypto.randomUUID()}`;
@@ -42,7 +35,7 @@ export async function createAppointment(
 
 	let appointment: Appointment;
 	try {
-		appointment = await db
+		appointment = await ctx.db
 			.insertInto('appointments')
 			.values({
 				id,
@@ -69,7 +62,7 @@ export async function createAppointment(
 	}
 
 	const kind: BookingEmailKind = status === 'confirmed' ? 'confirmed' : 'pending';
-	appointment = await enqueueBookingEmail(db, appointment.id, kind);
+	appointment = await enqueueBookingEmail(ctx.db, appointment.id, kind);
 	if (status === 'confirmed') await enqueueCalendarSync();
 
 	return { ok: true, appointment };
