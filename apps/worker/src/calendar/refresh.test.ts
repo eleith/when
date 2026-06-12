@@ -2,7 +2,7 @@ import { expect, test } from 'vitest';
 import { Temporal } from '@js-temporal/polyfill';
 import type { Calendar, WhenConfiguration } from '@when/config';
 import type { FetchFn } from '@when/calendar';
-import { openDb, runMigrations, replaceCalendarBusy } from '@when/db';
+import { openDb, runMigrations, replaceCalendarBusy, recordRefreshResult } from '@when/db';
 import type { Logger } from '../services/logger.js';
 import type { WorkerContext } from '../services/context.js';
 import {
@@ -177,6 +177,39 @@ test('refreshCalendars refreshes known conflict calendars and skips unknown ids'
 			.where('calendar_id', '=', 'ghost')
 			.execute();
 		expect(ghost).toHaveLength(0);
+	} finally {
+		await db.destroy();
+	}
+});
+
+test('refreshCalendars skips a calendar refreshed within its interval, refreshes once due', async () => {
+	const db = openDb(':memory:');
+	await runMigrations(db);
+	const ctx: WorkerContext = {
+		config: {
+			availability: {},
+			calendars: [{ ...workCal, sync: { refresh_interval: 30 } }],
+			event_types: [{ conflict_calendars: ['work'] }]
+		} as unknown as WhenConfiguration,
+		logger: silent,
+		db
+	};
+	try {
+		await recordRefreshResult(db, 'work', { at: window.start.toString() }); // succeeded just now
+
+		let fetched = false;
+		const fetchImpl: FetchFn = async () => {
+			fetched = true;
+			return new Response(oneEvent('r1'), { status: 207 });
+		};
+
+		// 10 min later, interval is 30 → not due, no provider call
+		await refreshCalendars(ctx, { fetchImpl, now: window.start.add({ minutes: 10 }) });
+		expect(fetched).toBe(false);
+
+		// past the interval → due, refreshes
+		await refreshCalendars(ctx, { fetchImpl, now: window.start.add({ minutes: 31 }) });
+		expect(fetched).toBe(true);
 	} finally {
 		await db.destroy();
 	}

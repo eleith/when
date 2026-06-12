@@ -9,12 +9,14 @@ import { createLogger, log } from './services/logger.js';
 import { registerWorkflows } from './workflows/index.js';
 import { registerSyncCalendarsWorkflow } from './workflows/sync-calendars.js';
 import { refreshCycle } from './calendar/refresh.js';
-import { createRefreshScheduler, refreshIntervalMinutes } from './calendar/scheduler.js';
+import { createRefreshScheduler } from './calendar/scheduler.js';
 import { scanOnce } from './calendar/sync.js';
 import { createCalendarSyncScanner } from './calendar/sync-scanner.js';
 
 const DEFAULT_PORT = 9000;
 const CALENDAR_SYNC_FLOOR_MS = 10 * 60_000;
+// Fixed tick; each calendar refreshes on its own interval, checked per tick.
+const REFRESH_TICK_MINUTES = 5;
 
 async function main(): Promise<void> {
 	const logger = createLogger();
@@ -59,12 +61,9 @@ async function main(): Promise<void> {
 
 	calendarSync.requestScan();
 
-	const refresh = createRefreshScheduler(
-		() => refreshCycle(ctx),
-		refreshIntervalMinutes(config) * 60_000
-	);
+	const refresh = createRefreshScheduler(() => refreshCycle(ctx), REFRESH_TICK_MINUTES * 60_000);
 	refresh.start();
-	logger.info('calendar refresh scheduled', { intervalMinutes: refreshIntervalMinutes(config) });
+	logger.info('calendar refresh scheduled', { tickMinutes: REFRESH_TICK_MINUTES });
 
 	const port = Number(process.env.PORT) || DEFAULT_PORT;
 	const server = createHealthServer();

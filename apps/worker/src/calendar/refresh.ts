@@ -2,12 +2,18 @@ import { Temporal } from '@js-temporal/polyfill';
 import type { Calendar, WhenConfiguration } from '@when/config';
 import type { ExpandWindow, FetchFn } from '@when/calendar';
 import { fetchBusyIntervals } from '@when/calendar';
-import { listOwnEventIds, recordRefreshResult, replaceCalendarBusy } from '@when/db';
+import {
+	listCalendarSyncStatus,
+	listOwnEventIds,
+	recordRefreshResult,
+	replaceCalendarBusy
+} from '@when/db';
 import type { WorkerContext } from '../services/context.js';
 import { flagConflicts } from './conflicts.js';
 import { evaluateHealth } from './health.js';
 
 const DEFAULT_MAX_LOOKAHEAD_DAYS = 60;
+export const DEFAULT_REFRESH_INTERVAL_MINUTES = 10;
 
 export interface RefreshOptions {
 	now?: Temporal.Instant;
@@ -72,14 +78,26 @@ export async function refreshCalendars(
 	opts: RefreshOptions = {}
 ): Promise<void> {
 	const now = opts.now ?? Temporal.Now.instant();
+	const statuses = await listCalendarSyncStatus(ctx.db);
+	const lastSuccess = new Map(statuses.map((s) => [s.calendar_id, s.last_successful_refresh_at]));
 	for (const id of conflictCalendarIds(ctx.config)) {
 		const cal = ctx.config.calendars.find((c) => c.id === id);
 		if (!cal) {
 			ctx.logger.warn('conflict_calendar id not found in calendars; skipping', { calendarId: id });
 			continue;
 		}
+		// Each calendar refreshes on its own interval; a never-synced or failing one
+		// (no recent success) is always due, so failures retry every tick.
+		if (!isDue(lastSuccess.get(id) ?? null, cal, now)) continue;
 		await refreshCalendar(ctx, cal, refreshWindow(ctx.config, id, now), { ...opts, now });
 	}
+}
+
+function isDue(lastSuccess: string | null, cal: Calendar, now: Temporal.Instant): boolean {
+	if (!lastSuccess) return true;
+	const interval = cal.sync?.refresh_interval ?? DEFAULT_REFRESH_INTERVAL_MINUTES;
+	const nextDue = Temporal.Instant.from(lastSuccess).add({ minutes: interval });
+	return Temporal.Instant.compare(now, nextDue) >= 0;
 }
 
 export async function refreshCycle(ctx: WorkerContext, opts: RefreshOptions = {}): Promise<void> {

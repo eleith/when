@@ -1,18 +1,3 @@
-import type { WhenConfiguration } from '@when/config';
-import { conflictCalendarIds } from './refresh.js';
-
-const DEFAULT_REFRESH_INTERVAL_MINUTES = 10;
-
-export function refreshIntervalMinutes(config: WhenConfiguration): number {
-	const ids = new Set(conflictCalendarIds(config));
-	let min = Infinity;
-	for (const cal of config.calendars) {
-		if (!ids.has(cal.id)) continue;
-		min = Math.min(min, cal.sync?.refresh_interval ?? DEFAULT_REFRESH_INTERVAL_MINUTES);
-	}
-	return Number.isFinite(min) ? min : DEFAULT_REFRESH_INTERVAL_MINUTES;
-}
-
 export interface RefreshScheduler {
 	start(): void;
 	stop(): void;
