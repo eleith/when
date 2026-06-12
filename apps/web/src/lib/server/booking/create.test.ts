@@ -19,8 +19,7 @@ const input = {
 	start: '2099-01-01T15:00:00Z',
 	end: '2099-01-01T15:30:00Z',
 	attendee: { name: 'Booker', email: 'booker@example.com', notes: null },
-	location: null,
-	baseUrl: 'https://when.example.com'
+	location: null
 };
 
 describe('createAppointment', () => {

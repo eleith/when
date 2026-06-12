@@ -14,7 +14,6 @@ export interface AcceptAppointmentDeps {
 
 export interface AcceptAppointmentInput {
 	appointment: Appointment;
-	baseUrl: string;
 }
 
 export type AcceptAppointmentResult =

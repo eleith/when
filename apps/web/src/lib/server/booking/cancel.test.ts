@@ -61,7 +61,7 @@ describe('cancelAppointment', () => {
 
 			const result = await cancelAppointment(
 				{ db, cfg: validConfig, clock: systemClock },
-				{ appointment: row, initiator: 'attendee', baseUrl: 'https://when.example.com' }
+				{ appointment: row, initiator: 'attendee' }
 			);
 
 			expect(result.ok).toBe(true);
@@ -94,7 +94,7 @@ describe('cancelAppointment', () => {
 
 			const result = await cancelAppointment(
 				{ db, cfg: validConfig, clock: systemClock },
-				{ appointment: row, initiator: 'attendee', baseUrl: 'https://when.example.com' }
+				{ appointment: row, initiator: 'attendee' }
 			);
 
 			expect(result).toEqual({ ok: false, reason: 'gated' });
@@ -124,7 +124,7 @@ describe('cancelAppointment', () => {
 			// owns the CAS and reports the conflict.
 			const result = await cancelAppointment(
 				{ db, cfg: validConfig, clock: systemClock },
-				{ appointment: row, initiator: 'attendee', baseUrl: 'https://when.example.com' }
+				{ appointment: row, initiator: 'attendee' }
 			);
 
 			expect(result).toEqual({ ok: false, reason: 'conflict' });

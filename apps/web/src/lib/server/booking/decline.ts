@@ -14,7 +14,6 @@ export interface DeclineAppointmentDeps {
 
 export interface DeclineAppointmentInput {
 	appointment: Appointment;
-	baseUrl: string;
 }
 
 export type DeclineAppointmentResult =

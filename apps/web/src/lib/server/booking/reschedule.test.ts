@@ -236,8 +236,7 @@ describe('rescheduleAppointment', () => {
 					appointment: row,
 					initiator: 'attendee',
 					newStart: '2099-01-02T10:00:00Z',
-					newEnd: '2099-01-02T10:30:00Z',
-					baseUrl: 'https://when.example.com'
+					newEnd: '2099-01-02T10:30:00Z'
 				}
 			);
 
@@ -275,8 +274,7 @@ describe('rescheduleAppointment', () => {
 					appointment: row,
 					initiator: 'attendee',
 					newStart: '2099-01-02T10:00:00Z',
-					newEnd: '2099-01-02T10:30:00Z',
-					baseUrl: 'https://when.example.com'
+					newEnd: '2099-01-02T10:30:00Z'
 				}
 			);
 			expect(result).toEqual({ ok: false, reason: 'gated' });
@@ -313,8 +311,7 @@ describe('rescheduleAppointment', () => {
 					appointment: row,
 					initiator: 'attendee',
 					newStart: '2099-02-01T10:00:00Z',
-					newEnd: '2099-02-01T10:30:00Z',
-					baseUrl: 'https://when.example.com'
+					newEnd: '2099-02-01T10:30:00Z'
 				}
 			);
 			expect(result).toEqual({ ok: false, reason: 'slot_taken' });
@@ -349,8 +346,7 @@ describe('rescheduleAppointment', () => {
 					appointment: row,
 					initiator: 'attendee',
 					newStart: '2099-01-02T10:00:00Z',
-					newEnd: '2099-01-02T10:30:00Z',
-					baseUrl: 'https://when.example.com'
+					newEnd: '2099-01-02T10:30:00Z'
 				}
 			);
 			expect(result).toEqual({ ok: false, reason: 'conflict' });

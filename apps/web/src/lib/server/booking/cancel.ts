@@ -15,8 +15,6 @@ export interface CancelAppointmentDeps {
 export interface CancelAppointmentInput {
 	appointment: Appointment;
 	initiator: Viewer;
-	/** Origin (e.g. `https://when.example.com`) used to build URLs in notify ctx. */
-	baseUrl: string;
 }
 
 export type CancelAppointmentResult =

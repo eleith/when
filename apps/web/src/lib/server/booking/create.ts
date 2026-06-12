@@ -19,7 +19,6 @@ export interface CreateAppointmentInput {
 	end: string;
 	attendee: { name: string; email: string; notes: string | null };
 	location: string | null;
-	baseUrl: string;
 }
 
 export type CreateAppointmentResult =

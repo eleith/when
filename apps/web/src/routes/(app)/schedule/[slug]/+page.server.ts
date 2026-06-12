@@ -137,7 +137,7 @@ export const load: PageServerLoad = async ({ params, url }) => {
 };
 
 export const actions: Actions = {
-	book: async ({ request, params, url }) => {
+	book: async ({ request, params }) => {
 		const cfg = getConfig();
 		const eventType = cfg.event_types.find((e) => e.slug === params.slug);
 		if (!eventType) error(404);
@@ -224,8 +224,7 @@ export const actions: Actions = {
 					appointment: rescheduleRow,
 					initiator: 'attendee',
 					newStart: start.toString(),
-					newEnd: end.toString(),
-					baseUrl: url.origin
+					newEnd: end.toString()
 				}
 			);
 			if (!result.ok) {
@@ -248,8 +247,7 @@ export const actions: Actions = {
 					start: start.toString(),
 					end: end.toString(),
 					attendee: { name, email, notes: notes || null },
-					location: resolvedLocation,
-					baseUrl: url.origin
+					location: resolvedLocation
 				}
 			);
 		} catch (err) {

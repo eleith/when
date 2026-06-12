@@ -40,7 +40,6 @@ export interface RescheduleAppointmentInput {
 	newStart: string;
 	/** New end_time as ISO instant. */
 	newEnd: string;
-	baseUrl: string;
 }
 
 export type RescheduleAppointmentResult =

@@ -109,7 +109,7 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 };
 
 export const actions: Actions = {
-	accept: async ({ params, url, locals }) => {
+	accept: async ({ params, locals }) => {
 		if (!(await locals.auth())) return fail(403, { error: 'Not authorized.' });
 
 		const row = await getDb()
@@ -122,7 +122,7 @@ export const actions: Actions = {
 
 		const result = await acceptAppointment(
 			{ db: getDb(), cfg: getConfig(), clock: systemClock },
-			{ appointment: row, baseUrl: url.origin }
+			{ appointment: row }
 		);
 		if (!result.ok) {
 			return fail(409, { error: 'This booking can no longer be accepted.' });
@@ -130,7 +130,7 @@ export const actions: Actions = {
 		return { success: 'accepted' };
 	},
 
-	decline: async ({ params, url, locals }) => {
+	decline: async ({ params, locals }) => {
 		if (!(await locals.auth())) return fail(403, { error: 'Not authorized.' });
 
 		const row = await getDb()
@@ -143,7 +143,7 @@ export const actions: Actions = {
 
 		const result = await declineAppointment(
 			{ db: getDb(), cfg: getConfig(), clock: systemClock },
-			{ appointment: row, baseUrl: url.origin }
+			{ appointment: row }
 		);
 		if (!result.ok) {
 			return fail(409, { error: 'This booking can no longer be declined.' });
@@ -154,7 +154,7 @@ export const actions: Actions = {
 	// Cancellation is shared by the organizer (authenticated) and the attendee
 	// (token-bearing). The session decides the initiator; without one a valid
 	// cancel_token is required.
-	cancel: async ({ params, url, request, locals }) => {
+	cancel: async ({ params, request, locals }) => {
 		const session = await locals.auth();
 
 		const row = await getDb()
@@ -180,7 +180,7 @@ export const actions: Actions = {
 
 		const result = await cancelAppointment(
 			{ db: getDb(), cfg: getConfig(), clock: systemClock },
-			{ appointment: row, initiator, baseUrl: url.origin }
+			{ appointment: row, initiator }
 		);
 		if (!result.ok) {
 			return fail(409, { error: 'This booking can no longer be cancelled.' });

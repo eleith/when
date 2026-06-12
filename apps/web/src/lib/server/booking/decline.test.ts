@@ -50,7 +50,7 @@ describe('declineAppointment', () => {
 
 			const result = await declineAppointment(
 				{ db, cfg: validConfig, clock: systemClock },
-				{ appointment: row, baseUrl: 'https://when.example.com' }
+				{ appointment: row }
 			);
 
 			expect(result.ok).toBe(true);
@@ -80,7 +80,7 @@ describe('declineAppointment', () => {
 
 			const result = await declineAppointment(
 				{ db, cfg: validConfig, clock: systemClock },
-				{ appointment: row, baseUrl: 'https://when.example.com' }
+				{ appointment: row }
 			);
 			expect(result).toEqual({ ok: false, reason: 'gated' });
 		} finally {
@@ -104,7 +104,7 @@ describe('declineAppointment', () => {
 
 			const result = await declineAppointment(
 				{ db, cfg: validConfig, clock: systemClock },
-				{ appointment: row, baseUrl: 'https://when.example.com' }
+				{ appointment: row }
 			);
 			expect(result).toEqual({ ok: false, reason: 'conflict' });
 		} finally {
