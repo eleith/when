@@ -176,7 +176,7 @@ export interface DatabaseConfig {
  */
 export interface Url {
   /**
-   * Public base URL of the app, used to build links in emails and calendar events.
+   * Public base URL of the app (include the scheme), used to build links in emails and calendar events.
    */
   app: string;
 }

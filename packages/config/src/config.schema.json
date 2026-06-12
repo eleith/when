@@ -51,9 +51,9 @@
 			"properties": {
 				"app": {
 					"type": "string",
-					"description": "Public base URL of the app, used to build links in emails and calendar events.",
+					"description": "Public base URL of the app (include the scheme), used to build links in emails and calendar events.",
 					"minLength": 1,
-					"default": "localhost:3000"
+					"default": "http://localhost:5173"
 				}
 			}
 		},
