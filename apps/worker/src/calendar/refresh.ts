@@ -11,9 +11,9 @@ import {
 import type { WorkerContext } from '../services/context.js';
 import { flagConflicts } from './conflicts.js';
 import { evaluateHealth } from './health.js';
+import { DEFAULT_REFRESH_INTERVAL_MINUTES } from './intervals.js';
 
 const DEFAULT_MAX_LOOKAHEAD_DAYS = 60;
-export const DEFAULT_REFRESH_INTERVAL_MINUTES = 10;
 
 export interface RefreshOptions {
 	now?: Temporal.Instant;

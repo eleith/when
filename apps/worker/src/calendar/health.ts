@@ -8,9 +8,12 @@ import {
 } from '@when/db';
 import { getOpenWorkflow, sendOwnerAlert } from '@when/jobs';
 import type { WorkerContext } from '../services/context.js';
+import { DEFAULT_REFRESH_INTERVAL_MINUTES } from './intervals.js';
 
 // Surface breakage only past these windows; it clears the moment a cycle succeeds.
-const READ_STALE = Temporal.Duration.from({ minutes: 60 });
+// Read staleness is relative to each calendar's own refresh interval (+ grace), so
+// a healthy slow calendar isn't flagged just for refreshing infrequently.
+const STALE_GRACE_MINUTES = 30;
 const PUBLISH_FAILING = Temporal.Duration.from({ minutes: 30 });
 // A never-synced calendar stays `unknown` this long after boot before it can go
 // `bad`, so a normal startup doesn't false-alarm.
@@ -37,7 +40,8 @@ function deriveHealth(
 	status: CalendarSyncStatus,
 	writeFailing: boolean,
 	now: Temporal.Instant,
-	startedAt: Temporal.Instant
+	startedAt: Temporal.Instant,
+	intervalMinutes: number
 ): Derived {
 	if (writeFailing) {
 		return {
@@ -46,7 +50,8 @@ function deriveHealth(
 		};
 	}
 	if (status.last_successful_refresh_at) {
-		if (isAfter(now, Temporal.Instant.from(status.last_successful_refresh_at), READ_STALE)) {
+		const staleAfter = Temporal.Duration.from({ minutes: intervalMinutes + STALE_GRACE_MINUTES });
+		if (isAfter(now, Temporal.Instant.from(status.last_successful_refresh_at), staleAfter)) {
 			return {
 				health: 'bad',
 				reason: `No successful refresh since ${status.last_successful_refresh_at}.`
@@ -100,8 +105,18 @@ export async function evaluateHealth(
 			.execute();
 	}
 
-	for (const status of await listCalendarSyncStatus(ctx.db)) {
-		const next = deriveHealth(status, failingCalendars.has(status.calendar_id), now, startedAt);
+	const statuses = await listCalendarSyncStatus(ctx.db);
+	for (const status of statuses) {
+		const interval =
+			ctx.config.calendars.find((c) => c.id === status.calendar_id)?.sync?.refresh_interval ??
+			DEFAULT_REFRESH_INTERVAL_MINUTES;
+		const next = deriveHealth(
+			status,
+			failingCalendars.has(status.calendar_id),
+			now,
+			startedAt,
+			interval
+		);
 		if (next.health === status.health) continue;
 
 		// Enqueue the alert (a durable job) BEFORE flipping, so a crash in between

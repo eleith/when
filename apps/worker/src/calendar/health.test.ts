@@ -15,15 +15,16 @@ import { evaluateHealth } from './health.js';
 
 const silent: Logger = { debug() {}, info() {}, warn() {}, error() {} };
 const config = {
+	calendars: [{ id: 'work' }],
 	event_types: [{ id: 'chat', destination_calendar: 'work' }]
 } as unknown as WhenConfiguration;
 
 const START = Temporal.Instant.from('2026-05-01T00:00:00Z');
 
-async function ctxWith(): Promise<WorkerContext> {
+async function ctxWith(cfg: WhenConfiguration = config): Promise<WorkerContext> {
 	const db = openDb(':memory:');
 	await runMigrations(db);
-	return { config, logger: silent, db };
+	return { config: cfg, logger: silent, db };
 }
 
 const health = (ctx: WorkerContext, id: string) =>
@@ -125,6 +126,27 @@ test('a publish failing past the threshold makes the target calendar bad', async
 			.where('id', '=', '1')
 			.executeTakeFirstOrThrow();
 		expect(row.calendar_push_notification_status).toBe('failed');
+	} finally {
+		await ctx.db.destroy();
+	}
+});
+
+test('staleness is relative to each calendar interval — a slow calendar is not flagged at its interval', async () => {
+	const slowConfig = {
+		calendars: [{ id: 'work', sync: { refresh_interval: 60 } }],
+		event_types: []
+	} as unknown as WhenConfiguration;
+	const ctx = await ctxWith(slowConfig);
+	try {
+		await recordRefreshResult(ctx.db, 'work', { at: START.toString() });
+
+		// 70 min on: a flat 60-min threshold would flag this, but interval(60)+grace(30) → still good
+		await evaluateHealth(ctx, { now: START.add({ minutes: 70 }), startedAt: START });
+		expect(await health(ctx, 'work')).toBe('good');
+
+		// past interval + grace (90 min) → bad
+		await evaluateHealth(ctx, { now: START.add({ minutes: 100 }), startedAt: START });
+		expect(await health(ctx, 'work')).toBe('bad');
 	} finally {
 		await ctx.db.destroy();
 	}
