@@ -9,9 +9,7 @@ when:
       include:
         - ".woodpecker/worker.yml"
         - "apps/worker/**"
-        - "packages/config/**"
-        - "packages/db/**"
-        - "packages/jobs/**"
+        - "packages/**"
         - "package.json"
         - "pnpm-workspace.yaml"
         - "pnpm-lock.yaml"
@@ -24,7 +22,7 @@ steps:
     commands:
       - corepack enable
       - pnpm install --frozen-lockfile
-      - pnpm --filter @when/config --filter @when/db --filter @when/jobs build
+      - pnpm build:packages
 
   lint:
     image: node:24
