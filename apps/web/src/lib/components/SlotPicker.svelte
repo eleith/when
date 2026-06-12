@@ -722,12 +722,28 @@
 		background: var(--primary-muted);
 	}
 
+	.calendar-panel :global(.cal-day[data-today]:not([data-selected])::after) {
+		content: '';
+		position: absolute;
+		bottom: var(--space-3);
+		left: 50%;
+		transform: translateX(-50%);
+		width: var(--space-2);
+		height: var(--space-2);
+		border-radius: 50%;
+		background: var(--border-strong);
+	}
+
 	.calendar-panel :global(.cal-day[data-selected]) {
 		background: var(--primary-muted);
 		color: var(--primary);
 	}
 
-	.calendar-panel :global(.cal-day[data-focused]) {
+	.calendar-panel :global(.cal-day[data-selected][data-today]::after) {
+		background: var(--primary);
+	}
+
+	.calendar-panel :global(.cal-day:focus-visible) {
 		outline: 2px solid var(--primary);
 		outline-offset: -2px;
 	}
