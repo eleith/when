@@ -97,13 +97,12 @@
 		}
 		return set;
 	});
-	let firstDate = $derived([...availableDates].sort()[0] ?? null);
-
 	let _init = $state(false);
 	$effect(() => {
 		if (_init) return;
-		if (viewDate == null) {
-			viewDate = selectedSlot?.slice(0, 10) ?? firstDate;
+
+		if (viewDate == null && selectedSlot) {
+			viewDate = selectedSlot.slice(0, 10);
 		}
 		_init = true;
 	});
@@ -723,25 +722,9 @@
 		background: var(--primary-muted);
 	}
 
-	.calendar-panel :global(.cal-day[data-today]:not([data-selected])::after) {
-		content: '';
-		position: absolute;
-		bottom: var(--space-1);
-		left: 50%;
-		transform: translateX(-50%);
-		width: var(--space-2);
-		height: var(--space-2);
-		border-radius: 50%;
-		background: var(--border-strong);
-	}
-
 	.calendar-panel :global(.cal-day[data-selected]) {
 		background: var(--primary-muted);
 		color: var(--primary);
-	}
-
-	.calendar-panel :global(.cal-day[data-selected][data-today]::after) {
-		background: var(--primary);
 	}
 
 	.calendar-panel :global(.cal-day[data-focused]) {
