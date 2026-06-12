@@ -47,7 +47,8 @@ export const load: PageServerLoad = async () => {
 		};
 	});
 
-	const calendars = (await listCalendarSyncStatus(getDb())).map((s) => ({
+	const syncStatus = await listCalendarSyncStatus(getDb());
+	const calendars = syncStatus.map((s) => ({
 		id: s.calendar_id,
 		health: s.health,
 		reason: s.health_reason,
