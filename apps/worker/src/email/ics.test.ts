@@ -24,7 +24,7 @@ describe('ics', () => {
 
 	test('requestIcs and cancelIcs produce .ics attachments', () => {
 		const req = requestIcs(sampleInput, sampleInput.links.booked);
-		expect(req.filename).toBe('appt-1.ics');
+		expect(req.filename).toBe('invite.ics');
 		expect(req.contentType).toMatch(/text\/calendar/);
 		expect(req.content).toContain('METHOD:REQUEST');
 

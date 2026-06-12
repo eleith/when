@@ -23,7 +23,6 @@ describe('renderHtmlBody', () => {
 		expect(html).toContain('Thanks for booking.');
 		expect(html).toContain('30 min chat');
 		expect(html).not.toContain('>Where<');
-		expect(html).toContain('Powered by When');
 		expect(html).not.toContain('mso-padding-alt');
 	});
 

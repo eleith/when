@@ -113,7 +113,7 @@
 									<a href="<%= it.footerHref %>" style="color: <%= it.brand.primaryColor %>;"
 										>View this booking</a
 									><br />
-									<% } %> <%= it.brand.name %> &middot; Powered by When
+									<% } %> <%= it.brand.name %>
 								</p>
 							</td>
 						</tr>

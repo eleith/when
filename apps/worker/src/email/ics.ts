@@ -75,7 +75,7 @@ function buildDescription(appointment: Appointment, cancelUrl: string): string {
 
 function icsAttachment(input: IcsInput): Attachment {
 	return {
-		filename: `${input.appointment.id}.ics`,
+		filename: 'invite.ics',
 		content: buildIcs(input),
 		contentType: 'text/calendar; charset=utf-8'
 	};

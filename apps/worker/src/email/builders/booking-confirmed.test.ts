@@ -15,8 +15,7 @@ describe('bookingConfirmed', () => {
 		expect(html).toContain('Zoom');
 		expect(html).toContain(sampleInput.links.reschedule);
 		expect(html).toContain('#2563eb');
-		expect(html).toContain('Powered by When');
-		expect(attendee.attachments?.[0].filename).toBe('appt-1.ics');
+		expect(attendee.attachments?.[0].filename).toBe('invite.ics');
 
 		expect(attendee.text.startsWith('Your booking is confirmed.\n\nWhat: 30-min\nWhen: ')).toBe(
 			true
