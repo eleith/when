@@ -35,7 +35,8 @@ export const sampleConfig = {
 		timezone: 'America/New_York',
 		branding: { primary_color: '#2563eb' }
 	},
-	url: { app: 'https://when.example.com' }
+	url: { app: 'https://when.example.com' },
+	event_types: []
 } as unknown as WhenConfiguration;
 
 export const sampleLinks: BookingLinks = {

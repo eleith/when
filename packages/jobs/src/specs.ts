@@ -1,6 +1,5 @@
 import { defineWorkflowSpec, type Workflow } from 'openworkflow';
 import type { Appointment } from '@when/db';
-import type { EventType } from '@when/config';
 
 /**
  * openworkflow exports `Workflow` but not the bare `WorkflowSpec` type, so the
@@ -25,13 +24,12 @@ export type BookingEmailKind =
 
 /**
  * Self-contained input for a send-booking-email run. Carries the appointment
- * snapshot; the worker supplies `cfg` from its own loaded config and builds the
- * action links from it.
+ * snapshot; the worker supplies `cfg` from its own loaded config and derives the
+ * event type + action links from it.
  */
 export interface SendBookingEmailInput {
 	kind: BookingEmailKind;
 	appointment: Appointment;
-	eventType: EventType | undefined;
 }
 
 export type SendBookingEmailResult = 'sent' | 'skipped';

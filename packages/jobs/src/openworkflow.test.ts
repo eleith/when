@@ -51,8 +51,7 @@ describe('client singleton', () => {
 	test('the client can enqueue a run (producer-only path)', async () => {
 		const input: SendBookingEmailInput = {
 			kind: 'confirmed',
-			appointment,
-			eventType: undefined
+			appointment
 		};
 
 		const handle = await getOpenWorkflow().runWorkflow(sendBookingEmail, input);

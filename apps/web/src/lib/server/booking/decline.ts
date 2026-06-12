@@ -1,7 +1,7 @@
 import type { Kysely } from 'kysely';
 import { resolveBookingActions } from './actions';
 import { enqueueBookingEmail } from '../workflow';
-import { transitionStatus } from './status';
+import { declineBooking } from './transitions';
 import type { Clock } from '../clock';
 import type { WhenConfiguration } from '@when/config';
 import type { Appointment, Database } from '@when/db';
@@ -35,25 +35,11 @@ export async function declineAppointment(
 	}).decline;
 	if (!gate.allowed) return { ok: false, reason: 'gated' };
 
-	const transition = await transitionStatus(
-		{ db: deps.db, clock: deps.clock },
-		{
-			id: input.appointment.id,
-			from: ['pending'],
-			to: 'declined',
-			patch: { email_notification_status: null, calendar_push_notification_status: null }
-		}
-	);
-	if (!transition.ok) return { ok: false, reason: 'conflict' };
+	// Decline never touches the calendar (pending bookings aren't synced), so no sync.
+	const result = await declineBooking(deps.db, input.appointment.id);
+	if (!result.ok) return { ok: false, reason: 'conflict' };
 
-	const row = transition.row;
-
-	// Decline never has a calendar effect — pending bookings aren't pushed.
-	const appointment = await enqueueBookingEmail(deps.db, {
-		kind: 'declined',
-		appointment: row,
-		eventType
-	});
+	const appointment = await enqueueBookingEmail(deps.db, input.appointment.id, 'declined');
 
 	return { ok: true, appointment };
 }

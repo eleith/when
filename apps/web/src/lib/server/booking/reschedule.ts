@@ -2,7 +2,7 @@ import type { Kysely } from 'kysely';
 import { resolveBookingActions, type Viewer } from './actions';
 import { isRescheduleAllowed, isViewable } from './access';
 import { enqueueBookingEmail, enqueueCalendarSync } from '../workflow';
-import { transitionStatus } from './status';
+import { rescheduleBooking, type TransitionOutcome } from './transitions';
 import type { Clock } from '../clock';
 import type { EventType, WhenConfiguration } from '@when/config';
 import type { Appointment, Database } from '@when/db';
@@ -67,37 +67,21 @@ export async function rescheduleAppointment(
 	}).reschedule;
 	if (!gate.allowed) return { ok: false, reason: 'gated' };
 
-	let transition: Awaited<ReturnType<typeof transitionStatus>>;
+	let result: TransitionOutcome;
 	try {
-		transition = await transitionStatus(
-			{ db: deps.db, clock: deps.clock },
-			{
-				id: input.appointment.id,
-				from: ['pending', 'confirmed'],
-				to: input.appointment.status,
-				patch: {
-					start_time: input.newStart,
-					end_time: input.newEnd,
-					ics_sequence: input.appointment.ics_sequence + 1,
-					email_notification_status: null,
-					calendar_push_notification_status: 'queued'
-				},
-				bumpCalendarRevision: true
-			}
-		);
+		result = await rescheduleBooking(deps.db, input.appointment.id, {
+			newStart: input.newStart,
+			newEnd: input.newEnd
+		});
 	} catch (err) {
 		if (isUniqueViolation(err)) return { ok: false, reason: 'slot_taken' };
 		throw err;
 	}
-	if (!transition.ok) return { ok: false, reason: 'conflict' };
+	if (!result.ok) return { ok: false, reason: 'conflict' };
 
 	const kind =
 		input.initiator === 'organizer' ? 'rescheduled-by-organizer' : 'rescheduled-by-attendee';
-	const appointment = await enqueueBookingEmail(deps.db, {
-		kind,
-		appointment: transition.row,
-		eventType
-	});
+	const appointment = await enqueueBookingEmail(deps.db, input.appointment.id, kind);
 	await enqueueCalendarSync();
 
 	return { ok: true, appointment };

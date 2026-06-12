@@ -34,7 +34,9 @@ async function fetchRow(db: Awaited<ReturnType<typeof makeDb>>, id: string) {
 describe('acceptAppointment', () => {
 	beforeEach(() => {
 		vi.mocked(enqueueBookingEmail).mockReset();
-		vi.mocked(enqueueBookingEmail).mockImplementation(async (_db, input) => input.appointment);
+		vi.mocked(enqueueBookingEmail).mockImplementation((db, id) =>
+			db.selectFrom('appointments').selectAll().where('id', '=', id).executeTakeFirstOrThrow()
+		);
 		vi.mocked(enqueueCalendarSync).mockReset();
 	});
 
@@ -62,7 +64,8 @@ describe('acceptAppointment', () => {
 				expect(enqueueCalendarSync).toHaveBeenCalledTimes(1);
 				expect(enqueueBookingEmail).toHaveBeenCalledWith(
 					expect.anything(),
-					expect.objectContaining({ kind: 'confirmed' })
+					expect.any(String),
+					'confirmed'
 				);
 			}
 		} finally {

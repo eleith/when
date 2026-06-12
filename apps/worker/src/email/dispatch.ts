@@ -12,15 +12,12 @@ import { bookingLinks } from '../links.js';
 import type { BookingEmailInput } from './types.js';
 
 export function dispatch(input: SendBookingEmailInput, cfg: WhenConfiguration): Envelope[] {
+	const eventType = cfg.event_types.find((e) => e.id === input.appointment.event_type_id);
 	const i: BookingEmailInput = {
 		cfg,
 		appointment: input.appointment,
-		eventType: input.eventType,
-		links: bookingLinks({
-			baseUrl: cfg.url.app,
-			appointment: input.appointment,
-			eventType: input.eventType
-		})
+		eventType,
+		links: bookingLinks({ baseUrl: cfg.url.app, appointment: input.appointment, eventType })
 	};
 
 	switch (input.kind) {

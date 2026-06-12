@@ -34,7 +34,9 @@ async function fetchRow(db: Awaited<ReturnType<typeof makeDb>>, id: string) {
 describe('declineAppointment', () => {
 	beforeEach(() => {
 		vi.mocked(enqueueBookingEmail).mockReset();
-		vi.mocked(enqueueBookingEmail).mockImplementation(async (_db, input) => input.appointment);
+		vi.mocked(enqueueBookingEmail).mockImplementation((db, id) =>
+			db.selectFrom('appointments').selectAll().where('id', '=', id).executeTakeFirstOrThrow()
+		);
 	});
 
 	test('happy path: pending → declined', async () => {
@@ -58,7 +60,8 @@ describe('declineAppointment', () => {
 				expect(persisted.status).toBe('declined');
 				expect(enqueueBookingEmail).toHaveBeenCalledWith(
 					expect.anything(),
-					expect.objectContaining({ kind: 'declined' })
+					expect.any(String),
+					'declined'
 				);
 			}
 		} finally {

@@ -70,7 +70,7 @@ export async function createAppointment(
 	}
 
 	const kind: BookingEmailKind = status === 'confirmed' ? 'confirmed' : 'pending';
-	appointment = await enqueueBookingEmail(db, { kind, appointment, eventType });
+	appointment = await enqueueBookingEmail(db, appointment.id, kind);
 	if (status === 'confirmed') await enqueueCalendarSync();
 
 	return { ok: true, appointment };

@@ -3,23 +3,30 @@ import {
 	getOpenWorkflow,
 	sendBookingEmail,
 	syncCalendars,
-	type SendBookingEmailInput
+	type BookingEmailKind
 } from '@when/jobs';
 import type { Appointment, Database } from '@when/db';
 
+// Marks the email queued and snapshots the booking as it stands now (so the email
+// reflects this moment), then enqueues the send. Takes an id, not a row, so it's
+// callable from anywhere with an appointment id.
 export async function enqueueBookingEmail(
 	db: Kysely<Database>,
-	input: SendBookingEmailInput
+	appointmentId: string,
+	kind: BookingEmailKind
 ): Promise<Appointment> {
-	await db
+	const appointment = await db
 		.updateTable('appointments')
 		.set({ email_notification_status: 'queued' })
-		.where('id', '=', input.appointment.id)
-		.execute();
-	await getOpenWorkflow().runWorkflow(sendBookingEmail, input, {
-		idempotencyKey: `${input.appointment.id}:${input.kind}`
-	});
-	return { ...input.appointment, email_notification_status: 'queued' };
+		.where('id', '=', appointmentId)
+		.returningAll()
+		.executeTakeFirstOrThrow();
+	await getOpenWorkflow().runWorkflow(
+		sendBookingEmail,
+		{ kind, appointment },
+		{ idempotencyKey: `${appointmentId}:${kind}` }
+	);
+	return appointment as Appointment;
 }
 
 // Wake the worker's calendar sync. A unique key per call so each booking change

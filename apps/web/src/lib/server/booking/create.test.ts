@@ -26,7 +26,9 @@ const input = {
 describe('createAppointment', () => {
 	beforeEach(() => {
 		vi.mocked(enqueueBookingEmail).mockReset();
-		vi.mocked(enqueueBookingEmail).mockImplementation(async (_db, input) => input.appointment);
+		vi.mocked(enqueueBookingEmail).mockImplementation((db, id) =>
+			db.selectFrom('appointments').selectAll().where('id', '=', id).executeTakeFirstOrThrow()
+		);
 		vi.mocked(enqueueCalendarSync).mockReset();
 	});
 
@@ -50,9 +52,7 @@ describe('createAppointment', () => {
 				expect(persisted.calendar_push_notification_status).toBe('queued');
 				expect(enqueueCalendarSync).toHaveBeenCalledTimes(1);
 				expect(enqueueBookingEmail).toHaveBeenCalledTimes(1);
-				expect(vi.mocked(enqueueBookingEmail).mock.calls[0][1]).toMatchObject({
-					kind: 'confirmed'
-				});
+				expect(vi.mocked(enqueueBookingEmail).mock.calls[0][2]).toBe('confirmed');
 			}
 		} finally {
 			await db.destroy();
@@ -77,7 +77,8 @@ describe('createAppointment', () => {
 				expect(result.appointment.status).toBe('pending');
 				expect(enqueueBookingEmail).toHaveBeenCalledWith(
 					expect.anything(),
-					expect.objectContaining({ kind: 'pending' })
+					expect.any(String),
+					'pending'
 				);
 				expect(enqueueCalendarSync).not.toHaveBeenCalled();
 			}

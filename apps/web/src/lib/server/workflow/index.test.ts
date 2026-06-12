@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { openDb, runMigrations } from '@when/db';
-import type { SendBookingEmailInput } from '@when/jobs';
 
 const runWorkflow = vi.fn();
 
@@ -33,23 +32,22 @@ async function seed() {
 	return db;
 }
 
-const input = {
-	kind: 'confirmed',
-	appointment: { id: 'appt-1' },
-	eventType: undefined
-} as unknown as SendBookingEmailInput;
-
 describe('enqueueBookingEmail', () => {
 	beforeEach(() => runWorkflow.mockReset());
 
-	test('marks the email queued and runs the workflow', async () => {
+	test('marks the email queued, snapshots the booking, and runs the workflow', async () => {
 		const db = await seed();
 
-		const result = await enqueueBookingEmail(db, input);
+		const result = await enqueueBookingEmail(db, 'appt-1', 'confirmed');
 
-		expect(runWorkflow).toHaveBeenCalledWith(sendBookingEmail, input, {
-			idempotencyKey: 'appt-1:confirmed'
-		});
+		expect(runWorkflow).toHaveBeenCalledWith(
+			sendBookingEmail,
+			{
+				kind: 'confirmed',
+				appointment: expect.objectContaining({ id: 'appt-1', email_notification_status: 'queued' })
+			},
+			{ idempotencyKey: 'appt-1:confirmed' }
+		);
 		const row = await db
 			.selectFrom('appointments')
 			.select('email_notification_status')
