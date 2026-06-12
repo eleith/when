@@ -1,5 +1,11 @@
 import { sql, type Kysely } from 'kysely';
-import type { Appointment, Database, NotificationOutcome } from './types.js';
+import type {
+	Appointment,
+	CalendarHealth,
+	CalendarSyncStatus,
+	Database,
+	NotificationOutcome
+} from './types.js';
 
 export interface BusyInterval {
 	start: string;
@@ -165,5 +171,45 @@ export async function recordPublishFailure(
 		.set({ calendar_push_failing_since: at })
 		.where('id', '=', id)
 		.where('calendar_push_failing_since', 'is', null)
+		.execute();
+}
+
+export function listCalendarSyncStatus(db: Kysely<Database>): Promise<CalendarSyncStatus[]> {
+	return db.selectFrom('calendar_sync_status').selectAll().execute();
+}
+
+export interface CalendarHealthUpdate {
+	health: CalendarHealth;
+	changedAt: string;
+	reason: string | null;
+}
+
+export async function setCalendarHealth(
+	db: Kysely<Database>,
+	calendarId: string,
+	update: CalendarHealthUpdate
+): Promise<void> {
+	await db
+		.updateTable('calendar_sync_status')
+		.set({
+			health: update.health,
+			health_changed_at: update.changedAt,
+			health_reason: update.reason
+		})
+		.where('calendar_id', '=', calendarId)
+		.execute();
+}
+
+// Appointments whose publish has been failing since before `before` (the cutoff
+// the caller derives from the threshold). NULL `failing_since` is excluded by the
+// `<` comparison, so this is exactly the past-threshold failures.
+export function listPublishFailingAppointments(
+	db: Kysely<Database>,
+	before: string
+): Promise<Appointment[]> {
+	return db
+		.selectFrom('appointments')
+		.selectAll()
+		.where('calendar_push_failing_since', '<', before)
 		.execute();
 }

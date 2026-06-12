@@ -10,7 +10,10 @@ import {
 	setPossibleConflicts,
 	listOutOfSyncAppointments,
 	markSynced,
-	recordPublishFailure
+	recordPublishFailure,
+	listCalendarSyncStatus,
+	setCalendarHealth,
+	listPublishFailingAppointments
 } from './calendar-busy.js';
 
 async function freshDb() {
@@ -403,6 +406,55 @@ test('recordPublishFailure stamps the first failure and keeps it across later fa
 			.where('id', '=', 'a')
 			.executeTakeFirstOrThrow();
 		expect(cleared.calendar_push_failing_since).toBeNull();
+	} finally {
+		await db.destroy();
+	}
+});
+
+test('setCalendarHealth updates the row that listCalendarSyncStatus returns', async () => {
+	const db = await freshDb();
+	try {
+		await recordRefreshResult(db, 'work', { at: '2026-05-01T10:00:00Z' });
+		await setCalendarHealth(db, 'work', {
+			health: 'bad',
+			changedAt: '2026-05-01T11:00:00Z',
+			reason: 'no successful refresh in 2h'
+		});
+		const rows = await listCalendarSyncStatus(db);
+		expect(rows).toHaveLength(1);
+		expect(rows[0].calendar_id).toBe('work');
+		expect(rows[0].health).toBe('bad');
+		expect(rows[0].health_changed_at).toBe('2026-05-01T11:00:00Z');
+		expect(rows[0].health_reason).toBe('no successful refresh in 2h');
+	} finally {
+		await db.destroy();
+	}
+});
+
+test('listPublishFailingAppointments returns only failures older than the cutoff', async () => {
+	const db = await freshDb();
+	try {
+		await db
+			.insertInto('appointments')
+			.values([
+				appt({ id: 'old', cancel_token: 'a', calendar_push_failing_since: '2026-05-01T10:00:00Z' }),
+				appt({
+					id: 'recent',
+					cancel_token: 'b',
+					start_time: '2026-05-01T11:00:00Z',
+					end_time: '2026-05-01T11:30:00Z',
+					calendar_push_failing_since: '2026-05-01T10:50:00Z'
+				}),
+				appt({
+					id: 'not-failing',
+					cancel_token: 'c',
+					start_time: '2026-05-01T12:00:00Z',
+					end_time: '2026-05-01T12:30:00Z'
+				})
+			])
+			.execute();
+		const failing = await listPublishFailingAppointments(db, '2026-05-01T10:30:00Z');
+		expect(failing.map((a) => a.id)).toEqual(['old']);
 	} finally {
 		await db.destroy();
 	}

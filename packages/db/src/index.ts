@@ -36,13 +36,17 @@ export {
 	setPossibleConflicts,
 	listOutOfSyncAppointments,
 	markSynced,
-	recordPublishFailure
+	recordPublishFailure,
+	listCalendarSyncStatus,
+	setCalendarHealth,
+	listPublishFailingAppointments
 } from './calendar-busy.js';
 export type {
 	BusyInterval,
 	RefreshResult,
 	UpcomingAppointment,
-	MarkSyncedFields
+	MarkSyncedFields,
+	CalendarHealthUpdate
 } from './calendar-busy.js';
 
 export function openDb(path: string): Kysely<Database> {
