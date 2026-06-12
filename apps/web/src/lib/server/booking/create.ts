@@ -1,5 +1,5 @@
 import type { Kysely } from 'kysely';
-import { enqueueBookingEmail, enqueuePublishKick } from '../workflow';
+import { enqueueBookingEmail, enqueueCalendarSync } from '../workflow';
 import type { Clock } from '../clock';
 import type { EventType, WhenConfiguration } from '@when/config';
 import type { Appointment, Database } from '@when/db';
@@ -59,7 +59,7 @@ export async function createAppointment(
 				external_event_id: null,
 				external_calendar_id: null,
 				// A confirmed booking is out of sync (synced stays NULL) and the worker
-				// will publish it; a pending one isn't published until accepted.
+				// syncs it to the calendar; a pending one isn't synced until accepted.
 				calendar_push_notification_status: status === 'confirmed' ? 'queued' : null
 			})
 			.returningAll()
@@ -71,7 +71,7 @@ export async function createAppointment(
 
 	const kind: BookingEmailKind = status === 'confirmed' ? 'confirmed' : 'pending';
 	appointment = await enqueueBookingEmail(db, { kind, appointment, eventType });
-	if (status === 'confirmed') await enqueuePublishKick();
+	if (status === 'confirmed') await enqueueCalendarSync();
 
 	return { ok: true, appointment };
 }

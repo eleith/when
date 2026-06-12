@@ -4,8 +4,8 @@ import { systemClock } from '$lib/server/clock';
 import { openDb, runMigrations } from '@when/db';
 import { validConfig } from '$lib/server/__fixtures__/valid-config';
 
-vi.mock('../workflow', () => ({ enqueueBookingEmail: vi.fn(), enqueuePublishKick: vi.fn() }));
-import { enqueueBookingEmail, enqueuePublishKick } from '../workflow';
+vi.mock('../workflow', () => ({ enqueueBookingEmail: vi.fn(), enqueueCalendarSync: vi.fn() }));
+import { enqueueBookingEmail, enqueueCalendarSync } from '../workflow';
 
 const baseRow = {
 	event_type_id: '30-min-chat',
@@ -35,10 +35,10 @@ describe('acceptAppointment', () => {
 	beforeEach(() => {
 		vi.mocked(enqueueBookingEmail).mockReset();
 		vi.mocked(enqueueBookingEmail).mockImplementation(async (_db, input) => input.appointment);
-		vi.mocked(enqueuePublishKick).mockReset();
+		vi.mocked(enqueueCalendarSync).mockReset();
 	});
 
-	test('happy path: pending → confirmed; bumps revision, queues publish, wakes the worker', async () => {
+	test('happy path: pending → confirmed; bumps revision, queues a calendar sync, wakes the worker', async () => {
 		const db = await makeDb();
 		try {
 			await db
@@ -59,7 +59,7 @@ describe('acceptAppointment', () => {
 				expect(persisted.status).toBe('confirmed');
 				expect(persisted.calendar_push_notification_status).toBe('queued');
 				expect(persisted.calendar_revision).toBe(1);
-				expect(enqueuePublishKick).toHaveBeenCalledTimes(1);
+				expect(enqueueCalendarSync).toHaveBeenCalledTimes(1);
 				expect(enqueueBookingEmail).toHaveBeenCalledWith(
 					expect.anything(),
 					expect.objectContaining({ kind: 'confirmed' })

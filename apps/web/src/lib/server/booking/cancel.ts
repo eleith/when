@@ -1,6 +1,6 @@
 import type { Kysely } from 'kysely';
 import { resolveBookingActions, type Viewer } from './actions';
-import { enqueueBookingEmail, enqueuePublishKick } from '../workflow';
+import { enqueueBookingEmail, enqueueCalendarSync } from '../workflow';
 import { transitionStatus } from './status';
 import type { Clock } from '../clock';
 import type { WhenConfiguration } from '@when/config';
@@ -37,8 +37,8 @@ export async function cancelAppointment(
 	}).cancel;
 	if (!gate.allowed) return { ok: false, reason: 'gated' };
 
-	// A published booking needs its event deleted; bump the revision and queue it
-	// for the worker. A never-published one just settles to in-sync on the scan.
+	// A booking with a calendar event needs it deleted; bump the revision and
+	// queue it. One that was never synced just settles to in-sync on the scan.
 	const transition = await transitionStatus(
 		{ db: deps.db, clock: deps.clock },
 		{
@@ -61,7 +61,7 @@ export async function cancelAppointment(
 		appointment: transition.row,
 		eventType
 	});
-	await enqueuePublishKick();
+	await enqueueCalendarSync();
 
 	return { ok: true, appointment };
 }

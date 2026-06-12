@@ -4,8 +4,8 @@ import { systemClock } from '$lib/server/clock';
 import { openDb, runMigrations, type Appointment } from '@when/db';
 import { validConfig } from '$lib/server/__fixtures__/valid-config';
 
-vi.mock('../workflow', () => ({ enqueueBookingEmail: vi.fn(), enqueuePublishKick: vi.fn() }));
-import { enqueueBookingEmail, enqueuePublishKick } from '../workflow';
+vi.mock('../workflow', () => ({ enqueueBookingEmail: vi.fn(), enqueueCalendarSync: vi.fn() }));
+import { enqueueBookingEmail, enqueueCalendarSync } from '../workflow';
 
 const now = new Date('2026-05-01T13:00:00Z');
 
@@ -216,10 +216,10 @@ describe('rescheduleAppointment', () => {
 	beforeEach(() => {
 		vi.mocked(enqueueBookingEmail).mockReset();
 		vi.mocked(enqueueBookingEmail).mockImplementation(async (_db, input) => input.appointment);
-		vi.mocked(enqueuePublishKick).mockReset();
+		vi.mocked(enqueueCalendarSync).mockReset();
 	});
 
-	test('happy path: confirmed booking moves time, bumps revision, queues publish', async () => {
+	test('happy path: confirmed booking moves time, bumps revision, queues a calendar sync', async () => {
 		const db = await makeDb();
 		try {
 			await db
@@ -246,7 +246,7 @@ describe('rescheduleAppointment', () => {
 				expect(result.appointment.status).toBe('confirmed');
 				expect(result.appointment.ics_sequence).toBe(1);
 				expect(result.appointment.calendar_revision).toBe(1);
-				expect(enqueuePublishKick).toHaveBeenCalledTimes(1);
+				expect(enqueueCalendarSync).toHaveBeenCalledTimes(1);
 				expect(enqueueBookingEmail).toHaveBeenCalledWith(
 					expect.anything(),
 					expect.objectContaining({ kind: 'rescheduled-by-attendee' })

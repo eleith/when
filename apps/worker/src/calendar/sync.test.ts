@@ -4,7 +4,7 @@ import type { FetchFn } from '@when/calendar';
 import { openDb, runMigrations, listOutOfSyncAppointments } from '@when/db';
 import type { Logger } from '../services/logger.js';
 import type { WorkerContext } from '../services/context.js';
-import { reconcileAppointment, scanOnce } from './publish.js';
+import { reconcileAppointment, scanOnce } from './sync.js';
 
 const silent: Logger = { debug() {}, info() {}, warn() {}, error() {} };
 
@@ -155,7 +155,7 @@ test('confirmed with no destination calendar is a no-op marked synced', async ()
 	}
 });
 
-test('trace: a reschedule after a publish stays out of sync and is caught next scan', async () => {
+test('trace: a reschedule after a sync stays out of sync and is caught next scan', async () => {
 	const ctx = await ctxWith();
 	try {
 		await insert(ctx, { id: '1', cancel_token: 't1', calendar_revision: 1 });

@@ -1,6 +1,6 @@
 import type { Kysely } from 'kysely';
 import { resolveBookingActions } from './actions';
-import { enqueueBookingEmail, enqueuePublishKick } from '../workflow';
+import { enqueueBookingEmail, enqueueCalendarSync } from '../workflow';
 import { transitionStatus } from './status';
 import type { Clock } from '../clock';
 import type { WhenConfiguration } from '@when/config';
@@ -35,7 +35,7 @@ export async function acceptAppointment(
 	}).accept;
 	if (!gate.allowed) return { ok: false, reason: 'gated' };
 
-	// Bump the revision and queue the publish; the worker creates the calendar event.
+	// Bump the revision and queue the calendar sync; the worker creates the event.
 	const transition = await transitionStatus(
 		{ db: deps.db, clock: deps.clock },
 		{
@@ -53,7 +53,7 @@ export async function acceptAppointment(
 		appointment: transition.row,
 		eventType
 	});
-	await enqueuePublishKick();
+	await enqueueCalendarSync();
 
 	return { ok: true, appointment };
 }

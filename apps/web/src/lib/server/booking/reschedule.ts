@@ -1,7 +1,7 @@
 import type { Kysely } from 'kysely';
 import { resolveBookingActions, type Viewer } from './actions';
 import { isRescheduleAllowed, isViewable } from './access';
-import { enqueueBookingEmail, enqueuePublishKick } from '../workflow';
+import { enqueueBookingEmail, enqueueCalendarSync } from '../workflow';
 import { transitionStatus } from './status';
 import type { Clock } from '../clock';
 import type { EventType, WhenConfiguration } from '@when/config';
@@ -98,7 +98,7 @@ export async function rescheduleAppointment(
 		appointment: transition.row,
 		eventType
 	});
-	await enqueuePublishKick();
+	await enqueueCalendarSync();
 
 	return { ok: true, appointment };
 }

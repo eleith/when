@@ -1,5 +1,5 @@
 import { afterEach, expect, test, vi } from 'vitest';
-import { createPublishScanner } from './publish-scanner.js';
+import { createCalendarSyncScanner } from './sync-scanner.js';
 
 afterEach(() => vi.useRealTimers());
 
@@ -8,7 +8,7 @@ const flush = () => new Promise((r) => setTimeout(r, 0));
 test('runs on request and reschedules on the floor', async () => {
 	vi.useFakeTimers();
 	let calls = 0;
-	const scanner = createPublishScanner(async () => {
+	const scanner = createCalendarSyncScanner(async () => {
 		calls++;
 	}, 1000);
 
@@ -33,7 +33,7 @@ test('coalesces requests that arrive during a scan into one rerun', async () => 
 			release = r;
 		});
 	};
-	const scanner = createPublishScanner(run, 10_000);
+	const scanner = createCalendarSyncScanner(run, 10_000);
 
 	scanner.requestScan();
 	await flush();
@@ -56,7 +56,7 @@ test('coalesces requests that arrive during a scan into one rerun', async () => 
 
 test('stop prevents new requests from running', async () => {
 	let calls = 0;
-	const scanner = createPublishScanner(async () => {
+	const scanner = createCalendarSyncScanner(async () => {
 		calls++;
 	}, 10_000);
 	scanner.stop();

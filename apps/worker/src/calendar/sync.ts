@@ -3,14 +3,14 @@ import { listOutOfSyncAppointments, markSynced, type Appointment } from '@when/d
 import type { WorkerContext } from '../services/context.js';
 import { bookingLinks } from '../links.js';
 
-export interface PublishOptions {
+export interface SyncOptions {
 	fetchImpl?: FetchFn;
 }
 
 export async function reconcileAppointment(
 	ctx: WorkerContext,
 	row: Appointment,
-	opts: PublishOptions = {}
+	opts: SyncOptions = {}
 ): Promise<void> {
 	const revision = row.calendar_revision;
 	const eventType = ctx.config.event_types.find((e) => e.id === row.event_type_id);
@@ -38,7 +38,7 @@ export async function reconcileAppointment(
 				calendar_push_notification_status: 'ok'
 			});
 		} else {
-			ctx.logger.error('calendar publish failed; will retry next scan', {
+			ctx.logger.error('calendar sync failed; will retry next scan', {
 				appointmentId: row.id,
 				reason: pushed.reason
 			});
@@ -71,7 +71,7 @@ export async function reconcileAppointment(
 	await markSynced(ctx.db, row.id, revision);
 }
 
-export async function scanOnce(ctx: WorkerContext, opts: PublishOptions = {}): Promise<void> {
+export async function scanOnce(ctx: WorkerContext, opts: SyncOptions = {}): Promise<void> {
 	for (const row of await listOutOfSyncAppointments(ctx.db)) {
 		await reconcileAppointment(ctx, row, opts);
 	}

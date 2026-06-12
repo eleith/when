@@ -1,4 +1,4 @@
-export interface PublishScanner {
+export interface CalendarSyncScanner {
 	requestScan(): void;
 	stop(): void;
 }
@@ -7,7 +7,10 @@ export interface PublishScanner {
 // mid-scan is remembered and runs once more after, so bursts collapse into a
 // single extra pass. Each run reschedules a floor timer, so an idle worker still
 // scans every `floorMs`.
-export function createPublishScanner(run: () => Promise<void>, floorMs: number): PublishScanner {
+export function createCalendarSyncScanner(
+	run: () => Promise<void>,
+	floorMs: number
+): CalendarSyncScanner {
 	let scanning = false;
 	let rescanRequested = false;
 	let floorTimer: ReturnType<typeof setTimeout> | null = null;

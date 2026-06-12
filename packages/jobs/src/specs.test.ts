@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { sendBookingEmail, publishNow } from './specs.js';
+import { sendBookingEmail, syncCalendars } from './specs.js';
 
 test('sendBookingEmail carries the shared workflow name', () => {
 	// The name is the contract between producer (web) and worker — both resolve
@@ -7,6 +7,6 @@ test('sendBookingEmail carries the shared workflow name', () => {
 	expect(sendBookingEmail.name).toBe('send-booking-email');
 });
 
-test('publishNow carries the shared workflow name', () => {
-	expect(publishNow.name).toBe('publish-now');
+test('syncCalendars carries the shared workflow name', () => {
+	expect(syncCalendars.name).toBe('sync-calendars');
 });

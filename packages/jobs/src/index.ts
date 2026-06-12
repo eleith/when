@@ -1,10 +1,10 @@
-export { sendBookingEmail, publishNow } from './specs.js';
+export { sendBookingEmail, syncCalendars } from './specs.js';
 export type {
 	BookingEmailKind,
 	SendBookingEmailInput,
 	SendBookingEmailResult,
-	PublishNowInput,
-	PublishNowResult
+	SyncCalendarsInput,
+	SyncCalendarsResult
 } from './specs.js';
 export {
 	initOpenWorkflow,

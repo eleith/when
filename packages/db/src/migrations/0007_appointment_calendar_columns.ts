@@ -19,7 +19,7 @@ export const appointmentCalendarColumns: Migration = {
 			.addColumn('calendar_push_failing_since', 'text')
 			.execute();
 
-		// Already-published rows are in sync; mark them so the first publish scan
+		// Already-published rows are in sync; mark them so the first calendar sync
 		// doesn't treat every existing appointment as out-of-sync and re-push them
 		// all. Never-published rows keep synced = NULL for the worker to handle.
 		await sql`

@@ -4,8 +4,8 @@ import { systemClock } from '$lib/server/clock';
 import { openDb, runMigrations } from '@when/db';
 import { validConfig } from '$lib/server/__fixtures__/valid-config';
 
-vi.mock('../workflow', () => ({ enqueueBookingEmail: vi.fn(), enqueuePublishKick: vi.fn() }));
-import { enqueueBookingEmail, enqueuePublishKick } from '../workflow';
+vi.mock('../workflow', () => ({ enqueueBookingEmail: vi.fn(), enqueueCalendarSync: vi.fn() }));
+import { enqueueBookingEmail, enqueueCalendarSync } from '../workflow';
 
 async function makeDb() {
 	const db = openDb(':memory:');
@@ -27,10 +27,10 @@ describe('createAppointment', () => {
 	beforeEach(() => {
 		vi.mocked(enqueueBookingEmail).mockReset();
 		vi.mocked(enqueueBookingEmail).mockImplementation(async (_db, input) => input.appointment);
-		vi.mocked(enqueuePublishKick).mockReset();
+		vi.mocked(enqueueCalendarSync).mockReset();
 	});
 
-	test('auto flow inserts a confirmed booking, queued for publish, and wakes the worker', async () => {
+	test('auto flow inserts a confirmed booking, queued for sync, and wakes the worker', async () => {
 		const db = await makeDb();
 		try {
 			const result = await createAppointment(
@@ -48,7 +48,7 @@ describe('createAppointment', () => {
 					.executeTakeFirstOrThrow();
 				expect(persisted.status).toBe('confirmed');
 				expect(persisted.calendar_push_notification_status).toBe('queued');
-				expect(enqueuePublishKick).toHaveBeenCalledTimes(1);
+				expect(enqueueCalendarSync).toHaveBeenCalledTimes(1);
 				expect(enqueueBookingEmail).toHaveBeenCalledTimes(1);
 				expect(vi.mocked(enqueueBookingEmail).mock.calls[0][1]).toMatchObject({
 					kind: 'confirmed'
@@ -79,7 +79,7 @@ describe('createAppointment', () => {
 					expect.anything(),
 					expect.objectContaining({ kind: 'pending' })
 				);
-				expect(enqueuePublishKick).not.toHaveBeenCalled();
+				expect(enqueueCalendarSync).not.toHaveBeenCalled();
 			}
 		} finally {
 			await db.destroy();
