@@ -2,6 +2,7 @@ import { error } from '@sveltejs/kit';
 import { requireViewableAppointment } from '$lib/server/booking/access';
 import { systemClock } from '$lib/server/clock';
 import { buildIcs } from '@when/calendar';
+import { findAppointment } from '@when/db';
 import { getConfig, getDb } from '$lib/server/state';
 import type { RequestHandler } from './$types';
 
@@ -9,11 +10,7 @@ export const GET: RequestHandler = async ({ params, url }) => {
 	const token = url.searchParams.get('token');
 	if (!token) error(404);
 
-	const found = await getDb()
-		.selectFrom('appointments')
-		.selectAll()
-		.where('id', '=', params.id)
-		.executeTakeFirst();
+	const found = await findAppointment(getDb(), params.id);
 
 	const row = requireViewableAppointment(found, token, systemClock.now());
 

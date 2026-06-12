@@ -5,7 +5,7 @@ import { mergeBlocks } from '$lib/server/availability/blocks';
 import { loadAppointmentBlocks } from '$lib/server/availability/db-blocks';
 import { resolveKnobsFor } from '$lib/server/availability/knobs';
 import { buildBaseWindows, candidateDates } from '$lib/server/availability/windows';
-import { getBusyIntervals } from '@when/db';
+import { findAppointment, getBusyIntervals } from '@when/db';
 import { systemClock } from '$lib/server/clock';
 import type { Location } from '@when/config';
 import { logger } from '$lib/server/logger';
@@ -27,11 +27,7 @@ export const load: PageServerLoad = async ({ params, url }) => {
 	const now = systemClock.now();
 
 	if (rescheduleId && rescheduleToken) {
-		const found = await getDb()
-			.selectFrom('appointments')
-			.selectAll()
-			.where('id', '=', rescheduleId)
-			.executeTakeFirst();
+		const found = await findAppointment(getDb(), rescheduleId);
 		if (!found) {
 			rescheduleError = 'token';
 		} else {
@@ -175,11 +171,7 @@ export const actions: Actions = {
 		let rescheduleRow = null;
 
 		if (rescheduleId && token) {
-			rescheduleRow = await getDb()
-				.selectFrom('appointments')
-				.selectAll()
-				.where('id', '=', rescheduleId)
-				.executeTakeFirst();
+			rescheduleRow = await findAppointment(getDb(), rescheduleId);
 			if (!rescheduleRow || rescheduleRow.cancel_token !== token) {
 				return fail(403, { error: 'Invalid reschedule token.' });
 			}

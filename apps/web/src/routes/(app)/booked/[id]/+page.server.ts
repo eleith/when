@@ -5,7 +5,7 @@ import { buildAddToCalendarLinks } from '$lib/server/calendar-links';
 import { systemClock } from '$lib/server/clock';
 import { getConfig, getDb } from '$lib/server/state';
 import { notificationStates } from '$lib/notifications';
-import type { Appointment } from '@when/db';
+import { findAppointment, type Appointment } from '@when/db';
 import type { Actions, PageServerLoad } from './$types';
 import { acceptAppointment } from '$lib/server/booking/accept';
 import { declineAppointment } from '$lib/server/booking/decline';
@@ -29,11 +29,7 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 	const isAdmin = !!session;
 	const token = url.searchParams.get('token');
 
-	const found = await getDb()
-		.selectFrom('appointments')
-		.selectAll()
-		.where('id', '=', params.id)
-		.executeTakeFirst();
+	const found = await findAppointment(getDb(), params.id);
 
 	if (!found) error(404, 'Booking not found.');
 
@@ -112,11 +108,7 @@ export const actions: Actions = {
 	accept: async ({ params, locals }) => {
 		if (!(await locals.auth())) return fail(403, { error: 'Not authorized.' });
 
-		const row = await getDb()
-			.selectFrom('appointments')
-			.selectAll()
-			.where('id', '=', params.id)
-			.executeTakeFirst();
+		const row = await findAppointment(getDb(), params.id);
 
 		if (!row) return fail(404, { error: 'Booking not found.' });
 
@@ -133,11 +125,7 @@ export const actions: Actions = {
 	decline: async ({ params, locals }) => {
 		if (!(await locals.auth())) return fail(403, { error: 'Not authorized.' });
 
-		const row = await getDb()
-			.selectFrom('appointments')
-			.selectAll()
-			.where('id', '=', params.id)
-			.executeTakeFirst();
+		const row = await findAppointment(getDb(), params.id);
 
 		if (!row) return fail(404, { error: 'Booking not found.' });
 
@@ -157,11 +145,7 @@ export const actions: Actions = {
 	cancel: async ({ params, request, locals }) => {
 		const session = await locals.auth();
 
-		const row = await getDb()
-			.selectFrom('appointments')
-			.selectAll()
-			.where('id', '=', params.id)
-			.executeTakeFirst();
+		const row = await findAppointment(getDb(), params.id);
 
 		if (!row) return fail(404, { error: 'Booking not found.' });
 
