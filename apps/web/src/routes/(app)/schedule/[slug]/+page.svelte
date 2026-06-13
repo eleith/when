@@ -4,6 +4,7 @@
 	import { Temporal } from '@js-temporal/polyfill';
 	import IconArrowRight from 'virtual:icons/ph/arrow-right';
 	import IconCalendarBlank from 'virtual:icons/ph/calendar-blank';
+	import IconCaretLeft from 'virtual:icons/ph/caret-left';
 	import IconClock from 'virtual:icons/ph/clock';
 	import SlotPicker from '$lib/components/SlotPicker.svelte';
 
@@ -274,7 +275,17 @@
 
 					<div class="booking-form">
 						{#if viewSlot}
-							<p class="confirmed-slot">{fmtSlot(viewSlot)}</p>
+							<p class="confirmed-slot">
+								<button
+									type="button"
+									class="form-back"
+									onclick={goBack}
+									aria-label="Back to time picker"
+								>
+									<IconCaretLeft aria-hidden="true" />
+								</button>
+								{fmtSlot(viewSlot)}
+							</p>
 
 							{#if form?.error}
 								<p class="form-error" role="alert">{form.error}</p>
@@ -601,6 +612,27 @@
 		display: none;
 	}
 
+	/* caret to return to the time picker — mobile only (desktop has the wizard back button) */
+	.form-back {
+		display: none;
+		align-items: center;
+		justify-content: center;
+		flex-shrink: 0;
+		background: none;
+		border: none;
+		padding: var(--space-1);
+		margin-left: calc(var(--space-2) * -1);
+		font-size: var(--font-size-xl);
+		line-height: 1;
+		color: var(--text-muted);
+		cursor: pointer;
+		transition: color var(--transition);
+	}
+
+	.form-back:hover {
+		color: var(--text);
+	}
+
 	.form-error {
 		background: var(--danger-bg);
 		color: var(--danger);
@@ -888,7 +920,13 @@
 		}
 
 		.confirmed-slot {
-			display: block;
+			display: flex;
+			align-items: center;
+			gap: var(--space-2);
+		}
+
+		.form-back {
+			display: inline-flex;
 		}
 
 		.wizard-bar {
