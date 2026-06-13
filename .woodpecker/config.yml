@@ -25,11 +25,16 @@ steps:
       - corepack enable
       - pnpm --filter "@when/config..." build
 
-  test:
+  lint:
     image: node:24
     commands:
       - corepack enable
       - pnpm --filter @when/config lint
+
+  test:
+    image: node:24
+    commands:
+      - corepack enable
       - pnpm --filter @when/config test
 
   notify-success:

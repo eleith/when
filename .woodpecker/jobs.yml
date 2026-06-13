@@ -27,11 +27,16 @@ steps:
       - corepack enable
       - pnpm --filter "@when/jobs..." build
 
-  test:
+  lint:
     image: node:24
     commands:
       - corepack enable
       - pnpm --filter @when/jobs lint
+
+  test:
+    image: node:24
+    commands:
+      - corepack enable
       - pnpm --filter @when/jobs test
 
   notify-success:

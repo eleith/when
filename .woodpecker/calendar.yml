@@ -27,11 +27,16 @@ steps:
       - corepack enable
       - pnpm --filter "@when/calendar..." build
 
-  test:
+  lint:
     image: node:24
     commands:
       - corepack enable
       - pnpm --filter @when/calendar lint
+
+  test:
+    image: node:24
+    commands:
+      - corepack enable
       - pnpm --filter @when/calendar test
 
   notify-success:

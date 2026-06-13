@@ -26,11 +26,16 @@ steps:
       - corepack enable
       - pnpm --filter "@when/db..." build
 
-  test:
+  lint:
     image: node:24
     commands:
       - corepack enable
       - pnpm --filter @when/db lint
+
+  test:
+    image: node:24
+    commands:
+      - corepack enable
       - pnpm --filter @when/db test
 
   notify-success:
