@@ -69,12 +69,12 @@ export async function loadConfigFile(path: string = resolveConfigPath()): Promis
 /**
  * Resolve the database paths to absolute, in place. Relative paths are taken
  * against the config file's directory so web and worker (sharing one
- * config.yaml) open the same files; `DATABASE_PATH` / `QUEUE_DB_PATH` override.
+ * config.yaml) open the same files; `WHEN_DATABASE_PATH` / `WHEN_QUEUE_DB_PATH` override.
  */
 function resolveDatabasePaths(config: WhenConfiguration, configPath: string): void {
 	const dir = dirname(configPath);
-	config.database.app = process.env.DATABASE_PATH ?? resolve(dir, config.database.app);
-	config.database.queue = process.env.QUEUE_DB_PATH ?? resolve(dir, config.database.queue);
+	config.database.app = process.env.WHEN_DATABASE_PATH ?? resolve(dir, config.database.app);
+	config.database.queue = process.env.WHEN_QUEUE_DB_PATH ?? resolve(dir, config.database.queue);
 }
 
 function toIssue(err: ErrorObject): ConfigIssue {

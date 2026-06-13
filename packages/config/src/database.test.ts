@@ -20,8 +20,8 @@ const saved = { ...process.env };
 
 beforeEach(async () => {
 	dir = await mkdtemp(join(tmpdir(), 'when-config-'));
-	delete process.env.DATABASE_PATH;
-	delete process.env.QUEUE_DB_PATH;
+	delete process.env.WHEN_DATABASE_PATH;
+	delete process.env.WHEN_QUEUE_DB_PATH;
 });
 
 afterEach(async () => {
@@ -37,9 +37,9 @@ test('loadConfigFile resolves relative db paths against the config dir', async (
 	expect(config.database.queue).toBe(join(dir, 'data', 'openworkflow.sqlite'));
 });
 
-test('DATABASE_PATH / QUEUE_DB_PATH override the resolved paths', async () => {
-	process.env.DATABASE_PATH = '/var/lib/when/app.sqlite';
-	process.env.QUEUE_DB_PATH = '/var/lib/when/jobs.sqlite';
+test('WHEN_DATABASE_PATH / WHEN_QUEUE_DB_PATH override the resolved paths', async () => {
+	process.env.WHEN_DATABASE_PATH = '/var/lib/when/app.sqlite';
+	process.env.WHEN_QUEUE_DB_PATH = '/var/lib/when/jobs.sqlite';
 	const path = join(dir, 'config.yaml');
 	await writeFile(path, stringify(validConfig));
 	const config = await loadConfigFile(path);

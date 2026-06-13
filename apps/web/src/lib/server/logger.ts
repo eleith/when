@@ -3,7 +3,7 @@ import pino, { type Logger, type LoggerOptions } from 'pino';
 const isDev = process.env.NODE_ENV !== 'production';
 
 export const loggerOptions: LoggerOptions = {
-	level: process.env.LOG_LEVEL ?? (isDev ? 'debug' : 'info'),
+	level: process.env.WHEN_LOG_LEVEL ?? (isDev ? 'debug' : 'info'),
 	base: { app: 'when' },
 	redact: {
 		paths: [
