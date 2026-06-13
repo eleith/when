@@ -87,7 +87,7 @@
 													>
 														<%= r.label %>
 													</td>
-													<td style="padding: 9px 0; font-size: 16px; font-weight: 600; color: #1a1a1a;">
+													<td style="padding: 9px 0; font-size: 16px; color: #1a1a1a;">
 														<%= r.value %>
 													</td>
 												</tr>
