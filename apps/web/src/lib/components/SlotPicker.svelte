@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { tick } from 'svelte';
-	import { SvelteMap, SvelteSet } from 'svelte/reactivity';
+	import { SvelteMap } from 'svelte/reactivity';
 	import { Temporal } from '@js-temporal/polyfill';
 	import { Calendar, Dialog } from 'bits-ui';
 	import { CalendarDate, type DateValue } from '@internationalized/date';
@@ -8,6 +8,8 @@
 	import IconCaretRight from 'virtual:icons/ph/caret-right';
 	import IconGlobe from 'virtual:icons/ph/globe';
 	import { formatDate, formatTime, formatTzShort, tzCity, tzOffset } from '$lib/datetime';
+	import { slotsOnDate } from '$lib/booking';
+	import type { BookingFlow } from '$lib/bookingFlow.svelte';
 
 	interface EventTypeShape {
 		duration: number;
@@ -17,28 +19,27 @@
 	}
 
 	interface Props {
-		slotsByDate: Record<string, string[]>;
+		flow: BookingFlow;
 		workingWindows: { start: string; end: string }[];
 		busyBlocks: { start: string; end: string }[];
 		eventType: EventTypeShape;
-		selectedSlot: string | null;
-		viewDate?: string | null;
-		userTz?: string;
 		originalSlot?: string | null;
 		onEditDate?: (() => void) | null;
 	}
 
 	let {
-		slotsByDate,
+		flow,
 		workingWindows,
 		busyBlocks,
 		eventType,
-		selectedSlot = $bindable(),
-		viewDate = $bindable(null),
-		userTz = $bindable(Intl.DateTimeFormat().resolvedOptions().timeZone),
 		originalSlot = null,
 		onEditDate = null
 	}: Props = $props();
+
+	// read-only views of the shared flow; all mutations go through flow.* below
+	let viewDate = $derived(flow.viewDate);
+	let selectedSlot = $derived(flow.selectedSlot);
+	let userTz = $derived(flow.userTz);
 
 	const ALL_TIMEZONES = Intl.supportedValuesOf('timeZone');
 
@@ -77,28 +78,10 @@
 	});
 
 	function selectTimezone(tz: string) {
-		userTz = tz;
+		flow.setTz(tz);
 		tzPickerOpen = false;
 		tzSearch = '';
 	}
-
-	let allSlots = $derived(Object.values(slotsByDate).flat());
-	let availableDates = $derived.by(() => {
-		const set = new SvelteSet<string>();
-		for (const iso of allSlots) {
-			set.add(Temporal.Instant.from(iso).toZonedDateTimeISO(userTz).toPlainDate().toString());
-		}
-		return set;
-	});
-	let _init = $state(false);
-	$effect(() => {
-		if (_init) return;
-
-		if (viewDate == null && selectedSlot) {
-			viewDate = selectedSlot.slice(0, 10);
-		}
-		_init = true;
-	});
 
 	function dateToStr(d: DateValue): string {
 		return `${d.year}-${String(d.month).padStart(2, '0')}-${String(d.day).padStart(2, '0')}`;
@@ -115,19 +98,10 @@
 	let calendarValue = $derived(viewDate ? strToCalendarDate(viewDate) : undefined);
 
 	const todayKey = new Date().toISOString().slice(0, 10);
-	let daySlots = $derived.by(() => {
-		if (!viewDate) return [];
-		return allSlots
-			.filter(
-				(iso: string) =>
-					Temporal.Instant.from(iso).toZonedDateTimeISO(userTz).toPlainDate().toString() ===
-					viewDate
-			)
-			.sort();
-	});
+	let daySlots = $derived(viewDate ? slotsOnDate(flow.allSlots, viewDate, userTz) : []);
 
 	function isDateUnavailable(date: DateValue): boolean {
-		return !availableDates.has(dateToStr(date));
+		return !flow.availableDates.has(dateToStr(date));
 	}
 
 	function isDateDisabled(date: DateValue): boolean {
@@ -135,26 +109,13 @@
 	}
 
 	function onDateChange(date: DateValue | undefined) {
-		if (!date) {
-			viewDate = null;
-			if (selectedSlot) selectedSlot = null;
-			return;
-		}
-		const key = dateToStr(date);
-		if (!availableDates.has(key)) return;
-		viewDate = key;
-		if (selectedSlot && !selectedSlot.startsWith(key)) selectedSlot = null;
+		flow.selectDate(date ? dateToStr(date) : null);
 	}
 
 	function selectSlot(iso: string) {
 		const s = timeline?.slots.find((slot) => slot.iso === iso);
 		if (s?.isOriginal) return;
-		selectedSlot = iso;
-		viewDate = iso.slice(0, 10);
-	}
-
-	function clearSlot() {
-		selectedSlot = null;
+		flow.selectSlot(iso);
 	}
 
 	let timeline = $derived.by(() => {
@@ -369,7 +330,7 @@
 					if (best && best.iso !== selectedSlot && !best.isOriginal) selectSlot(best.iso);
 				}
 			} else {
-				clearSlot();
+				flow.clearSlot();
 			}
 		} else {
 			if (!isDragging) {

@@ -1,56 +1,34 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { SvelteSet } from 'svelte/reactivity';
-	import { Temporal } from '@js-temporal/polyfill';
 	import IconArrowRight from 'virtual:icons/ph/arrow-right';
 	import IconCalendarBlank from 'virtual:icons/ph/calendar-blank';
 	import IconCaretLeft from 'virtual:icons/ph/caret-left';
 	import IconClock from 'virtual:icons/ph/clock';
 	import SlotPicker from '$lib/components/SlotPicker.svelte';
+	import { createBookingFlow } from '$lib/bookingFlow.svelte';
 	import { formatDate, formatTime, formatSlot, formatTzShort } from '$lib/datetime';
 
 	let { data, form } = $props();
 
-	let userTz = $state('UTC');
+	const flow = createBookingFlow(() => data.slotsByDate);
 
-	onMount(() => {
-		userTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-	});
-
-	let allSlots = $derived(Object.values(data.slotsByDate as Record<string, string[]>).flat());
-	let availableDates = $derived.by(() => {
-		const set = new SvelteSet<string>();
-		for (const iso of allSlots) {
-			set.add(Temporal.Instant.from(iso).toZonedDateTimeISO(userTz).toPlainDate().toString());
-		}
-		return set;
-	});
-
-	let viewSlot = $state<string | null>(null);
-	let viewDate = $state<string | null>(null);
-	let step = $state<1 | 2 | 3>(1);
+	// read-only views of the shared flow; all mutations go through flow.* methods
+	let step = $derived(flow.step);
+	let viewDate = $derived(flow.viewDate);
+	let selectedSlot = $derived(flow.selectedSlot);
+	let userTz = $derived(flow.userTz);
 
 	let nameInput = $state<HTMLInputElement | null>(null);
-	let stepTitle = $derived(step === 1 ? 'Pick a day' : step === 2 ? 'Pick a time' : 'Your details');
-	let canAdvance = $derived(step === 1 ? !!viewDate : step === 2 ? !!viewSlot : true);
+
+	onMount(() => {
+		flow.setTz(Intl.DateTimeFormat().resolvedOptions().timeZone);
+	});
 
 	$effect(() => {
-		if (step === 3 && viewSlot) {
+		if (step === 3 && selectedSlot) {
 			nameInput?.focus();
 		}
 	});
-
-	function advance() {
-		if (!canAdvance || step === 3) return;
-		step = (step + 1) as 1 | 2 | 3;
-		window.scrollTo({ top: 0 });
-	}
-
-	function goBack() {
-		if (step === 1) return;
-		step = (step - 1) as 1 | 2 | 3;
-		window.scrollTo({ top: 0 });
-	}
 </script>
 
 <svelte:head>
@@ -102,7 +80,7 @@
 			</p>
 			<a class="error-back-btn" href="/">Return home</a>
 		</div>
-	{:else if availableDates.size === 0}
+	{:else if flow.availableDates.size === 0}
 		<p class="empty">No availability in the near future.</p>
 	{:else}
 		{#if data.rescheduleAppt}
@@ -159,14 +137,14 @@
 					{/if}
 				</section>
 
-				{#if (step >= 2 && viewDate) || (step >= 3 && viewSlot)}
+				{#if (step >= 2 && viewDate) || (step >= 3 && selectedSlot)}
 					<section class="context-section">
 						<div class="context-summary">
 							{#if step >= 2 && viewDate}
 								<button
 									type="button"
 									class="context-summary-row"
-									onclick={() => (step = 1)}
+									onclick={() => flow.goToStep(1)}
 									aria-label="Change date"
 								>
 									<IconCalendarBlank class="context-summary-icon" aria-hidden="true" />
@@ -175,16 +153,16 @@
 									</div>
 								</button>
 							{/if}
-							{#if step >= 3 && viewSlot}
+							{#if step >= 3 && selectedSlot}
 								<button
 									type="button"
 									class="context-summary-row"
-									onclick={() => (step = 2)}
+									onclick={() => flow.goToStep(2)}
 									aria-label="Change time"
 								>
 									<IconClock class="context-summary-icon" aria-hidden="true" />
 									<div class="context-summary-value">
-										<span class="context-summary-text">{formatTime(viewSlot, userTz)}</span>
+										<span class="context-summary-text">{formatTime(selectedSlot, userTz)}</span>
 										<span class="context-summary-tz">{formatTzShort(userTz)}</span>
 									</div>
 								</button>
@@ -199,7 +177,7 @@
 					<button
 						type="button"
 						class="back-btn"
-						onclick={goBack}
+						onclick={flow.goBack}
 						disabled={step === 1}
 						aria-label="Go back"
 					>
@@ -207,35 +185,32 @@
 					</button>
 					<h1 class="wizard-title">
 						<span class="wizard-step">Step {step} of 3:</span>
-						{stepTitle}
+						{#if step === 1}Pick a day{:else if step === 2}Pick a time{:else}Your details{/if}
 					</h1>
 				</div>
 
 				<div class="booking-body">
 					<SlotPicker
-						slotsByDate={data.slotsByDate}
+						{flow}
 						workingWindows={data.workingWindows}
 						busyBlocks={data.busyBlocks}
 						eventType={data.eventType}
-						bind:selectedSlot={viewSlot}
-						bind:viewDate
-						bind:userTz
 						originalSlot={data.rescheduleAppt?.start_time ?? null}
-						onEditDate={goBack}
+						onEditDate={flow.goBack}
 					/>
 
 					<div class="booking-form">
-						{#if viewSlot}
+						{#if selectedSlot}
 							<p class="confirmed-slot">
 								<button
 									type="button"
 									class="form-back"
-									onclick={goBack}
+									onclick={flow.goBack}
 									aria-label="Back to time picker"
 								>
 									<IconCaretLeft aria-hidden="true" />
 								</button>
-								{formatSlot(viewSlot, userTz)}
+								{formatSlot(selectedSlot, userTz)}
 							</p>
 
 							{#if form?.error}
@@ -243,7 +218,7 @@
 							{/if}
 
 							<form id="booking-form" method="POST" action="?/book">
-								<input type="hidden" name="slot" value={viewSlot} />
+								<input type="hidden" name="slot" value={selectedSlot} />
 								{#if data.rescheduleAppt}
 									<input type="hidden" name="reschedule" value={data.rescheduleAppt.id} />
 									<input type="hidden" name="token" value={data.rescheduleToken} />
@@ -319,24 +294,34 @@
 				<div class="wizard-cta">
 					<p class="cta-title">
 						<span class="wizard-step">Step {step} of 3:</span>
-						{stepTitle}
+						{#if step === 1}Pick a day{:else if step === 2}Pick a time{:else}Your details{/if}
 					</p>
 					{#if step === 1 && viewDate}
 						<p class="cta-summary">You selected {formatDate(viewDate)}</p>
-					{:else if step === 2 && viewSlot}
-						<p class="cta-summary">You selected {formatTime(viewSlot, userTz)}</p>
+					{:else if step === 2 && selectedSlot}
+						<p class="cta-summary">You selected {formatTime(selectedSlot, userTz)}</p>
 					{/if}
 
 					{#if step === 1}
-						<button type="button" class="cta-btn" onclick={advance} disabled={!canAdvance}>
+						<button
+							type="button"
+							class="cta-btn"
+							onclick={flow.advance}
+							disabled={!flow.canAdvance}
+						>
 							Continue <IconArrowRight aria-hidden="true" class="cta-arrow" />
 						</button>
 					{:else if step === 2}
-						<button type="button" class="cta-btn" onclick={advance} disabled={!canAdvance}>
+						<button
+							type="button"
+							class="cta-btn"
+							onclick={flow.advance}
+							disabled={!flow.canAdvance}
+						>
 							Confirm <IconArrowRight aria-hidden="true" class="cta-arrow" />
 						</button>
 					{:else}
-						<button type="submit" form="booking-form" class="cta-btn" disabled={!viewSlot}>
+						<button type="submit" form="booking-form" class="cta-btn" disabled={!selectedSlot}>
 							{#if data.rescheduleAppt}Confirm Reschedule{:else}Book{/if}
 						</button>
 					{/if}
