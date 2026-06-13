@@ -15,7 +15,7 @@ describe('/signin server load and actions', () => {
 	test('load function returns callbackUrl, authType, and errorCode', async () => {
 		setState({
 			config: validConfig,
-			db: {} as any
+			db: {}
 		});
 
 		const mockLocals = {
@@ -25,10 +25,10 @@ describe('/signin server load and actions', () => {
 		const url = new URL('http://localhost/signin?callbackUrl=/custom-path&error=CredentialsSignin');
 		const result = await load({
 			url,
-			locals: mockLocals as any,
+			locals: mockLocals,
 			route: { id: '/signin' },
 			params: {}
-		} as any);
+		});
 
 		expect(result).toEqual({
 			callbackUrl: '/custom-path',
@@ -40,7 +40,7 @@ describe('/signin server load and actions', () => {
 	test('load function redirects if already logged in', async () => {
 		setState({
 			config: validConfig,
-			db: {} as any
+			db: {}
 		});
 
 		const mockLocals = {
@@ -48,31 +48,29 @@ describe('/signin server load and actions', () => {
 		};
 
 		const url = new URL('http://localhost/signin?callbackUrl=/custom-path');
-		
+
 		await expect(
 			load({
 				url,
-				locals: mockLocals as any,
+				locals: mockLocals,
 				route: { id: '/signin' },
 				params: {}
-			} as any)
+			})
 		).rejects.toThrow();
 	});
 
 	test('action catches AuthError and redirects back with query parameters', async () => {
 		const mockError = new Error('CredentialsSignin');
-		(mockError as any).type = 'CredentialsSignin';
-		
+		mockError.type = 'CredentialsSignin';
+
 		vi.mocked(signInAction).mockRejectedValueOnce(mockError);
 
 		const url = new URL('http://localhost/signin?callbackUrl=/custom-path');
 		const mockEvent = {
 			url,
-			request: {} as any
+			request: {}
 		};
 
-		await expect(
-			actions.default(mockEvent as any)
-		).rejects.toThrow();
+		await expect(actions.default(mockEvent)).rejects.toThrow();
 	});
 });

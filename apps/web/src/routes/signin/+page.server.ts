@@ -19,23 +19,26 @@ export const actions: Actions = {
 	default: async (event) => {
 		try {
 			return await signInAction(event);
-		} catch (error: any) {
+		} catch (error) {
 			if (isRedirect(error)) {
 				throw error;
 			}
 
 			const callbackUrl = event.url.searchParams.get('callbackUrl') ?? '/admin';
 			let errorType = 'CredentialsSignin';
-			
-			if (error && typeof error === 'object') {
-				if (error.type) {
+
+			if (error instanceof Error) {
+				if ('type' in error && typeof error.type === 'string') {
 					errorType = error.type;
-				} else if (error.constructor?.name) {
-					errorType = error.constructor.name;
+				} else {
+					errorType = error.name;
 				}
 			}
 
-			redirect(303, `/signin?error=${encodeURIComponent(errorType)}&callbackUrl=${encodeURIComponent(callbackUrl)}`);
+			redirect(
+				303,
+				`/signin?error=${encodeURIComponent(errorType)}&callbackUrl=${encodeURIComponent(callbackUrl)}`
+			);
 		}
 	}
 };

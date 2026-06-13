@@ -91,9 +91,7 @@
 				<input type="hidden" name="providerId" value="oidc" />
 				<input type="hidden" name="redirectTo" value={data.callbackUrl} />
 
-				<p class="sso-desc">
-					This app is configured to use Single Sign-On for authentication.
-				</p>
+				<p class="sso-desc">This app is configured to use Single Sign-On for authentication.</p>
 
 				<button type="submit" class="submit-btn" autofocus>
 					<IconSignIn class="btn-icon" aria-hidden="true" />
@@ -223,7 +221,9 @@
 		background: var(--surface-page);
 		border: 1px solid var(--border-strong);
 		border-radius: var(--radius);
-		transition: border-color var(--transition), box-shadow var(--transition);
+		transition:
+			border-color var(--transition),
+			box-shadow var(--transition);
 		box-sizing: border-box;
 	}
 
@@ -251,7 +251,9 @@
 		font-size: var(--font-size-base);
 		font-weight: 600;
 		cursor: pointer;
-		transition: opacity var(--transition), transform var(--transition);
+		transition:
+			opacity var(--transition),
+			transform var(--transition);
 	}
 
 	.submit-btn:hover {
