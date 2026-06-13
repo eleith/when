@@ -24,6 +24,7 @@
 		viewDate?: string | null;
 		userTz?: string;
 		originalSlot?: string | null;
+		onEditDate?: (() => void) | null;
 	}
 
 	let {
@@ -34,7 +35,8 @@
 		selectedSlot = $bindable(),
 		viewDate = $bindable(null),
 		userTz = $bindable(Intl.DateTimeFormat().resolvedOptions().timeZone),
-		originalSlot = null
+		originalSlot = null,
+		onEditDate = null
 	}: Props = $props();
 
 	const ALL_TIMEZONES = Intl.supportedValuesOf('timeZone');
@@ -474,7 +476,19 @@
 {#if viewDate && timeline}
 	<div class="timeline-container">
 		<div class="slots-header">
-			<h2 class="slots-date">{fmtDate(viewDate)}</h2>
+			<div class="slots-date-group">
+				{#if onEditDate}
+					<button
+						type="button"
+						class="slots-back"
+						onclick={onEditDate}
+						aria-label="Back to calendar"
+					>
+						<IconCaretLeft aria-hidden="true" />
+					</button>
+				{/if}
+				<h2 class="slots-date">{fmtDate(viewDate)}</h2>
+			</div>
 			<button type="button" class="slots-tz" onclick={() => (tzPickerOpen = true)}>
 				<IconGlobe class="slots-tz-icon" />
 				<span class="slots-tz-text">{fmtTzShort(userTz)}</span>
@@ -761,10 +775,44 @@
 		margin: 0 0 var(--space-5);
 	}
 
+	.slots-date-group {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		min-width: 0;
+	}
+
 	.slots-date {
 		font-size: var(--font-size-lg);
 		font-weight: 600;
 		margin: 0;
+	}
+
+	/* caret to return to the calendar — mobile only (desktop has the wizard back button) */
+	.slots-back {
+		display: none;
+		align-items: center;
+		justify-content: center;
+		flex-shrink: 0;
+		background: none;
+		border: none;
+		padding: var(--space-1);
+		margin-left: calc(var(--space-2) * -1);
+		font-size: var(--font-size-xl);
+		line-height: 1;
+		color: var(--text-muted);
+		cursor: pointer;
+		transition: color var(--transition);
+	}
+
+	.slots-back:hover {
+		color: var(--text);
+	}
+
+	@media (max-width: 768px) {
+		.slots-back {
+			display: inline-flex;
+		}
 	}
 
 	.slots-tz {

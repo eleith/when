@@ -269,6 +269,7 @@
 						bind:viewDate
 						bind:userTz
 						originalSlot={data.rescheduleAppt?.start_time ?? null}
+						onEditDate={goBack}
 					/>
 
 					<div class="booking-form">
@@ -927,7 +928,7 @@
 			left: 0;
 			right: 0;
 			padding: var(--space-4) var(--space-5) calc(var(--space-4) + env(safe-area-inset-bottom));
-			background: var(--bg);
+			background: var(--surface);
 			border-top: 1px solid var(--border);
 			z-index: 100;
 		}
