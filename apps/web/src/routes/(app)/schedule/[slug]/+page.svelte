@@ -61,7 +61,7 @@
 	</div>
 </header>
 
-<div class="booking" data-step={step}>
+<div class="booking">
 	{#if data.rescheduleError}
 		<div class="card reschedule-error-card">
 			<h1 class="error-title">Can't reschedule this booking</h1>
@@ -199,8 +199,8 @@
 						onEditDate={flow.goBack}
 					/>
 
-					<div class="booking-form">
-						{#if selectedSlot}
+					{#if step === 3 && selectedSlot}
+						<div class="booking-form">
 							<p class="confirmed-slot">
 								<button
 									type="button"
@@ -283,12 +283,8 @@
 									{#if data.rescheduleAppt}Confirm Reschedule{:else}Book{/if}
 								</button>
 							</form>
-						{:else}
-							<div class="form-placeholder">
-								<p>Select a time on the timeline to continue</p>
-							</div>
-						{/if}
-					</div>
+						</div>
+					{/if}
 				</div>
 
 				<div class="wizard-cta">
@@ -524,16 +520,6 @@
 		min-height: 0;
 	}
 
-	/* hide non-active step panels (calendar + timeline live inside SlotPicker) */
-	.booking[data-step='1'] :global(.timeline-container),
-	.booking[data-step='1'] .booking-form,
-	.booking[data-step='2'] :global(.calendar-panel),
-	.booking[data-step='2'] .booking-form,
-	.booking[data-step='3'] :global(.calendar-panel),
-	.booking[data-step='3'] :global(.timeline-container) {
-		display: none;
-	}
-
 	.booking-form {
 		width: 100%;
 		max-width: 480px;
@@ -621,18 +607,6 @@
 
 	.submit-btn {
 		display: none;
-	}
-
-	/* ---- form placeholder ---- */
-	.form-placeholder {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		text-align: center;
-		color: var(--text-disabled);
-		font-size: var(--font-size-sm);
-		padding: var(--space-9) var(--space-7);
-		min-height: 200px;
 	}
 
 	/* ---- wizard chrome ---- */

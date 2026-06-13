@@ -354,156 +354,160 @@
 	}
 </script>
 
-<div class="calendar-panel">
-	<Calendar.Root
-		type="single"
-		fixedWeeks
-		weekdayFormat="short"
-		{isDateUnavailable}
-		{isDateDisabled}
-		value={calendarValue}
-		onValueChange={onDateChange}
-	>
-		{#snippet children({ months, weekdays })}
-			<Calendar.Header class="cal-header">
-				<Calendar.Heading class="cal-heading" />
-				<div class="cal-nav">
-					<Calendar.PrevButton class="cal-nav-btn"
-						><IconCaretLeft aria-hidden="true" /></Calendar.PrevButton
-					>
-					<Calendar.NextButton class="cal-nav-btn"
-						><IconCaretRight aria-hidden="true" /></Calendar.NextButton
-					>
-				</div>
-			</Calendar.Header>
-			<Calendar.Grid class="cal-grid">
-				<Calendar.GridHead>
-					<Calendar.GridRow class="cal-weekdays">
-						{#each weekdays as day (day)}
-							<Calendar.HeadCell class="cal-weekday">{day.slice(0, 2)}</Calendar.HeadCell>
+{#if flow.step === 1}
+	<div class="calendar-panel">
+		<Calendar.Root
+			type="single"
+			fixedWeeks
+			weekdayFormat="short"
+			{isDateUnavailable}
+			{isDateDisabled}
+			value={calendarValue}
+			onValueChange={onDateChange}
+		>
+			{#snippet children({ months, weekdays })}
+				<Calendar.Header class="cal-header">
+					<Calendar.Heading class="cal-heading" />
+					<div class="cal-nav">
+						<Calendar.PrevButton class="cal-nav-btn"
+							><IconCaretLeft aria-hidden="true" /></Calendar.PrevButton
+						>
+						<Calendar.NextButton class="cal-nav-btn"
+							><IconCaretRight aria-hidden="true" /></Calendar.NextButton
+						>
+					</div>
+				</Calendar.Header>
+				<Calendar.Grid class="cal-grid">
+					<Calendar.GridHead>
+						<Calendar.GridRow class="cal-weekdays">
+							{#each weekdays as day (day)}
+								<Calendar.HeadCell class="cal-weekday">{day.slice(0, 2)}</Calendar.HeadCell>
+							{/each}
+						</Calendar.GridRow>
+					</Calendar.GridHead>
+					<Calendar.GridBody>
+						{#each months as month (month.value.toString())}
+							{#each month.weeks as weekDates, wi (wi)}
+								<Calendar.GridRow class="cal-row">
+									{#each weekDates as date (date.toString())}
+										<Calendar.Cell {date} month={month.value} class="cal-cell">
+											<Calendar.Day class="cal-day">{date.day}</Calendar.Day>
+										</Calendar.Cell>
+									{/each}
+								</Calendar.GridRow>
+							{/each}
 						{/each}
-					</Calendar.GridRow>
-				</Calendar.GridHead>
-				<Calendar.GridBody>
-					{#each months as month (month.value.toString())}
-						{#each month.weeks as weekDates, wi (wi)}
-							<Calendar.GridRow class="cal-row">
-								{#each weekDates as date (date.toString())}
-									<Calendar.Cell {date} month={month.value} class="cal-cell">
-										<Calendar.Day class="cal-day">{date.day}</Calendar.Day>
-									</Calendar.Cell>
-								{/each}
-							</Calendar.GridRow>
-						{/each}
-					{/each}
-				</Calendar.GridBody>
-			</Calendar.Grid>
-		{/snippet}
-	</Calendar.Root>
-</div>
+					</Calendar.GridBody>
+				</Calendar.Grid>
+			{/snippet}
+		</Calendar.Root>
+	</div>
+{/if}
 
-{#if viewDate && timeline}
-	<div class="timeline-container">
-		<div class="slots-header">
-			<div class="slots-date-group">
-				{#if onEditDate}
-					<button
-						type="button"
-						class="slots-back"
-						onclick={onEditDate}
-						aria-label="Back to calendar"
-					>
-						<IconCaretLeft aria-hidden="true" />
-					</button>
-				{/if}
-				<h2 class="slots-date">{formatDate(viewDate)}</h2>
-			</div>
-			<button type="button" class="slots-tz" onclick={() => (tzPickerOpen = true)}>
-				<IconGlobe class="slots-tz-icon" />
-				<span class="slots-tz-text">{fmtTzShort(userTz)}</span>
-			</button>
-		</div>
-		<div class="timeline-scroll">
-			<div class="timeline" style:height="{(timeline.totalMs / 3600000) * 96}px">
-				{#each timeline.labels as { label, top } (label)}
-					<div class="timeline-label" style:top="{top}%">{label}</div>
-					<div class="timeline-gridline" style:top="{top}%"></div>
-				{/each}
-
-				<!-- svelte-ignore a11y_no_static_element_interactions -->
-				<div
-					class="timeline-track"
-					bind:this={trackEl}
-					onpointerdown={handleTrackPointerDown}
-					onpointermove={handleTrackPointerMove}
-					onpointerup={handleTrackPointerUp}
-					onpointercancel={handleTrackPointerCancel}
-				>
-					<div class="hatch-bg"></div>
-
-					{#each timeline.working as w, wi (wi)}
-						<div class="working-window" style:top="{w.top}%" style:height="{w.height}%"></div>
-					{/each}
-
-					{#if timeline.past}
-						<div
-							class="buffer-block"
-							style:top="{timeline.past.top}%"
-							style:height="{timeline.past.height}%"
-						></div>
+{#if flow.step === 2}
+	{#if viewDate && timeline}
+		<div class="timeline-container">
+			<div class="slots-header">
+				<div class="slots-date-group">
+					{#if onEditDate}
+						<button
+							type="button"
+							class="slots-back"
+							onclick={onEditDate}
+							aria-label="Back to calendar"
+						>
+							<IconCaretLeft aria-hidden="true" />
+						</button>
 					{/if}
-
-					{#each timeline.buffers as b, bi (bi)}
-						<div class="buffer-block" style:top="{b.top}%" style:height="{b.height}%"></div>
+					<h2 class="slots-date">{formatDate(viewDate)}</h2>
+				</div>
+				<button type="button" class="slots-tz" onclick={() => (tzPickerOpen = true)}>
+					<IconGlobe class="slots-tz-icon" />
+					<span class="slots-tz-text">{fmtTzShort(userTz)}</span>
+				</button>
+			</div>
+			<div class="timeline-scroll">
+				<div class="timeline" style:height="{(timeline.totalMs / 3600000) * 96}px">
+					{#each timeline.labels as { label, top } (label)}
+						<div class="timeline-label" style:top="{top}%">{label}</div>
+						<div class="timeline-gridline" style:top="{top}%"></div>
 					{/each}
 
-					{#each timeline.busy as b, bi (bi)}
-						<div class="busy-block" style:top="{b.top}%" style:height="{b.height}%">
-							<span class="busy-text">Busy</span>
-						</div>
-					{/each}
+					<!-- svelte-ignore a11y_no_static_element_interactions -->
+					<div
+						class="timeline-track"
+						bind:this={trackEl}
+						onpointerdown={handleTrackPointerDown}
+						onpointermove={handleTrackPointerMove}
+						onpointerup={handleTrackPointerUp}
+						onpointercancel={handleTrackPointerCancel}
+					>
+						<div class="hatch-bg"></div>
 
-					{#if selectedSlot}
-						{@const s = timeline.slots.find((s) => s.iso === selectedSlot)}
-						{#if s}
-							{@const preview =
-								isDragging && dragYPercent !== null ? nearestSlotAt(dragYPercent) : null}
-							{@const overUnavailable =
-								isDragging && dragYPercent !== null && isUnavailable(dragYPercent)}
-							{@const dragTop =
-								isDragging && dragYPercent !== null
-									? Math.max(0, Math.min(100 - s.height, dragYPercent - s.height / 2))
-									: s.top}
+						{#each timeline.working as w, wi (wi)}
+							<div class="working-window" style:top="{w.top}%" style:height="{w.height}%"></div>
+						{/each}
+
+						{#if timeline.past}
 							<div
-								class="slot-block selected"
-								class:dragging={isDragging}
-								class:unavailable={overUnavailable}
-								style:top="{dragTop}%"
-								style:height="{s.height}%"
+								class="buffer-block"
+								style:top="{timeline.past.top}%"
+								style:height="{timeline.past.height}%"
+							></div>
+						{/if}
+
+						{#each timeline.buffers as b, bi (bi)}
+							<div class="buffer-block" style:top="{b.top}%" style:height="{b.height}%"></div>
+						{/each}
+
+						{#each timeline.busy as b, bi (bi)}
+							<div class="busy-block" style:top="{b.top}%" style:height="{b.height}%">
+								<span class="busy-text">Busy</span>
+							</div>
+						{/each}
+
+						{#if selectedSlot}
+							{@const s = timeline.slots.find((s) => s.iso === selectedSlot)}
+							{#if s}
+								{@const preview =
+									isDragging && dragYPercent !== null ? nearestSlotAt(dragYPercent) : null}
+								{@const overUnavailable =
+									isDragging && dragYPercent !== null && isUnavailable(dragYPercent)}
+								{@const dragTop =
+									isDragging && dragYPercent !== null
+										? Math.max(0, Math.min(100 - s.height, dragYPercent - s.height / 2))
+										: s.top}
+								<div
+									class="slot-block selected"
+									class:dragging={isDragging}
+									class:unavailable={overUnavailable}
+									style:top="{dragTop}%"
+									style:height="{s.height}%"
+								>
+									<span class="slot-text">{preview ? preview.time : s.time}</span>
+								</div>
+							{/if}
+						{/if}
+
+						{#if timeline.slots.some((s) => s.isOriginal)}
+							{@const orig = timeline.slots.find((s) => s.isOriginal)!}
+							<div
+								class="slot-block original-booking"
+								style:top="{orig.top}%"
+								style:height="{orig.height}%"
 							>
-								<span class="slot-text">{preview ? preview.time : s.time}</span>
+								<span class="slot-text">{orig.time} (Current)</span>
 							</div>
 						{/if}
-					{/if}
-
-					{#if timeline.slots.some((s) => s.isOriginal)}
-						{@const orig = timeline.slots.find((s) => s.isOriginal)!}
-						<div
-							class="slot-block original-booking"
-							style:top="{orig.top}%"
-							style:height="{orig.height}%"
-						>
-							<span class="slot-text">{orig.time} (Current)</span>
-						</div>
-					{/if}
+					</div>
 				</div>
 			</div>
 		</div>
-	</div>
-{:else}
-	<div class="timeline-container empty-state">
-		<p>Select a highlighted date to see available times.</p>
-	</div>
+	{:else}
+		<div class="timeline-container empty-state">
+			<p>Select a highlighted date to see available times.</p>
+		</div>
+	{/if}
 {/if}
 
 <Dialog.Root bind:open={tzPickerOpen}>
