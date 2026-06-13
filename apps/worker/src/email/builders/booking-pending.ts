@@ -12,23 +12,21 @@ export function bookingPending(i: BookingEmailInput): Envelope[] {
 
 	const attendee: EmailContent = {
 		brand,
-		heading: `Booking request received: ${eventName}`,
+		heading: 'Your booking request was received.',
 		paragraphs: [`${brand.name} will review your request and email you to confirm.`],
 		rows: [
+			{ label: 'What', value: eventName },
 			{ label: 'When', value: when },
 			{ label: 'Where', value: a.location }
 		],
-		actions: [
-			{ href: i.links.reschedule, label: 'Reschedule', variant: 'secondary' },
-			{ href: i.links.cancel, label: 'Cancel', variant: 'danger' }
-		],
-		footerHref: i.links.booked
+		actions: [{ href: i.links.booked, label: 'View this booking', variant: 'primary' }]
 	};
 	const organizer: EmailContent = {
 		brand,
-		heading: `Booking request: ${eventName}`,
+		heading: 'New booking request',
 		paragraphs: [`${a.attendee_name} <${a.attendee_email}> requested this booking.`],
 		rows: [
+			{ label: 'What', value: eventName },
 			{ label: 'When', value: when },
 			{ label: 'Where', value: a.location }
 		],

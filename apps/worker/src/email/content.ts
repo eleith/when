@@ -19,5 +19,4 @@ export interface EmailContent {
 	paragraphs: string[];
 	rows: DetailRow[];
 	actions: EmailAction[];
-	footerHref?: string;
 }

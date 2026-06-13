@@ -22,9 +22,12 @@ export function bookingDeclined(i: BookingEmailInput): Envelope[] {
 	};
 	const admin: EmailContent = {
 		brand,
-		heading: `Declined: ${eventName}`,
+		heading: 'Booking declined',
 		paragraphs: [`You declined the request from ${a.attendee_name} <${a.attendee_email}>.`],
-		rows: [{ label: 'When', value: when }],
+		rows: [
+			{ label: 'What', value: eventName },
+			{ label: 'When', value: when }
+		],
 		actions: []
 	};
 

@@ -21,9 +21,19 @@ describe('format', () => {
 	test('deriveBrand pulls the name and primary color, no image without a cid', () => {
 		expect(deriveBrand(sampleConfig)).toEqual({
 			name: 'Acme Scheduling',
+			pageTitle: 'Acme Scheduling',
 			primaryColor: '#2563eb',
+			onPrimary: '#ffffff',
 			logoUrl: undefined
 		});
+	});
+
+	test('deriveBrand picks dark text on a light brand color', () => {
+		const cfg = {
+			...sampleConfig,
+			user: { ...sampleConfig.user, branding: { primary_color: '#fde047' } }
+		} as typeof sampleConfig;
+		expect(deriveBrand(cfg).onPrimary).toBe('#1a1a1a');
 	});
 
 	test('deriveBrand references the embedded logo by cid when one was fetched', () => {

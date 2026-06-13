@@ -1,3 +1,5 @@
+<%= it.brand.pageTitle %>
+
 <%= it.heading %>
 <% it.paragraphs.forEach((p) => { -%>
 

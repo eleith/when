@@ -10,20 +10,20 @@ describe('bookingConfirmed', () => {
 		expect(attendee.to).toBe('jane@example.com');
 		expect(attendee.subject).toBe('Confirmed: 30-min with Acme Scheduling');
 		expect(html.toLowerCase()).toContain('<!doctype html');
-		expect(html).toContain('Acme Scheduling');
 		expect(html).toContain('Your booking is confirmed');
 		expect(html).toContain('Zoom');
-		expect(html).toContain(sampleInput.links.reschedule);
+		expect(html).toContain('View this booking');
 		expect(html).toContain('#2563eb');
+		expect(html).toContain(sampleInput.links.booked);
 		expect(attendee.attachments?.[0].filename).toBe('invite.ics');
 
-		expect(attendee.text.startsWith('Your booking is confirmed.\n\nWhat: 30-min\nWhen: ')).toBe(
-			true
-		);
+		expect(
+			attendee.text.startsWith(
+				'Acme Scheduling\n\nYour booking is confirmed.\n\nWhat: 30-min\nWhen: '
+			)
+		).toBe(true);
 		expect(attendee.text).toContain('\nWhere: Zoom\n\n');
-		expect(attendee.text).toContain(
-			`Reschedule: ${sampleInput.links.reschedule}\nCancel: ${sampleInput.links.cancel}`
-		);
+		expect(attendee.text).toContain(`View this booking: ${sampleInput.links.booked}`);
 
 		expect(organizer.to).toBe('owner@acme.test');
 		expect(organizer.subject).toBe('New booking: 30-min with Jane Doe');

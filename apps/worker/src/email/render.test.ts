@@ -3,22 +3,21 @@ import { renderHtmlBody, renderTextBody } from './render.js';
 import type { EmailContent } from './content.js';
 
 const base: Omit<EmailContent, 'actions'> = {
-	brand: { name: 'Acme', primaryColor: '#2563eb' },
+	brand: { name: 'Acme', pageTitle: 'Acme', primaryColor: '#2563eb', onPrimary: '#ffffff' },
 	heading: 'Hello & welcome',
 	paragraphs: ['Thanks for booking.'],
 	rows: [
 		{ label: 'What', value: '30 min chat' },
 		{ label: 'When', value: 'Mon 9am' },
 		{ label: 'Where', value: null }
-	],
-	footerHref: 'https://when.example.com/booked/1'
+	]
 };
 
 describe('renderHtmlBody', () => {
 	test('no actions: shell + header + heading + body, no buttons', () => {
 		const html = renderHtmlBody({ ...base, actions: [] });
 		expect(html.toLowerCase()).toContain('<!doctype html');
-		expect(html).toContain('Acme');
+		expect(html).toContain('#2563eb');
 		expect(html).toContain('Hello &amp; welcome');
 		expect(html).toContain('Thanks for booking.');
 		expect(html).toContain('30 min chat');
@@ -54,7 +53,13 @@ describe('renderHtmlBody', () => {
 		const html = renderHtmlBody({
 			...base,
 			actions: [],
-			brand: { name: 'Acme', primaryColor: '#2563eb', logoUrl: 'https://cdn/logo.png' }
+			brand: {
+				name: 'Acme',
+				pageTitle: 'Acme',
+				primaryColor: '#2563eb',
+				onPrimary: '#ffffff',
+				logoUrl: 'https://cdn/logo.png'
+			}
 		});
 		expect(html).toContain('https://cdn/logo.png');
 	});
@@ -71,6 +76,8 @@ describe('renderTextBody', () => {
 		});
 		expect(text).toBe(
 			[
+				'Acme',
+				'',
 				'Hello & welcome',
 				'',
 				'Thanks for booking.',

@@ -20,17 +20,14 @@ export function bookingConfirmed(i: BookingEmailInput): Envelope[] {
 			{ label: 'When', value: when },
 			{ label: 'Where', value: a.location }
 		],
-		actions: [
-			{ href: i.links.reschedule, label: 'Reschedule', variant: 'secondary' },
-			{ href: i.links.cancel, label: 'Cancel', variant: 'danger' }
-		],
-		footerHref: i.links.booked
+		actions: [{ href: i.links.booked, label: 'View this booking', variant: 'primary' }]
 	};
 	const admin: EmailContent = {
 		brand,
-		heading: `New booking: ${eventName}`,
+		heading: 'New booking',
 		paragraphs: [`${a.attendee_name} <${a.attendee_email}> just booked.`],
 		rows: [
+			{ label: 'What', value: eventName },
 			{ label: 'When', value: when },
 			{ label: 'Where', value: a.location },
 			{ label: 'Notes', value: a.attendee_notes }

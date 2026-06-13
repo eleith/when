@@ -36,13 +36,32 @@ const DEFAULT_PRIMARY_COLOR = '#2563eb';
 
 export interface Brand {
 	name: string;
+	pageTitle: string;
 	logoUrl?: string;
 	primaryColor: string;
+	onPrimary: string;
+}
+
+// Black or white, whichever reads better on the brand color (YIQ luminance).
+function onColor(hex: string): string {
+	const m = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(hex.trim());
+	if (!m) return '#ffffff';
+	const h = m[1].length === 3 ? m[1].replace(/(.)/g, '$1$1') : m[1];
+	const r = parseInt(h.slice(0, 2), 16);
+	const g = parseInt(h.slice(2, 4), 16);
+	const b = parseInt(h.slice(4, 6), 16);
+	return (r * 299 + g * 587 + b * 114) / 1000 >= 140 ? '#1a1a1a' : '#ffffff';
 }
 
 export function deriveBrand(cfg: WhenConfiguration, logoCid?: string): Brand {
 	const branding = cfg.user.branding;
 	const raw = branding?.primary_color;
 	const primaryColor = (typeof raw === 'string' ? raw : raw?.light) ?? DEFAULT_PRIMARY_COLOR;
-	return { name: cfg.user.name, logoUrl: logoCid ? `cid:${logoCid}` : undefined, primaryColor };
+	return {
+		name: cfg.user.name,
+		pageTitle: branding?.page_title ?? cfg.user.name,
+		logoUrl: logoCid ? `cid:${logoCid}` : undefined,
+		primaryColor,
+		onPrimary: onColor(primaryColor)
+	};
 }

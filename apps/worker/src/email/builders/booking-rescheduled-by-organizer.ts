@@ -20,17 +20,16 @@ export function bookingRescheduledByOrganizer(i: BookingEmailInput): Envelope[] 
 			{ label: 'When', value: when },
 			{ label: 'Where', value: a.location }
 		],
-		actions: [
-			{ href: i.links.reschedule, label: 'Reschedule', variant: 'secondary' },
-			{ href: i.links.cancel, label: 'Cancel', variant: 'danger' }
-		],
-		footerHref: i.links.booked
+		actions: [{ href: i.links.booked, label: 'View this booking', variant: 'primary' }]
 	};
 	const admin: EmailContent = {
 		brand,
-		heading: `Rescheduled: ${eventName}`,
+		heading: 'Booking rescheduled',
 		paragraphs: [`You rescheduled the booking for ${a.attendee_name} <${a.attendee_email}>.`],
-		rows: [{ label: 'When', value: when }],
+		rows: [
+			{ label: 'What', value: eventName },
+			{ label: 'When', value: when }
+		],
 		actions: []
 	};
 

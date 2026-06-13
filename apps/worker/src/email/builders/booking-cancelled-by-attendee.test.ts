@@ -9,7 +9,9 @@ describe('bookingCancelledByAttendee', () => {
 		expect(attendee.to).toBe('jane@example.com');
 		expect(attendee.subject).toBe('Cancelled: 30-min with Acme Scheduling');
 		expect(attendee.html ?? '').toContain('Your booking has been cancelled');
-		expect(attendee.text).toMatch(/^Your booking has been cancelled\.\n\nWhat: 30-min\nWhen: /);
+		expect(attendee.text).toMatch(
+			/^Acme Scheduling\n\nYour booking has been cancelled\.\n\nWhat: 30-min\nWhen: /
+		);
 		expect(attendee.attachments?.[0].content).toContain('METHOD:CANCEL');
 
 		expect(organizer.to).toBe('owner@acme.test');

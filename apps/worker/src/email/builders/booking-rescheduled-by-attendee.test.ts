@@ -8,7 +8,7 @@ describe('bookingRescheduledByAttendee', () => {
 
 		expect(attendee.subject).toBe('Rescheduled: 30-min with Acme Scheduling');
 		expect(attendee.html ?? '').toContain('moved to a new time');
-		expect(attendee.text).toContain('Reschedule again:');
+		expect(attendee.text).toContain(`View this booking: ${sampleInput.links.booked}`);
 		expect(attendee.attachments?.[0].content).toContain('METHOD:REQUEST');
 
 		expect(organizer.to).toBe('owner@acme.test');

@@ -13,7 +13,7 @@ describe('bookingPending', () => {
 
 		expect(attendee.to).toBe('jane@example.com');
 		expect(attendee.subject).toBe('Booking request received: 30 Minute Chat with Acme Scheduling');
-		expect(attendee.html ?? '').toContain('Booking request received: 30 Minute Chat');
+		expect(attendee.html ?? '').toContain('Your booking request was received.');
 		expect(attendee.text).toContain(
 			'Acme Scheduling will review your request and email you to confirm.'
 		);
