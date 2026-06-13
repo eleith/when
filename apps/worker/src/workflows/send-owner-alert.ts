@@ -3,6 +3,8 @@ import { getOpenWorkflow } from '@when/jobs';
 import { sendOwnerAlert } from '@when/jobs/specs';
 import type { SendOwnerAlertInput, SendOwnerAlertResult } from '@when/jobs';
 import { ownerAlert } from '../email/builders/owner-alert.js';
+import { fetchBrandLogo } from '../email/logo.js';
+import { renderMessage } from '../email/render.js';
 import { sendEmail } from '../email/smtp.js';
 import { getWorkerContext } from '../services/context.js';
 
@@ -27,7 +29,8 @@ export async function runSendOwnerAlert(
 	step: EmailStep
 ): Promise<SendOwnerAlertResult> {
 	const { config, logger } = getWorkerContext();
-	const envelope = await ownerAlert(config, input);
+	const logo = await fetchBrandLogo(config);
+	const envelope = renderMessage(ownerAlert(config, input, logo), logo);
 	try {
 		await step.run({ name: `smtp:${envelope.to}`, retryPolicy: SEND_RETRY }, async () => {
 			const result = await sendEmail(envelope);

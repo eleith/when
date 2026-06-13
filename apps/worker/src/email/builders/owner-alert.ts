@@ -1,18 +1,17 @@
 import type { WhenConfiguration } from '@when/config';
 import type { SendOwnerAlertInput } from '@when/jobs';
 import { deriveBrand } from '../format.js';
-import { fetchBrandLogo } from '../logo.js';
-import { renderMessage } from '../render.js';
-import type { Envelope } from '../recipients.js';
+import type { Attachment, EmailMessage } from '../recipients.js';
 import type { EmailContent } from '../content.js';
 
 // An owner-only alert (no attendee, no appointment), addressed straight to the
 // configured owner. `broke` explains the consequence; `recovered` is the all-clear.
-export async function ownerAlert(
+// Pure builder: the handler fetches the logo and renders via renderMessage.
+export function ownerAlert(
 	cfg: WhenConfiguration,
-	input: SendOwnerAlertInput
-): Promise<Envelope> {
-	const logo = await fetchBrandLogo(cfg);
+	input: SendOwnerAlertInput,
+	logo: Attachment | null
+): EmailMessage {
 	const brand = deriveBrand(cfg, logo?.cid);
 	const broke = input.kind === 'broke';
 
@@ -37,5 +36,5 @@ export async function ownerAlert(
 		actions: []
 	};
 
-	return renderMessage({ to: cfg.user.email, content }, logo);
+	return { to: cfg.user.email, content };
 }
