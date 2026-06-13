@@ -51,7 +51,9 @@ export function validateConfig(raw: unknown): WhenConfiguration {
 	return interpolated;
 }
 
-export async function loadConfigFile(path: string = resolveConfigPath()): Promise<WhenConfiguration> {
+export async function loadConfigFile(
+	path: string = resolveConfigPath()
+): Promise<WhenConfiguration> {
 	const source = await readFile(path, 'utf8');
 	let parsed: unknown;
 	try {
