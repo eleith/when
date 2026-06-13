@@ -1,42 +1,14 @@
-# Agent Instructions for "When"
+# Agent Instructions
 
-When an AI agent or LLM is working on this repository, they must strictly adhere to the following project philosophy, architectural constraints, and coding guidelines.
+This repository documents itself the same way for humans and agents — there is no
+separate agent rulebook to keep in sync.
 
-## 1. Project Philosophy
+Start with [`README.md`](README.md), then read the docs it links:
 
-- **Target Audience:** The individual self-hoster. "When" is explicitly designed for ONE schedulable user.
-- **Radical Simplicity:** We reject multi-tenancy, team routing, and complex enterprise logic. Keep the surface area small and testable.
-- **Configuration over UI:** Application state relies heavily on `config.yaml`. Administrative overhead is kept low.
-- **No "Just In Case" Code:** Do not build abstract interfaces or complex routing logic for future features. Implement only what is required for the single-user scope.
-- **Explicit Over Implicit:** Avoid "magic." Errors should be explicit with clear logging.
+- [`docs/philosophy.md`](docs/philosophy.md) — what "When" is and the principles behind it. Read this first; it explains _why_ the code looks the way it does.
+- [`docs/architecture.md`](docs/architecture.md) — how the system is built (monorepo layout, the web/worker split, data and config systems).
+- [`docs/config.md`](docs/config.md) — the full `config.yaml` reference.
+- [`docs/development.md`](docs/development.md) — how to run it locally, the scripts, and the coding conventions to follow when contributing.
 
-## 2. Architectural Constraints
-
-- **The Stack:** Node 24 (Runtime), pnpm (Package Manager), Vitest (Test Runner), SvelteKit (Framework, `@sveltejs/adapter-node`), TypeScript (`strict: true`), SQLite (`node:sqlite`), Kysely (Query Builder), Zod (Validation).
-- **Use Node built-ins:** Target Node 24 and lean on the standard library — `node:sqlite` (`DatabaseSync`) for the database, `node:fs/promises`, `node:http`, etc. Password hashing/verification uses `@node-rs/argon2`. Run package scripts with `pnpm`; run TypeScript CLIs under `tsx`. There is no Bun in this project.
-- **Type Safety Everywhere:** External inputs (YAML, API, forms) MUST be validated with Zod. Database interactions MUST use Kysely.
-- **Database & State:** State lives entirely in `data.sqlite` and `config.yaml`. Database migrations run automatically on container startup.
-- **Time & Timezones:** Never call `new Date()` or `Date.now()` inline in domain logic. Inject a `Clock` service (`now()`) so tests can pin time. Use `@js-temporal/polyfill` for all zoned datetime math.
-- **No External Runtime Requests:** The app makes no runtime calls to third-party services beyond explicitly configured ones (Google Calendar, CalDAV, SMTP, OIDC). All fonts, icons, and assets must be bundled locally.
-
-## 3. UI and Styling
-
-- **No Tailwind CSS:** Avoid utility-first CSS frameworks.
-- **Components:** Use **Bits UI** for headless, accessible component primitives.
-- **Styling:** Style components using Svelte's native `<style>` blocks (scoped CSS). Maintain a `reset.css` and a minimal `global.css`.
-- **Theming:** User-defined branding (from `config.yaml`) is injected as CSS Variables (e.g., `--primary`) at the root layout level.
-- **Theme Variables Only:** All CSS values (colors, spacing, font sizes, radii, shadows, transitions) MUST use the custom properties defined in `src/lib/styles/theme.css`. Hardcoded values are forbidden. See `docs/styling.md`.
-
-## 4. Security & Secrets
-
-- Passwords are stored only as argon2/bcrypt hashes.
-- Anything secret must be injectable via `${ENV_VAR}` interpolation in the `config.yaml`.
-- Secrets persisted to SQLite (OAuth refresh tokens) must be encrypted at the column level with AES-256-GCM using the `ENCRYPTION_KEY` env var.
-- Never log raw request bodies, session tokens, `cancel_token` values, or decrypted secrets.
-
-## 5. Documentation
-
-For deep dives into specific areas, consult the `docs/` directory:
-
-- `docs/architecture.md` - Core architectural principles, project layout, and styling rules.
-- `docs/config.md` - Detailed breakdown of `config.yaml` configuration options.
+Follow the conventions in `docs/development.md` and the principles in
+`docs/philosophy.md` when making changes.

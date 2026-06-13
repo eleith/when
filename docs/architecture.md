@@ -1,98 +1,156 @@
-# Architecture Guidelines
+# Architecture
 
-This document outlines the core architectural principles, project layout, and styling rules for developing "When".
+How "When" is built. For _why_ it's built this way, see
+[`philosophy.md`](philosophy.md).
 
-## Project Philosophy
+## Stack
 
-- **Target Audience:** The individual self-hoster. "When" is explicitly designed for ONE schedulable user.
-- **Radical Simplicity:** We reject multi-tenancy, team routing, and complex enterprise logic.
-- **Configuration over UI:** Application state relies heavily on `config.yaml`. Administrative overhead is kept low.
-- **Explicit Over Implicit:** Avoid "magic." Errors should be explicit with clear logging.
+Node 24, TypeScript (`strict`), pnpm workspaces. SvelteKit (`@sveltejs/adapter-node`)
+for the web app. SQLite through Node's built-in `node:sqlite` behind a small Kysely
+dialect. [openworkflow](https://openworkflow.dev) for durable background jobs. Vitest
+for tests, Prettier + ESLint for formatting/linting. Email templates render with Eta;
+zoned time math uses `@js-temporal/polyfill`; calendar iCal in and out goes through
+`ts-ics`; password hashing uses `@node-rs/argon2`.
 
-## Core Technologies
+## Monorepo layout
 
-- **Runtime & Tooling:** Node 24 (Runtime), pnpm (Package Manager), Vitest (Test Runner), `tsx` for TypeScript CLIs.
-- **Framework:** SvelteKit, built with `@sveltejs/adapter-node`.
-- **Database:** SQLite via Node's built-in `node:sqlite` (`DatabaseSync`) behind a small vendored Kysely dialect (`src/lib/server/db/node-sqlite-dialect.ts`). Migrations run on boot and are idempotent.
-- **Validation:** Zod for runtime data boundary validation.
-- **Time Math:** `@js-temporal/polyfill` for all zoned datetime math. Never call `new Date()` inline in domain logic; inject a `Clock` service (`now()`) to enable pinned times in tests.
-- **Calendar Data:** Outbound `.ics` and inbound CalDAV iCal both go through `ts-ics`.
+A pnpm workspace (`apps/*`, `packages/*`). Tests are co-located as `*.test.ts` next to
+the code they cover — there is no top-level `tests/` directory.
 
-## Design Patterns
+| Path                | Role                                                                                          |
+| ------------------- | --------------------------------------------------------------------------------------------- |
+| `apps/web`          | SvelteKit app: booking page, admin UI, API routes. Also holds `e2e/` (Playwright) and `cli/`. |
+| `apps/worker`       | Long-running background service: calendar sync + email delivery. See its README.              |
+| `packages/config`   | Canonical `config.yaml` schema, generated types, loader/validator. See its README.            |
+| `packages/db`       | SQLite data layer: `node:sqlite` + Kysely dialect, schema types, migrations. See its README.  |
+| `packages/jobs`     | The job/workflow contract shared by web (producer) and worker (consumer). See its README.     |
+| `packages/calendar` | External-calendar I/O: provider adapters, busy-time fetch, push/delete, ICS. See its README.  |
 
-### Calendar Adapter Pattern
+Each package's `README.md` is the detailed reference for that package; this document is
+the system-level overview that ties them together.
 
-To maintain the Open/Closed Principle and prevent deeply nested conditionals, "When" uses an Adapter pattern for external calendar integrations.
+## Two-process model
 
-All external interactions (fetching busy times, pushing appointments, deleting events) are defined in a unified `CalendarAdapter` interface (`src/lib/server/calendar/adapter.ts`). Specific integrations (like CalDAV or Google Calendar) implement this interface in dedicated classes within the `src/lib/server/calendar/adapters/` directory.
+The web app and the worker are separate processes that share **one `config.yaml`** and
+**one data directory**. The web app stays on the request path only long enough to do the
+durable, fast work — validate, write the booking row, enqueue a job — and returns. The
+worker does everything slow or failure-prone: sending emails, pushing to external
+calendars, refreshing busy times. They communicate through the database, not over HTTP.
 
-A central factory function, `getCalendarAdapter(config)`, is the single source of truth for interpreting the `type` of a calendar from the user's `config.yaml`. The core scheduling engine interacts exclusively with this interface, making it trivial to add support for new calendar providers in the future without modifying core routing or availability logic.
-
-### Svelte templates own user-facing copy
-
-Per-component user-facing copy — page titles, status labels, button text, banner messages — belongs in the markup, not in `<script>`. If the only purpose of a function or `$derived` is to map a stable identifier to a display string, inline the mapping with `{#if}` chains directly where it renders.
-
-No — indirection through a script-side mapper:
-
-```svelte
-<script>
-	function clockStatusLabel(s) {
-		/* maps 'upcoming' → 'Upcoming', etc. */
-	}
-</script>
-
-<p>{clockStatusLabel(status)}</p>
+```
+booking request ─► web: write appointment row ─► enqueue job ─► respond
+                                                      │
+                          (shared SQLite + config)    ▼
+                                              worker: drain job ─► send email / sync calendar
 ```
 
-Yes — copy lives where it renders:
+## Background jobs
 
-```svelte
-<p>
-	{#if status === 'upcoming'}Upcoming
-	{:else if status === 'in_progress'}In progress
-	{:else}Concluded
-	{/if}
-</p>
-```
+Jobs run on openworkflow over `node:sqlite`. `packages/jobs` is the single source of
+truth for **what** jobs exist and their input/output shapes
+(`packages/jobs/src/specs.ts`): the web app triggers a run from a spec
+(`runWorkflow(sendBookingEmail, …)`), and the worker provides the implementation. Both
+sides share types and resolve a workflow by name, so web never imports worker code.
 
-`<script>` is for behavior: formatting transforms (`fmt(iso)` → localized date string), event handlers, derived state computed from real data. Pure identifier-to-copy mappings duplicate the template's job; inlining keeps presentation in one place and makes diffs reviewable without flipping between sections.
+- **Durable steps.** Each side-effect (one SMTP send) is a memoized `step.run(...)` with
+  its own retry policy, so a replay never re-sends something already sent.
+- **Idempotency keys** dedupe enqueues within openworkflow's dedup window. Booking emails
+  key on `appointmentId:kind:ics_sequence` — `ics_sequence` bumps on every reschedule, so
+  a repeat same-kind email isn't swallowed as a duplicate. Calendar sync uses a random
+  key per call (each booking change should trigger a scan).
 
-Exception: if a string repeats 3+ times in the same component, a `$derived` (still computed from data, not a mapper function) is cleaner than duplicating the conditional block.
+## Calendar I/O (off the request path)
 
-## Directory Structure
+`packages/calendar` owns all provider-reaching logic — the Google and CalDAV adapters
+and every network call to an external calendar. **This code runs only in the worker.**
+The worker fetches busy times into a local mirror in the database and pushes
+appointments to the organizer's destination calendar. The web app reads the
+already-expanded busy mirror from `@when/db` and makes no provider call. Web does import
+`@when/calendar`, but only the network-free pieces (`buildIcs` for the `.ics` download
+endpoint, `setLogger`); tree-shaking keeps the adapter code out of the web bundle.
 
-- `cli/`: Command-line tools (e.g., `hash-password.ts`, `setup-google.ts`).
-- `docs/`: Markdown documentation (you are here).
-- `e2e/`: Playwright end-to-end tests.
-- `src/lib/server/`: Core backend logic (domain services, database, config loading).
-  - `src/lib/server/auth/`: Authentication logic.
-  - `src/lib/server/availability/`: Slot calculation engine.
-  - `src/lib/server/calendar/`: CalDAV and Google Calendar integrations.
-  - `src/lib/server/db/`: Kysely setup and migrations.
-- `src/lib/styles/`: Global CSS and theme variables.
-- `src/routes/`: SvelteKit pages and API endpoints.
-- `tests/`: Vitest unit tests.
+## Email pipeline
 
-## Styling & Theming
+Lives in `apps/worker/src/email`. The flow separates assembly from rendering from
+delivery:
 
-"When" uses Vanilla CSS combined with Svelte's scoped `<style>` blocks. **Do not use Tailwind CSS.**
+- **Builders** (`builders/*.ts`) are pure functions: from a booking they produce
+  `EmailMessage` values (an addressed `EmailContent` model + optional ICS attachment).
+  They do no I/O and no rendering.
+- **`renderMessage`** (`render.ts`) turns one `EmailMessage` into a send-ready envelope
+  using Eta templates (`templates/email.html.eta`, `email.txt.eta`) and the shared
+  `emailTheme` tokens (`theme.ts`). It is the single place the brand logo is attached.
+- **`Mailer`** (`smtp.ts`) sends an envelope over SMTP. It's built once at boot from
+  config and carried on the worker context (`services/context.ts`), so handlers depend on
+  it explicitly rather than reaching for a global — the same injection style as the
+  workflow `step`.
 
-### The Rule of Variables
+## Data layer
 
-All visual styling MUST use the CSS custom properties defined in `src/lib/styles/theme.css`. Hardcoded values (hex colors, pixel literals for layout, raw font sizes) are strictly forbidden within component `<style>` blocks.
+`packages/db` wraps `node:sqlite` behind a small Kysely dialect (no native addons) and
+owns the schema types, migrations, and runner. Migrations run on boot and are idempotent.
+Both web and worker open the same `when.sqlite`; the worker additionally owns the
+openworkflow queue database.
 
-- **Colors:** Use semantic variables like `var(--primary)`, `var(--primary-muted)`, `var(--text)`, `var(--surface)`, `var(--border)`. There is one brand hue (`--primary`) with a tonal scale (`--primary-muted`, `--primary-border`, `--text-on-primary`); avoid introducing additional brand hues.
-- **Spacing:** All padding, margins, and gaps must use `var(--space-1)` through `var(--space-10)`. Do not write raw pixel values for spacing.
-- **Typography:** Use `var(--font-size-*)` for font sizing.
-- **Radii:** Use `var(--radius-*)` (e.g., `var(--radius-md)`).
-- **Shadows & Transitions:** Use `var(--shadow-card)`, `var(--transition)`.
+## Configuration system
 
-### Dark Mode & Branding
+`packages/config` keeps the canonical config schema as JSON Schema
+(`src/config.schema.json`) and generates everything else from it:
 
-Dark mode is handled automatically by media queries within `theme.css`. Components do not need explicit dark mode overrides. The `--primary` color is injected at the root layout level based on the user's `config.yaml` branding settings, with `--primary-muted` and `--primary-border` derived from it for the tonal scale.
+- **Strict TypeScript types** via `json2ts`, so defaulted fields are non-optional in code
+  (ajv fills the default at load).
+- **A relaxed editor schema** (`config.external.schema.json`, served at
+  `GET /schema/config.json`) that drops defaulted fields from `required`, so an editor
+  pointed at it via `# yaml-language-server: $schema=…` doesn't flag omitted-but-defaulted
+  fields. Point a `config.yaml` at this relaxed copy, never the canonical one.
+
+`${ENV_VAR}` references in any string are interpolated **before** validation, so secrets
+stay in the environment, not on disk. Validation is **ajv** against the canonical schema
+plus a cross-reference pass (`cross-refs.ts`) for things JSON Schema can't express (e.g.
+an event type's `destination_calendar` must name a declared calendar). This project does
+not use Zod — the JSON Schema is the one validator. The full `config.yaml` reference is
+[`config.md`](config.md).
+
+## Cross-cutting concerns
+
+### Time
+
+Never call `new Date()` or `Date.now()` inline in domain logic. Inject a `Clock` service
+(`now()`) so tests can pin time. All zoned datetime math uses `@js-temporal/polyfill`
+(a future Node upgrade will swap this for the native `Temporal` global).
+
+### Security
+
+- Passwords are stored only as argon2id hashes (`@node-rs/argon2`).
+- Secrets are injected via `${ENV_VAR}` interpolation in `config.yaml`, never committed.
+- Secrets persisted to SQLite (OAuth refresh tokens) are encrypted at the column level
+  with AES-256-GCM using the `ENCRYPTION_KEY` env var.
+- Never log raw request bodies, session tokens, `cancel_token` values, or decrypted
+  secrets.
+
+### Styling and theming (web)
+
+Vanilla CSS with Svelte's scoped `<style>` blocks. **No Tailwind.** Use [Bits UI](https://bits-ui.com)
+for headless, accessible component primitives.
+
+- **Theme variables only.** Every visual value — colors, spacing, font sizes, radii,
+  shadows, transitions — must use the custom properties in
+  `apps/web/src/lib/styles/theme.css`. Hardcoded hex/pixel values in component styles are
+  forbidden. Colors are semantic (`var(--primary)`, `var(--text)`, `var(--surface)`,
+  `var(--border)`); there is one brand hue (`--primary`) with a derived tonal scale —
+  don't introduce a second.
+- **Branding + dark mode.** `--primary` is injected at the root layout from the user's
+  `config.yaml` branding; the tonal scale derives from it. Dark mode is handled by media
+  queries in `theme.css`, so components need no explicit dark-mode overrides.
+- **Copy lives in the markup.** Per-component user-facing strings (titles, labels, button
+  text) belong in the template via `{#if}` chains, not in a `<script>`-side mapper
+  function. `<script>` is for behavior (formatting transforms, handlers, data-derived
+  state), not identifier-to-string mapping. If a string repeats 3+ times in one component,
+  a data-derived `$derived` is fine — a mapper function is not.
 
 ## Testing
 
-- Ensure new features have accompanying tests in the `tests/` directory.
-- Domain logic should be easily testable by injecting dependencies like the `Clock`.
-- E2E tests are located in `e2e/` and run against a full browser environment.
+Unit tests are co-located `*.test.ts` files run by Vitest. Domain logic stays testable by
+injecting dependencies — the `Clock` for time, a fake `Mailer` for email, a fake workflow
+`step` for jobs — rather than reaching for globals. End-to-end tests live in
+`apps/web/e2e` and run against a real browser with Playwright.
