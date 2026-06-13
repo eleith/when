@@ -1,7 +1,6 @@
-import { ConfigError, loadConfigFile } from '@when/config';
-import { MissingEnvVarsError } from '@when/config';
+import { ConfigError, loadConfigFile, MissingEnvVarsError, resolveConfigPath } from '@when/config';
 
-const path = process.argv[2] ?? './config.yaml';
+const path = process.argv[2] ?? resolveConfigPath();
 
 try {
 	const cfg = await loadConfigFile(path);

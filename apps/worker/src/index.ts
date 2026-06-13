@@ -2,7 +2,6 @@ import { loadConfigFile } from '@when/config';
 import { openDb, runMigrations } from '@when/db';
 import { initOpenWorkflow } from '@when/jobs';
 import { setLogger } from '@when/calendar';
-import { resolveConfigPath } from './services/paths.js';
 import { setWorkerContext, type WorkerContext } from './services/context.js';
 import { createHealthServer } from './services/health.js';
 import { createLogger, log } from './services/logger.js';
@@ -21,7 +20,7 @@ const REFRESH_TICK_MINUTES = 5;
 async function main(): Promise<void> {
 	const logger = createLogger();
 
-	const config = await loadConfigFile(resolveConfigPath());
+	const config = await loadConfigFile();
 	logger.info('config loaded', { user: config.user.email });
 
 	const db = openDb(config.database.app);

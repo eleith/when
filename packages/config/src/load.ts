@@ -8,6 +8,7 @@ import externalSchema from './config.external.schema.json' with { type: 'json' }
 import type { WhenConfiguration } from './schema.js';
 import { interpolate } from './interpolate.js';
 import { checkCrossRefs } from './cross-refs.js';
+import { resolveConfigPath } from './paths.js';
 
 // `schema` validates (ajv fills defaults); `externalSchema` is the relaxed copy
 // editors point `$schema` at, so defaulted fields aren't flagged as missing.
@@ -50,7 +51,7 @@ export function validateConfig(raw: unknown): WhenConfiguration {
 	return interpolated;
 }
 
-export async function loadConfigFile(path: string): Promise<WhenConfiguration> {
+export async function loadConfigFile(path: string = resolveConfigPath()): Promise<WhenConfiguration> {
 	const source = await readFile(path, 'utf8');
 	let parsed: unknown;
 	try {
