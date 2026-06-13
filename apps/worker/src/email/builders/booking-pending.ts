@@ -6,7 +6,7 @@ import type { BookingEmailInput } from '../types.js';
 
 export function bookingPending(i: BookingEmailInput): Envelope[] {
 	const a = i.appointment;
-	const brand = deriveBrand(i.cfg);
+	const brand = deriveBrand(i.cfg, i.logo?.cid);
 	const eventName = eventTypeName(i.eventType, a);
 	const when = fmtWhen(a.start_time, a.end_time, i.cfg.user.timezone);
 

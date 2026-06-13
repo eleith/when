@@ -2,8 +2,8 @@ import { expect, test } from 'vitest';
 import { ownerAlert } from './owner-alert.js';
 import { sampleConfig } from '../__fixtures__/booking.js';
 
-test('broke alert addresses the owner and explains the consequence', () => {
-	const env = ownerAlert(sampleConfig, {
+test('broke alert addresses the owner and explains the consequence', async () => {
+	const env = await ownerAlert(sampleConfig, {
 		calendarId: 'work',
 		kind: 'broke',
 		since: '2026-05-01T10:00:00Z',
@@ -15,8 +15,8 @@ test('broke alert addresses the owner and explains the consequence', () => {
 	expect(env.text).toContain("won't reflect");
 });
 
-test('recovered alert is the all-clear', () => {
-	const env = ownerAlert(sampleConfig, {
+test('recovered alert is the all-clear', async () => {
+	const env = await ownerAlert(sampleConfig, {
 		calendarId: 'work',
 		kind: 'recovered',
 		since: null,

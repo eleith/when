@@ -50,5 +50,6 @@ export const sampleInput: BookingEmailInput = {
 	cfg: sampleConfig,
 	appointment: sampleAppointment,
 	eventType: undefined,
-	links: sampleLinks
+	links: sampleLinks,
+	logo: null
 };

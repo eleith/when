@@ -9,18 +9,11 @@ import { bookingRescheduledByAttendee } from './builders/booking-rescheduled-by-
 import { bookingRescheduledByOrganizer } from './builders/booking-rescheduled-by-organizer.js';
 import type { Envelope } from './recipients.js';
 import { bookingLinks } from '../links.js';
+import { fetchBrandLogo } from './logo.js';
 import type { BookingEmailInput } from './types.js';
 
-export function dispatch(input: SendBookingEmailInput, cfg: WhenConfiguration): Envelope[] {
-	const eventType = cfg.event_types.find((e) => e.id === input.appointment.event_type_id);
-	const i: BookingEmailInput = {
-		cfg,
-		appointment: input.appointment,
-		eventType,
-		links: bookingLinks({ baseUrl: cfg.url.app, appointment: input.appointment, eventType })
-	};
-
-	switch (input.kind) {
+function build(i: BookingEmailInput, kind: SendBookingEmailInput['kind']): Envelope[] {
+	switch (kind) {
 		case 'confirmed':
 			return bookingConfirmed(i);
 		case 'pending':
@@ -36,8 +29,27 @@ export function dispatch(input: SendBookingEmailInput, cfg: WhenConfiguration): 
 		case 'declined':
 			return bookingDeclined(i);
 		default: {
-			const unhandled: never = input.kind;
+			const unhandled: never = kind;
 			throw new Error(`unhandled booking email kind: ${String(unhandled)}`);
 		}
 	}
+}
+
+export async function dispatch(
+	input: SendBookingEmailInput,
+	cfg: WhenConfiguration
+): Promise<Envelope[]> {
+	const eventType = cfg.event_types.find((e) => e.id === input.appointment.event_type_id);
+	const logo = await fetchBrandLogo(cfg);
+	const i: BookingEmailInput = {
+		cfg,
+		appointment: input.appointment,
+		eventType,
+		links: bookingLinks({ baseUrl: cfg.url.app, appointment: input.appointment, eventType }),
+		logo
+	};
+
+	const envelopes = build(i, input.kind);
+	if (!logo) return envelopes;
+	return envelopes.map((e) => ({ ...e, attachments: [...(e.attachments ?? []), logo] }));
 }

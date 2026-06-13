@@ -27,7 +27,7 @@ export async function runSendOwnerAlert(
 	step: EmailStep
 ): Promise<SendOwnerAlertResult> {
 	const { config, logger } = getWorkerContext();
-	const envelope = ownerAlert(config, input);
+	const envelope = await ownerAlert(config, input);
 	try {
 		await step.run({ name: `smtp:${envelope.to}`, retryPolicy: SEND_RETRY }, async () => {
 			const result = await sendEmail(envelope);

@@ -33,20 +33,24 @@ describe('bookingConfirmed', () => {
 		expect(organizer.attachments).toBeUndefined();
 	});
 
-	test('renders the brand logo in the header when configured', async () => {
+	test('references the embedded logo by cid in the header', async () => {
 		const withLogo = {
 			...sampleInput,
 			cfg: {
 				...sampleInput.cfg,
-				user: {
-					...sampleInput.cfg.user,
-					branding: { logo_url: 'https://cdn.example.com/logo.png', primary_color: '#16a34a' }
-				}
+				user: { ...sampleInput.cfg.user, branding: { primary_color: '#16a34a' } }
+			},
+			logo: {
+				filename: 'logo.png',
+				content: 'AAAA',
+				contentType: 'image/png',
+				cid: 'brand-logo',
+				encoding: 'base64'
 			}
 		};
 		const [attendee] = await bookingConfirmed(withLogo);
 		const html = attendee.html ?? '';
-		expect(html).toContain('https://cdn.example.com/logo.png');
+		expect(html).toContain('src="cid:brand-logo"');
 		expect(html).toContain('#16a34a');
 	});
 });

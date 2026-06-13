@@ -1,14 +1,19 @@
 import type { WhenConfiguration } from '@when/config';
 import type { SendOwnerAlertInput } from '@when/jobs';
 import { deriveBrand } from '../format.js';
+import { fetchBrandLogo } from '../logo.js';
 import { toSpec } from '../render.js';
 import type { Envelope } from '../recipients.js';
 import type { EmailContent } from '../content.js';
 
 // An owner-only alert (no attendee, no appointment), addressed straight to the
 // configured owner. `broke` explains the consequence; `recovered` is the all-clear.
-export function ownerAlert(cfg: WhenConfiguration, input: SendOwnerAlertInput): Envelope {
-	const brand = deriveBrand(cfg);
+export async function ownerAlert(
+	cfg: WhenConfiguration,
+	input: SendOwnerAlertInput
+): Promise<Envelope> {
+	const logo = await fetchBrandLogo(cfg);
+	const brand = deriveBrand(cfg, logo?.cid);
 	const broke = input.kind === 'broke';
 
 	const content: EmailContent = {
@@ -33,5 +38,11 @@ export function ownerAlert(cfg: WhenConfiguration, input: SendOwnerAlertInput): 
 		? `Calendar sync problem: ${input.calendarId}`
 		: `Calendar sync recovered: ${input.calendarId}`;
 	const spec = toSpec(content, subject);
-	return { to: cfg.user.email, subject: spec.subject, text: spec.text, html: spec.html };
+	return {
+		to: cfg.user.email,
+		subject: spec.subject,
+		text: spec.text,
+		html: spec.html,
+		attachments: logo ? [logo] : undefined
+	};
 }

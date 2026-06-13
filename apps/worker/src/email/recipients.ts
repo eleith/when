@@ -4,6 +4,8 @@ export interface Attachment {
 	filename: string;
 	content: string;
 	contentType: string;
+	cid?: string;
+	encoding?: string;
 }
 
 /** A fully-addressed, rendered email ready for SMTP. */
