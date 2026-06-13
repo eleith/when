@@ -46,7 +46,7 @@ describe('enqueueBookingEmail', () => {
 				kind: 'confirmed',
 				appointment: expect.objectContaining({ id: 'appt-1', email_notification_status: 'queued' })
 			},
-			{ idempotencyKey: 'appt-1:confirmed' }
+			{ idempotencyKey: 'appt-1:confirmed:0' }
 		);
 		const row = await db
 			.selectFrom('appointments')
@@ -55,6 +55,23 @@ describe('enqueueBookingEmail', () => {
 			.executeTakeFirstOrThrow();
 		expect(row.email_notification_status).toBe('queued');
 		expect(result.email_notification_status).toBe('queued');
+
+		await db.destroy();
+	});
+
+	test('keys by ics_sequence so a repeat same-kind send is not deduped', async () => {
+		const db = await seed();
+		await db
+			.updateTable('appointments')
+			.set({ ics_sequence: 2 })
+			.where('id', '=', 'appt-1')
+			.execute();
+
+		await enqueueBookingEmail(db, 'appt-1', 'rescheduled-by-attendee');
+
+		expect(runWorkflow).toHaveBeenCalledWith(sendBookingEmail, expect.anything(), {
+			idempotencyKey: 'appt-1:rescheduled-by-attendee:2'
+		});
 
 		await db.destroy();
 	});

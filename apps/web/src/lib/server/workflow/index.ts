@@ -24,7 +24,9 @@ export async function enqueueBookingEmail(
 	await getOpenWorkflow().runWorkflow(
 		sendBookingEmail,
 		{ kind, appointment },
-		{ idempotencyKey: `${appointmentId}:${kind}` }
+		// ics_sequence bumps on every reschedule, so a repeat same-kind send for the
+		// same appointment gets a distinct key and isn't swallowed by the 24h dedup.
+		{ idempotencyKey: `${appointmentId}:${kind}:${appointment.ics_sequence}` }
 	);
 	return appointment as Appointment;
 }
