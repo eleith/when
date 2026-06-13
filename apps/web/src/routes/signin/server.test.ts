@@ -1,6 +1,6 @@
 import { describe, expect, test, vi } from 'vitest';
 import { load, actions } from './+page.server';
-import { setState } from '$lib/server/state';
+import { setState, type AppState } from '$lib/server/state';
 import { validConfig } from '$lib/server/__fixtures__/valid-config';
 
 vi.mock('$lib/server/auth', () => {
@@ -15,7 +15,7 @@ describe('/signin server load and actions', () => {
 	test('load function returns callbackUrl, authType, and errorCode', async () => {
 		setState({
 			config: validConfig,
-			db: {}
+			db: {} as AppState['db']
 		});
 
 		const mockLocals = {
@@ -28,7 +28,7 @@ describe('/signin server load and actions', () => {
 			locals: mockLocals,
 			route: { id: '/signin' },
 			params: {}
-		});
+		} as unknown as Parameters<typeof load>[0]);
 
 		expect(result).toEqual({
 			callbackUrl: '/custom-path',
@@ -40,7 +40,7 @@ describe('/signin server load and actions', () => {
 	test('load function redirects if already logged in', async () => {
 		setState({
 			config: validConfig,
-			db: {}
+			db: {} as AppState['db']
 		});
 
 		const mockLocals = {
@@ -55,13 +55,14 @@ describe('/signin server load and actions', () => {
 				locals: mockLocals,
 				route: { id: '/signin' },
 				params: {}
-			})
+			} as unknown as Parameters<typeof load>[0])
 		).rejects.toThrow();
 	});
 
 	test('action catches AuthError and redirects back with query parameters', async () => {
-		const mockError = new Error('CredentialsSignin');
-		mockError.type = 'CredentialsSignin';
+		const mockError = Object.assign(new Error('CredentialsSignin'), {
+			type: 'CredentialsSignin'
+		});
 
 		vi.mocked(signInAction).mockRejectedValueOnce(mockError);
 
@@ -71,6 +72,8 @@ describe('/signin server load and actions', () => {
 			request: {}
 		};
 
-		await expect(actions.default(mockEvent)).rejects.toThrow();
+		await expect(
+			actions.default(mockEvent as unknown as Parameters<typeof actions.default>[0])
+		).rejects.toThrow();
 	});
 });
