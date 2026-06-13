@@ -36,26 +36,6 @@ test('unknown conflict_calendars entry flagged with index', () => {
 	}
 });
 
-test('requires_confirmation without smtp flagged', () => {
-	const bad = clone(validConfig);
-	bad.event_types[0].booking_flow = 'requires_confirmation';
-	try {
-		validateConfig(bad);
-		throw new Error('expected ConfigError');
-	} catch (err) {
-		const issues = (err as ConfigError).issues;
-		expect(issues[0].path).toBe('/event_types/0/booking_flow');
-		expect(issues[0].message).toContain('smtp');
-	}
-});
-
-test('requires_confirmation with smtp passes', () => {
-	const good = clone(validConfig);
-	good.event_types[0].booking_flow = 'requires_confirmation';
-	good.smtp = { host: 'smtp.example.com', port: 587, user: 'u', pass: 'p' };
-	expect(() => validateConfig(good)).not.toThrow();
-});
-
 test('duplicate calendar id flagged', () => {
 	const bad = clone(validConfig);
 	bad.calendars.push({ ...bad.calendars[0] });

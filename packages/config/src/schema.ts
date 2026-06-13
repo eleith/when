@@ -22,7 +22,7 @@ export type Location = LocationFixed | LocationGuestProposes | LocationChoice;
 export interface WhenConfiguration {
   auth: Auth;
   user: User;
-  smtp?: Smtp;
+  smtp: Smtp;
   calendars: Calendar[];
   availability: Availability;
   /**
@@ -70,7 +70,7 @@ export interface Branding {
   description?: string;
 }
 /**
- * Optional SMTP. Required when any event type uses `booking_flow: requires_confirmation`.
+ * SMTP server used to send booking emails. Required — the booking system relies on it.
  */
 export interface Smtp {
   host: string;

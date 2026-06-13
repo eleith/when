@@ -63,20 +63,4 @@ describe('runSendOwnerAlert', () => {
 		expect(await runSendOwnerAlert(brokeInput, step)).toBe('failed');
 		await db.destroy();
 	});
-
-	test('skips without attempting when SMTP is unconfigured', async () => {
-		const db = await bootDb();
-		const { mailer, send } = makeMailer();
-		setWorkerContext({
-			config: { ...sampleInput.cfg, smtp: undefined },
-			db,
-			logger: createLogger(),
-			mailer
-		});
-
-		const { step } = makeStep();
-		expect(await runSendOwnerAlert(brokeInput, step)).toBe('skipped');
-		expect(send).not.toHaveBeenCalled();
-		await db.destroy();
-	});
 });

@@ -12,6 +12,12 @@ export const validConfig: WhenConfiguration = {
 		timezone: 'America/New_York',
 		email: 'jane@example.com'
 	},
+	smtp: {
+		host: 'smtp.example.com',
+		port: 587,
+		user: 'mailer',
+		pass: 'secret'
+	},
 	calendars: [
 		{
 			id: 'my-google-cal',

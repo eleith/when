@@ -6,8 +6,7 @@ export interface ChannelNotification {
 	state: NotificationState;
 }
 
-// 'ok' and 'skipped' are terminal non-alarming states; only queued/failed surface.
-type ChannelStatus = NotificationState | 'ok' | 'skipped' | null;
+type ChannelStatus = NotificationState | 'ok' | null;
 
 interface StatusColumns {
 	email_notification_status: ChannelStatus;

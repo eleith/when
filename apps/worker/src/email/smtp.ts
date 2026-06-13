@@ -15,29 +15,22 @@ export function isSecurePort(port: number): boolean {
 }
 
 /**
- * Build a Mailer from the worker config. The transporter is created lazily on
- * the first send and reused; the dependency is explicit (no module-level global,
- * no reaching into the worker context).
+ * Build a Mailer from the worker config. SMTP is required by config, so the
+ * transporter is created up front; the dependency is explicit (no module-level
+ * global, no reaching into the worker context).
  */
 export function createMailer(config: WhenConfiguration, logger: Logger): Mailer {
-	let transporter: nodemailer.Transporter | null = null;
-
-	const getTransporter = (): nodemailer.Transporter => {
-		if (transporter) return transporter;
-		if (!config.smtp) throw new Error('SMTP is not configured');
-		transporter = nodemailer.createTransport({
-			host: config.smtp.host,
-			port: config.smtp.port,
-			secure: isSecurePort(config.smtp.port),
-			auth: { user: config.smtp.user, pass: config.smtp.pass }
-		});
-		return transporter;
-	};
+	const transporter = nodemailer.createTransport({
+		host: config.smtp.host,
+		port: config.smtp.port,
+		secure: isSecurePort(config.smtp.port),
+		auth: { user: config.smtp.user, pass: config.smtp.pass }
+	});
 
 	return {
 		async send(envelope: Envelope): Promise<SendResult> {
 			try {
-				await getTransporter().sendMail({
+				await transporter.sendMail({
 					from: config.user.email,
 					to: envelope.to,
 					subject: envelope.subject,

@@ -17,7 +17,6 @@ export function checkCrossRefs(cfg: WhenConfiguration): ConfigIssue[] {
 
 	const seenEventIds = new Set<string>();
 	const seenSlugs = new Set<string>();
-	const hasSmtp = cfg.smtp !== undefined;
 
 	cfg.event_types.forEach((et, i) => {
 		if (seenEventIds.has(et.id)) {
@@ -51,13 +50,6 @@ export function checkCrossRefs(cfg: WhenConfiguration): ConfigIssue[] {
 				});
 			}
 		});
-
-		if (et.booking_flow === 'requires_confirmation' && !hasSmtp) {
-			issues.push({
-				path: `/event_types/${i}/booking_flow`,
-				message: 'requires_confirmation needs an smtp block in config'
-			});
-		}
 	});
 
 	return issues;

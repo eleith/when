@@ -93,23 +93,4 @@ describe('runSendBookingEmail', () => {
 		expect(await readEmailStatus(db)).toBe('failed');
 		await db.destroy();
 	});
-
-	test('skips (no attempt) and records email:skipped when SMTP is unconfigured', async () => {
-		const db = await seedDb();
-		const { mailer, send } = makeMailer();
-		setWorkerContext({
-			config: { ...sampleInput.cfg, smtp: undefined },
-			db,
-			logger: createLogger(),
-			mailer
-		});
-
-		const { step } = makeStep();
-		const result = await runSendBookingEmail(input, step);
-
-		expect(result).toBe('skipped');
-		expect(send).not.toHaveBeenCalled();
-		expect(await readEmailStatus(db)).toBe('skipped');
-		await db.destroy();
-	});
 });

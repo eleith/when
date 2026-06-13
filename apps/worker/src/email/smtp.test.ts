@@ -10,12 +10,14 @@ describe('smtp', () => {
 		expect(isSecurePort(25)).toBe(false);
 	});
 
-	test('send returns ok:false when SMTP is not configured', async () => {
+	test('createMailer builds a mailer from the smtp config', () => {
 		const mailer = createMailer(
-			{ user: { email: 'owner@acme.test' } } as unknown as WhenConfiguration,
+			{
+				user: { email: 'owner@acme.test' },
+				smtp: { host: 'smtp.test', port: 587, user: 'u', pass: 'p' }
+			} as unknown as WhenConfiguration,
 			createLogger()
 		);
-		const result = await mailer.send({ to: 'jane@example.com', subject: 's', text: 't' });
-		expect(result.ok).toBe(false);
+		expect(typeof mailer.send).toBe('function');
 	});
 });

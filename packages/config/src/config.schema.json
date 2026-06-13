@@ -5,7 +5,16 @@
 	"description": "Canonical schema for the When self-hosted scheduling app's config.yaml.",
 	"type": "object",
 	"additionalProperties": false,
-	"required": ["auth", "user", "calendars", "availability", "event_types", "database", "url"],
+	"required": [
+		"auth",
+		"user",
+		"smtp",
+		"calendars",
+		"availability",
+		"event_types",
+		"database",
+		"url"
+	],
 	"properties": {
 		"auth": {
 			"$ref": "#/$defs/Auth"
@@ -223,7 +232,7 @@
 		},
 		"Smtp": {
 			"title": "Smtp",
-			"description": "Optional SMTP. Required when any event type uses `booking_flow: requires_confirmation`.",
+			"description": "SMTP server used to send booking emails. Required — the booking system relies on it.",
 			"type": "object",
 			"additionalProperties": false,
 			"required": ["host", "port", "user", "pass"],
