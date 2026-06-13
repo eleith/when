@@ -179,4 +179,8 @@ export interface Url {
    * Public base URL of the app (include the scheme), used to build links in emails and calendar events.
    */
   app: string;
+  /**
+   * Base URL the worker uses to reach the app over the internal network (e.g. http://when-app:3000), used to fetch relative branding images for embedding in emails. Defaults to the WHEN_URL_INTERNAL env var (baked into the Docker images per target); empty falls back to `app`.
+   */
+  internal: string;
 }

@@ -6,6 +6,7 @@ RUN corepack enable
 FROM base AS dev
 
 ENV COREPACK_HOME=/usr/local/corepack
+ENV WHEN_URL_INTERNAL=http://when-app:5173
 COPY . .
 RUN pnpm install --frozen-lockfile && pnpm build:packages && chmod -R a+rX "$COREPACK_HOME"
 RUN mkdir -p /m/apps/worker/dist /m/apps/worker/data && \
@@ -28,6 +29,7 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 ENV PORT=9000
+ENV WHEN_URL_INTERNAL=http://when-app:3000
 COPY --from=pruner /pruned/dist /app/dist
 COPY --from=pruner /pruned/node_modules /app/node_modules
 COPY --from=pruner /pruned/package.json /app/package.json

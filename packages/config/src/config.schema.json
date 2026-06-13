@@ -47,13 +47,18 @@
 			"description": "Public URLs for the app.",
 			"type": "object",
 			"additionalProperties": false,
-			"required": ["app"],
+			"required": ["app", "internal"],
 			"properties": {
 				"app": {
 					"type": "string",
 					"description": "Public base URL of the app (include the scheme), used to build links in emails and calendar events.",
 					"minLength": 1,
 					"default": "http://localhost:5173"
+				},
+				"internal": {
+					"type": "string",
+					"description": "Base URL the worker uses to reach the app over the internal network (e.g. http://when-app:3000), used to fetch relative branding images for embedding in emails. Defaults to the WHEN_URL_INTERNAL env var (baked into the Docker images per target); empty falls back to `app`.",
+					"default": "${WHEN_URL_INTERNAL:-}"
 				}
 			}
 		},
