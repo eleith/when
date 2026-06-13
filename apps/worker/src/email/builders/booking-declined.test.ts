@@ -13,9 +13,7 @@ describe('bookingDeclined', () => {
 		expect(attendee.attachments).toBeUndefined();
 
 		expect(organizer.subject).toBe('Declined: 30-min from Jane Doe');
-		expect(organizer.text).toContain(
-			"You declined Jane Doe's <jane@example.com> request for 30-min."
-		);
+		expect(organizer.text).toContain('You declined the request from Jane Doe <jane@example.com>.');
 		expect(organizer.attachments).toBeUndefined();
 	});
 });

@@ -29,9 +29,7 @@ export function bookingRescheduledByOrganizer(i: BookingEmailInput): Envelope[] 
 	const admin: EmailContent = {
 		brand,
 		heading: `Rescheduled: ${eventName}`,
-		paragraphs: [
-			`You rescheduled ${a.attendee_name} <${a.attendee_email}> booking for ${eventName}.`
-		],
+		paragraphs: [`You rescheduled the booking for ${a.attendee_name} <${a.attendee_email}>.`],
 		rows: [{ label: 'When', value: when }],
 		actions: []
 	};

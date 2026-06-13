@@ -28,7 +28,7 @@ describe('bookingConfirmed', () => {
 		expect(organizer.to).toBe('owner@acme.test');
 		expect(organizer.subject).toBe('New booking: 30-min with Jane Doe');
 		expect(organizer.html ?? '').toContain('Jane Doe &lt;jane@example.com&gt;');
-		expect(organizer.text).toContain('Jane Doe <jane@example.com> just booked 30-min.');
+		expect(organizer.text).toContain('Jane Doe <jane@example.com> just booked.');
 		expect(organizer.text).toContain('Notes: Looking forward to it');
 		expect(organizer.attachments).toBeUndefined();
 	});

@@ -9,15 +9,11 @@ export function bookingPending(i: BookingEmailInput): Envelope[] {
 	const brand = deriveBrand(i.cfg);
 	const eventName = eventTypeName(i.eventType, a);
 	const when = fmtWhen(a.start_time, a.end_time, i.cfg.user.timezone);
-	const duration = i.eventType ? `${i.eventType.duration} min` : null;
 
 	const attendee: EmailContent = {
 		brand,
 		heading: `Booking request received: ${eventName}`,
-		paragraphs: [
-			`${brand.name} will review and confirm. You'll get a follow-up email at ${a.attendee_email} with the outcome.`,
-			'Need to change something before then?'
-		],
+		paragraphs: [`${brand.name} will review your request and email you to confirm.`],
 		rows: [
 			{ label: 'When', value: when },
 			{ label: 'Where', value: a.location }
@@ -31,10 +27,9 @@ export function bookingPending(i: BookingEmailInput): Envelope[] {
 	const organizer: EmailContent = {
 		brand,
 		heading: `Booking request: ${eventName}`,
-		paragraphs: [`${a.attendee_name} <${a.attendee_email}> has requested to book ${eventName}.`],
+		paragraphs: [`${a.attendee_name} <${a.attendee_email}> requested this booking.`],
 		rows: [
 			{ label: 'When', value: when },
-			{ label: 'Duration', value: duration },
 			{ label: 'Where', value: a.location }
 		],
 		actions: [{ href: i.links.manage, label: 'Review request', variant: 'primary' }]

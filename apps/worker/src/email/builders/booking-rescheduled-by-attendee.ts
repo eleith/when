@@ -13,7 +13,7 @@ export function bookingRescheduledByAttendee(i: BookingEmailInput): Envelope[] {
 
 	const attendee: EmailContent = {
 		brand,
-		heading: 'Your booking has been moved to a new time.',
+		heading: 'Your booking moved to a new time.',
 		paragraphs: [],
 		rows: [
 			{ label: 'What', value: eventName },
@@ -29,7 +29,7 @@ export function bookingRescheduledByAttendee(i: BookingEmailInput): Envelope[] {
 	const admin: EmailContent = {
 		brand,
 		heading: `Rescheduled: ${eventName}`,
-		paragraphs: [`${a.attendee_name} <${a.attendee_email}> rescheduled ${eventName}.`],
+		paragraphs: [`${a.attendee_name} <${a.attendee_email}> rescheduled this booking.`],
 		rows: [{ label: 'When', value: when }],
 		actions: []
 	};

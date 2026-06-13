@@ -12,7 +12,7 @@ describe('bookingRescheduledByOrganizer', () => {
 
 		expect(organizer.subject).toBe('Rescheduled: 30-min with Jane Doe');
 		expect(organizer.text).toContain(
-			'You rescheduled Jane Doe <jane@example.com> booking for 30-min.'
+			'You rescheduled the booking for Jane Doe <jane@example.com>.'
 		);
 		expect(organizer.attachments).toBeUndefined();
 	});

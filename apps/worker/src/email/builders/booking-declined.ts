@@ -23,9 +23,7 @@ export function bookingDeclined(i: BookingEmailInput): Envelope[] {
 	const admin: EmailContent = {
 		brand,
 		heading: `Declined: ${eventName}`,
-		paragraphs: [
-			`You declined ${a.attendee_name}'s <${a.attendee_email}> request for ${eventName}.`
-		],
+		paragraphs: [`You declined the request from ${a.attendee_name} <${a.attendee_email}>.`],
 		rows: [{ label: 'When', value: when }],
 		actions: []
 	};

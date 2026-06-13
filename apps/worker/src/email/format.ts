@@ -36,15 +36,27 @@ const DEFAULT_PRIMARY_COLOR = '#2563eb';
 
 export interface Brand {
 	name: string;
-	/** `branding.logo_url`, shown in the email header when present. */
+	/** Header image: `branding.logo_url` (or `avatar_url`), absolute so mail clients can load it. */
 	logoUrl?: string;
 	/** `branding.primary_color` (light), or the default. Drives strip/buttons/links. */
 	primaryColor: string;
+}
+
+// Mail clients can't resolve relative URLs (no page origin), so resolve any
+// configured image against the public app base. Absolute URLs pass through.
+function toAbsoluteUrl(url: string | undefined, base: string): string | undefined {
+	if (!url) return undefined;
+	try {
+		return new URL(url, base).toString();
+	} catch {
+		return url;
+	}
 }
 
 export function deriveBrand(cfg: WhenConfiguration): Brand {
 	const branding = cfg.user.branding;
 	const raw = branding?.primary_color;
 	const primaryColor = (typeof raw === 'string' ? raw : raw?.light) ?? DEFAULT_PRIMARY_COLOR;
-	return { name: cfg.user.name, logoUrl: branding?.logo_url, primaryColor };
+	const logoUrl = toAbsoluteUrl(branding?.logo_url ?? branding?.avatar_url, cfg.url.app);
+	return { name: cfg.user.name, logoUrl, primaryColor };
 }

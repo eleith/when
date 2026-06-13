@@ -29,7 +29,7 @@ export function bookingConfirmed(i: BookingEmailInput): Envelope[] {
 	const admin: EmailContent = {
 		brand,
 		heading: `New booking: ${eventName}`,
-		paragraphs: [`${a.attendee_name} <${a.attendee_email}> just booked ${eventName}.`],
+		paragraphs: [`${a.attendee_name} <${a.attendee_email}> just booked.`],
 		rows: [
 			{ label: 'When', value: when },
 			{ label: 'Where', value: a.location },

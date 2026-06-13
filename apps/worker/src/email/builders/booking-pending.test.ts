@@ -14,13 +14,14 @@ describe('bookingPending', () => {
 		expect(attendee.to).toBe('jane@example.com');
 		expect(attendee.subject).toBe('Booking request received: 30 Minute Chat with Acme Scheduling');
 		expect(attendee.html ?? '').toContain('Booking request received: 30 Minute Chat');
-		expect(attendee.text).toContain("You'll get a follow-up email at jane@example.com");
+		expect(attendee.text).toContain(
+			'Acme Scheduling will review your request and email you to confirm.'
+		);
 		expect(attendee.attachments).toBeUndefined();
 
 		expect(organizer.to).toBe('owner@acme.test');
 		expect(organizer.subject).toBe('Booking request: 30 Minute Chat from Jane Doe');
 		expect(organizer.html ?? '').toContain(sampleInput.links.manage);
-		expect(organizer.text).toContain('Duration: 30 min');
 		expect(organizer.text).toContain(`Review request: ${sampleInput.links.manage}`);
 		expect(organizer.attachments).toBeUndefined();
 	});

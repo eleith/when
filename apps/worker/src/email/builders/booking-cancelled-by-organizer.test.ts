@@ -13,9 +13,7 @@ describe('bookingCancelledByOrganizer', () => {
 		expect(attendee.attachments?.[0].content).toContain('METHOD:CANCEL');
 
 		expect(organizer.subject).toBe('Cancelled: 30-min with Jane Doe');
-		expect(organizer.text).toContain(
-			'You cancelled Jane Doe <jane@example.com> booking for 30-min.'
-		);
+		expect(organizer.text).toContain('You cancelled the booking for Jane Doe <jane@example.com>.');
 		expect(organizer.attachments).toBeUndefined();
 	});
 });

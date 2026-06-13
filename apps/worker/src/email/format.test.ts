@@ -24,4 +24,33 @@ describe('format', () => {
 			primaryColor: '#2563eb'
 		});
 	});
+
+	const withBranding = (branding: Record<string, unknown>) =>
+		({
+			...sampleConfig,
+			user: { ...sampleConfig.user, branding }
+		}) as typeof sampleConfig;
+
+	test('deriveBrand keeps an absolute image URL as-is', () => {
+		expect(deriveBrand(withBranding({ logo_url: 'https://cdn.acme.test/logo.png' })).logoUrl).toBe(
+			'https://cdn.acme.test/logo.png'
+		);
+	});
+
+	test('deriveBrand resolves a relative image URL against the public app base', () => {
+		// sampleConfig.url.app is https://when.example.com
+		expect(deriveBrand(withBranding({ logo_url: '/brand/logo.png' })).logoUrl).toBe(
+			'https://when.example.com/brand/logo.png'
+		);
+	});
+
+	test('deriveBrand falls back to avatar_url when no logo_url is set', () => {
+		expect(deriveBrand(withBranding({ avatar_url: 'https://cdn.acme.test/me.jpg' })).logoUrl).toBe(
+			'https://cdn.acme.test/me.jpg'
+		);
+	});
+
+	test('deriveBrand has no image when neither logo nor avatar is configured', () => {
+		expect(deriveBrand(withBranding({})).logoUrl).toBeUndefined();
+	});
 });

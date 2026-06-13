@@ -24,9 +24,7 @@ export function bookingCancelledByOrganizer(i: BookingEmailInput): Envelope[] {
 	const admin: EmailContent = {
 		brand,
 		heading: `Cancelled: ${eventName}`,
-		paragraphs: [
-			`You cancelled ${a.attendee_name} <${a.attendee_email}> booking for ${eventName}.`
-		],
+		paragraphs: [`You cancelled the booking for ${a.attendee_name} <${a.attendee_email}>.`],
 		rows: [{ label: 'When', value: when }],
 		actions: []
 	};

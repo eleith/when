@@ -12,7 +12,7 @@ describe('bookingRescheduledByAttendee', () => {
 		expect(attendee.attachments?.[0].content).toContain('METHOD:REQUEST');
 
 		expect(organizer.to).toBe('owner@acme.test');
-		expect(organizer.text).toContain('Jane Doe <jane@example.com> rescheduled 30-min.');
+		expect(organizer.text).toContain('Jane Doe <jane@example.com> rescheduled this booking.');
 		expect(organizer.attachments).toBeUndefined();
 	});
 });
