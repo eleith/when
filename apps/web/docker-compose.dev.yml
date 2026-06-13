@@ -46,8 +46,6 @@ services:
       - ../../packages/db/src:/m/packages/db/src
       - ../../packages/jobs/src:/m/packages/jobs/src
       - ../../packages/calendar/src:/m/packages/calendar/src
-    depends_on:
-      - mailpit
 
   when-mailpit:
     image: axllent/mailpit:latest
