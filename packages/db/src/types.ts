@@ -6,7 +6,9 @@ export type CalendarHealth = 'good' | 'bad' | 'unknown';
 
 type NullableText = ColumnType<string | null, string | null | undefined, string | null>;
 
-export type NotificationOutcome = 'queued' | 'ok' | 'failed';
+// 'skipped' = there was nothing to deliver (e.g. SMTP not configured), distinct
+// from 'failed' (attempted and gave up after retries).
+export type NotificationOutcome = 'queued' | 'ok' | 'failed' | 'skipped';
 export type NotificationChannel = 'email' | 'calendar_push';
 
 type NotificationColumn = ColumnType<

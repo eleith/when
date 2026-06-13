@@ -50,12 +50,27 @@ describe('runSendOwnerAlert', () => {
 		await db.destroy();
 	});
 
-	test('returns skipped when the send keeps failing', async () => {
+	test('returns failed when the send keeps failing', async () => {
 		const db = await bootCtx();
 		vi.mocked(sendEmail).mockResolvedValue({ ok: false, reason: 'smtp down' });
 
 		const { step } = makeStep();
+		expect(await runSendOwnerAlert(brokeInput, step)).toBe('failed');
+		await db.destroy();
+	});
+
+	test('skips without attempting when SMTP is unconfigured', async () => {
+		const db = openDb(':memory:');
+		await runMigrations(db);
+		setWorkerContext({
+			config: { ...sampleInput.cfg, smtp: undefined },
+			db,
+			logger: createLogger()
+		});
+
+		const { step } = makeStep();
 		expect(await runSendOwnerAlert(brokeInput, step)).toBe('skipped');
+		expect(vi.mocked(sendEmail)).not.toHaveBeenCalled();
 		await db.destroy();
 	});
 });

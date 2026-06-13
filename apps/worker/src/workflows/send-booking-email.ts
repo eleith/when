@@ -35,6 +35,18 @@ export async function runSendBookingEmail(
 	step: EmailStep
 ): Promise<SendBookingEmailResult> {
 	const { config, db, logger } = getWorkerContext();
+
+	if (!config.smtp) {
+		logger.warn('skipping booking email: SMTP not configured', {
+			appointmentId: input.appointment.id,
+			kind: input.kind
+		});
+		await step.run({ name: 'status' }, () =>
+			setNotificationStatus(db, input.appointment.id, 'email', 'skipped')
+		);
+		return 'skipped';
+	}
+
 	const envelopes = await dispatch(input, config);
 
 	let allSent = true;
@@ -57,7 +69,7 @@ export async function runSendBookingEmail(
 	await step.run({ name: 'status' }, () =>
 		setNotificationStatus(db, input.appointment.id, 'email', outcome)
 	);
-	return allSent ? 'sent' : 'skipped';
+	return allSent ? 'sent' : 'failed';
 }
 
 export function registerSendBookingEmailWorkflow(): void {

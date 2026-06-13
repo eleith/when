@@ -29,6 +29,15 @@ export async function runSendOwnerAlert(
 	step: EmailStep
 ): Promise<SendOwnerAlertResult> {
 	const { config, logger } = getWorkerContext();
+
+	if (!config.smtp) {
+		logger.warn('skipping owner alert: SMTP not configured', {
+			calendarId: input.calendarId,
+			kind: input.kind
+		});
+		return 'skipped';
+	}
+
 	const logo = await fetchBrandLogo(config);
 	const envelope = renderMessage(ownerAlert(config, input, logo), logo);
 	try {
@@ -42,7 +51,7 @@ export async function runSendOwnerAlert(
 			calendarId: input.calendarId,
 			error: err instanceof Error ? err.message : String(err)
 		});
-		return 'skipped';
+		return 'failed';
 	}
 }
 

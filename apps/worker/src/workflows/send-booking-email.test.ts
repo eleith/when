@@ -85,8 +85,22 @@ describe('runSendBookingEmail', () => {
 		const { step } = makeStep();
 		const result = await runSendBookingEmail(input, step);
 
-		expect(result).toBe('skipped');
+		expect(result).toBe('failed');
 		expect(await readEmailStatus(db)).toBe('failed');
+		await db.destroy();
+	});
+
+	test('skips (no attempt) and records email:skipped when SMTP is unconfigured', async () => {
+		const db = await seedDb();
+		const cfg = { ...sampleInput.cfg, smtp: undefined };
+		setWorkerContext({ config: cfg, db, logger: createLogger() });
+
+		const { step } = makeStep();
+		const result = await runSendBookingEmail(input, step);
+
+		expect(result).toBe('skipped');
+		expect(vi.mocked(sendEmail)).not.toHaveBeenCalled();
+		expect(await readEmailStatus(db)).toBe('skipped');
 		await db.destroy();
 	});
 });

@@ -32,7 +32,9 @@ export interface SendBookingEmailInput {
 	appointment: Appointment;
 }
 
-export type SendBookingEmailResult = 'sent' | 'skipped';
+// 'sent' = delivered; 'skipped' = nothing to send (e.g. SMTP not configured);
+// 'failed' = attempted and gave up after retries.
+export type SendBookingEmailResult = 'sent' | 'skipped' | 'failed';
 
 /**
  * Producer-side contract for the send-booking-email workflow. Web triggers runs
@@ -67,7 +69,7 @@ export interface SendOwnerAlertInput {
 	reason: string;
 }
 
-export type SendOwnerAlertResult = 'sent' | 'skipped';
+export type SendOwnerAlertResult = 'sent' | 'skipped' | 'failed';
 
 /** Producer-side contract for the owner-alert email; worker implements it. */
 export const sendOwnerAlert: WorkflowSpec<SendOwnerAlertInput, SendOwnerAlertResult> =
