@@ -54,6 +54,27 @@ test('leaves non-string values alone', () => {
 	expect(result).toEqual(input);
 });
 
+test('uses ${VAR:-default} fallback when the var is unset', () => {
+	const result = interpolate({ url: '${APP_URL:-http://localhost:8080}' }, {});
+	expect(result).toEqual({ url: 'http://localhost:8080' });
+});
+
+test('prefers the env value over a ${VAR:-default} fallback', () => {
+	const result = interpolate(
+		{ url: '${APP_URL:-http://localhost:8080}' },
+		{ APP_URL: 'https://x' }
+	);
+	expect(result).toEqual({ url: 'https://x' });
+});
+
+test('${VAR:-} yields an empty string when unset (no throw)', () => {
+	expect(interpolate({ v: '${MAYBE:-}' }, {})).toEqual({ v: '' });
+});
+
+test('$$ escapes to a literal dollar sign', () => {
+	expect(interpolate({ price: '$$5 and $${NOPE}' }, {})).toEqual({ price: '$5 and ${NOPE}' });
+});
+
 test('leaves bare $VAR (no braces) alone', () => {
 	const result = interpolate({ text: 'price is $5 and $FOO' }, {});
 	expect(result).toEqual({ text: 'price is $5 and $FOO' });

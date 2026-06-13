@@ -13,9 +13,13 @@ import { checkCrossRefs } from './cross-refs.js';
 // editors point `$schema` at, so defaulted fields aren't flagged as missing.
 export { schema, externalSchema };
 
-const ajv = new Ajv({ allErrors: true, useDefaults: true, strict: false });
-addFormats(ajv);
-const validateSchema = ajv.compile<WhenConfiguration>(schema);
+const fillAjv = new Ajv({ allErrors: true, useDefaults: true, strict: false });
+addFormats(fillAjv);
+const fillDefaults = fillAjv.compile(schema);
+
+const validateAjv = new Ajv({ allErrors: true, strict: false });
+addFormats(validateAjv);
+const validateSchema = validateAjv.compile<WhenConfiguration>(schema);
 
 export interface ConfigIssue {
 	path: string;
@@ -32,7 +36,9 @@ export class ConfigError extends Error {
 }
 
 export function validateConfig(raw: unknown): WhenConfiguration {
-	const interpolated = interpolate(raw);
+	const withDefaults = structuredClone(raw) ?? {};
+	fillDefaults(withDefaults);
+	const interpolated = interpolate(withDefaults) as WhenConfiguration;
 	if (!validateSchema(interpolated)) {
 		const issues = (validateSchema.errors ?? []).map(toIssue);
 		throw new ConfigError(`config failed schema validation`, issues);

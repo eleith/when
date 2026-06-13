@@ -1,4 +1,4 @@
-const ENV_REF = /\$\{([A-Z_][A-Z0-9_]*)\}/g;
+const ENV_REF = /\$\$|\$\{([A-Z_][A-Z0-9_]*)(?::-([^}]*))?\}/g;
 
 export class MissingEnvVarsError extends Error {
 	readonly missing: readonly string[];
@@ -20,13 +20,13 @@ export function interpolate<T>(node: T, env: NodeJS.ProcessEnv = process.env): T
 
 function walk(node: unknown, env: NodeJS.ProcessEnv, missing: Set<string>): unknown {
 	if (typeof node === 'string') {
-		return node.replace(ENV_REF, (_, name: string) => {
+		return node.replace(ENV_REF, (match, name: string, fallback: string | undefined) => {
+			if (match === '$$') return '$';
 			const value = env[name];
-			if (value === undefined) {
-				missing.add(name);
-				return '';
-			}
-			return value;
+			if (value !== undefined) return value;
+			if (fallback !== undefined) return fallback;
+			missing.add(name);
+			return match;
 		});
 	}
 	if (Array.isArray(node)) {
