@@ -4,7 +4,8 @@
 	import IconCalendarBlank from 'virtual:icons/ph/calendar-blank';
 	import IconCaretLeft from 'virtual:icons/ph/caret-left';
 	import IconClock from 'virtual:icons/ph/clock';
-	import SlotPicker from '$lib/components/SlotPicker.svelte';
+	import DatePicker from '$lib/components/DatePicker.svelte';
+	import DayTimeline from '$lib/components/DayTimeline.svelte';
 	import { createBookingFlow } from '$lib/bookingFlow.svelte';
 	import { formatDate, formatTime, formatSlot, formatTzShort } from '$lib/datetime';
 
@@ -190,14 +191,18 @@
 				</div>
 
 				<div class="booking-body">
-					<SlotPicker
-						{flow}
-						workingWindows={data.workingWindows}
-						busyBlocks={data.busyBlocks}
-						eventType={data.eventType}
-						originalSlot={data.rescheduleAppt?.start_time ?? null}
-						onEditDate={flow.goBack}
-					/>
+					{#if step === 1}
+						<DatePicker {flow} />
+					{:else if step === 2}
+						<DayTimeline
+							{flow}
+							workingWindows={data.workingWindows}
+							busyBlocks={data.busyBlocks}
+							eventType={data.eventType}
+							originalSlot={data.rescheduleAppt?.start_time ?? null}
+							onEditDate={flow.goBack}
+						/>
+					{/if}
 
 					{#if step === 3 && selectedSlot}
 						<div class="booking-form">
