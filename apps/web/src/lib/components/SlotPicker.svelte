@@ -7,6 +7,7 @@
 	import IconCaretLeft from 'virtual:icons/ph/caret-left';
 	import IconCaretRight from 'virtual:icons/ph/caret-right';
 	import IconGlobe from 'virtual:icons/ph/globe';
+	import { formatDate, formatTime, formatTzShort, tzCity, tzOffset } from '$lib/datetime';
 
 	interface EventTypeShape {
 		duration: number;
@@ -41,28 +42,18 @@
 
 	const ALL_TIMEZONES = Intl.supportedValuesOf('timeZone');
 
-	function getTzOffset(tz: string): string {
-		try {
-			const fmt = new Intl.DateTimeFormat('en', { timeZone: tz, timeZoneName: 'shortOffset' });
-			const parts = fmt.formatToParts(new Date());
-			return parts.find((p) => p.type === 'timeZoneName')?.value ?? '';
-		} catch {
-			return '';
-		}
-	}
-
 	type TzInfo = { city: string; offset: string; label: string; haystack: string };
 	const TZ_INFO = new SvelteMap<string, TzInfo>();
 	for (const tz of ALL_TIMEZONES) {
-		const city = tz.split('/').pop()?.replace(/_/g, ' ') ?? tz;
-		const offset = getTzOffset(tz);
+		const city = tzCity(tz);
+		const offset = tzOffset(tz);
 		const label = offset ? `${city} · ${offset}` : city;
 		const haystack = `${tz} ${city} ${offset}`.toLowerCase();
 		TZ_INFO.set(tz, { city, offset, label, haystack });
 	}
 
 	function fmtTzShort(tz: string): string {
-		return TZ_INFO.get(tz)?.label ?? tz.split('/').pop()?.replace(/_/g, ' ') ?? tz;
+		return TZ_INFO.get(tz)?.label ?? formatTzShort(tz);
 	}
 
 	let tzPickerOpen = $state(false);
@@ -250,7 +241,7 @@
 			const end = start.add({ minutes: eventType.duration });
 			return {
 				iso,
-				time: fmtTime(iso),
+				time: formatTime(iso, userTz),
 				top: toPercent(start),
 				height: toPercent(end) - toPercent(start),
 				isOriginal: iso === originalSlot
@@ -400,29 +391,6 @@
 		isDragging = false;
 		dragYPercent = null;
 	}
-
-	function fmtDate(key: string): string {
-		try {
-			return Temporal.PlainDate.from(key).toLocaleString(undefined, {
-				weekday: 'long',
-				month: 'long',
-				day: 'numeric'
-			});
-		} catch {
-			return key;
-		}
-	}
-
-	function fmtTime(iso: string): string {
-		try {
-			const instant = Temporal.Instant.from(iso);
-			return instant
-				.toZonedDateTimeISO(userTz)
-				.toLocaleString(undefined, { hour: '2-digit', minute: '2-digit' });
-		} catch {
-			return iso;
-		}
-	}
 </script>
 
 <div class="calendar-panel">
@@ -487,7 +455,7 @@
 						<IconCaretLeft aria-hidden="true" />
 					</button>
 				{/if}
-				<h2 class="slots-date">{fmtDate(viewDate)}</h2>
+				<h2 class="slots-date">{formatDate(viewDate)}</h2>
 			</div>
 			<button type="button" class="slots-tz" onclick={() => (tzPickerOpen = true)}>
 				<IconGlobe class="slots-tz-icon" />

@@ -7,6 +7,7 @@
 	import IconCaretLeft from 'virtual:icons/ph/caret-left';
 	import IconClock from 'virtual:icons/ph/clock';
 	import SlotPicker from '$lib/components/SlotPicker.svelte';
+	import { formatDate, formatTime, formatSlot, formatTzShort } from '$lib/datetime';
 
 	let { data, form } = $props();
 
@@ -15,18 +16,6 @@
 	onMount(() => {
 		userTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
 	});
-
-	function fmtTzShort(tz: string): string {
-		try {
-			const fmt = new Intl.DateTimeFormat('en', { timeZone: tz, timeZoneName: 'shortOffset' });
-			const parts = fmt.formatToParts(new Date());
-			const offset = parts.find((p) => p.type === 'timeZoneName')?.value ?? '';
-			const city = tz.split('/').pop()?.replace(/_/g, ' ') ?? tz;
-			return offset ? `${city} · ${offset}` : city;
-		} catch {
-			return tz.split('/').pop()?.replace(/_/g, ' ') ?? tz;
-		}
-	}
 
 	let allSlots = $derived(Object.values(data.slotsByDate as Record<string, string[]>).flat());
 	let availableDates = $derived.by(() => {
@@ -61,44 +50,6 @@
 		if (step === 1) return;
 		step = (step - 1) as 1 | 2 | 3;
 		window.scrollTo({ top: 0 });
-	}
-
-	function fmtSlot(iso: string): string {
-		try {
-			const instant = Temporal.Instant.from(iso);
-			return instant.toZonedDateTimeISO(userTz).toLocaleString(undefined, {
-				weekday: 'short',
-				month: 'short',
-				day: 'numeric',
-				hour: '2-digit',
-				minute: '2-digit'
-			});
-		} catch {
-			return iso;
-		}
-	}
-
-	function fmtDate(key: string): string {
-		try {
-			return Temporal.PlainDate.from(key).toLocaleString(undefined, {
-				weekday: 'long',
-				month: 'long',
-				day: 'numeric'
-			});
-		} catch {
-			return key;
-		}
-	}
-
-	function fmtTime(iso: string): string {
-		try {
-			const instant = Temporal.Instant.from(iso);
-			return instant
-				.toZonedDateTimeISO(userTz)
-				.toLocaleString(undefined, { hour: '2-digit', minute: '2-digit' });
-		} catch {
-			return iso;
-		}
 	}
 </script>
 
@@ -159,7 +110,7 @@
 				<div class="reschedule-banner-content">
 					<span class="reschedule-banner-text">
 						Rescheduling booking currently set for <strong
-							>{fmtSlot(data.rescheduleAppt.start_time)}</strong
+							>{formatSlot(data.rescheduleAppt.start_time, userTz)}</strong
 						>.
 					</span>
 					<a
@@ -220,7 +171,7 @@
 								>
 									<IconCalendarBlank class="context-summary-icon" aria-hidden="true" />
 									<div class="context-summary-value">
-										<span class="context-summary-text">{fmtDate(viewDate)}</span>
+										<span class="context-summary-text">{formatDate(viewDate)}</span>
 									</div>
 								</button>
 							{/if}
@@ -233,8 +184,8 @@
 								>
 									<IconClock class="context-summary-icon" aria-hidden="true" />
 									<div class="context-summary-value">
-										<span class="context-summary-text">{fmtTime(viewSlot)}</span>
-										<span class="context-summary-tz">{fmtTzShort(userTz)}</span>
+										<span class="context-summary-text">{formatTime(viewSlot, userTz)}</span>
+										<span class="context-summary-tz">{formatTzShort(userTz)}</span>
 									</div>
 								</button>
 							{/if}
@@ -284,7 +235,7 @@
 								>
 									<IconCaretLeft aria-hidden="true" />
 								</button>
-								{fmtSlot(viewSlot)}
+								{formatSlot(viewSlot, userTz)}
 							</p>
 
 							{#if form?.error}
@@ -371,9 +322,9 @@
 						{stepTitle}
 					</p>
 					{#if step === 1 && viewDate}
-						<p class="cta-summary">You selected {fmtDate(viewDate)}</p>
+						<p class="cta-summary">You selected {formatDate(viewDate)}</p>
 					{:else if step === 2 && viewSlot}
-						<p class="cta-summary">You selected {fmtTime(viewSlot)}</p>
+						<p class="cta-summary">You selected {formatTime(viewSlot, userTz)}</p>
 					{/if}
 
 					{#if step === 1}

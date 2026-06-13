@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Temporal } from '@js-temporal/polyfill';
 	import { Dialog } from 'bits-ui';
 	import IconArrowRight from 'virtual:icons/ph/arrow-right';
 	import IconCalendarBlank from 'virtual:icons/ph/calendar-blank';
@@ -14,6 +13,7 @@
 	import IconWarning from 'virtual:icons/ph/warning';
 	import IconNote from 'virtual:icons/ph/note';
 	import NotificationChips from '$lib/components/NotificationChips.svelte';
+	import { formatDateShort, formatWeekday, formatTimeRange, formatTzShort } from '$lib/datetime';
 
 	let { data, form } = $props();
 
@@ -25,52 +25,6 @@
 	onMount(() => {
 		userTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
 	});
-
-	function fmtDateShort(iso: string, tz = userTz): string {
-		try {
-			return Temporal.Instant.from(iso).toZonedDateTimeISO(tz).toLocaleString(undefined, {
-				year: 'numeric',
-				month: 'numeric',
-				day: 'numeric'
-			});
-		} catch {
-			return iso;
-		}
-	}
-
-	function fmtWeekday(iso: string, tz = userTz): string {
-		try {
-			return Temporal.Instant.from(iso)
-				.toZonedDateTimeISO(tz)
-				.toLocaleString(undefined, { weekday: 'long' });
-		} catch {
-			return '';
-		}
-	}
-
-	function fmtTimeRange(start: string, end: string, tz = userTz): string {
-		try {
-			const s = Temporal.Instant.from(start).toZonedDateTimeISO(tz);
-			const e = Temporal.Instant.from(end).toZonedDateTimeISO(tz);
-			const time = (z: Temporal.ZonedDateTime) =>
-				z.toLocaleString(undefined, { hour: '2-digit', minute: '2-digit' });
-			return `${time(s)} – ${time(e)}`;
-		} catch {
-			return `${start} – ${end}`;
-		}
-	}
-
-	function fmtTzShort(tz: string): string {
-		try {
-			const fmt = new Intl.DateTimeFormat('en', { timeZone: tz, timeZoneName: 'shortOffset' });
-			const parts = fmt.formatToParts(new Date());
-			const offset = parts.find((p) => p.type === 'timeZoneName')?.value ?? '';
-			const city = tz.split('/').pop()?.replace(/_/g, ' ') ?? tz;
-			return offset ? `${city} · ${offset}` : city;
-		} catch {
-			return tz.split('/').pop()?.replace(/_/g, ' ') ?? tz;
-		}
-	}
 
 	let status = $derived(data.appointment.status);
 	let isPendingPastStart = $derived(status === 'pending' && data.clockStatus !== 'upcoming');
@@ -176,10 +130,10 @@
 				<IconCalendarBlank class="detail-icon" aria-hidden="true" />
 				<div class="detail-text">
 					<div class="detail-primary">
-						{fmtDateShort(data.appointment.start_time, displayTz)}
+						{formatDateShort(data.appointment.start_time, displayTz)}
 					</div>
 					<div class="detail-secondary">
-						{fmtWeekday(data.appointment.start_time, displayTz)}
+						{formatWeekday(data.appointment.start_time, displayTz)}
 					</div>
 				</div>
 			</div>
@@ -187,15 +141,15 @@
 				<IconClock class="detail-icon" aria-hidden="true" />
 				<div class="detail-text">
 					<div class="detail-primary">
-						{fmtTimeRange(data.appointment.start_time, data.appointment.end_time, displayTz)}
+						{formatTimeRange(data.appointment.start_time, data.appointment.end_time, displayTz)}
 					</div>
 					<div class="detail-secondary">
-						{fmtTzShort(displayTz)}
+						{formatTzShort(displayTz)}
 					</div>
 					{#if data.isAdmin && differentTz}
 						<div class="detail-secondary tz-extra">
-							{fmtTimeRange(data.appointment.start_time, data.appointment.end_time, userTz)}
-							&middot; {fmtTzShort(userTz)} (local)
+							{formatTimeRange(data.appointment.start_time, data.appointment.end_time, userTz)}
+							&middot; {formatTzShort(userTz)} (local)
 						</div>
 					{/if}
 				</div>
