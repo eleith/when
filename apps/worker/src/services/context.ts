@@ -1,5 +1,6 @@
 import type { WhenConfiguration } from '@when/config';
 import type { openDb } from '@when/db';
+import type { Mailer } from '../email/smtp.js';
 import type { Logger } from './logger.js';
 
 /** Shared, process-wide handles workflow implementations reach for at run time. */
@@ -7,6 +8,7 @@ export interface WorkerContext {
 	config: WhenConfiguration;
 	logger: Logger;
 	db: ReturnType<typeof openDb>;
+	mailer: Mailer;
 }
 
 let context: WorkerContext | null = null;

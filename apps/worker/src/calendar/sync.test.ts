@@ -44,7 +44,7 @@ const appt = (over: Record<string, unknown>) => ({
 async function ctxWith(): Promise<WorkerContext> {
 	const db = openDb(':memory:');
 	await runMigrations(db);
-	return { config, logger: silent, db };
+	return { config, logger: silent, db, mailer: { send: async () => ({ ok: true as const }) } };
 }
 
 function recordingFetch(status = 204) {

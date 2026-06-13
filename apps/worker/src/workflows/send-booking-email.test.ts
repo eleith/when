@@ -1,14 +1,12 @@
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 import { openDb, runMigrations } from '@when/db';
 import type { Database } from '@when/db';
 import type { Kysely } from 'kysely';
 import type { SendBookingEmailInput } from '@when/jobs';
 import { setWorkerContext } from '../services/context.js';
 import { createLogger } from '../services/logger.js';
+import type { Mailer } from '../email/smtp.js';
 import { sampleInput } from '../email/__fixtures__/booking.js';
-
-vi.mock('../email/smtp.js', () => ({ sendEmail: vi.fn() }));
-import { sendEmail } from '../email/smtp.js';
 import { runSendBookingEmail } from './send-booking-email.js';
 
 const input: SendBookingEmailInput = {
@@ -25,6 +23,12 @@ function makeStep() {
 		}
 	};
 	return { step, names };
+}
+
+function makeMailer() {
+	const send = vi.fn();
+	const mailer: Mailer = { send };
+	return { mailer, send };
 }
 
 async function seedDb(): Promise<Kysely<Database>> {
@@ -60,18 +64,17 @@ async function readEmailStatus(db: Kysely<Database>) {
 }
 
 describe('runSendBookingEmail', () => {
-	beforeEach(() => vi.mocked(sendEmail).mockReset());
-
 	test('sends every envelope and records email:ok', async () => {
 		const db = await seedDb();
-		setWorkerContext({ config: sampleInput.cfg, db, logger: createLogger() });
-		vi.mocked(sendEmail).mockResolvedValue({ ok: true });
+		const { mailer, send } = makeMailer();
+		send.mockResolvedValue({ ok: true });
+		setWorkerContext({ config: sampleInput.cfg, db, logger: createLogger(), mailer });
 
 		const { step, names } = makeStep();
 		const result = await runSendBookingEmail(input, step);
 
 		expect(result).toBe('sent');
-		expect(vi.mocked(sendEmail)).toHaveBeenCalledTimes(2); // attendee + organizer
+		expect(send).toHaveBeenCalledTimes(2); // attendee + organizer
 		expect(names).toEqual(['smtp:jane@example.com', 'smtp:owner@acme.test', 'status']);
 		expect(await readEmailStatus(db)).toBe('ok');
 		await db.destroy();
@@ -79,8 +82,9 @@ describe('runSendBookingEmail', () => {
 
 	test('records email:failed when a send keeps failing', async () => {
 		const db = await seedDb();
-		setWorkerContext({ config: sampleInput.cfg, db, logger: createLogger() });
-		vi.mocked(sendEmail).mockResolvedValue({ ok: false, reason: 'smtp down' });
+		const { mailer, send } = makeMailer();
+		send.mockResolvedValue({ ok: false, reason: 'smtp down' });
+		setWorkerContext({ config: sampleInput.cfg, db, logger: createLogger(), mailer });
 
 		const { step } = makeStep();
 		const result = await runSendBookingEmail(input, step);
@@ -92,14 +96,19 @@ describe('runSendBookingEmail', () => {
 
 	test('skips (no attempt) and records email:skipped when SMTP is unconfigured', async () => {
 		const db = await seedDb();
-		const cfg = { ...sampleInput.cfg, smtp: undefined };
-		setWorkerContext({ config: cfg, db, logger: createLogger() });
+		const { mailer, send } = makeMailer();
+		setWorkerContext({
+			config: { ...sampleInput.cfg, smtp: undefined },
+			db,
+			logger: createLogger(),
+			mailer
+		});
 
 		const { step } = makeStep();
 		const result = await runSendBookingEmail(input, step);
 
 		expect(result).toBe('skipped');
-		expect(vi.mocked(sendEmail)).not.toHaveBeenCalled();
+		expect(send).not.toHaveBeenCalled();
 		expect(await readEmailStatus(db)).toBe('skipped');
 		await db.destroy();
 	});

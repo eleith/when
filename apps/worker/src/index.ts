@@ -2,6 +2,7 @@ import { loadConfigFile } from '@when/config';
 import { openDb, runMigrations } from '@when/db';
 import { initOpenWorkflow } from '@when/jobs';
 import { setLogger } from '@when/calendar';
+import { createMailer } from './email/smtp.js';
 import { setWorkerContext, type WorkerContext } from './services/context.js';
 import { createHealthServer } from './services/health.js';
 import { createLogger, log } from './services/logger.js';
@@ -28,7 +29,7 @@ async function main(): Promise<void> {
 	if (applied.length > 0) logger.info('migrations applied', { migrations: applied });
 
 	// Context is what workflow implementations reach for at run time.
-	const ctx: WorkerContext = { config, logger, db };
+	const ctx: WorkerContext = { config, logger, db, mailer: createMailer(config, logger) };
 	setWorkerContext(ctx);
 
 	// Calendar I/O logs through the worker's logger.

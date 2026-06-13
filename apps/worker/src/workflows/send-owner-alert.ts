@@ -5,7 +5,6 @@ import type { SendOwnerAlertInput, SendOwnerAlertResult } from '@when/jobs';
 import { ownerAlert } from '../email/builders/owner-alert.js';
 import { fetchBrandLogo } from '../email/logo.js';
 import { renderMessage } from '../email/render.js';
-import { sendEmail } from '../email/smtp.js';
 import { getWorkerContext } from '../services/context.js';
 
 // Same per-step SMTP retry as the booking email: a send that fails every attempt
@@ -28,7 +27,7 @@ export async function runSendOwnerAlert(
 	input: SendOwnerAlertInput,
 	step: EmailStep
 ): Promise<SendOwnerAlertResult> {
-	const { config, logger } = getWorkerContext();
+	const { config, logger, mailer } = getWorkerContext();
 
 	if (!config.smtp) {
 		logger.warn('skipping owner alert: SMTP not configured', {
@@ -42,7 +41,7 @@ export async function runSendOwnerAlert(
 	const envelope = renderMessage(ownerAlert(config, input, logo), logo);
 	try {
 		await step.run({ name: `smtp:${envelope.to}`, retryPolicy: SEND_RETRY }, async () => {
-			const result = await sendEmail(envelope);
+			const result = await mailer.send(envelope);
 			if (!result.ok) throw new Error(result.reason);
 		});
 		return 'sent';

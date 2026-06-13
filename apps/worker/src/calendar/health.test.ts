@@ -24,7 +24,7 @@ const START = Temporal.Instant.from('2026-05-01T00:00:00Z');
 async function ctxWith(cfg: WhenConfiguration = config): Promise<WorkerContext> {
 	const db = openDb(':memory:');
 	await runMigrations(db);
-	return { config: cfg, logger: silent, db };
+	return { config: cfg, logger: silent, db, mailer: { send: async () => ({ ok: true as const }) } };
 }
 
 const health = (ctx: WorkerContext, id: string) =>

@@ -28,7 +28,12 @@ const appt = (over: Record<string, unknown>) => ({
 async function ctxWith(config: Partial<WhenConfiguration>): Promise<WorkerContext> {
 	const db = openDb(':memory:');
 	await runMigrations(db);
-	return { config: config as WhenConfiguration, logger: silent, db };
+	return {
+		config: config as WhenConfiguration,
+		logger: silent,
+		db,
+		mailer: { send: async () => ({ ok: true as const }) }
+	};
 }
 
 test('flags confirmed + pending appointments overlapping the mirror, clears the rest', async () => {

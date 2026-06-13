@@ -3,7 +3,6 @@ import { getOpenWorkflow } from '@when/jobs';
 import { sendBookingEmail } from '@when/jobs/specs';
 import type { SendBookingEmailInput, SendBookingEmailResult } from '@when/jobs';
 import { dispatch } from '../email/dispatch.js';
-import { sendEmail } from '../email/smtp.js';
 import { getWorkerContext } from '../services/context.js';
 import { setNotificationStatus } from '../services/notifications.js';
 
@@ -34,7 +33,7 @@ export async function runSendBookingEmail(
 	input: SendBookingEmailInput,
 	step: EmailStep
 ): Promise<SendBookingEmailResult> {
-	const { config, db, logger } = getWorkerContext();
+	const { config, db, logger, mailer } = getWorkerContext();
 
 	if (!config.smtp) {
 		logger.warn('skipping booking email: SMTP not configured', {
@@ -53,7 +52,7 @@ export async function runSendBookingEmail(
 	for (const envelope of envelopes) {
 		try {
 			await step.run({ name: `smtp:${envelope.to}`, retryPolicy: SEND_RETRY }, async () => {
-				const result = await sendEmail(envelope);
+				const result = await mailer.send(envelope);
 				if (!result.ok) throw new Error(result.reason);
 			});
 		} catch (err) {

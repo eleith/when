@@ -44,7 +44,12 @@ END:VCALENDAR</C:calendar-data>
 async function ctxWithDb(config: Partial<WhenConfiguration> = {}): Promise<WorkerContext> {
 	const db = openDb(':memory:');
 	await runMigrations(db);
-	return { config: config as WhenConfiguration, logger: silent, db };
+	return {
+		config: config as WhenConfiguration,
+		logger: silent,
+		db,
+		mailer: { send: async () => ({ ok: true as const }) }
+	};
 }
 
 test('refreshCalendar populates the mirror and records success', async () => {
@@ -160,7 +165,8 @@ test('refreshCalendars refreshes known conflict calendars and skips unknown ids'
 			event_types: [{ conflict_calendars: ['work', 'ghost'] }]
 		} as unknown as WhenConfiguration,
 		logger: silent,
-		db
+		db,
+		mailer: { send: async () => ({ ok: true as const }) }
 	};
 	try {
 		const fetchImpl: FetchFn = async () => new Response(oneEvent('r1'), { status: 207 });
@@ -192,7 +198,8 @@ test('refreshCalendars skips a calendar refreshed within its interval, refreshes
 			event_types: [{ conflict_calendars: ['work'] }]
 		} as unknown as WhenConfiguration,
 		logger: silent,
-		db
+		db,
+		mailer: { send: async () => ({ ok: true as const }) }
 	};
 	try {
 		await recordRefreshResult(db, 'work', { at: window.start.toString() }); // succeeded just now

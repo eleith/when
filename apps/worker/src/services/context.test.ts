@@ -13,7 +13,8 @@ describe('worker context', () => {
 		const ctx = {
 			config: {} as WhenConfiguration,
 			logger: createLogger(),
-			db: openDb(':memory:')
+			db: openDb(':memory:'),
+			mailer: { send: async () => ({ ok: true as const }) }
 		};
 		setWorkerContext(ctx);
 		expect(getWorkerContext()).toBe(ctx);

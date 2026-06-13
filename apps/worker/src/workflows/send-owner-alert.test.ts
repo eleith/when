@@ -1,12 +1,10 @@
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 import { openDb, runMigrations } from '@when/db';
 import type { SendOwnerAlertInput } from '@when/jobs';
 import { setWorkerContext } from '../services/context.js';
 import { createLogger } from '../services/logger.js';
+import type { Mailer } from '../email/smtp.js';
 import { sampleInput } from '../email/__fixtures__/booking.js';
-
-vi.mock('../email/smtp.js', () => ({ sendEmail: vi.fn() }));
-import { sendEmail } from '../email/smtp.js';
 import { runSendOwnerAlert } from './send-owner-alert.js';
 
 function makeStep() {
@@ -20,6 +18,12 @@ function makeStep() {
 	return { step, names };
 }
 
+function makeMailer() {
+	const send = vi.fn();
+	const mailer: Mailer = { send };
+	return { mailer, send };
+}
+
 const brokeInput: SendOwnerAlertInput = {
 	calendarId: 'work',
 	kind: 'broke',
@@ -27,32 +31,33 @@ const brokeInput: SendOwnerAlertInput = {
 	reason: 'No successful refresh in over an hour.'
 };
 
-async function bootCtx() {
+async function bootDb() {
 	const db = openDb(':memory:');
 	await runMigrations(db);
-	setWorkerContext({ config: sampleInput.cfg, db, logger: createLogger() });
 	return db;
 }
 
 describe('runSendOwnerAlert', () => {
-	beforeEach(() => vi.mocked(sendEmail).mockReset());
-
 	test('sends the alert to the configured owner', async () => {
-		const db = await bootCtx();
-		vi.mocked(sendEmail).mockResolvedValue({ ok: true });
+		const db = await bootDb();
+		const { mailer, send } = makeMailer();
+		send.mockResolvedValue({ ok: true });
+		setWorkerContext({ config: sampleInput.cfg, db, logger: createLogger(), mailer });
 
 		const { step, names } = makeStep();
 		const result = await runSendOwnerAlert(brokeInput, step);
 
 		expect(result).toBe('sent');
 		expect(names).toEqual(['smtp:owner@acme.test']);
-		expect(vi.mocked(sendEmail).mock.calls[0][0].to).toBe('owner@acme.test');
+		expect(send.mock.calls[0][0].to).toBe('owner@acme.test');
 		await db.destroy();
 	});
 
 	test('returns failed when the send keeps failing', async () => {
-		const db = await bootCtx();
-		vi.mocked(sendEmail).mockResolvedValue({ ok: false, reason: 'smtp down' });
+		const db = await bootDb();
+		const { mailer, send } = makeMailer();
+		send.mockResolvedValue({ ok: false, reason: 'smtp down' });
+		setWorkerContext({ config: sampleInput.cfg, db, logger: createLogger(), mailer });
 
 		const { step } = makeStep();
 		expect(await runSendOwnerAlert(brokeInput, step)).toBe('failed');
@@ -60,17 +65,18 @@ describe('runSendOwnerAlert', () => {
 	});
 
 	test('skips without attempting when SMTP is unconfigured', async () => {
-		const db = openDb(':memory:');
-		await runMigrations(db);
+		const db = await bootDb();
+		const { mailer, send } = makeMailer();
 		setWorkerContext({
 			config: { ...sampleInput.cfg, smtp: undefined },
 			db,
-			logger: createLogger()
+			logger: createLogger(),
+			mailer
 		});
 
 		const { step } = makeStep();
 		expect(await runSendOwnerAlert(brokeInput, step)).toBe('skipped');
-		expect(vi.mocked(sendEmail)).not.toHaveBeenCalled();
+		expect(send).not.toHaveBeenCalled();
 		await db.destroy();
 	});
 });
