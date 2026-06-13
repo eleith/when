@@ -1,5 +1,5 @@
 services:
-  when-dev:
+  when-app:
     build:
       context: ../..
       dockerfile: apps/web/Dockerfile
@@ -26,7 +26,7 @@ services:
       NODE_ENV: development
       AUTH_SECRET: ${AUTH_SECRET:-development-only-secret-please-change-it-32chars}
 
-  worker-dev:
+  when-worker:
     build:
       context: ../..
       dockerfile: apps/worker/Dockerfile
@@ -49,7 +49,7 @@ services:
     depends_on:
       - mailpit
 
-  mailpit:
+  when-mailpit:
     image: axllent/mailpit:latest
     ports:
       - '8025:8025'
