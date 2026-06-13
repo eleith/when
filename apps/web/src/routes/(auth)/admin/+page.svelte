@@ -132,13 +132,13 @@
 										<form method="POST" action="/booked/{a.id}?/accept" class="action-form">
 											<button type="submit" class="action-btn accept" title="Accept Booking">
 												<IconCheck class="action-icon" aria-hidden="true" />
-												Accept
+												<span>Accept</span>
 											</button>
 										</form>
 										<form method="POST" action="/booked/{a.id}?/decline" class="action-form">
 											<button type="submit" class="action-btn decline" title="Decline Booking">
 												<IconX class="action-icon" aria-hidden="true" />
-												Decline
+												<span>Decline</span>
 											</button>
 										</form>
 									</div>

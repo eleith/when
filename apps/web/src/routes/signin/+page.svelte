@@ -53,6 +53,7 @@
 				<div class="form-group">
 					<label for="username" class="form-label">Username</label>
 					<div class="input-wrapper">
+						<!-- svelte-ignore a11y_autofocus -->
 						<input
 							id="username"
 							name="username"
@@ -93,6 +94,7 @@
 
 				<p class="sso-desc">This app is configured to use Single Sign-On for authentication.</p>
 
+				<!-- svelte-ignore a11y_autofocus -->
 				<button type="submit" class="submit-btn" autofocus>
 					<IconSignIn class="btn-icon" aria-hidden="true" />
 					Sign in with Single Sign-On
