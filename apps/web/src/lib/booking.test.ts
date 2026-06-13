@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vitest';
-import { flattenSlots, availableDates, slotsOnDate, canAdvance } from './booking';
+import { Temporal } from '@js-temporal/polyfill';
+import { flattenSlots, availableDates, slotsOnDate, canAdvance, buildDayTimeline } from './booking';
 
 // Slots straddle a UTC midnight so the timezone-dependent cases are meaningful:
 // 23:30Z on the 15th is still the 15th in UTC but already the 16th in Tokyo.
@@ -74,5 +75,75 @@ describe('canAdvance', () => {
 
 	test('step 3 is always allowed', () => {
 		expect(canAdvance(3, null, null)).toBe(true);
+	});
+});
+
+describe('buildDayTimeline', () => {
+	// A 09:00–17:00 UTC working day, one busy hour at noon, two 30-min slots.
+	const base = {
+		viewDate: '2025-06-15',
+		workingWindows: [{ start: '2025-06-15T09:00:00Z', end: '2025-06-15T17:00:00Z' }],
+		busyBlocks: [{ start: '2025-06-15T12:00:00Z', end: '2025-06-15T13:00:00Z' }],
+		eventType: { duration: 30 },
+		daySlots: ['2025-06-15T09:00:00Z', '2025-06-15T09:30:00Z'],
+		tz: 'UTC',
+		originalSlot: null,
+		// well before the view window, so nothing is in the past
+		now: Temporal.Instant.from('2025-06-15T00:00:00Z')
+	};
+
+	test('returns null when the day has no working window', () => {
+		expect(buildDayTimeline({ ...base, workingWindows: [] })).toBeNull();
+	});
+
+	test('spans one hour of padding around the working window', () => {
+		const t = buildDayTimeline(base)!;
+		// 08:00 → 18:00 is 10h
+		expect(t.totalMs).toBe(10 * 3600 * 1000);
+		// working window 09:00–17:00 sits at 10%–90%
+		expect(t.working).toEqual([{ top: 10, height: 80 }]);
+	});
+
+	test('positions busy and buffer bands as percentages', () => {
+		const t = buildDayTimeline(base)!;
+		// noon–13:00 → 40%, one hour tall
+		expect(t.busy).toEqual([{ top: 40, height: 10 }]);
+		// no buffers configured, so buffers mirror the busy block
+		expect(t.buffers).toEqual([{ top: 40, height: 10 }]);
+	});
+
+	test('grows buffers by the configured buffer minutes', () => {
+		const t = buildDayTimeline({
+			...base,
+			eventType: { duration: 30, buffer_before: 30, buffer_after: 30 }
+		})!;
+		// 11:30–13:30 → 35%, two hours tall (height is float math, hence closeTo)
+		expect(t.buffers).toHaveLength(1);
+		expect(t.buffers[0].top).toBe(35);
+		expect(t.buffers[0].height).toBeCloseTo(20);
+	});
+
+	test('places slots by start and duration, flagging the original', () => {
+		const t = buildDayTimeline({ ...base, originalSlot: '2025-06-15T09:30:00Z' })!;
+		expect(t.slots).toEqual([
+			{ iso: '2025-06-15T09:00:00Z', time: '09:00 AM', top: 10, height: 5, isOriginal: false },
+			{ iso: '2025-06-15T09:30:00Z', time: '09:30 AM', top: 15, height: 5, isOriginal: true }
+		]);
+	});
+
+	test('labels every hour of the view window', () => {
+		const t = buildDayTimeline(base)!;
+		expect(t.labels).toHaveLength(10); // 8 AM … 5 PM inclusive
+		expect(t.labels[0]).toEqual({ label: '8 AM', top: 0 });
+	});
+
+	test('leaves nothing in the past when now precedes the window', () => {
+		expect(buildDayTimeline(base)!.past).toBeNull();
+	});
+
+	test('shades up to the notice cutoff when now is inside the window', () => {
+		const t = buildDayTimeline({ ...base, now: Temporal.Instant.from('2025-06-15T10:00:00Z') })!;
+		// 10:00 is 20% into the 08:00–18:00 view
+		expect(t.past).toEqual({ top: 0, height: 20 });
 	});
 });
