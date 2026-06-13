@@ -2,7 +2,7 @@ import type { WhenConfiguration } from '@when/config';
 import type { SendOwnerAlertInput } from '@when/jobs';
 import { deriveBrand } from '../format.js';
 import { fetchBrandLogo } from '../logo.js';
-import { toSpec } from '../render.js';
+import { renderMessage } from '../render.js';
 import type { Envelope } from '../recipients.js';
 import type { EmailContent } from '../content.js';
 
@@ -18,6 +18,9 @@ export async function ownerAlert(
 
 	const content: EmailContent = {
 		brand,
+		subject: broke
+			? `Calendar sync problem: ${input.calendarId}`
+			: `Calendar sync recovered: ${input.calendarId}`,
 		heading: broke
 			? `Calendar "${input.calendarId}" stopped syncing.`
 			: `Calendar "${input.calendarId}" is syncing again.`,
@@ -34,15 +37,5 @@ export async function ownerAlert(
 		actions: []
 	};
 
-	const subject = broke
-		? `Calendar sync problem: ${input.calendarId}`
-		: `Calendar sync recovered: ${input.calendarId}`;
-	const spec = toSpec(content, subject);
-	return {
-		to: cfg.user.email,
-		subject: spec.subject,
-		text: spec.text,
-		html: spec.html,
-		attachments: logo ? [logo] : undefined
-	};
+	return renderMessage({ to: cfg.user.email, content }, logo);
 }

@@ -7,12 +7,13 @@ import { bookingDeclined } from './builders/booking-declined.js';
 import { bookingPending } from './builders/booking-pending.js';
 import { bookingRescheduledByAttendee } from './builders/booking-rescheduled-by-attendee.js';
 import { bookingRescheduledByOrganizer } from './builders/booking-rescheduled-by-organizer.js';
-import type { Envelope } from './recipients.js';
+import type { EmailMessage, Envelope } from './recipients.js';
+import { renderMessage } from './render.js';
 import { bookingLinks } from '../links.js';
 import { fetchBrandLogo } from './logo.js';
 import type { BookingEmailInput } from './types.js';
 
-function build(i: BookingEmailInput, kind: SendBookingEmailInput['kind']): Envelope[] {
+function build(i: BookingEmailInput, kind: SendBookingEmailInput['kind']): EmailMessage[] {
 	switch (kind) {
 		case 'confirmed':
 			return bookingConfirmed(i);
@@ -49,7 +50,5 @@ export async function dispatch(
 		logo
 	};
 
-	const envelopes = build(i, input.kind);
-	if (!logo) return envelopes;
-	return envelopes.map((e) => ({ ...e, attachments: [...(e.attachments ?? []), logo] }));
+	return build(i, input.kind).map((m) => renderMessage(m, logo));
 }

@@ -1,9 +1,11 @@
 import { describe, expect, test } from 'vitest';
-import { renderHtmlBody, renderTextBody } from './render.js';
+import { renderHtmlBody, renderMessage, renderTextBody } from './render.js';
 import type { EmailContent } from './content.js';
+import type { Attachment } from './recipients.js';
 
 const base: Omit<EmailContent, 'actions'> = {
 	brand: { name: 'Acme', pageTitle: 'Acme', primaryColor: '#2563eb', onPrimary: '#ffffff' },
+	subject: 'Confirmed booking',
 	heading: 'Hello & welcome',
 	paragraphs: ['Thanks for booking.'],
 	rows: [
@@ -89,5 +91,39 @@ describe('renderTextBody', () => {
 				'Cancel: https://x/cancel'
 			].join('\n')
 		);
+	});
+});
+
+describe('renderMessage', () => {
+	const content: EmailContent = { ...base, actions: [] };
+	const ics: Attachment = {
+		filename: 'invite.ics',
+		content: 'BEGIN:VCALENDAR',
+		contentType: 'text/calendar'
+	};
+	const logo: Attachment = {
+		filename: 'logo.png',
+		content: 'aGk=',
+		contentType: 'image/png',
+		cid: 'brand-logo'
+	};
+
+	test('renders subject + html + text from the content, no attachments', () => {
+		const env = renderMessage({ to: 'a@b.c', content }, null);
+		expect(env.to).toBe('a@b.c');
+		expect(env.subject).toBe('Confirmed booking');
+		expect(env.html).toContain('Hello &amp; welcome');
+		expect(env.text).toContain('Hello & welcome');
+		expect(env.attachments).toBeUndefined();
+	});
+
+	test('attaches ics first, then logo', () => {
+		const env = renderMessage({ to: 'a@b.c', content, ics }, logo);
+		expect(env.attachments).toEqual([ics, logo]);
+	});
+
+	test('ics-only and logo-only each attach just the one', () => {
+		expect(renderMessage({ to: 'a@b.c', content, ics }, null).attachments).toEqual([ics]);
+		expect(renderMessage({ to: 'a@b.c', content }, logo).attachments).toEqual([logo]);
 	});
 });

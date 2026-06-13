@@ -1,11 +1,10 @@
 import { deriveBrand, eventTypeName, fmtWhen } from '../format.js';
 import { cancelIcs } from '../ics.js';
-import { attendeeEnvelope, organizerEnvelope, type Envelope } from '../recipients.js';
-import { toSpec } from '../render.js';
+import { attendeeMessage, organizerMessage, type EmailMessage } from '../recipients.js';
 import type { EmailContent } from '../content.js';
 import type { BookingEmailInput } from '../types.js';
 
-export function bookingCancelledByAttendee(i: BookingEmailInput): Envelope[] {
+export function bookingCancelledByAttendee(i: BookingEmailInput): EmailMessage[] {
 	const a = i.appointment;
 	const brand = deriveBrand(i.cfg, i.logo?.cid);
 	const eventName = eventTypeName(i.eventType, a);
@@ -13,6 +12,7 @@ export function bookingCancelledByAttendee(i: BookingEmailInput): Envelope[] {
 
 	const attendee: EmailContent = {
 		brand,
+		subject: `Cancelled: ${eventName} with ${brand.name}`,
 		heading: 'Your booking has been cancelled.',
 		paragraphs: [],
 		rows: [
@@ -23,6 +23,7 @@ export function bookingCancelledByAttendee(i: BookingEmailInput): Envelope[] {
 	};
 	const admin: EmailContent = {
 		brand,
+		subject: `Cancelled: ${eventName} with ${a.attendee_name}`,
 		heading: 'Booking cancelled',
 		paragraphs: [`${a.attendee_name} <${a.attendee_email}> cancelled this booking.`],
 		rows: [
@@ -32,11 +33,5 @@ export function bookingCancelledByAttendee(i: BookingEmailInput): Envelope[] {
 		actions: []
 	};
 
-	return [
-		attendeeEnvelope(
-			i,
-			toSpec(attendee, `Cancelled: ${eventName} with ${brand.name}`, cancelIcs(i, i.links.booked))
-		),
-		organizerEnvelope(i, toSpec(admin, `Cancelled: ${eventName} with ${a.attendee_name}`))
-	];
+	return [attendeeMessage(i, attendee, cancelIcs(i, i.links.booked)), organizerMessage(i, admin)];
 }

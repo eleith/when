@@ -15,6 +15,7 @@ export interface EmailAction {
 
 export interface EmailContent {
 	brand: Brand;
+	subject: string;
 	heading: string;
 	paragraphs: string[];
 	rows: DetailRow[];

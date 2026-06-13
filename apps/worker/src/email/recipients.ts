@@ -1,3 +1,4 @@
+import type { EmailContent } from './content.js';
 import type { BookingEmailInput } from './types.js';
 
 export interface Attachment {
@@ -17,33 +18,26 @@ export interface Envelope {
 	attachments?: Attachment[];
 }
 
-/** The rendered pieces a builder hands to `attendeeEnvelope`/`organizerEnvelope`. */
-export interface EnvelopeSpec {
-	subject: string;
-	html: string;
-	text: string;
+/** A builder's pure output: an addressed content model, not yet rendered. */
+export interface EmailMessage {
+	to: string;
+	content: EmailContent;
 	ics?: Attachment;
 }
 
-function envelope(to: string, spec: EnvelopeSpec): Envelope {
-	return {
-		to,
-		subject: spec.subject,
-		text: spec.text,
-		html: spec.html,
-		attachments: spec.ics ? [spec.ics] : undefined
-	};
-}
-
-/** Envelope addressed to the booking's attendee. */
-export function attendeeEnvelope(
+/** Message addressed to the booking's attendee. */
+export function attendeeMessage(
 	i: Pick<BookingEmailInput, 'appointment'>,
-	spec: EnvelopeSpec
-): Envelope {
-	return envelope(i.appointment.attendee_email, spec);
+	content: EmailContent,
+	ics?: Attachment
+): EmailMessage {
+	return { to: i.appointment.attendee_email, content, ics };
 }
 
-/** Envelope addressed to the organizer (the single configured user). */
-export function organizerEnvelope(i: Pick<BookingEmailInput, 'cfg'>, spec: EnvelopeSpec): Envelope {
-	return envelope(i.cfg.user.email, spec);
+/** Message addressed to the organizer (the single configured user). */
+export function organizerMessage(
+	i: Pick<BookingEmailInput, 'cfg'>,
+	content: EmailContent
+): EmailMessage {
+	return { to: i.cfg.user.email, content };
 }

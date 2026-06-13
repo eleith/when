@@ -1,21 +1,30 @@
 import { describe, expect, test } from 'vitest';
-import { attendeeEnvelope, organizerEnvelope } from './recipients.js';
+import { attendeeMessage, organizerMessage } from './recipients.js';
 import { sampleInput } from './__fixtures__/booking.js';
+import type { EmailContent } from './content.js';
 
-const spec = { subject: 'S', html: '<p>h</p>', text: 't' };
+const content: EmailContent = {
+	brand: { name: 'Acme', pageTitle: 'Acme', primaryColor: '#2563eb', onPrimary: '#ffffff' },
+	subject: 'S',
+	heading: 'H',
+	paragraphs: [],
+	rows: [],
+	actions: []
+};
 
 describe('recipients', () => {
-	test('attendeeEnvelope addresses the attendee', () => {
-		expect(attendeeEnvelope(sampleInput, spec).to).toBe('jane@example.com');
+	test('attendeeMessage addresses the attendee', () => {
+		expect(attendeeMessage(sampleInput, content).to).toBe('jane@example.com');
 	});
 
-	test('organizerEnvelope addresses the configured user', () => {
-		expect(organizerEnvelope(sampleInput, spec).to).toBe('owner@acme.test');
+	test('organizerMessage addresses the configured user', () => {
+		expect(organizerMessage(sampleInput, content).to).toBe('owner@acme.test');
 	});
 
-	test('an ics spec becomes an attachment; otherwise none', () => {
-		expect(organizerEnvelope(sampleInput, spec).attachments).toBeUndefined();
+	test('attendeeMessage carries an ics when given; otherwise none', () => {
 		const ics = { filename: 'x.ics', content: 'BEGIN:VCALENDAR', contentType: 'text/calendar' };
-		expect(attendeeEnvelope(sampleInput, { ...spec, ics }).attachments).toEqual([ics]);
+		expect(attendeeMessage(sampleInput, content, ics).ics).toEqual(ics);
+		expect(attendeeMessage(sampleInput, content).ics).toBeUndefined();
+		expect(organizerMessage(sampleInput, content).ics).toBeUndefined();
 	});
 });

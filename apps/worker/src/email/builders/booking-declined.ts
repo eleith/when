@@ -1,10 +1,9 @@
 import { deriveBrand, eventTypeName, fmtWhen } from '../format.js';
-import { attendeeEnvelope, organizerEnvelope, type Envelope } from '../recipients.js';
-import { toSpec } from '../render.js';
+import { attendeeMessage, organizerMessage, type EmailMessage } from '../recipients.js';
 import type { EmailContent } from '../content.js';
 import type { BookingEmailInput } from '../types.js';
 
-export function bookingDeclined(i: BookingEmailInput): Envelope[] {
+export function bookingDeclined(i: BookingEmailInput): EmailMessage[] {
 	const a = i.appointment;
 	const brand = deriveBrand(i.cfg, i.logo?.cid);
 	const eventName = eventTypeName(i.eventType, a);
@@ -12,6 +11,7 @@ export function bookingDeclined(i: BookingEmailInput): Envelope[] {
 
 	const attendee: EmailContent = {
 		brand,
+		subject: `Declined: ${eventName} with ${brand.name}`,
 		heading: 'Your booking request was declined.',
 		paragraphs: [],
 		rows: [
@@ -22,6 +22,7 @@ export function bookingDeclined(i: BookingEmailInput): Envelope[] {
 	};
 	const admin: EmailContent = {
 		brand,
+		subject: `Declined: ${eventName} from ${a.attendee_name}`,
 		heading: 'Booking declined',
 		paragraphs: [`You declined the request from ${a.attendee_name} <${a.attendee_email}>.`],
 		rows: [
@@ -31,8 +32,5 @@ export function bookingDeclined(i: BookingEmailInput): Envelope[] {
 		actions: []
 	};
 
-	return [
-		attendeeEnvelope(i, toSpec(attendee, `Declined: ${eventName} with ${brand.name}`)),
-		organizerEnvelope(i, toSpec(admin, `Declined: ${eventName} from ${a.attendee_name}`))
-	];
+	return [attendeeMessage(i, attendee), organizerMessage(i, admin)];
 }

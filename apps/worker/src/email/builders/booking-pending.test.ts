@@ -12,17 +12,24 @@ describe('bookingPending', () => {
 		const [attendee, organizer] = bookingPending(withType);
 
 		expect(attendee.to).toBe('jane@example.com');
-		expect(attendee.subject).toBe('Booking request received: 30 Minute Chat with Acme Scheduling');
-		expect(attendee.html ?? '').toContain('Your booking request was received.');
-		expect(attendee.text).toContain(
+		expect(attendee.content.subject).toBe(
+			'Booking request received: 30 Minute Chat with Acme Scheduling'
+		);
+		expect(attendee.content.heading).toBe('Your booking request was received.');
+		expect(attendee.content.paragraphs).toContain(
 			'Acme Scheduling will review your request and email you to confirm.'
 		);
-		expect(attendee.attachments).toBeUndefined();
+		expect(attendee.content.actions).toEqual([
+			{ href: sampleInput.links.booked, label: 'View this booking', variant: 'primary' }
+		]);
+		expect(attendee.ics).toBeUndefined();
 
 		expect(organizer.to).toBe('owner@acme.test');
-		expect(organizer.subject).toBe('Booking request: 30 Minute Chat from Jane Doe');
-		expect(organizer.html ?? '').toContain(sampleInput.links.manage);
-		expect(organizer.text).toContain(`Review request: ${sampleInput.links.manage}`);
-		expect(organizer.attachments).toBeUndefined();
+		expect(organizer.content.subject).toBe('Booking request: 30 Minute Chat from Jane Doe');
+		expect(organizer.content.heading).toBe('New booking request');
+		expect(organizer.content.actions).toEqual([
+			{ href: sampleInput.links.manage, label: 'Review request', variant: 'primary' }
+		]);
+		expect(organizer.ics).toBeUndefined();
 	});
 });
