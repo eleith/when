@@ -1,6 +1,7 @@
 import {
 	availableDates as datesFromSlots,
 	canAdvance as canAdvanceRule,
+	dateKeys,
 	flattenSlots,
 	type WizardStep
 } from './booking';
@@ -13,11 +14,13 @@ export interface BookingFlow {
 	readonly userTz: string;
 	readonly allSlots: string[];
 	readonly availableDates: Set<string>;
+	readonly offeredDates: Set<string>;
 	readonly canAdvance: boolean;
 	advance(): void;
 	goBack(): void;
 	goToStep(step: WizardStep): void;
 	selectDate(dateKey: string | null): void;
+	openDate(dateKey: string): void;
 	selectSlot(iso: string): void;
 	clearSlot(): void;
 	setTz(tz: string): void;
@@ -37,6 +40,8 @@ export function createBookingFlow(getSlotsByDate: () => Record<string, string[]>
 
 	const allSlots = $derived(flattenSlots(getSlotsByDate()));
 	const dates = $derived(datesFromSlots(allSlots, userTz));
+	// The raw server day keys (host tz), unlike `availableDates` which re-buckets in `userTz`.
+	const offeredDates = $derived(dateKeys(getSlotsByDate()));
 	const canAdvance = $derived(canAdvanceRule(step, viewDate, selectedSlot));
 
 	function scrollToTop() {
@@ -61,6 +66,9 @@ export function createBookingFlow(getSlotsByDate: () => Record<string, string[]>
 		},
 		get availableDates() {
 			return dates;
+		},
+		get offeredDates() {
+			return offeredDates;
 		},
 		get canAdvance() {
 			return canAdvance;
@@ -87,6 +95,13 @@ export function createBookingFlow(getSlotsByDate: () => Record<string, string[]>
 			if (!dates.has(dateKey)) return;
 			viewDate = dateKey;
 			if (selectedSlot && !selectedSlot.startsWith(dateKey)) selectedSlot = null;
+		},
+		// Open the time picker on a day from a deep link, regardless of current availability —
+		// the timeline shows that day's slots (or its empty state).
+		openDate(dateKey) {
+			viewDate = dateKey;
+			selectedSlot = null;
+			step = 2;
 		},
 		selectSlot(iso) {
 			selectedSlot = iso;

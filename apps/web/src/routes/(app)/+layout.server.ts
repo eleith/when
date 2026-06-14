@@ -9,6 +9,7 @@ export const load: LayoutServerLoad = () => {
 	return {
 		user: {
 			name: cfg.user.name,
+			timezone: cfg.user.timezone,
 			branding: raw
 				? {
 						...raw,

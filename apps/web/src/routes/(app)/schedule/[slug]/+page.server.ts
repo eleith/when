@@ -20,12 +20,13 @@ export const load: PageServerLoad = async ({ params, url }) => {
 	if (!eventType) error(404, `No event type with slug "${params.slug}"`);
 
 	// Strip malformed/unknown deep-link params up front by redirecting to the canonical URL.
-	const clean = normalizeDeepLinkParams(url.searchParams);
-	const expected: [string, string][] = clean.slot
-		? [['slot', clean.slot]]
-		: clean.date
-			? [['date', clean.date]]
-			: [];
+	const clean = normalizeDeepLinkParams(url.searchParams, cfg.user.timezone);
+	const expected: [string, string][] = [];
+	if (clean.date) {
+		expected.push(['date', clean.date]);
+		if (clean.slot) expected.push(['slot', clean.slot]);
+		if (clean.tz) expected.push(['tz', clean.tz]);
+	}
 	const incoming = [...url.searchParams.entries()];
 	const inSync =
 		incoming.length === expected.length &&

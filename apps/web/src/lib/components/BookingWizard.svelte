@@ -1,13 +1,14 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
-	import { replaceState } from '$app/navigation';
+	import { replaceState, afterNavigate } from '$app/navigation';
 	import IconArrowRight from 'virtual:icons/ph/arrow-right';
 	import IconCaretLeft from 'virtual:icons/ph/caret-left';
+	import IconWarningCircle from 'virtual:icons/ph/warning-circle';
 	import DatePicker from '$lib/components/DatePicker.svelte';
 	import DayTimeline from '$lib/components/DayTimeline.svelte';
 	import { createBookingFlow } from '$lib/bookingFlow.svelte';
-	import { resolveDeepLink, type DeepLinkResult } from '$lib/booking';
+	import { resolveDeepLink, type DeepLinkResult, formatTzOffset, resolveFriendlyTz } from '$lib/booking';
 	import {
 		formatDate,
 		formatDateCompact,
@@ -22,6 +23,7 @@
 	export interface BookingWizardData {
 		user: {
 			name: string;
+			timezone: string;
 			branding: (Branding & { descriptionHtml: string | Promise<string> | null }) | null;
 		};
 		eventType: {
@@ -68,42 +70,54 @@
 	let selectedSlot = $derived(flow.selectedSlot);
 	let userTz = $derived(flow.userTz);
 
+	let routerReady = $state(false);
 	let nameInput = $state<HTMLInputElement | null>(null);
 	let linkNotice = $state<NonNullable<DeepLinkResult['notice']> | null>(null);
 
 	const initialSlot = page.url.searchParams.get('slot');
 	const initialDate = page.url.searchParams.get('date');
+	const initialTz = page.url.searchParams.get('tz');
 
-	// Resolve a valid slot before render so SSR lands on step 3; the date label refines on mount.
-	if (initialSlot && flow.allSlots.includes(initialSlot)) {
-		flow.selectSlot(initialSlot);
+	// Resolved before render so SSR lands on the right step.
+	// svelte-ignore state_referenced_locally
+	const deepLinkResult = resolveDeepLink({
+		slotParam: initialSlot,
+		dateParam: initialDate,
+		tzParam: initialTz,
+		allSlots: flow.allSlots,
+		defaultTz: data.user.timezone
+	});
+	// svelte-ignore state_referenced_locally
+	if (deepLink && deepLinkResult.tz) {
+		const resolvedDate = deepLinkResult.date || initialDate || new Date().toISOString().slice(0, 10);
+		const friendlyTz = resolveFriendlyTz(deepLinkResult.tz, resolvedDate, data.user.timezone);
+		flow.setTz(friendlyTz);
+	}
+	if (deepLinkResult.notice) {
+		linkNotice = deepLinkResult.notice;
+	}
+	if (deepLinkResult.slot) {
+		flow.selectSlot(deepLinkResult.slot);
 		flow.goToStep(3);
+	} else if (deepLinkResult.date) {
+		flow.openDate(deepLinkResult.date);
 	}
 
-	let synced = $state(false);
-
 	onMount(() => {
-		flow.setTz(Intl.DateTimeFormat().resolvedOptions().timeZone);
-
-		if (deepLink) {
-			const result = resolveDeepLink({
-				slotParam: initialSlot,
-				dateParam: initialDate,
-				allSlots: flow.allSlots,
-				availableDates: flow.availableDates
-			});
-			if (result.slot) {
-				flow.selectSlot(result.slot);
-				flow.goToStep(3);
-			} else if (result.date) {
-				flow.selectDate(result.date);
-				flow.goToStep(2);
-			} else if (result.notice) {
-				flow.goToStep(1);
-				linkNotice = result.notice;
-			}
+		if (deepLink && initialTz) {
+			const browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+			const resolvedDate = deepLinkResult.date || initialDate || new Date().toISOString().slice(0, 10);
+			const friendlyTz = resolveFriendlyTz(deepLinkResult.tz || data.user.timezone, resolvedDate, browserTz);
+			flow.setTz(friendlyTz);
+		} else {
+			flow.setTz(Intl.DateTimeFormat().resolvedOptions().timeZone);
 		}
-		synced = true;
+		// Re-derive the slot's day label in the real timezone (init ran under UTC).
+		if (deepLink && deepLinkResult.slot) flow.selectSlot(deepLinkResult.slot);
+	});
+
+	afterNavigate(() => {
+		routerReady = true;
 	});
 
 	$effect(() => {
@@ -113,23 +127,78 @@
 	});
 
 	$effect(() => {
-		if (deepLink && flow.viewDate) linkNotice = null;
+		if (!deepLink) return;
+		if (linkNotice) {
+			if (linkNotice.kind === 'slot') {
+				// Clear slot notice if they select any slot, or if they navigate to a different day
+				if (selectedSlot || (viewDate && viewDate !== deepLinkResult.date)) {
+					linkNotice = null;
+				}
+			} else {
+				// Clear date notice if they select any day
+				if (viewDate) {
+					linkNotice = null;
+				}
+			}
+		}
 	});
 
 	$effect(() => {
-		if (!deepLink || !synced) return;
-		const desiredSlot = flow.step === 3 ? flow.selectedSlot : null;
-		const desiredDate = flow.step === 2 ? flow.viewDate : null;
+		if (!routerReady) return;
+		if (!deepLink) return;
+
+		let desiredSlot: string | null = null;
+		let desiredDate: string | null = null;
+		let desiredTz: string | null = null;
+
+		if (linkNotice) {
+			if (linkNotice.kind === 'slot') {
+				const staleTz = deepLinkResult.tz || data.user.timezone;
+				try {
+					const zdt = Temporal.Instant.from(linkNotice.requested).toZonedDateTimeISO(staleTz);
+					desiredDate = zdt.toPlainDate().toString();
+					desiredSlot = zdt.toPlainTime().toString().slice(0, 5).replace(/:/g, ''); // HHMM
+					desiredTz = formatTzOffset(staleTz, desiredDate);
+				} catch {
+					// Fallback
+				}
+			} else {
+				desiredDate = linkNotice.requested;
+				const staleTz = deepLinkResult.tz || data.user.timezone;
+				desiredTz = formatTzOffset(staleTz, desiredDate);
+			}
+		} else {
+			if (flow.step === 3 && flow.selectedSlot) {
+				const zdt = Temporal.Instant.from(flow.selectedSlot).toZonedDateTimeISO(flow.userTz);
+				desiredDate = zdt.toPlainDate().toString();
+				desiredSlot = zdt.toPlainTime().toString().slice(0, 5).replace(/:/g, ''); // HHMM
+				desiredTz = formatTzOffset(flow.userTz, desiredDate);
+			} else if (flow.viewDate) {
+				desiredDate = flow.viewDate;
+				desiredTz = formatTzOffset(flow.userTz, desiredDate);
+			}
+		}
+
 		// Compare decoded values, not the encoded search string, so re-encoding can't loop.
 		if (
 			page.url.searchParams.get('slot') === desiredSlot &&
-			page.url.searchParams.get('date') === desiredDate
+			page.url.searchParams.get('date') === desiredDate &&
+			page.url.searchParams.get('tz') === desiredTz
 		) {
 			return;
 		}
+
 		let search = '';
-		if (desiredSlot) search = `?slot=${encodeURIComponent(desiredSlot)}`;
-		else if (desiredDate) search = `?date=${encodeURIComponent(desiredDate)}`;
+		if (desiredDate) {
+			search = `?date=${encodeURIComponent(desiredDate)}`;
+			if (desiredSlot) {
+				search += `&slot=${encodeURIComponent(desiredSlot)}`;
+			}
+			if (desiredTz) {
+				search += `&tz=${encodeURIComponent(desiredTz)}`;
+			}
+		}
+
 		replaceState(`${page.url.pathname}${search}`, page.state);
 	});
 </script>
@@ -206,10 +275,11 @@
 			</aside>
 		{/if}
 
-		{#if linkNotice && step === 1}
-			<aside class="reschedule-banner">
-				<div class="reschedule-banner-content">
-					<span class="reschedule-banner-text">
+		{#if linkNotice && (step === 1 || linkNotice.kind === 'slot')}
+			<aside class="warning-card">
+				<IconWarningCircle class="warning-card-icon" aria-hidden="true" />
+				<div class="warning-card-content">
+					<span class="warning-card-text">
 						{#if linkNotice.kind === 'slot'}
 							<strong>{formatSlot(linkNotice.requested, userTz)}</strong> is no longer available. Pick
 							another time below.
@@ -905,6 +975,41 @@
 			border-top: 1px solid var(--border);
 			z-index: 100;
 		}
+	}
+
+	/* ---- warning card ---- */
+	.warning-card {
+		display: flex;
+		align-items: flex-start;
+		gap: var(--space-4);
+		padding: var(--space-5) var(--space-6);
+		background: color-mix(in srgb, var(--warning) 8%, var(--surface));
+		border: 1px solid color-mix(in srgb, var(--warning) 30%, var(--border));
+		border-radius: var(--radius-md);
+		margin-bottom: var(--space-6);
+		color: var(--text);
+	}
+
+	:global(.warning-card-icon) {
+		font-size: var(--font-size-xl);
+		color: var(--warning);
+		flex-shrink: 0;
+		margin-top: 2px;
+	}
+
+	.warning-card-content {
+		flex: 1;
+	}
+
+	.warning-card-text {
+		font-size: var(--font-size-md);
+		line-height: 1.5;
+		color: var(--text-secondary);
+	}
+
+	.warning-card-text strong {
+		color: var(--text);
+		font-weight: 600;
 	}
 
 	/* ---- reschedule styling overrides ---- */
