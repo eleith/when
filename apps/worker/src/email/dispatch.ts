@@ -46,7 +46,7 @@ export async function dispatch(
 		cfg,
 		appointment: input.appointment,
 		eventType,
-		links: bookingLinks({ baseUrl: cfg.url.app, appointment: input.appointment, eventType }),
+		links: bookingLinks({ baseUrl: cfg.url.app, appointment: input.appointment }),
 		logo
 	};
 

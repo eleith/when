@@ -30,8 +30,7 @@ export async function reconcileAppointment(
 		}
 		const cancelUrl = bookingLinks({
 			baseUrl: ctx.config.url.app,
-			appointment: row,
-			eventType
+			appointment: row
 		}).booked;
 		const pushed = await pushAppointment(ctx.config, row, target, {
 			cancelUrl,
