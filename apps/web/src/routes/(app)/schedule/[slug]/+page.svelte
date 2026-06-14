@@ -4,4 +4,4 @@
 	let { data, form } = $props();
 </script>
 
-<BookingWizard {data} {form} />
+<BookingWizard {data} {form} deepLink />

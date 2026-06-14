@@ -1,10 +1,13 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { page } from '$app/state';
+	import { replaceState } from '$app/navigation';
 	import IconArrowRight from 'virtual:icons/ph/arrow-right';
 	import IconCaretLeft from 'virtual:icons/ph/caret-left';
 	import DatePicker from '$lib/components/DatePicker.svelte';
 	import DayTimeline from '$lib/components/DayTimeline.svelte';
 	import { createBookingFlow } from '$lib/bookingFlow.svelte';
+	import { resolveDeepLink, type DeepLinkResult } from '$lib/booking';
 	import {
 		formatDate,
 		formatDateCompact,
@@ -53,28 +56,81 @@
 	interface Props {
 		data: BookingWizardData;
 		form: { error?: string } | null;
+		deepLink?: boolean;
 	}
 
-	let { data, form }: Props = $props();
+	let { data, form, deepLink = false }: Props = $props();
 
 	const flow = createBookingFlow(() => data.slotsByDate);
 
-	// read-only views of the shared flow; all mutations go through flow.* methods
 	let step = $derived(flow.step);
 	let viewDate = $derived(flow.viewDate);
 	let selectedSlot = $derived(flow.selectedSlot);
 	let userTz = $derived(flow.userTz);
 
 	let nameInput = $state<HTMLInputElement | null>(null);
+	let linkNotice = $state<NonNullable<DeepLinkResult['notice']> | null>(null);
+
+	const initialSlot = page.url.searchParams.get('slot');
+	const initialDate = page.url.searchParams.get('date');
+
+	// Resolve a valid slot before render so SSR lands on step 3; the date label refines on mount.
+	if (initialSlot && flow.allSlots.includes(initialSlot)) {
+		flow.selectSlot(initialSlot);
+		flow.goToStep(3);
+	}
+
+	let synced = $state(false);
 
 	onMount(() => {
 		flow.setTz(Intl.DateTimeFormat().resolvedOptions().timeZone);
+
+		if (deepLink) {
+			const result = resolveDeepLink({
+				slotParam: initialSlot,
+				dateParam: initialDate,
+				allSlots: flow.allSlots,
+				availableDates: flow.availableDates
+			});
+			if (result.slot) {
+				flow.selectSlot(result.slot);
+				flow.goToStep(3);
+			} else if (result.date) {
+				flow.selectDate(result.date);
+				flow.goToStep(2);
+			} else if (result.notice) {
+				flow.goToStep(1);
+				linkNotice = result.notice;
+			}
+		}
+		synced = true;
 	});
 
 	$effect(() => {
 		if (step === 3 && selectedSlot) {
 			nameInput?.focus();
 		}
+	});
+
+	$effect(() => {
+		if (deepLink && flow.viewDate) linkNotice = null;
+	});
+
+	$effect(() => {
+		if (!deepLink || !synced) return;
+		const desiredSlot = flow.step === 3 ? flow.selectedSlot : null;
+		const desiredDate = flow.step === 2 ? flow.viewDate : null;
+		// Compare decoded values, not the encoded search string, so re-encoding can't loop.
+		if (
+			page.url.searchParams.get('slot') === desiredSlot &&
+			page.url.searchParams.get('date') === desiredDate
+		) {
+			return;
+		}
+		let search = '';
+		if (desiredSlot) search = `?slot=${encodeURIComponent(desiredSlot)}`;
+		else if (desiredDate) search = `?date=${encodeURIComponent(desiredDate)}`;
+		replaceState(`${page.url.pathname}${search}`, page.state);
 	});
 </script>
 
@@ -146,6 +202,22 @@
 					>
 						Keep original booking
 					</a>
+				</div>
+			</aside>
+		{/if}
+
+		{#if linkNotice && step === 1}
+			<aside class="reschedule-banner">
+				<div class="reschedule-banner-content">
+					<span class="reschedule-banner-text">
+						{#if linkNotice.kind === 'slot'}
+							<strong>{formatSlot(linkNotice.requested, userTz)}</strong> is no longer available. Pick
+							another time below.
+						{:else}
+							<strong>{formatDate(linkNotice.requested)}</strong> has no availability. Pick another day
+							below.
+						{/if}
+					</span>
 				</div>
 			</aside>
 		{/if}
