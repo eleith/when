@@ -1,8 +1,5 @@
 # Agent Instructions
 
-This repository documents itself the same way for humans and agents — there is no
-separate agent rulebook to keep in sync.
-
 Start with [`README.md`](README.md), then read the docs it links:
 
 - [`docs/philosophy.md`](docs/philosophy.md) — what "When" is and the principles behind it. Read this first; it explains _why_ the code looks the way it does.
