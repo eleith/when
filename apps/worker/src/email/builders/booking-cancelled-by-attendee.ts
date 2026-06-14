@@ -19,7 +19,8 @@ export function bookingCancelledByAttendee(i: BookingEmailInput): EmailMessage[]
 			{ label: 'What', value: eventName },
 			{ label: 'When', value: when }
 		],
-		actions: []
+		actions: [],
+		previewText: `Your booking for ${eventName} on ${when} has been cancelled.`
 	};
 	const admin: EmailContent = {
 		brand,
@@ -30,7 +31,8 @@ export function bookingCancelledByAttendee(i: BookingEmailInput): EmailMessage[]
 			{ label: 'What', value: eventName },
 			{ label: 'When', value: when }
 		],
-		actions: []
+		actions: [],
+		previewText: `${a.attendee_name} cancelled their booking for ${eventName} on ${when}.`
 	};
 
 	return [attendeeMessage(i, attendee, cancelIcs(i, i.links.booked)), organizerMessage(i, admin)];

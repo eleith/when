@@ -20,7 +20,8 @@ export function bookingRescheduledByAttendee(i: BookingEmailInput): EmailMessage
 			{ label: 'When', value: when },
 			{ label: 'Where', value: a.location }
 		],
-		actions: [{ href: i.links.booked, label: 'View this booking', variant: 'primary' }]
+		actions: [{ href: i.links.booked, label: 'View this booking', variant: 'primary' }],
+		previewText: `Your booking for ${eventName} with ${brand.name} has been rescheduled to ${when}.`
 	};
 	const admin: EmailContent = {
 		brand,
@@ -31,7 +32,8 @@ export function bookingRescheduledByAttendee(i: BookingEmailInput): EmailMessage
 			{ label: 'What', value: eventName },
 			{ label: 'When', value: when }
 		],
-		actions: []
+		actions: [],
+		previewText: `${a.attendee_name} rescheduled their booking for ${eventName} to ${when}.`
 	};
 
 	return [attendeeMessage(i, attendee, requestIcs(i, i.links.booked)), organizerMessage(i, admin)];

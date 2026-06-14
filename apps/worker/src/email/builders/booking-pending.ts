@@ -19,7 +19,8 @@ export function bookingPending(i: BookingEmailInput): EmailMessage[] {
 			{ label: 'When', value: when },
 			{ label: 'Where', value: a.location }
 		],
-		actions: [{ href: i.links.booked, label: 'View this booking', variant: 'primary' }]
+		actions: [{ href: i.links.booked, label: 'View this booking', variant: 'primary' }],
+		previewText: `Your booking request for ${eventName} on ${when} is pending review.`
 	};
 	const organizer: EmailContent = {
 		brand,
@@ -31,7 +32,8 @@ export function bookingPending(i: BookingEmailInput): EmailMessage[] {
 			{ label: 'When', value: when },
 			{ label: 'Where', value: a.location }
 		],
-		actions: [{ href: i.links.manage, label: 'Review request', variant: 'primary' }]
+		actions: [{ href: i.links.manage, label: 'Review request', variant: 'primary' }],
+		previewText: `${a.attendee_name} has requested a booking for ${eventName} on ${when}.`
 	};
 
 	return [attendeeMessage(i, attendee), organizerMessage(i, organizer)];

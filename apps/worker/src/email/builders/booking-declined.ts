@@ -18,7 +18,8 @@ export function bookingDeclined(i: BookingEmailInput): EmailMessage[] {
 			{ label: 'What', value: eventName },
 			{ label: 'When', value: when }
 		],
-		actions: []
+		actions: [],
+		previewText: `Your booking request for ${eventName} on ${when} has been declined.`
 	};
 	const admin: EmailContent = {
 		brand,
@@ -29,7 +30,8 @@ export function bookingDeclined(i: BookingEmailInput): EmailMessage[] {
 			{ label: 'What', value: eventName },
 			{ label: 'When', value: when }
 		],
-		actions: []
+		actions: [],
+		previewText: `You declined the booking request for ${eventName} from ${a.attendee_name} on ${when}.`
 	};
 
 	return [attendeeMessage(i, attendee), organizerMessage(i, admin)];

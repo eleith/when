@@ -20,7 +20,8 @@ export function bookingConfirmed(i: BookingEmailInput): EmailMessage[] {
 			{ label: 'When', value: when },
 			{ label: 'Where', value: a.location }
 		],
-		actions: [{ href: i.links.booked, label: 'View this booking', variant: 'primary' }]
+		actions: [{ href: i.links.booked, label: 'View this booking', variant: 'primary' }],
+		previewText: `Your booking for ${eventName} with ${brand.name} is confirmed for ${when}.`
 	};
 	const admin: EmailContent = {
 		brand,
@@ -33,7 +34,8 @@ export function bookingConfirmed(i: BookingEmailInput): EmailMessage[] {
 			{ label: 'Where', value: a.location },
 			{ label: 'Notes', value: a.attendee_notes }
 		],
-		actions: []
+		actions: [],
+		previewText: `${a.attendee_name} booked ${eventName} for ${when}.`
 	};
 
 	return [attendeeMessage(i, attendee, requestIcs(i, i.links.booked)), organizerMessage(i, admin)];

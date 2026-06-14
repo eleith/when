@@ -33,7 +33,10 @@ export function ownerAlert(
 			{ label: 'Calendar', value: input.calendarId },
 			{ label: 'Since', value: input.since }
 		],
-		actions: []
+		actions: [],
+		previewText: broke
+			? `Calendar "${input.calendarId}" stopped syncing. Reason: ${input.reason}`
+			: `Calendar "${input.calendarId}" is syncing again. Reason: ${input.reason}`
 	};
 
 	return { to: cfg.user.email, content };
