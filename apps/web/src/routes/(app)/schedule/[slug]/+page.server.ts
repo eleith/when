@@ -1,10 +1,9 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { Temporal } from '@js-temporal/polyfill';
 import { computeSlots } from '$lib/server/availability';
-import { mergeBlocks } from '$lib/server/availability/blocks';
 import { loadAppointmentBlocks } from '$lib/server/availability/db-blocks';
 import { resolveAvailabilitySettings } from '$lib/server/availability/settings';
-import { buildBaseWindows, candidateDates } from '$lib/server/availability/windows';
+import { loadAvailability } from '$lib/server/availability/load';
 import { findAppointment, getBusyIntervals } from '@when/db';
 import { systemClock } from '$lib/server/clock';
 import type { Location } from '@when/config';
@@ -55,55 +54,11 @@ export const load: PageServerLoad = async ({ params, url }) => {
 		}
 	}
 
-	const settings = resolveAvailabilitySettings(cfg, eventType);
-	const userTz = cfg.user.timezone;
-	const nowInstant = Temporal.Instant.fromEpochMilliseconds(systemClock.nowMs());
-	const rangeEnd = nowInstant.add({ hours: 24 * settings.maximum_lookahead });
-
-	let blocks = await loadAppointmentBlocks(getDb(), eventType.id, nowInstant, rangeEnd, userTz);
-	if (rescheduleAppt) {
-		blocks = {
-			appointments: blocks.appointments.filter(
-				(a) => a.start.toString() !== rescheduleAppt.start_time
-			),
-			perDayCount: blocks.perDayCount
-		};
-	}
-
-	const remoteBusy = (
-		await getBusyIntervals(getDb(), eventType.conflict_calendars ?? [], {
-			start: nowInstant.toString(),
-			end: rangeEnd.toString()
-		})
-	).map((b) => ({ start: Temporal.Instant.from(b.start), end: Temporal.Instant.from(b.end) }));
-	const slots = computeSlots({
-		settings,
-		rangeStart: nowInstant,
-		rangeEnd,
-		userTz,
-		now: nowInstant,
-		existingAppointments: blocks.appointments,
-		remoteBusy,
-		perDayCount: blocks.perDayCount
-	});
-
-	const slotsByDate: Record<string, string[]> = {};
-	for (const s of slots) {
-		const date = s.toZonedDateTimeISO(userTz).toPlainDate().toString();
-		(slotsByDate[date] ??= []).push(s.toString());
-	}
-
-	const dates = candidateDates(nowInstant, rangeEnd, userTz);
-	const workingWindows: { start: string; end: string }[] = [];
-	for (const date of dates) {
-		for (const w of buildBaseWindows(date, settings.weekly, userTz)) {
-			workingWindows.push({ start: w.start.toString(), end: w.end.toString() });
-		}
-	}
-	const busyBlocks = mergeBlocks([...blocks.appointments, ...remoteBusy]).map((b) => ({
-		start: b.start.toString(),
-		end: b.end.toString()
-	}));
+	const { settings, slotsByDate, workingWindows, busyBlocks } = await loadAvailability(
+		cfg,
+		eventType,
+		rescheduleAppt?.start_time ?? null
+	);
 
 	return {
 		eventType: {
