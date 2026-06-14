@@ -4,60 +4,23 @@ import { computeSlots } from '$lib/server/availability';
 import { loadAppointmentBlocks } from '$lib/server/availability/db-blocks';
 import { resolveAvailabilitySettings } from '$lib/server/availability/settings';
 import { loadAvailability } from '$lib/server/availability/load';
-import { findAppointment, getBusyIntervals } from '@when/db';
+import { getBusyIntervals } from '@when/db';
 import { systemClock } from '$lib/server/clock';
 import type { Location } from '@when/config';
 import { logger } from '$lib/server/logger';
 import { getConfig, getDb } from '$lib/server/state';
 import { createAppointment } from '$lib/server/booking/create';
-import { classifyReschedule, rescheduleAppointment } from '$lib/server/booking/reschedule';
 import { bookingContext } from '$lib/server/booking/context';
 import type { Actions, PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ params, url }) => {
+export const load: PageServerLoad = async ({ params }) => {
 	const cfg = getConfig();
 	const eventType = cfg.event_types.find((e) => e.slug === params.slug);
 	if (!eventType) error(404, `No event type with slug "${params.slug}"`);
 
-	const rescheduleId = url.searchParams.get('reschedule');
-	const rescheduleToken = url.searchParams.get('token');
-	let rescheduleAppt = null;
-	let rescheduleError: string | null = null;
-
-	const now = systemClock.now();
-
-	if (rescheduleId && rescheduleToken) {
-		const found = await findAppointment(getDb(), rescheduleId);
-		if (!found) {
-			rescheduleError = 'token';
-		} else {
-			const ctx = classifyReschedule({
-				rescheduleId,
-				token: rescheduleToken,
-				existing: found,
-				eventType,
-				now
-			});
-			if (ctx.kind === 'error') {
-				rescheduleError = ctx.code;
-			} else if (ctx.kind === 'reschedule') {
-				rescheduleAppt = {
-					id: found.id,
-					start_time: found.start_time,
-					end_time: found.end_time,
-					attendee_name: found.attendee_name,
-					attendee_email: found.attendee_email,
-					attendee_notes: found.attendee_notes,
-					location: found.location
-				};
-			}
-		}
-	}
-
 	const { settings, slotsByDate, workingWindows, busyBlocks } = await loadAvailability(
 		cfg,
-		eventType,
-		rescheduleAppt?.start_time ?? null
+		eventType
 	);
 
 	return {
@@ -77,9 +40,9 @@ export const load: PageServerLoad = async ({ params, url }) => {
 		slotsByDate,
 		workingWindows,
 		busyBlocks,
-		rescheduleAppt,
-		rescheduleError,
-		rescheduleToken: rescheduleToken ?? null
+		rescheduleAppt: null,
+		rescheduleError: null,
+		rescheduleToken: null
 	};
 };
 
@@ -95,9 +58,6 @@ export const actions: Actions = {
 		const email = String(form.get('email') ?? '').trim();
 		const notes = String(form.get('notes') ?? '').trim();
 		const locationInput = form.get('location');
-
-		const rescheduleId = String(form.get('reschedule') ?? '').trim();
-		const token = String(form.get('token') ?? '').trim();
 
 		if (!slotStr || !name || !email) {
 			return fail(400, { error: 'Name, email, and slot are required.' });
@@ -118,25 +78,7 @@ export const actions: Actions = {
 		const nowInstant = Temporal.Instant.fromEpochMilliseconds(systemClock.nowMs());
 		const rangeEnd = nowInstant.add({ hours: 24 * settings.maximum_lookahead });
 
-		let blocks = await loadAppointmentBlocks(getDb(), eventType.id, nowInstant, rangeEnd, userTz);
-		let rescheduleRow = null;
-
-		if (rescheduleId && token) {
-			rescheduleRow = await findAppointment(getDb(), rescheduleId);
-			if (!rescheduleRow || rescheduleRow.cancel_token !== token) {
-				return fail(403, { error: 'Invalid reschedule token.' });
-			}
-			if (rescheduleRow.start_time === slotStr) {
-				return fail(400, { error: 'Please select a new time slot.' });
-			}
-			blocks = {
-				appointments: blocks.appointments.filter(
-					(a) => a.start.toString() !== rescheduleRow!.start_time
-				),
-				perDayCount: blocks.perDayCount
-			};
-		}
-
+		const blocks = await loadAppointmentBlocks(getDb(), eventType.id, nowInstant, rangeEnd, userTz);
 		const remoteBusy = await slotDayBusy(
 			getDb(),
 			eventType.conflict_calendars ?? [],
@@ -158,24 +100,6 @@ export const actions: Actions = {
 		}
 
 		const start = Temporal.Instant.from(slotStr);
-
-		if (rescheduleRow) {
-			const end = start.add({ minutes: eventType.duration });
-			const result = await rescheduleAppointment(bookingContext(), {
-				appointment: rescheduleRow,
-				initiator: 'attendee',
-				newStart: start.toString(),
-				newEnd: end.toString()
-			});
-			if (!result.ok) {
-				if (result.reason === 'slot_taken') {
-					return fail(409, { error: 'That time was just taken. Please pick another.' });
-				}
-				return fail(409, { error: 'This booking can no longer be rescheduled.' });
-			}
-
-			redirect(303, `/booked/${rescheduleRow.id}?token=${encodeURIComponent(token)}&rescheduled=1`);
-		}
 		const end = start.add({ minutes: eventType.duration });
 
 		let created;
