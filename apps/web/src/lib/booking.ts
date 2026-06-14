@@ -38,6 +38,36 @@ export function canAdvance(
 	return true;
 }
 
+export interface DeepLinkResult {
+	step: WizardStep;
+	slot?: string;
+	date?: string;
+	/** The requested (raw) value when it's no longer bookable; drives the stale-link banner. */
+	notice?: { kind: 'slot'; requested: string } | { kind: 'date'; requested: string };
+}
+
+/**
+ * Maps `?slot=`/`?date=` deep-link params to a starting wizard step, validated against current
+ * availability. A `slot` (absolute instant) wins over a `date` (calendar day). Anything that's
+ * no longer bookable falls back to step 1 with a notice naming what was requested.
+ */
+export function resolveDeepLink(p: {
+	slotParam: string | null;
+	dateParam: string | null;
+	allSlots: string[];
+	availableDates: Set<string>;
+}): DeepLinkResult {
+	if (p.slotParam) {
+		if (p.allSlots.includes(p.slotParam)) return { step: 3, slot: p.slotParam };
+		return { step: 1, notice: { kind: 'slot', requested: p.slotParam } };
+	}
+	if (p.dateParam) {
+		if (p.availableDates.has(p.dateParam)) return { step: 2, date: p.dateParam };
+		return { step: 1, notice: { kind: 'date', requested: p.dateParam } };
+	}
+	return { step: 1 };
+}
+
 export interface TimelineEventType {
 	duration: number;
 	buffer_before?: number | null;

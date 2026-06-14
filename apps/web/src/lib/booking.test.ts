@@ -1,6 +1,13 @@
 import { describe, expect, test } from 'vitest';
 import { Temporal } from '@js-temporal/polyfill';
-import { flattenSlots, availableDates, slotsOnDate, canAdvance, buildDayTimeline } from './booking';
+import {
+	flattenSlots,
+	availableDates,
+	slotsOnDate,
+	canAdvance,
+	resolveDeepLink,
+	buildDayTimeline
+} from './booking';
 
 // Slots straddle a UTC midnight so the timezone-dependent cases are meaningful:
 // 23:30Z on the 15th is still the 15th in UTC but already the 16th in Tokyo.
@@ -75,6 +82,50 @@ describe('canAdvance', () => {
 
 	test('step 3 is always allowed', () => {
 		expect(canAdvance(3, null, null)).toBe(true);
+	});
+});
+
+describe('resolveDeepLink', () => {
+	const allSlots = flattenSlots(SLOTS_BY_DATE);
+	const dates = availableDates(allSlots, 'UTC');
+	const base = { slotParam: null, dateParam: null, allSlots, availableDates: dates };
+
+	test('no params → step 1', () => {
+		expect(resolveDeepLink(base)).toEqual({ step: 1 });
+	});
+
+	test('valid slot → step 3', () => {
+		expect(resolveDeepLink({ ...base, slotParam: '2025-06-15T09:30:00Z' })).toEqual({
+			step: 3,
+			slot: '2025-06-15T09:30:00Z'
+		});
+	});
+
+	test('stale slot → step 1 with a slot notice', () => {
+		expect(resolveDeepLink({ ...base, slotParam: '2025-06-15T12:00:00Z' })).toEqual({
+			step: 1,
+			notice: { kind: 'slot', requested: '2025-06-15T12:00:00Z' }
+		});
+	});
+
+	test('valid date → step 2', () => {
+		expect(resolveDeepLink({ ...base, dateParam: '2025-06-16' })).toEqual({
+			step: 2,
+			date: '2025-06-16'
+		});
+	});
+
+	test('stale date → step 1 with a date notice', () => {
+		expect(resolveDeepLink({ ...base, dateParam: '2025-06-20' })).toEqual({
+			step: 1,
+			notice: { kind: 'date', requested: '2025-06-20' }
+		});
+	});
+
+	test('slot wins when both are present', () => {
+		expect(
+			resolveDeepLink({ ...base, slotParam: '2025-06-15T09:00:00Z', dateParam: '2025-06-16' })
+		).toEqual({ step: 3, slot: '2025-06-15T09:00:00Z' });
 	});
 });
 
