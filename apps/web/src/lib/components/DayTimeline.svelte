@@ -398,7 +398,6 @@
 		text-align: right;
 		font-size: var(--font-size-sm);
 		color: var(--text-muted);
-		transform: translateY(-50%);
 		line-height: 1;
 	}
 
