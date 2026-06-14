@@ -13,6 +13,19 @@ export function formatDate(key: string): string {
 	}
 }
 
+/** Compact date from a `YYYY-MM-DD` key, e.g. "Sat, Nov 15". */
+export function formatDateCompact(key: string): string {
+	try {
+		return Temporal.PlainDate.from(key).toLocaleString(undefined, {
+			weekday: 'short',
+			month: 'short',
+			day: 'numeric'
+		});
+	} catch {
+		return key;
+	}
+}
+
 /** Numeric date from an instant in `tz`, e.g. "6/15/2025". */
 export function formatDateShort(iso: string, tz: string): string {
 	try {
@@ -43,6 +56,19 @@ export function formatTime(iso: string, tz: string): string {
 		return Temporal.Instant.from(iso)
 			.toZonedDateTimeISO(tz)
 			.toLocaleString(undefined, { hour: '2-digit', minute: '2-digit' });
+	} catch {
+		return iso;
+	}
+}
+
+/** Compact time of day in `tz`, no leading zero, lowercase meridiem, e.g. "1:00pm". */
+export function formatTimeShort(iso: string, tz: string): string {
+	try {
+		return Temporal.Instant.from(iso)
+			.toZonedDateTimeISO(tz)
+			.toLocaleString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true })
+			.replace(/\s+/g, '')
+			.toLowerCase();
 	} catch {
 		return iso;
 	}
@@ -97,4 +123,18 @@ export function formatTzShort(tz: string): string {
 	const city = tzCity(tz);
 	const offset = tzOffset(tz);
 	return offset ? `${city} · ${offset}` : city;
+}
+
+/** Timezone abbreviation for an instant in `tz`, e.g. "PDT". Falls back to "GMT-7". */
+export function formatTzAbbrev(iso: string, tz: string): string {
+	try {
+		const date = new Date(Temporal.Instant.from(iso).epochMilliseconds);
+		const parts = new Intl.DateTimeFormat('en', {
+			timeZone: tz,
+			timeZoneName: 'short'
+		}).formatToParts(date);
+		return parts.find((p) => p.type === 'timeZoneName')?.value ?? '';
+	} catch {
+		return '';
+	}
 }

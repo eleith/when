@@ -1,13 +1,18 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import IconArrowRight from 'virtual:icons/ph/arrow-right';
-	import IconCalendarBlank from 'virtual:icons/ph/calendar-blank';
 	import IconCaretLeft from 'virtual:icons/ph/caret-left';
-	import IconClock from 'virtual:icons/ph/clock';
 	import DatePicker from '$lib/components/DatePicker.svelte';
 	import DayTimeline from '$lib/components/DayTimeline.svelte';
 	import { createBookingFlow } from '$lib/bookingFlow.svelte';
-	import { formatDate, formatTime, formatSlot, formatTzShort } from '$lib/datetime';
+	import {
+		formatDate,
+		formatDateCompact,
+		formatTime,
+		formatTimeShort,
+		formatSlot,
+		formatTzAbbrev
+	} from '$lib/datetime';
 
 	let { data, form } = $props();
 
@@ -138,58 +143,15 @@
 					{/if}
 				</section>
 
-				{#if (step >= 2 && viewDate) || (step >= 3 && selectedSlot)}
-					<section class="context-section">
-						<div class="context-summary">
-							{#if step >= 2 && viewDate}
-								<button
-									type="button"
-									class="context-summary-row"
-									onclick={() => flow.goToStep(1)}
-									aria-label="Change date"
-								>
-									<IconCalendarBlank class="context-summary-icon" aria-hidden="true" />
-									<div class="context-summary-value">
-										<span class="context-summary-text">{formatDate(viewDate)}</span>
-									</div>
-								</button>
-							{/if}
-							{#if step >= 3 && selectedSlot}
-								<button
-									type="button"
-									class="context-summary-row"
-									onclick={() => flow.goToStep(2)}
-									aria-label="Change time"
-								>
-									<IconClock class="context-summary-icon" aria-hidden="true" />
-									<div class="context-summary-value">
-										<span class="context-summary-text">{formatTime(selectedSlot, userTz)}</span>
-										<span class="context-summary-tz">{formatTzShort(userTz)}</span>
-									</div>
-								</button>
-							{/if}
-						</div>
-					</section>
-				{/if}
+				<section class="context-step">
+					<span class="context-step-num">Step {step} of 3</span>
+					<h2 class="context-step-title">
+						{#if step === 1}Pick a day{:else if step === 2}Pick a time{:else}Enter your info{/if}
+					</h2>
+				</section>
 			</aside>
 
 			<div class="card-stage">
-				<div class="wizard-bar">
-					<button
-						type="button"
-						class="back-btn"
-						onclick={flow.goBack}
-						disabled={step === 1}
-						aria-label="Go back"
-					>
-						&lsaquo;
-					</button>
-					<h1 class="wizard-title">
-						<span class="wizard-step">Step {step} of 3:</span>
-						{#if step === 1}Pick a day{:else if step === 2}Pick a time{:else}Your details{/if}
-					</h1>
-				</div>
-
 				<div class="booking-body">
 					{#if step === 1}
 						<DatePicker {flow} />
@@ -205,19 +167,24 @@
 					{/if}
 
 					{#if step === 3 && selectedSlot}
+						<div class="form-header">
+							<button
+								type="button"
+								class="form-back"
+								onclick={flow.goBack}
+								aria-label="Back to time picker"
+							>
+								<IconCaretLeft aria-hidden="true" />
+							</button>
+							<h2 class="form-title">
+								{#if viewDate}{formatDateCompact(viewDate)} at&nbsp;{/if}{formatTimeShort(
+									selectedSlot,
+									userTz
+								)}
+								<span class="form-title-tz">{formatTzAbbrev(selectedSlot, userTz)}</span>
+							</h2>
+						</div>
 						<div class="booking-form">
-							<p class="confirmed-slot">
-								<button
-									type="button"
-									class="form-back"
-									onclick={flow.goBack}
-									aria-label="Back to time picker"
-								>
-									<IconCaretLeft aria-hidden="true" />
-								</button>
-								{formatSlot(selectedSlot, userTz)}
-							</p>
-
 							{#if form?.error}
 								<p class="form-error" role="alert">{form.error}</p>
 							{/if}
@@ -285,7 +252,7 @@
 								</div>
 
 								<button type="submit" class="submit-btn">
-									{#if data.rescheduleAppt}Confirm Reschedule{:else}Book{/if}
+									{#if data.rescheduleAppt}Confirm Reschedule{:else if data.eventType.booking_flow === 'requires_confirmation'}Request{:else}Schedule{/if}
 								</button>
 							</form>
 						</div>
@@ -295,7 +262,7 @@
 				<div class="wizard-cta">
 					<p class="cta-title">
 						<span class="wizard-step">Step {step} of 3:</span>
-						{#if step === 1}Pick a day{:else if step === 2}Pick a time{:else}Your details{/if}
+						{#if step === 1}Pick a day{:else if step === 2}Pick a time{:else}Enter your info{/if}
 					</p>
 					{#if step === 1 && viewDate}
 						<p class="cta-summary">You selected {formatDate(viewDate)}</p>
@@ -313,6 +280,9 @@
 							Continue <IconArrowRight aria-hidden="true" class="cta-arrow" />
 						</button>
 					{:else if step === 2}
+						<button type="button" class="cta-btn cta-btn-secondary" onclick={flow.goBack}>
+							Back
+						</button>
 						<button
 							type="button"
 							class="cta-btn"
@@ -322,8 +292,11 @@
 							Confirm <IconArrowRight aria-hidden="true" class="cta-arrow" />
 						</button>
 					{:else}
+						<button type="button" class="cta-btn cta-btn-secondary" onclick={flow.goBack}>
+							Back
+						</button>
 						<button type="submit" form="booking-form" class="cta-btn" disabled={!selectedSlot}>
-							{#if data.rescheduleAppt}Confirm Reschedule{:else}Book{/if}
+							{#if data.rescheduleAppt}Confirm Reschedule{:else if data.eventType.booking_flow === 'requires_confirmation'}Request{:else}Schedule{/if}
 						</button>
 					{/if}
 				</div>
@@ -373,9 +346,8 @@
 	}
 
 	.context-section-about {
-		padding: var(--space-6) 0;
+		padding: var(--space-6) 0 0;
 		border-top: 1px solid var(--border-strong);
-		border-bottom: 1px solid var(--border-strong);
 	}
 
 	.context-provider {
@@ -439,79 +411,6 @@
 		line-height: 1.5;
 	}
 
-	.context-summary {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-8);
-	}
-
-	.context-summary-row {
-		display: flex;
-		flex-direction: row;
-		align-items: flex-start;
-		gap: var(--space-3);
-		text-align: left;
-		background: none;
-		border: none;
-		padding: 0;
-		margin: 0;
-		cursor: pointer;
-		font: inherit;
-		color: var(--text-muted);
-		position: relative;
-		z-index: 0;
-		transition: color var(--transition);
-	}
-
-	.context-summary-row::before {
-		content: '';
-		position: absolute;
-		inset: calc(var(--space-4) * -1);
-		background: transparent;
-		border-radius: var(--radius-sm);
-		transition: background var(--transition);
-		z-index: -1;
-	}
-
-	.context-summary-row:hover {
-		color: var(--text);
-	}
-
-	.context-summary-row:hover::before {
-		background: var(--surface);
-	}
-
-	:global(.context-summary-icon) {
-		font-size: var(--font-size-lg);
-		color: var(--text-muted);
-		flex-shrink: 0;
-	}
-
-	.context-summary-row:hover :global(.context-summary-icon) {
-		color: var(--text);
-	}
-
-	.context-summary-value {
-		color: var(--text);
-		font-weight: 500;
-		font-size: var(--font-size-md);
-		line-height: 1.4;
-	}
-
-	.context-summary-text {
-		text-decoration: underline;
-		text-decoration-style: dotted;
-		text-underline-offset: 3px;
-	}
-
-	.context-summary-tz {
-		display: block;
-		font-size: var(--font-size-xs);
-		font-weight: 500;
-		color: var(--text-muted);
-		margin-top: var(--space-1);
-	}
-
 	.card-stage {
 		flex: 1;
 		min-width: 0;
@@ -527,16 +426,27 @@
 
 	.booking-form {
 		width: 100%;
-		max-width: 480px;
-		margin: 0 auto;
 	}
 
 	/* ---- booking form ---- */
-	.confirmed-slot {
-		font-size: var(--font-size-lg);
+	.form-header {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		margin: 0 0 var(--space-7);
+		min-width: 0;
+	}
+
+	.form-title {
+		font-size: var(--font-size-xl);
 		font-weight: 600;
-		margin: 0 0 var(--space-6);
-		display: none;
+		margin: 0;
+	}
+
+	.form-title-tz {
+		font-size: var(--font-size-md);
+		font-weight: 400;
+		color: var(--text-muted);
 	}
 
 	/* caret to return to the time picker — mobile only (desktop has the wizard back button) */
@@ -615,36 +525,27 @@
 	}
 
 	/* ---- wizard chrome ---- */
-	.wizard-bar {
+	.context-step {
+		margin-top: auto;
+		padding-top: var(--space-6);
+		border-top: 1px solid var(--border-strong);
 		display: flex;
-		align-items: center;
-		gap: var(--space-3);
-		margin: 0 0 var(--space-6);
-		padding-bottom: var(--space-5);
-		border-bottom: 1px solid var(--border);
+		flex-direction: column;
+		gap: var(--space-1);
 	}
 
-	.back-btn {
-		display: none;
-		background: none;
-		border: none;
-		font-size: var(--font-size-2xl);
-		color: var(--text);
-		cursor: pointer;
-		padding: var(--space-1) var(--space-3);
-		line-height: 1;
-		border-radius: var(--radius-sm);
+	.context-step-num {
+		font-size: var(--font-size-xs);
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		color: var(--text-muted);
 	}
 
-	.back-btn:disabled {
-		color: var(--border-strong);
-		cursor: default;
-	}
-
-	.wizard-title {
+	.context-step-title {
 		margin: 0;
 		font-size: var(--font-size-md);
-		font-weight: 600;
+		font-weight: 700;
 		color: var(--text);
 	}
 
@@ -706,6 +607,18 @@
 
 	.cta-btn:not(:disabled):hover {
 		opacity: 0.9;
+	}
+
+	.cta-btn-secondary {
+		background: transparent;
+		color: var(--text-secondary);
+		border: 1px solid var(--border-strong);
+	}
+
+	.cta-btn-secondary:not(:disabled):hover {
+		background: var(--surface-active);
+		color: var(--text);
+		opacity: 1;
 	}
 
 	/* ---- page banner (full-width) ---- */
@@ -834,18 +747,8 @@
 			padding: 0;
 		}
 
-		.confirmed-slot {
-			display: flex;
-			align-items: center;
-			gap: var(--space-2);
-		}
-
 		.form-back {
 			display: inline-flex;
-		}
-
-		.wizard-bar {
-			display: none;
 		}
 
 		.booking :global(.timeline-scroll) {
@@ -868,6 +771,10 @@
 			min-height: 56px;
 			width: 100%;
 			padding: var(--space-4) var(--space-6);
+		}
+
+		.cta-btn-secondary {
+			display: none;
 		}
 
 		.wizard-cta {

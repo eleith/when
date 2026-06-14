@@ -275,7 +275,7 @@
 		justify-content: space-between;
 		align-items: baseline;
 		gap: var(--space-4);
-		margin: 0 0 var(--space-5);
+		margin: 0 0 var(--space-7);
 	}
 
 	.slots-date-group {
@@ -286,7 +286,7 @@
 	}
 
 	.slots-date {
-		font-size: var(--font-size-lg);
+		font-size: var(--font-size-xl);
 		font-weight: 600;
 		margin: 0;
 	}

@@ -91,8 +91,6 @@
 <style>
 	.calendar-panel {
 		width: 100%;
-		max-width: 360px;
-		margin: 0 auto;
 	}
 
 	/* ---- calendar (Bits UI) ---- */
@@ -100,12 +98,12 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		margin-bottom: var(--space-4);
+		margin-bottom: var(--space-7);
 	}
 
 	.calendar-panel :global(.cal-heading) {
 		font-weight: 600;
-		font-size: var(--font-size-md);
+		font-size: var(--font-size-xl);
 		color: var(--text);
 	}
 
@@ -133,12 +131,17 @@
 
 	.calendar-panel :global(.cal-grid) {
 		width: 100%;
+		max-width: 360px;
+		margin: 0 auto;
 		user-select: none;
 	}
 
 	.calendar-panel :global(.cal-weekdays) {
 		display: flex;
 		width: 100%;
+		background: var(--surface-muted);
+		border-radius: var(--radius-sm);
+		margin-bottom: var(--space-2);
 	}
 
 	.calendar-panel :global(.cal-weekday) {
