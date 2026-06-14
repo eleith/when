@@ -34,9 +34,7 @@ export function ownerAlert(
 			{ label: 'Since', value: input.since }
 		],
 		actions: [],
-		previewText: broke
-			? `Reason: ${input.reason}`
-			: 'Sync is working again.'
+		previewText: broke ? `Reason: ${input.reason}` : 'Sync is working again.'
 	};
 
 	return { to: cfg.user.email, content };
