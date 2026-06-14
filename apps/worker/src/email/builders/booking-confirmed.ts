@@ -21,7 +21,7 @@ export function bookingConfirmed(i: BookingEmailInput): EmailMessage[] {
 			{ label: 'Where', value: a.location }
 		],
 		actions: [{ href: i.links.booked, label: 'View this booking', variant: 'primary' }],
-		previewText: `Your booking for ${eventName} with ${brand.name} is confirmed for ${when}.`
+		previewText: `See you on ${when}.`
 	};
 	const admin: EmailContent = {
 		brand,
@@ -35,7 +35,7 @@ export function bookingConfirmed(i: BookingEmailInput): EmailMessage[] {
 			{ label: 'Notes', value: a.attendee_notes }
 		],
 		actions: [],
-		previewText: `${a.attendee_name} booked ${eventName} for ${when}.`
+		previewText: `Scheduled for ${when}.`
 	};
 
 	return [attendeeMessage(i, attendee, requestIcs(i, i.links.booked)), organizerMessage(i, admin)];

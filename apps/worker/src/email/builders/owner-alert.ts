@@ -35,8 +35,8 @@ export function ownerAlert(
 		],
 		actions: [],
 		previewText: broke
-			? `Calendar "${input.calendarId}" stopped syncing. Reason: ${input.reason}`
-			: `Calendar "${input.calendarId}" is syncing again. Reason: ${input.reason}`
+			? `Reason: ${input.reason}`
+			: 'Sync is working again.'
 	};
 
 	return { to: cfg.user.email, content };
