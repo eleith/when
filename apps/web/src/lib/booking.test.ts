@@ -6,6 +6,7 @@ import {
 	slotsOnDate,
 	canAdvance,
 	resolveDeepLink,
+	normalizeDeepLinkParams,
 	buildDayTimeline
 } from './booking';
 
@@ -126,6 +127,36 @@ describe('resolveDeepLink', () => {
 		expect(
 			resolveDeepLink({ ...base, slotParam: '2025-06-15T09:00:00Z', dateParam: '2025-06-16' })
 		).toEqual({ step: 3, slot: '2025-06-15T09:00:00Z' });
+	});
+});
+
+describe('normalizeDeepLinkParams', () => {
+	const norm = (q: string) => normalizeDeepLinkParams(new URLSearchParams(q));
+
+	test('keeps a parseable slot', () => {
+		expect(norm('slot=2026-06-19T18:30:00Z')).toEqual({ slot: '2026-06-19T18:30:00Z' });
+	});
+
+	test('keeps a valid date', () => {
+		expect(norm('date=2026-06-19')).toEqual({ date: '2026-06-19' });
+	});
+
+	test('slot wins over date', () => {
+		expect(norm('slot=2026-06-19T18:30:00Z&date=2026-06-20')).toEqual({
+			slot: '2026-06-19T18:30:00Z'
+		});
+	});
+
+	test('drops a malformed slot but keeps a valid date', () => {
+		expect(norm('slot=garbage&date=2026-06-19')).toEqual({ date: '2026-06-19' });
+	});
+
+	test('drops a malformed date', () => {
+		expect(norm('date=2026-13-99')).toEqual({});
+	});
+
+	test('drops unknown keys (nothing valid remains)', () => {
+		expect(norm('foo=bar')).toEqual({});
 	});
 });
 

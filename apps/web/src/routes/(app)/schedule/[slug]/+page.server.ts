@@ -11,12 +11,29 @@ import { logger } from '$lib/server/logger';
 import { getConfig, getDb } from '$lib/server/state';
 import { createAppointment } from '$lib/server/booking/create';
 import { bookingContext } from '$lib/server/booking/context';
+import { normalizeDeepLinkParams } from '$lib/booking';
 import type { Actions, PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ params }) => {
+export const load: PageServerLoad = async ({ params, url }) => {
 	const cfg = getConfig();
 	const eventType = cfg.event_types.find((e) => e.slug === params.slug);
 	if (!eventType) error(404, `No event type with slug "${params.slug}"`);
+
+	// Strip malformed/unknown deep-link params up front by redirecting to the canonical URL.
+	const clean = normalizeDeepLinkParams(url.searchParams);
+	const expected: [string, string][] = clean.slot
+		? [['slot', clean.slot]]
+		: clean.date
+			? [['date', clean.date]]
+			: [];
+	const incoming = [...url.searchParams.entries()];
+	const inSync =
+		incoming.length === expected.length &&
+		expected.every(([k, v], i) => incoming[i]?.[0] === k && incoming[i]?.[1] === v);
+	if (!inSync) {
+		const query = new URLSearchParams(expected).toString();
+		redirect(307, query ? `${url.pathname}?${query}` : url.pathname);
+	}
 
 	const { settings, slotsByDate, workingWindows, busyBlocks } = await loadAvailability(
 		cfg,

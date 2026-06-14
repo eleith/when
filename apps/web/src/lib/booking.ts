@@ -68,6 +68,38 @@ export function resolveDeepLink(p: {
 	return { step: 1 };
 }
 
+function isInstant(s: string): boolean {
+	try {
+		Temporal.Instant.from(s);
+		return true;
+	} catch {
+		return false;
+	}
+}
+
+function isDateKey(s: string): boolean {
+	if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+	try {
+		Temporal.PlainDate.from(s);
+		return true;
+	} catch {
+		return false;
+	}
+}
+
+/**
+ * The structurally-valid deep-link params that should remain in the URL: a parseable `slot`
+ * wins over a valid `date`; everything else (malformed values, unknown keys) is dropped. The
+ * schedule load redirects to this canonical form before rendering.
+ */
+export function normalizeDeepLinkParams(params: URLSearchParams): { slot?: string; date?: string } {
+	const slot = params.get('slot');
+	if (slot && isInstant(slot)) return { slot };
+	const date = params.get('date');
+	if (date && isDateKey(date)) return { date };
+	return {};
+}
+
 export interface TimelineEventType {
 	duration: number;
 	buffer_before?: number | null;
