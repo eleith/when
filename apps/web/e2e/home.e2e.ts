@@ -5,7 +5,9 @@ test('home page renders', async ({ page }) => {
 	await expect(page).toHaveTitle(/./);
 });
 
-test('schedule page with unavailable date deep link does not throw router initialization error', async ({ page }) => {
+test('schedule page with unavailable date deep link does not throw router initialization error', async ({
+	page
+}) => {
 	const errors: Error[] = [];
 	page.on('pageerror', (err) => {
 		errors.push(err);
@@ -14,4 +16,3 @@ test('schedule page with unavailable date deep link does not throw router initia
 	await expect(page).toHaveTitle(/./);
 	expect(errors).toEqual([]);
 });
-

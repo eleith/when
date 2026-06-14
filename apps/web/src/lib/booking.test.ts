@@ -280,7 +280,9 @@ describe('resolveFriendlyTz', () => {
 
 	test('resolves offset timezone to fallback if offset matches', () => {
 		// Etc/GMT+7 represents offset -7 (which matches America/Los_Angeles on 2026-06-19 due to PDT)
-		expect(resolveFriendlyTz('Etc/GMT+7', '2026-06-19', 'America/Los_Angeles')).toBe('America/Los_Angeles');
+		expect(resolveFriendlyTz('Etc/GMT+7', '2026-06-19', 'America/Los_Angeles')).toBe(
+			'America/Los_Angeles'
+		);
 	});
 
 	test('scans supported timezones and returns a matching IANA zone if fallback does not match', () => {

@@ -3,17 +3,14 @@ import { formatTime } from './datetime';
 
 export type WizardStep = 1 | 2 | 3;
 
-/** All slot instants across every date, flattened. */
 export function flattenSlots(slotsByDate: Record<string, string[]>): string[] {
 	return Object.values(slotsByDate).flat();
 }
 
-/** The server's day keys (host tz) straight from the slot buckets, before any re-bucketing. */
 export function dateKeys(slotsByDate: Record<string, string[]>): Set<string> {
 	return new Set(Object.keys(slotsByDate));
 }
 
-/** The set of `YYYY-MM-DD` keys that have at least one slot, in the given timezone. */
 export function availableDates(slots: string[], tz: string): Set<string> {
 	const dates = new Set<string>();
 	for (const iso of slots) {
@@ -22,7 +19,6 @@ export function availableDates(slots: string[], tz: string): Set<string> {
 	return dates;
 }
 
-/** Slots that fall on `dateKey` in the given timezone, sorted ascending. */
 export function slotsOnDate(slots: string[], dateKey: string, tz: string): string[] {
 	return slots
 		.filter(
@@ -32,7 +28,6 @@ export function slotsOnDate(slots: string[], dateKey: string, tz: string): strin
 		.sort();
 }
 
-/** Whether the wizard can move past the current step given what's been picked. */
 export function canAdvance(
 	step: WizardStep,
 	viewDate: string | null,
@@ -48,7 +43,6 @@ export interface DeepLinkResult {
 	slot?: string;
 	date?: string;
 	tz?: string;
-	/** The requested value when it's no longer bookable; drives the stale-link banner. */
 	notice?: { kind: 'slot'; requested: string } | { kind: 'date'; requested: string };
 }
 
@@ -174,7 +168,12 @@ export function resolveDeepLink(p: {
 				}
 				const dates = availableDates(p.allSlots, tz);
 				if (dates.has(p.dateParam)) {
-					return { step: 2, date: p.dateParam, notice: { kind: 'slot', requested: instantStr }, tz };
+					return {
+						step: 2,
+						date: p.dateParam,
+						notice: { kind: 'slot', requested: instantStr },
+						tz
+					};
 				}
 				return { step: 1, notice: { kind: 'slot', requested: instantStr }, tz };
 			} catch {
@@ -190,15 +189,6 @@ export function resolveDeepLink(p: {
 	}
 
 	return { step: 1, tz };
-}
-
-function isInstant(s: string): boolean {
-	try {
-		Temporal.Instant.from(s);
-		return true;
-	} catch {
-		return false;
-	}
 }
 
 function isDateKey(s: string): boolean {

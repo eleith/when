@@ -8,7 +8,12 @@
 	import DatePicker from '$lib/components/DatePicker.svelte';
 	import DayTimeline from '$lib/components/DayTimeline.svelte';
 	import { createBookingFlow } from '$lib/bookingFlow.svelte';
-	import { resolveDeepLink, type DeepLinkResult, formatTzOffset, resolveFriendlyTz } from '$lib/booking';
+	import {
+		resolveDeepLink,
+		type DeepLinkResult,
+		formatTzOffset,
+		resolveFriendlyTz
+	} from '$lib/booking';
 	import {
 		formatDate,
 		formatDateCompact,
@@ -89,7 +94,8 @@
 	});
 	// svelte-ignore state_referenced_locally
 	if (deepLink && deepLinkResult.tz) {
-		const resolvedDate = deepLinkResult.date || initialDate || new Date().toISOString().slice(0, 10);
+		const resolvedDate =
+			deepLinkResult.date || initialDate || new Date().toISOString().slice(0, 10);
 		const friendlyTz = resolveFriendlyTz(deepLinkResult.tz, resolvedDate, data.user.timezone);
 		flow.setTz(friendlyTz);
 	}
@@ -106,8 +112,13 @@
 	onMount(() => {
 		if (deepLink && initialTz) {
 			const browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-			const resolvedDate = deepLinkResult.date || initialDate || new Date().toISOString().slice(0, 10);
-			const friendlyTz = resolveFriendlyTz(deepLinkResult.tz || data.user.timezone, resolvedDate, browserTz);
+			const resolvedDate =
+				deepLinkResult.date || initialDate || new Date().toISOString().slice(0, 10);
+			const friendlyTz = resolveFriendlyTz(
+				deepLinkResult.tz || data.user.timezone,
+				resolvedDate,
+				browserTz
+			);
 			flow.setTz(friendlyTz);
 		} else {
 			flow.setTz(Intl.DateTimeFormat().resolvedOptions().timeZone);
