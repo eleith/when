@@ -13,7 +13,7 @@ describe('smtp', () => {
 	test('createMailer builds a mailer from the smtp config', () => {
 		const mailer = createMailer(
 			{
-				user: { email: 'owner@acme.test' },
+				user: { name: 'Jane Doe', email: 'owner@acme.test' },
 				smtp: { host: 'smtp.test', port: 587, user: 'u', pass: 'p' }
 			} as unknown as WhenConfiguration,
 			createLogger()

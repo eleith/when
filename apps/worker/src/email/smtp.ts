@@ -31,7 +31,7 @@ export function createMailer(config: WhenConfiguration, logger: Logger): Mailer 
 		async send(envelope: Envelope): Promise<SendResult> {
 			try {
 				await transporter.sendMail({
-					from: config.user.email,
+					from: `${config.user.name} <${config.user.email}>`,
 					to: envelope.to,
 					subject: envelope.subject,
 					text: envelope.text,
