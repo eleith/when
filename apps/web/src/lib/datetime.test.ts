@@ -6,6 +6,7 @@ import {
 	formatTime,
 	formatTimeRange,
 	formatSlot,
+	instantToDateKey,
 	tzCity,
 	tzOffset,
 	formatTzShort
@@ -17,6 +18,18 @@ import {
 // it is unambiguously on EDT.
 const ISO = '2025-06-15T09:30:00Z'; // a Sunday
 const ISO_END = '2025-06-15T10:00:00Z';
+
+describe('instantToDateKey', () => {
+	test('returns the day key in the given timezone', () => {
+		expect(instantToDateKey(ISO, 'UTC')).toBe('2025-06-15');
+		expect(instantToDateKey(ISO, 'Asia/Kolkata')).toBe('2025-06-15');
+	});
+
+	test('shifts the day when the timezone crosses midnight', () => {
+		// 02:30Z is the previous evening (22:30) in America/New_York (EDT).
+		expect(instantToDateKey('2025-06-15T02:30:00Z', 'America/New_York')).toBe('2025-06-14');
+	});
+});
 
 describe('formatDate', () => {
 	test('renders a YYYY-MM-DD key as a long date', () => {

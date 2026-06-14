@@ -13,6 +13,11 @@ export function formatDate(key: string): string {
 	}
 }
 
+/** `YYYY-MM-DD` day key for an instant, in the given timezone. */
+export function instantToDateKey(iso: string, tz: string): string {
+	return Temporal.Instant.from(iso).toZonedDateTimeISO(tz).toPlainDate().toString();
+}
+
 /** Compact date from a `YYYY-MM-DD` key, e.g. "Sat, Nov 15". */
 export function formatDateCompact(key: string): string {
 	try {

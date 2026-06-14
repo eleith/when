@@ -4,6 +4,7 @@ import {
 	flattenSlots,
 	type WizardStep
 } from './booking';
+import { instantToDateKey } from './datetime';
 
 export interface BookingFlow {
 	readonly step: WizardStep;
@@ -89,7 +90,7 @@ export function createBookingFlow(getSlotsByDate: () => Record<string, string[]>
 		},
 		selectSlot(iso) {
 			selectedSlot = iso;
-			viewDate = iso.slice(0, 10);
+			viewDate = instantToDateKey(iso, userTz);
 		},
 		clearSlot() {
 			selectedSlot = null;
