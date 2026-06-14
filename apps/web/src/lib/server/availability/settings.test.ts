@@ -28,5 +28,7 @@ test('throws on unknown event type id', () => {
 });
 
 test('weekly schedule comes from global default', () => {
-	expect(resolveAvailabilitySettingsById(validConfig, '30-min-chat').weekly).toEqual(validConfig.availability.default);
+	expect(resolveAvailabilitySettingsById(validConfig, '30-min-chat').weekly).toEqual(
+		validConfig.availability.default
+	);
 });

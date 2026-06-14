@@ -253,9 +253,7 @@
 					{#if data.actions.reschedule.allowed}
 						<a
 							class="action-btn reschedule-btn"
-							href="/booked/{data.appointment.id}/reschedule?token={encodeURIComponent(
-								data.token
-							)}"
+							href="/booked/{data.appointment.id}/reschedule?token={encodeURIComponent(data.token)}"
 						>
 							Reschedule
 						</a>
@@ -283,9 +281,7 @@
 					{#if data.actions.reschedule.allowed}
 						<a
 							class="changes-link changes-link-reschedule"
-							href="/booked/{data.appointment.id}/reschedule?token={encodeURIComponent(
-								data.token
-							)}"
+							href="/booked/{data.appointment.id}/reschedule?token={encodeURIComponent(data.token)}"
 						>
 							Reschedule
 							<IconArrowRight class="action-arrow" aria-hidden="true" />

@@ -39,7 +39,9 @@ export function computeSlots(opts: ComputeOptions): Temporal.Instant[] {
 
 	const blocks = mergeBlocks([...existingAppointments, ...remoteBusy]);
 
-	const allSlots = windows.flatMap((w) => generateSlots(w, settings.duration, settings.slot_granularity));
+	const allSlots = windows.flatMap((w) =>
+		generateSlots(w, settings.duration, settings.slot_granularity)
+	);
 
 	return filterSlots(allSlots, { blocks, settings, now, userTz, perDayCount });
 }

@@ -1,13 +1,19 @@
 import type { EventType, WhenConfiguration } from '@when/config';
 import type { AvailabilitySettings } from './types';
 
-export function resolveAvailabilitySettingsById(cfg: WhenConfiguration, eventTypeId: string): AvailabilitySettings {
+export function resolveAvailabilitySettingsById(
+	cfg: WhenConfiguration,
+	eventTypeId: string
+): AvailabilitySettings {
 	const et = cfg.event_types.find((e) => e.id === eventTypeId);
 	if (!et) throw new Error(`unknown event_type id: ${eventTypeId}`);
 	return resolveAvailabilitySettings(cfg, et);
 }
 
-export function resolveAvailabilitySettings(cfg: WhenConfiguration, et: EventType): AvailabilitySettings {
+export function resolveAvailabilitySettings(
+	cfg: WhenConfiguration,
+	et: EventType
+): AvailabilitySettings {
 	const a = cfg.availability;
 	return {
 		duration: et.duration,
