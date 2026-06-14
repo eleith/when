@@ -3,7 +3,7 @@ import { Temporal } from '@js-temporal/polyfill';
 import { computeSlots } from '$lib/server/availability';
 import { mergeBlocks } from '$lib/server/availability/blocks';
 import { loadAppointmentBlocks } from '$lib/server/availability/db-blocks';
-import { resolveKnobsFor } from '$lib/server/availability/knobs';
+import { resolveAvailabilitySettings } from '$lib/server/availability/settings';
 import { buildBaseWindows, candidateDates } from '$lib/server/availability/windows';
 import { findAppointment, getBusyIntervals } from '@when/db';
 import { systemClock } from '$lib/server/clock';
@@ -55,10 +55,10 @@ export const load: PageServerLoad = async ({ params, url }) => {
 		}
 	}
 
-	const knobs = resolveKnobsFor(cfg, eventType);
+	const settings = resolveAvailabilitySettings(cfg, eventType);
 	const userTz = cfg.user.timezone;
 	const nowInstant = Temporal.Instant.fromEpochMilliseconds(systemClock.nowMs());
-	const rangeEnd = nowInstant.add({ hours: 24 * knobs.maximum_lookahead });
+	const rangeEnd = nowInstant.add({ hours: 24 * settings.maximum_lookahead });
 
 	let blocks = await loadAppointmentBlocks(getDb(), eventType.id, nowInstant, rangeEnd, userTz);
 	if (rescheduleAppt) {
@@ -77,7 +77,7 @@ export const load: PageServerLoad = async ({ params, url }) => {
 		})
 	).map((b) => ({ start: Temporal.Instant.from(b.start), end: Temporal.Instant.from(b.end) }));
 	const slots = computeSlots({
-		knobs,
+		settings,
 		rangeStart: nowInstant,
 		rangeEnd,
 		userTz,
@@ -96,7 +96,7 @@ export const load: PageServerLoad = async ({ params, url }) => {
 	const dates = candidateDates(nowInstant, rangeEnd, userTz);
 	const workingWindows: { start: string; end: string }[] = [];
 	for (const date of dates) {
-		for (const w of buildBaseWindows(date, knobs.weekly, userTz)) {
+		for (const w of buildBaseWindows(date, settings.weekly, userTz)) {
 			workingWindows.push({ start: w.start.toString(), end: w.end.toString() });
 		}
 	}
@@ -115,9 +115,9 @@ export const load: PageServerLoad = async ({ params, url }) => {
 			visibility: eventType.visibility ?? 'public',
 			booking_flow: eventType.booking_flow,
 			location: eventType.location ?? null,
-			buffer_before: knobs.buffer_before,
-			buffer_after: knobs.buffer_after,
-			minimum_notice: knobs.minimum_notice
+			buffer_before: settings.buffer_before,
+			buffer_after: settings.buffer_after,
+			minimum_notice: settings.minimum_notice
 		},
 		slotsByDate,
 		workingWindows,
@@ -158,10 +158,10 @@ export const actions: Actions = {
 		const resolvedLocation: string | null = resolved;
 
 		// Re-validate the slot is currently available.
-		const knobs = resolveKnobsFor(cfg, eventType);
+		const settings = resolveAvailabilitySettings(cfg, eventType);
 		const userTz = cfg.user.timezone;
 		const nowInstant = Temporal.Instant.fromEpochMilliseconds(systemClock.nowMs());
-		const rangeEnd = nowInstant.add({ hours: 24 * knobs.maximum_lookahead });
+		const rangeEnd = nowInstant.add({ hours: 24 * settings.maximum_lookahead });
 
 		let blocks = await loadAppointmentBlocks(getDb(), eventType.id, nowInstant, rangeEnd, userTz);
 		let rescheduleRow = null;
@@ -189,7 +189,7 @@ export const actions: Actions = {
 			userTz
 		);
 		const slots = computeSlots({
-			knobs,
+			settings,
 			rangeStart: nowInstant,
 			rangeEnd,
 			userTz,

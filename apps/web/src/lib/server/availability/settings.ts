@@ -1,13 +1,13 @@
 import type { EventType, WhenConfiguration } from '@when/config';
-import type { EventTypeKnobs } from './types';
+import type { AvailabilitySettings } from './types';
 
-export function resolveKnobs(cfg: WhenConfiguration, eventTypeId: string): EventTypeKnobs {
+export function resolveAvailabilitySettingsById(cfg: WhenConfiguration, eventTypeId: string): AvailabilitySettings {
 	const et = cfg.event_types.find((e) => e.id === eventTypeId);
 	if (!et) throw new Error(`unknown event_type id: ${eventTypeId}`);
-	return resolveKnobsFor(cfg, et);
+	return resolveAvailabilitySettings(cfg, et);
 }
 
-export function resolveKnobsFor(cfg: WhenConfiguration, et: EventType): EventTypeKnobs {
+export function resolveAvailabilitySettings(cfg: WhenConfiguration, et: EventType): AvailabilitySettings {
 	const a = cfg.availability;
 	return {
 		duration: et.duration,

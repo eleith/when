@@ -25,8 +25,8 @@ export interface Interval {
 	end: Temporal.Instant;
 }
 
-/** Knobs an event type cares about, with globals already merged in. */
-export interface EventTypeKnobs {
+/** Availability settings an event type cares about, with globals already merged in. */
+export interface AvailabilitySettings {
 	/** minutes */
 	duration: number;
 	/** minutes */

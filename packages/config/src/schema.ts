@@ -105,7 +105,7 @@ export interface CalDavCalendar {
   sync?: CalendarSync;
 }
 /**
- * Global availability defaults. Each knob is overridable per event type.
+ * Global availability defaults. Each setting is overridable per event type.
  */
 export interface Availability {
   slot_granularity?: number;

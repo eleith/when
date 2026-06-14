@@ -1,10 +1,10 @@
 import { Temporal } from '@js-temporal/polyfill';
 import { overlapsAny } from './blocks';
-import type { EventTypeKnobs, Interval } from './types';
+import type { AvailabilitySettings, Interval } from './types';
 
 export interface FilterContext {
 	blocks: Interval[];
-	knobs: EventTypeKnobs;
+	settings: AvailabilitySettings;
 	now: Temporal.Instant;
 	userTz: string;
 	/** count of active bookings keyed by user_tz YYYY-MM-DD */
@@ -12,24 +12,24 @@ export interface FilterContext {
 }
 
 export function filterSlots(slots: Temporal.Instant[], ctx: FilterContext): Temporal.Instant[] {
-	const { blocks, knobs, now, userTz, perDayCount } = ctx;
-	const earliest = now.add({ minutes: knobs.minimum_notice });
-	const latest = lookaheadEnd(now, knobs.maximum_lookahead, userTz);
+	const { blocks, settings, now, userTz, perDayCount } = ctx;
+	const earliest = now.add({ minutes: settings.minimum_notice });
+	const latest = lookaheadEnd(now, settings.maximum_lookahead, userTz);
 
 	return slots.filter((s) => {
 		if (Temporal.Instant.compare(s, earliest) < 0) return false;
 		if (Temporal.Instant.compare(s, latest) > 0) return false;
 
 		const buffered: Interval = {
-			start: s.subtract({ minutes: knobs.buffer_before }),
-			end: s.add({ minutes: knobs.duration + knobs.buffer_after })
+			start: s.subtract({ minutes: settings.buffer_before }),
+			end: s.add({ minutes: settings.duration + settings.buffer_after })
 		};
 		if (overlapsAny(buffered, blocks)) return false;
 
-		if (knobs.max_bookings_per_day !== null) {
+		if (settings.max_bookings_per_day !== null) {
 			const dateStr = s.toZonedDateTimeISO(userTz).toPlainDate().toString();
 			const count = perDayCount.get(dateStr) ?? 0;
-			if (count >= knobs.max_bookings_per_day) return false;
+			if (count >= settings.max_bookings_per_day) return false;
 		}
 
 		return true;

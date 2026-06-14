@@ -1,13 +1,13 @@
 import { expect, test } from 'vitest';
 import { Temporal } from '@js-temporal/polyfill';
 import { computeSlots } from '$lib/server/availability';
-import type { EventTypeKnobs, Interval } from '$lib/server/availability';
+import type { AvailabilitySettings, Interval } from '$lib/server/availability';
 
 const NYC = 'America/New_York';
 const PARIS = 'Europe/Paris';
 const I = (s: string) => Temporal.Instant.from(s);
 
-const baseKnobs: EventTypeKnobs = {
+const baseSettings: AvailabilitySettings = {
 	duration: 30,
 	slot_granularity: 30,
 	minimum_notice: 0,
@@ -26,8 +26,8 @@ const baseKnobs: EventTypeKnobs = {
 	}
 };
 
-function defaults(overrides: Partial<EventTypeKnobs> = {}): EventTypeKnobs {
-	return { ...baseKnobs, ...overrides };
+function defaults(overrides: Partial<AvailabilitySettings> = {}): AvailabilitySettings {
+	return { ...baseSettings, ...overrides };
 }
 
 const emptyCtx = {
@@ -37,13 +37,13 @@ const emptyCtx = {
 };
 
 test('DST spring forward: NYC 2026-03-08 00:00-04:00 skips 02:00/02:30 NYC', () => {
-	const knobs = defaults({
+	const settings = defaults({
 		duration: 30,
 		slot_granularity: 30,
 		weekly: { sunday: ['00:00-04:00'] }
 	});
 	const slots = computeSlots({
-		knobs,
+		settings,
 		userTz: NYC,
 		now: I('2026-03-08T00:00:00Z'),
 		rangeStart: I('2026-03-08T05:00:00Z'),
@@ -57,14 +57,14 @@ test('DST spring forward: NYC 2026-03-08 00:00-04:00 skips 02:00/02:30 NYC', () 
 });
 
 test('DST fall back: NYC 2026-11-01 the duplicated 01:00 hour is counted once', () => {
-	const knobs = defaults({
+	const settings = defaults({
 		duration: 30,
 		slot_granularity: 30,
 		weekly: { sunday: ['00:00-04:00'] }
 	});
 	// 00:00-04:00 wall-clock spans 5 actual hours due to fall-back, so 10 slots.
 	const slots = computeSlots({
-		knobs,
+		settings,
 		userTz: NYC,
 		now: I('2026-11-01T00:00:00Z'),
 		rangeStart: I('2026-11-01T04:00:00Z'),
@@ -75,14 +75,14 @@ test('DST fall back: NYC 2026-11-01 the duplicated 01:00 hour is counted once', 
 });
 
 test('booker TZ is irrelevant — slots are UTC instants admin-anchored', () => {
-	const knobs = defaults({
+	const settings = defaults({
 		duration: 30,
 		slot_granularity: 30,
 		weekly: { monday: ['09:00-17:00'] }
 	});
 	// 2026-04-27 is a Monday. 09:00 NYC EDT = 13:00 UTC = 15:00 Paris CEST.
 	const slots = computeSlots({
-		knobs,
+		settings,
 		userTz: NYC,
 		now: I('2026-04-27T00:00:00Z'),
 		rangeStart: I('2026-04-27T13:00:00Z'),
@@ -94,7 +94,7 @@ test('booker TZ is irrelevant — slots are UTC instants admin-anchored', () => 
 });
 
 test('block at 10:00-10:30 UTC rejects overlapping slots, accepts 10:30', () => {
-	const knobs = defaults({
+	const settings = defaults({
 		duration: 30,
 		slot_granularity: 15,
 		buffer_before: 0,
@@ -103,7 +103,7 @@ test('block at 10:00-10:30 UTC rejects overlapping slots, accepts 10:30', () => 
 	});
 	const block: Interval = { start: I('2026-04-27T10:00:00Z'), end: I('2026-04-27T10:30:00Z') };
 	const slots = computeSlots({
-		knobs,
+		settings,
 		userTz: NYC,
 		now: I('2026-04-27T00:00:00Z'),
 		rangeStart: I('2026-04-27T09:00:00Z'),
@@ -122,7 +122,7 @@ test('block at 10:00-10:30 UTC rejects overlapping slots, accepts 10:30', () => 
 });
 
 test('buffer_before extends the rejection window', () => {
-	const knobs = defaults({
+	const settings = defaults({
 		duration: 30,
 		slot_granularity: 5,
 		buffer_before: 10,
@@ -131,7 +131,7 @@ test('buffer_before extends the rejection window', () => {
 	});
 	const block: Interval = { start: I('2026-04-27T10:00:00Z'), end: I('2026-04-27T10:30:00Z') };
 	const slots = computeSlots({
-		knobs,
+		settings,
 		userTz: NYC,
 		now: I('2026-04-27T00:00:00Z'),
 		rangeStart: I('2026-04-27T09:00:00Z'),
@@ -146,14 +146,14 @@ test('buffer_before extends the rejection window', () => {
 });
 
 test('minimum_notice excludes anything sooner than now + notice', () => {
-	const knobs = defaults({
+	const settings = defaults({
 		duration: 30,
 		slot_granularity: 30,
 		minimum_notice: 120,
 		weekly: { monday: ['05:00-17:00'] }
 	});
 	const slots = computeSlots({
-		knobs,
+		settings,
 		userTz: NYC,
 		now: I('2026-04-27T10:00:00Z'),
 		rangeStart: I('2026-04-27T09:00:00Z'),
@@ -164,7 +164,7 @@ test('minimum_notice excludes anything sooner than now + notice', () => {
 });
 
 test('maximum_lookahead caps at end-of-day in user_tz', () => {
-	const knobs = defaults({
+	const settings = defaults({
 		duration: 30,
 		slot_granularity: 60,
 		maximum_lookahead: 1,
@@ -176,7 +176,7 @@ test('maximum_lookahead caps at end-of-day in user_tz', () => {
 	});
 	const now = I('2026-04-27T14:00:00Z'); // 10:00 NYC EDT, Monday
 	const slots = computeSlots({
-		knobs,
+		settings,
 		userTz: NYC,
 		now,
 		rangeStart: now,
@@ -191,7 +191,7 @@ test('maximum_lookahead caps at end-of-day in user_tz', () => {
 });
 
 test('max_bookings_per_day rejects all candidates on capped days', () => {
-	const knobs = defaults({
+	const settings = defaults({
 		duration: 30,
 		slot_granularity: 30,
 		max_bookings_per_day: 2,
@@ -201,7 +201,7 @@ test('max_bookings_per_day rejects all candidates on capped days', () => {
 		}
 	});
 	const slots = computeSlots({
-		knobs,
+		settings,
 		userTz: NYC,
 		now: I('2026-04-27T00:00:00Z'),
 		rangeStart: I('2026-04-27T13:00:00Z'),
@@ -218,9 +218,9 @@ test('max_bookings_per_day rejects all candidates on capped days', () => {
 });
 
 test('empty availability for a weekday emits no slots', () => {
-	const knobs = defaults({ weekly: { friday: ['09:00-17:00'] } }); // Sat/Sun missing
+	const settings = defaults({ weekly: { friday: ['09:00-17:00'] } }); // Sat/Sun missing
 	const slots = computeSlots({
-		knobs,
+		settings,
 		userTz: NYC,
 		now: I('2026-04-25T00:00:00Z'),
 		rangeStart: I('2026-04-25T13:00:00Z'), // Saturday
@@ -231,7 +231,7 @@ test('empty availability for a weekday emits no slots', () => {
 });
 
 test('RRULE-expanded blocks: same wall-clock slot blocked across consecutive weeks', () => {
-	const knobs = defaults({
+	const settings = defaults({
 		duration: 30,
 		slot_granularity: 30,
 		weekly: {
@@ -246,7 +246,7 @@ test('RRULE-expanded blocks: same wall-clock slot blocked across consecutive wee
 		{ start: I('2026-05-04T14:00:00Z'), end: I('2026-05-04T14:30:00Z') }
 	];
 	const slots = computeSlots({
-		knobs,
+		settings,
 		userTz: NYC,
 		now: I('2026-04-27T00:00:00Z'),
 		rangeStart: I('2026-04-27T13:00:00Z'),

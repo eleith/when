@@ -2,11 +2,11 @@ import type { Temporal } from '@js-temporal/polyfill';
 import { mergeBlocks } from './blocks';
 import { filterSlots } from './filter';
 import { generateSlots } from './slots';
-import type { EventTypeKnobs, Interval } from './types';
+import type { AvailabilitySettings, Interval } from './types';
 import { buildBaseWindows, candidateDates } from './windows';
 
 export interface ComputeOptions {
-	knobs: EventTypeKnobs;
+	settings: AvailabilitySettings;
 	rangeStart: Temporal.Instant;
 	rangeEnd: Temporal.Instant;
 	userTz: string;
@@ -21,7 +21,7 @@ export interface ComputeOptions {
 
 export function computeSlots(opts: ComputeOptions): Temporal.Instant[] {
 	const {
-		knobs,
+		settings,
 		rangeStart,
 		rangeEnd,
 		userTz,
@@ -34,12 +34,12 @@ export function computeSlots(opts: ComputeOptions): Temporal.Instant[] {
 	const dates = candidateDates(rangeStart, rangeEnd, userTz);
 	const windows: Interval[] = [];
 	for (const date of dates) {
-		windows.push(...buildBaseWindows(date, knobs.weekly, userTz));
+		windows.push(...buildBaseWindows(date, settings.weekly, userTz));
 	}
 
 	const blocks = mergeBlocks([...existingAppointments, ...remoteBusy]);
 
-	const allSlots = windows.flatMap((w) => generateSlots(w, knobs.duration, knobs.slot_granularity));
+	const allSlots = windows.flatMap((w) => generateSlots(w, settings.duration, settings.slot_granularity));
 
-	return filterSlots(allSlots, { blocks, knobs, now, userTz, perDayCount });
+	return filterSlots(allSlots, { blocks, settings, now, userTz, perDayCount });
 }
