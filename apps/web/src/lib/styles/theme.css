@@ -29,6 +29,9 @@
 	--danger-bg: #fef2f2;
 
 	--warning: #d97706;
+	--warning-strong: #b45309;
+	--warning-border: #fcd34d;
+	--warning-bg: #fffbeb;
 
 	--shadow-card: 0 1px 6px rgba(0, 0, 0, 0.06);
 	--shadow-focus: 0 0 0 3px oklch(from var(--primary) l c h / 0.35);
@@ -91,6 +94,9 @@
 		--danger-bg: #450a0a;
 
 		--warning: #fbbf24;
+		--warning-strong: #f59e0b;
+		--warning-border: #78350f;
+		--warning-bg: #451a03;
 
 		--shadow-card: 0 1px 6px rgba(0, 0, 0, 0.4);
 		--shadow-focus: 0 0 0 3px oklch(from var(--primary) l c h / 0.45);

@@ -994,8 +994,8 @@
 		align-items: flex-start;
 		gap: var(--space-4);
 		padding: var(--space-5) var(--space-6);
-		background: color-mix(in srgb, var(--warning) 8%, var(--surface));
-		border: 1px solid color-mix(in srgb, var(--warning) 30%, var(--border));
+		background: var(--warning-bg);
+		border: 1px solid var(--warning-border);
 		border-radius: var(--radius-md);
 		margin-bottom: var(--space-6);
 		color: var(--text);
