@@ -31,7 +31,8 @@ const appointment: Appointment = {
 	calendar_push_failing_since: null,
 	ics_sequence: 0,
 	created_at: '2026-01-01T09:00:00Z',
-	updated_at: '2026-01-01T09:00:00Z'
+	updated_at: '2026-01-01T09:00:00Z',
+	attendee_timezone: 'America/New_York'
 };
 
 describe('client singleton', () => {
