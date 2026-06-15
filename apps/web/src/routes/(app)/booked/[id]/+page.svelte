@@ -86,27 +86,25 @@
 		</p>
 	{:else if status === 'declined'}
 		<p class="status-sub">{data.user.name} declined this request.</p>
-	{:else if status === 'cancelled'}
-		<p class="status-sub">This booking was cancelled.</p>
 	{/if}
 
 	{#if data.justRescheduled}
-		<aside class="flash">
-			<IconCheckCircle class="flash-icon" aria-hidden="true" />
-			<p class="flash-text">Your booking has been rescheduled.</p>
+		<aside class="banner banner-success">
+			<IconCheckCircle class="banner-icon" aria-hidden="true" />
+			<p class="banner-text">Your booking has been rescheduled.</p>
 		</aside>
 	{/if}
 
 	{#if data.isAdmin && data.appointment.notifications.length > 0}
 		{@const hasFailure = data.appointment.notifications.some((n) => n.state === 'failed')}
-		<aside class="notif-warning" class:notif-pending={!hasFailure}>
+		<aside class="banner" class:banner-warning={hasFailure} class:banner-neutral={!hasFailure}>
 			{#if hasFailure}
-				<IconWarning class="notif-icon" aria-hidden="true" />
+				<IconWarning class="banner-icon" aria-hidden="true" />
 			{:else}
-				<IconClock class="notif-icon" aria-hidden="true" />
+				<IconClock class="banner-icon" aria-hidden="true" />
 			{/if}
-			<div>
-				<p class="notif-title">
+			<div class="banner-body">
+				<p class="banner-title">
 					{#if hasFailure}Some notifications didn't send{:else}Notifications sending…{/if}
 				</p>
 				<div class="notif-chips">
@@ -224,13 +222,15 @@
 	{/if}
 
 	{#if form?.error}
-		<p class="form-error" role="alert">{form.error}</p>
-	{:else if form?.success === 'accepted'}
-		<p class="form-success">Accepted. The attendee has been notified.</p>
-	{:else if form?.success === 'declined'}
-		<p class="form-success">Declined. The attendee has been notified.</p>
-	{:else if form?.success === 'cancelled'}
-		<p class="form-success">Cancelled. The attendee has been notified.</p>
+		<aside class="banner banner-danger" role="alert">
+			<IconWarningCircle class="banner-icon" aria-hidden="true" />
+			<p class="banner-text">{form.error}</p>
+		</aside>
+	{:else if form?.success}
+		<aside class="banner banner-success">
+			<IconCheckCircle class="banner-icon" aria-hidden="true" />
+			<p class="banner-text">The attendee has been notified.</p>
+		</aside>
 	{/if}
 
 	{#if data.isAdmin}
@@ -320,9 +320,9 @@
 				<Dialog.Close class="cancel-dialog-close" aria-label="Close">&times;</Dialog.Close>
 			</div>
 
-			<aside class="warning-banner">
-				<IconWarningCircle class="warning-icon" aria-hidden="true" />
-				<p class="warning-text">
+			<aside class="banner banner-danger banner-flush">
+				<IconWarningCircle class="banner-icon" aria-hidden="true" />
+				<p class="banner-text">
 					This action cannot be undone. An email notification will be sent immediately.
 				</p>
 			</aside>
@@ -399,28 +399,78 @@
 		margin: 0 0 var(--space-6);
 	}
 
-	/* ---- flash banner ---- */
-	.flash {
+	/* ---- banners (notices & confirmations) ---- */
+	.banner {
 		display: flex;
-		align-items: center;
-		gap: var(--space-3);
-		padding: var(--space-3) var(--space-5);
-		background: var(--primary-muted);
-		border: 1px solid var(--primary-border);
-		border-radius: var(--radius);
-		margin: 0 0 var(--space-4);
-		color: var(--primary);
-	}
-
-	:global(.flash-icon) {
-		font-size: var(--font-size-lg);
-		flex-shrink: 0;
-	}
-
-	.flash-text {
-		margin: 0;
-		font-size: var(--font-size-sm);
+		align-items: flex-start;
+		gap: var(--space-4);
+		padding: var(--space-5) var(--space-6);
+		border: 1px solid;
+		border-radius: var(--radius-md);
+		margin: var(--space-4) 0;
+		color: var(--text-secondary);
+		font-size: var(--font-size-md);
 		line-height: 1.5;
+	}
+
+	:global(.banner-icon) {
+		font-size: var(--font-size-xl);
+		flex-shrink: 0;
+		margin-top: 2px;
+	}
+
+	.banner-text,
+	.banner-title {
+		margin: 0;
+	}
+
+	.banner-body {
+		flex: 1;
+	}
+
+	.banner-title {
+		font-weight: 600;
+		color: var(--text);
+	}
+
+	.banner-flush {
+		margin: 0;
+	}
+
+	.banner-success {
+		background: var(--success-bg);
+		border-color: var(--success-border);
+	}
+
+	.banner-success :global(.banner-icon) {
+		color: var(--success);
+	}
+
+	.banner-warning {
+		background: var(--warning-bg);
+		border-color: var(--warning-border);
+	}
+
+	.banner-warning :global(.banner-icon) {
+		color: var(--warning);
+	}
+
+	.banner-danger {
+		background: var(--danger-bg);
+		border-color: var(--danger-border);
+	}
+
+	.banner-danger :global(.banner-icon) {
+		color: var(--danger);
+	}
+
+	.banner-neutral {
+		background: var(--surface-muted);
+		border-color: var(--border-strong);
+	}
+
+	.banner-neutral :global(.banner-icon) {
+		color: var(--text-muted);
 	}
 
 	.status-banner + .card,
@@ -785,30 +835,6 @@
 		color: var(--text);
 	}
 
-	/* ---- warning banner inside modal ---- */
-	.warning-banner {
-		display: flex;
-		align-items: center;
-		gap: var(--space-3);
-		padding: var(--space-4) var(--space-5);
-		background: var(--danger-bg);
-		border: 1px solid var(--danger-border);
-		border-radius: var(--radius);
-		color: var(--danger-strong);
-	}
-
-	:global(.warning-icon) {
-		font-size: var(--font-size-lg);
-		flex-shrink: 0;
-	}
-
-	.warning-text {
-		margin: 0;
-		font-size: var(--font-size-sm);
-		line-height: 1.5;
-		font-weight: 500;
-	}
-
 	.cancel-dialog-desc {
 		color: var(--text-secondary);
 		font-size: var(--font-size-md);
@@ -893,35 +919,6 @@
 		color: var(--text);
 	}
 
-	.notif-warning {
-		display: flex;
-		gap: var(--space-3);
-		padding: var(--space-4) var(--space-5);
-		background: var(--warning-bg, var(--surface-muted));
-		border: 1px solid var(--warning-border, var(--border-strong));
-		border-radius: var(--radius);
-		margin: 0 0 var(--space-5);
-		color: var(--warning, var(--text));
-	}
-
-	.notif-warning.notif-pending {
-		background: var(--surface-muted);
-		border-color: var(--border-strong);
-		color: var(--text);
-	}
-
-	:global(.notif-icon) {
-		font-size: var(--font-size-lg);
-		flex-shrink: 0;
-		margin-top: 2px;
-	}
-
-	.notif-title {
-		margin: 0 0 var(--space-1);
-		font-size: var(--font-size-sm);
-		font-weight: 600;
-	}
-
 	.notif-chips {
 		display: flex;
 		flex-wrap: wrap;
@@ -937,24 +934,6 @@
 	.notes {
 		white-space: pre-wrap;
 		line-height: 1.5;
-	}
-
-	.form-error {
-		background: var(--danger-bg);
-		color: var(--danger);
-		padding: var(--space-3) var(--space-5);
-		border-radius: var(--radius);
-		font-size: var(--font-size-sm);
-		margin: var(--space-5) 0 0;
-	}
-
-	.form-success {
-		background: var(--primary-muted);
-		color: var(--primary);
-		padding: var(--space-3) var(--space-5);
-		border-radius: var(--radius);
-		font-size: var(--font-size-sm);
-		margin: var(--space-5) 0 0;
 	}
 
 	.actions {
