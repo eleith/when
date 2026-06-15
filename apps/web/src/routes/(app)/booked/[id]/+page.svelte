@@ -77,14 +77,6 @@
 			{:else if status === 'declined'}Declined
 			{:else}Cancelled{/if}
 		</p>
-		{#if data.clockStatus}
-			<p class="clock-label">
-				{#if data.clockStatus === 'upcoming'}Upcoming
-				{:else if data.clockStatus === 'in_progress'}In progress
-				{:else}Concluded
-				{/if}
-			</p>
-		{/if}
 	</header>
 
 	{#if status === 'pending'}
@@ -114,6 +106,21 @@
 					&middot; {data.eventType.description}{/if}
 			</p>
 		</section>
+
+		{#if data.clockStatus}
+			<section
+				class="card-section card-timeline"
+				class:timeline-upcoming={data.clockStatus === 'upcoming'}
+				class:timeline-active={data.clockStatus === 'in_progress'}
+				class:timeline-concluded={data.clockStatus === 'concluded'}
+			>
+				<span class="timeline-dot" aria-hidden="true"></span>
+				{#if data.clockStatus === 'upcoming'}Upcoming
+				{:else if data.clockStatus === 'in_progress'}In progress
+				{:else}Concluded
+				{/if}
+			</section>
+		{/if}
 
 		<section class="card-section detail-list">
 			<div class="detail-row">
@@ -412,15 +419,6 @@
 		color: var(--text-muted);
 	}
 
-	.clock-label {
-		font-size: var(--font-size-sm);
-		color: var(--text-muted);
-		margin: 0;
-		padding: 2px var(--space-3);
-		background: var(--surface-muted);
-		border-radius: var(--radius-pill);
-	}
-
 	.status-sub {
 		color: var(--text-muted);
 		font-size: var(--font-size-md);
@@ -500,6 +498,41 @@
 
 	.card-section-header {
 		background: var(--surface-muted);
+	}
+
+	/* ---- timeline stripe (date's past/present/future state) ---- */
+	.card-timeline {
+		display: flex;
+		align-items: center;
+		gap: var(--space-3);
+		padding: var(--space-3) var(--space-7);
+		font-size: var(--font-size-sm);
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+	}
+
+	.timeline-dot {
+		width: 8px;
+		height: 8px;
+		border-radius: var(--radius-pill);
+		background: currentColor;
+		flex-shrink: 0;
+	}
+
+	.timeline-upcoming {
+		background: var(--primary-muted);
+		color: var(--primary);
+	}
+
+	.timeline-active {
+		background: var(--success-bg);
+		color: var(--success-strong);
+	}
+
+	.timeline-concluded {
+		background: var(--surface-muted);
+		color: var(--text-muted);
 	}
 
 	.event-name {
