@@ -103,6 +103,6 @@ export const actions: Actions = {
 			return fail(409, { error: 'This booking can no longer be rescheduled.' });
 		}
 
-		redirect(303, `/booked/${found.id}?token=${encodeURIComponent(token)}&rescheduled=1`);
+		redirect(303, `/booked/${found.id}?token=${encodeURIComponent(token)}`);
 	}
 };

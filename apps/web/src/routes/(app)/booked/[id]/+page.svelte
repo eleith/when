@@ -3,7 +3,6 @@
 	import IconArrowRight from 'virtual:icons/ph/arrow-right';
 	import IconArrowUpLeft from 'virtual:icons/ph/arrow-up-left';
 	import IconCalendarBlank from 'virtual:icons/ph/calendar-blank';
-	import IconCheckCircle from 'virtual:icons/ph/check-circle';
 	import IconClock from 'virtual:icons/ph/clock';
 	import IconMapPin from 'virtual:icons/ph/map-pin';
 	import IconUser from 'virtual:icons/ph/user';
@@ -78,10 +77,10 @@
 </header>
 
 <div class="page" class:has-cta={!!data.calendarLinks || showDecideCta}>
-	{#if data.justRescheduled}
-		<aside class="banner banner-success">
-			<IconCheckCircle class="banner-icon" aria-hidden="true" />
-			<p class="banner-text">Your booking has been rescheduled.</p>
+	{#if form?.error}
+		<aside class="banner banner-danger" role="alert">
+			<IconWarningCircle class="banner-icon" aria-hidden="true" />
+			<p class="banner-text">{form.error}</p>
 		</aside>
 	{/if}
 
@@ -221,18 +220,6 @@
 		{/if}
 	</article>
 
-	{#if form?.error}
-		<aside class="banner banner-danger" role="alert">
-			<IconWarningCircle class="banner-icon" aria-hidden="true" />
-			<p class="banner-text">{form.error}</p>
-		</aside>
-	{:else if form?.success}
-		<aside class="banner banner-success">
-			<IconCheckCircle class="banner-icon" aria-hidden="true" />
-			<p class="banner-text">The attendee has been notified.</p>
-		</aside>
-	{/if}
-
 	{#if !data.isAdmin && canRebook}
 		<section class="rebook">
 			<a class="rebook-btn" href="/schedule/{data.eventType.slug}">
@@ -327,15 +314,6 @@
 
 	.banner-text {
 		margin: 0;
-	}
-
-	.banner-success {
-		background: var(--success-bg);
-		border-color: var(--success-border);
-	}
-
-	.banner-success :global(.banner-icon) {
-		color: var(--success);
 	}
 
 	.banner-danger {

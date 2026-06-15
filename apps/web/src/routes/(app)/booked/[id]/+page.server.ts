@@ -48,7 +48,6 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 	const viewer = isAdmin ? 'organizer' : 'attendee';
 	const actions = resolveBookingActions({ row, viewer, now, eventType });
 	const clockStatus = computeClockStatus(row, now);
-	const justRescheduled = url.searchParams.get('rescheduled') === '1';
 	const showCancelModal = url.searchParams.get('cancel') === '1';
 
 	const tokenEnc = token ? encodeURIComponent(token) : '';
@@ -95,7 +94,6 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 		calendarLinks,
 		actions,
 		clockStatus,
-		justRescheduled,
 		showCancelModal,
 		// Admins are trusted with the attendee's cancel_token so reschedule/cancel
 		// links work without a token in the URL; attendees only ever see their own.
