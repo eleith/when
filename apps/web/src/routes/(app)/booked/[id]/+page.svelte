@@ -28,18 +28,14 @@
 	});
 
 	let status = $derived(data.appointment.status);
-	let isPendingPastStart = $derived(status === 'pending' && data.clockStatus !== 'upcoming');
-	// A pending request whose time has already started can never be honored, so it
-	// reads as cancelled even though the stored status is still 'pending'.
-	let effectiveStatus = $derived(isPendingPastStart ? 'cancelled' : status);
 	// The card's single state line: status wins for non-confirmed bookings; for
 	// confirmed ones the time position (upcoming/in progress/concluded) leads.
 	let stateTone = $derived(
-		effectiveStatus === 'declined'
+		status === 'declined'
 			? 'danger'
-			: effectiveStatus === 'pending'
+			: status === 'pending'
 				? 'warning'
-				: effectiveStatus === 'cancelled'
+				: status === 'cancelled' || status === 'expired'
 					? 'muted'
 					: data.clockStatus === 'in_progress'
 						? 'active'
@@ -47,7 +43,9 @@
 							? 'muted'
 							: 'primary'
 	);
-	let canRebook = $derived(effectiveStatus === 'declined' || effectiveStatus === 'cancelled');
+	let canRebook = $derived(
+		status === 'declined' || status === 'cancelled' || status === 'expired'
+	);
 	let differentTz = $derived(data.organizerTz !== userTz);
 	// Organizer sees times in their own configured zone; attendees in the browser's.
 	let displayTz = $derived(data.isAdmin ? data.organizerTz : userTz);
@@ -60,11 +58,13 @@
 </script>
 
 <svelte:head>
-	{#if effectiveStatus === 'cancelled'}
+	{#if status === 'cancelled'}
 		<title>Booking cancelled — When</title>
-	{:else if effectiveStatus === 'declined'}
+	{:else if status === 'expired'}
+		<title>Booking expired — When</title>
+	{:else if status === 'declined'}
 		<title>Booking declined — When</title>
-	{:else if effectiveStatus === 'pending'}
+	{:else if status === 'pending'}
 		<title>Booking requested — When</title>
 	{:else}
 		<title>Booking confirmed — When</title>
@@ -101,14 +101,16 @@
 		<section class="card-section card-state state-{stateTone}">
 			<span class="state-dot" aria-hidden="true"></span>
 			<span class="state-text">
-				{#if effectiveStatus === 'confirmed'}
+				{#if status === 'confirmed'}
 					{#if data.clockStatus === 'upcoming'}Upcoming
 					{:else if data.clockStatus === 'in_progress'}In progress
 					{:else}Concluded{/if}
-				{:else if effectiveStatus === 'pending'}
+				{:else if status === 'pending'}
 					Pending · waiting for {data.user.name}
-				{:else if effectiveStatus === 'declined'}
+				{:else if status === 'declined'}
 					Declined by {data.user.name}
+				{:else if status === 'expired'}
+					Expired
 				{:else}
 					Cancelled
 				{/if}

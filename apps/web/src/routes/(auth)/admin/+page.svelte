@@ -381,7 +381,8 @@
 		color: var(--primary);
 	}
 
-	.status-concluded {
+	.status-concluded,
+	.status-expired {
 		background: var(--surface-muted);
 		color: var(--text-secondary);
 	}

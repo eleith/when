@@ -1,6 +1,6 @@
 import type { ColumnType, Generated, Insertable, Selectable, Updateable } from 'kysely';
 
-export type AppointmentStatus = 'pending' | 'confirmed' | 'declined' | 'cancelled';
+export type AppointmentStatus = 'pending' | 'confirmed' | 'declined' | 'cancelled' | 'expired';
 
 export type CalendarHealth = 'good' | 'bad' | 'unknown';
 

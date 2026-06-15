@@ -11,7 +11,8 @@ type DisplayStatus =
 	| 'in_progress'
 	| 'concluded'
 	| 'cancelled'
-	| 'declined';
+	| 'declined'
+	| 'expired';
 
 function deriveDisplayStatus(
 	row: Pick<Appointment, 'status' | 'start_time' | 'end_time'>,

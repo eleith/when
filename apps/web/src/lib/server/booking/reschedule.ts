@@ -97,7 +97,11 @@ export function classifyReschedule({
 	if (!isViewable(existing, now)) {
 		return { kind: 'error', code: 'past_window' };
 	}
-	if (existing.status === 'cancelled' || existing.status === 'declined') {
+	if (
+		existing.status === 'cancelled' ||
+		existing.status === 'declined' ||
+		existing.status === 'expired'
+	) {
 		return { kind: 'error', code: 'terminal' };
 	}
 	if (!isRescheduleAllowed(existing, now, eventType.minimum_notice ?? 0)) {
