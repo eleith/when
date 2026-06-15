@@ -287,7 +287,7 @@
 	.page {
 		max-width: 640px;
 		margin: 0 auto;
-		padding: var(--space-8) var(--space-6) var(--space-10);
+		padding: var(--space-10) var(--space-6) var(--space-10);
 		color: var(--text);
 	}
 
@@ -489,7 +489,7 @@
 
 	@media (max-width: 768px) {
 		.page {
-			padding: var(--space-5) var(--space-5) var(--space-9);
+			padding: var(--space-7) var(--space-5) var(--space-9);
 		}
 
 		.page.has-cta {
