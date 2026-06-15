@@ -4,6 +4,7 @@
 	import IconArrowRight from 'virtual:icons/ph/arrow-right';
 	import IconCaretLeft from 'virtual:icons/ph/caret-left';
 	import IconWarningCircle from 'virtual:icons/ph/warning-circle';
+	import IconInfo from 'virtual:icons/ph/info';
 	import DatePicker from '$lib/components/DatePicker.svelte';
 	import DayTimeline from '$lib/components/DayTimeline.svelte';
 	import { createBookingFlow } from '$lib/bookingFlow.svelte';
@@ -70,6 +71,12 @@
 	let viewDate = $derived(flow.viewDate);
 	let selectedSlot = $derived(flow.selectedSlot);
 	let userTz = $derived(flow.userTz);
+
+	let previousBookingHref = $derived(
+		data.rescheduleAppt
+			? `/booked/${data.rescheduleAppt.id}?token=${encodeURIComponent(data.rescheduleToken || '')}`
+			: ''
+	);
 
 	let timelineSkeletonRows = $derived.by(() => {
 		if (step !== 2 || !viewDate) return 0;
@@ -228,21 +235,13 @@
 	{:else}
 		{#if data.rescheduleAppt}
 			<aside class="reschedule-banner">
-				<div class="reschedule-banner-content">
-					<span class="reschedule-banner-text">
-						Rescheduling booking currently set for <strong
-							>{formatSlot(data.rescheduleAppt.start_time, userTz)}</strong
-						>.
-					</span>
-					<a
-						class="reschedule-keep-link"
-						href="/booked/{data.rescheduleAppt.id}?token={encodeURIComponent(
-							data.rescheduleToken || ''
-						)}"
+				<IconInfo class="reschedule-banner-icon" aria-hidden="true" />
+				<span class="reschedule-banner-text">
+					Rescheduling <a class="reschedule-banner-link" href={previousBookingHref}
+						>previous appointment</a
 					>
-						Keep original booking
-					</a>
-				</div>
+					for {formatSlot(data.rescheduleAppt.start_time, userTz)}.
+				</span>
 			</aside>
 		{/if}
 
@@ -1152,42 +1151,39 @@
 		font-weight: 600;
 	}
 
-	/* ---- reschedule styling overrides ---- */
+	/* ---- reschedule banner ---- */
 	.reschedule-banner {
-		padding: 0 0 var(--space-4);
-		margin-bottom: var(--space-6);
-		border-bottom: 1px solid var(--border);
-		color: var(--text-secondary);
-	}
-
-	.reschedule-banner-content {
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
 		gap: var(--space-4);
-		flex-wrap: wrap;
+		padding: var(--space-5) var(--space-6);
+		margin-bottom: var(--space-6);
+		background: var(--info-bg);
+		border: 1px solid var(--info-border);
+		border-radius: var(--radius-md);
+	}
+
+	:global(.reschedule-banner-icon) {
+		font-size: var(--font-size-xl);
+		color: var(--info-strong);
+		flex-shrink: 0;
 	}
 
 	.reschedule-banner-text {
-		font-size: var(--font-size-sm);
+		font-size: var(--font-size-md);
 		line-height: 1.4;
+		color: var(--text);
 	}
 
-	.reschedule-banner-text strong {
-		color: var(--text);
+	.reschedule-banner-link {
+		color: var(--info-strong);
 		font-weight: 600;
-	}
-
-	.reschedule-keep-link {
-		font-size: var(--font-size-sm);
-		font-weight: 500;
-		color: var(--text-muted);
 		text-decoration: underline;
-		transition: color var(--transition);
+		text-underline-offset: 2px;
 	}
 
-	.reschedule-keep-link:hover {
-		color: var(--text);
+	.reschedule-banner-link:hover {
+		text-decoration: none;
 	}
 
 	.reschedule-error-card {
