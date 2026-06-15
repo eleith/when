@@ -99,7 +99,6 @@
 		allSlots: flow.allSlots,
 		tz: ptz.current ?? data.user.timezone
 	});
-	// svelte-ignore state_referenced_locally
 	if (ptz.current) flow.setTz(ptz.current);
 	if (deepLinkResult.notice) {
 		linkNotice = deepLinkResult.notice;
@@ -322,13 +321,13 @@
 								</div>
 								<div class="skel-grid">
 									<div class="skel-weekdays">
-										{#each Array(7) as _, i (i)}
+										{#each Array.from({ length: 7 }, (_, i) => i) as i (i)}
 											<span class="skel-weekday"></span>
 										{/each}
 									</div>
-									{#each Array(6) as _, r (r)}
+									{#each Array.from({ length: 6 }, (_, i) => i) as r (r)}
 										<div class="skel-row">
-											{#each Array(7) as _, c (c)}
+											{#each Array.from({ length: 7 }, (_, i) => i) as c (c)}
 												<span class="skel-cell"></span>
 											{/each}
 										</div>
@@ -354,7 +353,7 @@
 								</div>
 								<div class="tl-skel-scroll">
 									<div class="tl-skel-track" style:height="{timelineSkeletonRows * 96}px">
-										{#each Array(timelineSkeletonRows) as _, i (i)}
+										{#each Array.from({ length: timelineSkeletonRows }, (_, i) => i) as i (i)}
 											<div class="tl-skel-row" style:top="{i * 96}px">
 												<span class="tl-skel-label"></span>
 												<span class="tl-skel-gridline"></span>
