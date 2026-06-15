@@ -13,6 +13,7 @@
 	import IconUserGear from 'virtual:icons/ph/user-gear';
 	import IconNote from 'virtual:icons/ph/note';
 	import NotificationChips from '$lib/components/NotificationChips.svelte';
+	import BookingActions from '$lib/components/BookingActions.svelte';
 	import { formatDateShort, formatWeekday, formatTimeRange, formatTzShort } from '$lib/datetime';
 
 	let { data, form } = $props();
@@ -46,7 +47,7 @@
 	let differentTz = $derived(data.organizerTz !== userTz);
 	// Organizer sees times in their own configured zone; attendees in the browser's.
 	let displayTz = $derived(data.isAdmin ? data.organizerTz : userTz);
-	let hasAdminActions = $derived(
+	let hasActions = $derived(
 		data.actions.accept.allowed ||
 			data.actions.decline.allowed ||
 			data.actions.cancel.allowed ||
@@ -88,11 +89,21 @@
 
 	<article class="card">
 		<section class="card-section card-section-header">
-			<h1 class="event-name">{data.eventType.name}</h1>
-			<p class="event-meta">
-				{data.eventType.duration} min{#if data.eventType.description}
-					&middot; {data.eventType.description}{/if}
-			</p>
+			<div class="event-heading">
+				<h1 class="event-name">{data.eventType.name}</h1>
+				<p class="event-meta">
+					{data.eventType.duration} min{#if data.eventType.description}
+						&middot; {data.eventType.description}{/if}
+				</p>
+			</div>
+			{#if hasActions}
+				<BookingActions
+					actions={data.actions}
+					appointmentId={data.appointment.id}
+					token={data.token}
+					onCancel={() => (cancelDialogOpen = true)}
+				/>
+			{/if}
 		</section>
 
 		<section class="card-section card-state state-{stateTone}">
@@ -259,80 +270,14 @@
 					{/if}
 				</div>
 			{/if}
-
-			{#if hasAdminActions}
-				<div class="org-section">
-					<p class="org-section-label">Actions</p>
-					<div class="actions-row">
-						{#if data.actions.accept.allowed}
-							<form method="POST" action="?/accept">
-								<button type="submit" class="action-btn accept-btn"> Accept </button>
-							</form>
-						{/if}
-						{#if data.actions.decline.allowed}
-							<form method="POST" action="?/decline">
-								<button type="submit" class="action-btn decline-btn"> Decline </button>
-							</form>
-						{/if}
-						{#if data.actions.reschedule.allowed}
-							<a
-								class="action-btn reschedule-btn"
-								href="/booked/{data.appointment.id}/reschedule?token={encodeURIComponent(
-									data.token
-								)}"
-							>
-								Reschedule
-							</a>
-						{/if}
-						{#if data.actions.cancel.allowed}
-							<button
-								type="button"
-								class="action-btn cancel-btn"
-								onclick={() => (cancelDialogOpen = true)}
-							>
-								Cancel
-							</button>
-						{/if}
-					</div>
-				</div>
-			{/if}
 		</section>
-	{:else}
-		{#if data.actions.reschedule.allowed || data.actions.cancel.allowed}
-			<section class="changes">
-				<header class="changes-header">
-					<h2 class="changes-title">Change of plans?</h2>
-				</header>
-				<div class="changes-links">
-					{#if data.actions.reschedule.allowed}
-						<a
-							class="changes-link changes-link-reschedule"
-							href="/booked/{data.appointment.id}/reschedule?token={encodeURIComponent(data.token)}"
-						>
-							Reschedule
-						</a>
-					{/if}
-					{#if data.actions.cancel.allowed}
-						<button
-							type="button"
-							class="changes-link changes-link-cancel"
-							onclick={() => (cancelDialogOpen = true)}
-						>
-							Cancel
-						</button>
-					{/if}
-				</div>
-			</section>
-		{/if}
-
-		{#if canRebook}
-			<section class="rebook">
-				<a class="rebook-btn" href="/schedule/{data.eventType.slug}">
-					Pick another time
-					<IconArrowRight class="action-arrow" aria-hidden="true" />
-				</a>
-			</section>
-		{/if}
+	{:else if canRebook}
+		<section class="rebook">
+			<a class="rebook-btn" href="/schedule/{data.eventType.slug}">
+				Pick another time
+				<IconArrowRight class="action-arrow" aria-hidden="true" />
+			</a>
+		</section>
 	{/if}
 </div>
 
@@ -427,6 +372,14 @@
 
 	.card-section-header {
 		background: var(--surface-muted);
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: var(--space-4);
+	}
+
+	.event-heading {
+		min-width: 0;
 	}
 
 	/* ---- state stripe (the booking's single state line) ---- */
@@ -571,70 +524,6 @@
 		border-color: var(--primary);
 	}
 
-	/* ---- changes section ---- */
-	.changes {
-		margin-top: var(--space-7);
-	}
-
-	.changes-header {
-		display: flex;
-		align-items: center;
-		gap: var(--space-3);
-		margin: 0 0 var(--space-4);
-	}
-
-	.changes-title {
-		font-size: var(--font-size-md);
-		font-weight: 600;
-		margin: 0;
-	}
-
-	.changes-links {
-		display: flex;
-		flex-wrap: wrap;
-		gap: var(--space-3);
-	}
-
-	.changes-link {
-		display: inline-flex;
-		align-items: center;
-		gap: var(--space-2);
-		padding: var(--space-3) var(--space-6);
-		border: 1px solid var(--border-strong);
-		border-radius: var(--radius);
-		text-decoration: none;
-		font-size: var(--font-size-md);
-		font-weight: 600;
-		background: transparent;
-		cursor: pointer;
-		font-family: inherit;
-		transition:
-			background var(--transition),
-			border-color var(--transition),
-			color var(--transition);
-	}
-
-	.changes-link-reschedule {
-		color: var(--text);
-		background: transparent;
-	}
-
-	.changes-link-reschedule:hover {
-		background: var(--surface-muted);
-		border-color: var(--primary);
-	}
-
-	.changes-link-cancel {
-		color: var(--danger);
-		background: transparent;
-	}
-
-	.changes-link-cancel:hover {
-		color: var(--danger-strong);
-		background: var(--danger-bg);
-		border-color: var(--danger);
-	}
-
 	:global(.action-arrow) {
 		display: inline-block;
 		transition: transform var(--transition);
@@ -676,16 +565,6 @@
 
 		.card-section {
 			padding: var(--space-5) var(--space-5);
-		}
-
-		.changes-links {
-			flex-direction: column;
-			align-items: stretch;
-		}
-
-		.changes-link {
-			justify-content: center;
-			min-height: 48px;
 		}
 
 		.rebook-btn {
@@ -954,62 +833,5 @@
 	.notes {
 		white-space: pre-wrap;
 		line-height: 1.5;
-	}
-
-	.actions-row {
-		display: flex;
-		flex-wrap: wrap;
-		gap: var(--space-3);
-	}
-
-	.action-btn {
-		display: inline-flex;
-		align-items: center;
-		gap: var(--space-2);
-		padding: var(--space-3) var(--space-6);
-		border-radius: var(--radius);
-		font-size: var(--font-size-md);
-		font-weight: 600;
-		cursor: pointer;
-		border: 1px solid;
-		transition:
-			background var(--transition),
-			color var(--transition),
-			border-color var(--transition);
-	}
-
-	.accept-btn {
-		background: var(--primary);
-		color: var(--text-on-primary);
-		border-color: var(--primary);
-	}
-
-	.accept-btn:hover {
-		opacity: 0.9;
-	}
-
-	.decline-btn,
-	.cancel-btn {
-		background: transparent;
-		color: var(--danger);
-		border-color: var(--border-strong);
-	}
-
-	.decline-btn:hover,
-	.cancel-btn:hover {
-		background: var(--danger-bg);
-		border-color: var(--danger);
-	}
-
-	.reschedule-btn {
-		background: transparent;
-		color: var(--text);
-		border-color: var(--border-strong);
-		text-decoration: none;
-	}
-
-	.reschedule-btn:hover {
-		background: var(--surface-muted);
-		border-color: var(--primary);
 	}
 </style>
