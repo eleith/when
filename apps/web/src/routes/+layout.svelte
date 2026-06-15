@@ -1,12 +1,23 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import '$lib/styles/reset.css';
 	import '$lib/styles/theme.css';
 	import defaultFavicon from '$lib/assets/favicon.svg';
+	import { createPreferredTimezone } from '$lib/preferredTimezone.svelte';
 
 	let { data, children } = $props();
 
 	let primary = $derived(data?.branding?.primary ?? { light: '#4f46e5', dark: '#4f46e5' });
 	let favicon = $derived(data?.branding?.favicon_url ?? defaultFavicon);
+
+	// Seed once; after init the context is the source of truth (cookie is request-stable).
+	// svelte-ignore state_referenced_locally
+	const tz = createPreferredTimezone(data.preferredTimezone);
+	onMount(() => {
+		if (tz.current == null) {
+			tz.set(Intl.DateTimeFormat().resolvedOptions().timeZone, { persist: true });
+		}
+	});
 </script>
 
 <svelte:head>

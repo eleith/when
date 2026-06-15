@@ -119,6 +119,22 @@ Never call `new Date()` or `Date.now()` inline in domain logic. Inject a `Clock`
 (`now()`) so tests can pin time. All zoned datetime math uses `@js-temporal/polyfill`
 (a future Node upgrade will swap this for the native `Temporal` global).
 
+**Viewer timezone.** Times shown to a person render in _their_ zone, resolved in this
+precedence: (1) a context-specific stored zone — e.g. a booking's `attendee_timezone`;
+(2) the `tz` cookie — the viewer's preference, read server-side so SSR is correct and
+flash-free; (3) first visit with no cookie — the client seeds it from the browser zone.
+The cookie defaults to the browser zone and is replaced where a surface lets the user
+choose (the scheduler). While the zone is still unknown (only the first visit, before the
+cookie is set), render **blank space** where the time goes — never a guessed placeholder
+time; a surface may substitute its own placeholder (e.g. a slot picker showing something).
+The shared accessor is `$lib/preferredTimezone.svelte.ts` (`createPreferredTimezone` /
+`getPreferredTimezone`).
+
+**Deep links are zone-agnostic.** A slot is an absolute ISO instant (`?slot=…Z`) matched
+directly against availability; a `date` (`YYYY-MM-DD`) day link opens in the viewer's zone.
+There is no `tz` parameter — display always follows the viewer, so a link carries the
+moment, not a zone.
+
 ### Security
 
 - Passwords are stored only as argon2id hashes (`@node-rs/argon2`).
