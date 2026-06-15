@@ -34,4 +34,14 @@ describe('bookingConfirmed', () => {
 		expect(organizer.content.actions).toEqual([]);
 		expect(organizer.ics).toBeUndefined();
 	});
+
+	test('each recipient sees the time in their own zone', () => {
+		const [attendee, organizer] = bookingConfirmed(sampleInput);
+		const whenOf = (m: typeof attendee) => m.content.rows.find((r) => r.label === 'When')?.value;
+
+		// fixture: attendee in America/Los_Angeles, organizer in America/New_York
+		expect(whenOf(attendee)).not.toBe(whenOf(organizer));
+		expect(whenOf(attendee)).toContain('GMT-8');
+		expect(whenOf(organizer)).toContain('GMT-5');
+	});
 });

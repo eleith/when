@@ -1,4 +1,4 @@
-import { deriveBrand, eventTypeName, fmtWhen } from '../format.js';
+import { deriveBrand, eventTypeName, whenForAttendee, whenForOrganizer } from '../format.js';
 import { attendeeMessage, organizerMessage, type EmailMessage } from '../recipients.js';
 import type { EmailContent } from '../content.js';
 import type { BookingEmailInput } from '../types.js';
@@ -7,7 +7,8 @@ export function bookingDeclined(i: BookingEmailInput): EmailMessage[] {
 	const a = i.appointment;
 	const brand = deriveBrand(i.cfg, i.logo?.cid);
 	const eventName = eventTypeName(i.eventType, a);
-	const when = fmtWhen(a.start_time, a.end_time, i.cfg.user.timezone);
+	const attendeeWhen = whenForAttendee(i);
+	const organizerWhen = whenForOrganizer(i);
 
 	const attendee: EmailContent = {
 		brand,
@@ -16,10 +17,10 @@ export function bookingDeclined(i: BookingEmailInput): EmailMessage[] {
 		paragraphs: [],
 		rows: [
 			{ label: 'What', value: eventName },
-			{ label: 'When', value: when }
+			{ label: 'When', value: attendeeWhen }
 		],
 		actions: [],
-		previewText: `Was requested for ${when}.`
+		previewText: `Was requested for ${attendeeWhen}.`
 	};
 	const admin: EmailContent = {
 		brand,
@@ -28,10 +29,10 @@ export function bookingDeclined(i: BookingEmailInput): EmailMessage[] {
 		paragraphs: [`You declined the request from ${a.attendee_name} <${a.attendee_email}>.`],
 		rows: [
 			{ label: 'What', value: eventName },
-			{ label: 'When', value: when }
+			{ label: 'When', value: organizerWhen }
 		],
 		actions: [],
-		previewText: `Was requested for ${when}.`
+		previewText: `Was requested for ${organizerWhen}.`
 	};
 
 	return [attendeeMessage(i, attendee), organizerMessage(i, admin)];

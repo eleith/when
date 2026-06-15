@@ -1,6 +1,7 @@
 import { Temporal } from '@js-temporal/polyfill';
 import type { EventType, WhenConfiguration } from '@when/config';
 import type { Appointment } from '@when/db';
+import type { BookingEmailInput } from './types.js';
 
 export function eventTypeName(
 	eventType: EventType | undefined,
@@ -30,6 +31,16 @@ export function fmtWhen(start: string, end: string, tz: string): string {
 	} catch {
 		return `${start} – ${end}`;
 	}
+}
+
+export function whenForAttendee(i: BookingEmailInput): string {
+	const a = i.appointment;
+	return fmtWhen(a.start_time, a.end_time, a.attendee_timezone ?? i.cfg.user.timezone);
+}
+
+export function whenForOrganizer(i: BookingEmailInput): string {
+	const a = i.appointment;
+	return fmtWhen(a.start_time, a.end_time, i.cfg.user.timezone);
 }
 
 const DEFAULT_PRIMARY_COLOR = '#2563eb';
