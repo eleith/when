@@ -28,7 +28,8 @@ const baseAppointment: Appointment = {
 	calendar_push_failing_since: null,
 	ics_sequence: 0,
 	created_at: '',
-	updated_at: ''
+	updated_at: '',
+	attendee_timezone: 'America/New_York'
 };
 
 const cfgWithCalDav: WhenConfiguration = {
