@@ -340,32 +340,20 @@
 	<Dialog.Portal>
 		<Dialog.Overlay class="dialog-overlay" />
 		<Dialog.Content class="dialog-content cancel-dialog">
-			<div class="cancel-dialog-header">
-				<Dialog.Title class="cancel-dialog-title">Cancel booking?</Dialog.Title>
-				<Dialog.Close class="cancel-dialog-close" aria-label="Close">&times;</Dialog.Close>
-			</div>
-
-			<aside class="banner banner-danger banner-flush">
-				<IconWarningCircle class="banner-icon" aria-hidden="true" />
-				<p class="banner-text">
-					This action cannot be undone. An email notification will be sent immediately.
-				</p>
-			</aside>
+			<Dialog.Title class="cancel-dialog-title">Cancel booking?</Dialog.Title>
 
 			<p class="cancel-dialog-desc">
 				{#if data.isAdmin}
-					This will cancel the booking for <strong>{data.eventType.name}</strong> with
-					<strong>{data.appointment.attendee_name}</strong> and notify them.
+					<strong>{data.appointment.attendee_name}</strong> will be notified by email. This can't be undone.
 				{:else}
-					This will cancel the booking for <strong>{data.eventType.name}</strong> with
-					<strong>{data.user.name}</strong> and notify both of you.
+					You'll both be notified by email. This can't be undone.
 				{/if}
 			</p>
 
 			<form method="POST" action="?/cancel" class="cancel-dialog-actions">
 				<input type="hidden" name="token" value={data.token} />
-				<button type="submit" class="cancel-confirm-btn">Yes, cancel booking</button>
-				<Dialog.Close type="button" class="cancel-cancel-btn">Keep booking</Dialog.Close>
+				<button type="submit" class="cancel-confirm-btn">Yes, cancel</button>
+				<Dialog.Close type="button" class="cancel-cancel-btn">No, keep</Dialog.Close>
 			</form>
 		</Dialog.Content>
 	</Dialog.Portal>
@@ -400,10 +388,6 @@
 	}
 
 	.banner-text {
-		margin: 0;
-	}
-
-	.banner-flush {
 		margin: 0;
 	}
 
@@ -715,7 +699,9 @@
 	:global(.dialog-overlay) {
 		position: fixed;
 		inset: 0;
-		background: rgba(0, 0, 0, 0.45);
+		background: rgba(0, 0, 0, 0.4);
+		backdrop-filter: blur(4px);
+		-webkit-backdrop-filter: blur(4px);
 		z-index: 200;
 		animation: cancel-fade-in 0.15s ease-out;
 	}
@@ -783,33 +769,10 @@
 		}
 	}
 
-	.cancel-dialog-header {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: var(--space-4);
-	}
-
 	:global(.cancel-dialog-title) {
 		margin: 0;
 		font-size: var(--font-size-xl);
 		font-weight: 700;
-	}
-
-	:global(.cancel-dialog-close) {
-		background: none;
-		border: none;
-		font-size: var(--font-size-2xl);
-		line-height: 1;
-		color: var(--text-muted);
-		cursor: pointer;
-		padding: var(--space-1) var(--space-3);
-		border-radius: var(--radius-sm);
-	}
-
-	:global(.cancel-dialog-close:hover) {
-		background: var(--surface-muted);
-		color: var(--text);
 	}
 
 	.cancel-dialog-desc {
