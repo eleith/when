@@ -1,16 +1,14 @@
 <script lang="ts">
 	import { Dialog } from 'bits-ui';
 	import IconArrowRight from 'virtual:icons/ph/arrow-right';
+	import IconArrowUpLeft from 'virtual:icons/ph/arrow-up-left';
 	import IconCalendarBlank from 'virtual:icons/ph/calendar-blank';
 	import IconCheckCircle from 'virtual:icons/ph/check-circle';
 	import IconClock from 'virtual:icons/ph/clock';
 	import IconMapPin from 'virtual:icons/ph/map-pin';
 	import IconUser from 'virtual:icons/ph/user';
-	import IconEnvelopeSimple from 'virtual:icons/ph/envelope-simple';
 	import IconWarningCircle from 'virtual:icons/ph/warning-circle';
-	import IconUserGear from 'virtual:icons/ph/user-gear';
 	import IconNote from 'virtual:icons/ph/note';
-	import NotificationChips from '$lib/components/NotificationChips.svelte';
 	import BookingActions from '$lib/components/BookingActions.svelte';
 	import AddToCalendar from '$lib/components/AddToCalendar.svelte';
 	import { formatDateShort, formatWeekday, formatTimeRange, formatTzShort } from '$lib/datetime';
@@ -41,11 +39,19 @@
 	let counterpartTz = $derived(data.isAdmin ? data.attendeeTz : data.organizerTz);
 	let counterpartName = $derived(data.isAdmin ? data.appointment.attendee_name : data.user.name);
 	let zonesDiffer = $derived(displayTz !== counterpartTz);
-	let hasActions = $derived(
-		data.actions.accept.allowed ||
-			data.actions.decline.allowed ||
-			data.actions.cancel.allowed ||
-			data.actions.reschedule.allowed
+	// The kebab now only carries reschedule/cancel; accept/decline moved to the CTA.
+	let hasActions = $derived(data.actions.cancel.allowed || data.actions.reschedule.allowed);
+	// Pending bookings have no calendar links, so the CTA slot is free for the decision.
+	let showDecideCta = $derived(
+		!data.calendarLinks && (data.actions.accept.allowed || data.actions.decline.allowed)
+	);
+	let notifFailed = $derived(data.appointment.notifications.some((n) => n.state === 'failed'));
+	let notifLabel = $derived(
+		notifFailed
+			? 'notification failed'
+			: data.appointment.notifications.some((n) => n.state === 'queued')
+				? 'notification sending'
+				: 'notification sent'
 	);
 </script>
 
@@ -63,17 +69,15 @@
 	{/if}
 </svelte:head>
 
-<div class="page" class:has-cta={!!data.calendarLinks}>
+<header class="page-nav">
 	{#if data.isAdmin}
-		<nav class="org-bar">
-			<a class="org-bar-back" href="/admin">← All bookings</a>
-			<span class="org-bar-badge">
-				<IconUserGear class="org-bar-badge-icon" aria-hidden="true" />
-				Organizer view
-			</span>
-		</nav>
+		<a class="nav-back" href="/admin" aria-label="All bookings">
+			<IconArrowUpLeft class="nav-back-icon" aria-hidden="true" />
+		</a>
 	{/if}
+</header>
 
+<div class="page" class:has-cta={!!data.calendarLinks || showDecideCta}>
 	{#if data.justRescheduled}
 		<aside class="banner banner-success">
 			<IconCheckCircle class="banner-icon" aria-hidden="true" />
@@ -108,7 +112,7 @@
 					{:else if data.clockStatus === 'in_progress'}In progress
 					{:else}Concluded{/if}
 				{:else if status === 'pending'}
-					Pending · waiting for {data.user.name}
+					Pending · waiting for {#if data.isAdmin}you{:else}{data.user.name}{/if}
 				{:else if status === 'declined'}
 					Declined by {data.user.name}
 				{:else if status === 'expired'}
@@ -165,12 +169,12 @@
 				<div class="detail-text">
 					<div class="detail-primary">{data.appointment.attendee_name}</div>
 					<div class="detail-secondary">
-						{#if data.isAdmin}
-							Attendee
-						{:else}
-							Attendee (you)
-						{/if}
+						{#if data.isAdmin}Attendee{:else}Attendee (you){/if}
 					</div>
+					{#if data.isAdmin}
+						<div class="detail-secondary">{data.appointment.attendee_email}</div>
+						<div class="detail-secondary" class:notif-failed={notifFailed}>{notifLabel}</div>
+					{/if}
 				</div>
 			</div>
 			<div class="detail-row">
@@ -186,11 +190,33 @@
 					</div>
 				</div>
 			</div>
+			{#if data.isAdmin && data.appointment.attendee_notes}
+				<div class="detail-row">
+					<IconNote class="detail-icon" aria-hidden="true" />
+					<div class="detail-text">
+						<div class="detail-primary">Notes</div>
+						<div class="detail-secondary notes">{data.appointment.attendee_notes}</div>
+					</div>
+				</div>
+			{/if}
 		</section>
 
 		{#if data.calendarLinks}
 			<section class="card-section card-cta">
 				<AddToCalendar links={data.calendarLinks} appointmentId={data.appointment.id} />
+			</section>
+		{:else if showDecideCta}
+			<section class="card-section card-cta decide-cta">
+				{#if data.actions.decline.allowed}
+					<form method="POST" action="?/decline" class="decide-form">
+						<button type="submit" class="decide-btn decide-decline">Decline</button>
+					</form>
+				{/if}
+				{#if data.actions.accept.allowed}
+					<form method="POST" action="?/accept" class="decide-form">
+						<button type="submit" class="decide-btn decide-accept">Accept</button>
+					</form>
+				{/if}
 			</section>
 		{/if}
 	</article>
@@ -207,48 +233,7 @@
 		</aside>
 	{/if}
 
-	{#if data.isAdmin}
-		<section class="org-panel">
-			<header class="org-panel-header">
-				<IconUserGear class="org-panel-icon" aria-hidden="true" />
-				<h2 class="org-panel-title">Organizer</h2>
-			</header>
-
-			<div class="org-section">
-				<p class="org-section-label">Attendee</p>
-				<div class="detail-list">
-					<div class="detail-row">
-						<IconEnvelopeSimple class="detail-icon" aria-hidden="true" />
-						<div class="detail-text">
-							<div class="detail-primary">{data.appointment.attendee_email}</div>
-						</div>
-					</div>
-					{#if data.appointment.attendee_notes}
-						<div class="detail-row">
-							<IconNote class="detail-icon" aria-hidden="true" />
-							<div class="detail-text">
-								<div class="detail-primary">Notes</div>
-								<div class="detail-secondary notes">{data.appointment.attendee_notes}</div>
-							</div>
-						</div>
-					{/if}
-				</div>
-			</div>
-
-			{#if data.appointment.notifications.length > 0}
-				{@const hasFailure = data.appointment.notifications.some((n) => n.state === 'failed')}
-				<div class="org-section">
-					<p class="org-section-label">Notifications</p>
-					<div class="notif-chips">
-						<NotificationChips notifications={data.appointment.notifications} />
-					</div>
-					{#if hasFailure}
-						<p class="org-note org-note-warning">Some notifications didn't send.</p>
-					{/if}
-				</div>
-			{/if}
-		</section>
-	{:else if canRebook}
+	{#if !data.isAdmin && canRebook}
 		<section class="rebook">
 			<a class="rebook-btn" href="/schedule/{data.eventType.slug}">
 				Pick another time
@@ -285,8 +270,39 @@
 	.page {
 		max-width: 640px;
 		margin: 0 auto;
-		padding: var(--space-10) var(--space-6) var(--space-10);
+		padding: var(--space-6) var(--space-6) var(--space-10);
 		color: var(--text);
+	}
+
+	/* Full-bleed page nav; empty for attendees, holds the back arrow for admins. */
+	.page-nav {
+		display: flex;
+		align-items: center;
+		height: 56px;
+		padding: 0 var(--space-6);
+	}
+
+	.nav-back {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 40px;
+		height: 40px;
+		margin-left: calc(var(--space-2) * -1);
+		border-radius: var(--radius-pill);
+		color: var(--text-secondary);
+		transition:
+			background var(--transition),
+			color var(--transition);
+	}
+
+	.nav-back:hover {
+		background: var(--surface-muted);
+		color: var(--text);
+	}
+
+	:global(.nav-back-icon) {
+		font-size: var(--font-size-xl);
 	}
 
 	/* ---- banners (notices & confirmations) ---- */
@@ -456,6 +472,60 @@
 		transition: transform var(--transition);
 	}
 
+	.notif-failed {
+		color: var(--danger-strong);
+	}
+
+	/* ---- accept / decline CTA (pending, organizer) ---- */
+	.decide-cta {
+		display: flex;
+		gap: var(--space-4);
+	}
+
+	.decide-form {
+		flex: 1;
+	}
+
+	.decide-btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 100%;
+		min-height: 48px;
+		padding: var(--space-4) var(--space-6);
+		border-radius: var(--radius);
+		font-size: var(--font-size-md);
+		font-weight: 600;
+		font-family: inherit;
+		cursor: pointer;
+		transition:
+			opacity var(--transition),
+			background var(--transition),
+			border-color var(--transition);
+	}
+
+	.decide-accept {
+		border: none;
+		background: var(--primary);
+		color: var(--text-on-primary);
+	}
+
+	.decide-accept:hover {
+		opacity: 0.9;
+	}
+
+	.decide-decline {
+		border: 1px solid var(--border-strong);
+		background: var(--surface);
+		color: var(--text-secondary);
+	}
+
+	.decide-decline:hover {
+		background: var(--danger-bg);
+		border-color: var(--danger-border);
+		color: var(--danger-strong);
+	}
+
 	/* ---- rebook CTA (declined / cancelled) ---- */
 	.rebook {
 		margin-top: var(--space-8);
@@ -487,7 +557,11 @@
 
 	@media (max-width: 768px) {
 		.page {
-			padding: var(--space-7) var(--space-5) var(--space-9);
+			padding: var(--space-5) var(--space-5) var(--space-9);
+		}
+
+		.page-nav {
+			padding: 0 var(--space-5);
 		}
 
 		.page.has-cta {
@@ -665,108 +739,6 @@
 			text-align: center;
 			min-height: 48px;
 		}
-	}
-
-	/* ---- organizer (admin) ---- */
-	.org-bar {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: var(--space-4);
-		margin: 0 0 var(--space-6);
-		padding-bottom: var(--space-4);
-		border-bottom: 1px solid var(--border);
-	}
-
-	.org-bar-back {
-		font-size: var(--font-size-sm);
-		color: var(--text-muted);
-		text-decoration: none;
-	}
-
-	.org-bar-back:hover {
-		color: var(--text);
-	}
-
-	.org-bar-badge {
-		display: inline-flex;
-		align-items: center;
-		gap: var(--space-2);
-		padding: var(--space-1) var(--space-3);
-		font-size: var(--font-size-xs);
-		font-weight: 600;
-		text-transform: uppercase;
-		letter-spacing: 0.04em;
-		color: var(--text-secondary);
-		background: var(--surface-muted);
-		border: 1px solid var(--border-strong);
-		border-radius: var(--radius-pill);
-	}
-
-	:global(.org-bar-badge-icon) {
-		font-size: var(--font-size-sm);
-		color: var(--text-muted);
-	}
-
-	.org-panel {
-		margin-top: var(--space-7);
-		border: 1px solid var(--border-strong);
-		border-radius: var(--radius-md);
-		overflow: hidden;
-	}
-
-	.org-panel-header {
-		display: flex;
-		align-items: center;
-		gap: var(--space-3);
-		padding: var(--space-4) var(--space-6);
-		background: var(--surface-muted);
-		border-bottom: 1px solid var(--border-strong);
-	}
-
-	:global(.org-panel-icon) {
-		font-size: var(--font-size-lg);
-		color: var(--text-muted);
-	}
-
-	.org-panel-title {
-		margin: 0;
-		font-size: var(--font-size-sm);
-		font-weight: 700;
-		text-transform: uppercase;
-		letter-spacing: 0.04em;
-		color: var(--text-secondary);
-	}
-
-	.org-section {
-		padding: var(--space-5) var(--space-6);
-	}
-
-	.org-section + .org-section {
-		border-top: 1px solid var(--border);
-	}
-
-	.org-section-label {
-		margin: 0 0 var(--space-3);
-		font-size: var(--font-size-sm);
-		font-weight: 600;
-		color: var(--text-muted);
-	}
-
-	.org-note {
-		margin: var(--space-3) 0 0;
-		font-size: var(--font-size-sm);
-	}
-
-	.org-note-warning {
-		color: var(--warning-strong);
-	}
-
-	.notif-chips {
-		display: flex;
-		flex-wrap: wrap;
-		gap: var(--space-2);
-		margin-top: var(--space-1);
 	}
 
 	.tz-extra {

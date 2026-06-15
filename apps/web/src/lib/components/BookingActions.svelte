@@ -5,7 +5,7 @@
 	type Gate = { allowed: boolean };
 
 	interface Props {
-		actions: { accept: Gate; decline: Gate; reschedule: Gate; cancel: Gate };
+		actions: { reschedule: Gate; cancel: Gate };
 		appointmentId: string;
 		token: string;
 		onCancel: () => void;
@@ -23,18 +23,7 @@
 		menuOpen = false;
 		onCancel();
 	}
-
-	function submitForm(id: string) {
-		(document.getElementById(id) as HTMLFormElement | null)?.requestSubmit();
-	}
 </script>
-
-{#if actions.accept.allowed}
-	<form id="ba-accept" class="ba-form" method="POST" action="?/accept"></form>
-{/if}
-{#if actions.decline.allowed}
-	<form id="ba-decline" class="ba-form" method="POST" action="?/decline"></form>
-{/if}
 
 <DropdownMenu.Root bind:open={menuOpen}>
 	<DropdownMenu.Trigger>
@@ -46,20 +35,6 @@
 	</DropdownMenu.Trigger>
 	<DropdownMenu.Portal>
 		<DropdownMenu.Content class="ba-menu" align="end" sideOffset={6}>
-			{#if actions.accept.allowed}
-				<DropdownMenu.Item onSelect={() => submitForm('ba-accept')}>
-					{#snippet child({ props })}
-						<button {...props} type="button" class="action-item">Accept</button>
-					{/snippet}
-				</DropdownMenu.Item>
-			{/if}
-			{#if actions.decline.allowed}
-				<DropdownMenu.Item onSelect={() => submitForm('ba-decline')}>
-					{#snippet child({ props })}
-						<button {...props} type="button" class="action-item">Decline</button>
-					{/snippet}
-				</DropdownMenu.Item>
-			{/if}
 			{#if actions.reschedule.allowed}
 				<DropdownMenu.Item>
 					{#snippet child({ props })}
@@ -79,10 +54,6 @@
 </DropdownMenu.Root>
 
 <style>
-	.ba-form {
-		display: none;
-	}
-
 	.change-trigger {
 		display: inline-flex;
 		align-items: center;
