@@ -10,7 +10,7 @@
 	import IconPencilSimple from 'virtual:icons/ph/pencil-simple';
 	import IconUser from 'virtual:icons/ph/user';
 	import IconWarningCircle from 'virtual:icons/ph/warning-circle';
-	import IconWarning from 'virtual:icons/ph/warning';
+	import IconUserGear from 'virtual:icons/ph/user-gear';
 	import IconNote from 'virtual:icons/ph/note';
 	import NotificationChips from '$lib/components/NotificationChips.svelte';
 	import { formatDateShort, formatWeekday, formatTimeRange, formatTzShort } from '$lib/datetime';
@@ -32,6 +32,12 @@
 	let differentTz = $derived(data.organizerTz !== userTz);
 	// Organizer sees times in their own configured zone; attendees in the browser's.
 	let displayTz = $derived(data.isAdmin ? data.organizerTz : userTz);
+	let hasAdminActions = $derived(
+		data.actions.accept.allowed ||
+			data.actions.decline.allowed ||
+			data.actions.cancel.allowed ||
+			data.actions.reschedule.allowed
+	);
 </script>
 
 <svelte:head>
@@ -48,8 +54,12 @@
 
 <div class="page">
 	{#if data.isAdmin}
-		<nav class="breadcrumbs">
-			<a href="/admin">← All bookings</a>
+		<nav class="org-bar">
+			<a class="org-bar-back" href="/admin">← All bookings</a>
+			<span class="org-bar-badge">
+				<IconUserGear class="org-bar-badge-icon" aria-hidden="true" />
+				Organizer view
+			</span>
 		</nav>
 	{/if}
 
@@ -92,25 +102,6 @@
 		<aside class="banner banner-success">
 			<IconCheckCircle class="banner-icon" aria-hidden="true" />
 			<p class="banner-text">Your booking has been rescheduled.</p>
-		</aside>
-	{/if}
-
-	{#if data.isAdmin && data.appointment.notifications.length > 0}
-		{@const hasFailure = data.appointment.notifications.some((n) => n.state === 'failed')}
-		<aside class="banner" class:banner-warning={hasFailure} class:banner-neutral={!hasFailure}>
-			{#if hasFailure}
-				<IconWarning class="banner-icon" aria-hidden="true" />
-			{:else}
-				<IconClock class="banner-icon" aria-hidden="true" />
-			{/if}
-			<div class="banner-body">
-				<p class="banner-title">
-					{#if hasFailure}Some notifications didn't send{:else}Notifications sending…{/if}
-				</p>
-				<div class="notif-chips">
-					<NotificationChips notifications={data.appointment.notifications} />
-				</div>
-			</div>
 		</aside>
 	{/if}
 
@@ -234,40 +225,62 @@
 	{/if}
 
 	{#if data.isAdmin}
-		{#if data.actions.accept.allowed || data.actions.decline.allowed || data.actions.cancel.allowed || data.actions.reschedule.allowed}
-			<section class="actions">
-				<header class="actions-header">
-					<h2 class="actions-title">Actions</h2>
+		{#if data.appointment.notifications.length > 0 || hasAdminActions}
+			<section class="org-panel">
+				<header class="org-panel-header">
+					<IconUserGear class="org-panel-icon" aria-hidden="true" />
+					<h2 class="org-panel-title">Organizer</h2>
 				</header>
-				<div class="actions-row">
-					{#if data.actions.accept.allowed}
-						<form method="POST" action="?/accept">
-							<button type="submit" class="action-btn accept-btn"> Accept </button>
-						</form>
-					{/if}
-					{#if data.actions.decline.allowed}
-						<form method="POST" action="?/decline">
-							<button type="submit" class="action-btn decline-btn"> Decline </button>
-						</form>
-					{/if}
-					{#if data.actions.reschedule.allowed}
-						<a
-							class="action-btn reschedule-btn"
-							href="/booked/{data.appointment.id}/reschedule?token={encodeURIComponent(data.token)}"
-						>
-							Reschedule
-						</a>
-					{/if}
-					{#if data.actions.cancel.allowed}
-						<button
-							type="button"
-							class="action-btn cancel-btn"
-							onclick={() => (cancelDialogOpen = true)}
-						>
-							Cancel booking
-						</button>
-					{/if}
-				</div>
+
+				{#if data.appointment.notifications.length > 0}
+					{@const hasFailure = data.appointment.notifications.some((n) => n.state === 'failed')}
+					<div class="org-section">
+						<p class="org-section-label">Notifications</p>
+						<div class="notif-chips">
+							<NotificationChips notifications={data.appointment.notifications} />
+						</div>
+						{#if hasFailure}
+							<p class="org-note org-note-warning">Some notifications didn't send.</p>
+						{/if}
+					</div>
+				{/if}
+
+				{#if hasAdminActions}
+					<div class="org-section">
+						<p class="org-section-label">Actions</p>
+						<div class="actions-row">
+							{#if data.actions.accept.allowed}
+								<form method="POST" action="?/accept">
+									<button type="submit" class="action-btn accept-btn"> Accept </button>
+								</form>
+							{/if}
+							{#if data.actions.decline.allowed}
+								<form method="POST" action="?/decline">
+									<button type="submit" class="action-btn decline-btn"> Decline </button>
+								</form>
+							{/if}
+							{#if data.actions.reschedule.allowed}
+								<a
+									class="action-btn reschedule-btn"
+									href="/booked/{data.appointment.id}/reschedule?token={encodeURIComponent(
+										data.token
+									)}"
+								>
+									Reschedule
+								</a>
+							{/if}
+							{#if data.actions.cancel.allowed}
+								<button
+									type="button"
+									class="action-btn cancel-btn"
+									onclick={() => (cancelDialogOpen = true)}
+								>
+									Cancel booking
+								</button>
+							{/if}
+						</div>
+					</div>
+				{/if}
 			</section>
 		{/if}
 	{:else}
@@ -419,18 +432,8 @@
 		margin-top: 2px;
 	}
 
-	.banner-text,
-	.banner-title {
+	.banner-text {
 		margin: 0;
-	}
-
-	.banner-body {
-		flex: 1;
-	}
-
-	.banner-title {
-		font-weight: 600;
-		color: var(--text);
 	}
 
 	.banner-flush {
@@ -446,15 +449,6 @@
 		color: var(--success);
 	}
 
-	.banner-warning {
-		background: var(--warning-bg);
-		border-color: var(--warning-border);
-	}
-
-	.banner-warning :global(.banner-icon) {
-		color: var(--warning);
-	}
-
 	.banner-danger {
 		background: var(--danger-bg);
 		border-color: var(--danger-border);
@@ -462,15 +456,6 @@
 
 	.banner-danger :global(.banner-icon) {
 		color: var(--danger);
-	}
-
-	.banner-neutral {
-		background: var(--surface-muted);
-		border-color: var(--border-strong);
-	}
-
-	.banner-neutral :global(.banner-icon) {
-		color: var(--text-muted);
 	}
 
 	.status-banner + .card,
@@ -904,19 +889,99 @@
 		}
 	}
 
-	/* ---- administrative overrides & actions ---- */
-	.breadcrumbs {
-		font-size: var(--font-size-sm);
-		margin: 0 0 var(--space-5);
+	/* ---- organizer (admin) ---- */
+	.org-bar {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--space-4);
+		margin: 0 0 var(--space-6);
+		padding-bottom: var(--space-4);
+		border-bottom: 1px solid var(--border);
 	}
 
-	.breadcrumbs a {
+	.org-bar-back {
+		font-size: var(--font-size-sm);
 		color: var(--text-muted);
 		text-decoration: none;
 	}
 
-	.breadcrumbs a:hover {
+	.org-bar-back:hover {
 		color: var(--text);
+	}
+
+	.org-bar-badge {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-2);
+		padding: var(--space-1) var(--space-3);
+		font-size: var(--font-size-xs);
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+		color: var(--text-secondary);
+		background: var(--surface-muted);
+		border: 1px solid var(--border-strong);
+		border-radius: var(--radius-pill);
+	}
+
+	:global(.org-bar-badge-icon) {
+		font-size: var(--font-size-sm);
+		color: var(--text-muted);
+	}
+
+	.org-panel {
+		margin-top: var(--space-7);
+		border: 1px solid var(--border-strong);
+		border-radius: var(--radius-md);
+		overflow: hidden;
+	}
+
+	.org-panel-header {
+		display: flex;
+		align-items: center;
+		gap: var(--space-3);
+		padding: var(--space-4) var(--space-6);
+		background: var(--surface-muted);
+		border-bottom: 1px solid var(--border-strong);
+	}
+
+	:global(.org-panel-icon) {
+		font-size: var(--font-size-lg);
+		color: var(--text-muted);
+	}
+
+	.org-panel-title {
+		margin: 0;
+		font-size: var(--font-size-sm);
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+		color: var(--text-secondary);
+	}
+
+	.org-section {
+		padding: var(--space-5) var(--space-6);
+	}
+
+	.org-section + .org-section {
+		border-top: 1px solid var(--border);
+	}
+
+	.org-section-label {
+		margin: 0 0 var(--space-3);
+		font-size: var(--font-size-sm);
+		font-weight: 600;
+		color: var(--text-muted);
+	}
+
+	.org-note {
+		margin: var(--space-3) 0 0;
+		font-size: var(--font-size-sm);
+	}
+
+	.org-note-warning {
+		color: var(--warning-strong);
 	}
 
 	.notif-chips {
@@ -934,20 +999,6 @@
 	.notes {
 		white-space: pre-wrap;
 		line-height: 1.5;
-	}
-
-	.actions {
-		margin-top: var(--space-7);
-	}
-
-	.actions-header {
-		margin: 0 0 var(--space-4);
-	}
-
-	.actions-title {
-		font-size: var(--font-size-md);
-		font-weight: 600;
-		margin: 0;
 	}
 
 	.actions-row {
