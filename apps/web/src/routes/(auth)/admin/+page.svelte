@@ -377,8 +377,8 @@
 	}
 
 	.status-in_progress {
-		background: var(--primary-muted);
-		color: var(--primary);
+		background: var(--info-bg);
+		color: var(--info-strong);
 	}
 
 	.status-concluded,

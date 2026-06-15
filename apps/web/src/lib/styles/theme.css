@@ -33,6 +33,16 @@
 	--warning-border: #fcd34d;
 	--warning-bg: #fffbeb;
 
+	--info: #2563eb;
+	--info-strong: #1d4ed8;
+	--info-border: #93c5fd;
+	--info-bg: #eff6ff;
+
+	--quiet: #737373;
+	--quiet-strong: #525252;
+	--quiet-border: #d4d4d4;
+	--quiet-bg: #e5e5e5;
+
 	--shadow-card: 0 1px 6px rgba(0, 0, 0, 0.06);
 	--shadow-focus: 0 0 0 3px oklch(from var(--primary) l c h / 0.35);
 
@@ -97,6 +107,16 @@
 		--warning-strong: #f59e0b;
 		--warning-border: #78350f;
 		--warning-bg: #451a03;
+
+		--info: #60a5fa;
+		--info-strong: #3b82f6;
+		--info-border: #1e3a8a;
+		--info-bg: #172554;
+
+		--quiet: #737373;
+		--quiet-strong: #a3a3a3;
+		--quiet-border: #404040;
+		--quiet-bg: #262626;
 
 		--shadow-card: 0 1px 6px rgba(0, 0, 0, 0.4);
 		--shadow-focus: 0 0 0 3px oklch(from var(--primary) l c h / 0.45);

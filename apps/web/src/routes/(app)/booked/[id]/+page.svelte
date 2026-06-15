@@ -36,12 +36,12 @@
 			: status === 'pending'
 				? 'warning'
 				: status === 'cancelled' || status === 'expired'
-					? 'muted'
+					? 'quiet'
 					: data.clockStatus === 'in_progress'
 						? 'active'
 						: data.clockStatus === 'concluded'
-							? 'muted'
-							: 'primary'
+							? 'quiet'
+							: 'info'
 	);
 	let canRebook = $derived(status === 'declined' || status === 'cancelled' || status === 'expired');
 	let differentTz = $derived(data.organizerTz !== userTz);
@@ -400,9 +400,9 @@
 		flex-shrink: 0;
 	}
 
-	.state-primary {
-		background: var(--primary-muted);
-		color: var(--primary);
+	.state-info {
+		background: var(--info-bg);
+		color: var(--info-strong);
 	}
 
 	.state-active {
@@ -420,9 +420,9 @@
 		color: var(--danger-strong);
 	}
 
-	.state-muted {
-		background: var(--surface-muted);
-		color: var(--text-muted);
+	.state-quiet {
+		background: var(--quiet-bg);
+		color: var(--quiet-strong);
 	}
 
 	.event-name {
