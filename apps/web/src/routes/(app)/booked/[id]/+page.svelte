@@ -9,6 +9,7 @@
 	import IconMapPin from 'virtual:icons/ph/map-pin';
 	import IconPencilSimple from 'virtual:icons/ph/pencil-simple';
 	import IconUser from 'virtual:icons/ph/user';
+	import IconEnvelopeSimple from 'virtual:icons/ph/envelope-simple';
 	import IconWarningCircle from 'virtual:icons/ph/warning-circle';
 	import IconUserGear from 'virtual:icons/ph/user-gear';
 	import IconNote from 'virtual:icons/ph/note';
@@ -157,31 +158,26 @@
 					<div class="detail-primary">{data.appointment.attendee_name}</div>
 					<div class="detail-secondary">
 						{#if data.isAdmin}
-							{data.appointment.attendee_email}
+							Attendee
 						{:else}
 							Attendee (you)
 						{/if}
 					</div>
 				</div>
 			</div>
-			{#if !data.isAdmin}
-				<div class="detail-row">
-					<IconUser class="detail-icon" aria-hidden="true" />
-					<div class="detail-text">
-						<div class="detail-primary">{data.user.name}</div>
-						<div class="detail-secondary">Attendee</div>
+			<div class="detail-row">
+				<IconUser class="detail-icon" aria-hidden="true" />
+				<div class="detail-text">
+					<div class="detail-primary">{data.user.name}</div>
+					<div class="detail-secondary">
+						{#if data.isAdmin}
+							Attendee (you)
+						{:else}
+							Attendee
+						{/if}
 					</div>
 				</div>
-			{/if}
-			{#if data.isAdmin && data.appointment.attendee_notes}
-				<div class="detail-row">
-					<IconNote class="detail-icon" aria-hidden="true" />
-					<div class="detail-text">
-						<div class="detail-primary">Notes</div>
-						<div class="detail-secondary notes">{data.appointment.attendee_notes}</div>
-					</div>
-				</div>
-			{/if}
+			</div>
 		</section>
 	</article>
 
@@ -225,64 +221,83 @@
 	{/if}
 
 	{#if data.isAdmin}
-		{#if data.appointment.notifications.length > 0 || hasAdminActions}
-			<section class="org-panel">
-				<header class="org-panel-header">
-					<IconUserGear class="org-panel-icon" aria-hidden="true" />
-					<h2 class="org-panel-title">Organizer</h2>
-				</header>
+		<section class="org-panel">
+			<header class="org-panel-header">
+				<IconUserGear class="org-panel-icon" aria-hidden="true" />
+				<h2 class="org-panel-title">Organizer</h2>
+			</header>
 
-				{#if data.appointment.notifications.length > 0}
-					{@const hasFailure = data.appointment.notifications.some((n) => n.state === 'failed')}
-					<div class="org-section">
-						<p class="org-section-label">Notifications</p>
-						<div class="notif-chips">
-							<NotificationChips notifications={data.appointment.notifications} />
+			<div class="org-section">
+				<p class="org-section-label">Attendee</p>
+				<div class="detail-list">
+					<div class="detail-row">
+						<IconEnvelopeSimple class="detail-icon" aria-hidden="true" />
+						<div class="detail-text">
+							<div class="detail-primary">{data.appointment.attendee_email}</div>
 						</div>
-						{#if hasFailure}
-							<p class="org-note org-note-warning">Some notifications didn't send.</p>
+					</div>
+					{#if data.appointment.attendee_notes}
+						<div class="detail-row">
+							<IconNote class="detail-icon" aria-hidden="true" />
+							<div class="detail-text">
+								<div class="detail-primary">Notes</div>
+								<div class="detail-secondary notes">{data.appointment.attendee_notes}</div>
+							</div>
+						</div>
+					{/if}
+				</div>
+			</div>
+
+			{#if data.appointment.notifications.length > 0}
+				{@const hasFailure = data.appointment.notifications.some((n) => n.state === 'failed')}
+				<div class="org-section">
+					<p class="org-section-label">Notifications</p>
+					<div class="notif-chips">
+						<NotificationChips notifications={data.appointment.notifications} />
+					</div>
+					{#if hasFailure}
+						<p class="org-note org-note-warning">Some notifications didn't send.</p>
+					{/if}
+				</div>
+			{/if}
+
+			{#if hasAdminActions}
+				<div class="org-section">
+					<p class="org-section-label">Actions</p>
+					<div class="actions-row">
+						{#if data.actions.accept.allowed}
+							<form method="POST" action="?/accept">
+								<button type="submit" class="action-btn accept-btn"> Accept </button>
+							</form>
+						{/if}
+						{#if data.actions.decline.allowed}
+							<form method="POST" action="?/decline">
+								<button type="submit" class="action-btn decline-btn"> Decline </button>
+							</form>
+						{/if}
+						{#if data.actions.reschedule.allowed}
+							<a
+								class="action-btn reschedule-btn"
+								href="/booked/{data.appointment.id}/reschedule?token={encodeURIComponent(
+									data.token
+								)}"
+							>
+								Reschedule
+							</a>
+						{/if}
+						{#if data.actions.cancel.allowed}
+							<button
+								type="button"
+								class="action-btn cancel-btn"
+								onclick={() => (cancelDialogOpen = true)}
+							>
+								Cancel booking
+							</button>
 						{/if}
 					</div>
-				{/if}
-
-				{#if hasAdminActions}
-					<div class="org-section">
-						<p class="org-section-label">Actions</p>
-						<div class="actions-row">
-							{#if data.actions.accept.allowed}
-								<form method="POST" action="?/accept">
-									<button type="submit" class="action-btn accept-btn"> Accept </button>
-								</form>
-							{/if}
-							{#if data.actions.decline.allowed}
-								<form method="POST" action="?/decline">
-									<button type="submit" class="action-btn decline-btn"> Decline </button>
-								</form>
-							{/if}
-							{#if data.actions.reschedule.allowed}
-								<a
-									class="action-btn reschedule-btn"
-									href="/booked/{data.appointment.id}/reschedule?token={encodeURIComponent(
-										data.token
-									)}"
-								>
-									Reschedule
-								</a>
-							{/if}
-							{#if data.actions.cancel.allowed}
-								<button
-									type="button"
-									class="action-btn cancel-btn"
-									onclick={() => (cancelDialogOpen = true)}
-								>
-									Cancel booking
-								</button>
-							{/if}
-						</div>
-					</div>
-				{/if}
-			</section>
-		{/if}
+				</div>
+			{/if}
+		</section>
 	{:else}
 		{#if data.actions.reschedule.allowed || data.actions.cancel.allowed}
 			<section class="changes">
