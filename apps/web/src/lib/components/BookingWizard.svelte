@@ -7,12 +7,7 @@
 	import DatePicker from '$lib/components/DatePicker.svelte';
 	import DayTimeline from '$lib/components/DayTimeline.svelte';
 	import { createBookingFlow } from '$lib/bookingFlow.svelte';
-	import {
-		resolveDeepLink,
-		buildDayTimeline,
-		type DeepLinkResult,
-		formatTzOffset
-	} from '$lib/booking';
+	import { resolveDeepLink, buildDayTimeline, type DeepLinkResult } from '$lib/booking';
 	import {
 		formatDate,
 		formatDateCompact,
@@ -95,16 +90,14 @@
 
 	const initialSlot = page.url.searchParams.get('slot');
 	const initialDate = page.url.searchParams.get('date');
-	const initialTz = page.url.searchParams.get('tz');
 
 	// Resolved before render so SSR lands on the right step.
 	// svelte-ignore state_referenced_locally
 	const deepLinkResult = resolveDeepLink({
 		slotParam: initialSlot,
 		dateParam: initialDate,
-		tzParam: initialTz,
 		allSlots: flow.allSlots,
-		defaultTz: data.user.timezone
+		tz: ptz.current ?? data.user.timezone
 	});
 	// svelte-ignore state_referenced_locally
 	if (ptz.current) flow.setTz(ptz.current);
@@ -157,54 +150,25 @@
 
 		let desiredSlot: string | null = null;
 		let desiredDate: string | null = null;
-		let desiredTz: string | null = null;
-
-		if (linkNotice) {
-			if (linkNotice.kind === 'slot') {
-				const staleTz = deepLinkResult.tz || data.user.timezone;
-				try {
-					const zdt = Temporal.Instant.from(linkNotice.requested).toZonedDateTimeISO(staleTz);
-					desiredDate = zdt.toPlainDate().toString();
-					desiredSlot = zdt.toPlainTime().toString().slice(0, 5).replace(/:/g, ''); // HHMM
-					desiredTz = formatTzOffset(staleTz, desiredDate);
-				} catch {
-					// Fallback
-				}
-			} else {
-				desiredDate = linkNotice.requested;
-				const staleTz = deepLinkResult.tz || data.user.timezone;
-				desiredTz = formatTzOffset(staleTz, desiredDate);
-			}
-		} else {
-			if (flow.step === 3 && flow.selectedSlot) {
-				const zdt = Temporal.Instant.from(flow.selectedSlot).toZonedDateTimeISO(flow.userTz);
-				desiredDate = zdt.toPlainDate().toString();
-				desiredSlot = zdt.toPlainTime().toString().slice(0, 5).replace(/:/g, ''); // HHMM
-				desiredTz = formatTzOffset(flow.userTz, desiredDate);
-			} else if (flow.viewDate) {
-				desiredDate = flow.viewDate;
-				desiredTz = formatTzOffset(flow.userTz, desiredDate);
-			}
+		if (flow.step === 3 && flow.selectedSlot) {
+			desiredSlot = flow.selectedSlot;
+		} else if (flow.viewDate) {
+			desiredDate = flow.viewDate;
 		}
 
 		// Compare decoded values, not the encoded search string, so re-encoding can't loop.
 		if (
 			page.url.searchParams.get('slot') === desiredSlot &&
-			page.url.searchParams.get('date') === desiredDate &&
-			page.url.searchParams.get('tz') === desiredTz
+			page.url.searchParams.get('date') === desiredDate
 		) {
 			return;
 		}
 
 		let search = '';
-		if (desiredDate) {
+		if (desiredSlot) {
+			search = `?slot=${encodeURIComponent(desiredSlot)}`;
+		} else if (desiredDate) {
 			search = `?date=${encodeURIComponent(desiredDate)}`;
-			if (desiredSlot) {
-				search += `&slot=${encodeURIComponent(desiredSlot)}`;
-			}
-			if (desiredTz) {
-				search += `&tz=${encodeURIComponent(desiredTz)}`;
-			}
 		}
 
 		replaceState(`${page.url.pathname}${search}`, page.state);

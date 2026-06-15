@@ -42,153 +42,16 @@ export interface DeepLinkResult {
 	step: WizardStep;
 	slot?: string;
 	date?: string;
-	tz?: string;
 	notice?: { kind: 'slot'; requested: string } | { kind: 'date'; requested: string };
 }
 
-export function isLocalTime(s: string): boolean {
-	return /^(?:[01]\d|2[0-3]):?[0-5]\d$/.test(s);
-}
-
-export function isValidTz(tz: string): boolean {
-	if (/^-?\d{4}$/.test(tz)) return true;
+function isInstant(s: string): boolean {
 	try {
-		Intl.DateTimeFormat(undefined, { timeZone: tz });
+		Temporal.Instant.from(s);
 		return true;
 	} catch {
 		return false;
 	}
-}
-
-export function parseTzOffset(offset: string): string {
-	if (!offset) return 'UTC';
-	if (offset === '0000' || offset === 'Z') return 'UTC';
-
-	const match = /^([+-])?(\d{2})(\d{2})$/.exec(offset);
-	if (!match) {
-		try {
-			Intl.DateTimeFormat(undefined, { timeZone: offset });
-			return offset;
-		} catch {
-			return 'UTC';
-		}
-	}
-
-	const sign = match[1] === '-' ? '-' : '+';
-	const hours = Number(match[2]);
-	const minutes = Number(match[3]);
-
-	if (minutes === 0) {
-		const invertedSign = sign === '+' ? '-' : '+';
-		return `Etc/GMT${invertedSign}${hours}`;
-	}
-
-	return `${sign}${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
-}
-
-export function formatTzOffset(tz: string, date: string): string {
-	try {
-		const zdt = Temporal.PlainDate.from(date).toZonedDateTime(tz);
-		const offset = zdt.offset; // e.g. "-07:00", "+08:00", "Z"
-		if (offset === 'Z') return '0000';
-		return offset.replace(/:/g, '').replace(/^\+/, '');
-	} catch {
-		return '0000';
-	}
-}
-
-export function resolveFriendlyTz(tz: string, date: string, fallbackTz: string): string {
-	if (tz.includes('/') && !tz.startsWith('Etc/')) {
-		return tz;
-	}
-
-	try {
-		const targetZdt = Temporal.PlainDate.from(date).toZonedDateTime(tz);
-		const targetOffsetNs = targetZdt.offsetNanoseconds;
-
-		try {
-			const fallbackZdt = Temporal.PlainDate.from(date).toZonedDateTime(fallbackTz);
-			if (
-				fallbackZdt.offsetNanoseconds === targetOffsetNs &&
-				fallbackTz.includes('/') &&
-				!fallbackTz.startsWith('Etc/')
-			) {
-				return fallbackTz;
-			}
-		} catch {
-			// Ignore
-		}
-
-		const allTzs = Intl.supportedValuesOf('timeZone');
-		for (const t of allTzs) {
-			if (t.includes('/') && !t.startsWith('Etc/')) {
-				try {
-					const zdt = Temporal.PlainDate.from(date).toZonedDateTime(t);
-					if (zdt.offsetNanoseconds === targetOffsetNs) {
-						return t;
-					}
-				} catch {
-					// Ignore
-				}
-			}
-		}
-	} catch {
-		// Ignore
-	}
-
-	return tz;
-}
-
-/**
- * Maps `?date=`/`?slot=`/`?tz=` deep-link params to a starting wizard step.
- * If `date` and `tz` are provided, it resolves availability. If `slot` is also provided,
- * it resolves the absolute instant and checks if it's currently bookable.
- * If the parameters or slot/date are no longer bookable, it drops to step 1 with a notice.
- */
-export function resolveDeepLink(p: {
-	slotParam: string | null;
-	dateParam: string | null;
-	tzParam: string | null;
-	allSlots: string[];
-	defaultTz: string;
-}): DeepLinkResult {
-	const tz = p.tzParam ? parseTzOffset(p.tzParam) : p.defaultTz;
-
-	if (p.dateParam && isDateKey(p.dateParam)) {
-		if (p.slotParam && isLocalTime(p.slotParam)) {
-			try {
-				let timeStr = p.slotParam;
-				if (!timeStr.includes(':')) {
-					timeStr = `${timeStr.slice(0, 2)}:${timeStr.slice(2, 4)}`;
-				}
-				const zdt = Temporal.PlainDateTime.from(`${p.dateParam}T${timeStr}`).toZonedDateTime(tz);
-				const instantStr = zdt.toInstant().toString();
-				if (p.allSlots.includes(instantStr)) {
-					return { step: 3, slot: instantStr, date: p.dateParam, tz };
-				}
-				const dates = availableDates(p.allSlots, tz);
-				if (dates.has(p.dateParam)) {
-					return {
-						step: 2,
-						date: p.dateParam,
-						notice: { kind: 'slot', requested: instantStr },
-						tz
-					};
-				}
-				return { step: 1, notice: { kind: 'slot', requested: instantStr }, tz };
-			} catch {
-				// Parse error or validation error, fallback to date check
-			}
-		}
-
-		const dates = availableDates(p.allSlots, tz);
-		if (dates.has(p.dateParam)) {
-			return { step: 2, date: p.dateParam, tz };
-		}
-		return { step: 1, notice: { kind: 'date', requested: p.dateParam }, tz };
-	}
-
-	return { step: 1, tz };
 }
 
 function isDateKey(s: string): boolean {
@@ -201,49 +64,48 @@ function isDateKey(s: string): boolean {
 	}
 }
 
-export function normalizeDeepLinkParams(
-	params: URLSearchParams,
-	defaultTz: string
-): { date?: string; slot?: string; tz?: string } {
-	const date = params.get('date');
+/**
+ * Maps zone-agnostic `?slot=`/`?date=` deep-link params to a starting wizard step.
+ * `slot` is an absolute instant matched directly against availability; `date` is a day
+ * key opened in the viewer's zone (`tz`). A stale slot or empty day drops back with a notice.
+ */
+export function resolveDeepLink(p: {
+	slotParam: string | null;
+	dateParam: string | null;
+	allSlots: string[];
+	tz: string;
+}): DeepLinkResult {
+	if (p.slotParam && isInstant(p.slotParam)) {
+		const instant = Temporal.Instant.from(p.slotParam).toString();
+		if (p.allSlots.includes(instant)) {
+			return { step: 3, slot: instant };
+		}
+		const date = Temporal.Instant.from(instant).toZonedDateTimeISO(p.tz).toPlainDate().toString();
+		if (availableDates(p.allSlots, p.tz).has(date)) {
+			return { step: 2, date, notice: { kind: 'slot', requested: instant } };
+		}
+		return { step: 1, notice: { kind: 'slot', requested: instant } };
+	}
+
+	if (p.dateParam && isDateKey(p.dateParam)) {
+		if (availableDates(p.allSlots, p.tz).has(p.dateParam)) {
+			return { step: 2, date: p.dateParam };
+		}
+		return { step: 1, notice: { kind: 'date', requested: p.dateParam } };
+	}
+
+	return { step: 1 };
+}
+
+export function normalizeDeepLinkParams(params: URLSearchParams): { date?: string; slot?: string } {
 	const slot = params.get('slot');
-	const tz = params.get('tz');
-
-	const hasDateParam = params.has('date');
-	const hasSlotParam = params.has('slot');
-	const hasTzParam = params.has('tz');
-
-	// If date is requested but is illegal, reject the whole deep link.
-	if (hasDateParam && (!date || !isDateKey(date))) {
-		return {};
+	if (params.has('slot') && slot && isInstant(slot)) {
+		return { slot: Temporal.Instant.from(slot).toString() };
 	}
 
-	// If slot is requested but is illegal, strip it.
-	const validSlot = hasSlotParam && slot && isLocalTime(slot) ? slot : null;
-
-	// If tz is requested but is illegal, strip it.
-	// Otherwise if missing, default to defaultTz.
-	let resolvedTz: string | null = null;
-	if (hasTzParam) {
-		if (tz && isValidTz(tz)) {
-			resolvedTz = tz;
-		}
-	} else {
-		resolvedTz = defaultTz;
-	}
-
-	if (date && isDateKey(date)) {
-		const result: { date: string; slot?: string; tz?: string } = { date };
-
-		if (resolvedTz) {
-			result.tz = formatTzOffset(parseTzOffset(resolvedTz), date);
-		}
-
-		if (validSlot) {
-			result.slot = validSlot.replace(/:/g, ''); // HHMM
-		}
-
-		return result;
+	const date = params.get('date');
+	if (params.has('date') && date && isDateKey(date)) {
+		return { date };
 	}
 
 	return {};

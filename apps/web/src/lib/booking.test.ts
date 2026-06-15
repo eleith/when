@@ -7,8 +7,7 @@ import {
 	canAdvance,
 	resolveDeepLink,
 	normalizeDeepLinkParams,
-	buildDayTimeline,
-	resolveFriendlyTz
+	buildDayTimeline
 } from './booking';
 
 // Slots straddle a UTC midnight so the timezone-dependent cases are meaningful:
@@ -89,113 +88,104 @@ describe('canAdvance', () => {
 
 describe('resolveDeepLink', () => {
 	const allSlots = flattenSlots(SLOTS_BY_DATE);
-	const base = { slotParam: null, dateParam: null, tzParam: null, allSlots, defaultTz: 'UTC' };
+	const base = { slotParam: null, dateParam: null, allSlots, tz: 'UTC' };
 
 	test('no params → step 1', () => {
-		expect(resolveDeepLink(base)).toEqual({ step: 1, tz: 'UTC' });
+		expect(resolveDeepLink(base)).toEqual({ step: 1 });
 	});
 
 	test('valid date → step 2', () => {
 		expect(resolveDeepLink({ ...base, dateParam: '2025-06-15' })).toEqual({
 			step: 2,
-			date: '2025-06-15',
-			tz: 'UTC'
+			date: '2025-06-15'
 		});
 	});
 
 	test('stale date → step 1 with a date notice', () => {
 		expect(resolveDeepLink({ ...base, dateParam: '2025-06-20' })).toEqual({
 			step: 1,
-			notice: { kind: 'date', requested: '2025-06-20' },
-			tz: 'UTC'
+			notice: { kind: 'date', requested: '2025-06-20' }
 		});
 	});
 
-	test('valid date and slot → step 3', () => {
-		expect(resolveDeepLink({ ...base, dateParam: '2025-06-15', slotParam: '09:30' })).toEqual({
+	test('slot instant in availability → step 3', () => {
+		expect(resolveDeepLink({ ...base, slotParam: '2025-06-15T09:30:00Z' })).toEqual({
 			step: 3,
-			slot: '2025-06-15T09:30:00Z',
-			date: '2025-06-15',
-			tz: 'UTC'
+			slot: '2025-06-15T09:30:00Z'
 		});
 	});
 
-	test('stale slot on available date → step 2 with a slot notice', () => {
-		expect(resolveDeepLink({ ...base, dateParam: '2025-06-15', slotParam: '12:00' })).toEqual({
+	test('slot matching is zone-agnostic and canonicalizes offset forms', () => {
+		// 2025-06-16T08:30:00+09:00 is the same instant as 2025-06-15T23:30:00Z, which is bookable.
+		expect(resolveDeepLink({ ...base, slotParam: '2025-06-16T08:30:00+09:00' })).toEqual({
+			step: 3,
+			slot: '2025-06-15T23:30:00Z'
+		});
+	});
+
+	test('stale slot on an available day → step 2 with a slot notice', () => {
+		expect(resolveDeepLink({ ...base, slotParam: '2025-06-15T12:00:00Z' })).toEqual({
 			step: 2,
 			date: '2025-06-15',
-			notice: { kind: 'slot', requested: '2025-06-15T12:00:00Z' },
-			tz: 'UTC'
+			notice: { kind: 'slot', requested: '2025-06-15T12:00:00Z' }
 		});
 	});
 
-	test('stale slot on unavailable date → step 1 with a slot notice', () => {
-		expect(resolveDeepLink({ ...base, dateParam: '2025-06-20', slotParam: '12:00' })).toEqual({
+	test('stale slot on an unavailable day → step 1 with a slot notice', () => {
+		expect(resolveDeepLink({ ...base, slotParam: '2025-06-20T12:00:00Z' })).toEqual({
 			step: 1,
-			notice: { kind: 'slot', requested: '2025-06-20T12:00:00Z' },
-			tz: 'UTC'
+			notice: { kind: 'slot', requested: '2025-06-20T12:00:00Z' }
 		});
 	});
 
-	test('timezone resolution on slot', () => {
-		// In Asia/Tokyo (UTC+9), 2025-06-16T08:30 is 2025-06-15T23:30:00Z, which is in allSlots
+	test('a stale slot opens its day in the viewer zone', () => {
+		// 2025-06-15T15:00:00Z is unbooked; in UTC it falls on the 15th, in Tokyo on the 16th.
+		expect(resolveDeepLink({ ...base, slotParam: '2025-06-15T15:00:00Z' })).toEqual({
+			step: 2,
+			date: '2025-06-15',
+			notice: { kind: 'slot', requested: '2025-06-15T15:00:00Z' }
+		});
 		expect(
-			resolveDeepLink({
-				...base,
-				dateParam: '2025-06-16',
-				slotParam: '08:30',
-				tzParam: 'Asia/Tokyo'
-			})
+			resolveDeepLink({ ...base, slotParam: '2025-06-15T15:00:00Z', tz: 'Asia/Tokyo' })
 		).toEqual({
-			step: 3,
-			slot: '2025-06-15T23:30:00Z',
+			step: 2,
 			date: '2025-06-16',
-			tz: 'Asia/Tokyo'
+			notice: { kind: 'slot', requested: '2025-06-15T15:00:00Z' }
 		});
 	});
 });
 
 describe('normalizeDeepLinkParams', () => {
-	const norm = (q: string) => normalizeDeepLinkParams(new URLSearchParams(q), 'UTC');
+	const norm = (q: string) => normalizeDeepLinkParams(new URLSearchParams(q));
 
-	test('keeps a valid date and fills default tz', () => {
-		expect(norm('date=2026-06-19')).toEqual({ date: '2026-06-19', tz: '0000' });
+	test('keeps a valid date', () => {
+		expect(norm('date=2026-06-19')).toEqual({ date: '2026-06-19' });
 	});
 
-	test('keeps a valid date and valid tz', () => {
-		expect(norm('date=2026-06-19&tz=America/New_York')).toEqual({
-			date: '2026-06-19',
-			tz: '-0400'
+	test('keeps a valid slot instant', () => {
+		expect(norm('slot=2026-06-19T18:30:00Z')).toEqual({ slot: '2026-06-19T18:30:00Z' });
+	});
+
+	test('canonicalizes an offset slot to its UTC instant', () => {
+		expect(norm('slot=2026-06-19T14:30:00-04:00')).toEqual({ slot: '2026-06-19T18:30:00Z' });
+	});
+
+	test('slot wins over date and drops the redundant date', () => {
+		expect(norm('date=2026-06-19&slot=2026-06-20T18:30:00Z')).toEqual({
+			slot: '2026-06-20T18:30:00Z'
 		});
-	});
-
-	test('keeps a valid date, slot, and tz', () => {
-		expect(norm('date=2026-06-19&slot=18:30&tz=America/New_York')).toEqual({
-			date: '2026-06-19',
-			slot: '1830',
-			tz: '-0400'
-		});
-	});
-
-	test('drops slot when date is missing', () => {
-		expect(norm('slot=18:30&tz=America/New_York')).toEqual({});
 	});
 
 	test('drops a malformed date', () => {
 		expect(norm('date=2026-13-99')).toEqual({});
 	});
 
-	test('strips an invalid tz rather than healing it', () => {
-		expect(norm('date=2026-06-19&tz=70a')).toEqual({
-			date: '2026-06-19'
-		});
+	test('falls back to a valid date when the slot is malformed', () => {
+		expect(norm('date=2026-06-19&slot=abc')).toEqual({ date: '2026-06-19' });
 	});
 
-	test('strips an invalid slot rather than healing it', () => {
-		expect(norm('date=2026-06-19&slot=abc')).toEqual({
-			date: '2026-06-19',
-			tz: '0000'
-		});
+	test('drops a malformed slot with no date', () => {
+		expect(norm('slot=abc')).toEqual({});
 	});
 
 	test('drops unknown keys (nothing valid remains)', () => {
@@ -270,29 +260,5 @@ describe('buildDayTimeline', () => {
 		const t = buildDayTimeline({ ...base, now: Temporal.Instant.from('2025-06-15T10:00:00Z') })!;
 		// 10:00 is 20% into the 08:00–18:00 view
 		expect(t.past).toEqual({ top: 0, height: 20 });
-	});
-});
-
-describe('resolveFriendlyTz', () => {
-	test('returns the timezone immediately if already a friendly IANA zone', () => {
-		expect(resolveFriendlyTz('America/New_York', '2026-06-19', 'UTC')).toBe('America/New_York');
-	});
-
-	test('resolves offset timezone to fallback if offset matches', () => {
-		// Etc/GMT+7 represents offset -7 (which matches America/Los_Angeles on 2026-06-19 due to PDT)
-		expect(resolveFriendlyTz('Etc/GMT+7', '2026-06-19', 'America/Los_Angeles')).toBe(
-			'America/Los_Angeles'
-		);
-	});
-
-	test('scans supported timezones and returns a matching IANA zone if fallback does not match', () => {
-		// Etc/GMT-8 represents offset +8 (e.g. Asia/Singapore or Asia/Hong_Kong)
-		const resolved = resolveFriendlyTz('Etc/GMT-8', '2026-06-19', 'America/New_York');
-		expect(resolved).not.toBe('America/New_York');
-		expect(resolved).not.toContain('Etc/');
-		expect(resolved).toContain('/');
-		// Check that the resolved zone actually has offset +08:00 on that date
-		const zdt = Temporal.PlainDate.from('2026-06-19').toZonedDateTime(resolved);
-		expect(zdt.offset).toBe('+08:00');
 	});
 });
