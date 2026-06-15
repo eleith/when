@@ -7,7 +7,6 @@
 	import IconCalendarPlus from 'virtual:icons/ph/calendar-plus';
 	import IconClock from 'virtual:icons/ph/clock';
 	import IconMapPin from 'virtual:icons/ph/map-pin';
-	import IconPencilSimple from 'virtual:icons/ph/pencil-simple';
 	import IconUser from 'virtual:icons/ph/user';
 	import IconEnvelopeSimple from 'virtual:icons/ph/envelope-simple';
 	import IconWarningCircle from 'virtual:icons/ph/warning-circle';
@@ -43,9 +42,7 @@
 							? 'muted'
 							: 'primary'
 	);
-	let canRebook = $derived(
-		status === 'declined' || status === 'cancelled' || status === 'expired'
-	);
+	let canRebook = $derived(status === 'declined' || status === 'cancelled' || status === 'expired');
 	let differentTz = $derived(data.organizerTz !== userTz);
 	// Organizer sees times in their own configured zone; attendees in the browser's.
 	let displayTz = $derived(data.isAdmin ? data.organizerTz : userTz);
@@ -293,7 +290,7 @@
 								class="action-btn cancel-btn"
 								onclick={() => (cancelDialogOpen = true)}
 							>
-								Cancel booking
+								Cancel
 							</button>
 						{/if}
 					</div>
@@ -304,7 +301,6 @@
 		{#if data.actions.reschedule.allowed || data.actions.cancel.allowed}
 			<section class="changes">
 				<header class="changes-header">
-					<IconPencilSimple class="changes-header-icon" aria-hidden="true" />
 					<h2 class="changes-title">Change of plans?</h2>
 				</header>
 				<div class="changes-links">
@@ -314,7 +310,6 @@
 							href="/booked/{data.appointment.id}/reschedule?token={encodeURIComponent(data.token)}"
 						>
 							Reschedule
-							<IconArrowRight class="action-arrow" aria-hidden="true" />
 						</a>
 					{/if}
 					{#if data.actions.cancel.allowed}
@@ -323,7 +318,7 @@
 							class="changes-link changes-link-cancel"
 							onclick={() => (cancelDialogOpen = true)}
 						>
-							Cancel booking
+							Cancel
 						</button>
 					{/if}
 				</div>
@@ -604,11 +599,6 @@
 		margin: 0 0 var(--space-4);
 	}
 
-	:global(.changes-header-icon) {
-		font-size: var(--font-size-lg);
-		color: var(--text-muted);
-	}
-
 	.changes-title {
 		font-size: var(--font-size-md);
 		font-weight: 600;
@@ -625,11 +615,11 @@
 		display: inline-flex;
 		align-items: center;
 		gap: var(--space-2);
-		padding: var(--space-3) var(--space-5);
+		padding: var(--space-3) var(--space-6);
 		border: 1px solid var(--border-strong);
 		border-radius: var(--radius);
 		text-decoration: none;
-		font-size: var(--font-size-sm);
+		font-size: var(--font-size-md);
 		font-weight: 600;
 		background: transparent;
 		cursor: pointer;
@@ -664,10 +654,6 @@
 	:global(.action-arrow) {
 		display: inline-block;
 		transition: transform var(--transition);
-	}
-
-	.changes-link:hover :global(.action-arrow) {
-		transform: translateX(2px);
 	}
 
 	/* ---- rebook CTA (declined / cancelled) ---- */
