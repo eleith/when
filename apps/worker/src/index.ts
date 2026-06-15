@@ -1,5 +1,6 @@
+import { Temporal } from '@js-temporal/polyfill';
 import { loadConfigFile } from '@when/config';
-import { openDb, runMigrations } from '@when/db';
+import { expireStalePending, openDb, runMigrations } from '@when/db';
 import { initOpenWorkflow } from '@when/jobs';
 import { setLogger } from '@when/calendar';
 import { createMailer } from './email/smtp.js';
@@ -15,8 +16,8 @@ import { createCalendarSyncScanner } from './calendar/sync-scanner.js';
 
 const DEFAULT_PORT = 9000;
 const CALENDAR_SYNC_FLOOR_MS = 10 * 60_000;
-// Fixed tick; each calendar refreshes on its own interval, checked per tick.
 const REFRESH_TICK_MINUTES = 5;
+const EXPIRE_TICK_MINUTES = 60;
 
 async function main(): Promise<void> {
 	const logger = createLogger();
@@ -28,19 +29,15 @@ async function main(): Promise<void> {
 	const applied = await runMigrations(db);
 	if (applied.length > 0) logger.info('migrations applied', { migrations: applied });
 
-	// Context is what workflow implementations reach for at run time.
 	const ctx: WorkerContext = { config, logger, db, mailer: createMailer(config, logger) };
 	setWorkerContext(ctx);
 
-	// Calendar I/O logs through the worker's logger.
 	setLogger({
 		debug: (obj, msg) => logger.debug(msg, obj as Record<string, unknown>),
 		warn: (obj, msg) => logger.warn(msg, obj as Record<string, unknown>),
 		error: (obj, msg) => logger.error(msg, obj as Record<string, unknown>)
 	});
 
-	// Reconcile each calendar to the current appointment row; web wakes it via the
-	// sync-calendars job, and a floor timer scans even when idle.
 	const calendarSync = createCalendarSyncScanner(async () => {
 		try {
 			await scanOnce(ctx);
@@ -51,7 +48,6 @@ async function main(): Promise<void> {
 		}
 	}, CALENDAR_SYNC_FLOOR_MS);
 
-	// Connect the openworkflow client, register handlers, then start polling.
 	const client = initOpenWorkflow({ dbPath: config.database.queue });
 	registerWorkflows();
 	registerSyncCalendarsWorkflow(calendarSync);
@@ -65,6 +61,19 @@ async function main(): Promise<void> {
 	refresh.start();
 	logger.info('calendar refresh scheduled', { tickMinutes: REFRESH_TICK_MINUTES });
 
+	const expireSweep = createRefreshScheduler(async () => {
+		try {
+			const expired = await expireStalePending(ctx.db, Temporal.Now.instant().toString());
+			if (expired > 0) logger.info('expired stale pending requests', { count: expired });
+		} catch (err) {
+			logger.error('expire sweep failed', {
+				error: err instanceof Error ? err.message : String(err)
+			});
+		}
+	}, EXPIRE_TICK_MINUTES * 60_000);
+	expireSweep.start();
+	logger.info('expiry sweep scheduled', { tickMinutes: EXPIRE_TICK_MINUTES });
+
 	const port = Number(process.env.PORT) || DEFAULT_PORT;
 	const server = createHealthServer();
 	server.listen(port, () => logger.info('health server listening', { port }));
@@ -72,6 +81,7 @@ async function main(): Promise<void> {
 	const shutdown = async (signal: string): Promise<void> => {
 		logger.info('worker shutting down', { signal });
 		refresh.stop();
+		expireSweep.stop();
 		calendarSync.stop();
 		server.close();
 		await worker.stop();
