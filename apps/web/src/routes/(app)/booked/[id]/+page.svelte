@@ -430,10 +430,10 @@
 	}
 
 	:global(.detail-icon) {
-		font-size: var(--font-size-lg);
+		font-size: var(--font-size-xl);
 		color: var(--text-muted);
 		flex-shrink: 0;
-		margin-top: 2px;
+		margin-top: 1px;
 	}
 
 	.detail-text {
