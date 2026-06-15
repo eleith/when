@@ -29,7 +29,25 @@
 
 	let status = $derived(data.appointment.status);
 	let isPendingPastStart = $derived(status === 'pending' && data.clockStatus !== 'upcoming');
-	let canRebook = $derived(status === 'declined' || status === 'cancelled');
+	// A pending request whose time has already started can never be honored, so it
+	// reads as cancelled even though the stored status is still 'pending'.
+	let effectiveStatus = $derived(isPendingPastStart ? 'cancelled' : status);
+	// The card's single state line: status wins for non-confirmed bookings; for
+	// confirmed ones the time position (upcoming/in progress/concluded) leads.
+	let stateTone = $derived(
+		effectiveStatus === 'declined'
+			? 'danger'
+			: effectiveStatus === 'pending'
+				? 'warning'
+				: effectiveStatus === 'cancelled'
+					? 'muted'
+					: data.clockStatus === 'in_progress'
+						? 'active'
+						: data.clockStatus === 'concluded'
+							? 'muted'
+							: 'primary'
+	);
+	let canRebook = $derived(effectiveStatus === 'declined' || effectiveStatus === 'cancelled');
 	let differentTz = $derived(data.organizerTz !== userTz);
 	// Organizer sees times in their own configured zone; attendees in the browser's.
 	let displayTz = $derived(data.isAdmin ? data.organizerTz : userTz);
@@ -42,11 +60,11 @@
 </script>
 
 <svelte:head>
-	{#if status === 'cancelled'}
+	{#if effectiveStatus === 'cancelled'}
 		<title>Booking cancelled — When</title>
-	{:else if status === 'declined'}
+	{:else if effectiveStatus === 'declined'}
 		<title>Booking declined — When</title>
-	{:else if status === 'pending'}
+	{:else if effectiveStatus === 'pending'}
 		<title>Booking requested — When</title>
 	{:else}
 		<title>Booking confirmed — When</title>
@@ -62,33 +80,6 @@
 				Organizer view
 			</span>
 		</nav>
-	{/if}
-
-	<header class="status-banner">
-		<p
-			class="status-label"
-			class:status-confirmed={status === 'confirmed'}
-			class:status-pending={status === 'pending'}
-			class:status-declined={status === 'declined'}
-			class:status-cancelled={status === 'cancelled'}
-		>
-			{#if status === 'confirmed'}Confirmed
-			{:else if status === 'pending'}Pending
-			{:else if status === 'declined'}Declined
-			{:else}Cancelled{/if}
-		</p>
-	</header>
-
-	{#if status === 'pending'}
-		<p class="status-sub">
-			{#if isPendingPastStart}
-				This time has passed — still awaiting confirmation.
-			{:else}
-				Waiting for {data.user.name} to confirm.
-			{/if}
-		</p>
-	{:else if status === 'declined'}
-		<p class="status-sub">{data.user.name} declined this request.</p>
 	{/if}
 
 	{#if data.justRescheduled}
@@ -107,20 +98,22 @@
 			</p>
 		</section>
 
-		{#if data.clockStatus}
-			<section
-				class="card-section card-timeline"
-				class:timeline-upcoming={data.clockStatus === 'upcoming'}
-				class:timeline-active={data.clockStatus === 'in_progress'}
-				class:timeline-concluded={data.clockStatus === 'concluded'}
-			>
-				<span class="timeline-dot" aria-hidden="true"></span>
-				{#if data.clockStatus === 'upcoming'}Upcoming
-				{:else if data.clockStatus === 'in_progress'}In progress
-				{:else}Concluded
+		<section class="card-section card-state state-{stateTone}">
+			<span class="state-dot" aria-hidden="true"></span>
+			<span class="state-text">
+				{#if effectiveStatus === 'confirmed'}
+					{#if data.clockStatus === 'upcoming'}Upcoming
+					{:else if data.clockStatus === 'in_progress'}In progress
+					{:else}Concluded{/if}
+				{:else if effectiveStatus === 'pending'}
+					Pending · waiting for {data.user.name}
+				{:else if effectiveStatus === 'declined'}
+					Declined by {data.user.name}
+				{:else}
+					Cancelled
 				{/if}
-			</section>
-		{/if}
+			</span>
+		</section>
 
 		<section class="card-section detail-list">
 			<div class="detail-row">
@@ -389,42 +382,6 @@
 		color: var(--text);
 	}
 
-	/* ---- status banner ---- */
-	.status-banner {
-		display: flex;
-		align-items: baseline;
-		gap: var(--space-3);
-		margin: 0 0 var(--space-3);
-	}
-
-	.status-label {
-		font-size: var(--font-size-2xl);
-		font-weight: 700;
-		margin: 0;
-	}
-
-	.status-confirmed {
-		color: var(--primary);
-	}
-
-	.status-pending {
-		color: var(--text-secondary);
-	}
-
-	.status-declined {
-		color: var(--danger);
-	}
-
-	.status-cancelled {
-		color: var(--text-muted);
-	}
-
-	.status-sub {
-		color: var(--text-muted);
-		font-size: var(--font-size-md);
-		margin: 0 0 var(--space-6);
-	}
-
 	/* ---- banners (notices & confirmations) ---- */
 	.banner {
 		display: flex;
@@ -471,15 +428,6 @@
 		color: var(--danger);
 	}
 
-	.status-banner + .card,
-	.status-banner + .status-sub + .card {
-		margin-top: 0;
-	}
-
-	.card {
-		margin-top: var(--space-3);
-	}
-
 	/* ---- card ---- */
 	.card {
 		background: var(--surface);
@@ -500,19 +448,17 @@
 		background: var(--surface-muted);
 	}
 
-	/* ---- timeline stripe (date's past/present/future state) ---- */
-	.card-timeline {
+	/* ---- state stripe (the booking's single state line) ---- */
+	.card-state {
 		display: flex;
 		align-items: center;
 		gap: var(--space-3);
-		padding: var(--space-3) var(--space-7);
-		font-size: var(--font-size-sm);
+		padding: var(--space-4) var(--space-7);
+		font-size: var(--font-size-md);
 		font-weight: 600;
-		text-transform: uppercase;
-		letter-spacing: 0.04em;
 	}
 
-	.timeline-dot {
+	.state-dot {
 		width: 8px;
 		height: 8px;
 		border-radius: var(--radius-pill);
@@ -520,17 +466,27 @@
 		flex-shrink: 0;
 	}
 
-	.timeline-upcoming {
+	.state-primary {
 		background: var(--primary-muted);
 		color: var(--primary);
 	}
 
-	.timeline-active {
+	.state-active {
 		background: var(--success-bg);
 		color: var(--success-strong);
 	}
 
-	.timeline-concluded {
+	.state-warning {
+		background: var(--warning-bg);
+		color: var(--warning-strong);
+	}
+
+	.state-danger {
+		background: var(--danger-bg);
+		color: var(--danger-strong);
+	}
+
+	.state-muted {
 		background: var(--surface-muted);
 		color: var(--text-muted);
 	}
