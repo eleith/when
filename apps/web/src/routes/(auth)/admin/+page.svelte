@@ -367,27 +367,27 @@
 	}
 
 	.status-confirmed {
+		background: var(--info-bg);
+		color: var(--info-strong);
+	}
+
+	.status-in_progress {
 		background: var(--success-bg);
 		color: var(--success-strong);
 	}
 
 	.status-pending {
-		background: color-mix(in srgb, var(--warning) 10%, transparent);
-		color: var(--warning);
-	}
-
-	.status-in_progress {
-		background: var(--info-bg);
-		color: var(--info-strong);
+		background: var(--warning-bg);
+		color: var(--warning-strong);
 	}
 
 	.status-concluded,
+	.status-cancelled,
 	.status-expired {
-		background: var(--surface-muted);
-		color: var(--text-secondary);
+		background: var(--quiet-bg);
+		color: var(--quiet-strong);
 	}
 
-	.status-cancelled,
 	.status-declined {
 		background: var(--danger-bg);
 		color: var(--danger-strong);
