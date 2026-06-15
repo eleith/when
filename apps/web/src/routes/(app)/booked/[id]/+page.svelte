@@ -4,7 +4,6 @@
 	import IconArrowRight from 'virtual:icons/ph/arrow-right';
 	import IconCalendarBlank from 'virtual:icons/ph/calendar-blank';
 	import IconCheckCircle from 'virtual:icons/ph/check-circle';
-	import IconCalendarPlus from 'virtual:icons/ph/calendar-plus';
 	import IconClock from 'virtual:icons/ph/clock';
 	import IconMapPin from 'virtual:icons/ph/map-pin';
 	import IconUser from 'virtual:icons/ph/user';
@@ -14,6 +13,7 @@
 	import IconNote from 'virtual:icons/ph/note';
 	import NotificationChips from '$lib/components/NotificationChips.svelte';
 	import BookingActions from '$lib/components/BookingActions.svelte';
+	import AddToCalendar from '$lib/components/AddToCalendar.svelte';
 	import { formatDateShort, formatWeekday, formatTimeRange, formatTzShort } from '$lib/datetime';
 
 	let { data, form } = $props();
@@ -69,7 +69,7 @@
 	{/if}
 </svelte:head>
 
-<div class="page">
+<div class="page" class:has-cta={!!data.calendarLinks}>
 	{#if data.isAdmin}
 		<nav class="org-bar">
 			<a class="org-bar-back" href="/admin">← All bookings</a>
@@ -189,34 +189,13 @@
 				</div>
 			</div>
 		</section>
-	</article>
 
-	{#if data.calendarLinks}
-		<section class="add-to-calendar">
-			<header class="atc-header">
-				<IconCalendarPlus class="atc-header-icon" aria-hidden="true" />
-				<h2 class="atc-title">Add to your calendar</h2>
-			</header>
-			<div class="atc-links">
-				<a
-					class="atc-link"
-					href={data.calendarLinks.google}
-					target="_blank"
-					rel="noopener noreferrer">Google</a
-				>
-				<a
-					class="atc-link"
-					href={data.calendarLinks.outlook}
-					target="_blank"
-					rel="noopener noreferrer">Outlook</a
-				>
-				<a class="atc-link" href={data.calendarLinks.ics}>Apple</a>
-				<a class="atc-link" href={data.calendarLinks.ics} download="when-{data.appointment.id}.ics"
-					>ICS</a
-				>
-			</div>
-		</section>
-	{/if}
+		{#if data.calendarLinks}
+			<section class="card-section card-cta">
+				<AddToCalendar links={data.calendarLinks} appointmentId={data.appointment.id} />
+			</section>
+		{/if}
+	</article>
 
 	{#if form?.error}
 		<aside class="banner banner-danger" role="alert">
@@ -474,56 +453,6 @@
 		margin-top: 2px;
 	}
 
-	/* ---- add to calendar ---- */
-	.add-to-calendar {
-		margin-top: var(--space-7);
-	}
-
-	.atc-header {
-		display: flex;
-		align-items: center;
-		gap: var(--space-3);
-		margin: 0 0 var(--space-4);
-	}
-
-	:global(.atc-header-icon) {
-		font-size: var(--font-size-lg);
-		color: var(--text-muted);
-	}
-
-	.atc-title {
-		font-size: var(--font-size-lg);
-		font-weight: 600;
-		margin: 0;
-	}
-
-	.atc-links {
-		display: flex;
-		flex-wrap: wrap;
-		gap: var(--space-3);
-	}
-
-	.atc-link {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		padding: var(--space-3) var(--space-5);
-		border: 1px solid var(--border-strong);
-		border-radius: var(--radius);
-		color: var(--text);
-		text-decoration: none;
-		font-size: var(--font-size-base);
-		font-weight: 600;
-		transition:
-			background var(--transition),
-			border-color var(--transition);
-	}
-
-	.atc-link:hover {
-		background: var(--surface-muted);
-		border-color: var(--primary);
-	}
-
 	:global(.action-arrow) {
 		display: inline-block;
 		transition: transform var(--transition);
@@ -563,8 +492,25 @@
 			padding: var(--space-5) var(--space-5) var(--space-9);
 		}
 
+		.page.has-cta {
+			padding-bottom: calc(var(--space-10) + var(--space-8) + env(safe-area-inset-bottom));
+		}
+
 		.card-section {
 			padding: var(--space-5) var(--space-5);
+		}
+
+		.card-cta {
+			position: fixed;
+			bottom: 0;
+			left: 0;
+			right: 0;
+			z-index: 50;
+			padding: var(--space-4) var(--space-5);
+			padding-bottom: calc(var(--space-4) + env(safe-area-inset-bottom));
+			background: var(--surface);
+			border-top: 1px solid var(--border);
+			box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08);
 		}
 
 		.rebook-btn {
