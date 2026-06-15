@@ -388,7 +388,7 @@
 		align-items: center;
 		gap: var(--space-3);
 		padding: var(--space-4) var(--space-7);
-		font-size: var(--font-size-md);
+		font-size: var(--font-size-lg);
 		font-weight: 600;
 	}
 
@@ -426,14 +426,14 @@
 	}
 
 	.event-name {
-		font-size: var(--font-size-xl);
+		font-size: var(--font-size-2xl);
 		font-weight: 700;
 		margin: 0 0 var(--space-2);
 	}
 
 	.event-meta {
 		color: var(--text-muted);
-		font-size: var(--font-size-sm);
+		font-size: var(--font-size-base);
 		margin: 0;
 	}
 
@@ -464,13 +464,13 @@
 	.detail-primary {
 		color: var(--text);
 		font-weight: 500;
-		font-size: var(--font-size-md);
+		font-size: var(--font-size-lg);
 		line-height: 1.4;
 	}
 
 	.detail-secondary {
 		color: var(--text-muted);
-		font-size: var(--font-size-sm);
+		font-size: var(--font-size-base);
 		margin-top: 2px;
 	}
 
@@ -492,7 +492,7 @@
 	}
 
 	.atc-title {
-		font-size: var(--font-size-md);
+		font-size: var(--font-size-lg);
 		font-weight: 600;
 		margin: 0;
 	}
@@ -512,7 +512,7 @@
 		border-radius: var(--radius);
 		color: var(--text);
 		text-decoration: none;
-		font-size: var(--font-size-sm);
+		font-size: var(--font-size-base);
 		font-weight: 600;
 		transition:
 			background var(--transition),
