@@ -3,14 +3,15 @@
 	import { SvelteMap } from 'svelte/reactivity';
 	import { Dialog } from 'bits-ui';
 	import { tzCity, tzOffset } from '$lib/datetime';
-	import type { BookingFlow } from '$lib/bookingFlow.svelte';
+	import { getPreferredTimezone } from '$lib/preferredTimezone.svelte';
 
 	interface Props {
-		flow: BookingFlow;
 		open?: boolean;
 	}
 
-	let { flow, open = $bindable(false) }: Props = $props();
+	let { open = $bindable(false) }: Props = $props();
+
+	const ptz = getPreferredTimezone();
 
 	const ALL_TIMEZONES = Intl.supportedValuesOf('timeZone');
 
@@ -43,7 +44,7 @@
 	});
 
 	function select(tz: string) {
-		flow.setTz(tz);
+		ptz.set(tz, { persist: true });
 		open = false;
 		search = '';
 	}
@@ -72,7 +73,7 @@
 						<button
 							type="button"
 							class="tz-option"
-							class:selected={tz === flow.userTz}
+							class:selected={tz === ptz.current}
 							onclick={() => select(tz)}
 						>
 							<span class="tz-option-city">{info?.city ?? tz}</span>

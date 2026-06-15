@@ -262,7 +262,7 @@
 	</div>
 {/if}
 
-<TimezoneDialog bind:open={tzOpen} {flow} />
+<TimezoneDialog bind:open={tzOpen} />
 
 <style>
 	.timeline-container {
