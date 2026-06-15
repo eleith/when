@@ -31,17 +31,15 @@
 	// The card's single state line: status wins for non-confirmed bookings; for
 	// confirmed ones the time position (upcoming/in progress/concluded) leads.
 	let stateTone = $derived(
-		status === 'declined'
+		status === 'declined' || status === 'cancelled' || status === 'expired'
 			? 'danger'
 			: status === 'pending'
 				? 'warning'
-				: status === 'cancelled' || status === 'expired'
-					? 'quiet'
-					: data.clockStatus === 'in_progress'
-						? 'active'
-						: data.clockStatus === 'concluded'
-							? 'quiet'
-							: 'info'
+				: data.clockStatus === 'in_progress'
+					? 'active'
+					: data.clockStatus === 'concluded'
+						? 'quiet'
+						: 'info'
 	);
 	let canRebook = $derived(status === 'declined' || status === 'cancelled' || status === 'expired');
 	let differentTz = $derived(data.organizerTz !== userTz);

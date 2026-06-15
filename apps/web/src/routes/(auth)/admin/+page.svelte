@@ -381,14 +381,14 @@
 		color: var(--warning-strong);
 	}
 
-	.status-concluded,
-	.status-cancelled,
-	.status-expired {
+	.status-concluded {
 		background: var(--quiet-bg);
 		color: var(--quiet-strong);
 	}
 
-	.status-declined {
+	.status-declined,
+	.status-cancelled,
+	.status-expired {
 		background: var(--danger-bg);
 		color: var(--danger-strong);
 	}
