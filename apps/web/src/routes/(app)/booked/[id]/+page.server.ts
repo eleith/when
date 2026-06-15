@@ -101,7 +101,8 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 		// links work without a token in the URL; attendees only ever see their own.
 		token: isAdmin ? (token ?? row.cancel_token) : (token ?? ''),
 		isAdmin,
-		organizerTz: cfg.user.timezone
+		organizerTz: cfg.user.timezone,
+		attendeeTz: row.attendee_timezone ?? cfg.user.timezone
 	};
 };
 

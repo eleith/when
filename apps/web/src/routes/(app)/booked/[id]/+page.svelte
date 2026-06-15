@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { Dialog } from 'bits-ui';
 	import IconArrowRight from 'virtual:icons/ph/arrow-right';
 	import IconCalendarBlank from 'virtual:icons/ph/calendar-blank';
@@ -18,14 +17,9 @@
 
 	let { data, form } = $props();
 
-	let userTz = $state('UTC');
 	// Writable derived: tracks the server's `cancel=1` flag but can be toggled
 	// locally to open/close the dialog.
 	let cancelDialogOpen = $derived(data.showCancelModal);
-
-	onMount(() => {
-		userTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-	});
 
 	let status = $derived(data.appointment.status);
 	// The card's single state line: status wins for non-confirmed bookings; for
@@ -42,9 +36,11 @@
 						: 'info'
 	);
 	let canRebook = $derived(status === 'declined' || status === 'cancelled' || status === 'expired');
-	let differentTz = $derived(data.organizerTz !== userTz);
-	// Organizer sees times in their own configured zone; attendees in the browser's.
-	let displayTz = $derived(data.isAdmin ? data.organizerTz : userTz);
+	// Each viewer's own zone leads; the counterpart's zone is shown when they differ.
+	let displayTz = $derived(data.isAdmin ? data.organizerTz : data.attendeeTz);
+	let counterpartTz = $derived(data.isAdmin ? data.attendeeTz : data.organizerTz);
+	let counterpartName = $derived(data.isAdmin ? data.appointment.attendee_name : data.user.name);
+	let zonesDiffer = $derived(displayTz !== counterpartTz);
 	let hasActions = $derived(
 		data.actions.accept.allowed ||
 			data.actions.decline.allowed ||
@@ -142,12 +138,16 @@
 						{formatTimeRange(data.appointment.start_time, data.appointment.end_time, displayTz)}
 					</div>
 					<div class="detail-secondary">
-						{formatTzShort(displayTz)}
+						{formatTzShort(displayTz)}{#if zonesDiffer}&nbsp;&middot; you{/if}
 					</div>
-					{#if data.isAdmin && differentTz}
+					{#if zonesDiffer}
 						<div class="detail-secondary tz-extra">
-							{formatTimeRange(data.appointment.start_time, data.appointment.end_time, userTz)}
-							&middot; {formatTzShort(userTz)} (local)
+							{formatTimeRange(
+								data.appointment.start_time,
+								data.appointment.end_time,
+								counterpartTz
+							)}
+							&middot; {formatTzShort(counterpartTz)} &middot; {counterpartName}
 						</div>
 					{/if}
 				</div>
@@ -771,7 +771,6 @@
 
 	.tz-extra {
 		margin-top: var(--space-2);
-		font-style: italic;
 	}
 
 	.notes {
