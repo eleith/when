@@ -75,6 +75,7 @@ export const actions: Actions = {
 		const name = String(form.get('name') ?? '').trim();
 		const email = String(form.get('email') ?? '').trim();
 		const notes = String(form.get('notes') ?? '').trim();
+		const timezone = String(form.get('timezone') ?? '').trim();
 		const locationInput = form.get('location');
 
 		if (!slotStr || !name || !email) {
@@ -126,7 +127,12 @@ export const actions: Actions = {
 				eventType,
 				start: start.toString(),
 				end: end.toString(),
-				attendee: { name, email, notes: notes || null },
+				attendee: {
+					name,
+					email,
+					notes: notes || null,
+					timezone: isValidTimeZone(timezone) ? timezone : cfg.user.timezone
+				},
 				location: resolvedLocation
 			});
 		} catch (err) {
@@ -143,6 +149,16 @@ export const actions: Actions = {
 		);
 	}
 };
+
+function isValidTimeZone(tz: string): boolean {
+	if (!tz) return false;
+	try {
+		new Intl.DateTimeFormat('en-US', { timeZone: tz });
+		return true;
+	} catch {
+		return false;
+	}
+}
 
 type LocationResult = string | null | { fail: string };
 

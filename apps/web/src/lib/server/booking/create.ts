@@ -10,7 +10,7 @@ export interface CreateAppointmentInput {
 	start: string;
 	/** New end_time as ISO instant. */
 	end: string;
-	attendee: { name: string; email: string; notes: string | null };
+	attendee: { name: string; email: string; notes: string | null; timezone: string };
 	location: string | null;
 }
 
@@ -45,6 +45,7 @@ export async function createAppointment(
 				attendee_name: input.attendee.name,
 				attendee_email: input.attendee.email,
 				attendee_notes: input.attendee.notes,
+				attendee_timezone: input.attendee.timezone,
 				location: input.location,
 				status,
 				cancel_token: cancelToken,

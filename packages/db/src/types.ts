@@ -23,6 +23,7 @@ export interface AppointmentsTable {
 	attendee_name: string;
 	attendee_email: string;
 	attendee_notes: string | null;
+	attendee_timezone: NullableText;
 	location: string | null;
 	status: AppointmentStatus;
 	cancel_token: string;

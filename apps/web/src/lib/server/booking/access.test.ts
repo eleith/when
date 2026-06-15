@@ -16,6 +16,7 @@ const baseRow: Appointment = {
 	attendee_name: 'Booker',
 	attendee_email: 'booker@example.com',
 	attendee_notes: null,
+	attendee_timezone: null,
 	location: null,
 	status: 'confirmed',
 	cancel_token: 'tok-abc',

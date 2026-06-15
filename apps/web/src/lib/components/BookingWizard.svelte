@@ -385,6 +385,7 @@
 
 							<form id="booking-form" method="POST" action="?/book">
 								<input type="hidden" name="slot" value={selectedSlot} />
+								<input type="hidden" name="timezone" value={userTz} />
 								{#if data.rescheduleAppt}
 									<input type="hidden" name="reschedule" value={data.rescheduleAppt.id} />
 									<input type="hidden" name="token" value={data.rescheduleToken} />
