@@ -18,6 +18,8 @@ const baseAppointment: Appointment = {
 	location: null,
 	status: 'confirmed',
 	origin_id: 'appt-xyz',
+	rescheduled_from_id: null,
+	rescheduled_to_id: null,
 	cancel_token: 'tok',
 	external_event_id: null,
 	external_calendar_id: null,

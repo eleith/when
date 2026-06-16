@@ -381,7 +381,8 @@
 		color: var(--warning-strong);
 	}
 
-	.status-concluded {
+	.status-concluded,
+	.status-rescheduled {
 		background: var(--quiet-bg);
 		color: var(--quiet-strong);
 	}

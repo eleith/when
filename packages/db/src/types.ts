@@ -1,6 +1,12 @@
 import type { ColumnType, Generated, Insertable, Selectable, Updateable } from 'kysely';
 
-export type AppointmentStatus = 'pending' | 'confirmed' | 'declined' | 'cancelled' | 'expired';
+export type AppointmentStatus =
+	| 'pending'
+	| 'confirmed'
+	| 'declined'
+	| 'cancelled'
+	| 'expired'
+	| 'rescheduled';
 
 export type CalendarHealth = 'good' | 'bad' | 'unknown';
 
@@ -27,6 +33,8 @@ export interface AppointmentsTable {
 	location: string | null;
 	status: AppointmentStatus;
 	origin_id: NullableText;
+	rescheduled_from_id: NullableText;
+	rescheduled_to_id: NullableText;
 	cancel_token: string;
 	external_event_id: string | null;
 	external_calendar_id: string | null;

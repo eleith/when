@@ -8,6 +8,7 @@ import { calendarMirrorTables } from './0006_calendar_mirror_tables.js';
 import { appointmentCalendarColumns } from './0007_appointment_calendar_columns.js';
 import { attendeeTimezone } from './0008_attendee_timezone.js';
 import { rescheduleOrigin } from './0009_reschedule_origin.js';
+import { rescheduleChain } from './0010_reschedule_chain.js';
 
 // Registered in order; keys are the migration names Kysely's Migrator records.
 export const migrations: Record<string, Migration> = {
@@ -19,5 +20,6 @@ export const migrations: Record<string, Migration> = {
 	'0006_calendar_mirror_tables': calendarMirrorTables,
 	'0007_appointment_calendar_columns': appointmentCalendarColumns,
 	'0008_attendee_timezone': attendeeTimezone,
-	'0009_reschedule_origin': rescheduleOrigin
+	'0009_reschedule_origin': rescheduleOrigin,
+	'0010_reschedule_chain': rescheduleChain
 };
