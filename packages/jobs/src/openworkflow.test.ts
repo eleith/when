@@ -20,6 +20,7 @@ const appointment: Appointment = {
 	attendee_notes: null,
 	location: null,
 	status: 'confirmed',
+	origin_id: 'appt-1',
 	cancel_token: 'tok-1',
 	external_event_id: null,
 	external_calendar_id: null,

@@ -27,7 +27,7 @@ export function buildIcs(input: IcsInput): string {
 	const clock = input.clock ?? systemClock;
 
 	const event: IcsEvent = {
-		uid: appointment.id,
+		uid: appointment.origin_id ?? appointment.id,
 		sequence: appointment.ics_sequence,
 		summary: eventTypeName,
 		start: { date: new Date(appointment.start_time), type: 'DATE-TIME' },

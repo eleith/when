@@ -173,13 +173,14 @@ export class CalDavAdapter implements CalendarAdapter {
 			// (Nextcloud and other servers reject such PUTs with 415.)
 		});
 
+		const uid = appointment.origin_id ?? appointment.id;
 		await putCalDavEvent(
 			{ url: this.cal.url, username: this.cal.username, password: this.cal.password },
-			appointment.id,
+			uid,
 			ics,
 			{ fetchImpl: opts.fetchImpl }
 		);
-		return { ok: true, externalEventId: appointment.id, externalCalendarId: this.cal.id };
+		return { ok: true, externalEventId: uid, externalCalendarId: this.cal.id };
 	}
 
 	async deleteAppointment(

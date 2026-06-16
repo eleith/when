@@ -17,6 +17,7 @@ const baseAppointment: Appointment = {
 	attendee_notes: null,
 	location: null,
 	status: 'confirmed',
+	origin_id: 'appt-xyz',
 	cancel_token: 'tok',
 	external_event_id: null,
 	external_calendar_id: null,

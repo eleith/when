@@ -48,6 +48,7 @@ export async function createAppointment(
 				attendee_timezone: input.attendee.timezone,
 				location: input.location,
 				status,
+				origin_id: id,
 				cancel_token: cancelToken,
 				external_event_id: null,
 				external_calendar_id: null,

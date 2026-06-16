@@ -12,6 +12,7 @@ const baseAppointment: Appointment = {
 	attendee_notes: null,
 	location: null,
 	status: 'confirmed',
+	origin_id: 'appt-123',
 	cancel_token: 'tok-abc',
 	external_event_id: null,
 	external_calendar_id: null,
@@ -136,4 +137,12 @@ test('UID is stable across REQUEST and CANCEL for the same appointment', () => {
 	const uidLine = (ics: string) => ics.match(/^UID:.+$/m)?.[0];
 	expect(uidLine(create)).toBe('UID:appt-123');
 	expect(uidLine(cancel)).toBe('UID:appt-123');
+});
+
+test('UID follows origin_id so a rescheduled occurrence updates the same event', () => {
+	const ics = buildIcs({
+		appointment: { ...baseAppointment, id: 'appt-456', origin_id: 'appt-123' },
+		...baseInput
+	});
+	expect(ics).toContain('UID:appt-123');
 });

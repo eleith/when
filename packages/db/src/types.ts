@@ -26,6 +26,7 @@ export interface AppointmentsTable {
 	attendee_timezone: NullableText;
 	location: string | null;
 	status: AppointmentStatus;
+	origin_id: NullableText;
 	cancel_token: string;
 	external_event_id: string | null;
 	external_calendar_id: string | null;
