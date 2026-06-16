@@ -10,44 +10,62 @@ export function bookingRescheduledByOrganizer(i: BookingEmailInput): EmailMessag
 	const eventName = eventTypeName(i.eventType, a);
 	const attendeeWhen = whenForAttendee(i);
 	const organizerWhen = whenForOrganizer(i);
-	// Moving a not-yet-accepted request leaves it pending; an accepted booking stays confirmed.
-	const pending = a.status === 'pending';
+	const attendeeRows = [
+		{ label: 'What', value: eventName },
+		{ label: 'When', value: attendeeWhen },
+		{ label: 'Where', value: a.location }
+	];
+	const organizerRows = [
+		{ label: 'What', value: eventName },
+		{ label: 'When', value: organizerWhen }
+	];
+
+	// Moving a not-yet-accepted request leaves it pending: the new time is only a proposal until
+	// the organizer confirms, so there's no calendar invite yet.
+	if (a.status === 'pending') {
+		const attendee: EmailContent = {
+			brand,
+			subject: `New time proposed: ${eventName} with ${brand.name}`,
+			heading: `${brand.name} proposed a new time for your request.`,
+			paragraphs: [`${brand.name} will confirm the new time and email you.`],
+			rows: attendeeRows,
+			actions: [{ href: i.links.booked, label: 'View this booking', variant: 'primary' }],
+			previewText: `Requested for ${attendeeWhen}.`
+		};
+		const organizer: EmailContent = {
+			brand,
+			subject: `Rescheduled: ${eventName} with ${a.attendee_name}`,
+			heading: 'Booking rescheduled',
+			paragraphs: [
+				`You moved the pending request for ${a.attendee_name} <${a.attendee_email}> to a new time.`
+			],
+			rows: organizerRows,
+			actions: [],
+			previewText: `Requested for ${organizerWhen}.`
+		};
+		return [attendeeMessage(i, attendee), organizerMessage(i, organizer)];
+	}
 
 	const attendee: EmailContent = {
 		brand,
-		subject: pending
-			? `New time proposed: ${eventName} with ${brand.name}`
-			: `Rescheduled: ${eventName} with ${brand.name}`,
-		heading: pending
-			? `${brand.name} proposed a new time for your request.`
-			: `${brand.name} moved this booking to a new time.`,
-		paragraphs: pending ? [`${brand.name} will confirm the new time and email you.`] : [],
-		rows: [
-			{ label: 'What', value: eventName },
-			{ label: 'When', value: attendeeWhen },
-			{ label: 'Where', value: a.location }
-		],
+		subject: `Rescheduled: ${eventName} with ${brand.name}`,
+		heading: `${brand.name} moved this booking to a new time.`,
+		paragraphs: [],
+		rows: attendeeRows,
 		actions: [{ href: i.links.booked, label: 'View this booking', variant: 'primary' }],
-		previewText: pending ? `Requested for ${attendeeWhen}.` : `Now scheduled for ${attendeeWhen}.`
+		previewText: `Now scheduled for ${attendeeWhen}.`
 	};
-	const admin: EmailContent = {
+	const organizer: EmailContent = {
 		brand,
 		subject: `Rescheduled: ${eventName} with ${a.attendee_name}`,
 		heading: 'Booking rescheduled',
-		paragraphs: [
-			pending
-				? `You moved the pending request for ${a.attendee_name} <${a.attendee_email}> to a new time.`
-				: `You rescheduled the booking for ${a.attendee_name} <${a.attendee_email}>.`
-		],
-		rows: [
-			{ label: 'What', value: eventName },
-			{ label: 'When', value: organizerWhen }
-		],
+		paragraphs: [`You rescheduled the booking for ${a.attendee_name} <${a.attendee_email}>.`],
+		rows: organizerRows,
 		actions: [],
-		previewText: pending ? `Requested for ${organizerWhen}.` : `Now scheduled for ${organizerWhen}.`
+		previewText: `Now scheduled for ${organizerWhen}.`
 	};
-
-	// A pending move isn't booked at the new time yet, so it carries no calendar invite.
-	const attendeeIcs = pending ? undefined : requestIcs(i, i.links.booked);
-	return [attendeeMessage(i, attendee, attendeeIcs), organizerMessage(i, admin)];
+	return [
+		attendeeMessage(i, attendee, requestIcs(i, i.links.booked)),
+		organizerMessage(i, organizer)
+	];
 }
