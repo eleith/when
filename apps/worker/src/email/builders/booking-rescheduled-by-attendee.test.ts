@@ -21,4 +21,19 @@ describe('bookingRescheduledByAttendee', () => {
 		);
 		expect(organizer.ics).toBeUndefined();
 	});
+
+	test('pending re-approval: request copy, no attendee ics, organizer review action', () => {
+		const input = {
+			...sampleInput,
+			appointment: { ...sampleInput.appointment, status: 'pending' as const }
+		};
+		const [attendee, organizer] = bookingRescheduledByAttendee(input);
+
+		expect(attendee.content.heading).toBe('Your reschedule request was received.');
+		expect(attendee.ics).toBeUndefined();
+		expect(organizer.content.heading).toBe('Reschedule request');
+		expect(organizer.content.actions).toEqual([
+			{ href: input.links.manage, label: 'Review request', variant: 'primary' }
+		]);
+	});
 });

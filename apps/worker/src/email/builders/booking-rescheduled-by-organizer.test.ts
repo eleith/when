@@ -20,4 +20,18 @@ describe('bookingRescheduledByOrganizer', () => {
 		);
 		expect(organizer.ics).toBeUndefined();
 	});
+
+	test('moving a still-pending request: proposed-time copy, no attendee ics', () => {
+		const input = {
+			...sampleInput,
+			appointment: { ...sampleInput.appointment, status: 'pending' as const }
+		};
+		const [attendee, organizer] = bookingRescheduledByOrganizer(input);
+
+		expect(attendee.content.heading).toBe('Acme Scheduling proposed a new time for your request.');
+		expect(attendee.ics).toBeUndefined();
+		expect(organizer.content.paragraphs).toContain(
+			'You moved the pending request for Jane Doe <jane@example.com> to a new time.'
+		);
+	});
 });
