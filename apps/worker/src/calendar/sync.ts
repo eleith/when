@@ -53,7 +53,8 @@ export async function reconcileAppointment(
 		return;
 	}
 
-	if (row.external_event_id && row.external_calendar_id) {
+	// A rescheduled row's event was inherited by its successor occurrence — never delete it here.
+	if (row.status !== 'rescheduled' && row.external_event_id && row.external_calendar_id) {
 		const deleted = await deleteAppointmentFromCalendar(
 			ctx.config,
 			row.external_calendar_id,

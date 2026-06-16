@@ -150,6 +150,30 @@ test('a should-not-exist row with an external event is deleted and ids cleared',
 	}
 });
 
+test('a rescheduled row keeps its event (inherited by the successor) and is marked synced', async () => {
+	const ctx = await ctxWith();
+	try {
+		await insert(ctx, {
+			id: '1',
+			cancel_token: 't1',
+			status: 'rescheduled',
+			external_event_id: '1',
+			external_calendar_id: 'work',
+			calendar_revision: 2,
+			calendar_synced_revision: 1
+		});
+		const { fetchImpl, calls } = recordingFetch(204);
+		await reconcileAppointment(ctx, await onlyRow(ctx), { fetchImpl });
+		const row = await rowById(ctx.db, '1');
+		// No delete issued, pointer preserved, but the row is no longer out of sync.
+		expect(calls.some((c) => c.method === 'DELETE')).toBe(false);
+		expect(row.external_event_id).toBe('1');
+		expect(row.calendar_synced_revision).toBe(2);
+	} finally {
+		await ctx.db.destroy();
+	}
+});
+
 test('a should-not-exist row with no external event is a no-op marked synced', async () => {
 	const ctx = await ctxWith();
 	try {
