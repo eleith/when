@@ -121,26 +121,22 @@
 					Cancelled
 				{/if}
 			</span>
-		</section>
-
-		{#if status === 'rescheduled' && data.rescheduledTo}
-			<section class="card-section chain-note">
-				<a
-					class="chain-link"
-					href="/booked/{data.rescheduledTo.id}?token={encodeURIComponent(
-						data.rescheduledTo.token
-					)}"
-				>
-					View current booking
-					<IconArrowRight class="action-arrow" aria-hidden="true" />
-				</a>
-			</section>
-		{:else if data.rescheduledFrom}
-			<section class="card-section chain-note">
-				<span class="chain-text">
+			{#if status === 'rescheduled' && data.rescheduledTo}
+				<span class="state-meta">
+					<a
+						class="state-meta-link"
+						href="/booked/{data.rescheduledTo.id}?token={encodeURIComponent(
+							data.rescheduledTo.token
+						)}"
+					>
+						View current booking
+					</a>
+				</span>
+			{:else if data.rescheduledFrom}
+				<span class="state-meta">
 					Rescheduled from
 					<a
-						class="chain-link"
+						class="state-meta-link"
 						href="/booked/{data.rescheduledFrom.id}?token={encodeURIComponent(
 							data.rescheduledFrom.token
 						)}"
@@ -148,8 +144,8 @@
 						{formatDateShort(data.rescheduledFrom.start_time, displayTz)}
 					</a>
 				</span>
-			</section>
-		{/if}
+			{/if}
+		</section>
 
 		<section class="card-section detail-list">
 			<div class="detail-row">
@@ -400,6 +396,23 @@
 		flex-shrink: 0;
 	}
 
+	/* provenance tag on the right of the state line, in the stripe's own tone */
+	.state-meta {
+		margin-left: auto;
+		font-size: var(--font-size-base);
+		font-weight: 500;
+	}
+
+	.state-meta-link {
+		color: inherit;
+		text-decoration: underline;
+		text-underline-offset: 2px;
+	}
+
+	.state-meta-link:hover {
+		text-decoration: none;
+	}
+
 	.state-info {
 		background: var(--info-bg);
 		color: var(--info-strong);
@@ -481,29 +494,6 @@
 
 	.notif-failed {
 		color: var(--danger-strong);
-	}
-
-	/* ---- reschedule chain links ---- */
-	.chain-note {
-		font-size: var(--font-size-md);
-		color: var(--text-muted);
-	}
-
-	.chain-link {
-		display: inline-flex;
-		align-items: center;
-		gap: var(--space-1);
-		color: var(--info-strong);
-		font-weight: 600;
-		text-decoration: none;
-	}
-
-	.chain-link:hover {
-		text-decoration: underline;
-	}
-
-	.chain-link:hover :global(.action-arrow) {
-		transform: translateX(2px);
 	}
 
 	/* ---- accept / decline CTA (pending, organizer) ---- */
