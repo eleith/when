@@ -26,7 +26,7 @@ export type {
 } from './types.js';
 export { runMigrations } from './migrate.js';
 export { migrations } from './migrations/index.js';
-export { findAppointment, expireStalePending } from './appointments.js';
+export { findAppointment, expireStalePending, originId } from './appointments.js';
 export {
 	replaceCalendarBusy,
 	recordRefreshResult,

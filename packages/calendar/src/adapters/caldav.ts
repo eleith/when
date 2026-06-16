@@ -4,7 +4,7 @@ import { parseBusyEvents } from '../parse.js';
 import type { BusyEvent } from '../types.js';
 import type { CalendarAdapter, PushOptions, PushResult, DeleteResult } from '../adapter.js';
 import type { WhenConfiguration, CalDavCalendar } from '@when/config';
-import type { Appointment } from '@when/db';
+import { originId, type Appointment } from '@when/db';
 import type { ExpandWindow } from '../expand.js';
 import { buildIcs } from '../ics.js';
 
@@ -173,7 +173,7 @@ export class CalDavAdapter implements CalendarAdapter {
 			// (Nextcloud and other servers reject such PUTs with 415.)
 		});
 
-		const uid = appointment.origin_id ?? appointment.id;
+		const uid = originId(appointment);
 		await putCalDavEvent(
 			{ url: this.cal.url, username: this.cal.username, password: this.cal.password },
 			uid,

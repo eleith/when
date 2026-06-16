@@ -1,5 +1,5 @@
 import { generateIcsCalendar, type IcsCalendar, type IcsEvent } from 'ts-ics';
-import type { Appointment, AppointmentStatus } from '@when/db';
+import { originId, type Appointment, type AppointmentStatus } from '@when/db';
 import { systemClock, type Clock } from './clock.js';
 import { eventTypeName } from './format.js';
 import type { Attachment } from './recipients.js';
@@ -34,7 +34,7 @@ export function buildIcs(input: IcsInput): string {
 	const clock = input.clock ?? systemClock;
 
 	const event: IcsEvent = {
-		uid: appointment.origin_id ?? appointment.id,
+		uid: originId(appointment),
 		sequence: appointment.ics_sequence,
 		summary: name,
 		start: { date: new Date(appointment.start_time), type: 'DATE-TIME' },

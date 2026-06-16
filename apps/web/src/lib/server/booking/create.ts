@@ -1,4 +1,5 @@
 import { enqueueBookingEmail, enqueueCalendarSync } from '../workflow';
+import { newAppointmentId, newCancelToken } from './ids';
 import type { BookingContext } from './context';
 import type { EventType } from '@when/config';
 import type { Appointment } from '@when/db';
@@ -28,8 +29,8 @@ export async function createAppointment(
 	ctx: BookingContext,
 	input: CreateAppointmentInput
 ): Promise<CreateAppointmentResult> {
-	const id = `appt-${crypto.randomUUID()}`;
-	const cancelToken = `tok-${crypto.randomUUID()}`;
+	const id = newAppointmentId();
+	const cancelToken = newCancelToken();
 	const eventType = input.eventType;
 	const status = eventType.booking_flow === 'requires_confirmation' ? 'pending' : 'confirmed';
 

@@ -1,5 +1,6 @@
 import { sql, type Kysely } from 'kysely';
-import type { Appointment, AppointmentStatus, Database } from '@when/db';
+import { originId, type Appointment, type AppointmentStatus, type Database } from '@when/db';
+import { newAppointmentId, newCancelToken } from './ids';
 
 export type TransitionOutcome = { ok: true } | { ok: false; reason: 'conflict' | 'not_found' };
 
@@ -52,8 +53,8 @@ export async function rescheduleBooking(
 	old: Appointment,
 	when: { newStart: string; newEnd: string; newStatus: AppointmentStatus }
 ): Promise<RescheduleResult> {
-	const newId = `appt-${crypto.randomUUID()}`;
-	const newToken = `tok-${crypto.randomUUID()}`;
+	const newId = newAppointmentId();
+	const newToken = newCancelToken();
 
 	const created = await db.transaction().execute(async (trx) => {
 		const terminated = await trx
@@ -66,7 +67,7 @@ export async function rescheduleBooking(
 			.where('id', '=', old.id)
 			.where('status', 'in', ['pending', 'confirmed'])
 			.executeTakeFirst();
-		// 0 rows: the old booking is no longer active (raced to terminal) — commit nothing.
+		// 0 rows: the old booking raced to a terminal state — commit nothing.
 		if (terminated.numUpdatedRows === 0n) return null;
 
 		return await trx
@@ -82,11 +83,9 @@ export async function rescheduleBooking(
 				attendee_timezone: old.attendee_timezone,
 				location: old.location,
 				status: when.newStatus,
-				origin_id: old.origin_id ?? old.id,
+				origin_id: originId(old),
 				rescheduled_from_id: old.id,
 				cancel_token: newToken,
-				// Inherit the event pointer. A confirmed move patches the same event; a re-approval
-				// revert (pending) leaves the event at the old time until the organizer accepts.
 				external_event_id: old.external_event_id,
 				external_calendar_id: old.external_calendar_id,
 				calendar_push_notification_status: when.newStatus === 'confirmed' ? 'queued' : null,
