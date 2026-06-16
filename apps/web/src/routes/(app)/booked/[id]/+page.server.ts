@@ -71,6 +71,15 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 
 	const notifications = notificationStates(row);
 
+	// Reschedule chain neighbours. Holding a valid token for this row authorises seeing its
+	// siblings, so we hand over their tokens for the navigation links.
+	const predecessor = row.rescheduled_from_id
+		? await findAppointment(getDb(), row.rescheduled_from_id)
+		: null;
+	const successor = row.rescheduled_to_id
+		? await findAppointment(getDb(), row.rescheduled_to_id)
+		: null;
+
 	return {
 		appointment: {
 			id: row.id,
@@ -100,7 +109,11 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 		token: isAdmin ? (token ?? row.cancel_token) : (token ?? ''),
 		isAdmin,
 		organizerTz: cfg.user.timezone,
-		attendeeTz: row.attendee_timezone ?? cfg.user.timezone
+		attendeeTz: row.attendee_timezone ?? cfg.user.timezone,
+		rescheduledFrom: predecessor
+			? { id: predecessor.id, token: predecessor.cancel_token, start_time: predecessor.start_time }
+			: null,
+		rescheduledTo: successor ? { id: successor.id, token: successor.cancel_token } : null
 	};
 };
 

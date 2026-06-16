@@ -24,13 +24,15 @@
 	let stateTone = $derived(
 		status === 'declined' || status === 'cancelled' || status === 'expired'
 			? 'danger'
-			: status === 'pending'
-				? 'warning'
-				: data.clockStatus === 'in_progress'
-					? 'active'
-					: data.clockStatus === 'concluded'
-						? 'quiet'
-						: 'info'
+			: status === 'rescheduled'
+				? 'quiet'
+				: status === 'pending'
+					? 'warning'
+					: data.clockStatus === 'in_progress'
+						? 'active'
+						: data.clockStatus === 'concluded'
+							? 'quiet'
+							: 'info'
 	);
 	let canRebook = $derived(status === 'declined' || status === 'cancelled' || status === 'expired');
 	// Each viewer's own zone leads; the counterpart's zone is shown when they differ.
@@ -61,6 +63,8 @@
 		<title>Booking expired — When</title>
 	{:else if status === 'declined'}
 		<title>Booking declined — When</title>
+	{:else if status === 'rescheduled'}
+		<title>Booking rescheduled — When</title>
 	{:else if status === 'pending'}
 		<title>Booking requested — When</title>
 	{:else}
@@ -116,11 +120,41 @@
 					Declined by {data.user.name}
 				{:else if status === 'expired'}
 					Expired
+				{:else if status === 'rescheduled'}
+					Rescheduled
 				{:else}
 					Cancelled
 				{/if}
 			</span>
 		</section>
+
+		{#if status === 'rescheduled' && data.rescheduledTo}
+			<section class="card-section chain-note">
+				<a
+					class="chain-link"
+					href="/booked/{data.rescheduledTo.id}?token={encodeURIComponent(
+						data.rescheduledTo.token
+					)}"
+				>
+					View current booking
+					<IconArrowRight class="action-arrow" aria-hidden="true" />
+				</a>
+			</section>
+		{:else if data.rescheduledFrom}
+			<section class="card-section chain-note">
+				<span class="chain-text">
+					Rescheduled from
+					<a
+						class="chain-link"
+						href="/booked/{data.rescheduledFrom.id}?token={encodeURIComponent(
+							data.rescheduledFrom.token
+						)}"
+					>
+						{formatDateShort(data.rescheduledFrom.start_time, displayTz)}
+					</a>
+				</span>
+			</section>
+		{/if}
 
 		<section class="card-section detail-list">
 			<div class="detail-row">
@@ -452,6 +486,29 @@
 
 	.notif-failed {
 		color: var(--danger-strong);
+	}
+
+	/* ---- reschedule chain links ---- */
+	.chain-note {
+		font-size: var(--font-size-md);
+		color: var(--text-muted);
+	}
+
+	.chain-link {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-1);
+		color: var(--info-strong);
+		font-weight: 600;
+		text-decoration: none;
+	}
+
+	.chain-link:hover {
+		text-decoration: underline;
+	}
+
+	.chain-link:hover :global(.action-arrow) {
+		transform: translateX(2px);
 	}
 
 	/* ---- accept / decline CTA (pending, organizer) ---- */
