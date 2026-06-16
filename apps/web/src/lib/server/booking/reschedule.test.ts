@@ -249,7 +249,6 @@ describe('rescheduleAppointment', () => {
 			expect(result.ok).toBe(true);
 			if (result.ok) {
 				const next = result.appointment;
-				// A fresh occurrence at the new time, linked back to its predecessor.
 				expect(next.id).not.toBe('r1');
 				expect(next.start_time).toBe('2099-01-02T10:00:00Z');
 				expect(next.end_time).toBe('2099-01-02T10:30:00Z');
@@ -260,7 +259,6 @@ describe('rescheduleAppointment', () => {
 				expect(next.cancel_token).not.toBe('t1');
 				expect(next.calendar_push_notification_status).toBe('queued');
 
-				// The old occurrence is ended and points forward to the new one.
 				const old = await fetchRow(db, 'r1');
 				expect(old.status).toBe('rescheduled');
 				expect(old.rescheduled_to_id).toBe(next.id);
@@ -362,7 +360,6 @@ describe('rescheduleAppointment', () => {
 			expect(result.ok).toBe(true);
 			if (result.ok) {
 				expect(result.appointment.status).toBe('pending');
-				// The event pointer is inherited (frozen at the old time) and not queued/removed.
 				expect(result.appointment.external_event_id).toBe('rc1');
 				expect(result.appointment.calendar_push_notification_status).toBeNull();
 			}

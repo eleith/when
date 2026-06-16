@@ -165,7 +165,6 @@ test('a rescheduled row keeps its event (inherited by the successor) and is mark
 		const { fetchImpl, calls } = recordingFetch(204);
 		await reconcileAppointment(ctx, await onlyRow(ctx), { fetchImpl });
 		const row = await rowById(ctx.db, '1');
-		// No delete issued, pointer preserved, but the row is no longer out of sync.
 		expect(calls.some((c) => c.method === 'DELETE')).toBe(false);
 		expect(row.external_event_id).toBe('1');
 		expect(row.calendar_synced_revision).toBe(2);

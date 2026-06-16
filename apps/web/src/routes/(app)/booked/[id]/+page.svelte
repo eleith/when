@@ -21,19 +21,14 @@
 	let status = $derived(data.appointment.status);
 	// The card's single state line: status wins for non-confirmed bookings; for
 	// confirmed ones the time position (upcoming/in progress/concluded) leads.
-	let stateTone = $derived(
-		status === 'declined' || status === 'cancelled' || status === 'expired'
-			? 'danger'
-			: status === 'rescheduled'
-				? 'quiet'
-				: status === 'pending'
-					? 'warning'
-					: data.clockStatus === 'in_progress'
-						? 'active'
-						: data.clockStatus === 'concluded'
-							? 'quiet'
-							: 'info'
-	);
+	let stateTone = $derived.by(() => {
+		if (status === 'declined' || status === 'cancelled' || status === 'expired') return 'danger';
+		if (status === 'rescheduled') return 'quiet';
+		if (status === 'pending') return 'warning';
+		if (data.clockStatus === 'in_progress') return 'active';
+		if (data.clockStatus === 'concluded') return 'quiet';
+		return 'info';
+	});
 	let canRebook = $derived(status === 'declined' || status === 'cancelled' || status === 'expired');
 	// Each viewer's own zone leads; the counterpart's zone is shown when they differ.
 	let displayTz = $derived(data.isAdmin ? data.organizerTz : data.attendeeTz);

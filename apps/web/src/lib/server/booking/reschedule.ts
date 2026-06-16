@@ -1,4 +1,4 @@
-import { resolveBookingActions, type Viewer } from './actions';
+import { resolveBookingActions, isTerminalStatus, type Viewer } from './actions';
 import { isRescheduleAllowed, isViewable } from './access';
 import { enqueueBookingEmail, enqueueCalendarSync } from '../workflow';
 import type { BookingContext } from './context';
@@ -107,12 +107,7 @@ export function classifyReschedule({
 	if (!isViewable(existing, now)) {
 		return { kind: 'error', code: 'past_window' };
 	}
-	if (
-		existing.status === 'cancelled' ||
-		existing.status === 'declined' ||
-		existing.status === 'expired' ||
-		existing.status === 'rescheduled'
-	) {
+	if (isTerminalStatus(existing.status)) {
 		return { kind: 'error', code: 'terminal' };
 	}
 	if (!isRescheduleAllowed(existing, now, eventType.minimum_notice ?? 0)) {

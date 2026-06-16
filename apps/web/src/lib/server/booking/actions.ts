@@ -24,8 +24,13 @@ export interface ResolveBookingActionsInput {
 
 const ALLOWED: ActionGate = { allowed: true };
 
-function isActiveStatus(status: AppointmentStatus): boolean {
+export function isActiveStatus(status: AppointmentStatus): boolean {
 	return status === 'pending' || status === 'confirmed';
+}
+
+/** Anything not active: cancelled, declined, expired, or rescheduled. */
+export function isTerminalStatus(status: AppointmentStatus): boolean {
+	return !isActiveStatus(status);
 }
 
 function resolveCancel(row: Pick<Appointment, 'status' | 'start_time'>, now: Date): ActionGate {
