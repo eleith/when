@@ -77,7 +77,9 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 	const predecessor = row.rescheduled_from_id
 		? await findAppointment(getDb(), row.rescheduled_from_id)
 		: null;
-	const current = await findCurrentInChain(getDb(), originId(row));
+	// Only a superseded row needs the live-occurrence lookup; an active or standalone booking is
+	// already current, so skip the query (rescheduled_to_id is set exactly when it was moved away).
+	const current = row.rescheduled_to_id ? await findCurrentInChain(getDb(), originId(row)) : null;
 	const liveBooking = current && current.id !== row.id ? current : null;
 
 	return {
