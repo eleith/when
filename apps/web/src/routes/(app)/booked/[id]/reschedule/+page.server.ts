@@ -63,15 +63,20 @@ export const load: PageServerLoad = async ({ params, url }) => {
 };
 
 export const actions: Actions = {
-	book: async ({ request, params }) => {
+	book: async ({ request, params, locals }) => {
 		const form = await request.formData();
 		const slotStr = String(form.get('slot') ?? '');
 		const token = String(form.get('token') ?? '').trim();
 
 		if (!slotStr) return fail(400, { error: 'Please pick a time slot.' });
 
+		// The organizer (authenticated) reschedules as themselves — their own move stays
+		// confirmed; a token-bearing attendee re-arms approval on requires-confirmation events.
+		const session = await locals.auth();
+		const initiator = session ? 'organizer' : 'attendee';
+
 		const found = await findAppointment(getDb(), params.id);
-		if (!found || found.cancel_token !== token) {
+		if (!found || (!session && found.cancel_token !== token)) {
 			return fail(403, { error: 'Invalid reschedule token.' });
 		}
 		if (found.start_time === slotStr) {
@@ -92,7 +97,7 @@ export const actions: Actions = {
 		const end = start.add({ minutes: eventType.duration });
 		const result = await rescheduleAppointment(bookingContext(), {
 			appointment: found,
-			initiator: 'attendee',
+			initiator,
 			newStart: start.toString(),
 			newEnd: end.toString()
 		});
