@@ -5,7 +5,7 @@ import { buildAddToCalendarLinks } from '$lib/server/calendar-links';
 import { systemClock } from '$lib/server/clock';
 import { getConfig, getDb } from '$lib/server/state';
 import { notificationStates } from '$lib/notifications';
-import { findAppointment, type Appointment } from '@when/db';
+import { findAppointment, findCurrentInChain, originId, type Appointment } from '@when/db';
 import type { Actions, PageServerLoad } from './$types';
 import { acceptAppointment } from '$lib/server/booking/accept';
 import { declineAppointment } from '$lib/server/booking/decline';
@@ -71,14 +71,14 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 
 	const notifications = notificationStates(row);
 
-	// Reschedule chain neighbours. Holding a valid token for this row authorises seeing its
-	// siblings, so we hand over their tokens for the navigation links.
+	// Reschedule chain links: step back one hop (the predecessor) and jump to the chain's live
+	// occurrence (resolved by origin, not by walking). Holding a valid token for this row
+	// authorises seeing its siblings, so we hand over their tokens for the navigation links.
 	const predecessor = row.rescheduled_from_id
 		? await findAppointment(getDb(), row.rescheduled_from_id)
 		: null;
-	const successor = row.rescheduled_to_id
-		? await findAppointment(getDb(), row.rescheduled_to_id)
-		: null;
+	const current = await findCurrentInChain(getDb(), originId(row));
+	const liveBooking = current && current.id !== row.id ? current : null;
 
 	return {
 		appointment: {
@@ -113,7 +113,7 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 		rescheduledFrom: predecessor
 			? { id: predecessor.id, token: predecessor.cancel_token, start_time: predecessor.start_time }
 			: null,
-		rescheduledTo: successor ? { id: successor.id, token: successor.cancel_token } : null
+		currentBooking: liveBooking ? { id: liveBooking.id, token: liveBooking.cancel_token } : null
 	};
 };
 

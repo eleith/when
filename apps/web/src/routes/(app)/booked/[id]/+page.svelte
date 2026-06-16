@@ -121,28 +121,30 @@
 					Cancelled
 				{/if}
 			</span>
-			{#if status === 'rescheduled' && data.rescheduledTo}
+			{#if data.rescheduledFrom || data.currentBooking}
 				<span class="state-meta">
-					<a
-						class="state-meta-link"
-						href="/booked/{data.rescheduledTo.id}?token={encodeURIComponent(
-							data.rescheduledTo.token
-						)}"
-					>
-						View current booking
-					</a>
-				</span>
-			{:else if data.rescheduledFrom}
-				<span class="state-meta">
-					Rescheduled from
-					<a
-						class="state-meta-link"
-						href="/booked/{data.rescheduledFrom.id}?token={encodeURIComponent(
-							data.rescheduledFrom.token
-						)}"
-					>
-						{formatDateShort(data.rescheduledFrom.start_time, displayTz)}
-					</a>
+					{#if data.rescheduledFrom}
+						Rescheduled from
+						<a
+							class="state-meta-link"
+							href="/booked/{data.rescheduledFrom.id}?token={encodeURIComponent(
+								data.rescheduledFrom.token
+							)}"
+						>
+							{formatDateShort(data.rescheduledFrom.start_time, displayTz)}
+						</a>
+					{/if}
+					{#if data.rescheduledFrom && data.currentBooking}&nbsp;·&nbsp;{/if}
+					{#if data.currentBooking}
+						<a
+							class="state-meta-link"
+							href="/booked/{data.currentBooking.id}?token={encodeURIComponent(
+								data.currentBooking.token
+							)}"
+						>
+							View current booking
+						</a>
+					{/if}
 				</span>
 			{/if}
 		</section>

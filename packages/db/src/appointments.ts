@@ -17,6 +17,22 @@ export function findAppointment(
 	return db.selectFrom('appointments').selectAll().where('id', '=', id).executeTakeFirst();
 }
 
+/**
+ * The live occurrence of a reschedule chain: the single active (pending/confirmed) row sharing
+ * an `origin_id`. Undefined if the chain has no live booking (e.g. it ended in a cancel/decline).
+ */
+export function findCurrentInChain(
+	db: Kysely<Database>,
+	chainOriginId: string
+): Promise<Appointment | undefined> {
+	return db
+		.selectFrom('appointments')
+		.selectAll()
+		.where('origin_id', '=', chainOriginId)
+		.where('status', 'in', ['pending', 'confirmed'])
+		.executeTakeFirst();
+}
+
 export async function expireStalePending(db: Kysely<Database>, nowIso: string): Promise<number> {
 	const result = await db
 		.updateTable('appointments')
