@@ -53,8 +53,12 @@ export async function reconcileAppointment(
 		return;
 	}
 
-	// A rescheduled row's event was inherited by its successor occurrence — never delete it here.
-	if (row.status !== 'rescheduled' && row.external_event_id && row.external_calendar_id) {
+	// Only a terminal-removal status takes its event off the calendar. `pending` (a re-approval
+	// revert) and `rescheduled` keep the inherited event in place — the successor occurrence owns
+	// it and will move it on confirm, or remove it on decline.
+	const shouldRemove =
+		row.status === 'cancelled' || row.status === 'declined' || row.status === 'expired';
+	if (shouldRemove && row.external_event_id && row.external_calendar_id) {
 		const deleted = await deleteAppointmentFromCalendar(
 			ctx.config,
 			row.external_calendar_id,

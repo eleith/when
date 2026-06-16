@@ -59,11 +59,21 @@ export async function rescheduleAppointment(
 	}).reschedule;
 	if (!gate.allowed) return { ok: false, reason: 'gated' };
 
+	// An attendee moving a confirmed booking on a requires-confirmation event needs the
+	// organizer to re-approve the new time, so the new occurrence starts pending. Organizer
+	// moves and auto-flow events keep their status.
+	const needsReapproval =
+		input.initiator === 'attendee' &&
+		eventType?.booking_flow === 'requires_confirmation' &&
+		input.appointment.status === 'confirmed';
+	const newStatus = needsReapproval ? 'pending' : input.appointment.status;
+
 	let result: RescheduleResult;
 	try {
 		result = await rescheduleBooking(ctx.db, input.appointment, {
 			newStart: input.newStart,
-			newEnd: input.newEnd
+			newEnd: input.newEnd,
+			newStatus
 		});
 	} catch (err) {
 		if (isUniqueViolation(err)) return { ok: false, reason: 'slot_taken' };

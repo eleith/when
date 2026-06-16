@@ -64,7 +64,8 @@ test('rescheduleBooking ends the old row and creates a linked new one at the new
 
 		const result = await rescheduleBooking(db, old, {
 			newStart: '2099-02-01T10:00:00Z',
-			newEnd: '2099-02-01T10:30:00Z'
+			newEnd: '2099-02-01T10:30:00Z',
+			newStatus: 'confirmed'
 		});
 
 		expect(result.ok).toBe(true);
@@ -99,7 +100,8 @@ test('rescheduleBooking reports conflict when the old row is no longer active', 
 
 		const result = await rescheduleBooking(db, old, {
 			newStart: '2099-02-01T10:00:00Z',
-			newEnd: '2099-02-01T10:30:00Z'
+			newEnd: '2099-02-01T10:30:00Z',
+			newStatus: 'confirmed'
 		});
 		expect(result).toEqual({ ok: false, reason: 'conflict' });
 	} finally {
@@ -141,15 +143,35 @@ test('cancelBooking queues the sync only when there is a published event', async
 	}
 });
 
-test('declineBooking declines a pending request without bumping the revision', async () => {
+test('declineBooking declines a pending request; no event to remove when none was published', async () => {
 	const db = await makeDb();
 	try {
 		await insert(db, { id: '1', status: 'pending', cancel_token: 't1' });
 		expect(await declineBooking(db, '1')).toEqual({ ok: true });
 		const row = await fetchRow(db, '1');
 		expect(row.status).toBe('declined');
-		expect(row.calendar_revision).toBe(0);
+		expect(row.calendar_push_notification_status).toBeNull();
 		expect(await declineBooking(db, '1')).toEqual({ ok: false, reason: 'conflict' });
+	} finally {
+		await db.destroy();
+	}
+});
+
+test('declineBooking queues a delete when a re-approval revert carries an inherited event', async () => {
+	const db = await makeDb();
+	try {
+		await insert(db, {
+			id: '1',
+			status: 'pending',
+			cancel_token: 't1',
+			external_event_id: 'evt-1',
+			external_calendar_id: 'work'
+		});
+		expect(await declineBooking(db, '1')).toEqual({ ok: true });
+		const row = await fetchRow(db, '1');
+		expect(row.status).toBe('declined');
+		expect(row.calendar_push_notification_status).toBe('queued');
+		expect(row.calendar_revision).toBe(1);
 	} finally {
 		await db.destroy();
 	}

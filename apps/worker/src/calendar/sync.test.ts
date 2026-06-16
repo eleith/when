@@ -174,6 +174,29 @@ test('a rescheduled row keeps its event (inherited by the successor) and is mark
 	}
 });
 
+test('a pending row that inherited an event keeps it (frozen until re-approval)', async () => {
+	const ctx = await ctxWith();
+	try {
+		await insert(ctx, {
+			id: '1',
+			cancel_token: 't1',
+			status: 'pending',
+			external_event_id: '1',
+			external_calendar_id: 'work',
+			calendar_revision: 2,
+			calendar_synced_revision: 1
+		});
+		const { fetchImpl, calls } = recordingFetch(204);
+		await reconcileAppointment(ctx, await onlyRow(ctx), { fetchImpl });
+		const row = await rowById(ctx.db, '1');
+		expect(calls).toHaveLength(0);
+		expect(row.external_event_id).toBe('1');
+		expect(row.calendar_synced_revision).toBe(2);
+	} finally {
+		await ctx.db.destroy();
+	}
+});
+
 test('a should-not-exist row with no external event is a no-op marked synced', async () => {
 	const ctx = await ctxWith();
 	try {

@@ -1,5 +1,5 @@
 import { sql, type Kysely } from 'kysely';
-import type { Appointment, Database } from '@when/db';
+import type { Appointment, AppointmentStatus, Database } from '@when/db';
 
 export type TransitionOutcome = { ok: true } | { ok: false; reason: 'conflict' | 'not_found' };
 
@@ -50,7 +50,7 @@ export async function confirmBooking(db: Kysely<Database>, id: string): Promise<
 export async function rescheduleBooking(
 	db: Kysely<Database>,
 	old: Appointment,
-	when: { newStart: string; newEnd: string }
+	when: { newStart: string; newEnd: string; newStatus: AppointmentStatus }
 ): Promise<RescheduleResult> {
 	const newId = `appt-${crypto.randomUUID()}`;
 	const newToken = `tok-${crypto.randomUUID()}`;
@@ -81,14 +81,15 @@ export async function rescheduleBooking(
 				attendee_notes: old.attendee_notes,
 				attendee_timezone: old.attendee_timezone,
 				location: old.location,
-				status: old.status,
+				status: when.newStatus,
 				origin_id: old.origin_id ?? old.id,
 				rescheduled_from_id: old.id,
 				cancel_token: newToken,
-				// Inherit the event pointer so the worker patches the same event, not a new one.
+				// Inherit the event pointer. A confirmed move patches the same event; a re-approval
+				// revert (pending) leaves the event at the old time until the organizer accepts.
 				external_event_id: old.external_event_id,
 				external_calendar_id: old.external_calendar_id,
-				calendar_push_notification_status: old.status === 'confirmed' ? 'queued' : null,
+				calendar_push_notification_status: when.newStatus === 'confirmed' ? 'queued' : null,
 				ics_sequence: old.ics_sequence + 1
 			})
 			.returningAll()
@@ -118,14 +119,20 @@ export async function cancelBooking(db: Kysely<Database>, id: string): Promise<T
 	return classify(db, id, result.numUpdatedRows);
 }
 
-/** Decline a pending request. It was never on the calendar, so no revision bump. */
+/**
+ * Decline a pending request. Usually it was never on the calendar, but a re-approval revert
+ * (a confirmed booking rescheduled on a requires-confirmation event) carries the inherited
+ * event, so we delete it when present — same shape as a cancel.
+ */
 export async function declineBooking(db: Kysely<Database>, id: string): Promise<TransitionOutcome> {
 	const result = await db
 		.updateTable('appointments')
 		.set({
 			status: 'declined',
+			ics_sequence: sql`ics_sequence + 1`,
 			email_notification_status: null,
-			calendar_push_notification_status: null,
+			calendar_push_notification_status: sql`CASE WHEN external_event_id IS NOT NULL THEN 'queued' ELSE NULL END`,
+			calendar_revision: sql`calendar_revision + 1`,
 			updated_at: sql`CURRENT_TIMESTAMP`
 		})
 		.where('id', '=', id)

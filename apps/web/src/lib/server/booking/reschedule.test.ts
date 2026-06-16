@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { classifyReschedule, rescheduleAppointment } from './reschedule';
 import { systemClock } from '$lib/server/clock';
 import { openDb, runMigrations, type Appointment } from '@when/db';
+import type { WhenConfiguration } from '@when/config';
 import { validConfig } from '$lib/server/__fixtures__/valid-config';
 
 vi.mock('../workflow', () => ({ enqueueBookingEmail: vi.fn(), enqueueCalendarSync: vi.fn() }));
@@ -314,6 +315,89 @@ describe('rescheduleAppointment', () => {
 					'rescheduled-by-organizer'
 				);
 			}
+		} finally {
+			await db.destroy();
+		}
+	});
+
+	const reapprovalCfg: WhenConfiguration = {
+		...validConfig,
+		event_types: [
+			{
+				...validConfig.event_types[0],
+				id: 'confirm-me',
+				slug: 'confirm-me',
+				booking_flow: 'requires_confirmation'
+			}
+		]
+	};
+
+	test('attendee moving a confirmed requires-confirmation booking reverts to pending, keeps the event', async () => {
+		const db = await makeDb();
+		try {
+			await db
+				.insertInto('appointments')
+				.values({
+					...opBaseRow,
+					id: 'rc1',
+					event_type_id: 'confirm-me',
+					status: 'confirmed',
+					cancel_token: 'tc1',
+					external_event_id: 'rc1',
+					external_calendar_id: 'work'
+				})
+				.execute();
+			const row = await fetchRow(db, 'rc1');
+
+			const result = await rescheduleAppointment(
+				{ db, cfg: reapprovalCfg, clock: systemClock },
+				{
+					appointment: row,
+					initiator: 'attendee',
+					newStart: '2099-04-02T10:00:00Z',
+					newEnd: '2099-04-02T10:30:00Z'
+				}
+			);
+
+			expect(result.ok).toBe(true);
+			if (result.ok) {
+				expect(result.appointment.status).toBe('pending');
+				// The event pointer is inherited (frozen at the old time) and not queued/removed.
+				expect(result.appointment.external_event_id).toBe('rc1');
+				expect(result.appointment.calendar_push_notification_status).toBeNull();
+			}
+		} finally {
+			await db.destroy();
+		}
+	});
+
+	test('organizer moving the same requires-confirmation booking stays confirmed', async () => {
+		const db = await makeDb();
+		try {
+			await db
+				.insertInto('appointments')
+				.values({
+					...opBaseRow,
+					id: 'rc2',
+					event_type_id: 'confirm-me',
+					status: 'confirmed',
+					cancel_token: 'tc2'
+				})
+				.execute();
+			const row = await fetchRow(db, 'rc2');
+
+			const result = await rescheduleAppointment(
+				{ db, cfg: reapprovalCfg, clock: systemClock },
+				{
+					appointment: row,
+					initiator: 'organizer',
+					newStart: '2099-04-03T10:00:00Z',
+					newEnd: '2099-04-03T10:30:00Z'
+				}
+			);
+
+			expect(result.ok).toBe(true);
+			if (result.ok) expect(result.appointment.status).toBe('confirmed');
 		} finally {
 			await db.destroy();
 		}
