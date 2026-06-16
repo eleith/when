@@ -2,7 +2,7 @@ import { resolveBookingActions, type Viewer } from './actions';
 import { isRescheduleAllowed, isViewable } from './access';
 import { enqueueBookingEmail, enqueueCalendarSync } from '../workflow';
 import type { BookingContext } from './context';
-import { rescheduleBooking, type TransitionOutcome } from './transitions';
+import { rescheduleBooking, type RescheduleResult } from './transitions';
 import type { EventType } from '@when/config';
 import type { Appointment } from '@when/db';
 
@@ -59,9 +59,9 @@ export async function rescheduleAppointment(
 	}).reschedule;
 	if (!gate.allowed) return { ok: false, reason: 'gated' };
 
-	let result: TransitionOutcome;
+	let result: RescheduleResult;
 	try {
-		result = await rescheduleBooking(ctx.db, input.appointment.id, {
+		result = await rescheduleBooking(ctx.db, input.appointment, {
 			newStart: input.newStart,
 			newEnd: input.newEnd
 		});
@@ -73,7 +73,7 @@ export async function rescheduleAppointment(
 
 	const kind =
 		input.initiator === 'organizer' ? 'rescheduled-by-organizer' : 'rescheduled-by-attendee';
-	const appointment = await enqueueBookingEmail(ctx.db, input.appointment.id, kind);
+	const appointment = await enqueueBookingEmail(ctx.db, result.appointment.id, kind);
 	await enqueueCalendarSync();
 
 	return { ok: true, appointment };
@@ -100,7 +100,8 @@ export function classifyReschedule({
 	if (
 		existing.status === 'cancelled' ||
 		existing.status === 'declined' ||
-		existing.status === 'expired'
+		existing.status === 'expired' ||
+		existing.status === 'rescheduled'
 	) {
 		return { kind: 'error', code: 'terminal' };
 	}

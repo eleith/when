@@ -103,6 +103,8 @@ export const actions: Actions = {
 			return fail(409, { error: 'This booking can no longer be rescheduled.' });
 		}
 
-		redirect(303, `/booked/${found.id}?token=${encodeURIComponent(token)}`);
+		// The booking moved to a new row; land on it with its own token.
+		const next = result.appointment;
+		redirect(303, `/booked/${next.id}?token=${encodeURIComponent(next.cancel_token)}`);
 	}
 };

@@ -226,7 +226,7 @@ describe('rescheduleAppointment', () => {
 		vi.mocked(enqueueCalendarSync).mockReset();
 	});
 
-	test('happy path: confirmed booking moves time, bumps revision, queues a calendar sync', async () => {
+	test('happy path: creates a linked new row, ends the old one, queues a calendar sync', async () => {
 		const db = await makeDb();
 		try {
 			await db
@@ -247,16 +247,71 @@ describe('rescheduleAppointment', () => {
 
 			expect(result.ok).toBe(true);
 			if (result.ok) {
-				expect(result.appointment.start_time).toBe('2099-01-02T10:00:00Z');
-				expect(result.appointment.end_time).toBe('2099-01-02T10:30:00Z');
-				expect(result.appointment.status).toBe('confirmed');
-				expect(result.appointment.ics_sequence).toBe(1);
-				expect(result.appointment.calendar_revision).toBe(1);
+				const next = result.appointment;
+				// A fresh occurrence at the new time, linked back to its predecessor.
+				expect(next.id).not.toBe('r1');
+				expect(next.start_time).toBe('2099-01-02T10:00:00Z');
+				expect(next.end_time).toBe('2099-01-02T10:30:00Z');
+				expect(next.status).toBe('confirmed');
+				expect(next.ics_sequence).toBe(1);
+				expect(next.origin_id).toBe('r1');
+				expect(next.rescheduled_from_id).toBe('r1');
+				expect(next.cancel_token).not.toBe('t1');
+				expect(next.calendar_push_notification_status).toBe('queued');
+
+				// The old occurrence is ended and points forward to the new one.
+				const old = await fetchRow(db, 'r1');
+				expect(old.status).toBe('rescheduled');
+				expect(old.rescheduled_to_id).toBe(next.id);
+
 				expect(enqueueCalendarSync).toHaveBeenCalledTimes(1);
 				expect(enqueueBookingEmail).toHaveBeenCalledWith(
 					expect.anything(),
-					expect.any(String),
+					next.id,
 					'rescheduled-by-attendee'
+				);
+			}
+		} finally {
+			await db.destroy();
+		}
+	});
+
+	test('the new row inherits the calendar event pointer so the event is patched, not recreated', async () => {
+		const db = await makeDb();
+		try {
+			await db
+				.insertInto('appointments')
+				.values({
+					...opBaseRow,
+					id: 'r5',
+					status: 'confirmed',
+					cancel_token: 't5',
+					origin_id: 'r5',
+					external_event_id: 'r5',
+					external_calendar_id: 'work'
+				})
+				.execute();
+			const row = await fetchRow(db, 'r5');
+
+			const result = await rescheduleAppointment(
+				{ db, cfg: validConfig, clock: systemClock },
+				{
+					appointment: row,
+					initiator: 'organizer',
+					newStart: '2099-03-02T10:00:00Z',
+					newEnd: '2099-03-02T10:30:00Z'
+				}
+			);
+
+			expect(result.ok).toBe(true);
+			if (result.ok) {
+				expect(result.appointment.origin_id).toBe('r5');
+				expect(result.appointment.external_event_id).toBe('r5');
+				expect(result.appointment.external_calendar_id).toBe('work');
+				expect(enqueueBookingEmail).toHaveBeenCalledWith(
+					expect.anything(),
+					result.appointment.id,
+					'rescheduled-by-organizer'
 				);
 			}
 		} finally {

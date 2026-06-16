@@ -56,22 +56,52 @@ test('confirmBooking reports conflict when not pending, not_found when missing',
 	}
 });
 
-test('rescheduleBooking moves the time, keeps status, bumps ics + revision', async () => {
+test('rescheduleBooking ends the old row and creates a linked new one at the new time', async () => {
 	const db = await makeDb();
 	try {
-		await insert(db, { id: '1', status: 'confirmed', cancel_token: 't1' });
-		expect(
-			await rescheduleBooking(db, '1', {
-				newStart: '2099-02-01T10:00:00Z',
-				newEnd: '2099-02-01T10:30:00Z'
-			})
-		).toEqual({ ok: true });
-		const row = await fetchRow(db, '1');
-		expect(row.start_time).toBe('2099-02-01T10:00:00Z');
-		expect(row.status).toBe('confirmed');
-		expect(row.ics_sequence).toBe(1);
-		expect(row.calendar_push_notification_status).toBe('queued');
-		expect(row.calendar_revision).toBe(1);
+		await insert(db, { id: '1', status: 'confirmed', cancel_token: 't1', origin_id: '1' });
+		const old = await fetchRow(db, '1');
+
+		const result = await rescheduleBooking(db, old, {
+			newStart: '2099-02-01T10:00:00Z',
+			newEnd: '2099-02-01T10:30:00Z'
+		});
+
+		expect(result.ok).toBe(true);
+		if (!result.ok) return;
+		const next = result.appointment;
+		expect(next.id).not.toBe('1');
+		expect(next.start_time).toBe('2099-02-01T10:00:00Z');
+		expect(next.status).toBe('confirmed');
+		expect(next.ics_sequence).toBe(1);
+		expect(next.origin_id).toBe('1');
+		expect(next.rescheduled_from_id).toBe('1');
+		expect(next.calendar_push_notification_status).toBe('queued');
+
+		const ended = await fetchRow(db, '1');
+		expect(ended.status).toBe('rescheduled');
+		expect(ended.rescheduled_to_id).toBe(next.id);
+	} finally {
+		await db.destroy();
+	}
+});
+
+test('rescheduleBooking reports conflict when the old row is no longer active', async () => {
+	const db = await makeDb();
+	try {
+		await insert(db, { id: '1', status: 'confirmed', cancel_token: 't1', origin_id: '1' });
+		const old = await fetchRow(db, '1');
+		await db
+			.updateTable('appointments')
+			.set({ status: 'cancelled' })
+			.where('id', '=', '1')
+			.execute();
+
+		const result = await rescheduleBooking(db, old, {
+			newStart: '2099-02-01T10:00:00Z',
+			newEnd: '2099-02-01T10:30:00Z'
+		});
+		expect(result).toEqual({ ok: false, reason: 'conflict' });
 	} finally {
 		await db.destroy();
 	}
