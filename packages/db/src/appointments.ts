@@ -18,10 +18,11 @@ export function findAppointment(
 }
 
 /**
- * The live occurrence of a reschedule chain: the single active (pending/confirmed) row sharing
- * an `origin_id`. Undefined if the chain has no live booking (e.g. it ended in a cancel/decline).
+ * The latest occurrence of a reschedule chain: the single row sharing an `origin_id` that was
+ * never rescheduled further (`rescheduled_to_id IS NULL`). It's the live booking when active, or
+ * the final state (cancelled/declined/expired) when the chain ended terminal.
  */
-export function findCurrentInChain(
+export function findChainTip(
 	db: Kysely<Database>,
 	chainOriginId: string
 ): Promise<Appointment | undefined> {
@@ -29,7 +30,7 @@ export function findCurrentInChain(
 		.selectFrom('appointments')
 		.selectAll()
 		.where('origin_id', '=', chainOriginId)
-		.where('status', 'in', ['pending', 'confirmed'])
+		.where('rescheduled_to_id', 'is', null)
 		.executeTakeFirst();
 }
 

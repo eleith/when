@@ -121,7 +121,7 @@
 					Cancelled
 				{/if}
 			</span>
-			{#if data.rescheduledFrom || data.currentBooking}
+			{#if data.rescheduledFrom || data.latestBooking}
 				<span class="state-meta">
 					{#if data.rescheduledFrom}
 						Rescheduled from
@@ -134,15 +134,15 @@
 							{formatDateShort(data.rescheduledFrom.start_time, displayTz)}
 						</a>
 					{/if}
-					{#if data.rescheduledFrom && data.currentBooking}&nbsp;·&nbsp;{/if}
-					{#if data.currentBooking}
+					{#if data.rescheduledFrom && data.latestBooking}&nbsp;·&nbsp;{/if}
+					{#if data.latestBooking}
 						<a
 							class="state-meta-link"
-							href="/booked/{data.currentBooking.id}?token={encodeURIComponent(
-								data.currentBooking.token
+							href="/booked/{data.latestBooking.id}?token={encodeURIComponent(
+								data.latestBooking.token
 							)}"
 						>
-							View current booking
+							View latest booking
 						</a>
 					{/if}
 				</span>

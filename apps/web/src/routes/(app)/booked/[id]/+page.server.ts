@@ -5,7 +5,7 @@ import { buildAddToCalendarLinks } from '$lib/server/calendar-links';
 import { systemClock } from '$lib/server/clock';
 import { getConfig, getDb } from '$lib/server/state';
 import { notificationStates } from '$lib/notifications';
-import { findAppointment, findCurrentInChain, originId, type Appointment } from '@when/db';
+import { findAppointment, findChainTip, originId, type Appointment } from '@when/db';
 import type { Actions, PageServerLoad } from './$types';
 import { acceptAppointment } from '$lib/server/booking/accept';
 import { declineAppointment } from '$lib/server/booking/decline';
@@ -77,10 +77,11 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 	const predecessor = row.rescheduled_from_id
 		? await findAppointment(getDb(), row.rescheduled_from_id)
 		: null;
-	// Only a superseded row needs the live-occurrence lookup; an active or standalone booking is
-	// already current, so skip the query (rescheduled_to_id is set exactly when it was moved away).
-	const current = row.rescheduled_to_id ? await findCurrentInChain(getDb(), originId(row)) : null;
-	const liveBooking = current && current.id !== row.id ? current : null;
+	// Only a superseded row needs the tip lookup; an active or standalone booking is already the
+	// latest, so skip the query (rescheduled_to_id is set exactly when it was moved away). The tip
+	// is the chain's final occurrence — live if active, or its cancelled/declined end-state.
+	const tip = row.rescheduled_to_id ? await findChainTip(getDb(), originId(row)) : null;
+	const latest = tip && tip.id !== row.id ? tip : null;
 
 	return {
 		appointment: {
@@ -115,7 +116,7 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 		rescheduledFrom: predecessor
 			? { id: predecessor.id, token: predecessor.cancel_token, start_time: predecessor.start_time }
 			: null,
-		currentBooking: liveBooking ? { id: liveBooking.id, token: liveBooking.cancel_token } : null
+		latestBooking: latest ? { id: latest.id, token: latest.cancel_token } : null
 	};
 };
 

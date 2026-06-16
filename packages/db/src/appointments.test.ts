@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest';
 import { openDb } from './index.js';
 import { runMigrations } from './migrate.js';
-import { expireStalePending, findAppointment, findCurrentInChain } from './appointments.js';
+import { expireStalePending, findAppointment, findChainTip } from './appointments.js';
 import type { AppointmentStatus } from './types.js';
 
 async function makeDb() {
@@ -15,7 +15,8 @@ async function insert(
 	id: string,
 	status: AppointmentStatus,
 	startTime: string,
-	origin = id
+	origin = id,
+	rescheduledTo: string | null = null
 ) {
 	await db
 		.insertInto('appointments')
@@ -30,6 +31,7 @@ async function insert(
 			location: null,
 			status,
 			origin_id: origin,
+			rescheduled_to_id: rescheduledTo,
 			cancel_token: `tok-${id}`,
 			external_event_id: null,
 			external_calendar_id: null,
@@ -94,27 +96,27 @@ test('expireStalePending retires only pending rows whose start has passed', asyn
 	}
 });
 
-test('findCurrentInChain returns the one active occurrence of a chain', async () => {
+test('findChainTip returns the end of the chain (the row never rescheduled further)', async () => {
 	const db = await makeDb();
 	try {
-		// Chain rooted at 'A': A → B both rescheduled, C is the live tip; all share origin 'A'.
-		await insert(db, 'A', 'rescheduled', '2099-01-01T15:00:00Z', 'A');
-		await insert(db, 'B', 'rescheduled', '2099-01-02T15:00:00Z', 'A');
-		await insert(db, 'C', 'confirmed', '2099-01-03T15:00:00Z', 'A');
+		// Chain rooted at 'A': A → B → C; C is the tip (rescheduled_to_id null), all share origin 'A'.
+		await insert(db, 'A', 'rescheduled', '2099-01-01T15:00:00Z', 'A', 'B');
+		await insert(db, 'B', 'rescheduled', '2099-01-02T15:00:00Z', 'A', 'C');
+		await insert(db, 'C', 'confirmed', '2099-01-03T15:00:00Z', 'A', null);
 
-		expect((await findCurrentInChain(db, 'A'))?.id).toBe('C');
+		expect((await findChainTip(db, 'A'))?.id).toBe('C');
 	} finally {
 		await db.destroy();
 	}
 });
 
-test('findCurrentInChain is undefined when a chain has no live occurrence', async () => {
+test('findChainTip returns the terminal tip when a chain ends cancelled', async () => {
 	const db = await makeDb();
 	try {
-		await insert(db, 'A', 'rescheduled', '2099-01-01T15:00:00Z', 'A');
-		await insert(db, 'B', 'declined', '2099-01-02T15:00:00Z', 'A');
+		await insert(db, 'A', 'rescheduled', '2099-01-01T15:00:00Z', 'A', 'B');
+		await insert(db, 'B', 'cancelled', '2099-01-02T15:00:00Z', 'A', null);
 
-		expect(await findCurrentInChain(db, 'A')).toBeUndefined();
+		expect((await findChainTip(db, 'A'))?.id).toBe('B');
 	} finally {
 		await db.destroy();
 	}
