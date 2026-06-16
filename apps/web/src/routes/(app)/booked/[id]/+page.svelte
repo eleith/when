@@ -398,7 +398,6 @@
 		flex-shrink: 0;
 	}
 
-	/* provenance tag on the right of the state line, in the stripe's own tone */
 	.state-meta {
 		margin-left: auto;
 		font-size: var(--font-size-base);

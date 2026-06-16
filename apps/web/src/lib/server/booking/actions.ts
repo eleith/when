@@ -28,7 +28,6 @@ export function isActiveStatus(status: AppointmentStatus): boolean {
 	return status === 'pending' || status === 'confirmed';
 }
 
-/** Anything not active: cancelled, declined, expired, or rescheduled. */
 export function isTerminalStatus(status: AppointmentStatus): boolean {
 	return !isActiveStatus(status);
 }

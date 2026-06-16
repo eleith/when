@@ -59,9 +59,7 @@ export async function rescheduleAppointment(
 	}).reschedule;
 	if (!gate.allowed) return { ok: false, reason: 'gated' };
 
-	// An attendee moving a confirmed booking on a requires-confirmation event needs the
-	// organizer to re-approve the new time, so the new occurrence starts pending. Organizer
-	// moves and auto-flow events keep their status.
+	// An attendee moving a confirmed requires-confirmation booking re-arms organizer approval.
 	const needsReapproval =
 		input.initiator === 'attendee' &&
 		eventType?.booking_flow === 'requires_confirmation' &&

@@ -71,15 +71,10 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 
 	const notifications = notificationStates(row);
 
-	// Reschedule chain links: step back one hop (the predecessor) and jump to the chain's live
-	// occurrence (resolved by origin, not by walking). Holding a valid token for this row
-	// authorises seeing its siblings, so we hand over their tokens for the navigation links.
+	// A valid token for this row authorises its chain siblings, so we pass their tokens to the links.
 	const predecessor = row.rescheduled_from_id
 		? await findAppointment(getDb(), row.rescheduled_from_id)
 		: null;
-	// Only a superseded row needs the tip lookup; an active or standalone booking is already the
-	// latest, so skip the query (rescheduled_to_id is set exactly when it was moved away). The tip
-	// is the chain's final occurrence — live if active, or its cancelled/declined end-state.
 	const tip = row.rescheduled_to_id ? await findChainTip(getDb(), originId(row)) : null;
 	const latest = tip && tip.id !== row.id ? tip : null;
 

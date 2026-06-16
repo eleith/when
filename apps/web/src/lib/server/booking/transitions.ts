@@ -42,11 +42,9 @@ export async function confirmBooking(db: Kysely<Database>, id: string): Promise<
 }
 
 /**
- * Reschedule = end the current occurrence (status → `rescheduled`) and create a linked new one
- * at the new time. The new row inherits the calendar event pointer and `origin_id`, so the
- * published event just moves (the worker patches it) instead of being deleted and recreated.
- * A slot-uniqueness violation (the new slot was taken) surfaces as a thrown UNIQUE error for the
- * caller to map to `slot_taken`; an old row that's no longer active resolves to `conflict`.
+ * End the current occurrence and create a linked one at the new time, inheriting the calendar
+ * event pointer and `origin_id` so the published event moves rather than being recreated. A taken
+ * slot throws UNIQUE (caller maps to `slot_taken`); an already-terminal old row is `conflict`.
  */
 export async function rescheduleBooking(
 	db: Kysely<Database>,
@@ -67,7 +65,7 @@ export async function rescheduleBooking(
 			.where('id', '=', old.id)
 			.where('status', 'in', ['pending', 'confirmed'])
 			.executeTakeFirst();
-		// 0 rows: the old booking raced to a terminal state — commit nothing.
+		// old row raced to a terminal state
 		if (terminated.numUpdatedRows === 0n) return null;
 
 		return await trx
@@ -118,11 +116,7 @@ export async function cancelBooking(db: Kysely<Database>, id: string): Promise<T
 	return classify(db, id, result.numUpdatedRows);
 }
 
-/**
- * Decline a pending request. Usually it was never on the calendar, but a re-approval revert
- * (a confirmed booking rescheduled on a requires-confirmation event) carries the inherited
- * event, so we delete it when present — same shape as a cancel.
- */
+/** Decline a pending request, removing the inherited event if a re-approval revert left one. */
 export async function declineBooking(db: Kysely<Database>, id: string): Promise<TransitionOutcome> {
 	const result = await db
 		.updateTable('appointments')

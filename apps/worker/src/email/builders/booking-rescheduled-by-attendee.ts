@@ -20,8 +20,6 @@ export function bookingRescheduledByAttendee(i: BookingEmailInput): EmailMessage
 		{ label: 'When', value: organizerWhen }
 	];
 
-	// A move on a requires-confirmation event lands pending: the organizer must re-approve, and
-	// nothing is booked at the new time yet (no calendar invite).
 	if (a.status === 'pending') {
 		const attendee: EmailContent = {
 			brand,

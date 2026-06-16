@@ -70,8 +70,6 @@ export const actions: Actions = {
 
 		if (!slotStr) return fail(400, { error: 'Please pick a time slot.' });
 
-		// The organizer (authenticated) reschedules as themselves — their own move stays
-		// confirmed; a token-bearing attendee re-arms approval on requires-confirmation events.
 		const session = await locals.auth();
 		const initiator = session ? 'organizer' : 'attendee';
 
@@ -108,7 +106,7 @@ export const actions: Actions = {
 			return fail(409, { error: 'This booking can no longer be rescheduled.' });
 		}
 
-		// The booking moved to a new row; land on it with its own token.
+		// land on the new row, not the old one
 		const next = result.appointment;
 		redirect(303, `/booked/${next.id}?token=${encodeURIComponent(next.cancel_token)}`);
 	}

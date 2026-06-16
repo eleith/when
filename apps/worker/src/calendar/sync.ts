@@ -53,9 +53,7 @@ export async function reconcileAppointment(
 		return;
 	}
 
-	// Only a terminal-removal status takes its event off the calendar. `pending` (a re-approval
-	// revert) and `rescheduled` keep the inherited event in place — the successor occurrence owns
-	// it and will move it on confirm, or remove it on decline.
+	// `pending` and `rescheduled` keep their inherited event; only these remove it.
 	const shouldRemove =
 		row.status === 'cancelled' || row.status === 'declined' || row.status === 'expired';
 	if (shouldRemove && row.external_event_id && row.external_calendar_id) {

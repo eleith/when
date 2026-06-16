@@ -20,8 +20,6 @@ export function bookingRescheduledByOrganizer(i: BookingEmailInput): EmailMessag
 		{ label: 'When', value: organizerWhen }
 	];
 
-	// Moving a not-yet-accepted request leaves it pending: the new time is only a proposal until
-	// the organizer confirms, so there's no calendar invite yet.
 	if (a.status === 'pending') {
 		const attendee: EmailContent = {
 			brand,

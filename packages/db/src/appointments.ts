@@ -1,10 +1,7 @@
 import { sql, type Kysely } from 'kysely';
 import type { Appointment, Database } from './types.js';
 
-/**
- * The chain-root id of a booking: its own id, unless it descends from a reschedule.
- * Originals satisfy `origin_id === id`. Used as the stable calendar/ICS UID across a chain.
- */
+/** Chain-root id: an appointment's own id unless it descends from a reschedule. */
 export function originId(a: Pick<Appointment, 'id' | 'origin_id'>): string {
 	return a.origin_id ?? a.id;
 }
@@ -17,11 +14,7 @@ export function findAppointment(
 	return db.selectFrom('appointments').selectAll().where('id', '=', id).executeTakeFirst();
 }
 
-/**
- * The latest occurrence of a reschedule chain: the single row sharing an `origin_id` that was
- * never rescheduled further (`rescheduled_to_id IS NULL`). It's the live booking when active, or
- * the final state (cancelled/declined/expired) when the chain ended terminal.
- */
+/** The end of a reschedule chain: the row sharing `origin_id` that was never rescheduled further. */
 export function findChainTip(
 	db: Kysely<Database>,
 	chainOriginId: string
