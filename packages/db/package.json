@@ -16,6 +16,7 @@
 	"scripts": {
 		"build": "tsc -p tsconfig.json && tsc -p tsconfig.build.json",
 		"lint": "prettier --check . && eslint .",
+		"format": "prettier --write .",
 		"test": "vitest run",
 		"test:coverage": "vitest run --coverage"
 	},

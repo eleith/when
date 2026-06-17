@@ -7,9 +7,8 @@
 	let { data, children } = $props();
 
 	let currentPath = $derived(page.url.pathname);
-	let badCalendars = $derived(data.calendars.filter((c: any) => c.health === 'bad'));
+	let badCalendars = $derived(data.calendars.filter((c) => c.health === 'bad'));
 
-	// Pagination parameters resolved from page.data
 	let currentPage = $derived(page.data.page ?? 1);
 	let pageCount = $derived(page.data.pageCount ?? 1);
 	let prevHref = $derived(currentPage > 1 ? `?page=${currentPage - 1}` : null);

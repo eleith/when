@@ -26,7 +26,14 @@ export type {
 } from './types.js';
 export { runMigrations } from './migrate.js';
 export { migrations } from './migrations/index.js';
-export { findAppointment, findChainTip, expireStalePending, originId, listAppointmentsPage, countAppointments } from './appointments.js';
+export {
+	findAppointment,
+	findChainTip,
+	expireStalePending,
+	originId,
+	listAppointmentsPage,
+	countAppointments
+} from './appointments.js';
 export type { AppointmentBucket } from './appointments.js';
 export {
 	replaceCalendarBusy,

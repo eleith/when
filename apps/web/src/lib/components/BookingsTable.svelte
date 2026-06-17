@@ -30,65 +30,63 @@
 	}
 </script>
 
-	<div class="table-wrap">
-		<table>
-			<thead>
-				<tr>
-					<th>Attendee</th>
-					<th>Event type</th>
-					<th>Date & Time</th>
-					<th>Status</th>
+<div class="table-wrap">
+	<table>
+		<thead>
+			<tr>
+				<th>Attendee</th>
+				<th>Event type</th>
+				<th>Date & Time</th>
+				<th>Status</th>
+			</tr>
+		</thead>
+		<tbody>
+			{#each appointments as a (a.id)}
+				<tr class:past={a.is_past} onclick={(e) => handleRowClick(e, a.id)}>
+					<td class="cell-attendee">
+						<div class="attendee-info">
+							<a href="/booked/{a.id}" class="row-link">{a.attendee_name}</a>
+							<span class="attendee-email">
+								{a.attendee_email}
+							</span>
+						</div>
+					</td>
+					<td class="cell-event">
+						<span class="event-tag">{a.event_type_name}</span>
+					</td>
+					<td class="cell-time">
+						<span class="time-text">{fmt(a.start_time)}</span>
+					</td>
+					<td class="cell-status">
+						<div class="status-wrapper">
+							<span class="status-badge status-{a.display_status}">
+								{#if a.display_status === 'in_progress'}
+									in progress
+								{:else}
+									{a.display_status}
+								{/if}
+							</span>
+							{#if a.notifications.length > 0}
+								<NotificationChips notifications={a.notifications} />
+							{/if}
+							{#if a.possible_conflict}
+								<span
+									class="conflict-chip"
+									title="This time overlaps a busy event on a conflict calendar"
+								>
+									<IconWarning class="conflict-icon" aria-hidden="true" />
+									Conflict
+								</span>
+							{/if}
+						</div>
+					</td>
 				</tr>
-			</thead>
-			<tbody>
-				{#each appointments as a (a.id)}
-					<tr class:past={a.is_past} onclick={(e) => handleRowClick(e, a.id)}>
-						<td class="cell-attendee">
-							<div class="attendee-info">
-								<a href="/booked/{a.id}" class="row-link">{a.attendee_name}</a>
-								<span class="attendee-email">
-									{a.attendee_email}
-								</span>
-							</div>
-						</td>
-						<td class="cell-event">
-							<span class="event-tag">{a.event_type_name}</span>
-						</td>
-						<td class="cell-time">
-							<span class="time-text">{fmt(a.start_time)}</span>
-						</td>
-						<td class="cell-status">
-							<div class="status-wrapper">
-								<span class="status-badge status-{a.display_status}">
-									{#if a.display_status === 'in_progress'}
-										in progress
-									{:else}
-										{a.display_status}
-									{/if}
-								</span>
-								{#if a.notifications.length > 0}
-									<NotificationChips notifications={a.notifications} />
-								{/if}
-								{#if a.possible_conflict}
-									<span
-										class="conflict-chip"
-										title="This time overlaps a busy event on a conflict calendar"
-									>
-										<IconWarning class="conflict-icon" aria-hidden="true" />
-										Conflict
-									</span>
-								{/if}
-							</div>
-						</td>
-					</tr>
-				{/each}
-			</tbody>
-		</table>
-	</div>
+			{/each}
+		</tbody>
+	</table>
+</div>
 
 <style>
-
-
 	.table-wrap {
 		overflow-x: auto;
 	}

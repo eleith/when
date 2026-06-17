@@ -23,11 +23,7 @@ export function deriveDisplayStatus(
 	return 'concluded';
 }
 
-export function toAppointmentView(
-	row: Appointment,
-	cfg: WhenConfiguration,
-	now: Date
-) {
+export function toAppointmentView(row: Appointment, cfg: WhenConfiguration, now: Date) {
 	const nowMs = now.getTime();
 	const notifications = notificationStates(row);
 	return {

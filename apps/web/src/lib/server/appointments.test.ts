@@ -5,8 +5,12 @@ import type { WhenConfiguration } from '@when/config';
 
 test('deriveDisplayStatus works for non-confirmed statuses', () => {
 	const now = new Date('2026-06-15T12:00:00Z');
-	expect(deriveDisplayStatus({ status: 'pending', start_time: '', end_time: '' }, now)).toBe('pending');
-	expect(deriveDisplayStatus({ status: 'cancelled', start_time: '', end_time: '' }, now)).toBe('cancelled');
+	expect(deriveDisplayStatus({ status: 'pending', start_time: '', end_time: '' }, now)).toBe(
+		'pending'
+	);
+	expect(deriveDisplayStatus({ status: 'cancelled', start_time: '', end_time: '' }, now)).toBe(
+		'cancelled'
+	);
 });
 
 test('deriveDisplayStatus classifies confirmed statuses by time', () => {
@@ -67,11 +71,9 @@ test('toAppointmentView enriches appointment rows correctly', () => {
 		updated_at: ''
 	};
 
-	const mockCfg: WhenConfiguration = {
-		event_types: [
-			{ id: 'chat-30', name: '30 Minute Chat', duration_minutes: 30, slug: 'chat-30' }
-		]
-	} as any;
+	const mockCfg = {
+		event_types: [{ id: 'chat-30', name: '30 Minute Chat', duration: 30, slug: 'chat-30' }]
+	} as unknown as WhenConfiguration;
 
 	const view = toAppointmentView(mockRow, mockCfg, now);
 	expect(view.event_type_name).toBe('30 Minute Chat');

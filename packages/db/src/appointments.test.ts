@@ -1,7 +1,13 @@
 import { expect, test } from 'vitest';
 import { openDb } from './index.js';
 import { runMigrations } from './migrate.js';
-import { expireStalePending, findAppointment, findChainTip, listAppointmentsPage, countAppointments } from './appointments.js';
+import {
+	expireStalePending,
+	findAppointment,
+	findChainTip,
+	listAppointmentsPage,
+	countAppointments
+} from './appointments.js';
 import type { AppointmentStatus } from './types.js';
 
 async function makeDb() {
@@ -163,7 +169,12 @@ test('bucket listings and counts', async () => {
 
 		// upcoming: status='confirmed', end_time > now
 		await insertWithEnd('upcoming1', 'confirmed', '2026-06-15T13:00:00Z', '2026-06-15T13:30:00Z');
-		await insertWithEnd('upcoming-inprogress', 'confirmed', '2026-06-15T11:30:00Z', '2026-06-15T12:30:00Z');
+		await insertWithEnd(
+			'upcoming-inprogress',
+			'confirmed',
+			'2026-06-15T11:30:00Z',
+			'2026-06-15T12:30:00Z'
+		);
 
 		// concluded: status='confirmed', end_time <= now
 		await insertWithEnd('concluded1', 'confirmed', '2026-06-15T11:00:00Z', '2026-06-15T11:30:00Z');
@@ -175,28 +186,52 @@ test('bucket listings and counts', async () => {
 		await insertWithEnd('expired1', 'expired', '2026-06-15T08:00:00Z', '2026-06-15T08:30:00Z');
 
 		// rescheduled: should be excluded everywhere
-		await insertWithEnd('rescheduled1', 'rescheduled', '2026-06-15T13:00:00Z', '2026-06-15T13:30:00Z');
+		await insertWithEnd(
+			'rescheduled1',
+			'rescheduled',
+			'2026-06-15T13:00:00Z',
+			'2026-06-15T13:30:00Z'
+		);
 
 		// --- Test Pending ---
 		expect(await countAppointments(db, { bucket: 'pending', now })).toBe(2);
-		const pendingList = await listAppointmentsPage(db, { bucket: 'pending', now, limit: 10, offset: 0 });
-		expect(pendingList.map(a => a.id)).toEqual(['pending2', 'pending1']);
+		const pendingList = await listAppointmentsPage(db, {
+			bucket: 'pending',
+			now,
+			limit: 10,
+			offset: 0
+		});
+		expect(pendingList.map((a) => a.id)).toEqual(['pending2', 'pending1']);
 
 		// --- Test Upcoming ---
 		expect(await countAppointments(db, { bucket: 'upcoming', now })).toBe(2);
-		const upcomingList = await listAppointmentsPage(db, { bucket: 'upcoming', now, limit: 10, offset: 0 });
-		expect(upcomingList.map(a => a.id)).toEqual(['upcoming-inprogress', 'upcoming1']);
+		const upcomingList = await listAppointmentsPage(db, {
+			bucket: 'upcoming',
+			now,
+			limit: 10,
+			offset: 0
+		});
+		expect(upcomingList.map((a) => a.id)).toEqual(['upcoming-inprogress', 'upcoming1']);
 
 		// --- Test Concluded ---
 		expect(await countAppointments(db, { bucket: 'concluded', now })).toBe(2);
-		const concludedList = await listAppointmentsPage(db, { bucket: 'concluded', now, limit: 10, offset: 0 });
-		expect(concludedList.map(a => a.id)).toEqual(['concluded1', 'concluded2']);
+		const concludedList = await listAppointmentsPage(db, {
+			bucket: 'concluded',
+			now,
+			limit: 10,
+			offset: 0
+		});
+		expect(concludedList.map((a) => a.id)).toEqual(['concluded1', 'concluded2']);
 
 		// --- Test Archived ---
 		expect(await countAppointments(db, { bucket: 'archived', now })).toBe(3);
-		const archivedList = await listAppointmentsPage(db, { bucket: 'archived', now, limit: 10, offset: 0 });
-		expect(archivedList.map(a => a.id)).toEqual(['cancelled1', 'declined1', 'expired1']);
-
+		const archivedList = await listAppointmentsPage(db, {
+			bucket: 'archived',
+			now,
+			limit: 10,
+			offset: 0
+		});
+		expect(archivedList.map((a) => a.id)).toEqual(['cancelled1', 'declined1', 'expired1']);
 	} finally {
 		await db.destroy();
 	}
