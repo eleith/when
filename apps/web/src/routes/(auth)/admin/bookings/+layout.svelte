@@ -1,11 +1,19 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import IconWarning from 'virtual:icons/ph/warning';
+	import IconCaretLeft from 'virtual:icons/ph/caret-left';
+	import IconCaretRight from 'virtual:icons/ph/caret-right';
 
 	let { data, children } = $props();
 
 	let currentPath = $derived(page.url.pathname);
 	let badCalendars = $derived(data.calendars.filter((c: any) => c.health === 'bad'));
+
+	// Pagination parameters resolved from page.data
+	let currentPage = $derived(page.data.page ?? 1);
+	let pageCount = $derived(page.data.pageCount ?? 1);
+	let prevHref = $derived(currentPage > 1 ? `?page=${currentPage - 1}` : null);
+	let nextHref = $derived(currentPage < pageCount ? `?page=${currentPage + 1}` : null);
 </script>
 
 <div class="bookings-layout">
@@ -32,45 +40,74 @@
 		</div>
 	{/if}
 
-	<div class="tabs-strip">
-		<a
-			href="/admin/bookings/upcoming"
-			class="sub-tab"
-			class:active={currentPath === '/admin/bookings/upcoming'}
-		>
-			Upcoming
-			{#if data.upcomingCount > 0}
-				<span class="tab-badge">{data.upcomingCount}</span>
-			{/if}
-		</a>
-		<a
-			href="/admin/bookings/pending"
-			class="sub-tab"
-			class:active={currentPath === '/admin/bookings/pending'}
-		>
-			Pending
-			{#if data.pendingCount > 0}
-				<span class="tab-badge tab-badge-pending">{data.pendingCount}</span>
-			{/if}
-		</a>
-		<a
-			href="/admin/bookings/concluded"
-			class="sub-tab"
-			class:active={currentPath === '/admin/bookings/concluded'}
-		>
-			Concluded
-		</a>
-		<a
-			href="/admin/bookings/archived"
-			class="sub-tab"
-			class:active={currentPath === '/admin/bookings/archived'}
-		>
-			Archived
-		</a>
-	</div>
+	<div class="card bookings-card">
+		<div class="card-header">
+			<div class="tabs-strip">
+				<a
+					href="/admin/bookings/upcoming"
+					class="sub-tab"
+					class:active={currentPath === '/admin/bookings/upcoming'}
+				>
+					Upcoming
+					{#if data.upcomingCount > 0}
+						<span class="tab-badge">{data.upcomingCount}</span>
+					{/if}
+				</a>
+				<a
+					href="/admin/bookings/pending"
+					class="sub-tab"
+					class:active={currentPath === '/admin/bookings/pending'}
+				>
+					Pending
+					{#if data.pendingCount > 0}
+						<span class="tab-badge tab-badge-pending">{data.pendingCount}</span>
+					{/if}
+				</a>
+				<a
+					href="/admin/bookings/concluded"
+					class="sub-tab"
+					class:active={currentPath === '/admin/bookings/concluded'}
+				>
+					Concluded
+				</a>
+				<a
+					href="/admin/bookings/archived"
+					class="sub-tab"
+					class:active={currentPath === '/admin/bookings/archived'}
+				>
+					Archived
+				</a>
+			</div>
+		</div>
 
-	<div class="bookings-content">
-		{@render children()}
+		<div class="card-content">
+			{@render children()}
+		</div>
+
+		{#if pageCount > 1}
+			<div class="card-footer">
+				<div class="pagination">
+					{#if prevHref}
+						<a href={prevHref} class="pagination-link" aria-label="Previous page">
+							<IconCaretLeft class="pagination-icon" aria-hidden="true" />
+						</a>
+					{:else}
+						<span class="pagination-link disabled" aria-label="Previous page">
+							<IconCaretLeft class="pagination-icon" aria-hidden="true" />
+						</span>
+					{/if}
+					{#if nextHref}
+						<a href={nextHref} class="pagination-link" aria-label="Next page">
+							<IconCaretRight class="pagination-icon" aria-hidden="true" />
+						</a>
+					{:else}
+						<span class="pagination-link disabled" aria-label="Next page">
+							<IconCaretRight class="pagination-icon" aria-hidden="true" />
+						</span>
+					{/if}
+				</div>
+			</div>
+		{/if}
 	</div>
 </div>
 
@@ -81,10 +118,37 @@
 		gap: var(--space-4);
 	}
 
+	/* ---- card styling ---- */
+	.card {
+		background: var(--surface);
+		border: 1px solid var(--border);
+		border-radius: var(--radius-md);
+		box-shadow: var(--shadow-card);
+		overflow: hidden;
+		display: flex;
+		flex-direction: column;
+	}
+
+	.card-header {
+		background: var(--surface-page);
+		border-bottom: 1px solid var(--border);
+		padding: 0 var(--space-2);
+	}
+
+	.card-content {
+		background: var(--surface);
+	}
+
+	.card-footer {
+		background: var(--surface-page);
+		border-top: 1px solid var(--border);
+		padding: var(--space-3) var(--space-5);
+	}
+
+	/* ---- sub-tabs (underline style flush to header bottom) ---- */
 	.tabs-strip {
 		display: flex;
 		gap: var(--space-2);
-		margin-bottom: var(--space-2);
 	}
 
 	.sub-tab {
@@ -95,21 +159,21 @@
 		font-weight: 600;
 		color: var(--text-muted);
 		text-decoration: none;
-		padding: var(--space-2) var(--space-3);
-		border-radius: var(--radius-sm);
+		padding: var(--space-4) var(--space-3);
+		border-bottom: 2px solid transparent;
+		margin-bottom: -1px;
 		transition:
-			background var(--transition),
+			border-color var(--transition),
 			color var(--transition);
 	}
 
 	.sub-tab:hover {
 		color: var(--text);
-		background: var(--surface-muted);
 	}
 
 	.sub-tab.active {
 		color: var(--text);
-		background: var(--surface-active);
+		border-bottom-color: var(--primary);
 	}
 
 	.tab-badge {
@@ -130,6 +194,39 @@
 	.tab-badge-pending {
 		background: var(--warning-bg);
 		color: var(--warning-strong);
+	}
+
+	/* ---- pagination (clean text links with arrows) ---- */
+	.pagination {
+		display: flex;
+		justify-content: flex-end;
+		gap: var(--space-4);
+	}
+
+	.pagination-link {
+		color: var(--text-secondary);
+		text-decoration: none;
+		transition: color var(--transition);
+		cursor: pointer;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 28px;
+		height: 28px;
+	}
+
+	.pagination-link:not(.disabled):hover {
+		color: var(--text);
+	}
+
+	.pagination-link.disabled {
+		color: var(--text-disabled);
+		cursor: not-allowed;
+	}
+
+	:global(.pagination-icon) {
+		font-size: var(--font-size-xl);
+		display: block;
 	}
 
 	/* ---- review banner ---- */

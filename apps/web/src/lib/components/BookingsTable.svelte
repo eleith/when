@@ -30,7 +30,6 @@
 	}
 </script>
 
-<div class="card table-card">
 	<div class="table-wrap">
 		<table>
 			<thead>
@@ -86,22 +85,9 @@
 			</tbody>
 		</table>
 	</div>
-</div>
 
 <style>
-	/* ---- card styling ---- */
-	.card {
-		background: var(--surface);
-		border: 1px solid var(--border);
-		border-radius: var(--radius-md);
-		box-shadow: var(--shadow-card);
-		overflow: hidden;
-	}
 
-	/* ---- table design ---- */
-	.table-card {
-		border-radius: var(--radius-md);
-	}
 
 	.table-wrap {
 		overflow-x: auto;
