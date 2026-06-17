@@ -1,7 +1,5 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import IconCheck from 'virtual:icons/ph/check';
-	import IconX from 'virtual:icons/ph/x';
 	import IconWarning from 'virtual:icons/ph/warning';
 	import NotificationChips from '$lib/components/NotificationChips.svelte';
 	import type { toAppointmentView } from '$lib/server/appointments';
@@ -24,13 +22,8 @@
 
 	function handleRowClick(e: MouseEvent, id: string) {
 		const target = e.target as HTMLElement;
-		// Prevent navigating if the user clicked on an interactive element (e.g. form, button, link)
-		if (
-			target.closest('.cell-actions') ||
-			target.closest('a') ||
-			target.closest('button') ||
-			target.closest('form')
-		) {
+		// Prevent navigating if the user clicked on a link
+		if (target.closest('a')) {
 			return;
 		}
 		goto(`/booked/${id}`);
@@ -46,7 +39,6 @@
 					<th>Event type</th>
 					<th>Date & Time</th>
 					<th>Status</th>
-					<th class="actions-th">Actions</th>
 				</tr>
 			</thead>
 			<tbody>
@@ -88,24 +80,6 @@
 									</span>
 								{/if}
 							</div>
-						</td>
-						<td class="cell-actions">
-							{#if a.status === 'pending' && !a.is_past}
-								<div class="action-buttons">
-									<form method="POST" action="/booked/{a.id}?/accept" class="action-form">
-										<button type="submit" class="action-btn accept" title="Accept Booking">
-											<IconCheck class="action-icon" aria-hidden="true" />
-											<span>Accept</span>
-										</button>
-									</form>
-									<form method="POST" action="/booked/{a.id}?/decline" class="action-form">
-										<button type="submit" class="action-btn decline" title="Decline Booking">
-											<IconX class="action-icon" aria-hidden="true" />
-											<span>Decline</span>
-										</button>
-									</form>
-								</div>
-							{/if}
 						</td>
 					</tr>
 				{/each}
@@ -280,76 +254,11 @@
 		color: var(--danger-strong);
 	}
 
-	/* actions alignment */
-	.actions-th,
-	.cell-actions {
-		text-align: right;
-	}
-
-	.action-buttons {
-		display: inline-flex;
-		justify-content: flex-end;
-		gap: var(--space-2);
-	}
-
-	.action-form {
-		margin: 0;
-		display: inline-block;
-	}
-
-	.action-btn {
-		display: inline-flex;
-		align-items: center;
-		gap: var(--space-1);
-		font-size: var(--font-size-sm);
-		font-weight: 700;
-		padding: var(--space-2) var(--space-3);
-		border-radius: var(--radius-sm);
-		border: 1px solid transparent;
-		cursor: pointer;
-		transition:
-			background var(--transition),
-			border-color var(--transition),
-			color var(--transition);
-	}
-
-	.action-btn.accept {
-		background: var(--success-bg);
-		color: var(--success-strong);
-		border-color: var(--success-border);
-	}
-
-	.action-btn.accept:hover {
-		background: var(--success);
-		color: var(--text-on-primary);
-		border-color: var(--success);
-	}
-
-	.action-btn.decline {
-		background: var(--danger-bg);
-		color: var(--danger-strong);
-		border-color: var(--danger-border);
-	}
-
-	.action-btn.decline:hover {
-		background: var(--danger);
-		color: var(--text-on-primary);
-		border-color: var(--danger);
-	}
-
-	:global(.action-icon) {
-		font-size: var(--font-size-sm);
-	}
-
 	/* ---- responsive overrides ---- */
 	@media (max-width: 768px) {
 		th,
 		td {
 			padding: var(--space-3) var(--space-4);
-		}
-
-		.action-btn span {
-			display: none;
 		}
 	}
 </style>
