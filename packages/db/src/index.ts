@@ -32,7 +32,9 @@ export {
 	expireStalePending,
 	originId,
 	listAppointmentsPage,
-	countAppointments
+	countAppointments,
+	isChainTerminal,
+	deleteChain
 } from './appointments.js';
 export type { AppointmentBucket } from './appointments.js';
 export {

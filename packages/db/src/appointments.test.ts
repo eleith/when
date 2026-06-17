@@ -6,7 +6,9 @@ import {
 	findAppointment,
 	findChainTip,
 	listAppointmentsPage,
-	countAppointments
+	countAppointments,
+	isChainTerminal,
+	deleteChain
 } from './appointments.js';
 import type { AppointmentStatus } from './types.js';
 
@@ -232,6 +234,75 @@ test('bucket listings and counts', async () => {
 			offset: 0
 		});
 		expect(archivedList.map((a) => a.id)).toEqual(['cancelled1', 'declined1', 'expired1']);
+	} finally {
+		await db.destroy();
+	}
+});
+
+test('isChainTerminal validation rules', async () => {
+	const db = await makeDb();
+	try {
+		const now = new Date('2026-06-15T12:00:00Z');
+
+		// 1. Not found
+		expect(await isChainTerminal(db, 'missing', now)).toEqual({
+			terminal: false,
+			reason: 'not_found'
+		});
+
+		// 2. Confirmed upcoming -> blocked
+		await insert(db, 'upcoming', 'confirmed', '2026-06-15T13:00:00Z');
+		expect(await isChainTerminal(db, 'upcoming', now)).toEqual({
+			terminal: false,
+			reason: 'not_terminal'
+		});
+
+		// 3. Confirmed concluded -> allowed
+		await insert(db, 'concluded', 'confirmed', '2026-06-15T11:00:00Z');
+		expect(await isChainTerminal(db, 'concluded', now)).toEqual({
+			terminal: true
+		});
+
+		// 4. Cancelled -> allowed
+		await insert(db, 'cancelled', 'cancelled', '2026-06-15T13:00:00Z');
+		expect(await isChainTerminal(db, 'cancelled', now)).toEqual({
+			terminal: true
+		});
+
+		// 5. Notifications queued -> blocked
+		await insert(db, 'queued', 'cancelled', '2026-06-15T13:00:00Z');
+		await db
+			.updateTable('appointments')
+			.set({ email_notification_status: 'queued' })
+			.where('id', '=', 'queued')
+			.execute();
+		expect(await isChainTerminal(db, 'queued', now)).toEqual({
+			terminal: false,
+			reason: 'notifications_queued'
+		});
+	} finally {
+		await db.destroy();
+	}
+});
+
+test('deleteChain purges the entire reschedule chain', async () => {
+	const db = await makeDb();
+	try {
+		// Chain A -> B -> C
+		await insert(db, 'A', 'rescheduled', '2026-06-15T10:00:00Z', 'A', 'B');
+		await insert(db, 'B', 'rescheduled', '2026-06-15T11:00:00Z', 'A', 'C');
+		await insert(db, 'C', 'cancelled', '2026-06-15T12:00:00Z', 'A', null);
+
+		// Standalone D
+		await insert(db, 'D', 'cancelled', '2026-06-15T12:00:00Z', 'D', null);
+
+		const deleted = await deleteChain(db, 'A');
+		expect(deleted).toBe(3); // A, B, C deleted
+
+		expect(await findAppointment(db, 'A')).toBeUndefined();
+		expect(await findAppointment(db, 'B')).toBeUndefined();
+		expect(await findAppointment(db, 'C')).toBeUndefined();
+		expect(await findAppointment(db, 'D')).toBeDefined(); // D remains untouched
 	} finally {
 		await db.destroy();
 	}
