@@ -102,8 +102,11 @@ async function isChainTerminal(
 		.select((eb) => eb.fn.countAll().as('count'))
 		.where((eb) => eb('origin_id', '=', chainOriginId).or('id', '=', chainOriginId))
 		.where((eb) =>
-			eb('email_notification_status', '=', 'queued')
-				.or('calendar_push_notification_status', '=', 'queued')
+			eb('email_notification_status', '=', 'queued').or(
+				'calendar_push_notification_status',
+				'=',
+				'queued'
+			)
 		)
 		.executeTakeFirst();
 
