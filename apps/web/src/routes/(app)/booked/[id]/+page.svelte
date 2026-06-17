@@ -294,8 +294,6 @@
 		padding: 0 var(--space-6);
 	}
 
-
-
 	/* ---- banners (notices & confirmations) ---- */
 	.banner {
 		display: flex;
