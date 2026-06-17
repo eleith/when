@@ -52,47 +52,63 @@
 
 <Dialog.Root bind:open>
 	<Dialog.Portal>
-		<Dialog.Overlay class="dialog-overlay" />
-		<Dialog.Content class="dialog-content tz-dialog">
-			<header class="tz-dialog-header">
-				<Dialog.Title class="tz-dialog-title">Choose timezone</Dialog.Title>
-				<Dialog.Close class="tz-dialog-close" aria-label="Close">&times;</Dialog.Close>
-			</header>
-			<input
-				class="tz-search"
-				type="search"
-				placeholder="Search timezone or city…"
-				bind:value={search}
-				bind:this={searchInput}
-				autocomplete="off"
-			/>
-			<ul class="tz-list" bind:this={listEl}>
-				{#each filtered as tz (tz)}
-					{@const info = TZ_INFO.get(tz)}
-					<li>
-						<button
-							type="button"
-							class="tz-option"
-							class:selected={tz === ptz.current}
-							onclick={() => select(tz)}
-						>
-							<span class="tz-option-city">{info?.city ?? tz}</span>
-							{#if info?.offset}
-								<span class="tz-option-offset">{info.offset}</span>
-							{/if}
-						</button>
-					</li>
-				{/each}
-				{#if filtered.length === 0}
-					<li class="tz-empty">No matches</li>
-				{/if}
-			</ul>
+		<Dialog.Overlay>
+			{#snippet child({ props })}
+				<div {...props} class="dialog-overlay"></div>
+			{/snippet}
+		</Dialog.Overlay>
+		<Dialog.Content>
+			{#snippet child({ props })}
+				<div {...props} class="dialog-content tz-dialog">
+					<header class="tz-dialog-header">
+						<Dialog.Title>
+							{#snippet child({ props: titleProps })}
+								<h2 {...titleProps} class="tz-dialog-title">Choose timezone</h2>
+							{/snippet}
+						</Dialog.Title>
+						<Dialog.Close>
+							{#snippet child({ props: closeProps })}
+								<button {...closeProps} class="tz-dialog-close" aria-label="Close">&times;</button>
+							{/snippet}
+						</Dialog.Close>
+					</header>
+					<input
+						class="tz-search"
+						type="search"
+						placeholder="Search timezone or city…"
+						bind:value={search}
+						bind:this={searchInput}
+						autocomplete="off"
+					/>
+					<ul class="tz-list" bind:this={listEl}>
+						{#each filtered as tz (tz)}
+							{@const info = TZ_INFO.get(tz)}
+							<li>
+								<button
+									type="button"
+									class="tz-option"
+									class:selected={tz === ptz.current}
+									onclick={() => select(tz)}
+								>
+									<span class="tz-option-city">{info?.city ?? tz}</span>
+									{#if info?.offset}
+										<span class="tz-option-offset">{info.offset}</span>
+									{/if}
+								</button>
+							</li>
+						{/each}
+						{#if filtered.length === 0}
+							<li class="tz-empty">No matches</li>
+						{/if}
+					</ul>
+				</div>
+			{/snippet}
 		</Dialog.Content>
 	</Dialog.Portal>
 </Dialog.Root>
 
 <style>
-	:global(.dialog-overlay) {
+	.dialog-overlay {
 		position: fixed;
 		inset: 0;
 		background: rgba(0, 0, 0, 0.45);
@@ -100,7 +116,7 @@
 		animation: tz-fade-in 0.15s ease-out;
 	}
 
-	:global(.dialog-content.tz-dialog) {
+	.dialog-content.tz-dialog {
 		position: fixed;
 		bottom: 0;
 		left: 0;
@@ -119,7 +135,7 @@
 	}
 
 	@media (min-width: 769px) {
-		:global(.dialog-content.tz-dialog) {
+		.dialog-content.tz-dialog {
 			top: 50%;
 			bottom: auto;
 			left: 50%;
@@ -170,13 +186,13 @@
 		gap: var(--space-4);
 	}
 
-	:global(.tz-dialog-title) {
+	.tz-dialog-title {
 		margin: 0;
 		font-size: var(--font-size-lg);
 		font-weight: 600;
 	}
 
-	:global(.tz-dialog-close) {
+	.tz-dialog-close {
 		background: none;
 		border: none;
 		font-size: var(--font-size-2xl);
@@ -187,7 +203,7 @@
 		border-radius: var(--radius-sm);
 	}
 
-	:global(.tz-dialog-close:hover) {
+	.tz-dialog-close:hover {
 		background: var(--surface-muted);
 		color: var(--text);
 	}

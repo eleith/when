@@ -34,21 +34,27 @@
 		{/snippet}
 	</DropdownMenu.Trigger>
 	<DropdownMenu.Portal>
-		<DropdownMenu.Content class="ba-menu" align="end" sideOffset={6}>
-			{#if actions.reschedule.allowed}
-				<DropdownMenu.Item>
-					{#snippet child({ props })}
-						<a {...props} href={rescheduleHref} class="action-item">Reschedule</a>
-					{/snippet}
-				</DropdownMenu.Item>
-			{/if}
-			{#if actions.cancel.allowed}
-				<DropdownMenu.Item onSelect={requestCancel}>
-					{#snippet child({ props })}
-						<button {...props} type="button" class="action-item action-item-danger">Cancel</button>
-					{/snippet}
-				</DropdownMenu.Item>
-			{/if}
+		<DropdownMenu.Content align="end" sideOffset={6}>
+			{#snippet child({ props })}
+				<div {...props} class="ba-menu">
+					{#if actions.reschedule.allowed}
+						<DropdownMenu.Item>
+							{#snippet child({ props: itemProps })}
+								<a {...itemProps} href={rescheduleHref} class="action-item">Reschedule</a>
+							{/snippet}
+						</DropdownMenu.Item>
+					{/if}
+					{#if actions.cancel.allowed}
+						<DropdownMenu.Item onSelect={requestCancel}>
+							{#snippet child({ props: itemProps })}
+								<button {...itemProps} type="button" class="action-item action-item-danger"
+									>Cancel</button
+								>
+							{/snippet}
+						</DropdownMenu.Item>
+					{/if}
+				</div>
+			{/snippet}
 		</DropdownMenu.Content>
 	</DropdownMenu.Portal>
 </DropdownMenu.Root>
@@ -110,7 +116,7 @@
 		color: var(--danger-strong);
 	}
 
-	:global(.ba-menu) {
+	.ba-menu {
 		min-width: 200px;
 		display: flex;
 		flex-direction: column;

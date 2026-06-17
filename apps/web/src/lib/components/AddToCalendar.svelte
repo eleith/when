@@ -15,32 +15,44 @@
 
 <Dialog.Root bind:open>
 	<Dialog.Portal>
-		<Dialog.Overlay class="atc-overlay" />
-		<Dialog.Content class="atc-dialog">
-			<Dialog.Title class="atc-dialog-title">Add to calendar</Dialog.Title>
-			<div class="atc-options">
-				<a
-					class="atc-option"
-					href={links.google}
-					target="_blank"
-					rel="noopener noreferrer"
-					onclick={() => (open = false)}>Google</a
-				>
-				<a
-					class="atc-option"
-					href={links.outlook}
-					target="_blank"
-					rel="noopener noreferrer"
-					onclick={() => (open = false)}>Outlook</a
-				>
-				<a class="atc-option" href={links.ics} onclick={() => (open = false)}>Apple</a>
-				<a
-					class="atc-option"
-					href={links.ics}
-					download="when-{appointmentId}.ics"
-					onclick={() => (open = false)}>Download .ics</a
-				>
-			</div>
+		<Dialog.Overlay>
+			{#snippet child({ props })}
+				<div {...props} class="atc-overlay"></div>
+			{/snippet}
+		</Dialog.Overlay>
+		<Dialog.Content>
+			{#snippet child({ props })}
+				<div {...props} class="atc-dialog">
+					<Dialog.Title>
+						{#snippet child({ props: titleProps })}
+							<h2 {...titleProps} class="atc-dialog-title">Add to calendar</h2>
+						{/snippet}
+					</Dialog.Title>
+					<div class="atc-options">
+						<a
+							class="atc-option"
+							href={links.google}
+							target="_blank"
+							rel="noopener noreferrer"
+							onclick={() => (open = false)}>Google</a
+						>
+						<a
+							class="atc-option"
+							href={links.outlook}
+							target="_blank"
+							rel="noopener noreferrer"
+							onclick={() => (open = false)}>Outlook</a
+						>
+						<a class="atc-option" href={links.ics} onclick={() => (open = false)}>Apple</a>
+						<a
+							class="atc-option"
+							href={links.ics}
+							download="when-{appointmentId}.ics"
+							onclick={() => (open = false)}>Download .ics</a
+						>
+					</div>
+				</div>
+			{/snippet}
 		</Dialog.Content>
 	</Dialog.Portal>
 </Dialog.Root>
@@ -67,7 +79,7 @@
 		opacity: 0.9;
 	}
 
-	:global(.atc-overlay) {
+	.atc-overlay {
 		position: fixed;
 		inset: 0;
 		background: rgba(0, 0, 0, 0.4);
@@ -77,7 +89,7 @@
 		animation: atc-fade-in 0.15s ease-out;
 	}
 
-	:global(.atc-dialog) {
+	.atc-dialog {
 		position: fixed;
 		bottom: 0;
 		left: 0;
@@ -96,7 +108,7 @@
 	}
 
 	@media (min-width: 769px) {
-		:global(.atc-dialog) {
+		.atc-dialog {
 			top: 50%;
 			bottom: auto;
 			left: 50%;
@@ -111,7 +123,7 @@
 		}
 	}
 
-	:global(.atc-dialog-title) {
+	.atc-dialog-title {
 		margin: 0;
 		font-size: var(--font-size-lg);
 		font-weight: 700;

@@ -257,23 +257,40 @@
 
 <Dialog.Root bind:open={cancelDialogOpen}>
 	<Dialog.Portal>
-		<Dialog.Overlay class="dialog-overlay" />
-		<Dialog.Content class="dialog-content cancel-dialog">
-			<Dialog.Title class="cancel-dialog-title">Cancel booking?</Dialog.Title>
+		<Dialog.Overlay>
+			{#snippet child({ props })}
+				<div {...props} class="dialog-overlay"></div>
+			{/snippet}
+		</Dialog.Overlay>
+		<Dialog.Content>
+			{#snippet child({ props })}
+				<div {...props} class="dialog-content cancel-dialog">
+					<Dialog.Title>
+						{#snippet child({ props: titleProps })}
+							<h2 {...titleProps} class="cancel-dialog-title">Cancel booking?</h2>
+						{/snippet}
+					</Dialog.Title>
 
-			<p class="cancel-dialog-desc">
-				{#if data.isAdmin}
-					<strong>{data.appointment.attendee_name}</strong> will be notified by email. This can't be undone.
-				{:else}
-					You'll both be notified by email. This can't be undone.
-				{/if}
-			</p>
+					<p class="cancel-dialog-desc">
+						{#if data.isAdmin}
+							<strong>{data.appointment.attendee_name}</strong> will be notified by email. This can't
+							be undone.
+						{:else}
+							You'll both be notified by email. This can't be undone.
+						{/if}
+					</p>
 
-			<form method="POST" action="?/cancel" class="cancel-dialog-actions">
-				<input type="hidden" name="token" value={data.token} />
-				<button type="submit" class="cancel-confirm-btn">Yes, cancel</button>
-				<Dialog.Close type="button" class="cancel-cancel-btn">No, keep</Dialog.Close>
-			</form>
+					<form method="POST" action="?/cancel" class="cancel-dialog-actions">
+						<input type="hidden" name="token" value={data.token} />
+						<button type="submit" class="cancel-confirm-btn">Yes, cancel</button>
+						<Dialog.Close>
+							{#snippet child({ props: closeProps })}
+								<button {...closeProps} type="button" class="cancel-cancel-btn">No, keep</button>
+							{/snippet}
+						</Dialog.Close>
+					</form>
+				</div>
+			{/snippet}
 		</Dialog.Content>
 	</Dialog.Portal>
 </Dialog.Root>
@@ -591,7 +608,7 @@
 	}
 
 	/* ---- cancel dialog ---- */
-	:global(.dialog-overlay) {
+	.dialog-overlay {
 		position: fixed;
 		inset: 0;
 		background: rgba(0, 0, 0, 0.4);
@@ -601,7 +618,7 @@
 		animation: cancel-fade-in 0.15s ease-out;
 	}
 
-	:global(.dialog-content.cancel-dialog) {
+	.dialog-content.cancel-dialog {
 		position: fixed;
 		bottom: 0;
 		left: 0;
@@ -620,7 +637,7 @@
 	}
 
 	@media (min-width: 769px) {
-		:global(.dialog-content.cancel-dialog) {
+		.dialog-content.cancel-dialog {
 			top: 50%;
 			bottom: auto;
 			left: 50%;
@@ -664,7 +681,7 @@
 		}
 	}
 
-	:global(.cancel-dialog-title) {
+	.cancel-dialog-title {
 		margin: 0;
 		font-size: var(--font-size-xl);
 		font-weight: 700;
@@ -703,7 +720,7 @@
 		border-color: var(--danger-strong);
 	}
 
-	:global(.cancel-cancel-btn) {
+	.cancel-cancel-btn {
 		background: none;
 		border: 1px solid var(--border-strong);
 		border-radius: var(--radius);
@@ -715,7 +732,7 @@
 		transition: background var(--transition);
 	}
 
-	:global(.cancel-cancel-btn:hover) {
+	.cancel-cancel-btn:hover {
 		background: var(--surface-muted);
 	}
 
@@ -732,7 +749,7 @@
 			min-height: 48px;
 		}
 
-		:global(.cancel-cancel-btn) {
+		.cancel-cancel-btn {
 			width: 100%;
 			text-align: center;
 			min-height: 48px;
