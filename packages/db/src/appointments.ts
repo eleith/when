@@ -36,3 +36,55 @@ export async function expireStalePending(db: Kysely<Database>, nowIso: string): 
 		.executeTakeFirst();
 	return Number(result.numUpdatedRows);
 }
+
+export type AppointmentBucket = 'pending' | 'upcoming' | 'concluded' | 'archived';
+
+function applyBucket(qb: any, bucket: AppointmentBucket, nowIso: string): any {
+	switch (bucket) {
+		case 'pending':
+			return qb.where('status', '=', 'pending');
+		case 'upcoming':
+			return qb.where('status', '=', 'confirmed').where('end_time', '>', nowIso);
+		case 'concluded':
+			return qb.where('status', '=', 'confirmed').where('end_time', '<=', nowIso);
+		case 'archived':
+			return qb.where('status', 'in', ['declined', 'cancelled', 'expired']);
+	}
+}
+
+export function listAppointmentsPage(
+	db: Kysely<Database>,
+	opts: {
+		bucket: AppointmentBucket;
+		now: Date;
+		limit: number;
+		offset: number;
+	}
+): Promise<Appointment[]> {
+	const nowIso = opts.now.toISOString();
+	let qb = db.selectFrom('appointments').selectAll();
+	qb = applyBucket(qb, opts.bucket, nowIso);
+
+	if (opts.bucket === 'pending' || opts.bucket === 'upcoming') {
+		qb = qb.orderBy('start_time', 'asc');
+	} else {
+		qb = qb.orderBy('start_time', 'desc');
+	}
+
+	return qb.limit(opts.limit).offset(opts.offset).execute();
+}
+
+export async function countAppointments(
+	db: Kysely<Database>,
+	opts: {
+		bucket: AppointmentBucket;
+		now: Date;
+	}
+): Promise<number> {
+	const nowIso = opts.now.toISOString();
+	let qb = db.selectFrom('appointments');
+	qb = applyBucket(qb, opts.bucket, nowIso);
+	const res = await qb.select(sql<number>`count(*)`.as('cnt')).executeTakeFirst();
+	return Number(res?.cnt ?? 0);
+}
+

@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest';
 import { openDb } from './index.js';
 import { runMigrations } from './migrate.js';
-import { expireStalePending, findAppointment, findChainTip } from './appointments.js';
+import { expireStalePending, findAppointment, findChainTip, listAppointmentsPage, countAppointments } from './appointments.js';
 import type { AppointmentStatus } from './types.js';
 
 async function makeDb() {
@@ -116,6 +116,87 @@ test('findChainTip returns the terminal tip when a chain ends cancelled', async 
 		await insert(db, 'B', 'cancelled', '2099-01-02T15:00:00Z', 'A', null);
 
 		expect((await findChainTip(db, 'A'))?.id).toBe('B');
+	} finally {
+		await db.destroy();
+	}
+});
+
+test('bucket listings and counts', async () => {
+	const db = await makeDb();
+	try {
+		const now = new Date('2026-06-15T12:00:00Z');
+
+		const insertWithEnd = async (
+			id: string,
+			status: AppointmentStatus,
+			startTime: string,
+			endTime: string,
+			origin = id,
+			rescheduledTo: string | null = null
+		) => {
+			await db
+				.insertInto('appointments')
+				.values({
+					id,
+					event_type_id: 'chat',
+					start_time: startTime,
+					end_time: endTime,
+					attendee_name: 'Booker',
+					attendee_email: 'booker@example.com',
+					attendee_notes: null,
+					location: null,
+					status,
+					origin_id: origin,
+					rescheduled_to_id: rescheduledTo,
+					cancel_token: `tok-${id}`,
+					external_event_id: null,
+					external_calendar_id: null,
+					email_notification_status: null,
+					calendar_push_notification_status: null
+				})
+				.execute();
+		};
+
+		// pending: status='pending'
+		await insertWithEnd('pending1', 'pending', '2026-06-15T14:00:00Z', '2026-06-15T14:30:00Z');
+		await insertWithEnd('pending2', 'pending', '2026-06-15T10:00:00Z', '2026-06-15T10:30:00Z');
+
+		// upcoming: status='confirmed', end_time > now
+		await insertWithEnd('upcoming1', 'confirmed', '2026-06-15T13:00:00Z', '2026-06-15T13:30:00Z');
+		await insertWithEnd('upcoming-inprogress', 'confirmed', '2026-06-15T11:30:00Z', '2026-06-15T12:30:00Z');
+
+		// concluded: status='confirmed', end_time <= now
+		await insertWithEnd('concluded1', 'confirmed', '2026-06-15T11:00:00Z', '2026-06-15T11:30:00Z');
+		await insertWithEnd('concluded2', 'confirmed', '2026-06-15T09:00:00Z', '2026-06-15T09:30:00Z');
+
+		// archived: status in ('declined', 'cancelled', 'expired')
+		await insertWithEnd('declined1', 'declined', '2026-06-15T15:00:00Z', '2026-06-15T15:30:00Z');
+		await insertWithEnd('cancelled1', 'cancelled', '2026-06-15T16:00:00Z', '2026-06-15T16:30:00Z');
+		await insertWithEnd('expired1', 'expired', '2026-06-15T08:00:00Z', '2026-06-15T08:30:00Z');
+
+		// rescheduled: should be excluded everywhere
+		await insertWithEnd('rescheduled1', 'rescheduled', '2026-06-15T13:00:00Z', '2026-06-15T13:30:00Z');
+
+		// --- Test Pending ---
+		expect(await countAppointments(db, { bucket: 'pending', now })).toBe(2);
+		const pendingList = await listAppointmentsPage(db, { bucket: 'pending', now, limit: 10, offset: 0 });
+		expect(pendingList.map(a => a.id)).toEqual(['pending2', 'pending1']);
+
+		// --- Test Upcoming ---
+		expect(await countAppointments(db, { bucket: 'upcoming', now })).toBe(2);
+		const upcomingList = await listAppointmentsPage(db, { bucket: 'upcoming', now, limit: 10, offset: 0 });
+		expect(upcomingList.map(a => a.id)).toEqual(['upcoming-inprogress', 'upcoming1']);
+
+		// --- Test Concluded ---
+		expect(await countAppointments(db, { bucket: 'concluded', now })).toBe(2);
+		const concludedList = await listAppointmentsPage(db, { bucket: 'concluded', now, limit: 10, offset: 0 });
+		expect(concludedList.map(a => a.id)).toEqual(['concluded1', 'concluded2']);
+
+		// --- Test Archived ---
+		expect(await countAppointments(db, { bucket: 'archived', now })).toBe(3);
+		const archivedList = await listAppointmentsPage(db, { bucket: 'archived', now, limit: 10, offset: 0 });
+		expect(archivedList.map(a => a.id)).toEqual(['cancelled1', 'declined1', 'expired1']);
+
 	} finally {
 		await db.destroy();
 	}
