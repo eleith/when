@@ -14,13 +14,10 @@
 
 	let { data, form } = $props();
 
-	// Writable derived: tracks the server's `cancel=1` flag but can be toggled
-	// locally to open/close the dialog.
 	let cancelDialogOpen = $derived(data.showCancelModal);
+	let deleteDialogOpen = $state(false);
 
 	let status = $derived(data.appointment.status);
-	// The card's single state line: status wins for non-confirmed bookings; for
-	// confirmed ones the time position (upcoming/in progress/concluded) leads.
 	let stateTone = $derived.by(() => {
 		if (status === 'declined' || status === 'cancelled' || status === 'expired') return 'danger';
 		if (status === 'rescheduled') return 'quiet';
@@ -30,24 +27,13 @@
 		return 'info';
 	});
 	let canRebook = $derived(status === 'declined' || status === 'cancelled' || status === 'expired');
-	// Each viewer's own zone leads; the counterpart's zone is shown when they differ.
 	let displayTz = $derived(data.isAdmin ? data.organizerTz : data.attendeeTz);
 	let counterpartTz = $derived(data.isAdmin ? data.attendeeTz : data.organizerTz);
 	let counterpartName = $derived(data.isAdmin ? data.appointment.attendee_name : data.user.name);
 	let zonesDiffer = $derived(displayTz !== counterpartTz);
-	// The kebab now only carries reschedule/cancel; accept/decline moved to the CTA.
 	let hasActions = $derived(data.actions.cancel.allowed || data.actions.reschedule.allowed);
-	// Pending bookings have no calendar links, so the CTA slot is free for the decision.
 	let showDecideCta = $derived(
 		!data.calendarLinks && (data.actions.accept.allowed || data.actions.decline.allowed)
-	);
-	let notifFailed = $derived(data.appointment.notifications.some((n) => n.state === 'failed'));
-	let notifLabel = $derived(
-		notifFailed
-			? 'notification failed'
-			: data.appointment.notifications.some((n) => n.state === 'queued')
-				? 'notification sending'
-				: 'notification sent'
 	);
 </script>
 
@@ -90,12 +76,14 @@
 						&middot; {data.eventType.description}{/if}
 				</p>
 			</div>
-			{#if hasActions}
+			{#if hasActions || data.isAdmin}
 				<BookingActions
 					actions={data.actions}
 					appointmentId={data.appointment.id}
 					token={data.token}
+					isAdmin={data.isAdmin}
 					onCancel={() => (cancelDialogOpen = true)}
+					onDelete={() => (deleteDialogOpen = true)}
 				/>
 			{/if}
 		</section>
@@ -157,6 +145,15 @@
 					<div class="detail-secondary">
 						{formatWeekday(data.appointment.start_time, displayTz)}
 					</div>
+					{#if data.isAdmin}
+						<div class="detail-secondary" class:notif-failed={data.appointment.calendar_push_notification_status === 'failed'}>
+							{
+								data.appointment.calendar_push_notification_status === 'queued' ? 'Calendar sync queued' :
+								data.appointment.calendar_push_notification_status === 'failed' ? 'Calendar sync failed' :
+								data.appointment.calendar_push_notification_status === 'ok' ? 'Calendar sync added' : 'Calendar sync not added'
+							}
+						</div>
+					{/if}
 				</div>
 			</div>
 			<div class="detail-row">
@@ -197,7 +194,13 @@
 					</div>
 					{#if data.isAdmin}
 						<div class="detail-secondary">{data.appointment.attendee_email}</div>
-						<div class="detail-secondary" class:notif-failed={notifFailed}>{notifLabel}</div>
+						<div class="detail-secondary" class:notif-failed={data.appointment.email_notification_status === 'failed'}>
+							{
+								data.appointment.email_notification_status === 'queued' ? 'Email sending' :
+								data.appointment.email_notification_status === 'failed' ? 'Email failed' :
+								data.appointment.email_notification_status === 'ok' ? 'Email sent' : 'Email not sent'
+							}
+						</div>
 					{/if}
 				</div>
 			</div>
@@ -232,12 +235,12 @@
 		{:else if showDecideCta}
 			<section class="card-section card-cta decide-cta">
 				{#if data.actions.decline.allowed}
-					<form method="POST" action="?/decline" class="decide-form">
+					<form method="POST" action="/admin/booked/{data.appointment.id}?/decline" class="decide-form">
 						<button type="submit" class="decide-btn decide-decline">Decline</button>
 					</form>
 				{/if}
 				{#if data.actions.accept.allowed}
-					<form method="POST" action="?/accept" class="decide-form">
+					<form method="POST" action="/admin/booked/{data.appointment.id}?/accept" class="decide-form">
 						<button type="submit" class="decide-btn decide-accept">Accept</button>
 					</form>
 				{/if}
@@ -280,7 +283,7 @@
 						{/if}
 					</p>
 
-					<form method="POST" action="?/cancel" class="cancel-dialog-actions">
+					<form method="POST" action={data.isAdmin ? `/admin/booked/${data.appointment.id}?/cancel` : "?/cancel"} class="cancel-dialog-actions">
 						<input type="hidden" name="token" value={data.token} />
 						<button type="submit" class="cancel-confirm-btn">Yes, cancel</button>
 						<Dialog.Close>
@@ -289,6 +292,60 @@
 							{/snippet}
 						</Dialog.Close>
 					</form>
+				</div>
+			{/snippet}
+		</Dialog.Content>
+	</Dialog.Portal>
+</Dialog.Root>
+
+<Dialog.Root bind:open={deleteDialogOpen}>
+	<Dialog.Portal>
+		<Dialog.Overlay>
+			{#snippet child({ props })}
+				<div {...props} class="dialog-overlay"></div>
+			{/snippet}
+		</Dialog.Overlay>
+		<Dialog.Content>
+			{#snippet child({ props })}
+				<div {...props} class="dialog-content cancel-dialog">
+					<Dialog.Title>
+						{#snippet child({ props: titleProps })}
+							<h2 {...titleProps} class="cancel-dialog-title">Delete booking?</h2>
+						{/snippet}
+					</Dialog.Title>
+
+					{#if !data.deleteCheck?.terminal}
+						{#if data.deleteCheck?.reason === 'notifications_queued'}
+							<p class="cancel-dialog-desc">
+								<strong>Delete blocked</strong>: Background notification or calendar sync tasks are still in progress. Please wait for these tasks to finish before deleting the booking.
+							</p>
+						{:else}
+							<p class="cancel-dialog-desc">
+								<strong>Delete blocked</strong>: This booking is not in a terminal state. Only cancelled, declined, expired, or past/concluded bookings can be deleted.
+							</p>
+						{/if}
+						<div class="cancel-dialog-actions">
+							<Dialog.Close>
+								{#snippet child({ props: closeProps })}
+									<button {...closeProps} type="button" class="cancel-cancel-btn" style="width: 100%">Close</button>
+								{/snippet}
+							</Dialog.Close>
+						</div>
+					{:else}
+						<p class="cancel-dialog-desc">
+							Are you sure you want to delete this booking?
+							<strong>This will delete the entire rescheduling chain for this booking.</strong> This action cannot be undone.
+						</p>
+
+						<form method="POST" action="/admin/booked/{data.appointment.id}?/delete" class="cancel-dialog-actions">
+							<button type="submit" class="cancel-confirm-btn">Yes, delete</button>
+							<Dialog.Close>
+								{#snippet child({ props: closeProps })}
+									<button {...closeProps} type="button" class="cancel-cancel-btn">Cancel</button>
+								{/snippet}
+							</Dialog.Close>
+						</form>
+					{/if}
 				</div>
 			{/snippet}
 		</Dialog.Content>

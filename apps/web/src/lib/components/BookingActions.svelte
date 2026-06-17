@@ -9,9 +9,11 @@
 		appointmentId: string;
 		token: string;
 		onCancel: () => void;
+		isAdmin?: boolean;
+		onDelete?: () => void;
 	}
 
-	let { actions, appointmentId, token, onCancel }: Props = $props();
+	let { actions, appointmentId, token, onCancel, isAdmin = false, onDelete }: Props = $props();
 
 	let menuOpen = $state(false);
 
@@ -23,37 +25,60 @@
 		menuOpen = false;
 		onCancel();
 	}
+
+	function requestDelete() {
+		menuOpen = false;
+		onDelete?.();
+	}
 </script>
 
 <DropdownMenu.Root bind:open={menuOpen}>
 	<DropdownMenu.Trigger>
 		{#snippet child({ props })}
-			<button {...props} type="button" class="change-trigger" aria-label="Booking actions">
+			<button
+				{...props}
+				type="button"
+				class="change-trigger {props.class || ''}"
+				aria-label="Booking actions"
+			>
 				<IconDotsThreeVertical aria-hidden="true" />
 			</button>
 		{/snippet}
 	</DropdownMenu.Trigger>
 	<DropdownMenu.Portal>
-		<DropdownMenu.Content align="end" sideOffset={6}>
-			{#snippet child({ props })}
-				<div {...props} class="ba-menu">
-					{#if actions.reschedule.allowed}
-						<DropdownMenu.Item>
-							{#snippet child({ props: itemProps })}
-								<a {...itemProps} href={rescheduleHref} class="action-item">Reschedule</a>
-							{/snippet}
-						</DropdownMenu.Item>
-					{/if}
-					{#if actions.cancel.allowed}
-						<DropdownMenu.Item onSelect={requestCancel}>
-							{#snippet child({ props: itemProps })}
-								<button {...itemProps} type="button" class="action-item action-item-danger"
-									>Cancel</button
-								>
-							{/snippet}
-						</DropdownMenu.Item>
-					{/if}
-				</div>
+		<DropdownMenu.Content align="end" sideOffset={6} forceMount>
+			{#snippet child({ wrapperProps, props, open })}
+				{#if open}
+					<div {...wrapperProps}>
+						<div {...props} class="ba-menu">
+							{#if actions.reschedule.allowed}
+								<DropdownMenu.Item>
+									{#snippet child({ props: itemProps })}
+										<a {...itemProps} href={rescheduleHref} class="action-item">Reschedule</a>
+									{/snippet}
+								</DropdownMenu.Item>
+							{/if}
+							{#if actions.cancel.allowed}
+								<DropdownMenu.Item onSelect={requestCancel}>
+									{#snippet child({ props: itemProps })}
+										<button {...itemProps} type="button" class="action-item action-item-danger"
+											>Cancel</button
+										>
+									{/snippet}
+								</DropdownMenu.Item>
+							{/if}
+							{#if isAdmin}
+								<DropdownMenu.Item onSelect={requestDelete}>
+									{#snippet child({ props: itemProps })}
+										<button {...itemProps} type="button" class="action-item action-item-danger"
+											>Delete</button
+										>
+									{/snippet}
+								</DropdownMenu.Item>
+							{/if}
+						</div>
+					</div>
+				{/if}
 			{/snippet}
 		</DropdownMenu.Content>
 	</DropdownMenu.Portal>

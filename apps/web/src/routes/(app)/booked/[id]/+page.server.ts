@@ -5,7 +5,7 @@ import { buildAddToCalendarLinks } from '$lib/server/calendar-links';
 import { systemClock } from '$lib/server/clock';
 import { getConfig, getDb } from '$lib/server/state';
 import { notificationStates } from '$lib/notifications';
-import { findAppointment, findChainTip, originId, type Appointment } from '@when/db';
+import { findAppointment, findChainTip, originId, isChainTerminal, type Appointment } from '@when/db';
 import type { Actions, PageServerLoad } from './$types';
 import { cancelAppointment } from '$lib/server/booking/cancel';
 import { bookingContext } from '$lib/server/booking/context';
@@ -76,6 +76,11 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 	const tip = row.rescheduled_to_id ? await findChainTip(getDb(), originId(row)) : null;
 	const latest = tip && tip.id !== row.id ? tip : null;
 
+	let deleteCheck = null;
+	if (isAdmin) {
+		deleteCheck = await isChainTerminal(getDb(), row.id, now);
+	}
+
 	return {
 		appointment: {
 			id: row.id,
@@ -86,7 +91,9 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 			attendee_notes: row.attendee_notes,
 			location: row.location,
 			status: row.status,
-			notifications
+			notifications,
+			email_notification_status: row.email_notification_status,
+			calendar_push_notification_status: row.calendar_push_notification_status
 		},
 		eventType: eventType
 			? {
@@ -109,7 +116,8 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 		rescheduledFrom: predecessor
 			? { id: predecessor.id, token: predecessor.cancel_token, start_time: predecessor.start_time }
 			: null,
-		latestBooking: latest ? { id: latest.id, token: latest.cancel_token } : null
+		latestBooking: latest ? { id: latest.id, token: latest.cancel_token } : null,
+		deleteCheck
 	};
 };
 
