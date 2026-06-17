@@ -1,0 +1,139 @@
+/* ---- calendar (Bits UI) ---- */
+.calendar-panel .cal-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: var(--space-7);
+}
+
+.calendar-panel .cal-heading {
+	font-weight: 600;
+	font-size: var(--font-size-xl);
+	color: var(--text);
+}
+
+.calendar-panel .cal-nav {
+	display: flex;
+	align-items: center;
+	gap: var(--space-1);
+}
+
+.calendar-panel .cal-nav-btn {
+	background: none;
+	border: none;
+	font-size: var(--font-size-xl);
+	color: var(--text-muted);
+	cursor: pointer;
+	padding: var(--space-1) var(--space-3);
+	border-radius: var(--radius-sm);
+	line-height: 1;
+}
+
+.calendar-panel .cal-nav-btn:hover {
+	background: var(--surface-muted);
+	color: var(--text);
+}
+
+.calendar-panel .cal-grid {
+	width: 100%;
+	max-width: 360px;
+	margin: 0 auto;
+	user-select: none;
+}
+
+.calendar-panel .cal-weekdays {
+	display: flex;
+	width: 100%;
+	background: var(--surface-muted);
+	border-radius: var(--radius-sm);
+	margin-bottom: var(--space-2);
+}
+
+.calendar-panel .cal-weekday {
+	flex: 1;
+	text-align: center;
+	font-size: var(--font-size-xs);
+	color: var(--text-disabled);
+	font-weight: 600;
+	text-transform: uppercase;
+	padding: var(--space-2) 0;
+}
+
+.calendar-panel .cal-row {
+	display: flex;
+	width: 100%;
+}
+
+.calendar-panel .cal-cell {
+	flex: 1;
+	padding: 0;
+}
+
+.calendar-panel .cal-day {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	aspect-ratio: 1;
+	font-size: var(--font-size-sm);
+	border: none;
+	background: none;
+	cursor: pointer;
+	border-radius: var(--radius);
+	color: var(--text);
+	transition: background var(--transition);
+	position: relative;
+	width: 100%;
+}
+
+.calendar-panel .cal-day:hover:not([data-disabled]):not([data-selected]) {
+	background: var(--surface-muted);
+}
+
+.calendar-panel .cal-day[data-unavailable] {
+	color: var(--border-strong);
+	cursor: default;
+}
+
+.calendar-panel .cal-day[data-disabled] {
+	color: var(--border-strong);
+	cursor: default;
+}
+
+.calendar-panel .cal-day:not([data-unavailable]):not([data-disabled]):not([data-selected]) {
+	font-weight: 600;
+	color: var(--text);
+}
+
+.calendar-panel .cal-day:not([data-unavailable]):not([data-disabled]):not([data-selected]):hover {
+	background: var(--primary-muted);
+}
+
+.calendar-panel .cal-day[data-today]:not([data-selected])::after {
+	content: '';
+	position: absolute;
+	bottom: var(--space-3);
+	left: 50%;
+	transform: translateX(-50%);
+	width: var(--space-2);
+	height: var(--space-2);
+	border-radius: 50%;
+	background: var(--border-strong);
+}
+
+.calendar-panel .cal-day[data-selected] {
+	background: var(--primary-muted);
+	color: var(--primary);
+}
+
+.calendar-panel .cal-day[data-selected][data-today]::after {
+	background: var(--primary);
+}
+
+.calendar-panel .cal-day:focus-visible {
+	outline: 2px solid var(--primary);
+	outline-offset: -2px;
+}
+
+.calendar-panel .cal-day[data-outside-month] {
+	visibility: hidden;
+}

@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import '$lib/styles/reset.css';
 	import '$lib/styles/theme.css';
+	import '$lib/styles/calendar.css';
 	import defaultFavicon from '$lib/assets/favicon.svg';
 	import { createPreferredTimezone } from '$lib/preferredTimezone.svelte';
 
