@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { Dialog } from 'bits-ui';
 	import IconArrowRight from 'virtual:icons/ph/arrow-right';
-	import IconArrowUpLeft from 'virtual:icons/ph/arrow-up-left';
 	import IconCalendarBlank from 'virtual:icons/ph/calendar-blank';
+	import AdminNav from '$lib/components/AdminNav.svelte';
 	import IconClock from 'virtual:icons/ph/clock';
 	import IconMapPin from 'virtual:icons/ph/map-pin';
 	import IconUser from 'virtual:icons/ph/user';
@@ -67,13 +67,11 @@
 	{/if}
 </svelte:head>
 
-<header class="page-nav">
-	{#if data.isAdmin}
-		<a class="nav-back" href="/admin" aria-label="All bookings">
-			<IconArrowUpLeft class="nav-back-icon" aria-hidden="true" />
-		</a>
-	{/if}
-</header>
+{#if data.isAdmin}
+	<AdminNav />
+{:else}
+	<header class="page-nav"></header>
+{/if}
 
 <div class="page" class:has-cta={!!data.calendarLinks || showDecideCta}>
 	{#if form?.error}
@@ -296,28 +294,7 @@
 		padding: 0 var(--space-6);
 	}
 
-	.nav-back {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		width: 40px;
-		height: 40px;
-		margin-left: calc(var(--space-2) * -1);
-		border-radius: var(--radius-pill);
-		color: var(--text-secondary);
-		transition:
-			background var(--transition),
-			color var(--transition);
-	}
 
-	.nav-back:hover {
-		background: var(--surface-muted);
-		color: var(--text);
-	}
-
-	:global(.nav-back-icon) {
-		font-size: var(--font-size-xl);
-	}
 
 	/* ---- banners (notices & confirmations) ---- */
 	.banner {
