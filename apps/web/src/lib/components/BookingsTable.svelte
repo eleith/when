@@ -142,7 +142,7 @@
 	th {
 		background: var(--surface-page);
 		color: var(--text-muted);
-		font-size: var(--font-size-xs);
+		font-size: var(--font-size-sm);
 		font-weight: 700;
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
@@ -154,7 +154,7 @@
 		padding: var(--space-4) var(--space-5);
 		border-bottom: 1px solid var(--border);
 		vertical-align: middle;
-		font-size: var(--font-size-base);
+		font-size: var(--font-size-md);
 	}
 
 	tr:last-child td {
@@ -196,20 +196,20 @@
 		color: var(--text);
 		text-decoration: none;
 		font-weight: 600;
-		font-size: var(--font-size-md);
+		font-size: var(--font-size-lg);
 	}
 
 	.attendee-email {
 		display: inline-flex;
 		align-items: center;
 		gap: var(--space-1);
-		font-size: var(--font-size-xs);
+		font-size: var(--font-size-sm);
 		color: var(--text-muted);
 	}
 
 	.event-tag {
 		display: inline-block;
-		font-size: var(--font-size-xs);
+		font-size: var(--font-size-sm);
 		font-weight: 600;
 		background: var(--surface-muted);
 		color: var(--text-secondary);
@@ -219,7 +219,7 @@
 
 	.time-text {
 		font-weight: 500;
-		font-size: var(--font-size-sm);
+		font-size: var(--font-size-base);
 	}
 
 	.status-wrapper {
@@ -232,7 +232,7 @@
 		display: inline-flex;
 		align-items: center;
 		gap: var(--space-1);
-		font-size: var(--font-size-xs);
+		font-size: var(--font-size-sm);
 		font-weight: 600;
 		padding: var(--space-1) var(--space-2);
 		border-radius: var(--radius-sm);
@@ -244,7 +244,7 @@
 	.status-badge {
 		display: inline-flex;
 		align-items: center;
-		font-size: var(--font-size-xs);
+		font-size: var(--font-size-sm);
 		font-weight: 700;
 		text-transform: capitalize;
 		padding: var(--space-1) var(--space-2_5, 8px);
@@ -301,7 +301,7 @@
 		display: inline-flex;
 		align-items: center;
 		gap: var(--space-1);
-		font-size: var(--font-size-xs);
+		font-size: var(--font-size-sm);
 		font-weight: 700;
 		padding: var(--space-2) var(--space-3);
 		border-radius: var(--radius-sm);
@@ -338,7 +338,7 @@
 	}
 
 	:global(.action-icon) {
-		font-size: var(--font-size-xs);
+		font-size: var(--font-size-sm);
 	}
 
 	/* ---- responsive overrides ---- */

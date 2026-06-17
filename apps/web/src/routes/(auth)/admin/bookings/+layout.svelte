@@ -91,7 +91,7 @@
 		display: inline-flex;
 		align-items: center;
 		gap: var(--space-2);
-		font-size: var(--font-size-sm);
+		font-size: var(--font-size-base);
 		font-weight: 600;
 		color: var(--text-muted);
 		text-decoration: none;
@@ -119,7 +119,7 @@
 		min-width: 18px;
 		height: 18px;
 		padding: 0 5px;
-		font-size: var(--font-size-xs);
+		font-size: var(--font-size-sm);
 		font-weight: 700;
 		border-radius: var(--radius-pill);
 		background: var(--surface-active);

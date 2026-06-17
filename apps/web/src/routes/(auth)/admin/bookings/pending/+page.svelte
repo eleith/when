@@ -66,7 +66,7 @@
 	}
 
 	.pagination-link {
-		font-size: var(--font-size-sm);
+		font-size: var(--font-size-base);
 		font-weight: 600;
 		color: var(--text);
 		text-decoration: none;
