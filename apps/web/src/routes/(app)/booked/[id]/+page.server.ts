@@ -7,8 +7,6 @@ import { getConfig, getDb } from '$lib/server/state';
 import { notificationStates } from '$lib/notifications';
 import { findAppointment, findChainTip, originId, type Appointment } from '@when/db';
 import type { Actions, PageServerLoad } from './$types';
-import { acceptAppointment } from '$lib/server/booking/accept';
-import { declineAppointment } from '$lib/server/booking/decline';
 import { cancelAppointment } from '$lib/server/booking/cancel';
 import { bookingContext } from '$lib/server/booking/context';
 
@@ -116,65 +114,22 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 };
 
 export const actions: Actions = {
-	accept: async ({ params, locals }) => {
-		if (!(await locals.auth())) return fail(403, { error: 'Not authorized.' });
-
+	cancel: async ({ params, request }) => {
 		const row = await findAppointment(getDb(), params.id);
 
 		if (!row) return fail(404, { error: 'Booking not found.' });
 
-		const result = await acceptAppointment(bookingContext(), { appointment: row });
-		if (!result.ok) {
-			return fail(409, { error: 'This booking can no longer be accepted.' });
-		}
-		return { success: 'accepted' };
-	},
-
-	decline: async ({ params, locals }) => {
-		if (!(await locals.auth())) return fail(403, { error: 'Not authorized.' });
-
-		const row = await findAppointment(getDb(), params.id);
-
-		if (!row) return fail(404, { error: 'Booking not found.' });
-
-		const result = await declineAppointment(bookingContext(), { appointment: row });
-		if (!result.ok) {
-			return fail(409, { error: 'This booking can no longer be declined.' });
-		}
-		return { success: 'declined' };
-	},
-
-	// Cancellation is shared by the organizer (authenticated) and the attendee
-	// (token-bearing). The session decides the initiator; without one a valid
-	// cancel_token is required.
-	cancel: async ({ params, request, locals }) => {
-		const session = await locals.auth();
-
-		const row = await findAppointment(getDb(), params.id);
-
-		if (!row) return fail(404, { error: 'Booking not found.' });
-
-		let initiator: 'organizer' | 'attendee';
-		let attendeeToken: string | null = null;
-		if (session) {
-			initiator = 'organizer';
-		} else {
-			const form = await request.formData();
-			attendeeToken = String(form.get('token') ?? '');
-			if (row.cancel_token !== attendeeToken) {
-				return fail(403, { error: 'Invalid cancel token.' });
-			}
-			initiator = 'attendee';
+		const form = await request.formData();
+		const attendeeToken = String(form.get('token') ?? '');
+		if (row.cancel_token !== attendeeToken) {
+			return fail(403, { error: 'Invalid cancel token.' });
 		}
 
-		const result = await cancelAppointment(bookingContext(), { appointment: row, initiator });
+		const result = await cancelAppointment(bookingContext(), { appointment: row, initiator: 'attendee' });
 		if (!result.ok) {
 			return fail(409, { error: 'This booking can no longer be cancelled.' });
 		}
 
-		if (attendeeToken !== null) {
-			redirect(303, `/booked/${row.id}?token=${encodeURIComponent(attendeeToken)}`);
-		}
-		return { success: 'cancelled' };
+		redirect(303, `/booked/${row.id}?token=${encodeURIComponent(attendeeToken)}`);
 	}
 };
