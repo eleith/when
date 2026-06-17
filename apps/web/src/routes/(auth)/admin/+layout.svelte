@@ -18,9 +18,6 @@
 				>
 					Bookings
 				</a>
-				<a href="/admin/config" class="nav-tab" class:active={currentPath === '/admin/config'}
-					>Config</a
-				>
 			</nav>
 		</div>
 		<form method="POST" action="/admin?/signout" class="signout-form">
