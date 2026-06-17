@@ -11,7 +11,13 @@
 		<div class="header-left">
 			<a href="/admin" class="brand-logo">Admin</a>
 			<nav class="nav-tabs">
-				<a href="/admin" class="nav-tab" class:active={currentPath === '/admin'}>Bookings</a>
+				<a
+					href="/admin/bookings/upcoming"
+					class="nav-tab"
+					class:active={currentPath.startsWith('/admin/bookings')}
+				>
+					Bookings
+				</a>
 				<a href="/admin/config" class="nav-tab" class:active={currentPath === '/admin/config'}
 					>Config</a
 				>
