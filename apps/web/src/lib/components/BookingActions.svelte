@@ -29,7 +29,7 @@
 	<DropdownMenu.Trigger>
 		{#snippet child({ props })}
 			<button {...props} type="button" class="change-trigger" aria-label="Booking actions">
-				<IconDotsThreeVertical class="change-icon" aria-hidden="true" />
+				<IconDotsThreeVertical aria-hidden="true" />
 			</button>
 		{/snippet}
 	</DropdownMenu.Trigger>
@@ -66,6 +66,7 @@
 		background: var(--surface);
 		color: var(--text-secondary);
 		cursor: pointer;
+		font-size: var(--font-size-xl);
 		transition:
 			background var(--transition),
 			color var(--transition);
@@ -74,11 +75,6 @@
 	.change-trigger:hover {
 		background: var(--surface-active);
 		color: var(--text);
-	}
-
-	:global(.change-icon) {
-		display: block;
-		font-size: var(--font-size-xl);
 	}
 
 	.action-item {

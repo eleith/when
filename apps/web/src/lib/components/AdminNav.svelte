@@ -9,7 +9,7 @@
 <header class="admin-nav">
 	<div class="nav-container">
 		<a href="/admin/bookings/upcoming" class="nav-link" aria-label="Bookings dashboard">
-			<IconCalendarBlank class="nav-icon" aria-hidden="true" />
+			<IconCalendarBlank aria-hidden="true" />
 		</a>
 		<form method="POST" action="/admin?/signout" class="signout-form">
 			<input
@@ -18,7 +18,7 @@
 				value="/signin?callbackUrl={encodeURIComponent(currentPath)}"
 			/>
 			<button type="submit" class="logout-btn" aria-label="Log out">
-				<IconSignOut class="nav-icon" aria-hidden="true" />
+				<IconSignOut aria-hidden="true" />
 			</button>
 		</form>
 	</div>
@@ -47,6 +47,7 @@
 		align-items: center;
 		justify-content: center;
 		transition: color var(--transition);
+		font-size: var(--font-size-2xl);
 	}
 
 	.nav-link:hover {
@@ -69,15 +70,11 @@
 		align-items: center;
 		justify-content: center;
 		transition: color var(--transition);
+		font-size: var(--font-size-2xl);
 	}
 
 	.logout-btn:hover {
 		color: var(--text);
-	}
-
-	:global(.nav-icon) {
-		font-size: var(--font-size-2xl);
-		display: block;
 	}
 
 	@media (max-width: 768px) {

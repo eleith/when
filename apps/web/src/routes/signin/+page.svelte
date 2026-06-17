@@ -31,7 +31,7 @@
 				<img src={data.branding.logo_url} alt="Logo" class="signin-logo" />
 			{:else}
 				<div class="signin-icon-wrapper">
-					<IconCalendarBlank class="signin-icon" aria-hidden="true" />
+					<IconCalendarBlank aria-hidden="true" />
 				</div>
 			{/if}
 			<h1 class="signin-title">Sign in to When</h1>
@@ -40,7 +40,7 @@
 
 		{#if errorMessage}
 			<div class="error-banner" role="alert">
-				<IconWarningCircle class="error-icon" aria-hidden="true" />
+				<span class="error-icon"><IconWarningCircle aria-hidden="true" /></span>
 				<span class="error-text">{errorMessage}</span>
 			</div>
 		{/if}
@@ -83,7 +83,7 @@
 				</div>
 
 				<button type="submit" class="submit-btn">
-					<IconLock class="btn-icon" aria-hidden="true" />
+					<span class="btn-icon"><IconLock aria-hidden="true" /></span>
 					Sign in
 				</button>
 			</form>
@@ -96,7 +96,7 @@
 
 				<!-- svelte-ignore a11y_autofocus -->
 				<button type="submit" class="submit-btn" autofocus>
-					<IconSignIn class="btn-icon" aria-hidden="true" />
+					<span class="btn-icon"><IconSignIn aria-hidden="true" /></span>
 					Sign in with Single Sign-On
 				</button>
 			</form>
@@ -152,9 +152,6 @@
 		border-radius: var(--radius-md);
 		margin-bottom: var(--space-4);
 		color: var(--primary);
-	}
-
-	:global(.signin-icon) {
 		font-size: var(--font-size-2xl);
 	}
 
@@ -184,10 +181,11 @@
 		color: var(--danger);
 	}
 
-	:global(.error-icon) {
+	.error-icon {
 		font-size: var(--font-size-lg);
 		flex-shrink: 0;
 		margin-top: 1px;
+		display: inline-flex;
 	}
 
 	.error-text {
@@ -266,8 +264,9 @@
 		transform: scale(0.98);
 	}
 
-	:global(.btn-icon) {
+	.btn-icon {
 		font-size: var(--font-size-lg);
+		display: inline-flex;
 	}
 
 	.sso-desc {

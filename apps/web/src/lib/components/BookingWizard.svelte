@@ -235,7 +235,7 @@
 	{:else}
 		{#if data.rescheduleAppt}
 			<aside class="reschedule-banner">
-				<IconInfo class="reschedule-banner-icon" aria-hidden="true" />
+				<span class="reschedule-banner-icon"><IconInfo aria-hidden="true" /></span>
 				<span class="reschedule-banner-text">
 					Rescheduling <a class="reschedule-banner-link" href={previousBookingHref}
 						>previous appointment</a
@@ -247,7 +247,7 @@
 
 		{#if linkNotice && (step === 1 || linkNotice.kind === 'slot')}
 			<aside class="warning-card">
-				<IconWarningCircle class="warning-card-icon" aria-hidden="true" />
+				<span class="warning-card-icon"><IconWarningCircle aria-hidden="true" /></span>
 				<div class="warning-card-content">
 					<span class="warning-card-text">
 						{#if linkNotice.kind === 'slot'}
@@ -477,7 +477,7 @@
 							onclick={flow.advance}
 							disabled={!flow.canAdvance}
 						>
-							Continue <IconArrowRight aria-hidden="true" class="cta-arrow" />
+							Continue <span class="cta-arrow"><IconArrowRight aria-hidden="true" /></span>
 						</button>
 					{:else if step === 2}
 						<button type="button" class="cta-btn cta-btn-secondary" onclick={flow.goBack}>
@@ -489,7 +489,7 @@
 							onclick={flow.advance}
 							disabled={!flow.canAdvance}
 						>
-							Confirm <IconArrowRight aria-hidden="true" class="cta-arrow" />
+							Confirm <span class="cta-arrow"><IconArrowRight aria-hidden="true" /></span>
 						</button>
 					{:else}
 						<button type="button" class="cta-btn cta-btn-secondary" onclick={flow.goBack}>
@@ -895,13 +895,13 @@
 		align-items: center;
 	}
 
-	:global(.cta-arrow) {
-		display: inline-block;
+	.cta-arrow {
+		display: inline-flex;
 		margin-left: var(--space-2);
 		transition: transform var(--transition);
 	}
 
-	.cta-btn:not(:disabled):hover :global(.cta-arrow) {
+	.cta-btn:not(:disabled):hover .cta-arrow {
 		transform: translateX(2px);
 	}
 
@@ -1129,11 +1129,12 @@
 		color: var(--text);
 	}
 
-	:global(.warning-card-icon) {
+	.warning-card-icon {
 		font-size: var(--font-size-xl);
 		color: var(--warning);
 		flex-shrink: 0;
 		margin-top: 2px;
+		display: inline-flex;
 	}
 
 	.warning-card-content {
@@ -1163,10 +1164,11 @@
 		border-radius: var(--radius-md);
 	}
 
-	:global(.reschedule-banner-icon) {
+	.reschedule-banner-icon {
 		font-size: var(--font-size-xl);
 		color: var(--info-strong);
 		flex-shrink: 0;
+		display: inline-flex;
 	}
 
 	.reschedule-banner-text {

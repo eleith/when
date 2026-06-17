@@ -88,20 +88,20 @@
 				<div class="pagination">
 					{#if prevHref}
 						<a href={prevHref} class="pagination-link" aria-label="Previous page">
-							<IconCaretLeft class="pagination-icon" aria-hidden="true" />
+							<IconCaretLeft aria-hidden="true" />
 						</a>
 					{:else}
 						<span class="pagination-link disabled" aria-label="Previous page">
-							<IconCaretLeft class="pagination-icon" aria-hidden="true" />
+							<IconCaretLeft aria-hidden="true" />
 						</span>
 					{/if}
 					{#if nextHref}
 						<a href={nextHref} class="pagination-link" aria-label="Next page">
-							<IconCaretRight class="pagination-icon" aria-hidden="true" />
+							<IconCaretRight aria-hidden="true" />
 						</a>
 					{:else}
 						<span class="pagination-link disabled" aria-label="Next page">
-							<IconCaretRight class="pagination-icon" aria-hidden="true" />
+							<IconCaretRight aria-hidden="true" />
 						</span>
 					{/if}
 				</div>
@@ -212,6 +212,7 @@
 		justify-content: center;
 		width: 28px;
 		height: 28px;
+		font-size: var(--font-size-xl);
 	}
 
 	.pagination-link:not(.disabled):hover {
@@ -221,11 +222,6 @@
 	.pagination-link.disabled {
 		color: var(--text-disabled);
 		cursor: not-allowed;
-	}
-
-	:global(.pagination-icon) {
-		font-size: var(--font-size-xl);
-		display: block;
 	}
 
 	/* ---- review banner ---- */

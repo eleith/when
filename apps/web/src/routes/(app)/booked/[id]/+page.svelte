@@ -76,7 +76,7 @@
 <div class="page" class:has-cta={!!data.calendarLinks || showDecideCta}>
 	{#if form?.error}
 		<aside class="banner banner-danger" role="alert">
-			<IconWarningCircle class="banner-icon" aria-hidden="true" />
+			<span class="banner-icon"><IconWarningCircle aria-hidden="true" /></span>
 			<p class="banner-text">{form.error}</p>
 		</aside>
 	{/if}
@@ -149,7 +149,7 @@
 
 		<section class="card-section detail-list">
 			<div class="detail-row">
-				<IconCalendarBlank class="detail-icon" aria-hidden="true" />
+				<span class="detail-icon"><IconCalendarBlank aria-hidden="true" /></span>
 				<div class="detail-text">
 					<div class="detail-primary">
 						{formatDateShort(data.appointment.start_time, displayTz)}
@@ -160,7 +160,7 @@
 				</div>
 			</div>
 			<div class="detail-row">
-				<IconClock class="detail-icon" aria-hidden="true" />
+				<span class="detail-icon"><IconClock aria-hidden="true" /></span>
 				<div class="detail-text">
 					<div class="detail-primary">
 						{formatTimeRange(data.appointment.start_time, data.appointment.end_time, displayTz)}
@@ -182,14 +182,14 @@
 			</div>
 			{#if data.appointment.location}
 				<div class="detail-row">
-					<IconMapPin class="detail-icon" aria-hidden="true" />
+					<span class="detail-icon"><IconMapPin aria-hidden="true" /></span>
 					<div class="detail-text">
 						<div class="detail-primary">{data.appointment.location}</div>
 					</div>
 				</div>
 			{/if}
 			<div class="detail-row">
-				<IconUser class="detail-icon" aria-hidden="true" />
+				<span class="detail-icon"><IconUser aria-hidden="true" /></span>
 				<div class="detail-text">
 					<div class="detail-primary">{data.appointment.attendee_name}</div>
 					<div class="detail-secondary">
@@ -202,7 +202,7 @@
 				</div>
 			</div>
 			<div class="detail-row">
-				<IconUser class="detail-icon" aria-hidden="true" />
+				<span class="detail-icon"><IconUser aria-hidden="true" /></span>
 				<div class="detail-text">
 					<div class="detail-primary">{data.user.name}</div>
 					<div class="detail-secondary">
@@ -216,7 +216,7 @@
 			</div>
 			{#if data.isAdmin && data.appointment.attendee_notes}
 				<div class="detail-row">
-					<IconNote class="detail-icon" aria-hidden="true" />
+					<span class="detail-icon"><IconNote aria-hidden="true" /></span>
 					<div class="detail-text">
 						<div class="detail-primary">Notes</div>
 						<div class="detail-secondary notes">{data.appointment.attendee_notes}</div>
@@ -249,7 +249,7 @@
 		<section class="rebook">
 			<a class="rebook-btn" href="/schedule/{data.eventType.slug}">
 				Pick another time
-				<IconArrowRight class="action-arrow" aria-hidden="true" />
+				<span class="action-arrow"><IconArrowRight aria-hidden="true" /></span>
 			</a>
 		</section>
 	{/if}
@@ -310,10 +310,11 @@
 		line-height: 1.5;
 	}
 
-	:global(.banner-icon) {
+	.banner-icon {
 		font-size: var(--font-size-xl);
 		flex-shrink: 0;
 		margin-top: 2px;
+		display: inline-flex;
 	}
 
 	.banner-text {
@@ -325,7 +326,7 @@
 		border-color: var(--danger-border);
 	}
 
-	.banner-danger :global(.banner-icon) {
+	.banner-danger .banner-icon {
 		color: var(--danger);
 	}
 
@@ -441,11 +442,12 @@
 		gap: var(--space-4);
 	}
 
-	:global(.detail-icon) {
+	.detail-icon {
 		font-size: var(--font-size-xl);
 		color: var(--text-muted);
 		flex-shrink: 0;
 		margin-top: 1px;
+		display: inline-flex;
 	}
 
 	.detail-text {
@@ -465,8 +467,8 @@
 		margin-top: 2px;
 	}
 
-	:global(.action-arrow) {
-		display: inline-block;
+	.action-arrow {
+		display: inline-flex;
 		transition: transform var(--transition);
 	}
 
@@ -549,7 +551,7 @@
 		opacity: 0.9;
 	}
 
-	.rebook-btn:hover :global(.action-arrow) {
+	.rebook-btn:hover .action-arrow {
 		transform: translateX(2px);
 	}
 

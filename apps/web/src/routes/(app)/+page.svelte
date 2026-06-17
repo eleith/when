@@ -43,7 +43,7 @@
 							<div class="event-desc">{@html et.descriptionHtml}</div>
 						{/if}
 					</div>
-					<IconArrowRight class="arrow" aria-hidden="true" />
+					<span class="arrow"><IconArrowRight aria-hidden="true" /></span>
 				</a>
 			{/each}
 		</div>
@@ -107,7 +107,7 @@
 		box-shadow: var(--shadow-card);
 	}
 
-	.event-card:hover :global(.arrow) {
+	.event-card:hover .arrow {
 		color: var(--primary);
 	}
 
@@ -151,10 +151,11 @@
 		line-height: 1.4;
 	}
 
-	:global(.arrow) {
+	.arrow {
 		color: var(--text-disabled);
 		font-size: var(--font-size-xl);
 		flex-shrink: 0;
 		transition: color var(--transition);
+		display: inline-flex;
 	}
 </style>

@@ -175,7 +175,7 @@
 				<h2 class="slots-date">{formatDate(viewDate)}</h2>
 			</div>
 			<button type="button" class="slots-tz" onclick={() => (tzOpen = true)}>
-				<IconGlobe class="slots-tz-icon" />
+				<span class="slots-tz-icon"><IconGlobe /></span>
 				<span class="slots-tz-text">{formatTzShort(userTz)}</span>
 			</button>
 		</div>
@@ -352,7 +352,7 @@
 		text-underline-offset: 3px;
 	}
 
-	:global(.slots-tz-icon) {
+	.slots-tz-icon {
 		font-size: var(--font-size-base);
 	}
 
