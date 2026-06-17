@@ -146,12 +146,17 @@
 						{formatWeekday(data.appointment.start_time, displayTz)}
 					</div>
 					{#if data.isAdmin}
-						<div class="detail-secondary" class:notif-failed={data.appointment.calendar_push_notification_status === 'failed'}>
-							{
-								data.appointment.calendar_push_notification_status === 'queued' ? 'Calendar sync queued' :
-								data.appointment.calendar_push_notification_status === 'failed' ? 'Calendar sync failed' :
-								data.appointment.calendar_push_notification_status === 'ok' ? 'Calendar sync added' : 'Calendar sync not added'
-							}
+						<div
+							class="detail-secondary"
+							class:notif-failed={data.appointment.calendar_push_notification_status === 'failed'}
+						>
+							{data.appointment.calendar_push_notification_status === 'queued'
+								? 'Calendar sync queued'
+								: data.appointment.calendar_push_notification_status === 'failed'
+									? 'Calendar sync failed'
+									: data.appointment.calendar_push_notification_status === 'ok'
+										? 'Calendar sync added'
+										: 'Calendar sync not added'}
 						</div>
 					{/if}
 				</div>
@@ -194,12 +199,17 @@
 					</div>
 					{#if data.isAdmin}
 						<div class="detail-secondary">{data.appointment.attendee_email}</div>
-						<div class="detail-secondary" class:notif-failed={data.appointment.email_notification_status === 'failed'}>
-							{
-								data.appointment.email_notification_status === 'queued' ? 'Email sending' :
-								data.appointment.email_notification_status === 'failed' ? 'Email failed' :
-								data.appointment.email_notification_status === 'ok' ? 'Email sent' : 'Email not sent'
-							}
+						<div
+							class="detail-secondary"
+							class:notif-failed={data.appointment.email_notification_status === 'failed'}
+						>
+							{data.appointment.email_notification_status === 'queued'
+								? 'Email sending'
+								: data.appointment.email_notification_status === 'failed'
+									? 'Email failed'
+									: data.appointment.email_notification_status === 'ok'
+										? 'Email sent'
+										: 'Email not sent'}
 						</div>
 					{/if}
 				</div>
@@ -235,12 +245,20 @@
 		{:else if showDecideCta}
 			<section class="card-section card-cta decide-cta">
 				{#if data.actions.decline.allowed}
-					<form method="POST" action="/admin/booked/{data.appointment.id}?/decline" class="decide-form">
+					<form
+						method="POST"
+						action="/admin/booked/{data.appointment.id}?/decline"
+						class="decide-form"
+					>
 						<button type="submit" class="decide-btn decide-decline">Decline</button>
 					</form>
 				{/if}
 				{#if data.actions.accept.allowed}
-					<form method="POST" action="/admin/booked/{data.appointment.id}?/accept" class="decide-form">
+					<form
+						method="POST"
+						action="/admin/booked/{data.appointment.id}?/accept"
+						class="decide-form"
+					>
 						<button type="submit" class="decide-btn decide-accept">Accept</button>
 					</form>
 				{/if}
@@ -283,7 +301,11 @@
 						{/if}
 					</p>
 
-					<form method="POST" action={data.isAdmin ? `/admin/booked/${data.appointment.id}?/cancel` : "?/cancel"} class="cancel-dialog-actions">
+					<form
+						method="POST"
+						action={data.isAdmin ? `/admin/booked/${data.appointment.id}?/cancel` : '?/cancel'}
+						class="cancel-dialog-actions"
+					>
 						<input type="hidden" name="token" value={data.token} />
 						<button type="submit" class="cancel-confirm-btn">Yes, cancel</button>
 						<Dialog.Close>
@@ -317,27 +339,40 @@
 					{#if !data.deleteCheck?.terminal}
 						{#if data.deleteCheck?.reason === 'notifications_queued'}
 							<p class="cancel-dialog-desc">
-								<strong>Delete blocked</strong>: Background notification or calendar sync tasks are still in progress. Please wait for these tasks to finish before deleting the booking.
+								<strong>Delete blocked</strong>: Background notification or calendar sync tasks are
+								still in progress. Please wait for these tasks to finish before deleting the
+								booking.
 							</p>
 						{:else}
 							<p class="cancel-dialog-desc">
-								<strong>Delete blocked</strong>: This booking is not in a terminal state. Only cancelled, declined, expired, or past/concluded bookings can be deleted.
+								<strong>Delete blocked</strong>: This booking is not in a terminal state. Only
+								cancelled, declined, expired, or past/concluded bookings can be deleted.
 							</p>
 						{/if}
 						<div class="cancel-dialog-actions">
 							<Dialog.Close>
 								{#snippet child({ props: closeProps })}
-									<button {...closeProps} type="button" class="cancel-cancel-btn" style="width: 100%">Close</button>
+									<button
+										{...closeProps}
+										type="button"
+										class="cancel-cancel-btn"
+										style="width: 100%">Close</button
+									>
 								{/snippet}
 							</Dialog.Close>
 						</div>
 					{:else}
 						<p class="cancel-dialog-desc">
 							Are you sure you want to delete this booking?
-							<strong>This will delete the entire rescheduling chain for this booking.</strong> This action cannot be undone.
+							<strong>This will delete the entire rescheduling chain for this booking.</strong> This action
+							cannot be undone.
 						</p>
 
-						<form method="POST" action="/admin/booked/{data.appointment.id}?/delete" class="cancel-dialog-actions">
+						<form
+							method="POST"
+							action="/admin/booked/{data.appointment.id}?/delete"
+							class="cancel-dialog-actions"
+						>
 							<button type="submit" class="cancel-confirm-btn">Yes, delete</button>
 							<Dialog.Close>
 								{#snippet child({ props: closeProps })}

@@ -11,21 +11,18 @@ try {
 	process.exit(1);
 }
 
-export const handle = sequence(
-	getAuth().handle,
-	async ({ event, resolve }) => {
-		if (event.route.id?.startsWith('/(auth)')) {
-			const session = await event.locals.auth();
-			if (!session) {
-				const accept = event.request.headers.get('accept') || '';
-				if (event.request.method === 'GET' && accept.includes('text/html')) {
-					const callbackUrl = event.url.pathname + event.url.search;
-					throw redirect(303, `/signin?callbackUrl=${encodeURIComponent(callbackUrl)}`);
-				} else {
-					throw error(403, 'Not authorized.');
-				}
+export const handle = sequence(getAuth().handle, async ({ event, resolve }) => {
+	if (event.route.id?.startsWith('/(auth)')) {
+		const session = await event.locals.auth();
+		if (!session) {
+			const accept = event.request.headers.get('accept') || '';
+			if (event.request.method === 'GET' && accept.includes('text/html')) {
+				const callbackUrl = event.url.pathname + event.url.search;
+				throw redirect(303, `/signin?callbackUrl=${encodeURIComponent(callbackUrl)}`);
+			} else {
+				throw error(403, 'Not authorized.');
 			}
 		}
-		return resolve(event);
 	}
-);
+	return resolve(event);
+});

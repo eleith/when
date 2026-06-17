@@ -1,4 +1,4 @@
-import { error, fail, redirect } from '@sveltejs/kit';
+import { fail, redirect } from '@sveltejs/kit';
 import { getDb } from '$lib/server/state';
 import { findAppointment, isChainTerminal, deleteChain, originId } from '@when/db';
 import { acceptAppointment } from '$lib/server/booking/accept';
@@ -40,7 +40,10 @@ export const actions: Actions = {
 		const row = await findAppointment(getDb(), params.id);
 		if (!row) return fail(404, { error: 'Booking not found.' });
 
-		const result = await cancelAppointment(bookingContext(), { appointment: row, initiator: 'organizer' });
+		const result = await cancelAppointment(bookingContext(), {
+			appointment: row,
+			initiator: 'organizer'
+		});
 		if (!result.ok) {
 			return fail(409, { error: 'This booking can no longer be cancelled.' });
 		}
@@ -57,7 +60,8 @@ export const actions: Actions = {
 		if (!check.terminal) {
 			let errorMsg = 'This booking is not eligible for deletion.';
 			if (check.reason === 'notifications_queued') {
-				errorMsg = 'Delete blocked: background notifications or calendar sync are still in progress.';
+				errorMsg =
+					'Delete blocked: background notifications or calendar sync are still in progress.';
 			} else if (check.reason === 'not_terminal') {
 				errorMsg = 'Delete blocked: cannot delete an active or upcoming booking.';
 			}

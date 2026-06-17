@@ -5,7 +5,13 @@ import { buildAddToCalendarLinks } from '$lib/server/calendar-links';
 import { systemClock } from '$lib/server/clock';
 import { getConfig, getDb } from '$lib/server/state';
 import { notificationStates } from '$lib/notifications';
-import { findAppointment, findChainTip, originId, isChainTerminal, type Appointment } from '@when/db';
+import {
+	findAppointment,
+	findChainTip,
+	originId,
+	isChainTerminal,
+	type Appointment
+} from '@when/db';
 import type { Actions, PageServerLoad } from './$types';
 import { cancelAppointment } from '$lib/server/booking/cancel';
 import { bookingContext } from '$lib/server/booking/context';
@@ -133,7 +139,10 @@ export const actions: Actions = {
 			return fail(403, { error: 'Invalid cancel token.' });
 		}
 
-		const result = await cancelAppointment(bookingContext(), { appointment: row, initiator: 'attendee' });
+		const result = await cancelAppointment(bookingContext(), {
+			appointment: row,
+			initiator: 'attendee'
+		});
 		if (!result.ok) {
 			return fail(409, { error: 'This booking can no longer be cancelled.' });
 		}
