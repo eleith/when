@@ -1,5 +1,5 @@
 import { generateIcsCalendar, type IcsCalendar, type IcsEvent } from 'ts-ics';
-import { describeAppointment } from '@when/calendar';
+import { attendeeGuest, describeAppointment } from '@when/calendar';
 import { originId, type Appointment, type AppointmentStatus } from '@when/db';
 import { systemClock, type Clock } from './clock.js';
 import { eventTypeName } from './format.js';
@@ -33,6 +33,7 @@ export function buildIcs(input: IcsInput): string {
 		method
 	} = input;
 	const clock = input.clock ?? systemClock;
+	const guest = attendeeGuest(appointment);
 
 	const event: IcsEvent = {
 		uid: originId(appointment),
@@ -44,9 +45,7 @@ export function buildIcs(input: IcsInput): string {
 		description: describeAppointment(appointment, cancelUrl),
 		location: appointment.location ?? undefined,
 		organizer: { name: organizerName, email: organizerEmail },
-		attendees: appointment.attendee_email
-			? [{ email: appointment.attendee_email, name: appointment.attendee_name }]
-			: undefined,
+		attendees: guest ? [guest] : undefined,
 		status: eventStatus(method, appointment.status)
 	};
 

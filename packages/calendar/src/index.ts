@@ -7,8 +7,10 @@ export { buildIcs } from './ics.js';
 export type { IcsInput, IcsMethod } from './ics.js';
 export type { Clock } from './clock.js';
 
-// Shared calendar event description (Google + ICS).
+// Shared calendar event fields (Google + ICS).
 export { describeAppointment } from './description.js';
+export { attendeeGuest } from './guest.js';
+export type { CalendarGuest } from './guest.js';
 
 // Worker refresh: fetch + expand one calendar's busy intervals, filtering our own events.
 export { fetchBusyIntervals } from './busy.js';

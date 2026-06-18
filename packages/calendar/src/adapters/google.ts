@@ -1,5 +1,6 @@
 import { Temporal } from '@js-temporal/polyfill';
 import { describeAppointment } from '../description.js';
+import { attendeeGuest } from '../guest.js';
 import { logger } from '../logger.js';
 import type { BusyEvent } from '../types.js';
 import type { Appointment } from '@when/db';
@@ -173,15 +174,14 @@ export async function putGoogleEvent(
 
 	const method = isUpdate ? 'PUT' : 'POST';
 
+	const guest = attendeeGuest(appointment);
 	const payload = {
 		summary: `${opts.eventTypeName} with ${appointment.attendee_name}`,
 		description: describeAppointment(appointment, opts.cancelUrl),
 		location: appointment.location || undefined,
 		start: { dateTime: appointment.start_time },
 		end: { dateTime: appointment.end_time },
-		attendees: appointment.attendee_email
-			? [{ email: appointment.attendee_email, displayName: appointment.attendee_name }]
-			: []
+		attendees: guest ? [{ email: guest.email, displayName: guest.name }] : []
 	};
 
 	const res = await (opts.fetchImpl ?? fetch)(url, {
