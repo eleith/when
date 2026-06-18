@@ -15,7 +15,7 @@ const baseRow: Appointment = {
 	end_time: '2026-05-01T15:30:00Z',
 	attendee_name: 'Booker',
 	attendee_email: 'booker@example.com',
-	attendee_notes: null,
+	attendee_answers: null,
 	attendee_timezone: null,
 	location: null,
 	status: 'confirmed',

@@ -23,7 +23,7 @@ async function seed() {
 			end_time: '2099-01-01T15:30:00Z',
 			attendee_name: 'Booker',
 			attendee_email: 'booker@example.com',
-			attendee_notes: null,
+			attendee_answers: null,
 			location: null,
 			status: 'confirmed',
 			cancel_token: 't1'

@@ -77,7 +77,7 @@ export async function rescheduleBooking(
 				end_time: when.newEnd,
 				attendee_name: old.attendee_name,
 				attendee_email: old.attendee_email,
-				attendee_notes: old.attendee_notes,
+				attendee_answers: old.attendee_answers,
 				attendee_timezone: old.attendee_timezone,
 				location: old.location,
 				status: when.newStatus,

@@ -33,7 +33,7 @@ async function insert(row: {
 			end_time: row.end,
 			attendee_name: 'A',
 			attendee_email: 'a@example.com',
-			attendee_notes: null,
+			attendee_answers: null,
 			location: null,
 			status: row.status,
 			cancel_token: row.cancel_token ?? `tok-${row.id}`,

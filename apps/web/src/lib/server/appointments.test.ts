@@ -50,7 +50,7 @@ test('toAppointmentView enriches appointment rows correctly', () => {
 		end_time: '2026-06-15T13:30:00Z',
 		attendee_name: 'Jane Doe',
 		attendee_email: 'jane@example.com',
-		attendee_notes: 'Hello',
+		attendee_answers: null,
 		attendee_timezone: 'UTC',
 		location: 'Zoom',
 		status: 'confirmed',

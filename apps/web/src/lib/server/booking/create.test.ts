@@ -21,7 +21,7 @@ const input = {
 	attendee: {
 		name: 'Booker',
 		email: 'booker@example.com',
-		notes: null,
+		answers: [],
 		timezone: 'America/New_York'
 	},
 	location: null
@@ -103,7 +103,7 @@ describe('createAppointment', () => {
 					end_time: input.end,
 					attendee_name: 'Other',
 					attendee_email: 'other@example.com',
-					attendee_notes: null,
+					attendee_answers: null,
 					location: null,
 					status: 'confirmed',
 					cancel_token: 'tok-existing',

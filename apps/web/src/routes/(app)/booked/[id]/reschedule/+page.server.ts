@@ -54,7 +54,7 @@ export const load: PageServerLoad = async ({ params, url }) => {
 					end_time: row.end_time,
 					attendee_name: row.attendee_name,
 					attendee_email: row.attendee_email,
-					attendee_notes: row.attendee_notes,
+					attendee_answers: row.attendee_answers,
 					location: row.location
 				},
 		rescheduleError,

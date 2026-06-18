@@ -6,10 +6,10 @@ import { resolveAvailabilitySettings } from '$lib/server/availability/settings';
 import { loadAvailability } from '$lib/server/availability/load';
 import { getBusyIntervals } from '@when/db';
 import { systemClock } from '$lib/server/clock';
-import type { Location } from '@when/config';
 import { logger } from '$lib/server/logger';
 import { getConfig, getDb } from '$lib/server/state';
 import { createAppointment } from '$lib/server/booking/create';
+import { parseAndValidateBookingForm } from '$lib/server/booking/form.server';
 import { bookingContext } from '$lib/server/booking/context';
 import { normalizeDeepLinkParams } from '$lib/booking';
 import type { Actions, PageServerLoad } from './$types';
@@ -72,24 +72,17 @@ export const actions: Actions = {
 
 		const form = await request.formData();
 		const slotStr = String(form.get('slot') ?? '');
-		const name = String(form.get('name') ?? '').trim();
-		const email = String(form.get('email') ?? '').trim();
-		const notes = String(form.get('notes') ?? '').trim();
 		const timezone = String(form.get('timezone') ?? '').trim();
-		const locationInput = form.get('location');
 
-		if (!slotStr || !name || !email) {
-			return fail(400, { error: 'Name, email, and slot are required.' });
-		}
-		if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-			return fail(400, { error: 'That email address looks invalid.' });
+		if (!slotStr) {
+			return fail(400, { error: 'Please pick a time slot.' });
 		}
 
-		const resolved = resolveLocation(eventType.location ?? null, locationInput);
-		if (resolved !== null && typeof resolved === 'object' && 'fail' in resolved) {
-			return fail(400, { error: resolved.fail });
+		const parsed = parseAndValidateBookingForm(eventType, form);
+		if (!parsed.ok) {
+			return fail(400, { fieldErrors: parsed.errors });
 		}
-		const resolvedLocation: string | null = resolved;
+		const { name, email, answers, location: resolvedLocation } = parsed.data;
 
 		// Re-validate the slot is currently available.
 		const settings = resolveAvailabilitySettings(cfg, eventType);
@@ -130,7 +123,7 @@ export const actions: Actions = {
 				attendee: {
 					name,
 					email,
-					notes: notes || null,
+					answers,
 					timezone: isValidTimeZone(timezone) ? timezone : cfg.user.timezone
 				},
 				location: resolvedLocation
@@ -158,22 +151,6 @@ function isValidTimeZone(tz: string): boolean {
 	} catch {
 		return false;
 	}
-}
-
-type LocationResult = string | null | { fail: string };
-
-function resolveLocation(loc: Location | null, input: FormDataEntryValue | null): LocationResult {
-	if (!loc) return null;
-	if (loc.mode === 'fixed') return loc.fixed;
-	const submitted = typeof input === 'string' ? input.trim() : '';
-	if (loc.mode === 'guest_proposes') {
-		if (!submitted) return { fail: 'Please enter a meeting location.' };
-		return submitted;
-	}
-	if (!loc.choices.includes(submitted)) {
-		return { fail: 'Pick a valid location option.' };
-	}
-	return submitted;
 }
 
 async function slotDayBusy(

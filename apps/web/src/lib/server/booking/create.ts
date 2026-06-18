@@ -1,7 +1,7 @@
 import { enqueueBookingEmail, enqueueCalendarSync } from '../workflow';
 import { newAppointmentId, newCancelToken } from './ids';
 import type { BookingContext } from './context';
-import type { EventType } from '@when/config';
+import type { AttendeeAnswer, EventType } from '@when/config';
 import type { Appointment } from '@when/db';
 import type { BookingEmailKind } from '@when/jobs';
 
@@ -11,7 +11,7 @@ export interface CreateAppointmentInput {
 	start: string;
 	/** New end_time as ISO instant. */
 	end: string;
-	attendee: { name: string; email: string; notes: string | null; timezone: string };
+	attendee: { name: string; email: string | null; answers: AttendeeAnswer[]; timezone: string };
 	location: string | null;
 }
 
@@ -45,7 +45,9 @@ export async function createAppointment(
 				end_time: input.end,
 				attendee_name: input.attendee.name,
 				attendee_email: input.attendee.email,
-				attendee_notes: input.attendee.notes,
+				attendee_answers: input.attendee.answers.length
+					? JSON.stringify(input.attendee.answers)
+					: null,
 				attendee_timezone: input.attendee.timezone,
 				location: input.location,
 				status,
