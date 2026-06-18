@@ -6,6 +6,7 @@ import { getConfig, getDb } from '$lib/server/state';
 import { loadAvailability } from '$lib/server/availability/load';
 import { requireViewableAppointment } from '$lib/server/booking/access';
 import { classifyReschedule, rescheduleAppointment } from '$lib/server/booking/reschedule';
+import { parseAndValidateBookingForm } from '$lib/server/booking/form.server';
 import { bookingContext } from '$lib/server/booking/context';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -85,6 +86,13 @@ export const actions: Actions = {
 		const eventType = cfg.event_types.find((e) => e.id === found.event_type_id);
 		if (!eventType) return fail(409, { error: 'This event type no longer exists.' });
 
+		let attendee;
+		if (initiator === 'attendee') {
+			const parsed = parseAndValidateBookingForm(eventType, form);
+			if (!parsed.ok) return fail(400, { fieldErrors: parsed.errors });
+			attendee = parsed.data;
+		}
+
 		// Re-validate the slot is currently bookable, ignoring the booking's own current slot.
 		const { slotsByDate } = await loadAvailability(cfg, eventType, found.start_time);
 		if (!Object.values(slotsByDate).flat().includes(slotStr)) {
@@ -97,7 +105,8 @@ export const actions: Actions = {
 			appointment: found,
 			initiator,
 			newStart: start.toString(),
-			newEnd: end.toString()
+			newEnd: end.toString(),
+			attendee
 		});
 		if (!result.ok) {
 			if (result.reason === 'slot_taken') {

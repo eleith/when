@@ -3,6 +3,7 @@ import { isRescheduleAllowed, isViewable } from './access';
 import { enqueueBookingEmail, enqueueCalendarSync } from '../workflow';
 import type { BookingContext } from './context';
 import { rescheduleBooking, type RescheduleResult } from './transitions';
+import type { ParsedBooking } from './form.server';
 import type { EventType } from '@when/config';
 import type { Appointment } from '@when/db';
 
@@ -33,6 +34,7 @@ export interface RescheduleAppointmentInput {
 	newStart: string;
 	/** New end_time as ISO instant. */
 	newEnd: string;
+	attendee?: ParsedBooking;
 }
 
 export type RescheduleAppointmentResult =
@@ -71,7 +73,15 @@ export async function rescheduleAppointment(
 		result = await rescheduleBooking(ctx.db, input.appointment, {
 			newStart: input.newStart,
 			newEnd: input.newEnd,
-			newStatus
+			newStatus,
+			attendee: input.attendee
+				? {
+						name: input.attendee.name,
+						email: input.attendee.email,
+						answers: input.attendee.answers.length ? JSON.stringify(input.attendee.answers) : null,
+						location: input.attendee.location
+					}
+				: undefined
 		});
 	} catch (err) {
 		if (isUniqueViolation(err)) return { ok: false, reason: 'slot_taken' };

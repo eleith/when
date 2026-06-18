@@ -275,6 +275,83 @@ describe('rescheduleAppointment', () => {
 		}
 	});
 
+	test('attendee re-collect: the new row takes the re-submitted form values', async () => {
+		const db = await makeDb();
+		try {
+			await db
+				.insertInto('appointments')
+				.values({ ...opBaseRow, id: 'r1', status: 'confirmed', cancel_token: 't1' })
+				.execute();
+			const row = await fetchRow(db, 'r1');
+
+			const result = await rescheduleAppointment(
+				{ db, cfg: validConfig, clock: systemClock },
+				{
+					appointment: row,
+					initiator: 'attendee',
+					newStart: '2099-01-02T10:00:00Z',
+					newEnd: '2099-01-02T10:30:00Z',
+					attendee: {
+						name: 'Booker Renamed',
+						email: null,
+						location: 'Room B',
+						answers: [{ id: 'why', label: 'Why move?', type: 'text', value: 'conflict' }]
+					}
+				}
+			);
+
+			expect(result.ok).toBe(true);
+			if (result.ok) {
+				const next = result.appointment;
+				expect(next.attendee_name).toBe('Booker Renamed');
+				expect(next.attendee_email).toBeNull();
+				expect(next.location).toBe('Room B');
+				expect(next.attendee_answers).toBe(
+					JSON.stringify([{ id: 'why', label: 'Why move?', type: 'text', value: 'conflict' }])
+				);
+			}
+		} finally {
+			await db.destroy();
+		}
+	});
+
+	test('organizer reschedule with no override carries the old values forward', async () => {
+		const db = await makeDb();
+		try {
+			await db
+				.insertInto('appointments')
+				.values({
+					...opBaseRow,
+					id: 'r1',
+					status: 'confirmed',
+					cancel_token: 't1',
+					attendee_name: 'Original',
+					attendee_email: 'orig@example.com',
+					attendee_answers: JSON.stringify([{ id: 'q', label: 'Q', type: 'text', value: 'kept' }])
+				})
+				.execute();
+			const row = await fetchRow(db, 'r1');
+
+			const result = await rescheduleAppointment(
+				{ db, cfg: validConfig, clock: systemClock },
+				{
+					appointment: row,
+					initiator: 'organizer',
+					newStart: '2099-01-02T10:00:00Z',
+					newEnd: '2099-01-02T10:30:00Z'
+				}
+			);
+
+			expect(result.ok && result.appointment.attendee_name).toBe('Original');
+			expect(result.ok && result.appointment.attendee_email).toBe('orig@example.com');
+			expect(result.ok && result.appointment.attendee_answers).toBe(
+				JSON.stringify([{ id: 'q', label: 'Q', type: 'text', value: 'kept' }])
+			);
+		} finally {
+			await db.destroy();
+		}
+	});
+
 	test('the new row inherits the calendar event pointer so the event is patched, not recreated', async () => {
 		const db = await makeDb();
 		try {

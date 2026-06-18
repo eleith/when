@@ -46,10 +46,22 @@ export async function confirmBooking(db: Kysely<Database>, id: string): Promise<
  * event pointer and `origin_id` so the published event moves rather than being recreated. A taken
  * slot throws UNIQUE (caller maps to `slot_taken`); an already-terminal old row is `conflict`.
  */
+export interface RescheduleAttendee {
+	name: string;
+	email: string | null;
+	answers: string | null;
+	location: string | null;
+}
+
 export async function rescheduleBooking(
 	db: Kysely<Database>,
 	old: Appointment,
-	when: { newStart: string; newEnd: string; newStatus: AppointmentStatus }
+	when: {
+		newStart: string;
+		newEnd: string;
+		newStatus: AppointmentStatus;
+		attendee?: RescheduleAttendee;
+	}
 ): Promise<RescheduleResult> {
 	const newId = newAppointmentId();
 	const newToken = newCancelToken();
@@ -75,11 +87,11 @@ export async function rescheduleBooking(
 				event_type_id: old.event_type_id,
 				start_time: when.newStart,
 				end_time: when.newEnd,
-				attendee_name: old.attendee_name,
-				attendee_email: old.attendee_email,
-				attendee_answers: old.attendee_answers,
+				attendee_name: when.attendee ? when.attendee.name : old.attendee_name,
+				attendee_email: when.attendee ? when.attendee.email : old.attendee_email,
+				attendee_answers: when.attendee ? when.attendee.answers : old.attendee_answers,
 				attendee_timezone: old.attendee_timezone,
-				location: old.location,
+				location: when.attendee ? when.attendee.location : old.location,
 				status: when.newStatus,
 				origin_id: originId(old),
 				rescheduled_from_id: old.id,
