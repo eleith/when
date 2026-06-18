@@ -14,7 +14,7 @@ const baseAppointment: Appointment = {
 	end_time: '2026-04-27T13:30:00Z',
 	attendee_name: 'Booker',
 	attendee_email: 'booker@example.com',
-	attendee_notes: null,
+	attendee_answers: null,
 	location: null,
 	status: 'confirmed',
 	origin_id: 'appt-xyz',

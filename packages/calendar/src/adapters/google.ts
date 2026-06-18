@@ -1,4 +1,5 @@
 import { Temporal } from '@js-temporal/polyfill';
+import { parseAttendeeAnswers } from '@when/config';
 import { logger } from '../logger.js';
 import type { BusyEvent } from '../types.js';
 import type { Appointment } from '@when/db';
@@ -172,13 +173,21 @@ export async function putGoogleEvent(
 
 	const method = isUpdate ? 'PUT' : 'POST';
 
+	const lines: string[] = [`Name: ${appointment.attendee_name}`];
+	if (appointment.attendee_email) lines.push(`Email: ${appointment.attendee_email}`);
+	for (const answer of parseAttendeeAnswers(appointment.attendee_answers)) {
+		if (answer.value) lines.push(`${answer.label}: ${answer.value}`);
+	}
+
 	const payload = {
 		summary: `${opts.eventTypeName} with ${appointment.attendee_name}`,
-		description: `Name: ${appointment.attendee_name}\nEmail: ${appointment.attendee_email}\n\n${appointment.attendee_notes ? `Notes: ${appointment.attendee_notes}\n\n` : ''}Cancel or reschedule: ${opts.cancelUrl}`,
+		description: `${lines.join('\n')}\n\nCancel or reschedule: ${opts.cancelUrl}`,
 		location: appointment.location || undefined,
 		start: { dateTime: appointment.start_time },
 		end: { dateTime: appointment.end_time },
-		attendees: [{ email: appointment.attendee_email, displayName: appointment.attendee_name }]
+		attendees: appointment.attendee_email
+			? [{ email: appointment.attendee_email, displayName: appointment.attendee_name }]
+			: []
 	};
 
 	const res = await (opts.fetchImpl ?? fetch)(url, {

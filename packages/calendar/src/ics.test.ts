@@ -9,7 +9,7 @@ const baseAppointment: Appointment = {
 	end_time: '2026-04-27T13:30:00Z',
 	attendee_name: 'Booker',
 	attendee_email: 'booker@example.com',
-	attendee_notes: null,
+	attendee_answers: null,
 	location: null,
 	status: 'confirmed',
 	origin_id: 'appt-123',
@@ -72,12 +72,22 @@ test('DESCRIPTION contains the cancel URL', () => {
 	expect(ics).toContain('https://when.example.com/booked/appt-123');
 });
 
-test('DESCRIPTION includes attendee notes when present', () => {
+test('DESCRIPTION includes attendee answers when present', () => {
 	const ics = buildIcs({
-		appointment: { ...baseAppointment, attendee_notes: 'Looking forward to chatting!' },
+		appointment: {
+			...baseAppointment,
+			attendee_answers: JSON.stringify([
+				{
+					id: 'notes',
+					label: 'Anything else?',
+					type: 'paragraph',
+					value: 'Looking forward to chatting!'
+				}
+			])
+		},
 		...baseInput
 	});
-	expect(ics).toContain('Looking forward to chatting');
+	expect(ics).toContain('Anything else?: Looking forward to chatting');
 });
 
 test('STATUS reflects pending appointments', () => {
@@ -97,6 +107,14 @@ test('ORGANIZER and ATTENDEE lines are present', () => {
 	const ics = buildIcs({ appointment: baseAppointment, ...baseInput });
 	expect(ics).toMatch(/ORGANIZER[;:][^\r\n]*jane@example\.com/);
 	expect(ics).toMatch(/ATTENDEE[;:][^\r\n]*booker@example\.com/);
+});
+
+test('ATTENDEE is omitted when the booking has no email', () => {
+	const ics = buildIcs({
+		appointment: { ...baseAppointment, attendee_email: null },
+		...baseInput
+	});
+	expect(ics).not.toMatch(/^ATTENDEE/m);
 });
 
 test('METHOD:REQUEST is emitted at the calendar level for create/reschedule', () => {
