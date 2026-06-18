@@ -16,3 +16,13 @@ export interface AttendeeAnswer {
 	type: FormField['type'];
 	value: string;
 }
+
+export function parseAttendeeAnswers(json: string | null | undefined): AttendeeAnswer[] {
+	if (!json) return [];
+	try {
+		const parsed = JSON.parse(json);
+		return Array.isArray(parsed) ? (parsed as AttendeeAnswer[]) : [];
+	} catch {
+		return [];
+	}
+}
