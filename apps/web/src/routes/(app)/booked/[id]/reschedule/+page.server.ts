@@ -3,6 +3,7 @@ import { Temporal } from '@js-temporal/polyfill';
 import { findAppointment } from '@when/db';
 import { systemClock } from '$lib/server/clock';
 import { getConfig, getDb } from '$lib/server/state';
+import { resolveFormFields, parseAttendeeAnswers } from '@when/config';
 import { loadAvailability } from '$lib/server/availability/load';
 import { requireViewableAppointment } from '$lib/server/booking/access';
 import { classifyReschedule, rescheduleAppointment } from '$lib/server/booking/reschedule';
@@ -44,6 +45,7 @@ export const load: PageServerLoad = async ({ params, url }) => {
 			buffer_after: settings.buffer_after,
 			minimum_notice: settings.minimum_notice
 		},
+		formFields: resolveFormFields(eventType),
 		slotsByDate,
 		workingWindows,
 		busyBlocks,
@@ -55,7 +57,7 @@ export const load: PageServerLoad = async ({ params, url }) => {
 					end_time: row.end_time,
 					attendee_name: row.attendee_name,
 					attendee_email: row.attendee_email,
-					attendee_answers: row.attendee_answers,
+					answers: parseAttendeeAnswers(row.attendee_answers),
 					location: row.location
 				},
 		rescheduleError,

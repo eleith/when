@@ -4,6 +4,7 @@ import { resolveBookingActions } from '$lib/server/booking/actions';
 import { buildAddToCalendarLinks } from '$lib/server/calendar-links';
 import { systemClock } from '$lib/server/clock';
 import { getConfig, getDb } from '$lib/server/state';
+import { parseAttendeeAnswers } from '@when/config';
 import { notificationStates } from '$lib/notifications';
 import {
 	findAppointment,
@@ -94,7 +95,7 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 			end_time: row.end_time,
 			attendee_name: row.attendee_name,
 			attendee_email: row.attendee_email,
-			attendee_notes: row.attendee_notes,
+			answers: parseAttendeeAnswers(row.attendee_answers),
 			location: row.location,
 			status: row.status,
 			notifications,

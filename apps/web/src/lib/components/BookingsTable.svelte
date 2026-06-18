@@ -46,8 +46,8 @@
 					<td class="cell-attendee">
 						<div class="attendee-info">
 							<a href="/booked/{a.id}" class="row-link">{a.attendee_name}</a>
-							<span class="attendee-email">
-								{a.attendee_email}
+							<span class="attendee-email" class:no-email={!a.attendee_email}>
+								{a.attendee_email ?? 'No email'}
 							</span>
 						</div>
 					</td>
@@ -163,6 +163,11 @@
 		gap: var(--space-1);
 		font-size: var(--font-size-sm);
 		color: var(--text-muted);
+	}
+
+	.attendee-email.no-email {
+		font-style: italic;
+		opacity: 0.7;
 	}
 
 	.event-tag {

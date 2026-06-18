@@ -18,7 +18,7 @@
 		formatTzAbbrev
 	} from '$lib/datetime';
 	import { getPreferredTimezone } from '$lib/preferredTimezone.svelte';
-	import type { Branding, Location } from '@when/config';
+	import type { AttendeeAnswer, Branding, FormField, Location } from '@when/config';
 
 	// Shared shape served by both the new-booking route and the reschedule route.
 	export interface BookingWizardData {
@@ -40,6 +40,7 @@
 			buffer_after: number;
 			minimum_notice: number;
 		};
+		formFields: readonly FormField[];
 		slotsByDate: Record<string, string[]>;
 		workingWindows: { start: string; end: string }[];
 		busyBlocks: { start: string; end: string }[];
@@ -48,8 +49,8 @@
 			start_time: string;
 			end_time: string;
 			attendee_name: string;
-			attendee_email: string;
-			attendee_notes: string | null;
+			attendee_email: string | null;
+			answers: AttendeeAnswer[];
 			location: string | null;
 		} | null;
 		rescheduleError: string | null;
@@ -58,7 +59,7 @@
 
 	interface Props {
 		data: BookingWizardData;
-		form: { error?: string } | null;
+		form: { error?: string; fieldErrors?: Record<string, string> } | null;
 		deepLink?: boolean;
 	}
 
@@ -94,6 +95,31 @@
 	let routerReady = $state(false);
 	let nameInput = $state<HTMLInputElement | null>(null);
 	let linkNotice = $state<NonNullable<DeepLinkResult['notice']> | null>(null);
+
+	// svelte-ignore state_referenced_locally
+	const priorAnswers = data.rescheduleAppt?.answers ?? [];
+
+	function initialFieldValue(field: FormField): string {
+		const r = data.rescheduleAppt;
+		if (!r) return '';
+		if (field.type === 'attendee_name') return r.attendee_name ?? '';
+		if (field.type === 'attendee_email') return r.attendee_email ?? '';
+		if (field.type === 'event_location') return r.location ?? '';
+		return priorAnswers.find((a) => a.id === field.id)?.value ?? '';
+	}
+
+	// svelte-ignore state_referenced_locally
+	let paragraphValues = $state<Record<string, string>>(
+		Object.fromEntries(
+			data.formFields.filter((f) => f.type === 'paragraph').map((f) => [f.id, initialFieldValue(f)])
+		)
+	);
+
+	let staticLocation = $derived(
+		data.eventType.location && !data.formFields.some((f) => f.type === 'event_location')
+			? data.eventType.location.fixed
+			: null
+	);
 
 	const initialSlot = page.url.searchParams.get('slot');
 	const initialDate = page.url.searchParams.get('date');
@@ -205,7 +231,8 @@
 	<div class="banner-event">
 		<h1 class="banner-event-name">{data.eventType.name}</h1>
 		<p class="banner-event-meta">
-			{data.eventType.duration} min{#if data.eventType.description}
+			{data.eventType.duration} min{#if staticLocation}
+				&middot; {staticLocation}{/if}{#if data.eventType.description}
 				&middot; {data.eventType.description}{/if}
 		</p>
 	</div>
@@ -291,6 +318,9 @@
 				<section class="context-section context-section-about">
 					<h2 class="context-event-name">{data.eventType.name}</h2>
 					<p class="context-event-meta">{data.eventType.duration} min</p>
+					{#if staticLocation}
+						<p class="context-event-location">{staticLocation}</p>
+					{/if}
 					{#if data.eventType.description}
 						<p class="context-event-description">{data.eventType.description}</p>
 					{/if}
@@ -396,60 +426,78 @@
 									<input type="hidden" name="token" value={data.rescheduleToken} />
 								{/if}
 
-								<div class="field">
-									<label for="name">What is your name?</label>
-									<input
-										id="name"
-										name="name"
-										required
-										autocomplete="name"
-										bind:this={nameInput}
-										value={data.rescheduleAppt?.attendee_name ?? ''}
-									/>
-								</div>
-
-								<div class="field">
-									<label for="email">What is your email?</label>
-									<input
-										id="email"
-										name="email"
-										type="email"
-										required
-										autocomplete="email"
-										value={data.rescheduleAppt?.attendee_email ?? ''}
-									/>
-								</div>
-
-								{#if data.eventType.location?.mode === 'fixed'}
+								{#each data.formFields as field (field.id)}
 									<div class="field">
-										<span class="field-label">Where</span>
-										<p class="location-display">{data.eventType.location.fixed}</p>
+										<label for={field.id}>
+											{field.label}{#if field.required}<span class="field-req" aria-hidden="true"
+													>*</span
+												>{/if}
+										</label>
+										{#if field.type === 'attendee_name'}
+											<input
+												id={field.id}
+												name={field.id}
+												type="text"
+												required
+												autocomplete="name"
+												maxlength="200"
+												bind:this={nameInput}
+												value={initialFieldValue(field)}
+											/>
+										{:else if field.type === 'attendee_email'}
+											<input
+												id={field.id}
+												name={field.id}
+												type="email"
+												required={field.required}
+												autocomplete="email"
+												maxlength="254"
+												value={initialFieldValue(field)}
+											/>
+										{:else if field.type === 'number'}
+											<input
+												id={field.id}
+												name={field.id}
+												type="number"
+												required={field.required}
+												value={initialFieldValue(field)}
+											/>
+										{:else if field.type === 'paragraph'}
+											<textarea
+												id={field.id}
+												name={field.id}
+												rows="3"
+												required={field.required}
+												maxlength="1000"
+												bind:value={paragraphValues[field.id]}
+											></textarea>
+											<span class="field-count"
+												>{(paragraphValues[field.id] ?? '').length}/1000</span
+											>
+										{:else if field.type === 'choice' || (field.type === 'event_location' && field.choices)}
+											<select id={field.id} name={field.id} required={field.required}>
+												{#if !field.required}<option value="">Select an option</option>{/if}
+												{#each field.choices ?? [] as choice (choice)}
+													<option value={choice} selected={choice === initialFieldValue(field)}
+														>{choice}</option
+													>
+												{/each}
+											</select>
+										{:else}
+											<input
+												id={field.id}
+												name={field.id}
+												type="text"
+												required={field.required}
+												maxlength="200"
+												value={initialFieldValue(field)}
+											/>
+										{/if}
+										{#if form?.fieldErrors?.[field.id]}
+											<p class="field-error" role="alert">{form.fieldErrors[field.id]}</p>
+										{/if}
 									</div>
-								{:else if data.eventType.location?.mode === 'guest_proposes'}
-									<div class="field">
-										<label for="location">Where should we meet?</label>
-										<input id="location" name="location" required />
-									</div>
-								{:else if data.eventType.location?.mode === 'choice'}
-									<div class="field">
-										<label for="location">Where should we meet?</label>
-										<select id="location" name="location" required>
-											{#each data.eventType.location.choices as choice (choice)}
-												<option value={choice}>{choice}</option>
-											{/each}
-										</select>
-									</div>
-								{/if}
-
-								<div class="field">
-									<label for="notes">Anything else?</label>
-									<textarea
-										id="notes"
-										name="notes"
-										rows="3"
-										value={data.rescheduleAppt?.attendee_notes ?? ''}
-									></textarea>
-								</div>
+								{/each}
 
 								<button type="submit" class="submit-btn">
 									{#if data.rescheduleAppt}Confirm Reschedule{:else if data.eventType.booking_flow === 'requires_confirmation'}Request{:else}Schedule{/if}
@@ -804,13 +852,17 @@
 		margin-bottom: var(--space-5);
 	}
 
-	.field label,
-	.field-label {
+	.field label {
 		display: block;
 		font-size: var(--font-size-sm);
 		font-weight: 600;
 		margin-bottom: var(--space-2);
 		color: var(--text-secondary);
+	}
+
+	.field-req {
+		color: var(--danger);
+		margin-left: 2px;
 	}
 
 	.field input,
@@ -835,10 +887,24 @@
 		box-shadow: var(--shadow-focus);
 	}
 
-	.location-display {
+	.field-count {
+		display: block;
+		margin-top: var(--space-1);
+		text-align: right;
+		font-size: var(--font-size-xs);
 		color: var(--text-muted);
-		font-size: var(--font-size-md);
-		margin: 0;
+	}
+
+	.field-error {
+		margin: var(--space-2) 0 0;
+		font-size: var(--font-size-sm);
+		color: var(--danger);
+	}
+
+	.context-event-location {
+		color: var(--text-secondary);
+		font-size: var(--font-size-sm);
+		margin: 0 0 var(--space-3);
 	}
 
 	.submit-btn {

@@ -7,6 +7,7 @@
 	import IconMapPin from 'virtual:icons/ph/map-pin';
 	import IconUser from 'virtual:icons/ph/user';
 	import IconWarningCircle from 'virtual:icons/ph/warning-circle';
+	import IconInfo from 'virtual:icons/ph/info';
 	import IconNote from 'virtual:icons/ph/note';
 	import BookingActions from '$lib/components/BookingActions.svelte';
 	import AddToCalendar from '$lib/components/AddToCalendar.svelte';
@@ -64,6 +65,32 @@
 		<aside class="banner banner-danger" role="alert">
 			<span class="banner-icon"><IconWarningCircle aria-hidden="true" /></span>
 			<p class="banner-text">{form.error}</p>
+		</aside>
+	{/if}
+
+	{#if !data.isAdmin && (status === 'confirmed' || status === 'pending')}
+		<aside class="banner banner-info receipt">
+			<span class="banner-icon"><IconInfo aria-hidden="true" /></span>
+			<p class="banner-text">
+				{#if data.appointment.attendee_email}
+					{#if status === 'confirmed'}
+						You're booked! 🎉 A confirmation is on its way to
+						<strong>{data.appointment.attendee_email}</strong>. Keep this page handy — you can
+						reschedule or cancel here anytime.
+					{:else}
+						Thanks — your request is in! We'll email
+						<strong>{data.appointment.attendee_email}</strong> the moment {data.user.name} confirms. Feel
+						free to bookmark this page to check back.
+					{/if}
+				{:else if status === 'confirmed'}
+					You're all set! 🎉 Since we didn't take an email,
+					<strong>this page is your receipt</strong> — bookmark it to reschedule, cancel, or grab your
+					calendar invite later.
+				{:else}
+					Thanks — your request is in! It's waiting on {data.user.name} to confirm.
+					<strong>Bookmark this page</strong> and check back here to see when it's confirmed.
+				{/if}
+			</p>
 		</aside>
 	{/if}
 
@@ -198,19 +225,23 @@
 						{#if data.isAdmin}Attendee{:else}Attendee (you){/if}
 					</div>
 					{#if data.isAdmin}
-						<div class="detail-secondary">{data.appointment.attendee_email}</div>
-						<div
-							class="detail-secondary"
-							class:notif-failed={data.appointment.email_notification_status === 'failed'}
-						>
-							{data.appointment.email_notification_status === 'queued'
-								? 'Email sending'
-								: data.appointment.email_notification_status === 'failed'
-									? 'Email failed'
-									: data.appointment.email_notification_status === 'ok'
-										? 'Email sent'
-										: 'Email not sent'}
-						</div>
+						{#if data.appointment.attendee_email}
+							<div class="detail-secondary">{data.appointment.attendee_email}</div>
+							<div
+								class="detail-secondary"
+								class:notif-failed={data.appointment.email_notification_status === 'failed'}
+							>
+								{data.appointment.email_notification_status === 'queued'
+									? 'Email sending'
+									: data.appointment.email_notification_status === 'failed'
+										? 'Email failed'
+										: data.appointment.email_notification_status === 'ok'
+											? 'Email sent'
+											: 'Email not sent'}
+							</div>
+						{:else}
+							<div class="detail-secondary">No email collected</div>
+						{/if}
 					{/if}
 				</div>
 			</div>
@@ -227,12 +258,16 @@
 					</div>
 				</div>
 			</div>
-			{#if data.isAdmin && data.appointment.attendee_notes}
+			{#if data.appointment.answers.length}
 				<div class="detail-row">
 					<span class="detail-icon"><IconNote aria-hidden="true" /></span>
-					<div class="detail-text">
-						<div class="detail-primary">Notes</div>
-						<div class="detail-secondary notes">{data.appointment.attendee_notes}</div>
+					<div class="detail-text answers">
+						{#each data.appointment.answers as answer (answer.id)}
+							<div class="answer-item">
+								<div class="detail-secondary">{answer.label}</div>
+								<div class="detail-primary notes">{answer.value}</div>
+							</div>
+						{/each}
 					</div>
 				</div>
 			{/if}
@@ -435,6 +470,15 @@
 
 	.banner-danger .banner-icon {
 		color: var(--danger);
+	}
+
+	.banner-info {
+		background: var(--info-bg);
+		border-color: var(--info-border);
+	}
+
+	.banner-info .banner-icon {
+		color: var(--info-strong);
 	}
 
 	/* ---- card ---- */
@@ -855,5 +899,9 @@
 	.notes {
 		white-space: pre-wrap;
 		line-height: 1.5;
+	}
+
+	.answer-item + .answer-item {
+		margin-top: var(--space-3);
 	}
 </style>

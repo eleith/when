@@ -8,6 +8,7 @@ import { getBusyIntervals } from '@when/db';
 import { systemClock } from '$lib/server/clock';
 import { logger } from '$lib/server/logger';
 import { getConfig, getDb } from '$lib/server/state';
+import { resolveFormFields } from '@when/config';
 import { createAppointment } from '$lib/server/booking/create';
 import { parseAndValidateBookingForm } from '$lib/server/booking/form.server';
 import { bookingContext } from '$lib/server/booking/context';
@@ -55,6 +56,7 @@ export const load: PageServerLoad = async ({ params, url }) => {
 			buffer_after: settings.buffer_after,
 			minimum_notice: settings.minimum_notice
 		},
+		formFields: resolveFormFields(eventType),
 		slotsByDate,
 		workingWindows,
 		busyBlocks,
