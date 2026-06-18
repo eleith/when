@@ -16,6 +16,17 @@ export type ParseBookingResult =
 	| { ok: true; data: ParsedBooking }
 	| { ok: false; errors: Record<string, string> };
 
+export function resolveTimezone(raw: FormDataEntryValue | null, fallback: string): string {
+	const tz = typeof raw === 'string' ? raw.trim() : '';
+	if (!tz) return fallback;
+	try {
+		new Intl.DateTimeFormat('en-US', { timeZone: tz });
+		return tz;
+	} catch {
+		return fallback;
+	}
+}
+
 export function parseAndValidateBookingForm(
 	eventType: EventType,
 	formData: FormData

@@ -7,7 +7,7 @@ import { resolveFormFields, parseAttendeeAnswers } from '@when/config';
 import { loadAvailability } from '$lib/server/availability/load';
 import { requireViewableAppointment } from '$lib/server/booking/access';
 import { classifyReschedule, rescheduleAppointment } from '$lib/server/booking/reschedule';
-import { parseAndValidateBookingForm } from '$lib/server/booking/form.server';
+import { parseAndValidateBookingForm, resolveTimezone } from '$lib/server/booking/form.server';
 import { bookingContext } from '$lib/server/booking/context';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -89,10 +89,12 @@ export const actions: Actions = {
 		if (!eventType) return fail(409, { error: 'This event type no longer exists.' });
 
 		let attendee;
+		let timezone;
 		if (initiator === 'attendee') {
 			const parsed = parseAndValidateBookingForm(eventType, form);
 			if (!parsed.ok) return fail(400, { fieldErrors: parsed.errors });
 			attendee = parsed.data;
+			timezone = resolveTimezone(form.get('timezone'), cfg.user.timezone);
 		}
 
 		// Re-validate the slot is currently bookable, ignoring the booking's own current slot.
@@ -108,7 +110,8 @@ export const actions: Actions = {
 			initiator,
 			newStart: start.toString(),
 			newEnd: end.toString(),
-			attendee
+			attendee,
+			timezone
 		});
 		if (!result.ok) {
 			if (result.reason === 'slot_taken') {

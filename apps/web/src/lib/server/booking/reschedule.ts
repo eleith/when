@@ -35,6 +35,7 @@ export interface RescheduleAppointmentInput {
 	/** New end_time as ISO instant. */
 	newEnd: string;
 	attendee?: ParsedBooking;
+	timezone?: string;
 }
 
 export type RescheduleAppointmentResult =
@@ -79,7 +80,8 @@ export async function rescheduleAppointment(
 						name: input.attendee.name,
 						email: input.attendee.email,
 						answers: input.attendee.answers.length ? JSON.stringify(input.attendee.answers) : null,
-						location: input.attendee.location
+						location: input.attendee.location,
+						timezone: input.timezone ?? input.appointment.attendee_timezone
 					}
 				: undefined
 		});

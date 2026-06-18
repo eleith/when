@@ -296,7 +296,8 @@ describe('rescheduleAppointment', () => {
 						email: null,
 						location: 'Room B',
 						answers: [{ id: 'why', label: 'Why move?', type: 'text', value: 'conflict' }]
-					}
+					},
+					timezone: 'Europe/London'
 				}
 			);
 
@@ -306,6 +307,7 @@ describe('rescheduleAppointment', () => {
 				expect(next.attendee_name).toBe('Booker Renamed');
 				expect(next.attendee_email).toBeNull();
 				expect(next.location).toBe('Room B');
+				expect(next.attendee_timezone).toBe('Europe/London');
 				expect(next.attendee_answers).toBe(
 					JSON.stringify([{ id: 'why', label: 'Why move?', type: 'text', value: 'conflict' }])
 				);

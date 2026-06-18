@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import type { EventType, FormField } from '@when/config';
-import { parseAndValidateBookingForm } from './form.server';
+import { parseAndValidateBookingForm, resolveTimezone } from './form.server';
 
 const baseEvent: EventType = {
 	id: 'et',
@@ -120,5 +120,17 @@ describe('parseAndValidateBookingForm', () => {
 		);
 		const ok = parseAndValidateBookingForm(event, fd({ name: 'Jane', loc: 'Zoom' }));
 		expect(ok.ok && ok.data.location).toBe('Zoom');
+	});
+});
+
+describe('resolveTimezone', () => {
+	test('keeps a valid IANA zone', () => {
+		expect(resolveTimezone('Europe/London', 'UTC')).toBe('Europe/London');
+	});
+
+	test('falls back when blank, missing, or invalid', () => {
+		expect(resolveTimezone('', 'UTC')).toBe('UTC');
+		expect(resolveTimezone(null, 'UTC')).toBe('UTC');
+		expect(resolveTimezone('Mars/Olympus', 'UTC')).toBe('UTC');
 	});
 });

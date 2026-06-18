@@ -10,7 +10,7 @@ import { logger } from '$lib/server/logger';
 import { getConfig, getDb } from '$lib/server/state';
 import { resolveFormFields } from '@when/config';
 import { createAppointment } from '$lib/server/booking/create';
-import { parseAndValidateBookingForm } from '$lib/server/booking/form.server';
+import { parseAndValidateBookingForm, resolveTimezone } from '$lib/server/booking/form.server';
 import { bookingContext } from '$lib/server/booking/context';
 import { normalizeDeepLinkParams } from '$lib/booking';
 import type { Actions, PageServerLoad } from './$types';
@@ -74,7 +74,6 @@ export const actions: Actions = {
 
 		const form = await request.formData();
 		const slotStr = String(form.get('slot') ?? '');
-		const timezone = String(form.get('timezone') ?? '').trim();
 
 		if (!slotStr) {
 			return fail(400, { error: 'Please pick a time slot.' });
@@ -126,7 +125,7 @@ export const actions: Actions = {
 					name,
 					email,
 					answers,
-					timezone: isValidTimeZone(timezone) ? timezone : cfg.user.timezone
+					timezone: resolveTimezone(form.get('timezone'), cfg.user.timezone)
 				},
 				location: resolvedLocation
 			});
@@ -144,16 +143,6 @@ export const actions: Actions = {
 		);
 	}
 };
-
-function isValidTimeZone(tz: string): boolean {
-	if (!tz) return false;
-	try {
-		new Intl.DateTimeFormat('en-US', { timeZone: tz });
-		return true;
-	} catch {
-		return false;
-	}
-}
 
 async function slotDayBusy(
 	db: ReturnType<typeof getDb>,

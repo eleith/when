@@ -51,6 +51,7 @@ export interface RescheduleAttendee {
 	email: string | null;
 	answers: string | null;
 	location: string | null;
+	timezone: string | null;
 }
 
 export async function rescheduleBooking(
@@ -65,6 +66,13 @@ export async function rescheduleBooking(
 ): Promise<RescheduleResult> {
 	const newId = newAppointmentId();
 	const newToken = newCancelToken();
+	const attendee: RescheduleAttendee = when.attendee ?? {
+		name: old.attendee_name,
+		email: old.attendee_email,
+		answers: old.attendee_answers,
+		location: old.location,
+		timezone: old.attendee_timezone
+	};
 
 	const created = await db.transaction().execute(async (trx) => {
 		const terminated = await trx
@@ -87,11 +95,11 @@ export async function rescheduleBooking(
 				event_type_id: old.event_type_id,
 				start_time: when.newStart,
 				end_time: when.newEnd,
-				attendee_name: when.attendee ? when.attendee.name : old.attendee_name,
-				attendee_email: when.attendee ? when.attendee.email : old.attendee_email,
-				attendee_answers: when.attendee ? when.attendee.answers : old.attendee_answers,
-				attendee_timezone: old.attendee_timezone,
-				location: when.attendee ? when.attendee.location : old.location,
+				attendee_name: attendee.name,
+				attendee_email: attendee.email,
+				attendee_answers: attendee.answers,
+				attendee_timezone: attendee.timezone,
+				location: attendee.location,
 				status: when.newStatus,
 				origin_id: originId(old),
 				rescheduled_from_id: old.id,
