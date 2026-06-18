@@ -40,7 +40,6 @@ test('partial unique index rejects concurrent active slot but allows cancelled',
 			end_time: '2026-05-01T10:30:00Z',
 			attendee_name: 'A',
 			attendee_email: 'a@example.com',
-			attendee_notes: null,
 			location: null,
 			external_event_id: null,
 			external_calendar_id: null
@@ -165,7 +164,6 @@ test('0007 backfills synced_revision only for already-published rows', async () 
 			end_time: '2026-05-01T10:30:00Z',
 			attendee_name: 'A',
 			attendee_email: 'a@example.com',
-			attendee_notes: null,
 			location: null,
 			status: 'confirmed' as const
 		};
@@ -204,6 +202,106 @@ test('0007 backfills synced_revision only for already-published rows', async () 
 		// Published row is marked in sync (synced === revision); never-published stays NULL.
 		expect(pub.calendar_synced_revision).toBe(pub.calendar_revision);
 		expect(unpub.calendar_synced_revision).toBeNull();
+	} finally {
+		await db.destroy();
+	}
+});
+
+test('0012 drops attendee_notes, adds attendee_answers, and allows a null email', async () => {
+	const db = openDb(':memory:');
+	try {
+		await runMigrations(db);
+		const cols = await sql<{
+			name: string;
+			notnull: number;
+		}>`PRAGMA table_info(appointments)`.execute(db);
+		const byName = new Map(cols.rows.map((r) => [r.name, r]));
+		expect(byName.has('attendee_notes')).toBe(false);
+		expect(byName.has('attendee_answers')).toBe(true);
+		expect(byName.get('attendee_email')?.notnull).toBe(0);
+
+		await db
+			.insertInto('appointments')
+			.values({
+				id: 'no-email',
+				event_type_id: 'chat',
+				start_time: '2026-05-01T10:00:00Z',
+				end_time: '2026-05-01T10:30:00Z',
+				attendee_name: 'A',
+				attendee_email: null,
+				location: null,
+				status: 'confirmed',
+				cancel_token: 'tok'
+			})
+			.execute();
+		const row = await db
+			.selectFrom('appointments')
+			.selectAll()
+			.where('id', '=', 'no-email')
+			.executeTakeFirstOrThrow();
+		expect(row.attendee_email).toBeNull();
+		expect(row.attendee_answers).toBeNull();
+	} finally {
+		await db.destroy();
+	}
+});
+
+test('0012 preserves the appointment indexes after the table rebuild', async () => {
+	const db = openDb(':memory:');
+	try {
+		await runMigrations(db);
+		const indexes = await sql<{ name: string }>`
+			SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='appointments'
+		`.execute(db);
+		expect(indexes.rows.map((r) => r.name)).toEqual(
+			expect.arrayContaining([
+				'active_slot',
+				'appointments_start_time',
+				'appointments_status',
+				'appointments_origin_id'
+			])
+		);
+	} finally {
+		await db.destroy();
+	}
+});
+
+test('0012 copies existing rows and initialises attendee_answers to null', async () => {
+	const db = openDb(':memory:');
+	try {
+		const migrator = new Migrator({
+			db,
+			provider: { getMigrations: async () => migrations }
+		});
+		const before = await migrator.migrateTo('0011_origin_id_index');
+		expect(before.error).toBeUndefined();
+
+		await db
+			.insertInto('appointments')
+			.values({
+				id: 'keep',
+				event_type_id: 'chat',
+				start_time: '2026-05-01T10:00:00Z',
+				end_time: '2026-05-01T10:30:00Z',
+				attendee_name: 'A',
+				attendee_email: 'a@example.com',
+				location: 'Room 1',
+				status: 'confirmed',
+				cancel_token: 't-keep'
+			})
+			.execute();
+
+		const after = await migrator.migrateTo('0012_form_customization');
+		expect(after.error).toBeUndefined();
+
+		const row = await db
+			.selectFrom('appointments')
+			.selectAll()
+			.where('id', '=', 'keep')
+			.executeTakeFirstOrThrow();
+		expect(row.attendee_name).toBe('A');
+		expect(row.location).toBe('Room 1');
+		expect(row.attendee_answers).toBeNull();
 	} finally {
 		await db.destroy();
 	}

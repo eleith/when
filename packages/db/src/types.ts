@@ -27,8 +27,8 @@ export interface AppointmentsTable {
 	start_time: string;
 	end_time: string;
 	attendee_name: string;
-	attendee_email: string;
-	attendee_notes: string | null;
+	attendee_email: NullableText;
+	attendee_answers: NullableText;
 	attendee_timezone: NullableText;
 	location: string | null;
 	status: AppointmentStatus;

@@ -10,6 +10,7 @@ import { attendeeTimezone } from './0008_attendee_timezone.js';
 import { rescheduleOrigin } from './0009_reschedule_origin.js';
 import { rescheduleChain } from './0010_reschedule_chain.js';
 import { originIdIndex } from './0011_origin_id_index.js';
+import { formCustomization } from './0012_form_customization.js';
 
 // Registered in order; keys are the migration names Kysely's Migrator records.
 export const migrations: Record<string, Migration> = {
@@ -23,5 +24,6 @@ export const migrations: Record<string, Migration> = {
 	'0008_attendee_timezone': attendeeTimezone,
 	'0009_reschedule_origin': rescheduleOrigin,
 	'0010_reschedule_chain': rescheduleChain,
-	'0011_origin_id_index': originIdIndex
+	'0011_origin_id_index': originIdIndex,
+	'0012_form_customization': formCustomization
 };
