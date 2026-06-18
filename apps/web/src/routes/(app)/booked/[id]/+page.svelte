@@ -209,7 +209,7 @@
 					{/if}
 				</div>
 			</div>
-			{#if data.appointment.location}
+			{#if data.appointment.location && status === 'confirmed'}
 				<div class="detail-row">
 					<span class="detail-icon"><IconMapPin aria-hidden="true" /></span>
 					<div class="detail-text">

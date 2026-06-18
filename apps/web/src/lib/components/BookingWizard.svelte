@@ -115,12 +115,6 @@
 		)
 	);
 
-	let staticLocation = $derived(
-		data.eventType.location && !data.formFields.some((f) => f.type === 'event_location')
-			? data.eventType.location.fixed
-			: null
-	);
-
 	const initialSlot = page.url.searchParams.get('slot');
 	const initialDate = page.url.searchParams.get('date');
 
@@ -231,8 +225,7 @@
 	<div class="banner-event">
 		<h1 class="banner-event-name">{data.eventType.name}</h1>
 		<p class="banner-event-meta">
-			{data.eventType.duration} min{#if staticLocation}
-				&middot; {staticLocation}{/if}{#if data.eventType.description}
+			{data.eventType.duration} min{#if data.eventType.description}
 				&middot; {data.eventType.description}{/if}
 		</p>
 	</div>
@@ -318,9 +311,6 @@
 				<section class="context-section context-section-about">
 					<h2 class="context-event-name">{data.eventType.name}</h2>
 					<p class="context-event-meta">{data.eventType.duration} min</p>
-					{#if staticLocation}
-						<p class="context-event-location">{staticLocation}</p>
-					{/if}
 					{#if data.eventType.description}
 						<p class="context-event-description">{data.eventType.description}</p>
 					{/if}
@@ -899,12 +889,6 @@
 		margin: var(--space-2) 0 0;
 		font-size: var(--font-size-sm);
 		color: var(--danger);
-	}
-
-	.context-event-location {
-		color: var(--text-secondary);
-		font-size: var(--font-size-sm);
-		margin: 0 0 var(--space-3);
 	}
 
 	.submit-btn {
