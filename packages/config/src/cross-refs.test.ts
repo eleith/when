@@ -1,9 +1,32 @@
 import { expect, test } from 'vitest';
 import { ConfigError, validateConfig } from './load.js';
+import type { FormField } from './schema.js';
 import { validConfig } from './__fixtures__/valid-config.js';
 
 function clone<T>(v: T): T {
 	return JSON.parse(JSON.stringify(v));
+}
+
+const validForm: FormField[] = [
+	{ id: 'name', type: 'attendee_name', label: 'Name', required: true },
+	{ id: 'email', type: 'attendee_email', label: 'Email', required: false },
+	{ id: 'notes', type: 'paragraph', label: 'Notes', required: false }
+];
+
+function withForm(fields: FormField[]) {
+	const cfg = clone(validConfig);
+	cfg.event_types[0].form_fields = fields;
+	return cfg;
+}
+
+function issuesFor(cfg: ReturnType<typeof clone>): ConfigError['issues'] {
+	try {
+		validateConfig(cfg);
+		throw new Error('expected ConfigError');
+	} catch (err) {
+		expect(err).toBeInstanceOf(ConfigError);
+		return (err as ConfigError).issues;
+	}
 }
 
 test('valid cross-refs pass', () => {
@@ -70,4 +93,92 @@ test('duplicate slug flagged', () => {
 		const issues = (err as ConfigError).issues;
 		expect(issues.some((i) => i.message.includes('duplicate event_type slug'))).toBe(true);
 	}
+});
+
+test('valid form_fields pass', () => {
+	const cfg = withForm([
+		...validForm,
+		{ id: 'how', type: 'choice', label: 'How?', required: true, choices: ['phone', 'video'] }
+	]);
+	expect(() => validateConfig(cfg)).not.toThrow();
+});
+
+test('omitted form_fields pass (falls back to default)', () => {
+	expect(() => validateConfig(clone(validConfig))).not.toThrow();
+});
+
+test('empty form_fields flagged', () => {
+	const issues = issuesFor(withForm([]));
+	expect(issues.some((i) => i.message.includes('at least one field'))).toBe(true);
+});
+
+test('too many form fields flagged', () => {
+	const extras: FormField[] = Array.from({ length: 8 }, (_, n) => ({
+		id: `extra-${n}`,
+		type: 'text',
+		label: `Extra ${n}`,
+		required: false
+	}));
+	const issues = issuesFor(withForm([...validForm, ...extras]));
+	expect(issues.some((i) => i.message.includes('exceeds the max'))).toBe(true);
+});
+
+test('duplicate form field id flagged with index', () => {
+	const issues = issuesFor(
+		withForm([...validForm, { id: 'notes', type: 'text', label: 'Dup', required: false }])
+	);
+	expect(issues.some((i) => i.path === '/event_types/0/form_fields/3/id')).toBe(true);
+});
+
+test('missing attendee_name flagged', () => {
+	const issues = issuesFor(
+		withForm([{ id: 'email', type: 'attendee_email', label: 'Email', required: false }])
+	);
+	expect(issues.some((i) => i.message.includes('must include an attendee_name'))).toBe(true);
+});
+
+test('attendee_name not required flagged', () => {
+	const issues = issuesFor(
+		withForm([{ id: 'name', type: 'attendee_name', label: 'Name', required: false }])
+	);
+	expect(issues.some((i) => i.message.includes('attendee_name must be required'))).toBe(true);
+});
+
+test('attendee_name appearing twice flagged', () => {
+	const issues = issuesFor(
+		withForm([...validForm, { id: 'name2', type: 'attendee_name', label: 'Name', required: true }])
+	);
+	expect(issues.some((i) => i.message.includes('exactly once'))).toBe(true);
+});
+
+test('attendee_email appearing twice flagged', () => {
+	const issues = issuesFor(
+		withForm([
+			...validForm,
+			{ id: 'email2', type: 'attendee_email', label: 'Email', required: false }
+		])
+	);
+	expect(issues.some((i) => i.message.includes('attendee_email may appear at most once'))).toBe(
+		true
+	);
+});
+
+test('event_location appearing twice flagged', () => {
+	const issues = issuesFor(
+		withForm([
+			...validForm,
+			{ id: 'loc1', type: 'event_location', label: 'Where', required: false },
+			{ id: 'loc2', type: 'event_location', label: 'Where', required: false }
+		])
+	);
+	expect(issues.some((i) => i.message.includes('event_location may appear at most once'))).toBe(
+		true
+	);
+});
+
+test('choice field without choices flagged', () => {
+	const issues = issuesFor(
+		withForm([...validForm, { id: 'how', type: 'choice', label: 'How?', required: true }])
+	);
+	expect(issues.some((i) => i.path === '/event_types/0/form_fields/3/choices')).toBe(true);
 });

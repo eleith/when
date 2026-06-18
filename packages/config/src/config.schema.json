@@ -510,6 +510,50 @@
 				"image_url": {
 					"type": "string",
 					"minLength": 1
+				},
+				"form_fields": {
+					"type": "array",
+					"items": {
+						"$ref": "#/$defs/FormField"
+					}
+				}
+			}
+		},
+		"FormField": {
+			"title": "FormField",
+			"type": "object",
+			"additionalProperties": false,
+			"required": ["id", "type", "label", "required"],
+			"properties": {
+				"id": {
+					"type": "string",
+					"minLength": 1
+				},
+				"type": {
+					"enum": [
+						"attendee_name",
+						"attendee_email",
+						"event_location",
+						"text",
+						"number",
+						"paragraph",
+						"choice"
+					]
+				},
+				"label": {
+					"type": "string",
+					"minLength": 1
+				},
+				"required": {
+					"type": "boolean",
+					"default": false
+				},
+				"choices": {
+					"type": "array",
+					"items": {
+						"type": "string",
+						"minLength": 1
+					}
 				}
 			}
 		},
@@ -518,12 +562,6 @@
 			"oneOf": [
 				{
 					"$ref": "#/$defs/LocationFixed"
-				},
-				{
-					"$ref": "#/$defs/LocationGuestProposes"
-				},
-				{
-					"$ref": "#/$defs/LocationChoice"
 				}
 			]
 		},
@@ -539,36 +577,6 @@
 				"fixed": {
 					"type": "string",
 					"minLength": 1
-				}
-			}
-		},
-		"LocationGuestProposes": {
-			"title": "LocationGuestProposes",
-			"type": "object",
-			"additionalProperties": false,
-			"required": ["mode"],
-			"properties": {
-				"mode": {
-					"const": "guest_proposes"
-				}
-			}
-		},
-		"LocationChoice": {
-			"title": "LocationChoice",
-			"type": "object",
-			"additionalProperties": false,
-			"required": ["mode", "choices"],
-			"properties": {
-				"mode": {
-					"const": "choice"
-				},
-				"choices": {
-					"type": "array",
-					"minItems": 1,
-					"items": {
-						"type": "string",
-						"minLength": 1
-					}
 				}
 			}
 		}

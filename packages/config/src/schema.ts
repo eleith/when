@@ -13,7 +13,7 @@ export type Calendar = GoogleCalendar | CalDavCalendar;
  * Array of HH:MM-HH:MM time ranges in the user's timezone.
  */
 export type DaySchedule = string[];
-export type Location = LocationFixed | LocationGuestProposes | LocationChoice;
+export type Location = LocationFixed;
 
 /**
  * Canonical schema for the When self-hosted scheduling app's config.yaml.
@@ -139,20 +139,18 @@ export interface EventType {
   buffer_after?: number;
   max_bookings_per_day?: number | null;
   image_url?: string;
+  form_fields?: FormField[];
 }
 export interface LocationFixed {
   mode: "fixed";
   fixed: string;
 }
-export interface LocationGuestProposes {
-  mode: "guest_proposes";
-}
-export interface LocationChoice {
-  mode: "choice";
-  /**
-   * @minItems 1
-   */
-  choices: [string, ...string[]];
+export interface FormField {
+  id: string;
+  type: "attendee_name" | "attendee_email" | "event_location" | "text" | "number" | "paragraph" | "choice";
+  label: string;
+  required: boolean;
+  choices?: string[];
 }
 /**
  * On-disk SQLite paths. Relative paths resolve against this config file's directory, so web and worker (which load the same config.yaml) open the same files.
