@@ -13,9 +13,12 @@ import { createAppointment } from '$lib/server/booking/create';
 import { parseAndValidateBookingForm, resolveTimezone } from '$lib/server/booking/form.server';
 import { bookingContext } from '$lib/server/booking/context';
 import { normalizeDeepLinkParams } from '$lib/booking';
+import { toPublicEventType } from '$lib/server/booking/sanitize';
 import type { Actions, PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ params, url }) => {
+export const load: PageServerLoad = async ({ params, url, locals }) => {
+	const session = await locals.auth();
+	const isAdmin = !!session;
 	const cfg = getConfig();
 	const eventType = cfg.event_types.find((e) => e.slug === params.slug);
 	if (!eventType) error(404, `No event type with slug "${params.slug}"`);
@@ -43,19 +46,7 @@ export const load: PageServerLoad = async ({ params, url }) => {
 	);
 
 	return {
-		eventType: {
-			id: eventType.id,
-			name: eventType.name,
-			slug: eventType.slug,
-			duration: eventType.duration,
-			description: eventType.description ?? null,
-			visibility: eventType.visibility ?? 'public',
-			booking_flow: eventType.booking_flow,
-			location: eventType.location ?? null,
-			buffer_before: settings.buffer_before,
-			buffer_after: settings.buffer_after,
-			minimum_notice: settings.minimum_notice
-		},
+		eventType: toPublicEventType(eventType, isAdmin, settings),
 		formFields: resolveFormFields(eventType),
 		slotsByDate,
 		workingWindows,

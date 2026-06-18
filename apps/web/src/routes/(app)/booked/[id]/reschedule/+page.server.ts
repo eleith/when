@@ -3,15 +3,18 @@ import { Temporal } from '@js-temporal/polyfill';
 import { findAppointment } from '@when/db';
 import { systemClock } from '$lib/server/clock';
 import { getConfig, getDb } from '$lib/server/state';
-import { resolveFormFields, parseAttendeeAnswers } from '@when/config';
+import { resolveFormFields } from '@when/config';
 import { loadAvailability } from '$lib/server/availability/load';
 import { requireViewableAppointment } from '$lib/server/booking/access';
 import { classifyReschedule, rescheduleAppointment } from '$lib/server/booking/reschedule';
 import { parseAndValidateBookingForm, resolveTimezone } from '$lib/server/booking/form.server';
 import { bookingContext } from '$lib/server/booking/context';
+import { toPublicAppointment, toPublicEventType } from '$lib/server/booking/sanitize';
 import type { Actions, PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ params, url }) => {
+export const load: PageServerLoad = async ({ params, url, locals }) => {
+	const session = await locals.auth();
+	const isAdmin = !!session;
 	const token = url.searchParams.get('token');
 	const now = systemClock.now();
 
@@ -32,34 +35,12 @@ export const load: PageServerLoad = async ({ params, url }) => {
 	);
 
 	return {
-		eventType: {
-			id: eventType.id,
-			name: eventType.name,
-			slug: eventType.slug,
-			duration: eventType.duration,
-			description: eventType.description ?? null,
-			visibility: eventType.visibility ?? 'public',
-			booking_flow: eventType.booking_flow,
-			location: eventType.location ?? null,
-			buffer_before: settings.buffer_before,
-			buffer_after: settings.buffer_after,
-			minimum_notice: settings.minimum_notice
-		},
+		eventType: toPublicEventType(eventType, isAdmin, settings),
 		formFields: resolveFormFields(eventType),
 		slotsByDate,
 		workingWindows,
 		busyBlocks,
-		rescheduleAppt: rescheduleError
-			? null
-			: {
-					id: row.id,
-					start_time: row.start_time,
-					end_time: row.end_time,
-					attendee_name: row.attendee_name,
-					attendee_email: row.attendee_email,
-					answers: parseAttendeeAnswers(row.attendee_answers),
-					location: row.location
-				},
+		rescheduleAppt: rescheduleError ? null : toPublicAppointment(row, isAdmin),
 		rescheduleError,
 		rescheduleToken: token
 	};

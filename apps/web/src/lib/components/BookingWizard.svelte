@@ -36,9 +36,9 @@
 			visibility: 'public' | 'private';
 			booking_flow: 'auto' | 'requires_confirmation';
 			location: Location | null;
-			buffer_before: number;
-			buffer_after: number;
-			minimum_notice: number;
+			buffer_before?: number;
+			buffer_after?: number;
+			minimum_notice?: number;
 		};
 		formFields: readonly FormField[];
 		slotsByDate: Record<string, string[]>;

@@ -4,7 +4,6 @@ import { resolveBookingActions } from '$lib/server/booking/actions';
 import { buildAddToCalendarLinks } from '$lib/server/calendar-links';
 import { systemClock } from '$lib/server/clock';
 import { getConfig, getDb } from '$lib/server/state';
-import { parseAttendeeAnswers } from '@when/config';
 import { notificationStates } from '$lib/notifications';
 import {
 	findAppointment,
@@ -13,6 +12,7 @@ import {
 	isChainTerminal,
 	type Appointment
 } from '@when/db';
+import { toPublicAppointment, toPublicEventType } from '$lib/server/booking/sanitize';
 import type { Actions, PageServerLoad } from './$types';
 import { cancelAppointment } from '$lib/server/booking/cancel';
 import { bookingContext } from '$lib/server/booking/context';
@@ -89,27 +89,19 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 	}
 
 	return {
-		appointment: {
-			id: row.id,
-			start_time: row.start_time,
-			end_time: row.end_time,
-			attendee_name: row.attendee_name,
-			attendee_email: row.attendee_email,
-			answers: parseAttendeeAnswers(row.attendee_answers),
-			location: row.location,
-			status: row.status,
-			notifications,
-			email_notification_status: row.email_notification_status,
-			calendar_push_notification_status: row.calendar_push_notification_status
-		},
+		appointment: toPublicAppointment(row, isAdmin, notifications),
 		eventType: eventType
-			? {
-					name: eventType.name,
-					duration: eventType.duration,
-					slug: eventType.slug,
-					description: eventType.description ?? null
-				}
-			: { name: row.event_type_id, duration: 0, slug: row.event_type_id, description: null },
+			? toPublicEventType(eventType, isAdmin)
+			: {
+					id: row.event_type_id,
+					name: row.event_type_id,
+					duration: 0,
+					slug: row.event_type_id,
+					description: null,
+					visibility: 'public' as const,
+					booking_flow: 'auto' as const,
+					location: null
+				},
 		calendarLinks,
 		actions,
 		clockStatus,
