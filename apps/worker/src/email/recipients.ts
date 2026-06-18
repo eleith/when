@@ -42,3 +42,8 @@ export function organizerMessage(
 ): EmailMessage {
 	return { to: i.cfg.user.email, content };
 }
+
+/** Collect a builder's messages, dropping any that had no recipient (e.g. no attendee email). */
+export function messages(...list: (EmailMessage | null)[]): EmailMessage[] {
+	return list.filter((m): m is EmailMessage => m !== null);
+}

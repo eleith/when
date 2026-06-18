@@ -7,11 +7,11 @@ import {
 	whenForOrganizer
 } from '../format.js';
 import { requestIcs } from '../ics.js';
-import { attendeeMessage, organizerMessage, type EmailMessage } from '../recipients.js';
+import { attendeeMessage, messages, organizerMessage, type EmailMessage } from '../recipients.js';
 import type { EmailContent } from '../content.js';
 import type { BookingEmailInput } from '../types.js';
 
-export function bookingConfirmed(i: BookingEmailInput): (EmailMessage | null)[] {
+export function bookingConfirmed(i: BookingEmailInput): EmailMessage[] {
 	const a = i.appointment;
 	const brand = deriveBrand(i.cfg, i.logo?.cid);
 	const eventName = eventTypeName(i.eventType, a);
@@ -46,5 +46,8 @@ export function bookingConfirmed(i: BookingEmailInput): (EmailMessage | null)[] 
 		previewText: `Scheduled for ${organizerWhen}.`
 	};
 
-	return [attendeeMessage(i, attendee, requestIcs(i, i.links.booked)), organizerMessage(i, admin)];
+	return messages(
+		attendeeMessage(i, attendee, requestIcs(i, i.links.booked)),
+		organizerMessage(i, admin)
+	);
 }

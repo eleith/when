@@ -13,7 +13,7 @@ import { bookingLinks } from '../links.js';
 import { fetchBrandLogo } from './logo.js';
 import type { BookingEmailInput } from './types.js';
 
-function build(i: BookingEmailInput, kind: SendBookingEmailInput['kind']): (EmailMessage | null)[] {
+function build(i: BookingEmailInput, kind: SendBookingEmailInput['kind']): EmailMessage[] {
 	switch (kind) {
 		case 'confirmed':
 			return bookingConfirmed(i);
@@ -50,7 +50,5 @@ export async function dispatch(
 		logo
 	};
 
-	return build(i, input.kind)
-		.filter((m): m is EmailMessage => m !== null)
-		.map((m) => renderMessage(m, logo));
+	return build(i, input.kind).map((m) => renderMessage(m, logo));
 }

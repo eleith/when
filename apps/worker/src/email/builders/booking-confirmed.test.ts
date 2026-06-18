@@ -40,10 +40,11 @@ describe('bookingConfirmed', () => {
 			...sampleInput,
 			appointment: { ...sampleInput.appointment, attendee_email: null }
 		};
-		const [attendee, organizer] = bookingConfirmed(noEmail);
+		const result = bookingConfirmed(noEmail);
 
-		expect(attendee).toBeNull();
-		expect(organizer?.content.paragraphs).toContain('Jane Doe just booked.');
+		expect(result).toHaveLength(1);
+		expect(result[0].to).toBe('owner@acme.test');
+		expect(result[0].content.paragraphs).toContain('Jane Doe just booked.');
 	});
 
 	test('each recipient sees the time in their own zone', () => {
