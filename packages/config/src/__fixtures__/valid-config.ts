@@ -10,7 +10,15 @@ export const validConfig: WhenConfiguration = {
 	user: {
 		name: 'Jane Doe',
 		timezone: 'America/New_York',
-		email: 'jane@example.com'
+		email: 'jane@example.com',
+		branding: {
+			color: {
+				primary: {
+					light: '#4f46e5',
+					dark: '#818cf8'
+				}
+			}
+		}
 	},
 	smtp: {
 		host: 'smtp.example.com',

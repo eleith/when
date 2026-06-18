@@ -19,7 +19,9 @@ afterEach(() => vi.restoreAllMocks());
 describe('fetchBrandLogo', () => {
 	test('returns null and never fetches when no image is configured', async () => {
 		const fetchSpy = vi.spyOn(globalThis, 'fetch');
-		expect(await fetchBrandLogo(cfg({ primary_color: '#fff' }))).toBeNull();
+		expect(
+			await fetchBrandLogo(cfg({ color: { primary: { light: '#fff', dark: '#fff' } } }))
+		).toBeNull();
 		expect(fetchSpy).not.toHaveBeenCalled();
 	});
 

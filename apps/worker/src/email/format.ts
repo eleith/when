@@ -43,8 +43,6 @@ export function whenForOrganizer(i: BookingEmailInput): string {
 	return fmtWhen(a.start_time, a.end_time, i.cfg.user.timezone);
 }
 
-const DEFAULT_PRIMARY_COLOR = '#2563eb';
-
 export interface Brand {
 	name: string;
 	pageTitle: string;
@@ -66,11 +64,10 @@ function onColor(hex: string): string {
 
 export function deriveBrand(cfg: WhenConfiguration, logoCid?: string): Brand {
 	const branding = cfg.user.branding;
-	const raw = branding?.primary_color;
-	const primaryColor = (typeof raw === 'string' ? raw : raw?.light) ?? DEFAULT_PRIMARY_COLOR;
+	const primaryColor = branding.color.primary.light;
 	return {
 		name: cfg.user.name,
-		pageTitle: branding?.page_title ?? cfg.user.name,
+		pageTitle: branding.page_title ?? cfg.user.name,
 		logoUrl: logoCid ? `cid:${logoCid}` : undefined,
 		primaryColor,
 		onPrimary: onColor(primaryColor)

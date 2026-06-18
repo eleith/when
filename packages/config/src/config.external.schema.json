@@ -185,7 +185,8 @@
 					"format": "email"
 				},
 				"branding": {
-					"$ref": "#/$defs/Branding"
+					"$ref": "#/$defs/Branding",
+					"default": {}
 				}
 			}
 		},
@@ -198,29 +199,27 @@
 					"type": "string",
 					"minLength": 1
 				},
-				"primary_color": {
-					"description": "Primary brand color. A muted tonal scale is derived from it. Either a single hex string used in both modes, or an object with `light` and `dark` hex values.",
-					"oneOf": [
-						{
-							"$ref": "#/$defs/HexColor"
-						},
-						{
+				"color": {
+					"type": "object",
+					"additionalProperties": false,
+					"default": {},
+					"properties": {
+						"primary": {
 							"type": "object",
 							"additionalProperties": false,
-							"required": [
-								"light",
-								"dark"
-							],
+							"default": {},
 							"properties": {
 								"light": {
-									"$ref": "#/$defs/HexColor"
+									"$ref": "#/$defs/HexColor",
+									"default": "#4f46e5"
 								},
 								"dark": {
-									"$ref": "#/$defs/HexColor"
+									"$ref": "#/$defs/HexColor",
+									"default": "#818cf8"
 								}
 							}
 						}
-					]
+					}
 				},
 				"avatar_url": {
 					"type": "string",

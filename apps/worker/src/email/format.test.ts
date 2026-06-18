@@ -31,7 +31,17 @@ describe('format', () => {
 	test('deriveBrand picks dark text on a light brand color', () => {
 		const cfg = {
 			...sampleConfig,
-			user: { ...sampleConfig.user, branding: { primary_color: '#fde047' } }
+			user: {
+				...sampleConfig.user,
+				branding: {
+					color: {
+						primary: {
+							light: '#fde047',
+							dark: '#fde047'
+						}
+					}
+				}
+			}
 		} as typeof sampleConfig;
 		expect(deriveBrand(cfg).onPrimary).toBe('#1a1a1a');
 	});

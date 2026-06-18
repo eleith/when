@@ -37,7 +37,14 @@ export const sampleConfig = {
 		name: 'Acme Scheduling',
 		email: 'owner@acme.test',
 		timezone: 'America/New_York',
-		branding: { primary_color: '#2563eb' }
+		branding: {
+			color: {
+				primary: {
+					light: '#2563eb',
+					dark: '#3b82f6'
+				}
+			}
+		}
 	},
 	smtp: { host: 'smtp.test', port: 587, user: 'mailer', pass: 'secret' },
 	url: { app: 'https://when.example.com' },

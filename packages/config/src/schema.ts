@@ -8,7 +8,6 @@ export type Auth =
   | {
       credentials: CredentialsAuth;
     };
-export type HexColor = string;
 export type Calendar = GoogleCalendar | CalDavCalendar;
 /**
  * Array of HH:MM-HH:MM time ranges in the user's timezone.
@@ -51,19 +50,16 @@ export interface User {
    */
   timezone: string;
   email: string;
-  branding?: Branding;
+  branding: Branding;
 }
 export interface Branding {
   logo_url?: string;
-  /**
-   * Primary brand color. A muted tonal scale is derived from it. Either a single hex string used in both modes, or an object with `light` and `dark` hex values.
-   */
-  primary_color?:
-    | HexColor
-    | {
-        light: HexColor;
-        dark: HexColor;
-      };
+  color: {
+    primary: {
+      light: string;
+      dark: string;
+    };
+  };
   avatar_url?: string;
   favicon_url?: string;
   page_title?: string;
