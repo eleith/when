@@ -1,9 +1,16 @@
-import { deriveBrand, eventTypeName, whenForAttendee, whenForOrganizer } from '../format.js';
+import {
+	answerRows,
+	attendeeLabel,
+	deriveBrand,
+	eventTypeName,
+	whenForAttendee,
+	whenForOrganizer
+} from '../format.js';
 import { attendeeMessage, organizerMessage, type EmailMessage } from '../recipients.js';
 import type { EmailContent } from '../content.js';
 import type { BookingEmailInput } from '../types.js';
 
-export function bookingDeclined(i: BookingEmailInput): EmailMessage[] {
+export function bookingDeclined(i: BookingEmailInput): (EmailMessage | null)[] {
 	const a = i.appointment;
 	const brand = deriveBrand(i.cfg, i.logo?.cid);
 	const eventName = eventTypeName(i.eventType, a);
@@ -26,10 +33,11 @@ export function bookingDeclined(i: BookingEmailInput): EmailMessage[] {
 		brand,
 		subject: `Declined: ${eventName} from ${a.attendee_name}`,
 		heading: 'Booking declined',
-		paragraphs: [`You declined the request from ${a.attendee_name} <${a.attendee_email}>.`],
+		paragraphs: [`You declined the request from ${attendeeLabel(a)}.`],
 		rows: [
 			{ label: 'What', value: eventName },
-			{ label: 'When', value: organizerWhen }
+			{ label: 'When', value: organizerWhen },
+			...answerRows(a)
 		],
 		actions: [],
 		previewText: `Was requested for ${organizerWhen}.`

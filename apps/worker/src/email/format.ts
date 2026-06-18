@@ -1,6 +1,7 @@
 import { Temporal } from '@js-temporal/polyfill';
-import type { EventType, WhenConfiguration } from '@when/config';
+import { parseAttendeeAnswers, type EventType, type WhenConfiguration } from '@when/config';
 import type { Appointment } from '@when/db';
+import type { DetailRow } from './content.js';
 import type { BookingEmailInput } from './types.js';
 
 export function eventTypeName(
@@ -8,6 +9,17 @@ export function eventTypeName(
 	appointment: Pick<Appointment, 'event_type_id'>
 ): string {
 	return eventType?.name ?? appointment.event_type_id;
+}
+
+export function attendeeLabel(a: Pick<Appointment, 'attendee_name' | 'attendee_email'>): string {
+	return a.attendee_email ? `${a.attendee_name} <${a.attendee_email}>` : a.attendee_name;
+}
+
+export function answerRows(a: Pick<Appointment, 'attendee_answers'>): DetailRow[] {
+	return parseAttendeeAnswers(a.attendee_answers).map((ans) => ({
+		label: ans.label,
+		value: ans.value
+	}));
 }
 
 function tzShort(tz: string, atIso: string): string {

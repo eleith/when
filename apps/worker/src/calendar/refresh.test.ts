@@ -107,7 +107,6 @@ test('refreshCalendar drops our own published event', async () => {
 				end_time: '2026-04-15T15:00:00Z',
 				attendee_name: 'A',
 				attendee_email: 'a@example.com',
-				attendee_notes: null,
 				location: null,
 				status: 'confirmed',
 				cancel_token: 't',

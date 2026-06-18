@@ -33,6 +33,16 @@ describe('dispatch', () => {
 		expect(attendee.attachments?.[0].content).toContain('METHOD:CANCEL');
 	});
 
+	test('no-email booking yields only the organizer envelope', async () => {
+		const noEmail = {
+			kind: 'confirmed' as const,
+			appointment: { ...sampleInput.appointment, attendee_email: null },
+			eventType: sampleInput.eventType
+		};
+		const e = await dispatch(noEmail, sampleInput.cfg);
+		expect(e.map((x) => x.to)).toEqual(['owner@acme.test']);
+	});
+
 	test('every kind produces at least one addressed envelope', async () => {
 		const kinds: BookingEmailKind[] = [
 			'confirmed',

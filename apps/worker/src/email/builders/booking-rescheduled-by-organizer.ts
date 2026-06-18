@@ -1,10 +1,17 @@
-import { deriveBrand, eventTypeName, whenForAttendee, whenForOrganizer } from '../format.js';
+import {
+	answerRows,
+	attendeeLabel,
+	deriveBrand,
+	eventTypeName,
+	whenForAttendee,
+	whenForOrganizer
+} from '../format.js';
 import { requestIcs } from '../ics.js';
 import { attendeeMessage, organizerMessage, type EmailMessage } from '../recipients.js';
 import type { EmailContent } from '../content.js';
 import type { BookingEmailInput } from '../types.js';
 
-export function bookingRescheduledByOrganizer(i: BookingEmailInput): EmailMessage[] {
+export function bookingRescheduledByOrganizer(i: BookingEmailInput): (EmailMessage | null)[] {
 	const a = i.appointment;
 	const brand = deriveBrand(i.cfg, i.logo?.cid);
 	const eventName = eventTypeName(i.eventType, a);
@@ -17,7 +24,8 @@ export function bookingRescheduledByOrganizer(i: BookingEmailInput): EmailMessag
 	];
 	const organizerRows = [
 		{ label: 'What', value: eventName },
-		{ label: 'When', value: organizerWhen }
+		{ label: 'When', value: organizerWhen },
+		...answerRows(a)
 	];
 
 	if (a.status === 'pending') {
@@ -34,9 +42,7 @@ export function bookingRescheduledByOrganizer(i: BookingEmailInput): EmailMessag
 			brand,
 			subject: `Rescheduled: ${eventName} with ${a.attendee_name}`,
 			heading: 'Booking rescheduled',
-			paragraphs: [
-				`You moved the pending request for ${a.attendee_name} <${a.attendee_email}> to a new time.`
-			],
+			paragraphs: [`You moved the pending request for ${attendeeLabel(a)} to a new time.`],
 			rows: organizerRows,
 			actions: [],
 			previewText: `Requested for ${organizerWhen}.`
@@ -57,7 +63,7 @@ export function bookingRescheduledByOrganizer(i: BookingEmailInput): EmailMessag
 		brand,
 		subject: `Rescheduled: ${eventName} with ${a.attendee_name}`,
 		heading: 'Booking rescheduled',
-		paragraphs: [`You rescheduled the booking for ${a.attendee_name} <${a.attendee_email}>.`],
+		paragraphs: [`You rescheduled the booking for ${attendeeLabel(a)}.`],
 		rows: organizerRows,
 		actions: [],
 		previewText: `Now scheduled for ${organizerWhen}.`

@@ -14,7 +14,6 @@ async function seed() {
 			end_time: '2026-05-01T10:30:00Z',
 			attendee_name: 'A',
 			attendee_email: 'a@example.com',
-			attendee_notes: null,
 			location: null,
 			external_event_id: null,
 			external_calendar_id: null,

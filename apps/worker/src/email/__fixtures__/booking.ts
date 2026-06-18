@@ -10,7 +10,9 @@ export const sampleAppointment: Appointment = {
 	end_time: '2026-01-05T15:30:00Z',
 	attendee_name: 'Jane Doe',
 	attendee_email: 'jane@example.com',
-	attendee_notes: 'Looking forward to it',
+	attendee_answers: JSON.stringify([
+		{ id: 'notes', label: 'Anything else?', type: 'paragraph', value: 'Looking forward to it' }
+	]),
 	attendee_timezone: 'America/Los_Angeles',
 	location: 'Zoom',
 	status: 'confirmed',

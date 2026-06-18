@@ -1,9 +1,16 @@
-import { deriveBrand, eventTypeName, whenForAttendee, whenForOrganizer } from '../format.js';
+import {
+	answerRows,
+	attendeeLabel,
+	deriveBrand,
+	eventTypeName,
+	whenForAttendee,
+	whenForOrganizer
+} from '../format.js';
 import { attendeeMessage, organizerMessage, type EmailMessage } from '../recipients.js';
 import type { EmailContent } from '../content.js';
 import type { BookingEmailInput } from '../types.js';
 
-export function bookingPending(i: BookingEmailInput): EmailMessage[] {
+export function bookingPending(i: BookingEmailInput): (EmailMessage | null)[] {
 	const a = i.appointment;
 	const brand = deriveBrand(i.cfg, i.logo?.cid);
 	const eventName = eventTypeName(i.eventType, a);
@@ -27,11 +34,12 @@ export function bookingPending(i: BookingEmailInput): EmailMessage[] {
 		brand,
 		subject: `Booking request: ${eventName} from ${a.attendee_name}`,
 		heading: 'New booking request',
-		paragraphs: [`${a.attendee_name} <${a.attendee_email}> requested this booking.`],
+		paragraphs: [`${attendeeLabel(a)} requested this booking.`],
 		rows: [
 			{ label: 'What', value: eventName },
 			{ label: 'When', value: organizerWhen },
-			{ label: 'Where', value: a.location }
+			{ label: 'Where', value: a.location },
+			...answerRows(a)
 		],
 		actions: [{ href: i.links.manage, label: 'Review request', variant: 'primary' }],
 		previewText: `Requested for ${organizerWhen}.`

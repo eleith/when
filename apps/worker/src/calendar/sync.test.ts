@@ -32,7 +32,6 @@ const appt = (over: Record<string, unknown>) => ({
 	end_time: '2026-05-01T10:30:00Z',
 	attendee_name: 'A',
 	attendee_email: 'a@example.com',
-	attendee_notes: null,
 	location: null,
 	status: 'confirmed' as const,
 	cancel_token: 't',

@@ -25,12 +25,13 @@ export interface EmailMessage {
 	ics?: Attachment;
 }
 
-/** Message addressed to the booking's attendee. */
+/** Message addressed to the booking's attendee, or null when no email was collected. */
 export function attendeeMessage(
 	i: Pick<BookingEmailInput, 'appointment'>,
 	content: EmailContent,
 	ics?: Attachment
-): EmailMessage {
+): EmailMessage | null {
+	if (!i.appointment.attendee_email) return null;
 	return { to: i.appointment.attendee_email, content, ics };
 }
 

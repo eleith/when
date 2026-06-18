@@ -20,19 +20,30 @@ describe('bookingConfirmed', () => {
 		expect(attendee.ics?.content).toContain('METHOD:REQUEST');
 	});
 
-	test('organizer message: new-booking content, notes row, no ics', () => {
+	test('organizer message: new-booking content, answer rows, no ics', () => {
 		const [, organizer] = bookingConfirmed(sampleInput);
 
-		expect(organizer.to).toBe('owner@acme.test');
-		expect(organizer.content.subject).toBe('New booking: 30-min with Jane Doe');
-		expect(organizer.content.heading).toBe('New booking');
-		expect(organizer.content.paragraphs).toContain('Jane Doe <jane@example.com> just booked.');
-		expect(organizer.content.rows).toContainEqual({
-			label: 'Notes',
+		expect(organizer?.to).toBe('owner@acme.test');
+		expect(organizer?.content.subject).toBe('New booking: 30-min with Jane Doe');
+		expect(organizer?.content.heading).toBe('New booking');
+		expect(organizer?.content.paragraphs).toContain('Jane Doe <jane@example.com> just booked.');
+		expect(organizer?.content.rows).toContainEqual({
+			label: 'Anything else?',
 			value: 'Looking forward to it'
 		});
-		expect(organizer.content.actions).toEqual([]);
-		expect(organizer.ics).toBeUndefined();
+		expect(organizer?.content.actions).toEqual([]);
+		expect(organizer?.ics).toBeUndefined();
+	});
+
+	test('no attendee message and no email line when the booking has no email', () => {
+		const noEmail = {
+			...sampleInput,
+			appointment: { ...sampleInput.appointment, attendee_email: null }
+		};
+		const [attendee, organizer] = bookingConfirmed(noEmail);
+
+		expect(attendee).toBeNull();
+		expect(organizer?.content.paragraphs).toContain('Jane Doe just booked.');
 	});
 
 	test('each recipient sees the time in their own zone', () => {
