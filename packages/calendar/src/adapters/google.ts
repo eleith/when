@@ -1,5 +1,5 @@
 import { Temporal } from '@js-temporal/polyfill';
-import { parseAttendeeAnswers } from '@when/config';
+import { describeAppointment } from '../description.js';
 import { logger } from '../logger.js';
 import type { BusyEvent } from '../types.js';
 import type { Appointment } from '@when/db';
@@ -173,15 +173,9 @@ export async function putGoogleEvent(
 
 	const method = isUpdate ? 'PUT' : 'POST';
 
-	const lines: string[] = [`Name: ${appointment.attendee_name}`];
-	if (appointment.attendee_email) lines.push(`Email: ${appointment.attendee_email}`);
-	for (const answer of parseAttendeeAnswers(appointment.attendee_answers)) {
-		if (answer.value) lines.push(`${answer.label}: ${answer.value}`);
-	}
-
 	const payload = {
 		summary: `${opts.eventTypeName} with ${appointment.attendee_name}`,
-		description: `${lines.join('\n')}\n\nCancel or reschedule: ${opts.cancelUrl}`,
+		description: describeAppointment(appointment, opts.cancelUrl),
 		location: appointment.location || undefined,
 		start: { dateTime: appointment.start_time },
 		end: { dateTime: appointment.end_time },

@@ -67,9 +67,11 @@ test('LOCATION is omitted when the appointment has none', () => {
 	expect(ics).not.toMatch(/^LOCATION:/m);
 });
 
+const unfold = (ics: string) => ics.replace(/\r\n[ \t]/g, '');
+
 test('DESCRIPTION contains the cancel URL', () => {
 	const ics = buildIcs({ appointment: baseAppointment, ...baseInput });
-	expect(ics).toContain('https://when.example.com/booked/appt-123');
+	expect(unfold(ics)).toContain('https://when.example.com/booked/appt-123');
 });
 
 test('DESCRIPTION includes attendee answers when present', () => {
@@ -87,7 +89,7 @@ test('DESCRIPTION includes attendee answers when present', () => {
 		},
 		...baseInput
 	});
-	expect(ics).toContain('Anything else?: Looking forward to chatting');
+	expect(unfold(ics)).toContain('Anything else?: Looking forward to chatting');
 });
 
 test('STATUS reflects pending appointments', () => {

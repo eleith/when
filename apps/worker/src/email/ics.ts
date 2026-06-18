@@ -1,5 +1,5 @@
 import { generateIcsCalendar, type IcsCalendar, type IcsEvent } from 'ts-ics';
-import { parseAttendeeAnswers } from '@when/config';
+import { describeAppointment } from '@when/calendar';
 import { originId, type Appointment, type AppointmentStatus } from '@when/db';
 import { systemClock, type Clock } from './clock.js';
 import { eventTypeName } from './format.js';
@@ -41,7 +41,7 @@ export function buildIcs(input: IcsInput): string {
 		start: { date: new Date(appointment.start_time), type: 'DATE-TIME' },
 		end: { date: new Date(appointment.end_time), type: 'DATE-TIME' },
 		stamp: { date: clock.now(), type: 'DATE-TIME' },
-		description: buildDescription(appointment, cancelUrl),
+		description: describeAppointment(appointment, cancelUrl),
 		location: appointment.location ?? undefined,
 		organizer: { name: organizerName, email: organizerEmail },
 		attendees: appointment.attendee_email
@@ -67,16 +67,6 @@ function eventStatus(
 	if (method === 'CANCEL') return 'CANCELLED';
 	if (appointmentStatus === 'pending') return 'TENTATIVE';
 	return 'CONFIRMED';
-}
-
-function buildDescription(appointment: Appointment, cancelUrl: string): string {
-	const answers = parseAttendeeAnswers(appointment.attendee_answers)
-		.filter((a) => a.value)
-		.map((a) => `${a.label}: ${a.value}`);
-	const sections: string[] = [];
-	if (answers.length) sections.push(answers.join('\n'));
-	sections.push(`Reschedule or cancel: ${cancelUrl}`);
-	return sections.join('\n\n');
 }
 
 function icsAttachment(input: IcsInput): Attachment {
