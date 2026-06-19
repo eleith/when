@@ -410,7 +410,7 @@
 					"minimum": 0,
 					"default": 0
 				},
-				"max_bookings_per_day": {
+				"max_appointments_per_day": {
 					"type": [
 						"integer",
 						"null"
@@ -540,7 +540,7 @@
 					"type": "integer",
 					"minimum": 0
 				},
-				"max_bookings_per_day": {
+				"max_appointments_per_day": {
 					"type": [
 						"integer",
 						"null"

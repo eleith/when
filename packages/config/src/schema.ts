@@ -109,7 +109,7 @@ export interface Availability {
   maximum_lookahead?: number;
   buffer_before?: number;
   buffer_after?: number;
-  max_bookings_per_day?: number | null;
+  max_appointments_per_day?: number | null;
   default: WeeklySchedule;
 }
 export interface WeeklySchedule {
@@ -137,7 +137,7 @@ export interface EventType {
   maximum_lookahead?: number;
   buffer_before?: number;
   buffer_after?: number;
-  max_bookings_per_day?: number | null;
+  max_appointments_per_day?: number | null;
   image_url?: string;
   form_fields?: FormField[];
 }

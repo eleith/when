@@ -119,7 +119,7 @@ availability:
   maximum_lookahead: 60 # days bookable into the future (default 60)
   buffer_before: 0 # minutes padded before a meeting (default 0)
   buffer_after: 0 # minutes padded after a meeting (default 0)
-  max_bookings_per_day: null # cap on meetings per day; null = unlimited (default null)
+  max_appointments_per_day: null # cap on meetings per day; null = unlimited (default null)
   default: # required: weekly working hours
     monday: ['09:00-17:00']
     tuesday: ['09:00-17:00']
@@ -155,7 +155,7 @@ event_types:
     maximum_lookahead: 30
     buffer_before: 5
     buffer_after: 5
-    max_bookings_per_day: 4
+    max_appointments_per_day: 4
 ```
 
 ### Location modes
