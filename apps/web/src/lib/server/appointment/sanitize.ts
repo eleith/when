@@ -25,6 +25,7 @@ export interface PublicAppointment {
 	answers: ReturnType<typeof parseAttendeeAnswers>;
 	location: string | null;
 	status: string;
+	cancel_reason: string | null;
 	notifications?: ChannelNotification[];
 	email_notification_status?: string | null;
 	calendar_push_notification_status?: string | null;
@@ -70,6 +71,7 @@ export function toPublicAppointment(
 			answers: parseAttendeeAnswers(row.attendee_answers),
 			location: row.location,
 			status: row.status,
+			cancel_reason: row.cancel_reason,
 			notifications,
 			email_notification_status: row.email_notification_status,
 			calendar_push_notification_status: row.calendar_push_notification_status
@@ -88,6 +90,7 @@ export function toPublicAppointment(
 		// Only confirmed appointments can see the location
 		location: isConfirmed ? row.location : null,
 		status: row.status,
+		cancel_reason: row.cancel_reason,
 		notifications,
 		email_notification_status: null,
 		calendar_push_notification_status: null
