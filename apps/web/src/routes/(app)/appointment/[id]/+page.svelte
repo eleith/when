@@ -84,8 +84,7 @@
 		</aside>
 	{/if}
 
-	{#if !data.isAdmin}
-		<div class="page-header-container">
+	<div class="page-header-container">
 			<div class="page-header-icon status-{stateTone}">
 				{#if status === 'confirmed'}
 					<IconCheckCircle aria-hidden="true" />
@@ -156,7 +155,6 @@
 				{/if}
 			</p>
 		</div>
-	{/if}
 
 	<article class="card">
 		<section class="card-section card-section-header">
