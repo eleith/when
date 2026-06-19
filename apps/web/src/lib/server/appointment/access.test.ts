@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import {
-	BOOKING_VIEW_GRACE_DAYS,
+	APPOINTMENT_VIEW_GRACE_DAYS,
 	isCancelAllowed,
 	isRescheduleAllowed,
 	isViewable,
@@ -45,17 +45,17 @@ describe('isViewable', () => {
 	});
 
 	test('true within grace window', () => {
-		const now = new Date(Date.parse(baseRow.end_time) + (BOOKING_VIEW_GRACE_DAYS - 1) * DAY_MS);
+		const now = new Date(Date.parse(baseRow.end_time) + (APPOINTMENT_VIEW_GRACE_DAYS - 1) * DAY_MS);
 		expect(isViewable(baseRow, now)).toBe(true);
 	});
 
 	test('false at exact grace boundary', () => {
-		const now = new Date(Date.parse(baseRow.end_time) + BOOKING_VIEW_GRACE_DAYS * DAY_MS);
+		const now = new Date(Date.parse(baseRow.end_time) + APPOINTMENT_VIEW_GRACE_DAYS * DAY_MS);
 		expect(isViewable(baseRow, now)).toBe(false);
 	});
 
 	test('false past grace window', () => {
-		const now = new Date(Date.parse(baseRow.end_time) + (BOOKING_VIEW_GRACE_DAYS + 1) * DAY_MS);
+		const now = new Date(Date.parse(baseRow.end_time) + (APPOINTMENT_VIEW_GRACE_DAYS + 1) * DAY_MS);
 		expect(isViewable(baseRow, now)).toBe(false);
 	});
 
@@ -149,7 +149,7 @@ describe('requireViewableAppointment', () => {
 	});
 
 	test('throws 404 past grace window', () => {
-		const past = new Date(Date.parse(baseRow.end_time) + (BOOKING_VIEW_GRACE_DAYS + 1) * DAY_MS);
+		const past = new Date(Date.parse(baseRow.end_time) + (APPOINTMENT_VIEW_GRACE_DAYS + 1) * DAY_MS);
 		expect(() => requireViewableAppointment(baseRow, 'tok-abc', past)).toThrow();
 	});
 });

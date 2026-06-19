@@ -1,7 +1,7 @@
 import { error } from '@sveltejs/kit';
 import type { Appointment, AppointmentStatus } from '@when/db';
 
-export const BOOKING_VIEW_GRACE_DAYS = 14;
+export const APPOINTMENT_VIEW_GRACE_DAYS = 14;
 
 const ACTIVE_STATUSES: ReadonlySet<AppointmentStatus> = new Set(['pending', 'confirmed']);
 
@@ -10,7 +10,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 export function isViewable(row: Pick<Appointment, 'end_time'>, now: Date): boolean {
 	const endMs = Date.parse(row.end_time);
 	if (Number.isNaN(endMs)) return false;
-	return now.getTime() < endMs + BOOKING_VIEW_GRACE_DAYS * DAY_MS;
+	return now.getTime() < endMs + APPOINTMENT_VIEW_GRACE_DAYS * DAY_MS;
 }
 
 export function isCancelAllowed(
