@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
 import { ownerAlert } from './owner-alert.js';
-import { sampleConfig } from '../__fixtures__/booking.js';
+import { sampleConfig } from '../__fixtures__/appointment.js';
 
 test('broke alert addresses the owner and explains the consequence', () => {
 	const msg = ownerAlert(

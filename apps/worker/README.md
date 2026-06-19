@@ -5,8 +5,8 @@ web app (and, later, jobs it schedules itself). Built on
 [openworkflow](https://openworkflow.dev) over `node:sqlite`, so it shares the
 `when.sqlite` app DB and owns the `queue.sqlite` job DB.
 
-Its job is sending booking emails: web enqueues a `send-booking-email` run when a
-booking is created, confirmed, cancelled, rescheduled, or declined, and the
+Its job is sending appointment emails: web enqueues a `send-appointment-email` run when an
+appointment is created, confirmed, cancelled, rescheduled, or declined, and the
 worker renders the email(s), sends them over SMTP, and records the per-channel
 outcome on the appointment (`email_notification_status`). On boot it loads
 config, migrates the app DB, connects the queue, registers its workflows, starts

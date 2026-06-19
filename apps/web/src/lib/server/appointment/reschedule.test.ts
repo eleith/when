@@ -5,8 +5,8 @@ import { openDb, runMigrations, type Appointment } from '@when/db';
 import type { WhenConfiguration } from '@when/config';
 import { validConfig } from '$lib/server/__fixtures__/valid-config';
 
-vi.mock('../workflow', () => ({ enqueueBookingEmail: vi.fn(), enqueueCalendarSync: vi.fn() }));
-import { enqueueBookingEmail, enqueueCalendarSync } from '../workflow';
+vi.mock('../workflow', () => ({ enqueueAppointmentEmail: vi.fn(), enqueueCalendarSync: vi.fn() }));
+import { enqueueAppointmentEmail, enqueueCalendarSync } from '../workflow';
 
 const now = new Date('2026-05-01T13:00:00Z');
 
@@ -221,8 +221,8 @@ async function fetchRow(db: Awaited<ReturnType<typeof makeDb>>, id: string) {
 
 describe('rescheduleAppointment', () => {
 	beforeEach(() => {
-		vi.mocked(enqueueBookingEmail).mockReset();
-		vi.mocked(enqueueBookingEmail).mockImplementation((db, id) =>
+		vi.mocked(enqueueAppointmentEmail).mockReset();
+		vi.mocked(enqueueAppointmentEmail).mockImplementation((db, id) =>
 			db.selectFrom('appointments').selectAll().where('id', '=', id).executeTakeFirstOrThrow()
 		);
 		vi.mocked(enqueueCalendarSync).mockReset();
@@ -265,7 +265,7 @@ describe('rescheduleAppointment', () => {
 				expect(old.rescheduled_to_id).toBe(next.id);
 
 				expect(enqueueCalendarSync).toHaveBeenCalledTimes(1);
-				expect(enqueueBookingEmail).toHaveBeenCalledWith(
+				expect(enqueueAppointmentEmail).toHaveBeenCalledWith(
 					expect.anything(),
 					next.id,
 					'rescheduled-by-attendee'
@@ -387,7 +387,7 @@ describe('rescheduleAppointment', () => {
 				expect(result.appointment.origin_id).toBe('r5');
 				expect(result.appointment.external_event_id).toBe('r5');
 				expect(result.appointment.external_calendar_id).toBe('work');
-				expect(enqueueBookingEmail).toHaveBeenCalledWith(
+				expect(enqueueAppointmentEmail).toHaveBeenCalledWith(
 					expect.anything(),
 					result.appointment.id,
 					'rescheduled-by-organizer'

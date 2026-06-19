@@ -7,7 +7,7 @@ import { fetchBrandLogo } from '../email/logo.js';
 import { renderMessage } from '../email/render.js';
 import { getWorkerContext } from '../services/context.js';
 
-// Same per-step SMTP retry as the booking email: a send that fails every attempt
+// Same per-step SMTP retry as the appointment email: a send that fails every attempt
 // is recorded (the result), not thrown as a workflow crash.
 const SEND_RETRY: Partial<RetryPolicy> = {
 	maximumAttempts: 5,

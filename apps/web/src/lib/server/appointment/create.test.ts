@@ -4,8 +4,8 @@ import { systemClock } from '$lib/server/clock';
 import { openDb, runMigrations } from '@when/db';
 import { validConfig } from '$lib/server/__fixtures__/valid-config';
 
-vi.mock('../workflow', () => ({ enqueueBookingEmail: vi.fn(), enqueueCalendarSync: vi.fn() }));
-import { enqueueBookingEmail, enqueueCalendarSync } from '../workflow';
+vi.mock('../workflow', () => ({ enqueueAppointmentEmail: vi.fn(), enqueueCalendarSync: vi.fn() }));
+import { enqueueAppointmentEmail, enqueueCalendarSync } from '../workflow';
 
 async function makeDb() {
 	const db = openDb(':memory:');
@@ -29,8 +29,8 @@ const input = {
 
 describe('createAppointment', () => {
 	beforeEach(() => {
-		vi.mocked(enqueueBookingEmail).mockReset();
-		vi.mocked(enqueueBookingEmail).mockImplementation((db, id) =>
+		vi.mocked(enqueueAppointmentEmail).mockReset();
+		vi.mocked(enqueueAppointmentEmail).mockImplementation((db, id) =>
 			db.selectFrom('appointments').selectAll().where('id', '=', id).executeTakeFirstOrThrow()
 		);
 		vi.mocked(enqueueCalendarSync).mockReset();
@@ -55,8 +55,8 @@ describe('createAppointment', () => {
 				expect(persisted.status).toBe('confirmed');
 				expect(persisted.calendar_push_notification_status).toBe('queued');
 				expect(enqueueCalendarSync).toHaveBeenCalledTimes(1);
-				expect(enqueueBookingEmail).toHaveBeenCalledTimes(1);
-				expect(vi.mocked(enqueueBookingEmail).mock.calls[0][2]).toBe('confirmed');
+				expect(enqueueAppointmentEmail).toHaveBeenCalledTimes(1);
+				expect(vi.mocked(enqueueAppointmentEmail).mock.calls[0][2]).toBe('confirmed');
 			}
 		} finally {
 			await db.destroy();
@@ -79,7 +79,7 @@ describe('createAppointment', () => {
 			expect(result.ok).toBe(true);
 			if (result.ok) {
 				expect(result.appointment.status).toBe('pending');
-				expect(enqueueBookingEmail).toHaveBeenCalledWith(
+				expect(enqueueAppointmentEmail).toHaveBeenCalledWith(
 					expect.anything(),
 					expect.any(String),
 					'pending'
@@ -107,7 +107,7 @@ describe('createAppointment', () => {
 			expect(result.ok).toBe(true);
 			if (result.ok) {
 				expect(result.appointment.status).toBe('confirmed');
-				expect(enqueueBookingEmail).toHaveBeenCalledWith(
+				expect(enqueueAppointmentEmail).toHaveBeenCalledWith(
 					expect.anything(),
 					expect.any(String),
 					'confirmed'
@@ -147,7 +147,7 @@ describe('createAppointment', () => {
 				{ ...input, eventType }
 			);
 			expect(result).toEqual({ ok: false, reason: 'slot_taken' });
-			expect(enqueueBookingEmail).not.toHaveBeenCalled();
+			expect(enqueueAppointmentEmail).not.toHaveBeenCalled();
 		} finally {
 			await db.destroy();
 		}

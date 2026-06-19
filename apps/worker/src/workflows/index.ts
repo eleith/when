@@ -1,4 +1,4 @@
-import { registerSendBookingEmailWorkflow } from './send-booking-email.js';
+import { registerSendAppointmentEmailWorkflow } from './send-appointment-email.js';
 import { registerSendOwnerAlertWorkflow } from './send-owner-alert.js';
 
 /**
@@ -6,6 +6,6 @@ import { registerSendOwnerAlertWorkflow } from './send-owner-alert.js';
  * once at boot, after `initOpenWorkflow`.
  */
 export function registerWorkflows(): void {
-	registerSendBookingEmailWorkflow();
+	registerSendAppointmentEmailWorkflow();
 	registerSendOwnerAlertWorkflow();
 }

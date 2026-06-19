@@ -1,5 +1,5 @@
 import type { EmailContent } from './content.js';
-import type { BookingEmailInput } from './types.js';
+import type { AppointmentEmailInput } from './types.js';
 
 export interface Attachment {
 	filename: string;
@@ -25,9 +25,9 @@ export interface EmailMessage {
 	ics?: Attachment;
 }
 
-/** Message addressed to the booking's attendee, or null when no email was collected. */
+/** Message addressed to the appointment's attendee, or null when no email was collected. */
 export function attendeeMessage(
-	i: Pick<BookingEmailInput, 'appointment'>,
+	i: Pick<AppointmentEmailInput, 'appointment'>,
 	content: EmailContent,
 	ics?: Attachment
 ): EmailMessage | null {
@@ -37,7 +37,7 @@ export function attendeeMessage(
 
 /** Message addressed to the organizer (the single configured user). */
 export function organizerMessage(
-	i: Pick<BookingEmailInput, 'cfg'>,
+	i: Pick<AppointmentEmailInput, 'cfg'>,
 	content: EmailContent
 ): EmailMessage {
 	return { to: i.cfg.user.email, content };

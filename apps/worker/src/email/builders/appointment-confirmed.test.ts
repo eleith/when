@@ -1,10 +1,10 @@
 import { describe, expect, test } from 'vitest';
-import { bookingConfirmed } from './booking-confirmed.js';
-import { sampleInput } from '../__fixtures__/booking.js';
+import { appointmentConfirmed } from './appointment-confirmed.js';
+import { sampleInput } from '../__fixtures__/appointment.js';
 
-describe('bookingConfirmed', () => {
+describe('appointmentConfirmed', () => {
 	test('attendee message: confirmed content, View CTA, REQUEST ics', () => {
-		const [attendee] = bookingConfirmed(sampleInput);
+		const [attendee] = appointmentConfirmed(sampleInput);
 
 		expect(attendee.to).toBe('jane@example.com');
 		expect(attendee.content.subject).toBe('Confirmed: 30-min with Acme Scheduling');
@@ -20,8 +20,8 @@ describe('bookingConfirmed', () => {
 		expect(attendee.ics?.content).toContain('METHOD:REQUEST');
 	});
 
-	test('organizer message: new-booking content, answer rows, no ics', () => {
-		const [, organizer] = bookingConfirmed(sampleInput);
+	test('organizer message: new-appointment content, answer rows, no ics', () => {
+		const [, organizer] = appointmentConfirmed(sampleInput);
 
 		expect(organizer?.to).toBe('owner@acme.test');
 		expect(organizer?.content.subject).toBe('New appointment: 30-min with Jane Doe');
@@ -37,12 +37,12 @@ describe('bookingConfirmed', () => {
 		expect(organizer?.ics).toBeUndefined();
 	});
 
-	test('no attendee message and no email line when the booking has no email', () => {
+	test('no attendee message and no email line when the appointment has no email', () => {
 		const noEmail = {
 			...sampleInput,
 			appointment: { ...sampleInput.appointment, attendee_email: null }
 		};
-		const result = bookingConfirmed(noEmail);
+		const result = appointmentConfirmed(noEmail);
 
 		expect(result).toHaveLength(1);
 		expect(result[0].to).toBe('owner@acme.test');
@@ -50,7 +50,7 @@ describe('bookingConfirmed', () => {
 	});
 
 	test('each recipient sees the time in their own zone', () => {
-		const [attendee, organizer] = bookingConfirmed(sampleInput);
+		const [attendee, organizer] = appointmentConfirmed(sampleInput);
 		const whenOf = (m: typeof attendee) => m.content.rows.find((r) => r.label === 'When')?.value;
 
 		// fixture: attendee in America/Los_Angeles, organizer in America/New_York

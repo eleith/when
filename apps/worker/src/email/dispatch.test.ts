@@ -1,13 +1,13 @@
 import { describe, expect, test } from 'vitest';
-import type { BookingEmailKind } from '@when/jobs';
+import type { AppointmentEmailKind } from '@when/jobs';
 import { dispatch } from './dispatch.js';
-import { sampleInput } from './__fixtures__/booking.js';
+import { sampleInput } from './__fixtures__/appointment.js';
 
 const base = {
 	appointment: sampleInput.appointment,
 	eventType: sampleInput.eventType
 };
-const run = (kind: BookingEmailKind) => dispatch({ kind, ...base }, sampleInput.cfg);
+const run = (kind: AppointmentEmailKind) => dispatch({ kind, ...base }, sampleInput.cfg);
 
 describe('dispatch', () => {
 	test('confirmed → attendee then organizer', async () => {
@@ -33,7 +33,7 @@ describe('dispatch', () => {
 		expect(attendee.attachments?.[0].content).toContain('METHOD:CANCEL');
 	});
 
-	test('no-email booking yields only the organizer envelope', async () => {
+	test('no-email appointment yields only the organizer envelope', async () => {
 		const noEmail = {
 			kind: 'confirmed' as const,
 			appointment: { ...sampleInput.appointment, attendee_email: null },
@@ -44,7 +44,7 @@ describe('dispatch', () => {
 	});
 
 	test('every kind produces at least one addressed envelope', async () => {
-		const kinds: BookingEmailKind[] = [
+		const kinds: AppointmentEmailKind[] = [
 			'confirmed',
 			'pending',
 			'cancelled-by-attendee',

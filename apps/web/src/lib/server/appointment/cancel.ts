@@ -1,5 +1,5 @@
 import { resolveBookingActions, type Viewer } from './actions';
-import { enqueueBookingEmail, enqueueCalendarSync } from '../workflow';
+import { enqueueAppointmentEmail, enqueueCalendarSync } from '../workflow';
 import type { BookingContext } from './context';
 import { cancelBooking } from './transitions';
 import type { Appointment } from '@when/db';
@@ -31,7 +31,7 @@ export async function cancelAppointment(
 	if (!result.ok) return { ok: false, reason: 'conflict' };
 
 	const kind = input.initiator === 'organizer' ? 'cancelled-by-organizer' : 'cancelled-by-attendee';
-	const appointment = await enqueueBookingEmail(ctx.db, input.appointment.id, kind);
+	const appointment = await enqueueAppointmentEmail(ctx.db, input.appointment.id, kind);
 	await enqueueCalendarSync();
 
 	return { ok: true, appointment };

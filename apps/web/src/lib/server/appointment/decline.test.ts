@@ -4,8 +4,8 @@ import { systemClock } from '$lib/server/clock';
 import { openDb, runMigrations } from '@when/db';
 import { validConfig } from '$lib/server/__fixtures__/valid-config';
 
-vi.mock('../workflow', () => ({ enqueueBookingEmail: vi.fn() }));
-import { enqueueBookingEmail } from '../workflow';
+vi.mock('../workflow', () => ({ enqueueAppointmentEmail: vi.fn() }));
+import { enqueueAppointmentEmail } from '../workflow';
 
 const baseRow = {
 	event_type_id: '30-min-chat',
@@ -33,8 +33,8 @@ async function fetchRow(db: Awaited<ReturnType<typeof makeDb>>, id: string) {
 
 describe('declineAppointment', () => {
 	beforeEach(() => {
-		vi.mocked(enqueueBookingEmail).mockReset();
-		vi.mocked(enqueueBookingEmail).mockImplementation((db, id) =>
+		vi.mocked(enqueueAppointmentEmail).mockReset();
+		vi.mocked(enqueueAppointmentEmail).mockImplementation((db, id) =>
 			db.selectFrom('appointments').selectAll().where('id', '=', id).executeTakeFirstOrThrow()
 		);
 	});
@@ -58,7 +58,7 @@ describe('declineAppointment', () => {
 				expect(result.appointment.status).toBe('declined');
 				const persisted = await fetchRow(db, 'd1');
 				expect(persisted.status).toBe('declined');
-				expect(enqueueBookingEmail).toHaveBeenCalledWith(
+				expect(enqueueAppointmentEmail).toHaveBeenCalledWith(
 					expect.anything(),
 					expect.any(String),
 					'declined'

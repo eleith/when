@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import { buildIcs, cancelIcs, requestIcs } from './ics.js';
-import { sampleAppointment, sampleInput } from './__fixtures__/booking.js';
+import { sampleAppointment, sampleInput } from './__fixtures__/appointment.js';
 
 const clock = { now: () => new Date('2026-01-01T00:00:00Z'), nowMs: () => 0 };
 

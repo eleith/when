@@ -1,7 +1,7 @@
 import type { WhenConfiguration } from '@when/config';
 import type { Appointment } from '@when/db';
-import type { BookingLinks } from '../../links.js';
-import type { BookingEmailInput } from '../types.js';
+import type { AppointmentLinks } from '../../links.js';
+import type { AppointmentEmailInput } from '../types.js';
 
 export const sampleAppointment: Appointment = {
 	id: 'appt-1',
@@ -54,14 +54,14 @@ export const sampleConfig = {
 	event_types: []
 } as unknown as WhenConfiguration;
 
-export const sampleLinks: BookingLinks = {
+export const sampleLinks: AppointmentLinks = {
 	booked: 'https://when.example.com/appointment/appt-1',
 	cancel: 'https://when.example.com/appointment/appt-1?cancel=1',
 	reschedule: 'https://when.example.com/schedule/30-min',
 	manage: 'https://when.example.com/signin'
 };
 
-export const sampleInput: BookingEmailInput = {
+export const sampleInput: AppointmentEmailInput = {
 	cfg: sampleConfig,
 	appointment: sampleAppointment,
 	eventType: undefined,

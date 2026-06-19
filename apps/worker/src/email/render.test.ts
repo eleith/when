@@ -5,9 +5,9 @@ import type { Attachment } from './recipients.js';
 
 const base: Omit<EmailContent, 'actions'> = {
 	brand: { name: 'Acme', pageTitle: 'Acme', primaryColor: '#2563eb', onPrimary: '#ffffff' },
-	subject: 'Confirmed booking',
+	subject: 'Confirmed appointment',
 	heading: 'Hello & welcome',
-	paragraphs: ['Thanks for booking.'],
+	paragraphs: ['Thanks for scheduling.'],
 	rows: [
 		{ label: 'What', value: '30 min chat' },
 		{ label: 'When', value: 'Mon 9am' },
@@ -21,7 +21,7 @@ describe('renderHtmlBody', () => {
 		expect(html.toLowerCase()).toContain('<!doctype html');
 		expect(html).toContain('#2563eb');
 		expect(html).toContain('Hello &amp; welcome');
-		expect(html).toContain('Thanks for booking.');
+		expect(html).toContain('Thanks for scheduling.');
 		expect(html).toContain('30 min chat');
 		expect(html).not.toContain('>Where<');
 		expect(html).not.toContain('mso-padding-alt');
@@ -82,7 +82,7 @@ describe('renderTextBody', () => {
 				'',
 				'Hello & welcome',
 				'',
-				'Thanks for booking.',
+				'Thanks for scheduling.',
 				'',
 				'What: 30 min chat',
 				'When: Mon 9am',
@@ -111,7 +111,7 @@ describe('renderMessage', () => {
 	test('renders subject + html + text from the content, no attachments', () => {
 		const env = renderMessage({ to: 'a@b.c', content }, null);
 		expect(env.to).toBe('a@b.c');
-		expect(env.subject).toBe('Confirmed booking');
+		expect(env.subject).toBe('Confirmed appointment');
 		expect(env.html).toContain('Hello &amp; welcome');
 		expect(env.text).toContain('Hello & welcome');
 		expect(env.attachments).toBeUndefined();

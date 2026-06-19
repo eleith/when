@@ -1,19 +1,19 @@
 import type { Kysely } from 'kysely';
 import {
 	getOpenWorkflow,
-	sendBookingEmail,
+	sendAppointmentEmail,
 	syncCalendars,
-	type BookingEmailKind
+	type AppointmentEmailKind
 } from '@when/jobs';
 import type { Appointment, Database } from '@when/db';
 
-// Marks the email queued and snapshots the booking as it stands now (so the email
+// Marks the email queued and snapshots the appointment as it stands now (so the email
 // reflects this moment), then enqueues the send. Takes an id, not a row, so it's
 // callable from anywhere with an appointment id.
-export async function enqueueBookingEmail(
+export async function enqueueAppointmentEmail(
 	db: Kysely<Database>,
 	appointmentId: string,
-	kind: BookingEmailKind
+	kind: AppointmentEmailKind
 ): Promise<Appointment> {
 	const appointment = await db
 		.updateTable('appointments')
@@ -22,7 +22,7 @@ export async function enqueueBookingEmail(
 		.returningAll()
 		.executeTakeFirstOrThrow();
 	await getOpenWorkflow().runWorkflow(
-		sendBookingEmail,
+		sendAppointmentEmail,
 		{ kind, appointment },
 		// ics_sequence bumps on every reschedule, so a repeat same-kind send for the
 		// same appointment gets a distinct key and isn't swallowed by the 24h dedup.

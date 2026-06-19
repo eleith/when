@@ -4,7 +4,7 @@ import { originId, type Appointment, type AppointmentStatus } from '@when/db';
 import { systemClock, type Clock } from './clock.js';
 import { eventTypeName } from './format.js';
 import type { Attachment } from './recipients.js';
-import type { BookingEmailInput } from './types.js';
+import type { AppointmentEmailInput } from './types.js';
 
 export type IcsMethod = 'REQUEST' | 'CANCEL';
 
@@ -76,8 +76,8 @@ function icsAttachment(input: IcsInput): Attachment {
 	};
 }
 
-/** A `METHOD:REQUEST` invite for a confirmed booking (attendee attachment). */
-export function requestIcs(i: BookingEmailInput, bookedUrl: string): Attachment {
+/** A `METHOD:REQUEST` invite for a confirmed appointment (attendee attachment). */
+export function requestIcs(i: AppointmentEmailInput, bookedUrl: string): Attachment {
 	return icsAttachment({
 		appointment: { ...i.appointment, status: 'confirmed' },
 		eventTypeName: eventTypeName(i.eventType, i.appointment),
@@ -88,8 +88,8 @@ export function requestIcs(i: BookingEmailInput, bookedUrl: string): Attachment 
 	});
 }
 
-/** A `METHOD:CANCEL` invite for a cancelled booking (attendee attachment). */
-export function cancelIcs(i: BookingEmailInput, bookedUrl: string): Attachment {
+/** A `METHOD:CANCEL` invite for a cancelled appointment (attendee attachment). */
+export function cancelIcs(i: AppointmentEmailInput, bookedUrl: string): Attachment {
 	return icsAttachment({
 		appointment: i.appointment,
 		eventTypeName: eventTypeName(i.eventType, i.appointment),

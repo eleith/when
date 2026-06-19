@@ -4,8 +4,8 @@ import { systemClock } from '$lib/server/clock';
 import { openDb, runMigrations } from '@when/db';
 import { validConfig } from '$lib/server/__fixtures__/valid-config';
 
-vi.mock('../workflow', () => ({ enqueueBookingEmail: vi.fn(), enqueueCalendarSync: vi.fn() }));
-import { enqueueBookingEmail, enqueueCalendarSync } from '../workflow';
+vi.mock('../workflow', () => ({ enqueueAppointmentEmail: vi.fn(), enqueueCalendarSync: vi.fn() }));
+import { enqueueAppointmentEmail, enqueueCalendarSync } from '../workflow';
 
 const baseRow = {
 	event_type_id: '30-min-chat',
@@ -40,8 +40,8 @@ async function fetchRow(db: Awaited<ReturnType<typeof makeDb>>, id: string) {
 
 describe('cancelAppointment', () => {
 	beforeEach(() => {
-		vi.mocked(enqueueBookingEmail).mockReset();
-		vi.mocked(enqueueBookingEmail).mockImplementation((db, id) =>
+		vi.mocked(enqueueAppointmentEmail).mockReset();
+		vi.mocked(enqueueAppointmentEmail).mockImplementation((db, id) =>
 			db.selectFrom('appointments').selectAll().where('id', '=', id).executeTakeFirstOrThrow()
 		);
 		vi.mocked(enqueueCalendarSync).mockReset();
@@ -76,7 +76,7 @@ describe('cancelAppointment', () => {
 			expect(persisted.calendar_push_notification_status).toBe('queued');
 			expect(persisted.calendar_revision).toBe(1);
 			expect(enqueueCalendarSync).toHaveBeenCalledTimes(1);
-			expect(enqueueBookingEmail).toHaveBeenCalledWith(
+			expect(enqueueAppointmentEmail).toHaveBeenCalledWith(
 				expect.anything(),
 				expect.any(String),
 				'cancelled-by-attendee'

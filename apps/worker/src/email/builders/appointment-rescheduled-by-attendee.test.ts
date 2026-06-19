@@ -1,10 +1,10 @@
 import { describe, expect, test } from 'vitest';
-import { bookingRescheduledByAttendee } from './booking-rescheduled-by-attendee.js';
-import { sampleInput } from '../__fixtures__/booking.js';
+import { appointmentRescheduledByAttendee } from './appointment-rescheduled-by-attendee.js';
+import { sampleInput } from '../__fixtures__/appointment.js';
 
-describe('bookingRescheduledByAttendee', () => {
+describe('appointmentRescheduledByAttendee', () => {
 	test('attendee (REQUEST ics) + organizer messages', () => {
-		const [attendee, organizer] = bookingRescheduledByAttendee(sampleInput);
+		const [attendee, organizer] = appointmentRescheduledByAttendee(sampleInput);
 
 		expect(attendee.to).toBe('jane@example.com');
 		expect(attendee.content.subject).toBe('Rescheduled: 30-min with Acme Scheduling');
@@ -27,7 +27,7 @@ describe('bookingRescheduledByAttendee', () => {
 			...sampleInput,
 			appointment: { ...sampleInput.appointment, status: 'pending' as const }
 		};
-		const [attendee, organizer] = bookingRescheduledByAttendee(input);
+		const [attendee, organizer] = appointmentRescheduledByAttendee(input);
 
 		expect(attendee.content.heading).toBe('Your reschedule request was received.');
 		expect(attendee.ics).toBeUndefined();

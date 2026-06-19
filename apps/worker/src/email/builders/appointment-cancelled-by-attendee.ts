@@ -9,9 +9,9 @@ import {
 import { cancelIcs } from '../ics.js';
 import { attendeeMessage, messages, organizerMessage, type EmailMessage } from '../recipients.js';
 import type { EmailContent } from '../content.js';
-import type { BookingEmailInput } from '../types.js';
+import type { AppointmentEmailInput } from '../types.js';
 
-export function bookingCancelledByAttendee(i: BookingEmailInput): EmailMessage[] {
+export function appointmentCancelledByAttendee(i: AppointmentEmailInput): EmailMessage[] {
 	const a = i.appointment;
 	const brand = deriveBrand(i.cfg, i.logo?.cid);
 	const eventName = eventTypeName(i.eventType, a);

@@ -1,10 +1,10 @@
 import { describe, expect, test } from 'vitest';
-import { bookingCancelledByAttendee } from './booking-cancelled-by-attendee.js';
-import { sampleInput } from '../__fixtures__/booking.js';
+import { appointmentCancelledByAttendee } from './appointment-cancelled-by-attendee.js';
+import { sampleInput } from '../__fixtures__/appointment.js';
 
-describe('bookingCancelledByAttendee', () => {
+describe('appointmentCancelledByAttendee', () => {
 	test('attendee (CANCEL ics) + organizer messages', () => {
-		const [attendee, organizer] = bookingCancelledByAttendee(sampleInput);
+		const [attendee, organizer] = appointmentCancelledByAttendee(sampleInput);
 
 		expect(attendee.to).toBe('jane@example.com');
 		expect(attendee.content.subject).toBe('Cancelled: 30-min with Acme Scheduling');

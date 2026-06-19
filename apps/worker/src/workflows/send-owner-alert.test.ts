@@ -4,7 +4,7 @@ import type { SendOwnerAlertInput } from '@when/jobs';
 import { setWorkerContext } from '../services/context.js';
 import { createLogger } from '../services/logger.js';
 import type { Mailer } from '../email/smtp.js';
-import { sampleInput } from '../email/__fixtures__/booking.js';
+import { sampleInput } from '../email/__fixtures__/appointment.js';
 import { runSendOwnerAlert } from './send-owner-alert.js';
 
 function makeStep() {

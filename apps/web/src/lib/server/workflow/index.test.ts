@@ -5,11 +5,11 @@ const runWorkflow = vi.fn();
 
 vi.mock('@when/jobs', () => ({
 	getOpenWorkflow: () => ({ runWorkflow }),
-	sendBookingEmail: { spec: { name: 'send-booking-email' } }
+	sendAppointmentEmail: { spec: { name: 'send-appointment-email' } }
 }));
 
-import { enqueueBookingEmail } from './index';
-import { sendBookingEmail } from '@when/jobs';
+import { enqueueAppointmentEmail } from './index';
+import { sendAppointmentEmail } from '@when/jobs';
 
 async function seed() {
 	const db = openDb(':memory:');
@@ -32,16 +32,16 @@ async function seed() {
 	return db;
 }
 
-describe('enqueueBookingEmail', () => {
+describe('enqueueAppointmentEmail', () => {
 	beforeEach(() => runWorkflow.mockReset());
 
 	test('marks the email queued, snapshots the booking, and runs the workflow', async () => {
 		const db = await seed();
 
-		const result = await enqueueBookingEmail(db, 'appt-1', 'confirmed');
+		const result = await enqueueAppointmentEmail(db, 'appt-1', 'confirmed');
 
 		expect(runWorkflow).toHaveBeenCalledWith(
-			sendBookingEmail,
+			sendAppointmentEmail,
 			{
 				kind: 'confirmed',
 				appointment: expect.objectContaining({ id: 'appt-1', email_notification_status: 'queued' })
@@ -67,9 +67,9 @@ describe('enqueueBookingEmail', () => {
 			.where('id', '=', 'appt-1')
 			.execute();
 
-		await enqueueBookingEmail(db, 'appt-1', 'rescheduled-by-attendee');
+		await enqueueAppointmentEmail(db, 'appt-1', 'rescheduled-by-attendee');
 
-		expect(runWorkflow).toHaveBeenCalledWith(sendBookingEmail, expect.anything(), {
+		expect(runWorkflow).toHaveBeenCalledWith(sendAppointmentEmail, expect.anything(), {
 			idempotencyKey: 'appt-1:rescheduled-by-attendee:2'
 		});
 

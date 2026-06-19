@@ -46,7 +46,7 @@ function deriveHealth(
 	if (writeFailing) {
 		return {
 			health: 'bad',
-			reason: 'A booking has failed to sync to this calendar for over 30 minutes.'
+			reason: 'An appointment has failed to sync to this calendar for over 30 minutes.'
 		};
 	}
 	if (status.last_successful_refresh_at) {

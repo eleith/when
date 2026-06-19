@@ -9,9 +9,9 @@ import {
 import { requestIcs } from '../ics.js';
 import { attendeeMessage, messages, organizerMessage, type EmailMessage } from '../recipients.js';
 import type { EmailContent } from '../content.js';
-import type { BookingEmailInput } from '../types.js';
+import type { AppointmentEmailInput } from '../types.js';
 
-export function bookingRescheduledByAttendee(i: BookingEmailInput): EmailMessage[] {
+export function appointmentRescheduledByOrganizer(i: AppointmentEmailInput): EmailMessage[] {
 	const a = i.appointment;
 	const brand = deriveBrand(i.cfg, i.logo?.cid);
 	const eventName = eventTypeName(i.eventType, a);
@@ -31,20 +31,20 @@ export function bookingRescheduledByAttendee(i: BookingEmailInput): EmailMessage
 	if (a.status === 'pending') {
 		const attendee: EmailContent = {
 			brand,
-			subject: `Reschedule requested: ${eventName} with ${brand.name}`,
-			heading: 'Your reschedule request was received.',
-			paragraphs: [`${brand.name} will review the new time and email you to confirm.`],
+			subject: `New time proposed: ${eventName} with ${brand.name}`,
+			heading: `${brand.name} proposed a new time for your request.`,
+			paragraphs: [`${brand.name} will confirm the new time and email you.`],
 			rows: attendeeRows,
 			actions: [{ href: i.links.booked, label: 'View this appointment', variant: 'primary' }],
 			previewText: `Requested for ${attendeeWhen}.`
 		};
 		const organizer: EmailContent = {
 			brand,
-			subject: `Reschedule request: ${eventName} from ${a.attendee_name}`,
-			heading: 'Reschedule request',
-			paragraphs: [`${attendeeLabel(a)} asked to move this appointment to a new time.`],
+			subject: `Rescheduled: ${eventName} with ${a.attendee_name}`,
+			heading: 'Appointment rescheduled',
+			paragraphs: [`You moved the pending request for ${attendeeLabel(a)} to a new time.`],
 			rows: organizerRows,
-			actions: [{ href: i.links.manage, label: 'Review request', variant: 'primary' }],
+			actions: [],
 			previewText: `Requested for ${organizerWhen}.`
 		};
 		return messages(attendeeMessage(i, attendee), organizerMessage(i, organizer));
@@ -53,7 +53,7 @@ export function bookingRescheduledByAttendee(i: BookingEmailInput): EmailMessage
 	const attendee: EmailContent = {
 		brand,
 		subject: `Rescheduled: ${eventName} with ${brand.name}`,
-		heading: 'Your appointment moved to a new time.',
+		heading: `${brand.name} moved this appointment to a new time.`,
 		paragraphs: [],
 		rows: attendeeRows,
 		actions: [{ href: i.links.booked, label: 'View this appointment', variant: 'primary' }],
@@ -63,7 +63,7 @@ export function bookingRescheduledByAttendee(i: BookingEmailInput): EmailMessage
 		brand,
 		subject: `Rescheduled: ${eventName} with ${a.attendee_name}`,
 		heading: 'Appointment rescheduled',
-		paragraphs: [`${attendeeLabel(a)} rescheduled this appointment.`],
+		paragraphs: [`You rescheduled the appointment for ${attendeeLabel(a)}.`],
 		rows: organizerRows,
 		actions: [],
 		previewText: `Now scheduled for ${organizerWhen}.`

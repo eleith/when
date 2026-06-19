@@ -1,21 +1,24 @@
 import type { Appointment } from '@when/db';
 
-// Builds web's booking action URLs. The worker has no incoming request to derive
+// Builds web's appointment action URLs. The worker has no incoming request to derive
 // an origin from, so it passes config.url.app as the base URL.
 
-export interface BookingLinks {
+export interface AppointmentLinks {
 	booked: string;
 	cancel: string;
 	reschedule: string;
 	manage: string;
 }
 
-export interface BookingLinksInput {
+export interface AppointmentLinksInput {
 	baseUrl: string;
 	appointment: Pick<Appointment, 'id' | 'cancel_token'>;
 }
 
-export function bookingLinks({ baseUrl, appointment }: BookingLinksInput): BookingLinks {
+export function appointmentLinks({
+	baseUrl,
+	appointment
+}: AppointmentLinksInput): AppointmentLinks {
 	const token = encodeURIComponent(appointment.cancel_token);
 	const booked = `${baseUrl}/appointment/${appointment.id}?token=${token}`;
 	return {

@@ -6,12 +6,11 @@ import {
 	whenForAttendee,
 	whenForOrganizer
 } from '../format.js';
-import { requestIcs } from '../ics.js';
 import { attendeeMessage, messages, organizerMessage, type EmailMessage } from '../recipients.js';
 import type { EmailContent } from '../content.js';
-import type { BookingEmailInput } from '../types.js';
+import type { AppointmentEmailInput } from '../types.js';
 
-export function bookingConfirmed(i: BookingEmailInput): EmailMessage[] {
+export function appointmentPending(i: AppointmentEmailInput): EmailMessage[] {
 	const a = i.appointment;
 	const brand = deriveBrand(i.cfg, i.logo?.cid);
 	const eventName = eventTypeName(i.eventType, a);
@@ -20,34 +19,31 @@ export function bookingConfirmed(i: BookingEmailInput): EmailMessage[] {
 
 	const attendee: EmailContent = {
 		brand,
-		subject: `Confirmed: ${eventName} with ${brand.name}`,
-		heading: 'Your appointment is confirmed.',
-		paragraphs: [],
+		subject: `Appointment request received: ${eventName} with ${brand.name}`,
+		heading: 'Your appointment request was received.',
+		paragraphs: [`${brand.name} will review your request and email you to confirm.`],
 		rows: [
 			{ label: 'What', value: eventName },
 			{ label: 'When', value: attendeeWhen },
 			{ label: 'Where', value: a.location }
 		],
 		actions: [{ href: i.links.booked, label: 'View this appointment', variant: 'primary' }],
-		previewText: `See you on ${attendeeWhen}.`
+		previewText: `Requested for ${attendeeWhen}.`
 	};
-	const admin: EmailContent = {
+	const organizer: EmailContent = {
 		brand,
-		subject: `New appointment: ${eventName} with ${a.attendee_name}`,
-		heading: 'New appointment',
-		paragraphs: [`${attendeeLabel(a)} just scheduled an appointment.`],
+		subject: `Appointment request: ${eventName} from ${a.attendee_name}`,
+		heading: 'New appointment request',
+		paragraphs: [`${attendeeLabel(a)} requested this appointment.`],
 		rows: [
 			{ label: 'What', value: eventName },
 			{ label: 'When', value: organizerWhen },
 			{ label: 'Where', value: a.location },
 			...answerRows(a)
 		],
-		actions: [],
-		previewText: `Scheduled for ${organizerWhen}.`
+		actions: [{ href: i.links.manage, label: 'Review request', variant: 'primary' }],
+		previewText: `Requested for ${organizerWhen}.`
 	};
 
-	return messages(
-		attendeeMessage(i, attendee, requestIcs(i, i.links.booked)),
-		organizerMessage(i, admin)
-	);
+	return messages(attendeeMessage(i, attendee), organizerMessage(i, organizer));
 }

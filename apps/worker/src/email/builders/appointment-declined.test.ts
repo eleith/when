@@ -1,10 +1,10 @@
 import { describe, expect, test } from 'vitest';
-import { bookingDeclined } from './booking-declined.js';
-import { sampleInput } from '../__fixtures__/booking.js';
+import { appointmentDeclined } from './appointment-declined.js';
+import { sampleInput } from '../__fixtures__/appointment.js';
 
-describe('bookingDeclined', () => {
+describe('appointmentDeclined', () => {
 	test('attendee + organizer messages, no ics', () => {
-		const [attendee, organizer] = bookingDeclined(sampleInput);
+		const [attendee, organizer] = appointmentDeclined(sampleInput);
 
 		expect(attendee.to).toBe('jane@example.com');
 		expect(attendee.content.subject).toBe('Declined: 30-min with Acme Scheduling');

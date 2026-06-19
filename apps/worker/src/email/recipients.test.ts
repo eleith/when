@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import { attendeeMessage, organizerMessage } from './recipients.js';
-import { sampleInput } from './__fixtures__/booking.js';
+import { sampleInput } from './__fixtures__/appointment.js';
 import type { EmailContent } from './content.js';
 
 const content: EmailContent = {

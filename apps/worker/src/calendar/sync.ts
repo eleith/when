@@ -7,7 +7,7 @@ import {
 	type Appointment
 } from '@when/db';
 import type { WorkerContext } from '../services/context.js';
-import { bookingLinks } from '../links.js';
+import { appointmentLinks } from '../links.js';
 
 export interface SyncOptions {
 	fetchImpl?: FetchFn;
@@ -28,7 +28,7 @@ export async function reconcileAppointment(
 			await markSynced(ctx.db, row.id, revision);
 			return;
 		}
-		const cancelUrl = bookingLinks({
+		const cancelUrl = appointmentLinks({
 			baseUrl: ctx.config.url.app,
 			appointment: row
 		}).booked;

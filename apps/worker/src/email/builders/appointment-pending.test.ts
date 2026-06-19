@@ -1,15 +1,15 @@
 import { describe, expect, test } from 'vitest';
 import type { EventType } from '@when/config';
-import { bookingPending } from './booking-pending.js';
-import { sampleInput } from '../__fixtures__/booking.js';
+import { appointmentPending } from './appointment-pending.js';
+import { sampleInput } from '../__fixtures__/appointment.js';
 
-describe('bookingPending', () => {
+describe('appointmentPending', () => {
 	test('attendee (request received) + organizer (review request), no ics', () => {
 		const withType = {
 			...sampleInput,
 			eventType: { name: '30 Minute Chat', duration: 30 } as EventType
 		};
-		const [attendee, organizer] = bookingPending(withType);
+		const [attendee, organizer] = appointmentPending(withType);
 
 		expect(attendee.to).toBe('jane@example.com');
 		expect(attendee.content.subject).toBe(

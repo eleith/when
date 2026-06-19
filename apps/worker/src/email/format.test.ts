@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest';
 import type { EventType } from '@when/config';
 import { deriveBrand, eventTypeName, fmtWhen } from './format.js';
-import { sampleAppointment, sampleConfig } from './__fixtures__/booking.js';
+import { sampleAppointment, sampleConfig } from './__fixtures__/appointment.js';
 
 describe('format', () => {
 	test('eventTypeName prefers the event type name, falls back to the id', () => {

@@ -2,14 +2,14 @@ import { describe, expect, test, vi } from 'vitest';
 import { openDb, runMigrations } from '@when/db';
 import type { Database } from '@when/db';
 import type { Kysely } from 'kysely';
-import type { SendBookingEmailInput } from '@when/jobs';
+import type { SendAppointmentEmailInput } from '@when/jobs';
 import { setWorkerContext } from '../services/context.js';
 import { createLogger } from '../services/logger.js';
 import type { Mailer } from '../email/smtp.js';
-import { sampleInput } from '../email/__fixtures__/booking.js';
-import { runSendBookingEmail } from './send-booking-email.js';
+import { sampleInput } from '../email/__fixtures__/appointment.js';
+import { runSendAppointmentEmail } from './send-appointment-email.js';
 
-const input: SendBookingEmailInput = {
+const input: SendAppointmentEmailInput = {
 	kind: 'confirmed',
 	appointment: sampleInput.appointment
 };
@@ -62,7 +62,7 @@ async function readEmailStatus(db: Kysely<Database>) {
 	return row.email_notification_status;
 }
 
-describe('runSendBookingEmail', () => {
+describe('runSendAppointmentEmail', () => {
 	test('sends every envelope and records email:ok', async () => {
 		const db = await seedDb();
 		const { mailer, send } = makeMailer();
@@ -70,7 +70,7 @@ describe('runSendBookingEmail', () => {
 		setWorkerContext({ config: sampleInput.cfg, db, logger: createLogger(), mailer });
 
 		const { step, names } = makeStep();
-		const result = await runSendBookingEmail(input, step);
+		const result = await runSendAppointmentEmail(input, step);
 
 		expect(result).toBe('sent');
 		expect(send).toHaveBeenCalledTimes(2); // attendee + organizer
@@ -86,7 +86,7 @@ describe('runSendBookingEmail', () => {
 		setWorkerContext({ config: sampleInput.cfg, db, logger: createLogger(), mailer });
 
 		const { step } = makeStep();
-		const result = await runSendBookingEmail(input, step);
+		const result = await runSendAppointmentEmail(input, step);
 
 		expect(result).toBe('failed');
 		expect(await readEmailStatus(db)).toBe('failed');

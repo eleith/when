@@ -1,5 +1,5 @@
 import { resolveBookingActions } from './actions';
-import { enqueueBookingEmail, enqueueCalendarSync } from '../workflow';
+import { enqueueAppointmentEmail, enqueueCalendarSync } from '../workflow';
 import type { BookingContext } from './context';
 import { confirmBooking } from './transitions';
 import type { Appointment } from '@when/db';
@@ -29,7 +29,7 @@ export async function acceptAppointment(
 	const result = await confirmBooking(ctx.db, input.appointment.id);
 	if (!result.ok) return { ok: false, reason: 'conflict' };
 
-	const appointment = await enqueueBookingEmail(ctx.db, input.appointment.id, 'confirmed');
+	const appointment = await enqueueAppointmentEmail(ctx.db, input.appointment.id, 'confirmed');
 	await enqueueCalendarSync();
 
 	return { ok: true, appointment };

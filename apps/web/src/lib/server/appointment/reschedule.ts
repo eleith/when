@@ -1,6 +1,6 @@
 import { resolveBookingActions, isTerminalStatus, type Viewer } from './actions';
 import { isRescheduleAllowed, isViewable } from './access';
-import { enqueueBookingEmail, enqueueCalendarSync } from '../workflow';
+import { enqueueAppointmentEmail, enqueueCalendarSync } from '../workflow';
 import type { BookingContext } from './context';
 import { rescheduleBooking, type RescheduleResult } from './transitions';
 import type { ParsedBooking } from './form.server';
@@ -98,7 +98,7 @@ export async function rescheduleAppointment(
 
 	const kind =
 		input.initiator === 'organizer' ? 'rescheduled-by-organizer' : 'rescheduled-by-attendee';
-	const appointment = await enqueueBookingEmail(ctx.db, result.appointment.id, kind);
+	const appointment = await enqueueAppointmentEmail(ctx.db, result.appointment.id, kind);
 	await enqueueCalendarSync();
 
 	return { ok: true, appointment };

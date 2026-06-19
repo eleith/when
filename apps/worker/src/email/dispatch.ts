@@ -1,52 +1,52 @@
 import type { WhenConfiguration } from '@when/config';
-import type { SendBookingEmailInput } from '@when/jobs';
-import { bookingCancelledByAttendee } from './builders/booking-cancelled-by-attendee.js';
-import { bookingCancelledByOrganizer } from './builders/booking-cancelled-by-organizer.js';
-import { bookingConfirmed } from './builders/booking-confirmed.js';
-import { bookingDeclined } from './builders/booking-declined.js';
-import { bookingPending } from './builders/booking-pending.js';
-import { bookingRescheduledByAttendee } from './builders/booking-rescheduled-by-attendee.js';
-import { bookingRescheduledByOrganizer } from './builders/booking-rescheduled-by-organizer.js';
+import type { SendAppointmentEmailInput } from '@when/jobs';
+import { appointmentCancelledByAttendee } from './builders/appointment-cancelled-by-attendee.js';
+import { appointmentCancelledByOrganizer } from './builders/appointment-cancelled-by-organizer.js';
+import { appointmentConfirmed } from './builders/appointment-confirmed.js';
+import { appointmentDeclined } from './builders/appointment-declined.js';
+import { appointmentPending } from './builders/appointment-pending.js';
+import { appointmentRescheduledByAttendee } from './builders/appointment-rescheduled-by-attendee.js';
+import { appointmentRescheduledByOrganizer } from './builders/appointment-rescheduled-by-organizer.js';
 import type { EmailMessage, Envelope } from './recipients.js';
 import { renderMessage } from './render.js';
-import { bookingLinks } from '../links.js';
+import { appointmentLinks } from '../links.js';
 import { fetchBrandLogo } from './logo.js';
-import type { BookingEmailInput } from './types.js';
+import type { AppointmentEmailInput } from './types.js';
 
-function build(i: BookingEmailInput, kind: SendBookingEmailInput['kind']): EmailMessage[] {
+function build(i: AppointmentEmailInput, kind: SendAppointmentEmailInput['kind']): EmailMessage[] {
 	switch (kind) {
 		case 'confirmed':
-			return bookingConfirmed(i);
+			return appointmentConfirmed(i);
 		case 'pending':
-			return bookingPending(i);
+			return appointmentPending(i);
 		case 'cancelled-by-attendee':
-			return bookingCancelledByAttendee(i);
+			return appointmentCancelledByAttendee(i);
 		case 'cancelled-by-organizer':
-			return bookingCancelledByOrganizer(i);
+			return appointmentCancelledByOrganizer(i);
 		case 'rescheduled-by-attendee':
-			return bookingRescheduledByAttendee(i);
+			return appointmentRescheduledByAttendee(i);
 		case 'rescheduled-by-organizer':
-			return bookingRescheduledByOrganizer(i);
+			return appointmentRescheduledByOrganizer(i);
 		case 'declined':
-			return bookingDeclined(i);
+			return appointmentDeclined(i);
 		default: {
 			const unhandled: never = kind;
-			throw new Error(`unhandled booking email kind: ${String(unhandled)}`);
+			throw new Error(`unhandled appointment email kind: ${String(unhandled)}`);
 		}
 	}
 }
 
 export async function dispatch(
-	input: SendBookingEmailInput,
+	input: SendAppointmentEmailInput,
 	cfg: WhenConfiguration
 ): Promise<Envelope[]> {
 	const eventType = cfg.event_types.find((e) => e.id === input.appointment.event_type_id);
 	const logo = await fetchBrandLogo(cfg);
-	const i: BookingEmailInput = {
+	const i: AppointmentEmailInput = {
 		cfg,
 		appointment: input.appointment,
 		eventType,
-		links: bookingLinks({ baseUrl: cfg.url.app, appointment: input.appointment }),
+		links: appointmentLinks({ baseUrl: cfg.url.app, appointment: input.appointment }),
 		logo
 	};
 

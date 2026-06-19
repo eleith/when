@@ -1,9 +1,9 @@
-import { enqueueBookingEmail, enqueueCalendarSync } from '../workflow';
+import { enqueueAppointmentEmail, enqueueCalendarSync } from '../workflow';
 import { newAppointmentId, newCancelToken } from './ids';
 import type { BookingContext } from './context';
 import type { AttendeeAnswer, EventType } from '@when/config';
 import type { Appointment } from '@when/db';
-import type { BookingEmailKind } from '@when/jobs';
+import type { AppointmentEmailKind } from '@when/jobs';
 
 export interface CreateAppointmentInput {
 	eventType: EventType;
@@ -71,8 +71,8 @@ export async function createAppointment(
 		throw err;
 	}
 
-	const kind: BookingEmailKind = status === 'confirmed' ? 'confirmed' : 'pending';
-	appointment = await enqueueBookingEmail(ctx.db, appointment.id, kind);
+	const kind: AppointmentEmailKind = status === 'confirmed' ? 'confirmed' : 'pending';
+	appointment = await enqueueAppointmentEmail(ctx.db, appointment.id, kind);
 	if (status === 'confirmed') await enqueueCalendarSync();
 
 	return { ok: true, appointment };

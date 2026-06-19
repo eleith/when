@@ -1,10 +1,10 @@
 import { describe, expect, test } from 'vitest';
-import { bookingRescheduledByOrganizer } from './booking-rescheduled-by-organizer.js';
-import { sampleInput } from '../__fixtures__/booking.js';
+import { appointmentRescheduledByOrganizer } from './appointment-rescheduled-by-organizer.js';
+import { sampleInput } from '../__fixtures__/appointment.js';
 
-describe('bookingRescheduledByOrganizer', () => {
+describe('appointmentRescheduledByOrganizer', () => {
 	test('attendee (named by organizer, REQUEST ics) + organizer messages', () => {
-		const [attendee, organizer] = bookingRescheduledByOrganizer(sampleInput);
+		const [attendee, organizer] = appointmentRescheduledByOrganizer(sampleInput);
 
 		expect(attendee.content.heading).toBe('Acme Scheduling moved this appointment to a new time.');
 		expect(attendee.content.actions).toEqual([
@@ -26,7 +26,7 @@ describe('bookingRescheduledByOrganizer', () => {
 			...sampleInput,
 			appointment: { ...sampleInput.appointment, status: 'pending' as const }
 		};
-		const [attendee, organizer] = bookingRescheduledByOrganizer(input);
+		const [attendee, organizer] = appointmentRescheduledByOrganizer(input);
 
 		expect(attendee.content.heading).toBe('Acme Scheduling proposed a new time for your request.');
 		expect(attendee.ics).toBeUndefined();
