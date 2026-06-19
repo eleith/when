@@ -41,7 +41,7 @@ The worker also honors a few operational variables:
 docker compose -f apps/web/docker-compose.yml up -d
 ```
 
-This brings up the web app (booking page at `/`, admin at `/admin`) and the worker
+This brings up the web app (appointment page at \`/\`, admin at \`/admin\`) and the worker
 (calendar sync + email delivery). Both run database migrations relevant to their role on
 boot.
 
@@ -54,7 +54,7 @@ compose file mounts (`./data` → `/app/data`):
 - `openworkflow.sqlite` — the background job queue (owned by the worker).
 - `public/` — branding assets you reference (`/public/...`), served statically.
 
-Back up the data directory to preserve bookings and settings across restarts. Paths are
+Back up the data directory to preserve appointments and settings across restarts. Paths are
 configurable under `database` in `config.yaml`.
 
 ## Operating endpoints

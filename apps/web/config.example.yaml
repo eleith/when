@@ -20,7 +20,7 @@ user:
     avatar_url: '/public/avatar.jpg'
     favicon_url: '/public/favicon.ico'
 
-# Required — booking emails are sent over this SMTP server.
+# Required — appointment emails are sent over this SMTP server.
 smtp:
   host: 'smtp.example.com'
   port: 587

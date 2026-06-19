@@ -18,7 +18,7 @@ pnpm install
 pnpm dev
 ```
 
-`pnpm dev` runs only the **web** app. To also deliver booking emails and sync calendars,
+\`pnpm dev\` runs only the **web** app. To also deliver appointment emails and sync calendars,
 run the worker against the same config in a second terminal:
 
 ```sh

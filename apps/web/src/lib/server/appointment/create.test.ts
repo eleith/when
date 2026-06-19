@@ -36,7 +36,7 @@ describe('createAppointment', () => {
 		vi.mocked(enqueueCalendarSync).mockReset();
 	});
 
-	test('auto flow inserts a confirmed booking, queued for sync, and wakes the worker', async () => {
+	test('auto flow inserts a confirmed appointment, queued for sync, and wakes the worker', async () => {
 		const db = await makeDb();
 		try {
 			const result = await createAppointment(
@@ -63,7 +63,7 @@ describe('createAppointment', () => {
 		}
 	});
 
-	test('requires_confirmation flow inserts a pending booking', async () => {
+	test('requires_confirmation flow inserts a pending appointment', async () => {
 		const db = await makeDb();
 		try {
 			const reqType = { ...eventType, appointment_flow: 'requires_confirmation' as const };
@@ -91,7 +91,7 @@ describe('createAppointment', () => {
 		}
 	});
 
-	test('requires_confirmation flow inserts a confirmed booking if created by organizer', async () => {
+	test('requires_confirmation flow inserts a confirmed appointment if created by organizer', async () => {
 		const db = await makeDb();
 		try {
 			const reqType = { ...eventType, appointment_flow: 'requires_confirmation' as const };
@@ -119,7 +119,7 @@ describe('createAppointment', () => {
 		}
 	});
 
-	test('slot_taken: an active booking at the same slot blocks the insert', async () => {
+	test('slot_taken: an active appointment at the same slot blocks the insert', async () => {
 		const db = await makeDb();
 		try {
 			await db

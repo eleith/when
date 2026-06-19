@@ -410,7 +410,7 @@ describe('rescheduleAppointment', () => {
 		]
 	};
 
-	test('attendee moving a confirmed requires-confirmation booking reverts to pending, keeps the event', async () => {
+	test('attendee moving a confirmed requires-confirmation appointment reverts to pending, keeps the event', async () => {
 		const db = await makeDb();
 		try {
 			await db
@@ -448,7 +448,7 @@ describe('rescheduleAppointment', () => {
 		}
 	});
 
-	test('organizer moving the same requires-confirmation booking stays confirmed', async () => {
+	test('organizer moving the same requires-confirmation appointment stays confirmed', async () => {
 		const db = await makeDb();
 		try {
 			await db
@@ -480,7 +480,7 @@ describe('rescheduleAppointment', () => {
 		}
 	});
 
-	test('organizer moving a pending requires-confirmation booking changes status to confirmed', async () => {
+	test('organizer moving a pending requires-confirmation appointment changes status to confirmed', async () => {
 		const db = await makeDb();
 		try {
 			await db
@@ -512,7 +512,7 @@ describe('rescheduleAppointment', () => {
 		}
 	});
 
-	test('gated: cancelled booking returns { ok: false, reason: gated }', async () => {
+	test('gated: cancelled appointment returns { ok: false, reason: gated }', async () => {
 		const db = await makeDb();
 		try {
 			await db
@@ -539,12 +539,12 @@ describe('rescheduleAppointment', () => {
 	test('slot_taken: unique-index violation surfaces as slot_taken reason', async () => {
 		const db = await makeDb();
 		try {
-			// Existing booking we want to move
+			// Existing appointment we want to move
 			await db
 				.insertInto('appointments')
 				.values({ ...opBaseRow, id: 'r3a', status: 'confirmed', cancel_token: 't3a' })
 				.execute();
-			// Conflicting active booking in the target slot (same event_type, same start)
+			// Conflicting active appointment in the target slot (same event_type, same start)
 			await db
 				.insertInto('appointments')
 				.values({

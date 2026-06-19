@@ -48,7 +48,7 @@ auth:
 
 ## `user`
 
-The schedule owner and the booking page's branding.
+The schedule owner and the appointment page's branding.
 
 ```yaml
 user:
@@ -71,7 +71,7 @@ which is served at `/public/`.
 
 ## `smtp`
 
-**Required.** The worker sends all booking emails over this server; the booking system
+**Required.** The worker sends all appointment emails over this server; the appointment system
 relies on it.
 
 ```yaml
@@ -84,7 +84,7 @@ smtp:
 
 ## `calendars`
 
-One or more external calendars, used as conflict sources (busy times) and/or booking
+One or more external calendars, used as conflict sources (busy times) and/or appointment
 destinations. Two `type`s are supported.
 
 ```yaml
@@ -144,7 +144,7 @@ event_types:
     visibility: 'public' # 'public' (default) or 'private' (hidden from the homepage)
     appointment_flow: 'auto' # 'auto' or 'requires_confirmation'
     conflict_calendars: ['work', 'personal'] # busy-time sources (default [])
-    destination_calendar: 'work' # where the booking is written
+    destination_calendar: 'work' # where the appointment is written
     image_url: '/public/chat.png'
     location:
       mode: 'fixed'
@@ -163,7 +163,7 @@ event_types:
 ```yaml
 location: { mode: 'fixed', fixed: 'https://…' } # a static URL, address, or phone number
 location: { mode: 'choice', choices: ['Zoom', 'Phone'] } # guest picks from a list
-location: { mode: 'guest_proposes' } # guest enters a location when booking
+location: { mode: 'guest_proposes' } # guest enters a location when scheduling
 ```
 
 ## `database`

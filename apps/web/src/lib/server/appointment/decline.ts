@@ -26,7 +26,7 @@ export async function declineAppointment(
 	}).decline;
 	if (!gate.allowed) return { ok: false, reason: 'gated' };
 
-	// Decline never touches the calendar (pending bookings aren't synced), so no sync.
+	// Decline never touches the calendar (pending appointments aren't synced), so no sync.
 	const result = await declineAppointmentTransition(ctx.db, input.appointment.id);
 	if (!result.ok) return { ok: false, reason: 'conflict' };
 

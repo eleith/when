@@ -1,12 +1,12 @@
 # When
 
-Single-user appointment scheduling. A public booking page, an admin UI, calendar
+Single-user appointment scheduling. A public appointment page, an admin UI, calendar
 integration (Google + CalDAV), and email notifications — all configured through one
 YAML file.
 
 "When" runs as two services that share a single `config.yaml` and data directory:
-the **web** app (booking page + admin) and a background **worker** that handles
-calendar sync and sends booking emails off the request path. The bundled
+the **web** app (appointment page + admin) and a background **worker** that handles
+calendar sync and sends appointment emails off the request path. The bundled
 `apps/web/docker-compose.yml` runs both.
 
 ## Quick start (Docker)
@@ -38,9 +38,9 @@ calendar sync and sends booking emails off the request path. The bundled
    docker compose -f apps/web/docker-compose.yml up -d
    ```
 
-   The booking page is at `http://localhost:3000/` and the admin UI at `/admin`. The
+   The appointment page is at `http://localhost:3000/` and the admin UI at `/admin`. The
    container runs database migrations on boot. SQLite lives under `/app/data`; the
-   bundled compose file mounts `./data` so bookings survive restarts.
+   bundled compose file mounts `./data` so appointments survive restarts.
 
 ## Documentation
 

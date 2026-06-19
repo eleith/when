@@ -47,7 +47,7 @@ describe('cancelAppointment', () => {
 		vi.mocked(enqueueCalendarSync).mockReset();
 	});
 
-	test('happy path: a published booking is cancelled, queued for deletion, and wakes the worker', async () => {
+	test('happy path: a published appointment is cancelled, queued for deletion, and wakes the worker', async () => {
 		const db = await makeDb();
 		try {
 			await insert(db, {
@@ -86,7 +86,7 @@ describe('cancelAppointment', () => {
 		}
 	});
 
-	test('gated: declined booking returns { ok: false, reason: gated }, no DB change', async () => {
+	test('gated: declined appointment returns { ok: false, reason: gated }, no DB change', async () => {
 		const db = await makeDb();
 		try {
 			await insert(db, { id: 'a2', status: 'declined', cancel_token: 't2' });

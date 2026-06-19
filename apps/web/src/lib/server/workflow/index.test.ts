@@ -35,7 +35,7 @@ async function seed() {
 describe('enqueueAppointmentEmail', () => {
 	beforeEach(() => runWorkflow.mockReset());
 
-	test('marks the email queued, snapshots the booking, and runs the workflow', async () => {
+	test('marks the email queued, snapshots the appointment, and runs the workflow', async () => {
 		const db = await seed();
 
 		const result = await enqueueAppointmentEmail(db, 'appt-1', 'confirmed');

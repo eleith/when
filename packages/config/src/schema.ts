@@ -66,7 +66,7 @@ export interface Branding {
   description?: string;
 }
 /**
- * SMTP server used to send booking emails. Required — the booking system relies on it.
+ * SMTP server used to send appointment emails. Required — the appointment system relies on it.
  */
 export interface Smtp {
   host: string;

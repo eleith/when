@@ -190,7 +190,7 @@ test('maximum_lookahead caps at end-of-day in user_tz', () => {
 	expect(dates.has('2026-04-29')).toBe(false);
 });
 
-test('max_bookings_per_day rejects all candidates on capped days', () => {
+test('max_appointments_per_day rejects all candidates on capped days', () => {
 	const settings = defaults({
 		duration: 30,
 		slot_granularity: 30,

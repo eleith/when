@@ -69,7 +69,7 @@ describe('declineAppointment', () => {
 		}
 	});
 
-	test('gated: confirmed booking cannot be declined', async () => {
+	test('gated: confirmed appointment cannot be declined', async () => {
 		const db = await makeDb();
 		try {
 			await db

@@ -19,7 +19,7 @@ the code they cover — there is no top-level `tests/` directory.
 
 | Path                | Role                                                                                          |
 | ------------------- | --------------------------------------------------------------------------------------------- |
-| `apps/web`          | SvelteKit app: booking page, admin UI, API routes. Also holds `e2e/` (Playwright) and `cli/`. |
+| `apps/web`          | SvelteKit app: appointment page, admin UI, API routes. Also holds `e2e/` (Playwright) and `cli/`. |
 | `apps/worker`       | Long-running background service: calendar sync + email delivery. See its README.              |
 | `packages/config`   | Canonical `config.yaml` schema, generated types, loader/validator. See its README.            |
 | `packages/db`       | SQLite data layer: `node:sqlite` + Kysely dialect, schema types, migrations. See its README.  |
@@ -33,12 +33,12 @@ the system-level overview that ties them together.
 
 The web app and the worker are separate processes that share **one `config.yaml`** and
 **one data directory**. The web app stays on the request path only long enough to do the
-durable, fast work — validate, write the booking row, enqueue a job — and returns. The
+durable, fast work — validate, write the appointment row, enqueue a job — and returns. The
 worker does everything slow or failure-prone: sending emails, pushing to external
 calendars, refreshing busy times. They communicate through the database, not over HTTP.
 
 ```
-booking request ─► web: write appointment row ─► enqueue job ─► respond
+appointment request ─► web: write appointment row ─► enqueue job ─► respond
                                                       │
                           (shared SQLite + config)    ▼
                                               worker: drain job ─► send email / sync calendar
@@ -49,15 +49,15 @@ booking request ─► web: write appointment row ─► enqueue job ─► resp
 Jobs run on openworkflow over `node:sqlite`. `packages/jobs` is the single source of
 truth for **what** jobs exist and their input/output shapes
 (`packages/jobs/src/specs.ts`): the web app triggers a run from a spec
-(`runWorkflow(sendBookingEmail, …)`), and the worker provides the implementation. Both
+(\`runWorkflow(sendAppointmentEmail, …)\`), and the worker provides the implementation. Both
 sides share types and resolve a workflow by name, so web never imports worker code.
 
 - **Durable steps.** Each side-effect (one SMTP send) is a memoized `step.run(...)` with
   its own retry policy, so a replay never re-sends something already sent.
-- **Idempotency keys** dedupe enqueues within openworkflow's dedup window. Booking emails
+- **Idempotency keys** dedupe enqueues within openworkflow's dedup window. Appointment emails
   key on `appointmentId:kind:ics_sequence` — `ics_sequence` bumps on every reschedule, so
   a repeat same-kind email isn't swallowed as a duplicate. Calendar sync uses a random
-  key per call (each booking change should trigger a scan).
+  key per call (each appointment change should trigger a scan).
 
 ## Calendar I/O (off the request path)
 
@@ -74,7 +74,7 @@ endpoint, `setLogger`); tree-shaking keeps the adapter code out of the web bundl
 Lives in `apps/worker/src/email`. The flow separates assembly from rendering from
 delivery:
 
-- **Builders** (`builders/*.ts`) are pure functions: from a booking they produce
+- **Builders** (\`builders/*.ts\`) are pure functions: from an appointment they produce
   `EmailMessage` values (an addressed `EmailContent` model + optional ICS attachment).
   They do no I/O and no rendering.
 - **`renderMessage`** (`render.ts`) turns one `EmailMessage` into a send-ready envelope
@@ -120,7 +120,7 @@ Never call `new Date()` or `Date.now()` inline in domain logic. Inject a `Clock`
 (a future Node upgrade will swap this for the native `Temporal` global).
 
 **Viewer timezone.** Times shown to a person render in _their_ zone, resolved in this
-precedence: (1) a context-specific stored zone — e.g. a booking's `attendee_timezone`;
+precedence: (1) a context-specific stored zone — e.g. an appointment's \`attendee_timezone\`;
 (2) the `tz` cookie — the viewer's preference, read server-side so SSR is correct and
 flash-free; (3) first visit with no cookie — the client seeds it from the browser zone.
 The cookie defaults to the browser zone and is replaced where a surface lets the user

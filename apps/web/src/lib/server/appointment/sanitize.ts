@@ -85,7 +85,7 @@ export function toPublicAppointment(
 		attendee_name: row.attendee_name,
 		attendee_email: row.attendee_email,
 		answers: parseAttendeeAnswers(row.attendee_answers),
-		// Only confirmed bookings can see the location
+		// Only confirmed appointments can see the location
 		location: isConfirmed ? row.location : null,
 		status: row.status,
 		notifications,

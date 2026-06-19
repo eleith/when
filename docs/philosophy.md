@@ -6,7 +6,7 @@ it explains the constraints every design decision is measured against.
 
 ## What "When" is
 
-A scheduling tool for **one** person — the individual self-hoster who wants a booking
+A scheduling tool for **one** person — the individual self-hoster who wants an appointment
 page on their own infrastructure. It is not, and will not become, a multi-tenant SaaS.
 
 ## Principles
@@ -32,12 +32,12 @@ page on their own infrastructure. It is not, and will not become, a multi-tenant
 ## Why some of the bigger decisions went the way they did
 
 - **A worker process, separate from the web app.** Calendar I/O and email are slow and
-  can fail; running them inside a request would make booking feel fragile and slow.
-  Instead the web app does the minimum on the request path (write the booking, enqueue
+can fail; running them inside a request would make appointment scheduling feel fragile and slow.
+Instead the web app does the minimum on the request path (write the appointment, enqueue
   a job) and a background worker does the rest — sending emails, pushing to calendars,
   refreshing busy times — with durable retries. The request stays fast and the
   side-effects become observable and replayable.
-- **State in `config.yaml` + SQLite, nothing else.** Settings are config; bookings are
+- **State in `config.yaml` + SQLite, nothing else.** Settings are config; appointments are
   rows. There is no third place state can hide. SQLite (via Node's built-in
   `node:sqlite`) means zero external services to run and a single file to back up.
 - **One JSON Schema as the source of truth for config.** Rather than hand-writing

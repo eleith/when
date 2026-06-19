@@ -63,7 +63,7 @@ export async function rescheduleAppointment(
 	if (!gate.allowed) return { ok: false, reason: 'gated' };
 
 	// Organizer reschedules are auto-confirmed. Attendee reschedules preserve status,
-	// except when moving a confirmed requires-confirmation booking which re-arms organizer approval.
+	// except when moving a confirmed requires-confirmation appointment which re-arms organizer approval.
 	const newStatus =
 		input.initiator === 'organizer'
 			? 'confirmed'

@@ -112,7 +112,7 @@ test('ORGANIZER and ATTENDEE lines are present', () => {
 	expect(ics).toMatch(/ATTENDEE[;:][^\r\n]*booker@example\.com/);
 });
 
-test('ATTENDEE is omitted when the booking has no email', () => {
+test('ATTENDEE is omitted when the appointment has no email', () => {
 	const ics = buildIcs({
 		appointment: { ...baseAppointment, attendee_email: null },
 		...baseInput
