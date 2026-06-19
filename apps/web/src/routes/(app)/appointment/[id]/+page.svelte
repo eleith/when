@@ -32,9 +32,6 @@
 		}
 	});
 
-	// Close the dialog when the appointment transitions to cancelled.
-	// The attendee path reloads the page (dialog resets naturally); the admin
-	// path re-renders in-place and this $effect catches the status change.
 	$effect(() => {
 		if (data.appointment.status === 'cancelled') cancelDialogOpen = false;
 	});
