@@ -14,7 +14,7 @@ const content: EmailContent = {
 
 describe('recipients', () => {
 	test('attendeeMessage addresses the attendee', () => {
-		expect(attendeeMessage(sampleInput, content).to).toBe('jane@example.com');
+		expect(attendeeMessage(sampleInput, content)!.to).toBe('jane@example.com');
 	});
 
 	test('organizerMessage addresses the configured user', () => {
@@ -23,8 +23,8 @@ describe('recipients', () => {
 
 	test('attendeeMessage carries an ics when given; otherwise none', () => {
 		const ics = { filename: 'x.ics', content: 'BEGIN:VCALENDAR', contentType: 'text/calendar' };
-		expect(attendeeMessage(sampleInput, content, ics).ics).toEqual(ics);
-		expect(attendeeMessage(sampleInput, content).ics).toBeUndefined();
+		expect(attendeeMessage(sampleInput, content, ics)!.ics).toEqual(ics);
+		expect(attendeeMessage(sampleInput, content)!.ics).toBeUndefined();
 		expect(organizerMessage(sampleInput, content).ics).toBeUndefined();
 	});
 });
