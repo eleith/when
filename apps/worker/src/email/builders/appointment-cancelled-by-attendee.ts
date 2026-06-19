@@ -11,6 +11,12 @@ import { attendeeMessage, messages, organizerMessage, type EmailMessage } from '
 import type { EmailContent } from '../content.js';
 import type { AppointmentEmailInput } from '../types.js';
 
+import type { Appointment } from '@when/db';
+
+function reasonParagraph(a: Appointment): string[] {
+	return a.cancel_reason ? [`Reason: ${a.cancel_reason}`] : [];
+}
+
 export function appointmentCancelledByAttendee(i: AppointmentEmailInput): EmailMessage[] {
 	const a = i.appointment;
 	const brand = deriveBrand(i.cfg, i.logo?.cid);
@@ -22,7 +28,7 @@ export function appointmentCancelledByAttendee(i: AppointmentEmailInput): EmailM
 		brand,
 		subject: `Cancelled: ${eventName} with ${brand.name}`,
 		heading: 'Your appointment has been cancelled.',
-		paragraphs: [],
+		paragraphs: reasonParagraph(a),
 		rows: [
 			{ label: 'What', value: eventName },
 			{ label: 'When', value: attendeeWhen }
@@ -34,7 +40,7 @@ export function appointmentCancelledByAttendee(i: AppointmentEmailInput): EmailM
 		brand,
 		subject: `Cancelled: ${eventName} with ${a.attendee_name}`,
 		heading: 'Appointment cancelled',
-		paragraphs: [`${attendeeLabel(a)} cancelled this appointment.`],
+		paragraphs: [`${attendeeLabel(a)} cancelled this appointment.`, ...reasonParagraph(a)],
 		rows: [
 			{ label: 'What', value: eventName },
 			{ label: 'When', value: organizerWhen },
