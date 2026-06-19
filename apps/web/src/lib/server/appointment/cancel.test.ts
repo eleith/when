@@ -132,4 +132,61 @@ describe('cancelAppointment', () => {
 			await db.destroy();
 		}
 	});
+
+	test('reason is persisted on the row when provided', async () => {
+		const db = await makeDb();
+		try {
+			await insert(db, { id: 'a4', status: 'confirmed', cancel_token: 't4' });
+			const row = await fetchRow(db, 'a4');
+
+			const result = await cancelAppointment(
+				{ db, cfg: validConfig, clock: systemClock },
+				{ appointment: row, initiator: 'attendee', reason: 'I found a conflict' }
+			);
+
+			expect(result.ok).toBe(true);
+			const persisted = await fetchRow(db, 'a4');
+			expect(persisted.cancel_reason).toBe('I found a conflict');
+		} finally {
+			await db.destroy();
+		}
+	});
+
+	test('cancel_reason is null when no reason is passed', async () => {
+		const db = await makeDb();
+		try {
+			await insert(db, { id: 'a5', status: 'confirmed', cancel_token: 't5' });
+			const row = await fetchRow(db, 'a5');
+
+			const result = await cancelAppointment(
+				{ db, cfg: validConfig, clock: systemClock },
+				{ appointment: row, initiator: 'organizer' }
+			);
+
+			expect(result.ok).toBe(true);
+			const persisted = await fetchRow(db, 'a5');
+			expect(persisted.cancel_reason).toBeNull();
+		} finally {
+			await db.destroy();
+		}
+	});
+
+	test('gated cancel does not write reason to the row', async () => {
+		const db = await makeDb();
+		try {
+			await insert(db, { id: 'a6', status: 'declined', cancel_token: 't6' });
+			const row = await fetchRow(db, 'a6');
+
+			await cancelAppointment(
+				{ db, cfg: validConfig, clock: systemClock },
+				{ appointment: row, initiator: 'attendee', reason: 'Not interested' }
+			);
+
+			const persisted = await fetchRow(db, 'a6');
+			expect(persisted.status).toBe('declined');
+			expect(persisted.cancel_reason).toBeNull();
+		} finally {
+			await db.destroy();
+		}
+	});
 });

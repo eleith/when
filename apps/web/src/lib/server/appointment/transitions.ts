@@ -125,12 +125,14 @@ export async function rescheduleAppointmentTransition(
 /** Cancel an appointment. The worker deletes its event if one was published. */
 export async function cancelAppointmentTransition(
 	db: Kysely<Database>,
-	id: string
+	id: string,
+	reason?: string
 ): Promise<TransitionOutcome> {
 	const result = await db
 		.updateTable('appointments')
 		.set({
 			status: 'cancelled',
+			cancel_reason: reason ?? null,
 			ics_sequence: sql`ics_sequence + 1`,
 			email_notification_status: null,
 			// Only worth a sync when there's an event to remove.

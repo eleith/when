@@ -7,6 +7,7 @@ import type { Appointment } from '@when/db';
 export interface CancelAppointmentInput {
 	appointment: Appointment;
 	initiator: Viewer;
+	reason?: string;
 }
 
 export type CancelAppointmentResult =
@@ -27,7 +28,7 @@ export async function cancelAppointment(
 	}).cancel;
 	if (!gate.allowed) return { ok: false, reason: 'gated' };
 
-	const result = await cancelAppointmentTransition(ctx.db, input.appointment.id);
+	const result = await cancelAppointmentTransition(ctx.db, input.appointment.id, input.reason);
 	if (!result.ok) return { ok: false, reason: 'conflict' };
 
 	const kind = input.initiator === 'organizer' ? 'cancelled-by-organizer' : 'cancelled-by-attendee';
