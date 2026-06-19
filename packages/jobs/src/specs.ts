@@ -40,18 +40,20 @@ export type SendAppointmentEmailResult = 'sent' | 'failed';
  * from this spec (`runWorkflow(sendAppointmentEmail, input)`); the worker provides
  * the implementation in `@when/worker`.
  */
-export const sendAppointmentEmail: WorkflowSpec<SendAppointmentEmailInput, SendAppointmentEmailResult> =
-	defineWorkflowSpec<SendAppointmentEmailInput, SendAppointmentEmailResult>({
-		name: 'send-appointment-email',
-		// Workflow-level backstop for unexpected errors. SMTP send retries are set
-		// per-step in the worker (the expected failure path is recorded, not thrown).
-		retryPolicy: {
-			maximumAttempts: 3,
-			initialInterval: '1m',
-			backoffCoefficient: 2,
-			maximumInterval: '15m'
-		}
-	});
+export const sendAppointmentEmail: WorkflowSpec<
+	SendAppointmentEmailInput,
+	SendAppointmentEmailResult
+> = defineWorkflowSpec<SendAppointmentEmailInput, SendAppointmentEmailResult>({
+	name: 'send-appointment-email',
+	// Workflow-level backstop for unexpected errors. SMTP send retries are set
+	// per-step in the worker (the expected failure path is recorded, not thrown).
+	retryPolicy: {
+		maximumAttempts: 3,
+		initialInterval: '1m',
+		backoffCoefficient: 2,
+		maximumInterval: '15m'
+	}
+});
 
 /** A calendar broke (`broke`) or recovered (`recovered`); drives the owner email. */
 export type OwnerAlertKind = 'broke' | 'recovered';

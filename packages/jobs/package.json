@@ -21,6 +21,7 @@
 		"build": "tsc -p tsconfig.json && tsc -p tsconfig.build.json",
 		"lint": "prettier --check . && eslint .",
 		"test": "vitest run",
+		"format": "prettier --write .",
 		"test:coverage": "vitest run --coverage"
 	},
 	"dependencies": {
