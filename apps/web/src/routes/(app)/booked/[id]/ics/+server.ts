@@ -14,6 +14,10 @@ export const GET: RequestHandler = async ({ params, url }) => {
 
 	const row = requireViewableAppointment(found, token, systemClock.now());
 
+	if (row.status !== 'confirmed') {
+		error(403, 'Calendar invites are only available for confirmed bookings.');
+	}
+
 	const cfg = getConfig();
 	const eventType = cfg.event_types.find((e) => e.id === row.event_type_id);
 	const cancelUrl = `${url.origin}/booked/${row.id}?token=${encodeURIComponent(token)}`;
