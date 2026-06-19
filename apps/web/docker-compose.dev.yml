@@ -22,6 +22,8 @@ services:
       - ../../packages/db/src:/m/packages/db/src
       - ../../packages/jobs/src:/m/packages/jobs/src
       - ../../packages/calendar/src:/m/packages/calendar/src
+    env_file:
+      - ./.env
     environment:
       NODE_ENV: development
       AUTH_SECRET: ${AUTH_SECRET:-development-only-secret-please-change-it-32chars}

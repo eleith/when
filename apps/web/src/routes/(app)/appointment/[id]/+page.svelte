@@ -403,7 +403,7 @@
 
 					<form
 						method="POST"
-						action={data.isAdmin ? `/admin/appointment/${data.appointment.id}?/cancel` : '?/cancel'}
+						action={data.isAdmin ? `/admin/appointment/${data.appointment.id}?/cancel` : `?token=${encodeURIComponent(data.token)}&/cancel`}
 						class="cancel-dialog-actions"
 					>
 						<input type="hidden" name="token" value={data.token} />
