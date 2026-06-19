@@ -14,7 +14,7 @@ const baseSettings: AvailabilitySettings = {
 	maximum_lookahead: 365,
 	buffer_before: 0,
 	buffer_after: 0,
-	max_bookings_per_day: null,
+	max_appointments_per_day: null,
 	weekly: {
 		monday: ['09:00-17:00'],
 		tuesday: ['09:00-17:00'],
@@ -194,7 +194,7 @@ test('max_bookings_per_day rejects all candidates on capped days', () => {
 	const settings = defaults({
 		duration: 30,
 		slot_granularity: 30,
-		max_bookings_per_day: 2,
+		max_appointments_per_day: 2,
 		weekly: {
 			monday: ['09:00-17:00'],
 			tuesday: ['09:00-17:00']
