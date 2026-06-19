@@ -7,7 +7,7 @@ import { getBusyIntervals } from '@when/db';
 import { systemClock } from '$lib/server/clock';
 import { getConfig, getDb } from '$lib/server/state';
 import { createAppointment } from '$lib/server/appointment/create';
-import { parseAndValidateBookingForm, resolveTimezone } from '$lib/server/appointment/form.server';
+import { parseAndValidateAppointmentForm, resolveTimezone } from '$lib/server/appointment/form.server';
 import { appointmentContext } from '$lib/server/appointment/context';
 import type { Actions } from './$types';
 
@@ -24,7 +24,7 @@ export const actions: Actions = {
 			return fail(400, { error: 'Please pick a time slot.' });
 		}
 
-		const parsed = parseAndValidateBookingForm(eventType, form);
+		const parsed = parseAndValidateAppointmentForm(eventType, form);
 		if (!parsed.ok) {
 			return fail(400, { fieldErrors: parsed.errors });
 		}

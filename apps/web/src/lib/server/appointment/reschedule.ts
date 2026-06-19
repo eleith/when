@@ -3,7 +3,7 @@ import { isRescheduleAllowed, isViewable } from './access';
 import { enqueueAppointmentEmail, enqueueCalendarSync } from '../workflow';
 import type { AppointmentContext } from './context';
 import { rescheduleBooking, type RescheduleResult } from './transitions';
-import type { ParsedBooking } from './form.server';
+import type { ParsedAppointment } from './form.server';
 import type { EventType } from '@when/config';
 import type { Appointment } from '@when/db';
 
@@ -34,7 +34,7 @@ export interface RescheduleAppointmentInput {
 	newStart: string;
 	/** New end_time as ISO instant. */
 	newEnd: string;
-	attendee?: ParsedBooking;
+	attendee?: ParsedAppointment;
 	timezone?: string;
 }
 

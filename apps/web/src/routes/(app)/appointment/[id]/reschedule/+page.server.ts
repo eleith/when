@@ -7,7 +7,7 @@ import { resolveFormFields } from '@when/config';
 import { loadAvailability } from '$lib/server/availability/load';
 import { requireViewableAppointment } from '$lib/server/appointment/access';
 import { classifyReschedule, rescheduleAppointment } from '$lib/server/appointment/reschedule';
-import { parseAndValidateBookingForm, resolveTimezone } from '$lib/server/appointment/form.server';
+import { parseAndValidateAppointmentForm, resolveTimezone } from '$lib/server/appointment/form.server';
 import { appointmentContext } from '$lib/server/appointment/context';
 import { toPublicAppointment, toPublicEventType } from '$lib/server/appointment/sanitize';
 import type { Actions, PageServerLoad } from './$types';
@@ -67,7 +67,7 @@ export const actions: Actions = {
 		const eventType = cfg.event_types.find((e) => e.id === found.event_type_id);
 		if (!eventType) return fail(409, { error: 'This event type no longer exists.' });
 
-		const parsed = parseAndValidateBookingForm(eventType, form);
+		const parsed = parseAndValidateAppointmentForm(eventType, form);
 		if (!parsed.ok) return fail(400, { fieldErrors: parsed.errors });
 		const attendee = parsed.data;
 		const timezone = resolveTimezone(form.get('timezone'), cfg.user.timezone);

@@ -5,15 +5,15 @@ const LIMIT_LONG = 1000;
 const LIMIT_EMAIL = 254;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export interface ParsedBooking {
+export interface ParsedAppointment {
 	name: string;
 	email: string | null;
 	location: string | null;
 	answers: AttendeeAnswer[];
 }
 
-export type ParseBookingResult =
-	| { ok: true; data: ParsedBooking }
+export type ParseAppointmentResult =
+	| { ok: true; data: ParsedAppointment }
 	| { ok: false; errors: Record<string, string> };
 
 export function resolveTimezone(raw: FormDataEntryValue | null, fallback: string): string {
@@ -27,10 +27,10 @@ export function resolveTimezone(raw: FormDataEntryValue | null, fallback: string
 	}
 }
 
-export function parseAndValidateBookingForm(
+export function parseAndValidateAppointmentForm(
 	eventType: EventType,
 	formData: FormData
-): ParseBookingResult {
+): ParseAppointmentResult {
 	const fields = resolveFormFields(eventType);
 	const errors: Record<string, string> = {};
 	const answers: AttendeeAnswer[] = [];

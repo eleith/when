@@ -10,7 +10,7 @@ import { logger } from '$lib/server/logger';
 import { getConfig, getDb } from '$lib/server/state';
 import { resolveFormFields } from '@when/config';
 import { createAppointment } from '$lib/server/appointment/create';
-import { parseAndValidateBookingForm, resolveTimezone } from '$lib/server/appointment/form.server';
+import { parseAndValidateAppointmentForm, resolveTimezone } from '$lib/server/appointment/form.server';
 import { appointmentContext } from '$lib/server/appointment/context';
 import { normalizeDeepLinkParams } from '$lib/appointment';
 import { toPublicEventType } from '$lib/server/appointment/sanitize';
@@ -71,7 +71,7 @@ export const actions: Actions = {
 			return fail(400, { error: 'Please pick a time slot.' });
 		}
 
-		const parsed = parseAndValidateBookingForm(eventType, form);
+		const parsed = parseAndValidateAppointmentForm(eventType, form);
 		if (!parsed.ok) {
 			return fail(400, { fieldErrors: parsed.errors });
 		}
