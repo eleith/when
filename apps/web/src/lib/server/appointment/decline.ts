@@ -1,7 +1,7 @@
 import { resolveAppointmentActions } from './actions';
 import { enqueueAppointmentEmail } from '../workflow';
 import type { AppointmentContext } from './context';
-import { declineBooking } from './transitions';
+import { declineAppointmentTransition } from './transitions';
 import type { Appointment } from '@when/db';
 
 export interface DeclineAppointmentInput {
@@ -27,7 +27,7 @@ export async function declineAppointment(
 	if (!gate.allowed) return { ok: false, reason: 'gated' };
 
 	// Decline never touches the calendar (pending bookings aren't synced), so no sync.
-	const result = await declineBooking(ctx.db, input.appointment.id);
+	const result = await declineAppointmentTransition(ctx.db, input.appointment.id);
 	if (!result.ok) return { ok: false, reason: 'conflict' };
 
 	const appointment = await enqueueAppointmentEmail(ctx.db, input.appointment.id, 'declined');

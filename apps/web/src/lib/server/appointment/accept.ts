@@ -1,7 +1,7 @@
 import { resolveAppointmentActions } from './actions';
 import { enqueueAppointmentEmail, enqueueCalendarSync } from '../workflow';
 import type { AppointmentContext } from './context';
-import { confirmBooking } from './transitions';
+import { confirmAppointment } from './transitions';
 import type { Appointment } from '@when/db';
 
 export interface AcceptAppointmentInput {
@@ -26,7 +26,7 @@ export async function acceptAppointment(
 	}).accept;
 	if (!gate.allowed) return { ok: false, reason: 'gated' };
 
-	const result = await confirmBooking(ctx.db, input.appointment.id);
+	const result = await confirmAppointment(ctx.db, input.appointment.id);
 	if (!result.ok) return { ok: false, reason: 'conflict' };
 
 	const appointment = await enqueueAppointmentEmail(ctx.db, input.appointment.id, 'confirmed');

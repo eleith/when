@@ -1,7 +1,7 @@
 import { resolveAppointmentActions, type Viewer } from './actions';
 import { enqueueAppointmentEmail, enqueueCalendarSync } from '../workflow';
 import type { AppointmentContext } from './context';
-import { cancelBooking } from './transitions';
+import { cancelAppointmentTransition } from './transitions';
 import type { Appointment } from '@when/db';
 
 export interface CancelAppointmentInput {
@@ -27,7 +27,7 @@ export async function cancelAppointment(
 	}).cancel;
 	if (!gate.allowed) return { ok: false, reason: 'gated' };
 
-	const result = await cancelBooking(ctx.db, input.appointment.id);
+	const result = await cancelAppointmentTransition(ctx.db, input.appointment.id);
 	if (!result.ok) return { ok: false, reason: 'conflict' };
 
 	const kind = input.initiator === 'organizer' ? 'cancelled-by-organizer' : 'cancelled-by-attendee';

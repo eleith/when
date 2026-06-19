@@ -24,8 +24,8 @@ async function classify(
 	return { ok: false, reason: exists ? 'conflict' : 'not_found' };
 }
 
-/** Accept a pending booking. The worker then creates its calendar event. */
-export async function confirmBooking(db: Kysely<Database>, id: string): Promise<TransitionOutcome> {
+/** Accept a pending appointment. The worker then creates its calendar event. */
+export async function confirmAppointment(db: Kysely<Database>, id: string): Promise<TransitionOutcome> {
 	const result = await db
 		.updateTable('appointments')
 		.set({
@@ -54,7 +54,7 @@ export interface RescheduleAttendee {
 	timezone: string | null;
 }
 
-export async function rescheduleBooking(
+export async function rescheduleAppointmentTransition(
 	db: Kysely<Database>,
 	old: Appointment,
 	when: {
@@ -119,8 +119,8 @@ export async function rescheduleBooking(
 	return { ok: true, appointment: created };
 }
 
-/** Cancel a booking. The worker deletes its event if one was published. */
-export async function cancelBooking(db: Kysely<Database>, id: string): Promise<TransitionOutcome> {
+/** Cancel an appointment. The worker deletes its event if one was published. */
+export async function cancelAppointmentTransition(db: Kysely<Database>, id: string): Promise<TransitionOutcome> {
 	const result = await db
 		.updateTable('appointments')
 		.set({
@@ -139,7 +139,7 @@ export async function cancelBooking(db: Kysely<Database>, id: string): Promise<T
 }
 
 /** Decline a pending request, removing the inherited event if a re-approval revert left one. */
-export async function declineBooking(db: Kysely<Database>, id: string): Promise<TransitionOutcome> {
+export async function declineAppointmentTransition(db: Kysely<Database>, id: string): Promise<TransitionOutcome> {
 	const result = await db
 		.updateTable('appointments')
 		.set({

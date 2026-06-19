@@ -2,7 +2,7 @@ import { resolveAppointmentActions, isTerminalStatus, type Viewer } from './acti
 import { isRescheduleAllowed, isViewable } from './access';
 import { enqueueAppointmentEmail, enqueueCalendarSync } from '../workflow';
 import type { AppointmentContext } from './context';
-import { rescheduleBooking, type RescheduleResult } from './transitions';
+import { rescheduleAppointmentTransition, type RescheduleResult } from './transitions';
 import type { ParsedAppointment } from './form.server';
 import type { EventType } from '@when/config';
 import type { Appointment } from '@when/db';
@@ -75,7 +75,7 @@ export async function rescheduleAppointment(
 
 	let result: RescheduleResult;
 	try {
-		result = await rescheduleBooking(ctx.db, input.appointment, {
+		result = await rescheduleAppointmentTransition(ctx.db, input.appointment, {
 			newStart: input.newStart,
 			newEnd: input.newEnd,
 			newStatus,

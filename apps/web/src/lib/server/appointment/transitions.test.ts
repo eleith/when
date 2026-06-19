@@ -1,6 +1,11 @@
 import { expect, test } from 'vitest';
 import { openDb, runMigrations } from '@when/db';
-import { confirmBooking, rescheduleBooking, cancelBooking, declineBooking } from './transitions';
+import {
+	confirmAppointment,
+	rescheduleAppointmentTransition,
+	cancelAppointmentTransition,
+	declineAppointmentTransition
+} from './transitions';
 
 async function makeDb() {
 	const db = openDb(':memory:');
@@ -31,11 +36,11 @@ const insert = (db: Awaited<ReturnType<typeof makeDb>>, over: Record<string, unk
 const fetchRow = (db: Awaited<ReturnType<typeof makeDb>>, id: string) =>
 	db.selectFrom('appointments').selectAll().where('id', '=', id).executeTakeFirstOrThrow();
 
-test('confirmBooking confirms a pending booking, queues the sync, bumps the revision', async () => {
+test('confirmAppointment confirms a pending appointment, queues the sync, bumps the revision', async () => {
 	const db = await makeDb();
 	try {
 		await insert(db, { id: '1', status: 'pending', cancel_token: 't1' });
-		expect(await confirmBooking(db, '1')).toEqual({ ok: true });
+		expect(await confirmAppointment(db, '1')).toEqual({ ok: true });
 		const row = await fetchRow(db, '1');
 		expect(row.status).toBe('confirmed');
 		expect(row.calendar_push_notification_status).toBe('queued');
@@ -45,24 +50,24 @@ test('confirmBooking confirms a pending booking, queues the sync, bumps the revi
 	}
 });
 
-test('confirmBooking reports conflict when not pending, not_found when missing', async () => {
+test('confirmAppointment reports conflict when not pending, not_found when missing', async () => {
 	const db = await makeDb();
 	try {
 		await insert(db, { id: '1', status: 'confirmed', cancel_token: 't1' });
-		expect(await confirmBooking(db, '1')).toEqual({ ok: false, reason: 'conflict' });
-		expect(await confirmBooking(db, 'ghost')).toEqual({ ok: false, reason: 'not_found' });
+		expect(await confirmAppointment(db, '1')).toEqual({ ok: false, reason: 'conflict' });
+		expect(await confirmAppointment(db, 'ghost')).toEqual({ ok: false, reason: 'not_found' });
 	} finally {
 		await db.destroy();
 	}
 });
 
-test('rescheduleBooking ends the old row and creates a linked new one at the new time', async () => {
+test('rescheduleAppointmentTransition ends the old row and creates a linked new one at the new time', async () => {
 	const db = await makeDb();
 	try {
 		await insert(db, { id: '1', status: 'confirmed', cancel_token: 't1', origin_id: '1' });
 		const old = await fetchRow(db, '1');
 
-		const result = await rescheduleBooking(db, old, {
+		const result = await rescheduleAppointmentTransition(db, old, {
 			newStart: '2099-02-01T10:00:00Z',
 			newEnd: '2099-02-01T10:30:00Z',
 			newStatus: 'confirmed',
@@ -88,7 +93,7 @@ test('rescheduleBooking ends the old row and creates a linked new one at the new
 	}
 });
 
-test('rescheduleBooking reports conflict when the old row is no longer active', async () => {
+test('rescheduleAppointmentTransition reports conflict when the old row is no longer active', async () => {
 	const db = await makeDb();
 	try {
 		await insert(db, { id: '1', status: 'confirmed', cancel_token: 't1', origin_id: '1' });
@@ -99,7 +104,7 @@ test('rescheduleBooking reports conflict when the old row is no longer active', 
 			.where('id', '=', '1')
 			.execute();
 
-		const result = await rescheduleBooking(db, old, {
+		const result = await rescheduleAppointmentTransition(db, old, {
 			newStart: '2099-02-01T10:00:00Z',
 			newEnd: '2099-02-01T10:30:00Z',
 			newStatus: 'confirmed',
@@ -111,7 +116,7 @@ test('rescheduleBooking reports conflict when the old row is no longer active', 
 	}
 });
 
-test('cancelBooking queues the sync only when there is a published event', async () => {
+test('cancelAppointmentTransition queues the sync only when there is a published event', async () => {
 	const db = await makeDb();
 	try {
 		await insert(db, {
@@ -129,8 +134,8 @@ test('cancelBooking queues the sync only when there is a published event', async
 			end_time: '2099-01-02T15:30:00Z'
 		});
 
-		await cancelBooking(db, 'published');
-		await cancelBooking(db, 'unpublished');
+		await cancelAppointmentTransition(db, 'published');
+		await cancelAppointmentTransition(db, 'unpublished');
 
 		const pub = await fetchRow(db, 'published');
 		expect(pub.status).toBe('cancelled');
@@ -145,21 +150,21 @@ test('cancelBooking queues the sync only when there is a published event', async
 	}
 });
 
-test('declineBooking declines a pending request; no event to remove when none was published', async () => {
+test('declineAppointmentTransition declines a pending request; no event to remove when none was published', async () => {
 	const db = await makeDb();
 	try {
 		await insert(db, { id: '1', status: 'pending', cancel_token: 't1' });
-		expect(await declineBooking(db, '1')).toEqual({ ok: true });
+		expect(await declineAppointmentTransition(db, '1')).toEqual({ ok: true });
 		const row = await fetchRow(db, '1');
 		expect(row.status).toBe('declined');
 		expect(row.calendar_push_notification_status).toBeNull();
-		expect(await declineBooking(db, '1')).toEqual({ ok: false, reason: 'conflict' });
+		expect(await declineAppointmentTransition(db, '1')).toEqual({ ok: false, reason: 'conflict' });
 	} finally {
 		await db.destroy();
 	}
 });
 
-test('declineBooking queues a delete when a re-approval revert carries an inherited event', async () => {
+test('declineAppointmentTransition queues a delete when a re-approval revert carries an inherited event', async () => {
 	const db = await makeDb();
 	try {
 		await insert(db, {
@@ -169,7 +174,7 @@ test('declineBooking queues a delete when a re-approval revert carries an inheri
 			external_event_id: 'evt-1',
 			external_calendar_id: 'work'
 		});
-		expect(await declineBooking(db, '1')).toEqual({ ok: true });
+		expect(await declineAppointmentTransition(db, '1')).toEqual({ ok: true });
 		const row = await fetchRow(db, '1');
 		expect(row.status).toBe('declined');
 		expect(row.calendar_push_notification_status).toBe('queued');
