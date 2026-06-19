@@ -8,7 +8,7 @@ services:
     ports:
       - '5173:5173'
     volumes:
-      - ../../.env:/m/apps/web/.env
+      - ./.env:/m/apps/web/.env
       - ./src:/m/apps/web/src
       - ./static:/m/apps/web/static
       - ./config.yaml:/m/apps/web/config.yaml
@@ -35,7 +35,7 @@ services:
     ports:
       - '9000:9000'
     env_file:
-      - ../../.env
+      - ./.env
     environment:
       NODE_ENV: development
     volumes:
