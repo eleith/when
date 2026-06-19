@@ -5,12 +5,12 @@
 </script>
 
 <svelte:head>
-	<title>Archived Bookings — When</title>
+	<title>Pending Appointments — When</title>
 </svelte:head>
 
 {#if data.appointments.length === 0}
 	<div class="empty-state">
-		<p class="empty-text">No archived appointments.</p>
+		<p class="empty-text">No pending appointments.</p>
 	</div>
 {:else}
 	<BookingsTable appointments={data.appointments} />

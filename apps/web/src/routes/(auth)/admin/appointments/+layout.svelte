@@ -15,7 +15,7 @@
 	let nextHref = $derived(currentPage < pageCount ? `?page=${currentPage + 1}` : null);
 </script>
 
-<div class="bookings-layout">
+<div class="appointments-layout">
 	{#if data.conflictCount > 0}
 		<div class="review-banner" role="alert">
 			<IconWarning class="review-icon" aria-hidden="true" />
@@ -39,13 +39,13 @@
 		</div>
 	{/if}
 
-	<div class="card bookings-card">
+	<div class="card appointments-card">
 		<div class="card-header">
 			<div class="tabs-strip">
 				<a
-					href="/admin/bookings/upcoming"
+					href="/admin/appointments/upcoming"
 					class="sub-tab"
-					class:active={currentPath === '/admin/bookings/upcoming'}
+					class:active={currentPath === '/admin/appointments/upcoming'}
 				>
 					Upcoming
 					{#if data.upcomingCount > 0}
@@ -53,9 +53,9 @@
 					{/if}
 				</a>
 				<a
-					href="/admin/bookings/pending"
+					href="/admin/appointments/pending"
 					class="sub-tab"
-					class:active={currentPath === '/admin/bookings/pending'}
+					class:active={currentPath === '/admin/appointments/pending'}
 				>
 					Pending
 					{#if data.pendingCount > 0}
@@ -63,16 +63,16 @@
 					{/if}
 				</a>
 				<a
-					href="/admin/bookings/concluded"
+					href="/admin/appointments/concluded"
 					class="sub-tab"
-					class:active={currentPath === '/admin/bookings/concluded'}
+					class:active={currentPath === '/admin/appointments/concluded'}
 				>
 					Concluded
 				</a>
 				<a
-					href="/admin/bookings/archived"
+					href="/admin/appointments/archived"
 					class="sub-tab"
-					class:active={currentPath === '/admin/bookings/archived'}
+					class:active={currentPath === '/admin/appointments/archived'}
 				>
 					Archived
 				</a>
@@ -111,7 +111,7 @@
 </div>
 
 <style>
-	.bookings-layout {
+	.appointments-layout {
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-4);

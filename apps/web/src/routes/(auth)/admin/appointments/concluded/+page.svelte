@@ -5,7 +5,7 @@
 </script>
 
 <svelte:head>
-	<title>Concluded Bookings — When</title>
+	<title>Concluded Appointments — When</title>
 </svelte:head>
 
 {#if data.appointments.length === 0}

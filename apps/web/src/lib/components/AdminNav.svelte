@@ -8,7 +8,7 @@
 
 <header class="admin-nav">
 	<div class="nav-container">
-		<a href="/admin/bookings/upcoming" class="nav-link" aria-label="Bookings dashboard">
+		<a href="/admin/appointments/upcoming" class="nav-link" aria-label="Appointments dashboard">
 			<IconCalendarBlank aria-hidden="true" />
 		</a>
 		<form method="POST" action="/admin?/signout" class="signout-form">
