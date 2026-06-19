@@ -7,7 +7,7 @@ export interface FilterContext {
 	settings: AvailabilitySettings;
 	now: Temporal.Instant;
 	userTz: string;
-	/** count of active bookings keyed by user_tz YYYY-MM-DD */
+	/** count of active appointments keyed by user_tz YYYY-MM-DD */
 	perDayCount: Map<string, number>;
 }
 
@@ -26,10 +26,10 @@ export function filterSlots(slots: Temporal.Instant[], ctx: FilterContext): Temp
 		};
 		if (overlapsAny(buffered, blocks)) return false;
 
-		if (settings.max_bookings_per_day !== null) {
+		if (settings.max_appointments_per_day !== null) {
 			const dateStr = s.toZonedDateTimeISO(userTz).toPlainDate().toString();
 			const count = perDayCount.get(dateStr) ?? 0;
-			if (count >= settings.max_bookings_per_day) return false;
+			if (count >= settings.max_appointments_per_day) return false;
 		}
 
 		return true;

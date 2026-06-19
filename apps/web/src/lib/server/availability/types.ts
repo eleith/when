@@ -40,6 +40,6 @@ export interface AvailabilitySettings {
 	/** minutes */
 	buffer_after: number;
 	/** appointments per `user_tz` calendar day; null = unlimited */
-	max_bookings_per_day: number | null;
+	max_appointments_per_day: number | null;
 	weekly: WeeklySchedule;
 }

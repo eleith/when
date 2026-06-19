@@ -15,7 +15,7 @@ export interface ComputeOptions {
 	existingAppointments: Interval[];
 	/** Remote calendar busy intervals (RRULE-expanded already). */
 	remoteBusy: Interval[];
-	/** Active-booking counts keyed by user_tz YYYY-MM-DD. */
+	/** Active-appointment counts keyed by user_tz YYYY-MM-DD. */
 	perDayCount: Map<string, number>;
 }
 
