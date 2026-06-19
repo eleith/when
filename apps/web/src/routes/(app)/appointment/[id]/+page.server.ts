@@ -15,7 +15,7 @@ import {
 import { toPublicAppointment, toPublicEventType } from '$lib/server/appointment/sanitize';
 import type { Actions, PageServerLoad } from './$types';
 import { cancelAppointment } from '$lib/server/appointment/cancel';
-import { bookingContext } from '$lib/server/appointment/context';
+import { appointmentContext } from '$lib/server/appointment/context';
 
 type ClockStatus = 'upcoming' | 'in_progress' | 'concluded';
 
@@ -153,7 +153,7 @@ export const actions: Actions = {
 			return fail(403, { error: 'Invalid cancel token.' });
 		}
 
-		const result = await cancelAppointment(bookingContext(), {
+		const result = await cancelAppointment(appointmentContext(), {
 			appointment: row,
 			initiator: 'attendee'
 		});

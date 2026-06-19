@@ -1,6 +1,6 @@
 import { resolveBookingActions } from './actions';
 import { enqueueAppointmentEmail } from '../workflow';
-import type { BookingContext } from './context';
+import type { AppointmentContext } from './context';
 import { declineBooking } from './transitions';
 import type { Appointment } from '@when/db';
 
@@ -13,7 +13,7 @@ export type DeclineAppointmentResult =
 	| { ok: false; reason: 'gated' | 'conflict' };
 
 export async function declineAppointment(
-	ctx: BookingContext,
+	ctx: AppointmentContext,
 	input: DeclineAppointmentInput
 ): Promise<DeclineAppointmentResult> {
 	const eventType = ctx.cfg.event_types.find((e) => e.id === input.appointment.event_type_id);

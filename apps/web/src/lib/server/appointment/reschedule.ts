@@ -1,7 +1,7 @@
 import { resolveBookingActions, isTerminalStatus, type Viewer } from './actions';
 import { isRescheduleAllowed, isViewable } from './access';
 import { enqueueAppointmentEmail, enqueueCalendarSync } from '../workflow';
-import type { BookingContext } from './context';
+import type { AppointmentContext } from './context';
 import { rescheduleBooking, type RescheduleResult } from './transitions';
 import type { ParsedBooking } from './form.server';
 import type { EventType } from '@when/config';
@@ -49,7 +49,7 @@ function isUniqueViolation(err: unknown): boolean {
 }
 
 export async function rescheduleAppointment(
-	ctx: BookingContext,
+	ctx: AppointmentContext,
 	input: RescheduleAppointmentInput
 ): Promise<RescheduleAppointmentResult> {
 	const eventType = ctx.cfg.event_types.find((e) => e.id === input.appointment.event_type_id);

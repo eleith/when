@@ -4,7 +4,7 @@ import { findAppointment } from '@when/db';
 import { getConfig, getDb } from '$lib/server/state';
 import { loadAvailability } from '$lib/server/availability/load';
 import { rescheduleAppointment } from '$lib/server/appointment/reschedule';
-import { bookingContext } from '$lib/server/appointment/context';
+import { appointmentContext } from '$lib/server/appointment/context';
 import type { Actions } from './$types';
 
 export const actions: Actions = {
@@ -33,7 +33,7 @@ export const actions: Actions = {
 
 		const start = Temporal.Instant.from(slotStr);
 		const end = start.add({ minutes: eventType.duration });
-		const result = await rescheduleAppointment(bookingContext(), {
+		const result = await rescheduleAppointment(appointmentContext(), {
 			appointment: found,
 			initiator: 'organizer', // Admin is always the organizer
 			newStart: start.toString(),

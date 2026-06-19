@@ -8,7 +8,7 @@ import { loadAvailability } from '$lib/server/availability/load';
 import { requireViewableAppointment } from '$lib/server/appointment/access';
 import { classifyReschedule, rescheduleAppointment } from '$lib/server/appointment/reschedule';
 import { parseAndValidateBookingForm, resolveTimezone } from '$lib/server/appointment/form.server';
-import { bookingContext } from '$lib/server/appointment/context';
+import { appointmentContext } from '$lib/server/appointment/context';
 import { toPublicAppointment, toPublicEventType } from '$lib/server/appointment/sanitize';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -80,7 +80,7 @@ export const actions: Actions = {
 
 		const start = Temporal.Instant.from(slotStr);
 		const end = start.add({ minutes: eventType.duration });
-		const result = await rescheduleAppointment(bookingContext(), {
+		const result = await rescheduleAppointment(appointmentContext(), {
 			appointment: found,
 			initiator: 'attendee',
 			newStart: start.toString(),

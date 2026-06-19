@@ -4,7 +4,7 @@ import { findAppointment, isChainTerminal, deleteChain, originId } from '@when/d
 import { acceptAppointment } from '$lib/server/appointment/accept';
 import { declineAppointment } from '$lib/server/appointment/decline';
 import { cancelAppointment } from '$lib/server/appointment/cancel';
-import { bookingContext } from '$lib/server/appointment/context';
+import { appointmentContext } from '$lib/server/appointment/context';
 import type { Actions, PageServerLoad } from './$types';
 import { systemClock } from '$lib/server/clock';
 
@@ -18,7 +18,7 @@ export const actions: Actions = {
 		const row = await findAppointment(getDb(), params.id);
 		if (!row) return fail(404, { error: 'Appointment not found.' });
 
-		const result = await acceptAppointment(bookingContext(), { appointment: row });
+		const result = await acceptAppointment(appointmentContext(), { appointment: row });
 		if (!result.ok) {
 			return fail(409, { error: 'This appointment can no longer be accepted.' });
 		}
@@ -29,7 +29,7 @@ export const actions: Actions = {
 		const row = await findAppointment(getDb(), params.id);
 		if (!row) return fail(404, { error: 'Appointment not found.' });
 
-		const result = await declineAppointment(bookingContext(), { appointment: row });
+		const result = await declineAppointment(appointmentContext(), { appointment: row });
 		if (!result.ok) {
 			return fail(409, { error: 'This appointment can no longer be declined.' });
 		}
@@ -40,7 +40,7 @@ export const actions: Actions = {
 		const row = await findAppointment(getDb(), params.id);
 		if (!row) return fail(404, { error: 'Appointment not found.' });
 
-		const result = await cancelAppointment(bookingContext(), {
+		const result = await cancelAppointment(appointmentContext(), {
 			appointment: row,
 			initiator: 'organizer'
 		});

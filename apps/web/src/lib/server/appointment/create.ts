@@ -1,6 +1,6 @@
 import { enqueueAppointmentEmail, enqueueCalendarSync } from '../workflow';
 import { newAppointmentId, newCancelToken } from './ids';
-import type { BookingContext } from './context';
+import type { AppointmentContext } from './context';
 import type { AttendeeAnswer, EventType } from '@when/config';
 import type { Appointment } from '@when/db';
 import type { AppointmentEmailKind } from '@when/jobs';
@@ -27,7 +27,7 @@ function isUniqueViolation(err: unknown): boolean {
 }
 
 export async function createAppointment(
-	ctx: BookingContext,
+	ctx: AppointmentContext,
 	input: CreateAppointmentInput
 ): Promise<CreateAppointmentResult> {
 	const id = newAppointmentId();

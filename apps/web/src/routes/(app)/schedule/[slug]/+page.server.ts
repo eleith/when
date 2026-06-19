@@ -11,7 +11,7 @@ import { getConfig, getDb } from '$lib/server/state';
 import { resolveFormFields } from '@when/config';
 import { createAppointment } from '$lib/server/appointment/create';
 import { parseAndValidateBookingForm, resolveTimezone } from '$lib/server/appointment/form.server';
-import { bookingContext } from '$lib/server/appointment/context';
+import { appointmentContext } from '$lib/server/appointment/context';
 import { normalizeDeepLinkParams } from '$lib/appointment';
 import { toPublicEventType } from '$lib/server/appointment/sanitize';
 import type { Actions, PageServerLoad } from './$types';
@@ -109,7 +109,7 @@ export const actions: Actions = {
 
 		let created;
 		try {
-			created = await createAppointment(bookingContext(), {
+			created = await createAppointment(appointmentContext(), {
 				eventType,
 				start: start.toString(),
 				end: end.toString(),
