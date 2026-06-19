@@ -91,6 +91,34 @@ describe('createAppointment', () => {
 		}
 	});
 
+	test('requires_confirmation flow inserts a confirmed booking if created by organizer', async () => {
+		const db = await makeDb();
+		try {
+			const reqType = { ...eventType, booking_flow: 'requires_confirmation' as const };
+			const result = await createAppointment(
+				{
+					db,
+					cfg: { ...validConfig, event_types: [reqType] as typeof validConfig.event_types },
+					clock: systemClock
+				},
+				{ ...input, eventType: reqType, initiator: 'organizer' }
+			);
+
+			expect(result.ok).toBe(true);
+			if (result.ok) {
+				expect(result.appointment.status).toBe('confirmed');
+				expect(enqueueBookingEmail).toHaveBeenCalledWith(
+					expect.anything(),
+					expect.any(String),
+					'confirmed'
+				);
+				expect(enqueueCalendarSync).toHaveBeenCalled();
+			}
+		} finally {
+			await db.destroy();
+		}
+	});
+
 	test('slot_taken: an active booking at the same slot blocks the insert', async () => {
 		const db = await makeDb();
 		try {

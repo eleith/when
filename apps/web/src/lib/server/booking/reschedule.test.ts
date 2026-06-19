@@ -479,6 +479,38 @@ describe('rescheduleAppointment', () => {
 		}
 	});
 
+	test('organizer moving a pending requires-confirmation booking changes status to confirmed', async () => {
+		const db = await makeDb();
+		try {
+			await db
+				.insertInto('appointments')
+				.values({
+					...opBaseRow,
+					id: 'rc3',
+					event_type_id: 'confirm-me',
+					status: 'pending',
+					cancel_token: 'tc3'
+				})
+				.execute();
+			const row = await fetchRow(db, 'rc3');
+
+			const result = await rescheduleAppointment(
+				{ db, cfg: reapprovalCfg, clock: systemClock },
+				{
+					appointment: row,
+					initiator: 'organizer',
+					newStart: '2099-04-03T10:00:00Z',
+					newEnd: '2099-04-03T10:30:00Z'
+				}
+			);
+
+			expect(result.ok).toBe(true);
+			if (result.ok) expect(result.appointment.status).toBe('confirmed');
+		} finally {
+			await db.destroy();
+		}
+	});
+
 	test('gated: cancelled booking returns { ok: false, reason: gated }', async () => {
 		const db = await makeDb();
 		try {

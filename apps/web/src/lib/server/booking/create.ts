@@ -13,6 +13,7 @@ export interface CreateAppointmentInput {
 	end: string;
 	attendee: { name: string; email: string | null; answers: AttendeeAnswer[]; timezone: string };
 	location: string | null;
+	initiator?: 'organizer' | 'attendee';
 }
 
 export type CreateAppointmentResult =
@@ -32,7 +33,10 @@ export async function createAppointment(
 	const id = newAppointmentId();
 	const cancelToken = newCancelToken();
 	const eventType = input.eventType;
-	const status = eventType.booking_flow === 'requires_confirmation' ? 'pending' : 'confirmed';
+	const status =
+		eventType.booking_flow === 'requires_confirmation' && input.initiator !== 'organizer'
+			? 'pending'
+			: 'confirmed';
 
 	let appointment: Appointment;
 	try {

@@ -58,7 +58,9 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 };
 
 export const actions: Actions = {
-	book: async ({ request, params }) => {
+	book: async ({ request, params, locals }) => {
+		const session = await locals.auth();
+		const isAdmin = !!session;
 		const cfg = getConfig();
 		const eventType = cfg.event_types.find((e) => e.slug === params.slug);
 		if (!eventType) error(404);
@@ -118,7 +120,8 @@ export const actions: Actions = {
 					answers,
 					timezone: resolveTimezone(form.get('timezone'), cfg.user.timezone)
 				},
-				location: resolvedLocation
+				location: resolvedLocation,
+				initiator: isAdmin ? 'organizer' : 'attendee'
 			});
 		} catch (err) {
 			logger.error({ err, eventTypeId: eventType.id, slot: slotStr }, 'failed to insert booking');

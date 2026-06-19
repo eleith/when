@@ -62,12 +62,16 @@ export async function rescheduleAppointment(
 	}).reschedule;
 	if (!gate.allowed) return { ok: false, reason: 'gated' };
 
-	// An attendee moving a confirmed requires-confirmation booking re-arms organizer approval.
-	const needsReapproval =
-		input.initiator === 'attendee' &&
-		eventType?.booking_flow === 'requires_confirmation' &&
-		input.appointment.status === 'confirmed';
-	const newStatus = needsReapproval ? 'pending' : input.appointment.status;
+	// Organizer reschedules are auto-confirmed. Attendee reschedules preserve status,
+	// except when moving a confirmed requires-confirmation booking which re-arms organizer approval.
+	const newStatus =
+		input.initiator === 'organizer'
+			? 'confirmed'
+			: input.initiator === 'attendee' &&
+				  eventType?.booking_flow === 'requires_confirmation' &&
+				  input.appointment.status === 'confirmed'
+				? 'pending'
+				: input.appointment.status;
 
 	let result: RescheduleResult;
 	try {
