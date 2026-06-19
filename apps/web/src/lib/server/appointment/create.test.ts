@@ -66,7 +66,7 @@ describe('createAppointment', () => {
 	test('requires_confirmation flow inserts a pending booking', async () => {
 		const db = await makeDb();
 		try {
-			const reqType = { ...eventType, booking_flow: 'requires_confirmation' as const };
+			const reqType = { ...eventType, appointment_flow: 'requires_confirmation' as const };
 			const result = await createAppointment(
 				{
 					db,
@@ -94,7 +94,7 @@ describe('createAppointment', () => {
 	test('requires_confirmation flow inserts a confirmed booking if created by organizer', async () => {
 		const db = await makeDb();
 		try {
-			const reqType = { ...eventType, booking_flow: 'requires_confirmation' as const };
+			const reqType = { ...eventType, appointment_flow: 'requires_confirmation' as const };
 			const result = await createAppointment(
 				{
 					db,

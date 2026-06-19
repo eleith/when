@@ -34,7 +34,7 @@ export async function createAppointment(
 	const cancelToken = newCancelToken();
 	const eventType = input.eventType;
 	const status =
-		eventType.booking_flow === 'requires_confirmation' && input.initiator !== 'organizer'
+		eventType.appointment_flow === 'requires_confirmation' && input.initiator !== 'organizer'
 			? 'pending'
 			: 'confirmed';
 

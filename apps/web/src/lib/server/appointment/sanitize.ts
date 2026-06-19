@@ -9,7 +9,7 @@ export interface PublicEventType {
 	duration: number;
 	description: string | null;
 	visibility: 'public' | 'private';
-	booking_flow: 'auto' | 'requires_confirmation';
+	appointment_flow: 'auto' | 'requires_confirmation';
 	location: Location | null;
 	buffer_before?: number;
 	buffer_after?: number;
@@ -42,7 +42,7 @@ export function toPublicEventType(
 		duration: eventType.duration,
 		description: eventType.description ?? null,
 		visibility: eventType.visibility ?? 'public',
-		booking_flow: eventType.booking_flow,
+		appointment_flow: eventType.appointment_flow,
 		// Statically configured fixed location only visible to admins
 		location: isAdmin ? (eventType.location ?? null) : null,
 		...(settings

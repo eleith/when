@@ -47,7 +47,7 @@ event_types:
     name: '30-minute chat'
     duration: 30
     slug: 'chat'
-    booking_flow: 'auto'
+    appointment_flow: 'auto'
     destination_calendar: 'main'
     image_url: '/public/chat-icon.png'
     description: 'A quick catch-up or intro call.'

@@ -440,7 +440,7 @@
 			"title": "EventType",
 			"type": "object",
 			"additionalProperties": false,
-			"required": ["id", "name", "duration", "slug", "booking_flow", "destination_calendar"],
+			"required": ["id", "name", "duration", "slug", "appointment_flow", "destination_calendar"],
 			"properties": {
 				"id": {
 					"type": "string",
@@ -465,7 +465,7 @@
 					"enum": ["public", "private"],
 					"default": "public"
 				},
-				"booking_flow": {
+				"appointment_flow": {
 					"enum": ["auto", "requires_confirmation"]
 				},
 				"conflict_calendars": {

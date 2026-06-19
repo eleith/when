@@ -131,7 +131,7 @@ availability:
 
 ## `event_types`
 
-The meetings people can book. `id`, `name`, `duration`, `slug`, `booking_flow`, and
+The meetings people can book. `id`, `name`, `duration`, `slug`, `appointment_flow`, and
 `destination_calendar` are required; everything else is optional.
 
 ```yaml
@@ -142,7 +142,7 @@ event_types:
     slug: 'chat' # URL slug: /schedule/chat
     description: 'A quick intro call.'
     visibility: 'public' # 'public' (default) or 'private' (hidden from the homepage)
-    booking_flow: 'auto' # 'auto' or 'requires_confirmation'
+    appointment_flow: 'auto' # 'auto' or 'requires_confirmation'
     conflict_calendars: ['work', 'personal'] # busy-time sources (default [])
     destination_calendar: 'work' # where the booking is written
     image_url: '/public/chat.png'

@@ -128,7 +128,7 @@ export interface EventType {
   description?: string;
   slug: string;
   visibility?: "public" | "private";
-  booking_flow: "auto" | "requires_confirmation";
+  appointment_flow: "auto" | "requires_confirmation";
   conflict_calendars?: string[];
   destination_calendar: string;
   location?: Location;

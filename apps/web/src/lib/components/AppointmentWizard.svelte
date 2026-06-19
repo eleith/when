@@ -34,7 +34,7 @@
 			duration: number;
 			description: string | null;
 			visibility: 'public' | 'private';
-			booking_flow: 'auto' | 'requires_confirmation';
+			appointment_flow: 'auto' | 'requires_confirmation';
 			location: Location | null;
 			buffer_before?: number;
 			buffer_after?: number;
@@ -502,7 +502,7 @@
 								{/each}
 
 								<button type="submit" class="submit-btn">
-									{#if data.rescheduleAppt}Confirm Reschedule{:else if data.eventType.booking_flow === 'requires_confirmation'}Request{:else}Schedule{/if}
+									{#if data.rescheduleAppt}Confirm Reschedule{:else if data.eventType.appointment_flow === 'requires_confirmation'}Request{:else}Schedule{/if}
 								</button>
 							</form>
 						</div>
@@ -546,7 +546,7 @@
 							Back
 						</button>
 						<button type="submit" form="booking-form" class="cta-btn" disabled={!selectedSlot}>
-							{#if data.rescheduleAppt}Confirm Reschedule{:else if data.eventType.booking_flow === 'requires_confirmation'}Request{:else}Schedule{/if}
+							{#if data.rescheduleAppt}Confirm Reschedule{:else if data.eventType.appointment_flow === 'requires_confirmation'}Request{:else}Schedule{/if}
 						</button>
 					{/if}
 				</div>

@@ -469,7 +469,7 @@
 				"name",
 				"duration",
 				"slug",
-				"booking_flow",
+				"appointment_flow",
 				"destination_calendar"
 			],
 			"properties": {
@@ -499,7 +499,7 @@
 					],
 					"default": "public"
 				},
-				"booking_flow": {
+				"appointment_flow": {
 					"enum": [
 						"auto",
 						"requires_confirmation"

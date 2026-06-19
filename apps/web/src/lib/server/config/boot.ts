@@ -28,7 +28,7 @@ export async function bootConfig(path: string = resolveConfigPath()): Promise<Wh
 				event_types: cfg.event_types.map((e) => ({
 					id: e.id,
 					slug: e.slug,
-					flow: e.booking_flow
+					flow: e.appointment_flow
 				}))
 			},
 			'config loaded'

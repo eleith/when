@@ -405,7 +405,7 @@ describe('rescheduleAppointment', () => {
 				...validConfig.event_types[0],
 				id: 'confirm-me',
 				slug: 'confirm-me',
-				booking_flow: 'requires_confirmation'
+				appointment_flow: 'requires_confirmation'
 			}
 		]
 	};

@@ -51,7 +51,7 @@ export const validConfig: WhenConfiguration = {
 			name: '30 Minute Chat',
 			duration: 30,
 			slug: '30-min',
-			booking_flow: 'auto',
+			appointment_flow: 'auto',
 			destination_calendar: 'my-google-cal'
 		}
 	],

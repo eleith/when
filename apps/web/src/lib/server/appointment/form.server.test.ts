@@ -7,7 +7,7 @@ const baseEvent: EventType = {
 	name: 'Chat',
 	duration: 30,
 	slug: 'chat',
-	booking_flow: 'auto',
+	appointment_flow: 'auto',
 	destination_calendar: 'cal'
 };
 

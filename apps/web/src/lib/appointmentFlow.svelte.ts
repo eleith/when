@@ -32,7 +32,9 @@ export interface AppointmentFlow {
  * once per page and handed to the picker components as a single `flow` prop, so
  * their selections flow back here without a `bind:` ladder.
  */
-export function createAppointmentFlow(getSlotsByDate: () => Record<string, string[]>): AppointmentFlow {
+export function createAppointmentFlow(
+	getSlotsByDate: () => Record<string, string[]>
+): AppointmentFlow {
 	let step = $state<WizardStep>(1);
 	let viewDate = $state<string | null>(null);
 	let selectedSlot = $state<string | null>(null);

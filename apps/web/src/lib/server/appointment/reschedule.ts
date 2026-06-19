@@ -68,7 +68,7 @@ export async function rescheduleAppointment(
 		input.initiator === 'organizer'
 			? 'confirmed'
 			: input.initiator === 'attendee' &&
-				  eventType?.booking_flow === 'requires_confirmation' &&
+				  eventType?.appointment_flow === 'requires_confirmation' &&
 				  input.appointment.status === 'confirmed'
 				? 'pending'
 				: input.appointment.status;

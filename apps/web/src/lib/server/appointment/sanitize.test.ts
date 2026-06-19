@@ -8,7 +8,7 @@ const baseEventType: EventType = {
 	name: '30-minute chat',
 	duration: 30,
 	slug: 'chat',
-	booking_flow: 'auto',
+	appointment_flow: 'auto',
 	destination_calendar: 'main',
 	location: { mode: 'fixed', fixed: 'https://meet.example.com/jane' }
 };
