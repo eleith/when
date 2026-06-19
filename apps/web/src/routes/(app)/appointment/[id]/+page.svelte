@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Dialog } from 'bits-ui';
+	import { tick } from 'svelte';
 	import IconArrowRight from 'virtual:icons/ph/arrow-right';
 	import IconCalendarBlank from 'virtual:icons/ph/calendar-blank';
 	import AdminNav from '$lib/components/AdminNav.svelte';
@@ -9,6 +10,7 @@
 	import IconWarningCircle from 'virtual:icons/ph/warning-circle';
 	import IconCheckCircle from 'virtual:icons/ph/check-circle';
 	import IconNote from 'virtual:icons/ph/note';
+	import IconCalendarX from 'virtual:icons/ph/calendar-x';
 	import AppointmentActions from '$lib/components/AppointmentActions.svelte';
 	import AddToCalendar from '$lib/components/AddToCalendar.svelte';
 	import { formatDateShort, formatWeekday, formatTimeRange, formatTzShort } from '$lib/datetime';
@@ -17,6 +19,18 @@
 
 	let cancelDialogOpen = $state(false);
 	let deleteDialogOpen = $state(false);
+	let cancelReason = $state('I can no longer attend');
+	let reasonTextarea = $state<HTMLTextAreaElement | null>(null);
+
+	$effect(() => {
+		if (cancelDialogOpen) {
+			cancelReason = 'I can no longer attend';
+			tick().then(() => {
+				reasonTextarea?.focus();
+				reasonTextarea?.select();
+			});
+		}
+	});
 
 	// Close the dialog when the appointment transitions to cancelled.
 	// The attendee path reloads the page (dialog resets naturally); the admin
@@ -136,9 +150,6 @@
 					{/if}
 				{:else if status === 'cancelled'}
 					This appointment has been cancelled.
-					{#if data.appointment.cancel_reason}
-						<span class="cancel-reason-display">Reason: {data.appointment.cancel_reason}</span>
-					{/if}
 				{:else if status === 'declined'}
 					This appointment request was declined.
 				{:else if status === 'expired'}
@@ -314,7 +325,15 @@
 					</div>
 				</div>
 			</div>
-			{#if data.appointment.answers.length}
+			{#if status === 'cancelled' && data.appointment.cancel_reason}
+				<div class="detail-row">
+					<span class="detail-icon"><IconCalendarX aria-hidden="true" /></span>
+					<div class="detail-text">
+						<div class="detail-primary">Cancellation note</div>
+						<div class="detail-secondary notes">{data.appointment.cancel_reason}</div>
+					</div>
+				</div>
+			{:else if data.appointment.answers.length}
 				<div class="detail-row">
 					<span class="detail-icon"><IconNote aria-hidden="true" /></span>
 					<div class="detail-text answers">
@@ -392,6 +411,10 @@
 						{/if}
 					</p>
 
+				<form
+					method="POST"
+					action={data.isAdmin ? `/admin/appointment/${data.appointment.id}?/cancel` : `?token=${encodeURIComponent(data.token)}&/cancel`}
+				>
 					<textarea
 						name="reason"
 						class="cancel-reason-input"
@@ -399,21 +422,19 @@
 						maxlength="500"
 						rows="3"
 						required
-					>I can no longer attend</textarea>
-
-					<form
-						method="POST"
-						action={data.isAdmin ? `/admin/appointment/${data.appointment.id}?/cancel` : `?token=${encodeURIComponent(data.token)}&/cancel`}
-						class="cancel-dialog-actions"
-					>
-						<input type="hidden" name="token" value={data.token} />
+						bind:value={cancelReason}
+						bind:this={reasonTextarea}
+					></textarea>
+					<input type="hidden" name="token" value={data.token} />
+					<div class="cancel-dialog-actions">
 						<button type="submit" class="cancel-confirm-btn">Submit</button>
 						<Dialog.Close>
 							{#snippet child({ props: closeProps })}
 								<button {...closeProps} type="button" class="cancel-cancel-btn">Close</button>
 							{/snippet}
 						</Dialog.Close>
-					</form>
+					</div>
+				</form>
 				</div>
 			{/snippet}
 		</Dialog.Content>
@@ -955,13 +976,6 @@
 		outline: none;
 		border-color: var(--primary);
 		box-shadow: 0 0 0 2px var(--primary-alpha);
-	}
-
-	.cancel-reason-display {
-		display: block;
-		margin-top: var(--space-3);
-		font-style: italic;
-		color: var(--text-muted);
 	}
 
 	@media (max-width: 768px) {
