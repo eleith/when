@@ -8,7 +8,7 @@ describe('bookingCancelledByAttendee', () => {
 
 		expect(attendee.to).toBe('jane@example.com');
 		expect(attendee.content.subject).toBe('Cancelled: 30-min with Acme Scheduling');
-		expect(attendee.content.heading).toBe('Your booking has been cancelled.');
+		expect(attendee.content.heading).toBe('Your appointment has been cancelled.');
 		expect(attendee.content.rows).toEqual([
 			{ label: 'What', value: '30-min' },
 			{ label: 'When', value: expect.any(String) }
@@ -18,7 +18,7 @@ describe('bookingCancelledByAttendee', () => {
 		expect(organizer.to).toBe('owner@acme.test');
 		expect(organizer.content.subject).toBe('Cancelled: 30-min with Jane Doe');
 		expect(organizer.content.paragraphs).toContain(
-			'Jane Doe <jane@example.com> cancelled this booking.'
+			'Jane Doe <jane@example.com> cancelled this appointment.'
 		);
 		expect(organizer.ics).toBeUndefined();
 	});

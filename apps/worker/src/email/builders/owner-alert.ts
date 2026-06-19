@@ -26,7 +26,7 @@ export function ownerAlert(
 		paragraphs: broke
 			? [
 					input.reason,
-					"Bookings still work and you're still emailed — but this calendar won't reflect them until it recovers."
+					"Appointments still work and you're still emailed — but this calendar won't reflect them until it recovers."
 				]
 			: [input.reason, "It's back in sync; nothing more to do."],
 		rows: [

@@ -19,22 +19,22 @@ export function bookingPending(i: BookingEmailInput): EmailMessage[] {
 
 	const attendee: EmailContent = {
 		brand,
-		subject: `Booking request received: ${eventName} with ${brand.name}`,
-		heading: 'Your booking request was received.',
+		subject: `Appointment request received: ${eventName} with ${brand.name}`,
+		heading: 'Your appointment request was received.',
 		paragraphs: [`${brand.name} will review your request and email you to confirm.`],
 		rows: [
 			{ label: 'What', value: eventName },
 			{ label: 'When', value: attendeeWhen },
 			{ label: 'Where', value: a.location }
 		],
-		actions: [{ href: i.links.booked, label: 'View this booking', variant: 'primary' }],
+		actions: [{ href: i.links.booked, label: 'View this appointment', variant: 'primary' }],
 		previewText: `Requested for ${attendeeWhen}.`
 	};
 	const organizer: EmailContent = {
 		brand,
-		subject: `Booking request: ${eventName} from ${a.attendee_name}`,
-		heading: 'New booking request',
-		paragraphs: [`${attendeeLabel(a)} requested this booking.`],
+		subject: `Appointment request: ${eventName} from ${a.attendee_name}`,
+		heading: 'New appointment request',
+		paragraphs: [`${attendeeLabel(a)} requested this appointment.`],
 		rows: [
 			{ label: 'What', value: eventName },
 			{ label: 'When', value: organizerWhen },

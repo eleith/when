@@ -18,8 +18,8 @@ describe('dispatch', () => {
 	test('pending fans out to both the attendee and organizer builders', async () => {
 		const e = await run('pending');
 		expect(e.map((x) => x.to)).toEqual(['jane@example.com', 'owner@acme.test']);
-		expect(e[0].subject).toContain('Booking request received');
-		expect(e[1].subject).toContain('Booking request:');
+		expect(e[0].subject).toContain('Appointment request received');
+		expect(e[1].subject).toContain('Appointment request:');
 	});
 
 	test('declined → two envelopes, no ics', async () => {

@@ -20,7 +20,7 @@ export function bookingDeclined(i: BookingEmailInput): EmailMessage[] {
 	const attendee: EmailContent = {
 		brand,
 		subject: `Declined: ${eventName} with ${brand.name}`,
-		heading: 'Your booking request was declined.',
+		heading: 'Your appointment request was declined.',
 		paragraphs: [],
 		rows: [
 			{ label: 'What', value: eventName },
@@ -32,7 +32,7 @@ export function bookingDeclined(i: BookingEmailInput): EmailMessage[] {
 	const admin: EmailContent = {
 		brand,
 		subject: `Declined: ${eventName} from ${a.attendee_name}`,
-		heading: 'Booking declined',
+		heading: 'Appointment declined',
 		paragraphs: [`You declined the request from ${attendeeLabel(a)}.`],
 		rows: [
 			{ label: 'What', value: eventName },

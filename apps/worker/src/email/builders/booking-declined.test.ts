@@ -8,7 +8,7 @@ describe('bookingDeclined', () => {
 
 		expect(attendee.to).toBe('jane@example.com');
 		expect(attendee.content.subject).toBe('Declined: 30-min with Acme Scheduling');
-		expect(attendee.content.heading).toBe('Your booking request was declined.');
+		expect(attendee.content.heading).toBe('Your appointment request was declined.');
 		expect(attendee.ics).toBeUndefined();
 
 		expect(organizer.content.subject).toBe('Declined: 30-min from Jane Doe');

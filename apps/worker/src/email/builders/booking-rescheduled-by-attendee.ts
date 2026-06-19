@@ -35,14 +35,14 @@ export function bookingRescheduledByAttendee(i: BookingEmailInput): EmailMessage
 			heading: 'Your reschedule request was received.',
 			paragraphs: [`${brand.name} will review the new time and email you to confirm.`],
 			rows: attendeeRows,
-			actions: [{ href: i.links.booked, label: 'View this booking', variant: 'primary' }],
+			actions: [{ href: i.links.booked, label: 'View this appointment', variant: 'primary' }],
 			previewText: `Requested for ${attendeeWhen}.`
 		};
 		const organizer: EmailContent = {
 			brand,
 			subject: `Reschedule request: ${eventName} from ${a.attendee_name}`,
 			heading: 'Reschedule request',
-			paragraphs: [`${attendeeLabel(a)} asked to move this booking to a new time.`],
+			paragraphs: [`${attendeeLabel(a)} asked to move this appointment to a new time.`],
 			rows: organizerRows,
 			actions: [{ href: i.links.manage, label: 'Review request', variant: 'primary' }],
 			previewText: `Requested for ${organizerWhen}.`
@@ -53,17 +53,17 @@ export function bookingRescheduledByAttendee(i: BookingEmailInput): EmailMessage
 	const attendee: EmailContent = {
 		brand,
 		subject: `Rescheduled: ${eventName} with ${brand.name}`,
-		heading: 'Your booking moved to a new time.',
+		heading: 'Your appointment moved to a new time.',
 		paragraphs: [],
 		rows: attendeeRows,
-		actions: [{ href: i.links.booked, label: 'View this booking', variant: 'primary' }],
+		actions: [{ href: i.links.booked, label: 'View this appointment', variant: 'primary' }],
 		previewText: `Now scheduled for ${attendeeWhen}.`
 	};
 	const organizer: EmailContent = {
 		brand,
 		subject: `Rescheduled: ${eventName} with ${a.attendee_name}`,
-		heading: 'Booking rescheduled',
-		paragraphs: [`${attendeeLabel(a)} rescheduled this booking.`],
+		heading: 'Appointment rescheduled',
+		paragraphs: [`${attendeeLabel(a)} rescheduled this appointment.`],
 		rows: organizerRows,
 		actions: [],
 		previewText: `Now scheduled for ${organizerWhen}.`

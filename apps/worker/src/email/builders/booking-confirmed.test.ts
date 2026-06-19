@@ -8,14 +8,14 @@ describe('bookingConfirmed', () => {
 
 		expect(attendee.to).toBe('jane@example.com');
 		expect(attendee.content.subject).toBe('Confirmed: 30-min with Acme Scheduling');
-		expect(attendee.content.heading).toBe('Your booking is confirmed.');
+		expect(attendee.content.heading).toBe('Your appointment is confirmed.');
 		expect(attendee.content.rows).toEqual([
 			{ label: 'What', value: '30-min' },
 			{ label: 'When', value: expect.any(String) },
 			{ label: 'Where', value: 'Zoom' }
 		]);
 		expect(attendee.content.actions).toEqual([
-			{ href: sampleInput.links.booked, label: 'View this booking', variant: 'primary' }
+			{ href: sampleInput.links.booked, label: 'View this appointment', variant: 'primary' }
 		]);
 		expect(attendee.ics?.content).toContain('METHOD:REQUEST');
 	});
@@ -24,9 +24,11 @@ describe('bookingConfirmed', () => {
 		const [, organizer] = bookingConfirmed(sampleInput);
 
 		expect(organizer?.to).toBe('owner@acme.test');
-		expect(organizer?.content.subject).toBe('New booking: 30-min with Jane Doe');
-		expect(organizer?.content.heading).toBe('New booking');
-		expect(organizer?.content.paragraphs).toContain('Jane Doe <jane@example.com> just booked.');
+		expect(organizer?.content.subject).toBe('New appointment: 30-min with Jane Doe');
+		expect(organizer?.content.heading).toBe('New appointment');
+		expect(organizer?.content.paragraphs).toContain(
+			'Jane Doe <jane@example.com> just scheduled an appointment.'
+		);
 		expect(organizer?.content.rows).toContainEqual({
 			label: 'Anything else?',
 			value: 'Looking forward to it'
@@ -44,7 +46,7 @@ describe('bookingConfirmed', () => {
 
 		expect(result).toHaveLength(1);
 		expect(result[0].to).toBe('owner@acme.test');
-		expect(result[0].content.paragraphs).toContain('Jane Doe just booked.');
+		expect(result[0].content.paragraphs).toContain('Jane Doe just scheduled an appointment.');
 	});
 
 	test('each recipient sees the time in their own zone', () => {

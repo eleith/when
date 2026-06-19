@@ -8,16 +8,16 @@ describe('bookingRescheduledByAttendee', () => {
 
 		expect(attendee.to).toBe('jane@example.com');
 		expect(attendee.content.subject).toBe('Rescheduled: 30-min with Acme Scheduling');
-		expect(attendee.content.heading).toBe('Your booking moved to a new time.');
+		expect(attendee.content.heading).toBe('Your appointment moved to a new time.');
 		expect(attendee.content.actions).toEqual([
-			{ href: sampleInput.links.booked, label: 'View this booking', variant: 'primary' }
+			{ href: sampleInput.links.booked, label: 'View this appointment', variant: 'primary' }
 		]);
 		expect(attendee.ics?.content).toContain('METHOD:REQUEST');
 
 		expect(organizer.to).toBe('owner@acme.test');
-		expect(organizer.content.heading).toBe('Booking rescheduled');
+		expect(organizer.content.heading).toBe('Appointment rescheduled');
 		expect(organizer.content.paragraphs).toContain(
-			'Jane Doe <jane@example.com> rescheduled this booking.'
+			'Jane Doe <jane@example.com> rescheduled this appointment.'
 		);
 		expect(organizer.ics).toBeUndefined();
 	});

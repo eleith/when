@@ -21,21 +21,21 @@ export function bookingConfirmed(i: BookingEmailInput): EmailMessage[] {
 	const attendee: EmailContent = {
 		brand,
 		subject: `Confirmed: ${eventName} with ${brand.name}`,
-		heading: 'Your booking is confirmed.',
+		heading: 'Your appointment is confirmed.',
 		paragraphs: [],
 		rows: [
 			{ label: 'What', value: eventName },
 			{ label: 'When', value: attendeeWhen },
 			{ label: 'Where', value: a.location }
 		],
-		actions: [{ href: i.links.booked, label: 'View this booking', variant: 'primary' }],
+		actions: [{ href: i.links.booked, label: 'View this appointment', variant: 'primary' }],
 		previewText: `See you on ${attendeeWhen}.`
 	};
 	const admin: EmailContent = {
 		brand,
-		subject: `New booking: ${eventName} with ${a.attendee_name}`,
-		heading: 'New booking',
-		paragraphs: [`${attendeeLabel(a)} just booked.`],
+		subject: `New appointment: ${eventName} with ${a.attendee_name}`,
+		heading: 'New appointment',
+		paragraphs: [`${attendeeLabel(a)} just scheduled an appointment.`],
 		rows: [
 			{ label: 'What', value: eventName },
 			{ label: 'When', value: organizerWhen },

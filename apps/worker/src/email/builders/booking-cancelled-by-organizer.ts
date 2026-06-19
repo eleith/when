@@ -21,7 +21,7 @@ export function bookingCancelledByOrganizer(i: BookingEmailInput): EmailMessage[
 	const attendee: EmailContent = {
 		brand,
 		subject: `Cancelled: ${eventName} with ${brand.name}`,
-		heading: `${brand.name} cancelled this booking.`,
+		heading: `${brand.name} cancelled this appointment.`,
 		paragraphs: [],
 		rows: [
 			{ label: 'What', value: eventName },
@@ -33,8 +33,8 @@ export function bookingCancelledByOrganizer(i: BookingEmailInput): EmailMessage[
 	const admin: EmailContent = {
 		brand,
 		subject: `Cancelled: ${eventName} with ${a.attendee_name}`,
-		heading: 'Booking cancelled',
-		paragraphs: [`You cancelled the booking for ${attendeeLabel(a)}.`],
+		heading: 'Appointment cancelled',
+		paragraphs: [`You cancelled the appointment for ${attendeeLabel(a)}.`],
 		rows: [
 			{ label: 'What', value: eventName },
 			{ label: 'When', value: organizerWhen },
