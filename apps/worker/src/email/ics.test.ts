@@ -11,7 +11,7 @@ describe('ics', () => {
 			eventTypeName: '30 Minute Chat',
 			organizerName: 'Acme',
 			organizerEmail: 'owner@acme.test',
-			cancelUrl: 'https://when.example.com/booked/appt-1',
+			cancelUrl: 'https://when.example.com/appointment/appt-1',
 			method: 'REQUEST',
 			clock
 		});

@@ -55,8 +55,8 @@ export const sampleConfig = {
 } as unknown as WhenConfiguration;
 
 export const sampleLinks: BookingLinks = {
-	booked: 'https://when.example.com/booked/appt-1',
-	cancel: 'https://when.example.com/booked/appt-1?cancel=1',
+	booked: 'https://when.example.com/appointment/appt-1',
+	cancel: 'https://when.example.com/appointment/appt-1?cancel=1',
 	reschedule: 'https://when.example.com/schedule/30-min',
 	manage: 'https://when.example.com/signin'
 };

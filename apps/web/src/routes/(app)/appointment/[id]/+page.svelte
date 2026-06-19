@@ -186,7 +186,7 @@
 						Rescheduled from
 						<a
 							class="state-meta-link"
-							href="/booked/{data.rescheduledFrom.id}?token={encodeURIComponent(
+							href="/appointment/{data.rescheduledFrom.id}?token={encodeURIComponent(
 								data.rescheduledFrom.token
 							)}"
 						>
@@ -197,7 +197,7 @@
 					{#if data.latestBooking}
 						<a
 							class="state-meta-link"
-							href="/booked/{data.latestBooking.id}?token={encodeURIComponent(
+							href="/appointment/{data.latestBooking.id}?token={encodeURIComponent(
 								data.latestBooking.token
 							)}"
 						>
@@ -328,7 +328,7 @@
 				{#if data.actions.decline.allowed}
 					<form
 						method="POST"
-						action="/admin/booked/{data.appointment.id}?/decline"
+						action="/admin/appointment/{data.appointment.id}?/decline"
 						class="decide-form"
 					>
 						<button type="submit" class="decide-btn decide-decline">Decline</button>
@@ -337,7 +337,7 @@
 				{#if data.actions.accept.allowed}
 					<form
 						method="POST"
-						action="/admin/booked/{data.appointment.id}?/accept"
+						action="/admin/appointment/{data.appointment.id}?/accept"
 						class="decide-form"
 					>
 						<button type="submit" class="decide-btn decide-accept">Accept</button>
@@ -384,7 +384,7 @@
 
 					<form
 						method="POST"
-						action={data.isAdmin ? `/admin/booked/${data.appointment.id}?/cancel` : '?/cancel'}
+						action={data.isAdmin ? `/admin/appointment/${data.appointment.id}?/cancel` : '?/cancel'}
 						class="cancel-dialog-actions"
 					>
 						<input type="hidden" name="token" value={data.token} />
@@ -451,7 +451,7 @@
 
 						<form
 							method="POST"
-							action="/admin/booked/{data.appointment.id}?/delete"
+							action="/admin/appointment/{data.appointment.id}?/delete"
 							class="cancel-dialog-actions"
 						>
 							<button type="submit" class="cancel-confirm-btn">Yes, delete</button>

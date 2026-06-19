@@ -48,6 +48,6 @@ export const actions: Actions = {
 
 		// land on the new row, not the old one
 		const next = result.appointment;
-		redirect(303, `/booked/${next.id}`);
+		redirect(303, `/appointment/${next.id}`);
 	}
 };

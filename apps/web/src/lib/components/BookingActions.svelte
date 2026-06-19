@@ -20,12 +20,12 @@
 	let shareDialogOpen = $state(false);
 
 	let rescheduleHref = $derived(
-		`/booked/${appointmentId}/reschedule?token=${encodeURIComponent(token)}`
+		`/appointment/${appointmentId}/reschedule?token=${encodeURIComponent(token)}`
 	);
 
 	let shareLink = $derived.by(() => {
 		if (typeof window === 'undefined') return '';
-		return `${window.location.origin}/booked/${appointmentId}?token=${encodeURIComponent(token)}`;
+		return `${window.location.origin}/appointment/${appointmentId}?token=${encodeURIComponent(token)}`;
 	});
 
 	let copied = $state(false);

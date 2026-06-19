@@ -35,7 +35,7 @@ const baseInput = {
 	eventTypeName: 'Chat',
 	organizerName: 'Jane Doe',
 	organizerEmail: 'jane@example.com',
-	cancelUrl: 'https://when.example.com/booked/appt-123?token=tok-abc',
+	cancelUrl: 'https://when.example.com/appointment/appt-123?token=tok-abc',
 	method: 'REQUEST' as const
 };
 
@@ -72,7 +72,7 @@ const unfold = (ics: string) => ics.replace(/\r\n[ \t]/g, '');
 
 test('DESCRIPTION contains the cancel URL', () => {
 	const ics = buildIcs({ appointment: baseAppointment, ...baseInput });
-	expect(unfold(ics)).toContain('https://when.example.com/booked/appt-123');
+	expect(unfold(ics)).toContain('https://when.example.com/appointment/appt-123');
 });
 
 test('DESCRIPTION includes attendee answers when present', () => {

@@ -78,7 +78,7 @@ export const actions: Actions = {
 			return fail(409, { error: 'That time was just taken. Please pick another.' });
 		}
 
-		redirect(303, `/booked/${result.appointment.id}`);
+		redirect(303, `/appointment/${result.appointment.id}`);
 	}
 };
 

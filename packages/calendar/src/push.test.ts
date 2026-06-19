@@ -112,7 +112,7 @@ test('pushAppointment routes to CalDAV PUT and returns external ids', async () =
 		return new Response('', { status: 201 });
 	};
 	const result = await pushAppointment(cfgWithCalDav, baseAppointment, 'work', {
-		cancelUrl: 'https://when.example.com/booked/appt-xyz?token=tok',
+		cancelUrl: 'https://when.example.com/appointment/appt-xyz?token=tok',
 		fetchImpl: fakeFetch
 	});
 	expect(result.ok).toBe(true);
@@ -155,7 +155,7 @@ test('pushAppointment succeeds on Google calendar', async () => {
 	};
 
 	const result = await pushAppointment(cfgGoogle, baseAppointment, 'g', {
-		cancelUrl: 'https://when.example.com/booked/appt-xyz?token=tok',
+		cancelUrl: 'https://when.example.com/appointment/appt-xyz?token=tok',
 		fetchImpl: fakeFetch
 	});
 
@@ -169,7 +169,7 @@ test('pushAppointment succeeds on Google calendar', async () => {
 
 test('pushAppointment fails on unknown destination calendar id', async () => {
 	const result = await pushAppointment(cfgWithCalDav, baseAppointment, 'nope', {
-		cancelUrl: 'https://when.example.com/booked/appt-xyz?token=tok'
+		cancelUrl: 'https://when.example.com/appointment/appt-xyz?token=tok'
 	});
 	expect(result.ok).toBe(false);
 });
@@ -178,7 +178,7 @@ test('pushAppointment surfaces network failures as ok:false', async () => {
 	const fakeFetch: FetchFn = async () =>
 		new Response('', { status: 500, statusText: 'Internal Server Error' });
 	const result = await pushAppointment(cfgWithCalDav, baseAppointment, 'work', {
-		cancelUrl: 'https://when.example.com/booked/appt-xyz?token=tok',
+		cancelUrl: 'https://when.example.com/appointment/appt-xyz?token=tok',
 		fetchImpl: fakeFetch
 	});
 	expect(result.ok).toBe(false);

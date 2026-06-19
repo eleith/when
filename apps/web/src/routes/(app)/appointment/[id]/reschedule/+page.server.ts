@@ -103,6 +103,6 @@ export const actions: Actions = {
 			httpOnly: true,
 			sameSite: 'lax'
 		});
-		redirect(303, `/booked/${next.id}?token=${encodeURIComponent(next.cancel_token)}`);
+		redirect(303, `/appointment/${next.id}?token=${encodeURIComponent(next.cancel_token)}`);
 	}
 };

@@ -10,7 +10,7 @@ import { systemClock } from '$lib/server/clock';
 
 export const load: PageServerLoad = async ({ params }) => {
 	// A direct GET request redirects back to the public appointment detail page.
-	redirect(303, `/booked/${params.id}`);
+	redirect(303, `/appointment/${params.id}`);
 };
 
 export const actions: Actions = {

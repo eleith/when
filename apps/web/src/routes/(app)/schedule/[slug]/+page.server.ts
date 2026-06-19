@@ -139,7 +139,7 @@ export const actions: Actions = {
 
 		redirect(
 			303,
-			`/booked/${created.appointment.id}?token=${encodeURIComponent(created.appointment.cancel_token)}`
+			`/appointment/${created.appointment.id}?token=${encodeURIComponent(created.appointment.cancel_token)}`
 		);
 	}
 };

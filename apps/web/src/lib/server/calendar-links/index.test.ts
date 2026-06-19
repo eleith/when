@@ -9,9 +9,9 @@ const input = {
 
 describe('buildAddToCalendarLinks', () => {
 	test('returns google, outlook, and ics fields', () => {
-		const links = buildAddToCalendarLinks(input, 'https://when.example.com/booked/x.ics');
+		const links = buildAddToCalendarLinks(input, 'https://when.example.com/appointment/x.ics');
 		expect(new URL(links.google).host).toBe('calendar.google.com');
 		expect(new URL(links.outlook).host).toBe('outlook.live.com');
-		expect(links.ics).toBe('https://when.example.com/booked/x.ics');
+		expect(links.ics).toBe('https://when.example.com/appointment/x.ics');
 	});
 });

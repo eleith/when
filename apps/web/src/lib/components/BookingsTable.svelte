@@ -26,7 +26,7 @@
 		if (target.closest('a')) {
 			return;
 		}
-		goto(`/booked/${id}`);
+		goto(`/appointment/${id}`);
 	}
 </script>
 
@@ -45,7 +45,7 @@
 				<tr class:past={a.is_past} onclick={(e) => handleRowClick(e, a.id)}>
 					<td class="cell-attendee">
 						<div class="attendee-info">
-							<a href="/booked/{a.id}" class="row-link">{a.attendee_name}</a>
+							<a href="/appointment/{a.id}" class="row-link">{a.attendee_name}</a>
 							<span class="attendee-email" class:no-email={!a.attendee_email}>
 								{a.attendee_email ?? 'No email'}
 							</span>

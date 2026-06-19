@@ -52,7 +52,7 @@ function mockFetch(captured: { payload?: Record<string, unknown> }): FetchFn {
 async function push(appointment: Appointment) {
 	const captured: { payload?: Record<string, unknown> } = {};
 	await putGoogleEvent(cfg, appointment, {
-		cancelUrl: 'https://when.example.com/booked/appt-1?token=tok',
+		cancelUrl: 'https://when.example.com/appointment/appt-1?token=tok',
 		eventTypeName: 'Chat',
 		organizerName: 'Jane',
 		fetchImpl: mockFetch(captured)

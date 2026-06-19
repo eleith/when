@@ -22,7 +22,7 @@ export const GET: RequestHandler = async ({ params, url }) => {
 	const eventType = cfg.event_types.find((e) => e.id === row.event_type_id);
 	if (!eventType) error(404);
 
-	const cancelUrl = `${url.origin}/booked/${row.id}?token=${encodeURIComponent(token)}`;
+	const cancelUrl = `${url.origin}/appointment/${row.id}?token=${encodeURIComponent(token)}`;
 
 	const ics = buildIcs({
 		appointment: row,

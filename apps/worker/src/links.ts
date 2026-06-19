@@ -17,11 +17,11 @@ export interface BookingLinksInput {
 
 export function bookingLinks({ baseUrl, appointment }: BookingLinksInput): BookingLinks {
 	const token = encodeURIComponent(appointment.cancel_token);
-	const booked = `${baseUrl}/booked/${appointment.id}?token=${token}`;
+	const booked = `${baseUrl}/appointment/${appointment.id}?token=${token}`;
 	return {
 		booked,
 		cancel: `${booked}&cancel=1`,
-		reschedule: `${baseUrl}/booked/${appointment.id}/reschedule?token=${token}`,
-		manage: `${baseUrl}/signin?callbackUrl=${encodeURIComponent(`/booked/${appointment.id}`)}`
+		reschedule: `${baseUrl}/appointment/${appointment.id}/reschedule?token=${token}`,
+		manage: `${baseUrl}/signin?callbackUrl=${encodeURIComponent(`/appointment/${appointment.id}`)}`
 	};
 }

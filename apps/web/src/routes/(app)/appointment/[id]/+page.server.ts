@@ -83,8 +83,8 @@ export const load: PageServerLoad = async ({ params, url, locals, cookies }) => 
 	const showCancelModal = url.searchParams.get('cancel') === '1';
 
 	const tokenEnc = token ? encodeURIComponent(token) : '';
-	const bookedUrl = `${url.origin}/booked/${row.id}${tokenEnc ? `?token=${tokenEnc}` : ''}`;
-	const icsUrl = `${url.origin}/booked/${row.id}/ics${tokenEnc ? `?token=${tokenEnc}` : ''}`;
+	const bookedUrl = `${url.origin}/appointment/${row.id}${tokenEnc ? `?token=${tokenEnc}` : ''}`;
+	const icsUrl = `${url.origin}/appointment/${row.id}/ics${tokenEnc ? `?token=${tokenEnc}` : ''}`;
 
 	const eventName = resolvedEventType?.name ?? row.event_type_id;
 	const calendarLinks =
@@ -161,6 +161,6 @@ export const actions: Actions = {
 			return fail(409, { error: 'This booking can no longer be cancelled.' });
 		}
 
-		redirect(303, `/booked/${row.id}?token=${encodeURIComponent(attendeeToken)}`);
+		redirect(303, `/appointment/${row.id}?token=${encodeURIComponent(attendeeToken)}`);
 	}
 };

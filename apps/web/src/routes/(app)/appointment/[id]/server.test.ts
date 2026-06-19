@@ -53,13 +53,13 @@ vi.mock('@when/db', () => ({
 	isChainTerminal: async () => ({ terminal: true })
 }));
 
-describe('/booked/[id] server load', () => {
+describe('/appointment/[id] server load', () => {
 	test('renders successfully for attendee when event type is active', async () => {
 		const mockLocals = {
 			auth: vi.fn().mockResolvedValue(null)
 		};
 
-		const url = new URL('http://localhost/booked/appt-1?token=tok-abc');
+		const url = new URL('http://localhost/appointment/appt-1?token=tok-abc');
 		const mockCookies = {
 			get: vi.fn().mockReturnValue(undefined),
 			delete: vi.fn()
@@ -82,7 +82,7 @@ describe('/booked/[id] server load', () => {
 			auth: vi.fn().mockResolvedValue(null)
 		};
 
-		const url = new URL('http://localhost/booked/appt-deleted?token=tok-abc');
+		const url = new URL('http://localhost/appointment/appt-deleted?token=tok-abc');
 		const mockCookies = {
 			get: vi.fn().mockReturnValue(undefined),
 			delete: vi.fn()
@@ -103,7 +103,7 @@ describe('/booked/[id] server load', () => {
 			auth: vi.fn().mockResolvedValue({ user: { name: 'admin' } })
 		};
 
-		const url = new URL('http://localhost/booked/appt-deleted');
+		const url = new URL('http://localhost/appointment/appt-deleted');
 		const mockCookies = {
 			get: vi.fn().mockReturnValue(undefined),
 			delete: vi.fn()
@@ -135,7 +135,7 @@ describe('/booked/[id] server load', () => {
 			delete: vi.fn()
 		};
 
-		const url = new URL('http://localhost/booked/appt-1?token=tok-abc');
+		const url = new URL('http://localhost/appointment/appt-1?token=tok-abc');
 		const result = (await load({
 			url,
 			locals: mockLocals,
