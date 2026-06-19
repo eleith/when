@@ -1,10 +1,10 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { getConfig, getDb } from '$lib/server/state';
 import { findAppointment, isChainTerminal, deleteChain, originId } from '@when/db';
-import { acceptAppointment } from '$lib/server/booking/accept';
-import { declineAppointment } from '$lib/server/booking/decline';
-import { cancelAppointment } from '$lib/server/booking/cancel';
-import { bookingContext } from '$lib/server/booking/context';
+import { acceptAppointment } from '$lib/server/appointment/accept';
+import { declineAppointment } from '$lib/server/appointment/decline';
+import { cancelAppointment } from '$lib/server/appointment/cancel';
+import { bookingContext } from '$lib/server/appointment/context';
 import type { Actions, PageServerLoad } from './$types';
 import { systemClock } from '$lib/server/clock';
 

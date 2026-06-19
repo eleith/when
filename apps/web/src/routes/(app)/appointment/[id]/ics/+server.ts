@@ -1,5 +1,5 @@
 import { error } from '@sveltejs/kit';
-import { requireViewableAppointment } from '$lib/server/booking/access';
+import { requireViewableAppointment } from '$lib/server/appointment/access';
 import { systemClock } from '$lib/server/clock';
 import { buildIcs } from '@when/calendar';
 import { findAppointment } from '@when/db';

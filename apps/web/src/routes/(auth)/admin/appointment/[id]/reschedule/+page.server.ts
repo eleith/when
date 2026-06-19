@@ -3,8 +3,8 @@ import { Temporal } from '@js-temporal/polyfill';
 import { findAppointment } from '@when/db';
 import { getConfig, getDb } from '$lib/server/state';
 import { loadAvailability } from '$lib/server/availability/load';
-import { rescheduleAppointment } from '$lib/server/booking/reschedule';
-import { bookingContext } from '$lib/server/booking/context';
+import { rescheduleAppointment } from '$lib/server/appointment/reschedule';
+import { bookingContext } from '$lib/server/appointment/context';
 import type { Actions } from './$types';
 
 export const actions: Actions = {

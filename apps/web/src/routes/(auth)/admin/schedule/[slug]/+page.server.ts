@@ -6,9 +6,9 @@ import { resolveAvailabilitySettings } from '$lib/server/availability/settings';
 import { getBusyIntervals } from '@when/db';
 import { systemClock } from '$lib/server/clock';
 import { getConfig, getDb } from '$lib/server/state';
-import { createAppointment } from '$lib/server/booking/create';
-import { parseAndValidateBookingForm, resolveTimezone } from '$lib/server/booking/form.server';
-import { bookingContext } from '$lib/server/booking/context';
+import { createAppointment } from '$lib/server/appointment/create';
+import { parseAndValidateBookingForm, resolveTimezone } from '$lib/server/appointment/form.server';
+import { bookingContext } from '$lib/server/appointment/context';
 import type { Actions } from './$types';
 
 export const actions: Actions = {

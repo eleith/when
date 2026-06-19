@@ -5,11 +5,11 @@ import { systemClock } from '$lib/server/clock';
 import { getConfig, getDb } from '$lib/server/state';
 import { resolveFormFields } from '@when/config';
 import { loadAvailability } from '$lib/server/availability/load';
-import { requireViewableAppointment } from '$lib/server/booking/access';
-import { classifyReschedule, rescheduleAppointment } from '$lib/server/booking/reschedule';
-import { parseAndValidateBookingForm, resolveTimezone } from '$lib/server/booking/form.server';
-import { bookingContext } from '$lib/server/booking/context';
-import { toPublicAppointment, toPublicEventType } from '$lib/server/booking/sanitize';
+import { requireViewableAppointment } from '$lib/server/appointment/access';
+import { classifyReschedule, rescheduleAppointment } from '$lib/server/appointment/reschedule';
+import { parseAndValidateBookingForm, resolveTimezone } from '$lib/server/appointment/form.server';
+import { bookingContext } from '$lib/server/appointment/context';
+import { toPublicAppointment, toPublicEventType } from '$lib/server/appointment/sanitize';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params, url, locals }) => {

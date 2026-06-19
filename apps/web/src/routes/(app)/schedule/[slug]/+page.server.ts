@@ -9,11 +9,11 @@ import { systemClock } from '$lib/server/clock';
 import { logger } from '$lib/server/logger';
 import { getConfig, getDb } from '$lib/server/state';
 import { resolveFormFields } from '@when/config';
-import { createAppointment } from '$lib/server/booking/create';
-import { parseAndValidateBookingForm, resolveTimezone } from '$lib/server/booking/form.server';
-import { bookingContext } from '$lib/server/booking/context';
+import { createAppointment } from '$lib/server/appointment/create';
+import { parseAndValidateBookingForm, resolveTimezone } from '$lib/server/appointment/form.server';
+import { bookingContext } from '$lib/server/appointment/context';
 import { normalizeDeepLinkParams } from '$lib/booking';
-import { toPublicEventType } from '$lib/server/booking/sanitize';
+import { toPublicEventType } from '$lib/server/appointment/sanitize';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params, url, locals }) => {

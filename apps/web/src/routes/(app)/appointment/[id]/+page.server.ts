@@ -1,6 +1,6 @@
 import { error, fail, redirect } from '@sveltejs/kit';
-import { requireViewableAppointment } from '$lib/server/booking/access';
-import { resolveBookingActions } from '$lib/server/booking/actions';
+import { requireViewableAppointment } from '$lib/server/appointment/access';
+import { resolveBookingActions } from '$lib/server/appointment/actions';
 import { buildAddToCalendarLinks } from '$lib/server/calendar-links';
 import { systemClock } from '$lib/server/clock';
 import { getConfig, getDb } from '$lib/server/state';
@@ -12,10 +12,10 @@ import {
 	isChainTerminal,
 	type Appointment
 } from '@when/db';
-import { toPublicAppointment, toPublicEventType } from '$lib/server/booking/sanitize';
+import { toPublicAppointment, toPublicEventType } from '$lib/server/appointment/sanitize';
 import type { Actions, PageServerLoad } from './$types';
-import { cancelAppointment } from '$lib/server/booking/cancel';
-import { bookingContext } from '$lib/server/booking/context';
+import { cancelAppointment } from '$lib/server/appointment/cancel';
+import { bookingContext } from '$lib/server/appointment/context';
 
 type ClockStatus = 'upcoming' | 'in_progress' | 'concluded';
 
