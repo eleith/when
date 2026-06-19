@@ -36,13 +36,23 @@ export const actions: Actions = {
 		return { success: 'declined' };
 	},
 
-	cancel: async ({ params }) => {
+	cancel: async ({ params, request }) => {
 		const row = await findAppointment(getDb(), params.id);
 		if (!row) return fail(404, { error: 'Appointment not found.' });
 
+		const form = await request.formData();
+		const reason = String(form.get('reason') ?? '').trim();
+		if (!reason) {
+			return fail(400, { error: 'Please provide a reason for cancelling.' });
+		}
+		if (reason.length > 500) {
+			return fail(400, { error: 'Reason must be 500 characters or fewer.' });
+		}
+
 		const result = await cancelAppointment(appointmentContext(), {
 			appointment: row,
-			initiator: 'organizer'
+			initiator: 'organizer',
+			reason
 		});
 		if (!result.ok) {
 			return fail(409, { error: 'This appointment can no longer be cancelled.' });

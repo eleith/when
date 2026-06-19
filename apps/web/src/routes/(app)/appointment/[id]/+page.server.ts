@@ -80,7 +80,6 @@ export const load: PageServerLoad = async ({ params, url, locals, cookies }) => 
 	}
 
 	const clockStatus = computeClockStatus(row, now);
-	const showCancelModal = url.searchParams.get('cancel') === '1';
 
 	const tokenEnc = token ? encodeURIComponent(token) : '';
 	const bookedUrl = `${url.origin}/appointment/${row.id}${tokenEnc ? `?token=${tokenEnc}` : ''}`;
@@ -126,7 +125,6 @@ export const load: PageServerLoad = async ({ params, url, locals, cookies }) => 
 		actions,
 		flash: flash ?? null,
 		clockStatus,
-		showCancelModal,
 		// Admins are trusted with the attendee's cancel_token so reschedule/cancel
 		// links work without a token in the URL; attendees only ever see their own.
 		token: isAdmin ? (token ?? row.cancel_token) : (token ?? ''),
@@ -153,9 +151,18 @@ export const actions: Actions = {
 			return fail(403, { error: 'Invalid cancel token.' });
 		}
 
+		const reason = String(form.get('reason') ?? '').trim();
+		if (!reason) {
+			return fail(400, { error: 'Please provide a reason for cancelling.' });
+		}
+		if (reason.length > 500) {
+			return fail(400, { error: 'Reason must be 500 characters or fewer.' });
+		}
+
 		const result = await cancelAppointment(appointmentContext(), {
 			appointment: row,
-			initiator: 'attendee'
+			initiator: 'attendee',
+			reason
 		});
 		if (!result.ok) {
 			return fail(409, { error: 'This appointment can no longer be cancelled.' });
