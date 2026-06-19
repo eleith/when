@@ -33,6 +33,7 @@ const appointment: Appointment = {
 	has_possible_conflict: 0,
 	calendar_push_failing_since: null,
 	ics_sequence: 0,
+	event_type_snapshot: null,
 	created_at: '2026-01-01T09:00:00Z',
 	updated_at: '2026-01-01T09:00:00Z',
 	attendee_timezone: 'America/New_York'
