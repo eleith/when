@@ -25,7 +25,10 @@ async function classify(
 }
 
 /** Accept a pending appointment. The worker then creates its calendar event. */
-export async function confirmAppointment(db: Kysely<Database>, id: string): Promise<TransitionOutcome> {
+export async function confirmAppointment(
+	db: Kysely<Database>,
+	id: string
+): Promise<TransitionOutcome> {
 	const result = await db
 		.updateTable('appointments')
 		.set({
@@ -120,7 +123,10 @@ export async function rescheduleAppointmentTransition(
 }
 
 /** Cancel an appointment. The worker deletes its event if one was published. */
-export async function cancelAppointmentTransition(db: Kysely<Database>, id: string): Promise<TransitionOutcome> {
+export async function cancelAppointmentTransition(
+	db: Kysely<Database>,
+	id: string
+): Promise<TransitionOutcome> {
 	const result = await db
 		.updateTable('appointments')
 		.set({
@@ -139,7 +145,10 @@ export async function cancelAppointmentTransition(db: Kysely<Database>, id: stri
 }
 
 /** Decline a pending request, removing the inherited event if a re-approval revert left one. */
-export async function declineAppointmentTransition(db: Kysely<Database>, id: string): Promise<TransitionOutcome> {
+export async function declineAppointmentTransition(
+	db: Kysely<Database>,
+	id: string
+): Promise<TransitionOutcome> {
 	const result = await db
 		.updateTable('appointments')
 		.set({

@@ -31,7 +31,7 @@ export async function enqueueAppointmentEmail(
 	return appointment as Appointment;
 }
 
-// Wake the worker's calendar sync. A unique key per call so each booking change
+// Wake the worker's calendar sync. A unique key per call so each appointment change
 // triggers a scan (the scan re-reads the DB, so duplicates are harmless and the
 // scanner collapses bursts).
 export async function enqueueCalendarSync(): Promise<void> {

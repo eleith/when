@@ -15,7 +15,7 @@ export const GET: RequestHandler = async ({ params, url }) => {
 	const row = requireViewableAppointment(found, token, systemClock.now());
 
 	if (row.status !== 'confirmed') {
-		error(403, 'Calendar invites are only available for confirmed bookings.');
+		error(403, 'Calendar invites are only available for confirmed appointments.');
 	}
 
 	const cfg = getConfig();

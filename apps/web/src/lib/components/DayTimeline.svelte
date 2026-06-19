@@ -245,7 +245,7 @@
 					{#if timeline.slots.some((s) => s.isOriginal)}
 						{@const orig = timeline.slots.find((s) => s.isOriginal)!}
 						<div
-							class="slot-block original-booking"
+							class="slot-block original-appointment"
 							style:top="{orig.top}%"
 							style:height="{orig.height}%"
 						>
@@ -498,7 +498,7 @@
 		touch-action: none;
 	}
 
-	.slot-block.original-booking {
+	.slot-block.original-appointment {
 		background: var(--surface-muted);
 		border: 1px dashed var(--border-strong);
 		color: var(--text-secondary);

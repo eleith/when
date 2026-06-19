@@ -42,7 +42,7 @@ export const load: PageServerLoad = async ({ params, url, locals, cookies }) => 
 
 	const found = await findAppointment(getDb(), params.id);
 
-	if (!found) error(404, 'Booking not found.');
+	if (!found) error(404, 'Appointment not found.');
 
 	const now = systemClock.now();
 	let row = found;
@@ -94,7 +94,7 @@ export const load: PageServerLoad = async ({ params, url, locals, cookies }) => 
 						start: row.start_time,
 						end: row.end_time,
 						title: `${eventName} with ${cfg.user.name}`,
-						description: `View or change this booking: ${bookedUrl}`,
+						description: `View or change this appointment: ${bookedUrl}`,
 						location: row.location ?? undefined
 					},
 					icsUrl
@@ -136,7 +136,7 @@ export const load: PageServerLoad = async ({ params, url, locals, cookies }) => 
 		rescheduledFrom: predecessor
 			? { id: predecessor.id, token: predecessor.cancel_token, start_time: predecessor.start_time }
 			: null,
-		latestBooking: latest ? { id: latest.id, token: latest.cancel_token } : null,
+		latestAppointment: latest ? { id: latest.id, token: latest.cancel_token } : null,
 		deleteCheck
 	};
 };
@@ -145,7 +145,7 @@ export const actions: Actions = {
 	cancel: async ({ params, request }) => {
 		const row = await findAppointment(getDb(), params.id);
 
-		if (!row) return fail(404, { error: 'Booking not found.' });
+		if (!row) return fail(404, { error: 'Appointment not found.' });
 
 		const form = await request.formData();
 		const attendeeToken = String(form.get('token') ?? '');
@@ -158,7 +158,7 @@ export const actions: Actions = {
 			initiator: 'attendee'
 		});
 		if (!result.ok) {
-			return fail(409, { error: 'This booking can no longer be cancelled.' });
+			return fail(409, { error: 'This appointment can no longer be cancelled.' });
 		}
 
 		redirect(303, `/appointment/${row.id}?token=${encodeURIComponent(attendeeToken)}`);

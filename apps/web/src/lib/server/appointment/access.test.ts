@@ -149,7 +149,9 @@ describe('requireViewableAppointment', () => {
 	});
 
 	test('throws 404 past grace window', () => {
-		const past = new Date(Date.parse(baseRow.end_time) + (APPOINTMENT_VIEW_GRACE_DAYS + 1) * DAY_MS);
+		const past = new Date(
+			Date.parse(baseRow.end_time) + (APPOINTMENT_VIEW_GRACE_DAYS + 1) * DAY_MS
+		);
 		expect(() => requireViewableAppointment(baseRow, 'tok-abc', past)).toThrow();
 	});
 });

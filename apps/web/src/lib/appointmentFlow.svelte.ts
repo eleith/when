@@ -27,7 +27,7 @@ export interface AppointmentFlow {
 }
 
 /**
- * Single source of truth for the booking wizard: which step we're on, the
+ * Single source of truth for the appointment wizard: which step we're on, the
  * picked date/slot/timezone, and the rules for moving between steps. Created
  * once per page and handed to the picker components as a single `flow` prop, so
  * their selections flow back here without a `bind:` ladder.

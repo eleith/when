@@ -180,7 +180,7 @@
 					Cancelled
 				{/if}
 			</span>
-			{#if data.rescheduledFrom || data.latestBooking}
+			{#if data.rescheduledFrom || data.latestAppointment}
 				<span class="state-meta">
 					{#if data.rescheduledFrom}
 						Rescheduled from
@@ -193,12 +193,12 @@
 							{formatDateShort(data.rescheduledFrom.start_time, displayTz)}
 						</a>
 					{/if}
-					{#if data.rescheduledFrom && data.latestBooking}&nbsp;·&nbsp;{/if}
-					{#if data.latestBooking}
+					{#if data.rescheduledFrom && data.latestAppointment}&nbsp;·&nbsp;{/if}
+					{#if data.latestAppointment}
 						<a
 							class="state-meta-link"
-							href="/appointment/{data.latestBooking.id}?token={encodeURIComponent(
-								data.latestBooking.token
+							href="/appointment/{data.latestAppointment.id}?token={encodeURIComponent(
+								data.latestAppointment.token
 							)}"
 						>
 							View latest appointment
@@ -555,7 +555,7 @@
 		min-width: 0;
 	}
 
-	/* ---- state stripe (the booking's single state line) ---- */
+	/* ---- state stripe (the appointment's single state line) ---- */
 	.card-state {
 		display: flex;
 		align-items: center;

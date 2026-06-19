@@ -115,9 +115,9 @@ describe('parseAndValidateAppointmentForm', () => {
 				choices: ['Zoom', 'Phone']
 			}
 		]);
-		expect(parseAndValidateAppointmentForm(event, fd({ name: 'Jane', loc: 'Carrier pigeon' })).ok).toBe(
-			false
-		);
+		expect(
+			parseAndValidateAppointmentForm(event, fd({ name: 'Jane', loc: 'Carrier pigeon' })).ok
+		).toBe(false);
 		const ok = parseAndValidateAppointmentForm(event, fd({ name: 'Jane', loc: 'Zoom' }));
 		expect(ok.ok && ok.data.location).toBe('Zoom');
 	});

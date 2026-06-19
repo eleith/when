@@ -20,7 +20,7 @@
 	import { getPreferredTimezone } from '$lib/preferredTimezone.svelte';
 	import type { AttendeeAnswer, Branding, FormField, Location } from '@when/config';
 
-	// Shared shape served by both the new-booking route and the reschedule route.
+	// Shared shape served by both the new-appointment route and the reschedule route.
 	export interface AppointmentWizardData {
 		user: {
 			name: string;
@@ -85,7 +85,7 @@
 		return '?/book';
 	});
 
-	let previousBookingHref = $derived(
+	let previousAppointmentHref = $derived(
 		data.rescheduleAppt
 			? `/appointment/${data.rescheduleAppt.id}?token=${encodeURIComponent(data.rescheduleToken || '')}`
 			: ''
@@ -243,7 +243,7 @@
 	</div>
 </header>
 
-<div class="booking">
+<div class="appointment">
 	{#if data.rescheduleError}
 		<div class="card reschedule-error-card">
 			<h1 class="error-title">Can't reschedule this appointment</h1>
@@ -269,7 +269,7 @@
 			<aside class="reschedule-banner">
 				<span class="reschedule-banner-icon"><IconInfo aria-hidden="true" /></span>
 				<span class="reschedule-banner-text">
-					Rescheduling <a class="reschedule-banner-link" href={previousBookingHref}
+					Rescheduling <a class="reschedule-banner-link" href={previousAppointmentHref}
 						>previous appointment</a
 					>
 					for {formatSlot(data.rescheduleAppt.start_time, userTz)}.
@@ -337,7 +337,7 @@
 			</aside>
 
 			<div class="card-stage">
-				<div class="booking-body">
+				<div class="appointment-body">
 					{#if step === 1}
 						{#if ptz.current}
 							<DatePicker {flow} />
@@ -415,12 +415,12 @@
 								<span class="form-title-tz">{formatTzAbbrev(selectedSlot, userTz)}</span>
 							</h2>
 						</div>
-						<div class="booking-form">
+						<div class="appointment-form">
 							{#if form?.error}
 								<p class="form-error" role="alert">{form.error}</p>
 							{/if}
 
-							<form id="booking-form" method="POST" action={formAction}>
+							<form id="appointment-form" method="POST" action={formAction}>
 								<input type="hidden" name="slot" value={selectedSlot} />
 								<input type="hidden" name="timezone" value={userTz} />
 								{#if data.rescheduleAppt}
@@ -545,7 +545,7 @@
 						<button type="button" class="cta-btn cta-btn-secondary" onclick={flow.goBack}>
 							Back
 						</button>
-						<button type="submit" form="booking-form" class="cta-btn" disabled={!selectedSlot}>
+						<button type="submit" form="appointment-form" class="cta-btn" disabled={!selectedSlot}>
 							{#if data.rescheduleAppt}Confirm Reschedule{:else if data.eventType.appointment_flow === 'requires_confirmation'}Request{:else}Schedule{/if}
 						</button>
 					{/if}
@@ -556,7 +556,7 @@
 </div>
 
 <style>
-	.booking {
+	.appointment {
 		max-width: 960px;
 		margin: 0 auto;
 		padding: var(--space-8) var(--space-6) var(--space-10);
@@ -669,7 +669,7 @@
 		padding: var(--space-7);
 	}
 
-	.booking-body {
+	.appointment-body {
 		flex: 1;
 		min-height: 0;
 	}
@@ -795,11 +795,11 @@
 		background: var(--surface-muted);
 	}
 
-	.booking-form {
+	.appointment-form {
 		width: 100%;
 	}
 
-	/* ---- booking form ---- */
+	/* ---- appointment form ---- */
 	.form-header {
 		display: flex;
 		align-items: center;
@@ -1110,7 +1110,7 @@
 			display: block;
 		}
 
-		.booking {
+		.appointment {
 			padding: var(--space-5) var(--space-5) calc(var(--space-9) + 64px);
 		}
 
@@ -1134,7 +1134,7 @@
 			display: inline-flex;
 		}
 
-		.booking :global(.timeline-scroll),
+		.appointment :global(.timeline-scroll),
 		.tl-skel-scroll {
 			max-height: none;
 			overflow: visible;

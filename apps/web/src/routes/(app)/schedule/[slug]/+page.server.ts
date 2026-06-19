@@ -10,7 +10,10 @@ import { logger } from '$lib/server/logger';
 import { getConfig, getDb } from '$lib/server/state';
 import { resolveFormFields } from '@when/config';
 import { createAppointment } from '$lib/server/appointment/create';
-import { parseAndValidateAppointmentForm, resolveTimezone } from '$lib/server/appointment/form.server';
+import {
+	parseAndValidateAppointmentForm,
+	resolveTimezone
+} from '$lib/server/appointment/form.server';
 import { appointmentContext } from '$lib/server/appointment/context';
 import { normalizeDeepLinkParams } from '$lib/appointment';
 import { toPublicEventType } from '$lib/server/appointment/sanitize';
@@ -123,8 +126,11 @@ export const actions: Actions = {
 				initiator: 'attendee'
 			});
 		} catch (err) {
-			logger.error({ err, eventTypeId: eventType.id, slot: slotStr }, 'failed to insert booking');
-			return fail(500, { error: 'Could not save the booking. Please try again.' });
+			logger.error(
+				{ err, eventTypeId: eventType.id, slot: slotStr },
+				'failed to insert appointment'
+			);
+			return fail(500, { error: 'Could not save the appointment. Please try again.' });
 		}
 		if (!created.ok) {
 			return fail(409, { error: 'That time was just taken. Please pick another.' });

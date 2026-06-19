@@ -7,7 +7,10 @@ import { getBusyIntervals } from '@when/db';
 import { systemClock } from '$lib/server/clock';
 import { getConfig, getDb } from '$lib/server/state';
 import { createAppointment } from '$lib/server/appointment/create';
-import { parseAndValidateAppointmentForm, resolveTimezone } from '$lib/server/appointment/form.server';
+import {
+	parseAndValidateAppointmentForm,
+	resolveTimezone
+} from '$lib/server/appointment/form.server';
 import { appointmentContext } from '$lib/server/appointment/context';
 import type { Actions } from './$types';
 

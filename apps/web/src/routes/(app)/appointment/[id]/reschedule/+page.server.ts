@@ -7,7 +7,10 @@ import { resolveFormFields } from '@when/config';
 import { loadAvailability } from '$lib/server/availability/load';
 import { requireViewableAppointment } from '$lib/server/appointment/access';
 import { classifyReschedule, rescheduleAppointment } from '$lib/server/appointment/reschedule';
-import { parseAndValidateAppointmentForm, resolveTimezone } from '$lib/server/appointment/form.server';
+import {
+	parseAndValidateAppointmentForm,
+	resolveTimezone
+} from '$lib/server/appointment/form.server';
 import { appointmentContext } from '$lib/server/appointment/context';
 import { toPublicAppointment, toPublicEventType } from '$lib/server/appointment/sanitize';
 import type { Actions, PageServerLoad } from './$types';
@@ -18,7 +21,7 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 	const token = url.searchParams.get('token');
 	const now = systemClock.now();
 
-	// 404s on a missing/expired booking or a bad token — the cases with no event type to render.
+	// 404s on a missing/expired appointment or a bad token — the cases with no event type to render.
 	const row = requireViewableAppointment(await findAppointment(getDb(), params.id), token, now);
 
 	const cfg = getConfig();
@@ -72,7 +75,7 @@ export const actions: Actions = {
 		const attendee = parsed.data;
 		const timezone = resolveTimezone(form.get('timezone'), cfg.user.timezone);
 
-		// Re-validate the slot is currently bookable, ignoring the booking's own current slot.
+		// Re-validate the slot is currently bookable, ignoring the appointment's own current slot.
 		const { slotsByDate } = await loadAvailability(cfg, eventType, found.start_time);
 		if (!Object.values(slotsByDate).flat().includes(slotStr)) {
 			return fail(409, { error: 'That time is no longer available. Please pick another.' });
@@ -92,7 +95,7 @@ export const actions: Actions = {
 			if (result.reason === 'slot_taken') {
 				return fail(409, { error: 'That time was just taken. Please pick another.' });
 			}
-			return fail(409, { error: 'This booking can no longer be rescheduled.' });
+			return fail(409, { error: 'This appointment can no longer be rescheduled.' });
 		}
 
 		// land on the new row, not the old one
