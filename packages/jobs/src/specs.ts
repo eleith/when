@@ -9,11 +9,11 @@ import type { Appointment } from '@when/db';
 type WorkflowSpec<Input, Output> = Workflow<Input, Output, Input>['spec'];
 
 /**
- * Which booking notification to send. Each value maps — in the worker — to one
+ * Which appointment notification to send. Each value maps — in the worker — to one
  * or more email builders, and to a single `email_notification_status` outcome
  * for the appointment.
  */
-export type BookingEmailKind =
+export type AppointmentEmailKind =
 	| 'confirmed'
 	| 'pending'
 	| 'cancelled-by-attendee'
@@ -23,26 +23,26 @@ export type BookingEmailKind =
 	| 'declined';
 
 /**
- * Self-contained input for a send-booking-email run. Carries the appointment
+ * Self-contained input for a send-appointment-email run. Carries the appointment
  * snapshot; the worker supplies `cfg` from its own loaded config and derives the
  * event type + action links from it.
  */
-export interface SendBookingEmailInput {
-	kind: BookingEmailKind;
+export interface SendAppointmentEmailInput {
+	kind: AppointmentEmailKind;
 	appointment: Appointment;
 }
 
 // 'sent' = delivered; 'failed' = attempted and gave up after retries.
-export type SendBookingEmailResult = 'sent' | 'failed';
+export type SendAppointmentEmailResult = 'sent' | 'failed';
 
 /**
- * Producer-side contract for the send-booking-email workflow. Web triggers runs
- * from this spec (`runWorkflow(sendBookingEmail, input)`); the worker provides
+ * Producer-side contract for the send-appointment-email workflow. Web triggers runs
+ * from this spec (`runWorkflow(sendAppointmentEmail, input)`); the worker provides
  * the implementation in `@when/worker`.
  */
-export const sendBookingEmail: WorkflowSpec<SendBookingEmailInput, SendBookingEmailResult> =
-	defineWorkflowSpec<SendBookingEmailInput, SendBookingEmailResult>({
-		name: 'send-booking-email',
+export const sendAppointmentEmail: WorkflowSpec<SendAppointmentEmailInput, SendAppointmentEmailResult> =
+	defineWorkflowSpec<SendAppointmentEmailInput, SendAppointmentEmailResult>({
+		name: 'send-appointment-email',
 		// Workflow-level backstop for unexpected errors. SMTP send retries are set
 		// per-step in the worker (the expected failure path is recorded, not thrown).
 		retryPolicy: {

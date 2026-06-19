@@ -7,8 +7,8 @@ import {
 	getWorkflowRun,
 	getStepAttempts
 } from './openworkflow.js';
-import { sendBookingEmail } from './specs.js';
-import type { SendBookingEmailInput } from './specs.js';
+import { sendAppointmentEmail } from './specs.js';
+import type { SendAppointmentEmailInput } from './specs.js';
 
 const appointment: Appointment = {
 	id: 'appt-1',
@@ -54,12 +54,12 @@ describe('client singleton', () => {
 	});
 
 	test('the client can enqueue a run (producer-only path)', async () => {
-		const input: SendBookingEmailInput = {
+		const input: SendAppointmentEmailInput = {
 			kind: 'confirmed',
 			appointment
 		};
 
-		const handle = await getOpenWorkflow().runWorkflow(sendBookingEmail, input);
+		const handle = await getOpenWorkflow().runWorkflow(sendAppointmentEmail, input);
 
 		expect(handle.workflowRun.id).toBeTruthy();
 		expect(handle.workflowRun.status).toBe('pending');
@@ -96,7 +96,7 @@ describe('read helpers', () => {
 			 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
 		).run(
 			'run-1',
-			'send-booking-email',
+			'send-appointment-email',
 			'completed',
 			null,
 			'{}',
@@ -137,7 +137,7 @@ describe('read helpers', () => {
 		const db = seedQueueDb();
 		const run = getWorkflowRun(db, 'run-1');
 		expect(run).not.toBeNull();
-		expect(run!.workflow_name).toBe('send-booking-email');
+		expect(run!.workflow_name).toBe('send-appointment-email');
 		expect(run!.status).toBe('completed');
 		expect(getWorkflowRun(db, 'missing')).toBeNull();
 	});

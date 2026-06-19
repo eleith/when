@@ -12,8 +12,8 @@ the worker.
 
 ## API
 
-- `sendBookingEmail` — the `send-booking-email` workflow spec.
-- Types: `BookingEmailKind`, `SendBookingEmailInput`, `SendBookingEmailResult`.
+- `sendAppointmentEmail` — the `send-appointment-email` workflow spec.
+- Types: `AppointmentEmailKind`, `SendAppointmentEmailInput`, `SendAppointmentEmailResult`.
 - `createBackend(path, opts?)` / `createClient(path, opts?)` — connect a
   `node:sqlite` openworkflow backend / build an `OpenWorkflow` client over it.
 

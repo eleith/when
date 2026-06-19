@@ -1,10 +1,10 @@
 import { expect, test } from 'vitest';
-import { sendBookingEmail, syncCalendars } from './specs.js';
+import { sendAppointmentEmail, syncCalendars } from './specs.js';
 
-test('sendBookingEmail carries the shared workflow name', () => {
+test('sendAppointmentEmail carries the shared workflow name', () => {
 	// The name is the contract between producer (web) and worker — both resolve
 	// the workflow by it, so it must stay stable.
-	expect(sendBookingEmail.name).toBe('send-booking-email');
+	expect(sendAppointmentEmail.name).toBe('send-appointment-email');
 });
 
 test('syncCalendars carries the shared workflow name', () => {
