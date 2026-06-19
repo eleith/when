@@ -74,7 +74,7 @@
 				{...props}
 				type="button"
 				class="change-trigger {props.class || ''}"
-				aria-label="Booking actions"
+				aria-label="Appointment actions"
 			>
 				<IconDotsThreeVertical aria-hidden="true" />
 			</button>
@@ -153,7 +153,8 @@
 						</header>
 
 						<p class="share-dialog-desc">
-							Share this link with the attendee to let them view, cancel, or reschedule the booking.
+							Share this link with the attendee to let them view, cancel, or reschedule the
+							appointment.
 						</p>
 
 						<div class="share-input-wrapper">

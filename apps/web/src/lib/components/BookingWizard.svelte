@@ -246,16 +246,16 @@
 <div class="booking">
 	{#if data.rescheduleError}
 		<div class="card reschedule-error-card">
-			<h1 class="error-title">Can't reschedule this booking</h1>
+			<h1 class="error-title">Can't reschedule this appointment</h1>
 			<p class="error-reason">
 				{#if data.rescheduleError === 'token'}
-					This link doesn't match a booking. Check your email for the latest reschedule link.
+					This link doesn't match an appointment. Check your email for the latest reschedule link.
 				{:else if data.rescheduleError === 'event_type'}
-					This booking's event type no longer exists.
+					This appointment's event type no longer exists.
 				{:else if data.rescheduleError === 'past_window'}
-					This booking is too old to reschedule.
+					This appointment is too old to reschedule.
 				{:else if data.rescheduleError === 'terminal'}
-					This booking has already been cancelled or declined.
+					This appointment has already been cancelled or declined.
 				{:else if data.rescheduleError === 'minimum_notice'}
 					It's too close to the start time to reschedule.
 				{/if}

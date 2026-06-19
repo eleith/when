@@ -40,17 +40,17 @@
 
 <svelte:head>
 	{#if status === 'cancelled'}
-		<title>Booking cancelled — When</title>
+		<title>Appointment cancelled — When</title>
 	{:else if status === 'expired'}
-		<title>Booking expired — When</title>
+		<title>Appointment expired — When</title>
 	{:else if status === 'declined'}
-		<title>Booking declined — When</title>
+		<title>Appointment declined — When</title>
 	{:else if status === 'rescheduled'}
-		<title>Booking rescheduled — When</title>
+		<title>Appointment rescheduled — When</title>
 	{:else if status === 'pending'}
-		<title>Booking requested — When</title>
+		<title>Appointment requested — When</title>
 	{:else}
-		<title>Booking confirmed — When</title>
+		<title>Appointment confirmed — When</title>
 	{/if}
 </svelte:head>
 
@@ -83,13 +83,13 @@
 				{#if !data.isAdmin && data.flash}
 					{#if data.flash === 'request'}
 						{#if status === 'confirmed'}
-							Booking created
+							Appointment created
 						{:else}
-							Booking requested
+							Appointment requested
 						{/if}
 					{:else if data.flash === 'reschedule'}
 						{#if status === 'confirmed'}
-							Booking rescheduled
+							Appointment rescheduled
 						{:else}
 							Reschedule requested
 						{/if}
@@ -107,7 +107,7 @@
 				{:else if status === 'rescheduled'}
 					Rescheduled
 				{:else}
-					Booking
+					Appointment
 				{/if}
 			</h1>
 			<p class="page-header-desc">
@@ -128,13 +128,13 @@
 						Check back here to see when it's confirmed.
 					{/if}
 				{:else if status === 'cancelled'}
-					This booking has been cancelled.
+					This appointment has been cancelled.
 				{:else if status === 'declined'}
-					This booking request was declined.
+					This appointment request was declined.
 				{:else if status === 'expired'}
-					This booking request has expired.
+					This appointment request has expired.
 				{:else}
-					This booking has been rescheduled to a new date.
+					This appointment has been rescheduled to a new date.
 				{/if}
 			</p>
 		</div>
@@ -201,7 +201,7 @@
 								data.latestBooking.token
 							)}"
 						>
-							View latest booking
+							View latest appointment
 						</a>
 					{/if}
 				</span>
@@ -369,7 +369,7 @@
 				<div {...props} class="dialog-content cancel-dialog">
 					<Dialog.Title>
 						{#snippet child({ props: titleProps })}
-							<h2 {...titleProps} class="cancel-dialog-title">Cancel booking?</h2>
+							<h2 {...titleProps} class="cancel-dialog-title">Cancel appointment?</h2>
 						{/snippet}
 					</Dialog.Title>
 
@@ -413,7 +413,7 @@
 				<div {...props} class="dialog-content cancel-dialog">
 					<Dialog.Title>
 						{#snippet child({ props: titleProps })}
-							<h2 {...titleProps} class="cancel-dialog-title">Delete booking?</h2>
+							<h2 {...titleProps} class="cancel-dialog-title">Delete appointment?</h2>
 						{/snippet}
 					</Dialog.Title>
 
@@ -422,12 +422,12 @@
 							<p class="cancel-dialog-desc">
 								<strong>Delete blocked</strong>: Background notification or calendar sync tasks are
 								still in progress. Please wait for these tasks to finish before deleting the
-								booking.
+								appointment.
 							</p>
 						{:else}
 							<p class="cancel-dialog-desc">
-								<strong>Delete blocked</strong>: This booking is not in a terminal state. Only
-								cancelled, declined, expired, or past/concluded bookings can be deleted.
+								<strong>Delete blocked</strong>: This appointment is not in a terminal state. Only
+								cancelled, declined, expired, or past/concluded appointments can be deleted.
 							</p>
 						{/if}
 						<div class="cancel-dialog-actions">
@@ -444,8 +444,8 @@
 						</div>
 					{:else}
 						<p class="cancel-dialog-desc">
-							Are you sure you want to delete this booking?
-							<strong>This will delete the entire rescheduling chain for this booking.</strong> This
+							Are you sure you want to delete this appointment?
+							<strong>This will delete the entire rescheduling chain for this appointment.</strong> This
 							action cannot be undone.
 						</p>
 
