@@ -15,7 +15,7 @@ export const actions: Actions = {
 		if (!slotStr) return fail(400, { error: 'Please pick a time slot.' });
 
 		const found = await findAppointment(getDb(), params.id);
-		if (!found) return fail(404, { error: 'Booking not found.' });
+		if (!found) return fail(404, { error: 'Appointment not found.' });
 
 		if (found.start_time === slotStr) {
 			return fail(400, { error: 'Please select a new time slot.' });
@@ -25,7 +25,7 @@ export const actions: Actions = {
 		const eventType = cfg.event_types.find((e) => e.id === found.event_type_id);
 		if (!eventType) return fail(409, { error: 'This event type no longer exists.' });
 
-		// Re-validate the slot is currently bookable, ignoring the booking's own current slot.
+		// Re-validate the slot is currently bookable, ignoring the appointment's own current slot.
 		const { slotsByDate } = await loadAvailability(cfg, eventType, found.start_time);
 		if (!Object.values(slotsByDate).flat().includes(slotStr)) {
 			return fail(409, { error: 'That time is no longer available. Please pick another.' });
@@ -43,7 +43,7 @@ export const actions: Actions = {
 			if (result.reason === 'slot_taken') {
 				return fail(409, { error: 'That time was just taken. Please pick another.' });
 			}
-			return fail(409, { error: 'This booking can no longer be rescheduled.' });
+			return fail(409, { error: 'This appointment can no longer be rescheduled.' });
 		}
 
 		// land on the new row, not the old one
