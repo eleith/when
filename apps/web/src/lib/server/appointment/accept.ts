@@ -1,4 +1,4 @@
-import { resolveBookingActions } from './actions';
+import { resolveAppointmentActions } from './actions';
 import { enqueueAppointmentEmail, enqueueCalendarSync } from '../workflow';
 import type { AppointmentContext } from './context';
 import { confirmBooking } from './transitions';
@@ -18,7 +18,7 @@ export async function acceptAppointment(
 ): Promise<AcceptAppointmentResult> {
 	const eventType = ctx.cfg.event_types.find((e) => e.id === input.appointment.event_type_id);
 
-	const gate = resolveBookingActions({
+	const gate = resolveAppointmentActions({
 		row: input.appointment,
 		viewer: 'organizer',
 		now: ctx.clock.now(),

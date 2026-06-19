@@ -1,6 +1,6 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { requireViewableAppointment } from '$lib/server/appointment/access';
-import { resolveBookingActions } from '$lib/server/appointment/actions';
+import { resolveAppointmentActions } from '$lib/server/appointment/actions';
 import { buildAddToCalendarLinks } from '$lib/server/calendar-links';
 import { systemClock } from '$lib/server/clock';
 import { getConfig, getDb } from '$lib/server/state';
@@ -69,7 +69,7 @@ export const load: PageServerLoad = async ({ params, url, locals, cookies }) => 
 	}
 
 	const viewer = isAdmin ? 'organizer' : 'attendee';
-	let actions = resolveBookingActions({ row, viewer, now, eventType: resolvedEventType });
+	let actions = resolveAppointmentActions({ row, viewer, now, eventType: resolvedEventType });
 	if (!eventType) {
 		actions = {
 			cancel: { allowed: false, reason: 'terminal_status' },

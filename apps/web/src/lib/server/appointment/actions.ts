@@ -6,7 +6,7 @@ export type ActionReason = 'past_start' | 'minimum_notice' | 'terminal_status' |
 
 export type ActionGate = { allowed: true } | { allowed: false; reason: ActionReason };
 
-export interface BookingActions {
+export interface AppointmentActions {
 	cancel: ActionGate;
 	reschedule: ActionGate;
 	accept: ActionGate;
@@ -15,7 +15,7 @@ export interface BookingActions {
 
 export type Viewer = 'attendee' | 'organizer';
 
-export interface ResolveBookingActionsInput {
+export interface ResolveAppointmentActionsInput {
 	row: Pick<Appointment, 'status' | 'start_time'>;
 	viewer: Viewer;
 	now: Date;
@@ -60,12 +60,12 @@ function resolveOrganizerDecision(
 	return ALLOWED;
 }
 
-export function resolveBookingActions({
+export function resolveAppointmentActions({
 	row,
 	viewer,
 	now,
 	eventType
-}: ResolveBookingActionsInput): BookingActions {
+}: ResolveAppointmentActionsInput): AppointmentActions {
 	const minimumNotice = eventType?.minimum_notice ?? 0;
 	const decision = resolveOrganizerDecision(row, viewer, now);
 	return {

@@ -1,4 +1,4 @@
-import { resolveBookingActions, isTerminalStatus, type Viewer } from './actions';
+import { resolveAppointmentActions, isTerminalStatus, type Viewer } from './actions';
 import { isRescheduleAllowed, isViewable } from './access';
 import { enqueueAppointmentEmail, enqueueCalendarSync } from '../workflow';
 import type { AppointmentContext } from './context';
@@ -54,7 +54,7 @@ export async function rescheduleAppointment(
 ): Promise<RescheduleAppointmentResult> {
 	const eventType = ctx.cfg.event_types.find((e) => e.id === input.appointment.event_type_id);
 
-	const gate = resolveBookingActions({
+	const gate = resolveAppointmentActions({
 		row: input.appointment,
 		viewer: input.initiator,
 		now: ctx.clock.now(),

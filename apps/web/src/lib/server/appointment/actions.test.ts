@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { resolveBookingActions } from './actions';
+import { resolveAppointmentActions } from './actions';
 import type { AppointmentStatus } from '@when/db';
 
 const startTime = '2026-05-01T15:00:00Z';
@@ -17,7 +17,7 @@ const eventType30 = { minimum_notice: 30 };
 
 describe('cancel', () => {
 	test('allowed for confirmed before start', () => {
-		const a = resolveBookingActions({
+		const a = resolveAppointmentActions({
 			row: row('confirmed'),
 			viewer: 'attendee',
 			now: before,
@@ -27,7 +27,7 @@ describe('cancel', () => {
 	});
 
 	test('allowed for pending before start', () => {
-		const a = resolveBookingActions({
+		const a = resolveAppointmentActions({
 			row: row('pending'),
 			viewer: 'attendee',
 			now: before,
@@ -37,7 +37,7 @@ describe('cancel', () => {
 	});
 
 	test('past_start at exact start_time', () => {
-		const a = resolveBookingActions({
+		const a = resolveAppointmentActions({
 			row: row('confirmed'),
 			viewer: 'attendee',
 			now: atStart,
@@ -47,7 +47,7 @@ describe('cancel', () => {
 	});
 
 	test('past_start after start_time', () => {
-		const a = resolveBookingActions({
+		const a = resolveAppointmentActions({
 			row: row('confirmed'),
 			viewer: 'attendee',
 			now: after,
@@ -57,7 +57,7 @@ describe('cancel', () => {
 	});
 
 	test('terminal_status for cancelled (even before start)', () => {
-		const a = resolveBookingActions({
+		const a = resolveAppointmentActions({
 			row: row('cancelled'),
 			viewer: 'attendee',
 			now: before,
@@ -67,7 +67,7 @@ describe('cancel', () => {
 	});
 
 	test('terminal_status for declined', () => {
-		const a = resolveBookingActions({
+		const a = resolveAppointmentActions({
 			row: row('declined'),
 			viewer: 'attendee',
 			now: before,
@@ -79,7 +79,7 @@ describe('cancel', () => {
 
 describe('reschedule', () => {
 	test('allowed when notice satisfied', () => {
-		const a = resolveBookingActions({
+		const a = resolveAppointmentActions({
 			row: row('confirmed'),
 			viewer: 'attendee',
 			now: before,
@@ -89,7 +89,7 @@ describe('reschedule', () => {
 	});
 
 	test('allowed at exact notice boundary', () => {
-		const a = resolveBookingActions({
+		const a = resolveAppointmentActions({
 			row: row('confirmed'),
 			viewer: 'attendee',
 			now: noticeBoundary,
@@ -99,7 +99,7 @@ describe('reschedule', () => {
 	});
 
 	test('minimum_notice when inside notice window', () => {
-		const a = resolveBookingActions({
+		const a = resolveAppointmentActions({
 			row: row('confirmed'),
 			viewer: 'attendee',
 			now: new Date('2026-05-01T14:45:00Z'),
@@ -109,7 +109,7 @@ describe('reschedule', () => {
 	});
 
 	test('past_start beats minimum_notice when clock is past start', () => {
-		const a = resolveBookingActions({
+		const a = resolveAppointmentActions({
 			row: row('confirmed'),
 			viewer: 'attendee',
 			now: after,
@@ -119,7 +119,7 @@ describe('reschedule', () => {
 	});
 
 	test('terminal_status for cancelled', () => {
-		const a = resolveBookingActions({
+		const a = resolveAppointmentActions({
 			row: row('cancelled'),
 			viewer: 'attendee',
 			now: before,
@@ -129,7 +129,7 @@ describe('reschedule', () => {
 	});
 
 	test('missing eventType defaults minimum_notice to 0', () => {
-		const a = resolveBookingActions({
+		const a = resolveAppointmentActions({
 			row: row('confirmed'),
 			viewer: 'attendee',
 			now: noticeBoundary,
@@ -141,7 +141,7 @@ describe('reschedule', () => {
 
 describe('accept / decline', () => {
 	test('allowed for organizer + pending + before start', () => {
-		const a = resolveBookingActions({
+		const a = resolveAppointmentActions({
 			row: row('pending'),
 			viewer: 'organizer',
 			now: before,
@@ -152,7 +152,7 @@ describe('accept / decline', () => {
 	});
 
 	test('wrong_viewer for attendee regardless of status', () => {
-		const a = resolveBookingActions({
+		const a = resolveAppointmentActions({
 			row: row('pending'),
 			viewer: 'attendee',
 			now: before,
@@ -164,7 +164,7 @@ describe('accept / decline', () => {
 
 	test('terminal_status for organizer + non-pending status', () => {
 		for (const status of ['confirmed', 'cancelled', 'declined'] as const) {
-			const a = resolveBookingActions({
+			const a = resolveAppointmentActions({
 				row: row(status),
 				viewer: 'organizer',
 				now: before,
@@ -176,7 +176,7 @@ describe('accept / decline', () => {
 	});
 
 	test('past_start for organizer + pending after start_time', () => {
-		const a = resolveBookingActions({
+		const a = resolveAppointmentActions({
 			row: row('pending'),
 			viewer: 'organizer',
 			now: after,
@@ -187,8 +187,8 @@ describe('accept / decline', () => {
 	});
 
 	test('wrong_viewer takes precedence over status', () => {
-		// attendee viewing a confirmed booking — wrong_viewer, not terminal_status
-		const a = resolveBookingActions({
+		// attendee viewing a confirmed appointment — wrong_viewer, not terminal_status
+		const a = resolveAppointmentActions({
 			row: row('confirmed'),
 			viewer: 'attendee',
 			now: before,
