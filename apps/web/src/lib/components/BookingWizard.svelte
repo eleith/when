@@ -55,6 +55,7 @@
 		} | null;
 		rescheduleError: string | null;
 		rescheduleToken: string | null;
+		isAdmin: boolean;
 	}
 
 	interface Props {
@@ -72,6 +73,17 @@
 	let viewDate = $derived(flow.viewDate);
 	let selectedSlot = $derived(flow.selectedSlot);
 	let userTz = $derived(flow.userTz);
+
+	let formAction = $derived.by(() => {
+		if (data.isAdmin) {
+			if (data.rescheduleAppt) {
+				return `/admin/booked/${data.rescheduleAppt.id}/reschedule?/book`;
+			} else {
+				return `/admin/schedule/${data.eventType.slug}?/book`;
+			}
+		}
+		return '?/book';
+	});
 
 	let previousBookingHref = $derived(
 		data.rescheduleAppt
@@ -408,7 +420,7 @@
 								<p class="form-error" role="alert">{form.error}</p>
 							{/if}
 
-							<form id="booking-form" method="POST" action="?/book">
+							<form id="booking-form" method="POST" action={formAction}>
 								<input type="hidden" name="slot" value={selectedSlot} />
 								<input type="hidden" name="timezone" value={userTz} />
 								{#if data.rescheduleAppt}

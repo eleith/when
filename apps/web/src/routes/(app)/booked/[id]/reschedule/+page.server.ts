@@ -42,23 +42,21 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 		busyBlocks,
 		rescheduleAppt: rescheduleError ? null : toPublicAppointment(row, isAdmin),
 		rescheduleError,
-		rescheduleToken: token
+		rescheduleToken: token,
+		isAdmin
 	};
 };
 
 export const actions: Actions = {
-	book: async ({ request, params, locals }) => {
+	book: async ({ request, params }) => {
 		const form = await request.formData();
 		const slotStr = String(form.get('slot') ?? '');
 		const token = String(form.get('token') ?? '').trim();
 
 		if (!slotStr) return fail(400, { error: 'Please pick a time slot.' });
 
-		const session = await locals.auth();
-		const initiator = session ? 'organizer' : 'attendee';
-
 		const found = await findAppointment(getDb(), params.id);
-		if (!found || (!session && found.cancel_token !== token)) {
+		if (!found || found.cancel_token !== token) {
 			return fail(403, { error: 'Invalid reschedule token.' });
 		}
 		if (found.start_time === slotStr) {
@@ -69,14 +67,10 @@ export const actions: Actions = {
 		const eventType = cfg.event_types.find((e) => e.id === found.event_type_id);
 		if (!eventType) return fail(409, { error: 'This event type no longer exists.' });
 
-		let attendee;
-		let timezone;
-		if (initiator === 'attendee') {
-			const parsed = parseAndValidateBookingForm(eventType, form);
-			if (!parsed.ok) return fail(400, { fieldErrors: parsed.errors });
-			attendee = parsed.data;
-			timezone = resolveTimezone(form.get('timezone'), cfg.user.timezone);
-		}
+		const parsed = parseAndValidateBookingForm(eventType, form);
+		if (!parsed.ok) return fail(400, { fieldErrors: parsed.errors });
+		const attendee = parsed.data;
+		const timezone = resolveTimezone(form.get('timezone'), cfg.user.timezone);
 
 		// Re-validate the slot is currently bookable, ignoring the booking's own current slot.
 		const { slotsByDate } = await loadAvailability(cfg, eventType, found.start_time);
@@ -88,7 +82,7 @@ export const actions: Actions = {
 		const end = start.add({ minutes: eventType.duration });
 		const result = await rescheduleAppointment(bookingContext(), {
 			appointment: found,
-			initiator,
+			initiator: 'attendee',
 			newStart: start.toString(),
 			newEnd: end.toString(),
 			attendee,
