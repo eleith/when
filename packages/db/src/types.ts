@@ -45,6 +45,7 @@ export interface AppointmentsTable {
 	has_possible_conflict: ColumnType<number, number | undefined, number>;
 	calendar_push_failing_since: NullableText;
 	ics_sequence: ColumnType<number, number | undefined, number>;
+	event_type_snapshot: NullableText;
 	created_at: ColumnType<string, string | undefined, string>;
 	updated_at: ColumnType<string, string | undefined, string>;
 }

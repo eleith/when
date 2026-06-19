@@ -65,7 +65,8 @@ test('rescheduleBooking ends the old row and creates a linked new one at the new
 		const result = await rescheduleBooking(db, old, {
 			newStart: '2099-02-01T10:00:00Z',
 			newEnd: '2099-02-01T10:30:00Z',
-			newStatus: 'confirmed'
+			newStatus: 'confirmed',
+			eventTypeSnapshot: '{}'
 		});
 
 		expect(result.ok).toBe(true);
@@ -101,7 +102,8 @@ test('rescheduleBooking reports conflict when the old row is no longer active', 
 		const result = await rescheduleBooking(db, old, {
 			newStart: '2099-02-01T10:00:00Z',
 			newEnd: '2099-02-01T10:30:00Z',
-			newStatus: 'confirmed'
+			newStatus: 'confirmed',
+			eventTypeSnapshot: '{}'
 		});
 		expect(result).toEqual({ ok: false, reason: 'conflict' });
 	} finally {

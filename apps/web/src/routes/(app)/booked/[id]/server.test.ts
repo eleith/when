@@ -1,0 +1,110 @@
+import { describe, expect, test, vi } from 'vitest';
+import { load } from './+page.server';
+import { validConfig } from '$lib/server/__fixtures__/valid-config';
+import type { Appointment } from '@when/db';
+
+const mockDb = {
+	selectFrom: vi.fn(),
+	executeTakeFirst: vi.fn()
+};
+
+const mockAppt: Appointment = {
+	id: 'appt-1',
+	event_type_id: '30-min-chat',
+	start_time: '2099-05-01T15:00:00Z',
+	end_time: '2099-05-01T15:30:00Z',
+	attendee_name: 'Booker',
+	attendee_email: 'booker@example.com',
+	attendee_answers: null,
+	attendee_timezone: null,
+	location: 'Meet link',
+	status: 'confirmed',
+	origin_id: 'appt-1',
+	rescheduled_from_id: null,
+	rescheduled_to_id: null,
+	cancel_token: 'tok-abc',
+	external_event_id: null,
+	external_calendar_id: null,
+	email_notification_status: 'ok',
+	calendar_push_notification_status: 'ok',
+	calendar_revision: 0,
+	calendar_synced_revision: null,
+	has_possible_conflict: 0,
+	calendar_push_failing_since: null,
+	ics_sequence: 0,
+	event_type_snapshot: JSON.stringify(validConfig.event_types[0]),
+	created_at: '',
+	updated_at: ''
+};
+
+vi.mock('$lib/server/state', () => ({
+	getConfig: () => validConfig,
+	getDb: () => mockDb
+}));
+
+vi.mock('@when/db', () => ({
+	findAppointment: async (_db: unknown, id: string) => {
+		if (id === 'appt-1') return mockAppt;
+		if (id === 'appt-deleted') return { ...mockAppt, id: 'appt-deleted', event_type_id: 'gone' };
+		return null;
+	},
+	findChainTip: async () => null,
+	originId: (r: { origin_id: string | null; id: string }) => r.origin_id || r.id,
+	isChainTerminal: async () => ({ terminal: true })
+}));
+
+describe('/booked/[id] server load', () => {
+	test('renders successfully for attendee when event type is active', async () => {
+		const mockLocals = {
+			auth: vi.fn().mockResolvedValue(null)
+		};
+
+		const url = new URL('http://localhost/booked/appt-1?token=tok-abc');
+		const result = (await load({
+			url,
+			locals: mockLocals,
+			params: { id: 'appt-1' }
+		} as unknown as Parameters<typeof load>[0])) as Exclude<Awaited<ReturnType<typeof load>>, void>;
+
+		expect(result.appointment.id).toBe('appt-1');
+		expect(result.eventType.id).toBe('30-min-chat');
+		expect(result.actions.cancel.allowed).toBe(true);
+	});
+
+	test('throws 404 for attendee when event type is missing/deleted from config', async () => {
+		const mockLocals = {
+			auth: vi.fn().mockResolvedValue(null)
+		};
+
+		const url = new URL('http://localhost/booked/appt-deleted?token=tok-abc');
+		await expect(
+			load({
+				url,
+				locals: mockLocals,
+				params: { id: 'appt-deleted' }
+			} as unknown as Parameters<typeof load>[0])
+		).rejects.toThrow();
+	});
+
+	test('renders for admin when event type is deleted from config (loads via snapshot)', async () => {
+		const mockLocals = {
+			auth: vi.fn().mockResolvedValue({ user: { name: 'admin' } })
+		};
+
+		const url = new URL('http://localhost/booked/appt-deleted');
+		const result = (await load({
+			url,
+			locals: mockLocals,
+			params: { id: 'appt-deleted' }
+		} as unknown as Parameters<typeof load>[0])) as Exclude<Awaited<ReturnType<typeof load>>, void>;
+
+		expect(result.appointment.id).toBe('appt-deleted');
+		// Should parse and return details from mockAppt.event_type_snapshot
+		expect(result.eventType.id).toBe('30-min-chat');
+		// Actions must be locked down to disabled
+		expect(result.actions.cancel.allowed).toBe(false);
+		expect(result.actions.reschedule.allowed).toBe(false);
+		// Delete must be allowed (constraints lifted)
+		expect(result.deleteCheck?.terminal).toBe(true);
+	});
+});

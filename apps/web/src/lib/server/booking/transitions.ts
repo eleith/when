@@ -62,6 +62,7 @@ export async function rescheduleBooking(
 		newEnd: string;
 		newStatus: AppointmentStatus;
 		attendee?: RescheduleAttendee;
+		eventTypeSnapshot: string;
 	}
 ): Promise<RescheduleResult> {
 	const newId = newAppointmentId();
@@ -106,6 +107,7 @@ export async function rescheduleBooking(
 				cancel_token: newToken,
 				external_event_id: old.external_event_id,
 				external_calendar_id: old.external_calendar_id,
+				event_type_snapshot: when.eventTypeSnapshot,
 				calendar_push_notification_status: when.newStatus === 'confirmed' ? 'queued' : null,
 				ics_sequence: old.ics_sequence + 1
 			})

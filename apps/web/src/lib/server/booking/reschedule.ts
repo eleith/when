@@ -79,6 +79,7 @@ export async function rescheduleAppointment(
 			newStart: input.newStart,
 			newEnd: input.newEnd,
 			newStatus,
+			eventTypeSnapshot: JSON.stringify(eventType),
 			attendee: input.attendee
 				? {
 						name: input.attendee.name,

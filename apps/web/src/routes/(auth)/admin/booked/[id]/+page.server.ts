@@ -1,5 +1,5 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { getDb } from '$lib/server/state';
+import { getConfig, getDb } from '$lib/server/state';
 import { findAppointment, isChainTerminal, deleteChain, originId } from '@when/db';
 import { acceptAppointment } from '$lib/server/booking/accept';
 import { declineAppointment } from '$lib/server/booking/decline';
@@ -55,17 +55,22 @@ export const actions: Actions = {
 		const row = await findAppointment(db, params.id);
 		if (!row) return fail(404, { error: 'Booking not found.' });
 
-		const now = systemClock.now();
-		const check = await isChainTerminal(db, row.id, now);
-		if (!check.terminal) {
-			let errorMsg = 'This booking is not eligible for deletion.';
-			if (check.reason === 'notifications_queued') {
-				errorMsg =
-					'Delete blocked: background notifications or calendar sync are still in progress.';
-			} else if (check.reason === 'not_terminal') {
-				errorMsg = 'Delete blocked: cannot delete an active or upcoming booking.';
+		const cfg = getConfig();
+		const eventType = cfg.event_types.find((e) => e.id === row.event_type_id);
+
+		if (eventType) {
+			const now = systemClock.now();
+			const check = await isChainTerminal(db, row.id, now);
+			if (!check.terminal) {
+				let errorMsg = 'This booking is not eligible for deletion.';
+				if (check.reason === 'notifications_queued') {
+					errorMsg =
+						'Delete blocked: background notifications or calendar sync are still in progress.';
+				} else if (check.reason === 'not_terminal') {
+					errorMsg = 'Delete blocked: cannot delete an active or upcoming booking.';
+				}
+				return fail(400, { error: errorMsg });
 			}
-			return fail(400, { error: errorMsg });
 		}
 
 		// Delete the entire chain

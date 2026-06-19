@@ -32,6 +32,7 @@ const baseRow: Appointment = {
 	has_possible_conflict: 0,
 	calendar_push_failing_since: null,
 	ics_sequence: 0,
+	event_type_snapshot: null,
 	created_at: '',
 	updated_at: ''
 };

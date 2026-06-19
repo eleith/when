@@ -50,8 +50,30 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 	const cfg = getConfig();
 	const eventType = cfg.event_types.find((e) => e.id === row.event_type_id);
 
+	let resolvedEventType = eventType;
+	if (!resolvedEventType && isAdmin && row.event_type_snapshot) {
+		try {
+			resolvedEventType = JSON.parse(row.event_type_snapshot);
+		} catch {
+			// fallback
+		}
+	}
+
+	if (!resolvedEventType) {
+		error(404);
+	}
+
 	const viewer = isAdmin ? 'organizer' : 'attendee';
-	const actions = resolveBookingActions({ row, viewer, now, eventType });
+	let actions = resolveBookingActions({ row, viewer, now, eventType: resolvedEventType });
+	if (!eventType) {
+		actions = {
+			cancel: { allowed: false, reason: 'terminal_status' },
+			reschedule: { allowed: false, reason: 'terminal_status' },
+			accept: { allowed: false, reason: 'terminal_status' },
+			decline: { allowed: false, reason: 'terminal_status' }
+		};
+	}
+
 	const clockStatus = computeClockStatus(row, now);
 	const showCancelModal = url.searchParams.get('cancel') === '1';
 
@@ -59,7 +81,7 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 	const bookedUrl = `${url.origin}/booked/${row.id}${tokenEnc ? `?token=${tokenEnc}` : ''}`;
 	const icsUrl = `${url.origin}/booked/${row.id}/ics${tokenEnc ? `?token=${tokenEnc}` : ''}`;
 
-	const eventName = eventType?.name ?? row.event_type_id;
+	const eventName = resolvedEventType?.name ?? row.event_type_id;
 	const calendarLinks =
 		row.status === 'confirmed'
 			? buildAddToCalendarLinks(
@@ -85,23 +107,16 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 
 	let deleteCheck = null;
 	if (isAdmin) {
-		deleteCheck = await isChainTerminal(getDb(), row.id, now);
+		if (!eventType) {
+			deleteCheck = { terminal: true };
+		} else {
+			deleteCheck = await isChainTerminal(getDb(), row.id, now);
+		}
 	}
 
 	return {
 		appointment: toPublicAppointment(row, isAdmin, notifications),
-		eventType: eventType
-			? toPublicEventType(eventType, isAdmin)
-			: {
-					id: row.event_type_id,
-					name: row.event_type_id,
-					duration: 0,
-					slug: row.event_type_id,
-					description: null,
-					visibility: 'public' as const,
-					booking_flow: 'auto' as const,
-					location: null
-				},
+		eventType: toPublicEventType(resolvedEventType, isAdmin),
 		calendarLinks,
 		actions,
 		clockStatus,
