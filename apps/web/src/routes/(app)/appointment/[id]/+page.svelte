@@ -15,8 +15,15 @@
 
 	let { data, form } = $props();
 
-	let cancelDialogOpen = $derived(data.showCancelModal);
+	let cancelDialogOpen = $state(false);
 	let deleteDialogOpen = $state(false);
+
+	// Close the dialog when the appointment transitions to cancelled.
+	// The attendee path reloads the page (dialog resets naturally); the admin
+	// path re-renders in-place and this $effect catches the status change.
+	$effect(() => {
+		if (data.appointment.status === 'cancelled') cancelDialogOpen = false;
+	});
 
 	let status = $derived(data.appointment.status);
 	let stateTone = $derived.by(() => {
@@ -129,6 +136,9 @@
 					{/if}
 				{:else if status === 'cancelled'}
 					This appointment has been cancelled.
+					{#if data.appointment.cancel_reason}
+						<span class="cancel-reason-display">Reason: {data.appointment.cancel_reason}</span>
+					{/if}
 				{:else if status === 'declined'}
 					This appointment request was declined.
 				{:else if status === 'expired'}
@@ -369,18 +379,27 @@
 				<div {...props} class="dialog-content cancel-dialog">
 					<Dialog.Title>
 						{#snippet child({ props: titleProps })}
-							<h2 {...titleProps} class="cancel-dialog-title">Cancel appointment?</h2>
+							<h2 {...titleProps} class="cancel-dialog-title">Provide your reason for cancelling</h2>
 						{/snippet}
 					</Dialog.Title>
 
 					<p class="cancel-dialog-desc">
 						{#if data.isAdmin}
-							<strong>{data.appointment.attendee_name}</strong> will be notified by email. This can't
-							be undone.
+							<strong>{data.appointment.attendee_name}</strong> will be notified by email.
+							This can't be undone.
 						{:else}
 							You'll both be notified by email. This can't be undone.
 						{/if}
 					</p>
+
+					<textarea
+						name="reason"
+						class="cancel-reason-input"
+						placeholder="I can no longer attend"
+						maxlength="500"
+						rows="3"
+						required
+					>I can no longer attend</textarea>
 
 					<form
 						method="POST"
@@ -388,10 +407,10 @@
 						class="cancel-dialog-actions"
 					>
 						<input type="hidden" name="token" value={data.token} />
-						<button type="submit" class="cancel-confirm-btn">Yes, cancel</button>
+						<button type="submit" class="cancel-confirm-btn">Submit</button>
 						<Dialog.Close>
 							{#snippet child({ props: closeProps })}
-								<button {...closeProps} type="button" class="cancel-cancel-btn">No, keep</button>
+								<button {...closeProps} type="button" class="cancel-cancel-btn">Close</button>
 							{/snippet}
 						</Dialog.Close>
 					</form>
@@ -916,6 +935,33 @@
 
 	.cancel-cancel-btn:hover {
 		background: var(--surface-muted);
+	}
+
+	.cancel-reason-input {
+		width: 100%;
+		padding: var(--space-3) var(--space-4);
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		font-size: var(--font-size-md);
+		font-family: inherit;
+		resize: vertical;
+		box-sizing: border-box;
+		margin-bottom: var(--space-4);
+		background: var(--surface);
+		color: var(--text);
+	}
+
+	.cancel-reason-input:focus {
+		outline: none;
+		border-color: var(--primary);
+		box-shadow: 0 0 0 2px var(--primary-alpha);
+	}
+
+	.cancel-reason-display {
+		display: block;
+		margin-top: var(--space-3);
+		font-style: italic;
+		color: var(--text-muted);
 	}
 
 	@media (max-width: 768px) {

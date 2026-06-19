@@ -17,6 +17,7 @@ export const sampleAppointment: Appointment = {
 	location: 'Zoom',
 	status: 'confirmed',
 	cancel_token: 'tok-1',
+	cancel_reason: null,
 	external_event_id: null,
 	external_calendar_id: null,
 	email_notification_status: null,
@@ -56,7 +57,6 @@ export const sampleConfig = {
 
 export const sampleLinks: AppointmentLinks = {
 	booked: 'https://when.example.com/appointment/appt-1',
-	cancel: 'https://when.example.com/appointment/appt-1?cancel=1',
 	reschedule: 'https://when.example.com/schedule/30-min',
 	manage: 'https://when.example.com/signin'
 };

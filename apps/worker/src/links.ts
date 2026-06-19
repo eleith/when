@@ -5,7 +5,6 @@ import type { Appointment } from '@when/db';
 
 export interface AppointmentLinks {
 	booked: string;
-	cancel: string;
 	reschedule: string;
 	manage: string;
 }
@@ -23,7 +22,6 @@ export function appointmentLinks({
 	const booked = `${baseUrl}/appointment/${appointment.id}?token=${token}`;
 	return {
 		booked,
-		cancel: `${booked}&cancel=1`,
 		reschedule: `${baseUrl}/appointment/${appointment.id}/reschedule?token=${token}`,
 		manage: `${baseUrl}/signin?callbackUrl=${encodeURIComponent(`/appointment/${appointment.id}`)}`
 	};
