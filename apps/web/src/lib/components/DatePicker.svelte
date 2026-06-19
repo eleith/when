@@ -3,10 +3,10 @@
 	import { CalendarDate, type DateValue } from '@internationalized/date';
 	import IconCaretLeft from 'virtual:icons/ph/caret-left';
 	import IconCaretRight from 'virtual:icons/ph/caret-right';
-	import type { BookingFlow } from '$lib/bookingFlow.svelte';
+	import type { AppointmentFlow } from '$lib/appointmentFlow.svelte';
 
 	interface Props {
-		flow: BookingFlow;
+		flow: AppointmentFlow;
 	}
 
 	let { flow }: Props = $props();

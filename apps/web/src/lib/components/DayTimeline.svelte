@@ -2,12 +2,12 @@
 	import IconCaretLeft from 'virtual:icons/ph/caret-left';
 	import IconGlobe from 'virtual:icons/ph/globe';
 	import { formatDate, formatTzShort } from '$lib/datetime';
-	import { slotsOnDate, buildDayTimeline, type TimelineEventType } from '$lib/booking';
-	import type { BookingFlow } from '$lib/bookingFlow.svelte';
+	import { slotsOnDate, buildDayTimeline, type TimelineEventType } from '$lib/appointment';
+	import type { AppointmentFlow } from '$lib/appointmentFlow.svelte';
 	import TimezoneDialog from './TimezoneDialog.svelte';
 
 	interface Props {
-		flow: BookingFlow;
+		flow: AppointmentFlow;
 		workingWindows: { start: string; end: string }[];
 		busyBlocks: { start: string; end: string }[];
 		eventType: TimelineEventType;

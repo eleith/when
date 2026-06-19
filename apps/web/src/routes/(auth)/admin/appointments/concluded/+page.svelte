@@ -1,5 +1,5 @@
 <script lang="ts">
-	import BookingsTable from '$lib/components/BookingsTable.svelte';
+	import AppointmentsTable from '$lib/components/AppointmentsTable.svelte';
 
 	let { data } = $props();
 </script>
@@ -13,7 +13,7 @@
 		<p class="empty-text">No concluded appointments.</p>
 	</div>
 {:else}
-	<BookingsTable appointments={data.appointments} />
+	<AppointmentsTable appointments={data.appointments} />
 {/if}
 
 <style>

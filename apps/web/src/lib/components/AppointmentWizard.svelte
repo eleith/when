@@ -7,8 +7,8 @@
 	import IconInfo from 'virtual:icons/ph/info';
 	import DatePicker from '$lib/components/DatePicker.svelte';
 	import DayTimeline from '$lib/components/DayTimeline.svelte';
-	import { createBookingFlow } from '$lib/bookingFlow.svelte';
-	import { resolveDeepLink, buildDayTimeline, type DeepLinkResult } from '$lib/booking';
+	import { createAppointmentFlow } from '$lib/appointmentFlow.svelte';
+	import { resolveDeepLink, buildDayTimeline, type DeepLinkResult } from '$lib/appointment';
 	import {
 		formatDate,
 		formatDateCompact,
@@ -21,7 +21,7 @@
 	import type { AttendeeAnswer, Branding, FormField, Location } from '@when/config';
 
 	// Shared shape served by both the new-booking route and the reschedule route.
-	export interface BookingWizardData {
+	export interface AppointmentWizardData {
 		user: {
 			name: string;
 			timezone: string;
@@ -59,14 +59,14 @@
 	}
 
 	interface Props {
-		data: BookingWizardData;
+		data: AppointmentWizardData;
 		form: { error?: string; fieldErrors?: Record<string, string> } | null;
 		deepLink?: boolean;
 	}
 
 	let { data, form, deepLink = false }: Props = $props();
 
-	const flow = createBookingFlow(() => data.slotsByDate);
+	const flow = createAppointmentFlow(() => data.slotsByDate);
 	const ptz = getPreferredTimezone();
 
 	let step = $derived(flow.step);

@@ -8,7 +8,7 @@ import {
 	resolveDeepLink,
 	normalizeDeepLinkParams,
 	buildDayTimeline
-} from './booking';
+} from './appointment';
 
 // Slots straddle a UTC midnight so the timezone-dependent cases are meaningful:
 // 23:30Z on the 15th is still the 15th in UTC but already the 16th in Tokyo.

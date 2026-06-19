@@ -4,10 +4,10 @@ import {
 	dateKeys,
 	flattenSlots,
 	type WizardStep
-} from './booking';
+} from './appointment';
 import { instantToDateKey } from './datetime';
 
-export interface BookingFlow {
+export interface AppointmentFlow {
 	readonly step: WizardStep;
 	readonly viewDate: string | null;
 	readonly selectedSlot: string | null;
@@ -32,7 +32,7 @@ export interface BookingFlow {
  * once per page and handed to the picker components as a single `flow` prop, so
  * their selections flow back here without a `bind:` ladder.
  */
-export function createBookingFlow(getSlotsByDate: () => Record<string, string[]>): BookingFlow {
+export function createAppointmentFlow(getSlotsByDate: () => Record<string, string[]>): AppointmentFlow {
 	let step = $state<WizardStep>(1);
 	let viewDate = $state<string | null>(null);
 	let selectedSlot = $state<string | null>(null);

@@ -12,7 +12,7 @@ import { resolveFormFields } from '@when/config';
 import { createAppointment } from '$lib/server/appointment/create';
 import { parseAndValidateBookingForm, resolveTimezone } from '$lib/server/appointment/form.server';
 import { bookingContext } from '$lib/server/appointment/context';
-import { normalizeDeepLinkParams } from '$lib/booking';
+import { normalizeDeepLinkParams } from '$lib/appointment';
 import { toPublicEventType } from '$lib/server/appointment/sanitize';
 import type { Actions, PageServerLoad } from './$types';
 

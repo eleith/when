@@ -9,7 +9,7 @@
 	import IconWarningCircle from 'virtual:icons/ph/warning-circle';
 	import IconCheckCircle from 'virtual:icons/ph/check-circle';
 	import IconNote from 'virtual:icons/ph/note';
-	import BookingActions from '$lib/components/BookingActions.svelte';
+	import AppointmentActions from '$lib/components/AppointmentActions.svelte';
 	import AddToCalendar from '$lib/components/AddToCalendar.svelte';
 	import { formatDateShort, formatWeekday, formatTimeRange, formatTzShort } from '$lib/datetime';
 
@@ -150,7 +150,7 @@
 				</p>
 			</div>
 			{#if hasActions || data.isAdmin}
-				<BookingActions
+				<AppointmentActions
 					actions={data.actions}
 					appointmentId={data.appointment.id}
 					token={data.token}
