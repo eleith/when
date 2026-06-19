@@ -36,6 +36,7 @@ export interface AppointmentsTable {
 	rescheduled_from_id: NullableText;
 	rescheduled_to_id: NullableText;
 	cancel_token: string;
+	cancel_reason: string | null;
 	external_event_id: string | null;
 	external_calendar_id: string | null;
 	email_notification_status: NotificationColumn;

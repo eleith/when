@@ -12,6 +12,7 @@ import { rescheduleChain } from './0010_reschedule_chain.js';
 import { originIdIndex } from './0011_origin_id_index.js';
 import { formCustomization } from './0012_form_customization.js';
 import { eventTypeSnapshot } from './0013_event_type_snapshot.js';
+import { cancelReason } from './0014_cancel_reason.js';
 
 // Registered in order; keys are the migration names Kysely's Migrator records.
 export const migrations: Record<string, Migration> = {
@@ -27,5 +28,6 @@ export const migrations: Record<string, Migration> = {
 	'0010_reschedule_chain': rescheduleChain,
 	'0011_origin_id_index': originIdIndex,
 	'0012_form_customization': formCustomization,
-	'0013_event_type_snapshot': eventTypeSnapshot
+	'0013_event_type_snapshot': eventTypeSnapshot,
+	'0014_cancel_reason': cancelReason
 };
