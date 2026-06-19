@@ -60,10 +60,16 @@ describe('/booked/[id] server load', () => {
 		};
 
 		const url = new URL('http://localhost/booked/appt-1?token=tok-abc');
+		const mockCookies = {
+			get: vi.fn().mockReturnValue(undefined),
+			delete: vi.fn()
+		};
+
 		const result = (await load({
 			url,
 			locals: mockLocals,
-			params: { id: 'appt-1' }
+			params: { id: 'appt-1' },
+			cookies: mockCookies
 		} as unknown as Parameters<typeof load>[0])) as Exclude<Awaited<ReturnType<typeof load>>, void>;
 
 		expect(result.appointment.id).toBe('appt-1');
@@ -77,11 +83,17 @@ describe('/booked/[id] server load', () => {
 		};
 
 		const url = new URL('http://localhost/booked/appt-deleted?token=tok-abc');
+		const mockCookies = {
+			get: vi.fn().mockReturnValue(undefined),
+			delete: vi.fn()
+		};
+
 		await expect(
 			load({
 				url,
 				locals: mockLocals,
-				params: { id: 'appt-deleted' }
+				params: { id: 'appt-deleted' },
+				cookies: mockCookies
 			} as unknown as Parameters<typeof load>[0])
 		).rejects.toThrow();
 	});
@@ -92,10 +104,16 @@ describe('/booked/[id] server load', () => {
 		};
 
 		const url = new URL('http://localhost/booked/appt-deleted');
+		const mockCookies = {
+			get: vi.fn().mockReturnValue(undefined),
+			delete: vi.fn()
+		};
+
 		const result = (await load({
 			url,
 			locals: mockLocals,
-			params: { id: 'appt-deleted' }
+			params: { id: 'appt-deleted' },
+			cookies: mockCookies
 		} as unknown as Parameters<typeof load>[0])) as Exclude<Awaited<ReturnType<typeof load>>, void>;
 
 		expect(result.appointment.id).toBe('appt-deleted');
@@ -106,5 +124,26 @@ describe('/booked/[id] server load', () => {
 		expect(result.actions.reschedule.allowed).toBe(false);
 		// Delete must be allowed (constraints lifted)
 		expect(result.deleteCheck?.terminal).toBe(true);
+	});
+
+	test('passes flash message value from cookie to page data', async () => {
+		const mockLocals = {
+			auth: vi.fn().mockResolvedValue(null)
+		};
+		const mockCookies = {
+			get: vi.fn().mockReturnValue('request'),
+			delete: vi.fn()
+		};
+
+		const url = new URL('http://localhost/booked/appt-1?token=tok-abc');
+		const result = (await load({
+			url,
+			locals: mockLocals,
+			params: { id: 'appt-1' },
+			cookies: mockCookies
+		} as unknown as Parameters<typeof load>[0])) as Exclude<Awaited<ReturnType<typeof load>>, void>;
+
+		expect(result.flash).toBe('request');
+		expect(mockCookies.delete).toHaveBeenCalledWith('submitted', { path: '/' });
 	});
 });

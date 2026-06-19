@@ -7,6 +7,7 @@
 	import IconMapPin from 'virtual:icons/ph/map-pin';
 	import IconUser from 'virtual:icons/ph/user';
 	import IconWarningCircle from 'virtual:icons/ph/warning-circle';
+	import IconCheckCircle from 'virtual:icons/ph/check-circle';
 	import IconNote from 'virtual:icons/ph/note';
 	import BookingActions from '$lib/components/BookingActions.svelte';
 	import AddToCalendar from '$lib/components/AddToCalendar.svelte';
@@ -55,8 +56,6 @@
 
 {#if data.isAdmin}
 	<AdminNav />
-{:else}
-	<header class="page-nav"></header>
 {/if}
 
 <div class="page" class:has-cta={!!data.calendarLinks || showDecideCta}>
@@ -65,6 +64,80 @@
 			<span class="banner-icon"><IconWarningCircle aria-hidden="true" /></span>
 			<p class="banner-text">{form.error}</p>
 		</aside>
+	{/if}
+
+	{#if !data.isAdmin}
+		<div class="page-header-container">
+			<div class="page-header-icon status-{stateTone}">
+				{#if status === 'confirmed'}
+					<IconCheckCircle aria-hidden="true" />
+				{:else if status === 'pending'}
+					<IconClock aria-hidden="true" />
+				{:else if status === 'cancelled' || status === 'declined' || status === 'expired'}
+					<IconWarningCircle aria-hidden="true" />
+				{:else}
+					<IconClock aria-hidden="true" />
+				{/if}
+			</div>
+			<h1 class="page-header-title">
+				{#if !data.isAdmin && data.flash}
+					{#if data.flash === 'request'}
+						{#if status === 'confirmed'}
+							Booking created
+						{:else}
+							Booking requested
+						{/if}
+					{:else if data.flash === 'reschedule'}
+						{#if status === 'confirmed'}
+							Booking rescheduled
+						{:else}
+							Reschedule requested
+						{/if}
+					{/if}
+				{:else if status === 'confirmed'}
+					Confirmed
+				{:else if status === 'pending'}
+					Pending
+				{:else if status === 'cancelled'}
+					Cancelled
+				{:else if status === 'declined'}
+					Declined
+				{:else if status === 'expired'}
+					Expired
+				{:else if status === 'rescheduled'}
+					Rescheduled
+				{:else}
+					Booking
+				{/if}
+			</h1>
+			<p class="page-header-desc">
+				{#if status === 'confirmed'}
+					{#if data.flash}
+						{#if data.appointment.attendee_email}
+							A confirmation has been sent to <strong>{data.appointment.attendee_email}</strong>.
+						{:else}
+							Your appointment is confirmed.
+						{/if}
+					{:else}
+						See you soon!
+					{/if}
+				{:else if status === 'pending'}
+					{#if data.appointment.attendee_email}
+						We will email you once confirmed.
+					{:else}
+						Check back here to see when it's confirmed.
+					{/if}
+				{:else if status === 'cancelled'}
+					This booking has been cancelled.
+				{:else if status === 'declined'}
+					This booking request was declined.
+				{:else if status === 'expired'}
+					This booking request has expired.
+				{:else}
+					This booking has been rescheduled to a new date.
+				{/if}
+			</p>
+		</div>
 	{/if}
 
 	<article class="card">
@@ -98,7 +171,7 @@
 				{:else if status === 'pending'}
 					Pending · waiting for {#if data.isAdmin}you{:else}{data.user.name}{/if}
 				{:else if status === 'declined'}
-					Declined by {data.user.name}
+					Declined
 				{:else if status === 'expired'}
 					Expired
 				{:else if status === 'rescheduled'}
@@ -372,8 +445,8 @@
 					{:else}
 						<p class="cancel-dialog-desc">
 							Are you sure you want to delete this booking?
-							<strong>This will delete the entire rescheduling chain for this booking.</strong> This action
-							cannot be undone.
+							<strong>This will delete the entire rescheduling chain for this booking.</strong> This
+							action cannot be undone.
 						</p>
 
 						<form
@@ -876,5 +949,56 @@
 
 	.answer-item + .answer-item {
 		margin-top: var(--space-3);
+	}
+
+	/* ---- centered page header ---- */
+	.page-header-container {
+		text-align: center;
+		margin: 0 0 var(--space-10);
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+	}
+
+	.page-header-icon {
+		font-size: 48px;
+		display: inline-flex;
+		line-height: 1;
+		margin-bottom: var(--space-4);
+	}
+
+	.page-header-icon.status-info {
+		color: var(--info-strong);
+	}
+
+	.page-header-icon.status-active {
+		color: var(--success-strong);
+	}
+
+	.page-header-icon.status-warning {
+		color: var(--warning-strong);
+	}
+
+	.page-header-icon.status-danger {
+		color: var(--danger-strong);
+	}
+
+	.page-header-icon.status-quiet {
+		color: var(--quiet-strong);
+	}
+
+	.page-header-title {
+		font-size: calc(var(--font-size-3xl) * 1.5);
+		font-weight: 700;
+		color: var(--text);
+		margin: 0 0 var(--space-1);
+	}
+
+	.page-header-desc {
+		font-size: calc(var(--font-size-lg) * 1.25);
+		color: var(--text-secondary);
+		max-width: 480px;
+		margin: 0 auto;
+		line-height: 1.5;
 	}
 </style>

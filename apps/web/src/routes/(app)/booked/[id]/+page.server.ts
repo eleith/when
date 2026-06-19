@@ -30,10 +30,15 @@ function computeClockStatus(
 	return 'concluded';
 }
 
-export const load: PageServerLoad = async ({ params, url, locals }) => {
+export const load: PageServerLoad = async ({ params, url, locals, cookies }) => {
 	const session = await locals.auth();
 	const isAdmin = !!session;
 	const token = url.searchParams.get('token');
+
+	const flash = cookies.get('submitted');
+	if (flash) {
+		cookies.delete('submitted', { path: '/' });
+	}
 
 	const found = await findAppointment(getDb(), params.id);
 
@@ -119,6 +124,7 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 		eventType: toPublicEventType(resolvedEventType, isAdmin),
 		calendarLinks,
 		actions,
+		flash: flash ?? null,
 		clockStatus,
 		showCancelModal,
 		// Admins are trusted with the attendee's cancel_token so reschedule/cancel

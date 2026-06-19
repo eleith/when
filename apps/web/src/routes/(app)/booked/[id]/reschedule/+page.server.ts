@@ -48,7 +48,7 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 };
 
 export const actions: Actions = {
-	book: async ({ request, params }) => {
+	book: async ({ request, params, cookies }) => {
 		const form = await request.formData();
 		const slotStr = String(form.get('slot') ?? '');
 		const token = String(form.get('token') ?? '').trim();
@@ -97,6 +97,12 @@ export const actions: Actions = {
 
 		// land on the new row, not the old one
 		const next = result.appointment;
+		cookies.set('submitted', 'reschedule', {
+			path: '/',
+			maxAge: 10,
+			httpOnly: true,
+			sameSite: 'lax'
+		});
 		redirect(303, `/booked/${next.id}?token=${encodeURIComponent(next.cancel_token)}`);
 	}
 };

@@ -59,7 +59,7 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 };
 
 export const actions: Actions = {
-	book: async ({ request, params }) => {
+	book: async ({ request, params, cookies }) => {
 		const cfg = getConfig();
 		const eventType = cfg.event_types.find((e) => e.slug === params.slug);
 		if (!eventType) error(404);
@@ -129,6 +129,13 @@ export const actions: Actions = {
 		if (!created.ok) {
 			return fail(409, { error: 'That time was just taken. Please pick another.' });
 		}
+
+		cookies.set('submitted', 'request', {
+			path: '/',
+			maxAge: 10,
+			httpOnly: true,
+			sameSite: 'lax'
+		});
 
 		redirect(
 			303,
