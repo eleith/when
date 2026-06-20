@@ -439,8 +439,9 @@
 								{#each data.formFields as field (field.id)}
 									<div class="field">
 										<label for={field.id}>
-											{field.label}{#if field.required && !fieldsDisabled}<span class="field-req" aria-hidden="true"
-													>*</span
+											{field.label}{#if field.required && !fieldsDisabled}<span
+													class="field-req"
+													aria-hidden="true">*</span
 												>{/if}
 										</label>
 										{#if field.type === 'attendee_name'}

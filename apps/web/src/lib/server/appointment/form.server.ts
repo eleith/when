@@ -101,9 +101,7 @@ export function parseAndValidateAppointmentForm(
 
 export type ReasonPurpose = 'cancelling' | 'rescheduling';
 
-export type ValidateReasonResult =
-	| { ok: true; reason: string }
-	| { ok: false; error: string };
+export type ValidateReasonResult = { ok: true; reason: string } | { ok: false; error: string };
 
 // Cancel and reschedule submit the reason under different field names.
 export function validateReason(form: FormData, purpose: ReasonPurpose): ValidateReasonResult {
