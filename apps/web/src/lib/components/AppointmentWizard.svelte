@@ -513,11 +513,12 @@
 											id="reschedule_reason"
 											name="reschedule_reason"
 											rows="3"
-											maxlength="1000"
+											maxlength="500"
 											placeholder="e.g. scheduling conflict, double booked..."
+											required
 											bind:value={rescheduleReasonValue}
 										></textarea>
-										<span class="field-count">{(rescheduleReasonValue ?? '').length}/1000</span>
+										<span class="field-count">{(rescheduleReasonValue ?? '').length}/500</span>
 									</div>
 								{/if}
 

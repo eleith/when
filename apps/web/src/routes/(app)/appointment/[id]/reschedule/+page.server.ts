@@ -75,11 +75,12 @@ export const actions: Actions = {
 		const attendee = parsed.data;
 		const timezone = resolveTimezone(form.get('timezone'), cfg.user.timezone);
 
-		const reason = form.get('reschedule_reason')
-			? String(form.get('reschedule_reason')).trim()
-			: undefined;
-		if (reason && reason.length > 1000) {
-			return fail(400, { error: 'Reason for rescheduling must be 1000 characters or fewer.' });
+		const reason = String(form.get('reschedule_reason') ?? '').trim();
+		if (!reason) {
+			return fail(400, { error: 'Please provide a reason for rescheduling.' });
+		}
+		if (reason.length > 500) {
+			return fail(400, { error: 'Reason for rescheduling must be 500 characters or fewer.' });
 		}
 
 		// Re-validate the slot is currently bookable, ignoring the appointment's own current slot.

@@ -25,11 +25,12 @@ export const actions: Actions = {
 		const eventType = cfg.event_types.find((e) => e.id === found.event_type_id);
 		if (!eventType) return fail(409, { error: 'This event type no longer exists.' });
 
-		const reason = form.get('reschedule_reason')
-			? String(form.get('reschedule_reason')).trim()
-			: undefined;
-		if (reason && reason.length > 1000) {
-			return fail(400, { error: 'Reason for rescheduling must be 1000 characters or fewer.' });
+		const reason = String(form.get('reschedule_reason') ?? '').trim();
+		if (!reason) {
+			return fail(400, { error: 'Please provide a reason for rescheduling.' });
+		}
+		if (reason.length > 500) {
+			return fail(400, { error: 'Reason for rescheduling must be 500 characters or fewer.' });
 		}
 
 		// Re-validate the slot is currently bookable, ignoring the appointment's own current slot.
