@@ -22,7 +22,8 @@ export type {
 	NewCalendarSyncStatus,
 	CalendarSyncStatusUpdate,
 	NotificationOutcome,
-	NotificationChannel
+	NotificationChannel,
+	ActionLogEntry
 } from './types.js';
 export { runMigrations } from './migrate.js';
 export { migrations } from './migrations/index.js';
@@ -34,7 +35,8 @@ export {
 	listAppointmentsPage,
 	countAppointments,
 	isChainTerminal,
-	deleteChain
+	deleteChain,
+	parseActionLog
 } from './appointments.js';
 export type { AppointmentBucket } from './appointments.js';
 export {

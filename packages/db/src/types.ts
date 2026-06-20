@@ -36,7 +36,7 @@ export interface AppointmentsTable {
 	rescheduled_from_id: NullableText;
 	rescheduled_to_id: NullableText;
 	cancel_token: string;
-	cancel_reason: string | null;
+	action_log: NullableText;
 	external_event_id: string | null;
 	external_calendar_id: string | null;
 	email_notification_status: NotificationColumn;
@@ -93,3 +93,17 @@ export type NewExternalCalendarBusy = Insertable<ExternalCalendarBusyTable>;
 export type CalendarSyncStatus = Selectable<CalendarSyncStatusTable>;
 export type NewCalendarSyncStatus = Insertable<CalendarSyncStatusTable>;
 export type CalendarSyncStatusUpdate = Updateable<CalendarSyncStatusTable>;
+
+export interface ActionLogEntry {
+	action: 'create' | 'confirm' | 'decline' | 'cancel' | 'reschedule' | 'expire';
+	actor: 'attendee' | 'organizer' | 'system';
+	at: string;
+	payload?: {
+		note?: string;
+		field?: string;
+		from?: unknown;
+		to?: unknown;
+		metadata?: Record<string, unknown>;
+	};
+}
+

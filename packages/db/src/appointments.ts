@@ -1,5 +1,5 @@
 import { sql, type Kysely, type SelectQueryBuilder } from 'kysely';
-import type { Appointment, Database } from './types.js';
+import type { Appointment, Database, ActionLogEntry } from './types.js';
 
 function originId(a: Pick<Appointment, 'id' | 'origin_id'>): string {
 	return a.origin_id ?? a.id;
@@ -136,6 +136,15 @@ async function deleteChain(db: Kysely<Database>, chainOriginId: string): Promise
 	return Number(result.numDeletedRows);
 }
 
+function parseActionLog(raw: string | null): ActionLogEntry[] {
+	if (!raw) return [];
+	try {
+		return JSON.parse(raw);
+	} catch {
+		return [];
+	}
+}
+
 export {
 	originId,
 	findAppointment,
@@ -145,5 +154,6 @@ export {
 	expireStalePending,
 	isChainTerminal,
 	deleteChain,
+	parseActionLog,
 	type AppointmentBucket
 };
