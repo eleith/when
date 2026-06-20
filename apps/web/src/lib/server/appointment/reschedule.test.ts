@@ -25,6 +25,7 @@ const existing: Appointment = {
 	rescheduled_from_id: null,
 	rescheduled_to_id: null,
 	cancel_token: 'tok-good',
+	cancel_reason: null,
 	external_event_id: null,
 	external_calendar_id: null,
 	email_notification_status: null,
