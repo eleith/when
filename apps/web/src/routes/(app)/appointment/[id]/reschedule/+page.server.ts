@@ -75,6 +75,13 @@ export const actions: Actions = {
 		const attendee = parsed.data;
 		const timezone = resolveTimezone(form.get('timezone'), cfg.user.timezone);
 
+		const reason = form.get('reschedule_reason')
+			? String(form.get('reschedule_reason')).trim()
+			: undefined;
+		if (reason && reason.length > 1000) {
+			return fail(400, { error: 'Reason for rescheduling must be 1000 characters or fewer.' });
+		}
+
 		// Re-validate the slot is currently bookable, ignoring the appointment's own current slot.
 		const { slotsByDate } = await loadAvailability(cfg, eventType, found.start_time);
 		if (!Object.values(slotsByDate).flat().includes(slotStr)) {
@@ -89,7 +96,8 @@ export const actions: Actions = {
 			newStart: start.toString(),
 			newEnd: end.toString(),
 			attendee,
-			timezone
+			timezone,
+			reason
 		});
 		if (!result.ok) {
 			if (result.reason === 'slot_taken') {

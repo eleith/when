@@ -127,6 +127,8 @@
 		)
 	);
 
+	let rescheduleReasonValue = $state('');
+
 	const initialSlot = page.url.searchParams.get('slot');
 	const initialDate = page.url.searchParams.get('date');
 
@@ -500,6 +502,24 @@
 										{/if}
 									</div>
 								{/each}
+
+								{#if data.rescheduleAppt}
+									<div class="field-separator-container">
+										<hr class="wizard-separator" />
+									</div>
+									<div class="field">
+										<label for="reschedule_reason"> Reason for rescheduling </label>
+										<textarea
+											id="reschedule_reason"
+											name="reschedule_reason"
+											rows="3"
+											maxlength="1000"
+											placeholder="e.g. scheduling conflict, double booked..."
+											bind:value={rescheduleReasonValue}
+										></textarea>
+										<span class="field-count">{(rescheduleReasonValue ?? '').length}/1000</span>
+									</div>
+								{/if}
 
 								<button type="submit" class="submit-btn">
 									{#if data.rescheduleAppt}Confirm Reschedule{:else if data.eventType.appointment_flow === 'requires_confirmation'}Request{:else}Schedule{/if}
@@ -1289,5 +1309,15 @@
 
 	.error-back-btn:hover {
 		opacity: 0.9;
+	}
+
+	.field-separator-container {
+		margin: var(--space-6) 0 var(--space-6);
+	}
+
+	.wizard-separator {
+		border: 0;
+		border-top: 1px dashed var(--border-strong);
+		margin: 0;
 	}
 </style>
