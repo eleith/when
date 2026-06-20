@@ -2,14 +2,12 @@ import { enqueueAppointmentEmail, enqueueCalendarSync } from '../workflow';
 import { newAppointmentId, newCancelToken } from './ids';
 import type { AppointmentContext } from './context';
 import type { AttendeeAnswer, EventType } from '@when/config';
-import { createActionLog, type Appointment, type ActionLogEntry } from '@when/db';
+import { createActionLog, type Appointment } from '@when/db';
 import type { AppointmentEmailKind } from '@when/jobs';
 
 export interface CreateAppointmentInput {
 	eventType: EventType;
-	/** New start_time as ISO instant (caller has validated availability). */
 	start: string;
-	/** New end_time as ISO instant. */
 	end: string;
 	attendee: { name: string; email: string | null; answers: AttendeeAnswer[]; timezone: string };
 	location: string | null;

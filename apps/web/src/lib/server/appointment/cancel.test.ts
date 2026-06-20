@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { cancelAppointment } from './cancel';
 import { systemClock } from '$lib/server/clock';
-import { openDb, runMigrations } from '@when/db';
+import { openDb, runMigrations, type ActionLogEntry } from '@when/db';
 import { validConfig } from '$lib/server/__fixtures__/valid-config';
 
 vi.mock('../workflow', () => ({ enqueueAppointmentEmail: vi.fn(), enqueueCalendarSync: vi.fn() }));
@@ -147,7 +147,9 @@ describe('cancelAppointment', () => {
 			expect(result.ok).toBe(true);
 			const persisted = await fetchRow(db, 'a4');
 			const log = JSON.parse(persisted.action_log!);
-			expect(log.find((e: any) => e.action === 'cancel')?.payload?.note).toBe('I found a conflict');
+			expect(log.find((e: ActionLogEntry) => e.action === 'cancel')?.payload?.note).toBe(
+				'I found a conflict'
+			);
 		} finally {
 			await db.destroy();
 		}
@@ -167,7 +169,7 @@ describe('cancelAppointment', () => {
 			expect(result.ok).toBe(true);
 			const persisted = await fetchRow(db, 'a5');
 			const log = JSON.parse(persisted.action_log!);
-			expect(log.find((e: any) => e.action === 'cancel')?.payload?.note).toBeUndefined();
+			expect(log.find((e: ActionLogEntry) => e.action === 'cancel')?.payload?.note).toBeUndefined();
 		} finally {
 			await db.destroy();
 		}
