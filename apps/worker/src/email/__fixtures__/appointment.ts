@@ -30,9 +30,7 @@ export const sampleAppointment: Appointment = {
 	event_type_snapshot: null,
 	created_at: '2026-01-01T09:00:00Z',
 	updated_at: '2026-01-01T09:00:00Z',
-	origin_id: null,
-	rescheduled_from_id: null,
-	rescheduled_to_id: null
+	origin_id: null
 };
 
 // Only the fields the email code reads; cast past the full config shape.

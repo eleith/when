@@ -33,7 +33,10 @@ export function appointmentRescheduledByOrganizer(i: AppointmentEmailInput): Ema
 			brand,
 			subject: `New time proposed: ${eventName} with ${brand.name}`,
 			heading: `${brand.name} proposed a new time for your request.`,
-			paragraphs: [`${brand.name} will confirm the new time and email you.`],
+			paragraphs: [
+				`${brand.name} will confirm the new time and email you.`,
+				...(i.rescheduleReason ? [`Reason for rescheduling: ${i.rescheduleReason}`] : [])
+			],
 			rows: attendeeRows,
 			actions: [{ href: i.links.booked, label: 'View this appointment', variant: 'primary' }],
 			previewText: `Requested for ${attendeeWhen}.`
@@ -42,7 +45,10 @@ export function appointmentRescheduledByOrganizer(i: AppointmentEmailInput): Ema
 			brand,
 			subject: `Rescheduled: ${eventName} with ${a.attendee_name}`,
 			heading: 'Appointment rescheduled',
-			paragraphs: [`You moved the pending request for ${attendeeLabel(a)} to a new time.`],
+			paragraphs: [
+				`You moved the pending request for ${attendeeLabel(a)} to a new time.`,
+				...(i.rescheduleReason ? [`Reason for rescheduling: ${i.rescheduleReason}`] : [])
+			],
 			rows: organizerRows,
 			actions: [],
 			previewText: `Requested for ${organizerWhen}.`
@@ -54,7 +60,7 @@ export function appointmentRescheduledByOrganizer(i: AppointmentEmailInput): Ema
 		brand,
 		subject: `Rescheduled: ${eventName} with ${brand.name}`,
 		heading: `${brand.name} moved this appointment to a new time.`,
-		paragraphs: [],
+		paragraphs: i.rescheduleReason ? [`Reason for rescheduling: ${i.rescheduleReason}`] : [],
 		rows: attendeeRows,
 		actions: [{ href: i.links.booked, label: 'View this appointment', variant: 'primary' }],
 		previewText: `Now scheduled for ${attendeeWhen}.`
@@ -63,7 +69,10 @@ export function appointmentRescheduledByOrganizer(i: AppointmentEmailInput): Ema
 		brand,
 		subject: `Rescheduled: ${eventName} with ${a.attendee_name}`,
 		heading: 'Appointment rescheduled',
-		paragraphs: [`You rescheduled the appointment for ${attendeeLabel(a)}.`],
+		paragraphs: [
+			`You rescheduled the appointment for ${attendeeLabel(a)}.`,
+			...(i.rescheduleReason ? [`Reason for rescheduling: ${i.rescheduleReason}`] : [])
+		],
 		rows: organizerRows,
 		actions: [],
 		previewText: `Now scheduled for ${organizerWhen}.`

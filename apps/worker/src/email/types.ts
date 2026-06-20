@@ -9,4 +9,5 @@ export interface AppointmentEmailInput {
 	eventType: EventType | undefined;
 	links: AppointmentLinks;
 	logo: Attachment | null;
+	rescheduleReason?: string;
 }

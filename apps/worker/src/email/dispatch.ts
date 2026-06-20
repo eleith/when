@@ -1,5 +1,6 @@
 import type { WhenConfiguration } from '@when/config';
 import type { SendAppointmentEmailInput } from '@when/jobs';
+import { parseActionLog } from '@when/db';
 import { appointmentCancelledByAttendee } from './builders/appointment-cancelled-by-attendee.js';
 import { appointmentCancelledByOrganizer } from './builders/appointment-cancelled-by-organizer.js';
 import { appointmentConfirmed } from './builders/appointment-confirmed.js';
@@ -42,12 +43,18 @@ export async function dispatch(
 ): Promise<Envelope[]> {
 	const eventType = cfg.event_types.find((e) => e.id === input.appointment.event_type_id);
 	const logo = await fetchBrandLogo(cfg);
+
+	const actionLog = parseActionLog(input.appointment.action_log);
+	const rescheduleEntry = actionLog.findLast((e) => e.action === 'reschedule');
+	const rescheduleReason = rescheduleEntry?.payload?.note;
+
 	const i: AppointmentEmailInput = {
 		cfg,
 		appointment: input.appointment,
 		eventType,
 		links: appointmentLinks({ baseUrl: cfg.url.app, appointment: input.appointment }),
-		logo
+		logo,
+		rescheduleReason
 	};
 
 	return build(i, input.kind).map((m) => renderMessage(m, logo));
