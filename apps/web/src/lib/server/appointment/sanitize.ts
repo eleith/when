@@ -1,5 +1,5 @@
-import type { Appointment } from '@when/db';
 import { parseAttendeeAnswers, type EventType, type Location } from '@when/config';
+import { parseActionLog, type ActionLogEntry, type Appointment } from '@when/db';
 import type { ChannelNotification } from '$lib/notifications';
 
 export interface PublicEventType {
@@ -25,7 +25,7 @@ export interface PublicAppointment {
 	answers: ReturnType<typeof parseAttendeeAnswers>;
 	location: string | null;
 	status: string;
-	cancel_reason: string | null;
+	action_log: ActionLogEntry[];
 	notifications?: ChannelNotification[];
 	email_notification_status?: string | null;
 	calendar_push_notification_status?: string | null;
@@ -61,6 +61,8 @@ export function toPublicAppointment(
 	isAdmin: boolean,
 	notifications?: ChannelNotification[]
 ): PublicAppointment {
+	const action_log = parseActionLog(row.action_log);
+
 	if (isAdmin) {
 		return {
 			id: row.id,
@@ -71,7 +73,7 @@ export function toPublicAppointment(
 			answers: parseAttendeeAnswers(row.attendee_answers),
 			location: row.location,
 			status: row.status,
-			cancel_reason: row.cancel_reason,
+			action_log,
 			notifications,
 			email_notification_status: row.email_notification_status,
 			calendar_push_notification_status: row.calendar_push_notification_status
@@ -79,6 +81,14 @@ export function toPublicAppointment(
 	}
 
 	const isConfirmed = row.status === 'confirmed';
+
+	const publicLog = action_log
+		.filter((e) => e.action === 'cancel')
+		.map((e) => ({
+			action: e.action,
+			at: e.at,
+			payload: e.payload?.note ? { note: e.payload.note } : undefined
+		})) as ActionLogEntry[];
 
 	return {
 		id: row.id,
@@ -90,7 +100,7 @@ export function toPublicAppointment(
 		// Only confirmed appointments can see the location
 		location: isConfirmed ? row.location : null,
 		status: row.status,
-		cancel_reason: row.cancel_reason,
+		action_log: publicLog,
 		notifications,
 		email_notification_status: null,
 		calendar_push_notification_status: null

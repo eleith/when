@@ -28,7 +28,7 @@ const baseRow: Appointment = {
 	rescheduled_from_id: null,
 	rescheduled_to_id: null,
 	cancel_token: 'tok-abc',
-	cancel_reason: null,
+	action_log: null,
 	external_event_id: null,
 	external_calendar_id: null,
 	email_notification_status: 'ok',
@@ -84,5 +84,43 @@ describe('toPublicAppointment', () => {
 		expect(res.location).toBeNull();
 		expect(res.email_notification_status).toBeNull();
 		expect(res.calendar_push_notification_status).toBeNull();
+	});
+
+	test('strips non-cancellation entries for non-admins', () => {
+		const rowWithLog: Appointment = {
+			...baseRow,
+			action_log: JSON.stringify([{ action: 'confirm', actor: 'organizer', at: '2026-05-01T12:00:00Z' }])
+		};
+		const res = toPublicAppointment(rowWithLog, false);
+		expect(res.action_log).toEqual([]);
+	});
+
+	test('returns only sanitized cancellation entries in action_log for non-admins', () => {
+		const rowWithLog: Appointment = {
+			...baseRow,
+			action_log: JSON.stringify([
+				{ action: 'confirm', actor: 'organizer', at: '2026-05-01T12:00:00Z' },
+				{ action: 'cancel', actor: 'organizer', at: '2026-05-01T13:00:00Z', payload: { note: 'double booked' } }
+			])
+		};
+		const res = toPublicAppointment(rowWithLog, false);
+		expect(res.action_log).toEqual([
+			{ action: 'cancel', at: '2026-05-01T13:00:00Z', payload: { note: 'double booked' } }
+		]);
+	});
+
+	test('returns full action_log for admins', () => {
+		const rowWithLog: Appointment = {
+			...baseRow,
+			action_log: JSON.stringify([
+				{ action: 'confirm', actor: 'organizer', at: '2026-05-01T12:00:00Z' },
+				{ action: 'cancel', actor: 'organizer', at: '2026-05-01T13:00:00Z', payload: { note: 'double booked' } }
+			])
+		};
+		const res = toPublicAppointment(rowWithLog, true);
+		expect(res.action_log).toEqual([
+			{ action: 'confirm', actor: 'organizer', at: '2026-05-01T12:00:00Z' },
+			{ action: 'cancel', actor: 'organizer', at: '2026-05-01T13:00:00Z', payload: { note: 'double booked' } }
+		]);
 	});
 });

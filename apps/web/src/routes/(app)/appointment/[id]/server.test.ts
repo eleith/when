@@ -23,7 +23,7 @@ const mockAppt: Appointment = {
 	rescheduled_from_id: null,
 	rescheduled_to_id: null,
 	cancel_token: 'tok-abc',
-	cancel_reason: null,
+	action_log: null,
 	external_event_id: null,
 	external_calendar_id: null,
 	email_notification_status: 'ok',
@@ -43,16 +43,19 @@ vi.mock('$lib/server/state', () => ({
 	getDb: () => mockDb
 }));
 
-vi.mock('@when/db', () => ({
-	findAppointment: async (_db: unknown, id: string) => {
-		if (id === 'appt-1') return mockAppt;
-		if (id === 'appt-deleted') return { ...mockAppt, id: 'appt-deleted', event_type_id: 'gone' };
-		return null;
-	},
-	findChainTip: async () => null,
-	originId: (r: { origin_id: string | null; id: string }) => r.origin_id || r.id,
-	isChainTerminal: async () => ({ terminal: true })
-}));
+vi.mock('@when/db', async (importOriginal) => {
+	const actual = await importOriginal<typeof import('@when/db')>();
+	return {
+		...actual,
+		findAppointment: async (_db: unknown, id: string) => {
+			if (id === 'appt-1') return mockAppt;
+			if (id === 'appt-deleted') return { ...mockAppt, id: 'appt-deleted', event_type_id: 'gone' };
+			return null;
+		},
+		findChainTip: async () => null,
+		isChainTerminal: async () => ({ terminal: true })
+	};
+});
 
 describe('/appointment/[id] server load', () => {
 	test('renders successfully for attendee when event type is active', async () => {
