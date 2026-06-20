@@ -85,76 +85,76 @@
 	{/if}
 
 	<div class="page-header-container">
-			<div class="page-header-icon status-{stateTone}">
-				{#if status === 'confirmed'}
-					<IconCheckCircle aria-hidden="true" />
-				{:else if status === 'pending'}
-					<IconClock aria-hidden="true" />
-				{:else if status === 'cancelled' || status === 'declined' || status === 'expired'}
-					<IconWarningCircle aria-hidden="true" />
-				{:else}
-					<IconClock aria-hidden="true" />
-				{/if}
-			</div>
-			<h1 class="page-header-title">
-				{#if !data.isAdmin && data.flash}
-					{#if data.flash === 'request'}
-						{#if status === 'confirmed'}
-							Appointment created
-						{:else}
-							Appointment requested
-						{/if}
-					{:else if data.flash === 'reschedule'}
-						{#if status === 'confirmed'}
-							Appointment rescheduled
-						{:else}
-							Reschedule requested
-						{/if}
-					{/if}
-				{:else if status === 'confirmed'}
-					Confirmed
-				{:else if status === 'pending'}
-					Pending
-				{:else if status === 'cancelled'}
-					Cancelled
-				{:else if status === 'declined'}
-					Declined
-				{:else if status === 'expired'}
-					Expired
-				{:else if status === 'rescheduled'}
-					Rescheduled
-				{:else}
-					Appointment
-				{/if}
-			</h1>
-			<p class="page-header-desc">
-				{#if status === 'confirmed'}
-					{#if data.flash}
-						{#if data.appointment.attendee_email}
-							A confirmation has been sent to <strong>{data.appointment.attendee_email}</strong>.
-						{:else}
-							Your appointment is confirmed.
-						{/if}
-					{:else}
-						See you soon!
-					{/if}
-				{:else if status === 'pending'}
-					{#if data.appointment.attendee_email}
-						We will email you once confirmed.
-					{:else}
-						Check back here to see when it's confirmed.
-					{/if}
-				{:else if status === 'cancelled'}
-					This appointment has been cancelled.
-				{:else if status === 'declined'}
-					This appointment request was declined.
-				{:else if status === 'expired'}
-					This appointment request has expired.
-				{:else}
-					This appointment has been rescheduled to a new date.
-				{/if}
-			</p>
+		<div class="page-header-icon status-{stateTone}">
+			{#if status === 'confirmed'}
+				<IconCheckCircle aria-hidden="true" />
+			{:else if status === 'pending'}
+				<IconClock aria-hidden="true" />
+			{:else if status === 'cancelled' || status === 'declined' || status === 'expired'}
+				<IconWarningCircle aria-hidden="true" />
+			{:else}
+				<IconClock aria-hidden="true" />
+			{/if}
 		</div>
+		<h1 class="page-header-title">
+			{#if !data.isAdmin && data.flash}
+				{#if data.flash === 'request'}
+					{#if status === 'confirmed'}
+						Appointment created
+					{:else}
+						Appointment requested
+					{/if}
+				{:else if data.flash === 'reschedule'}
+					{#if status === 'confirmed'}
+						Appointment rescheduled
+					{:else}
+						Reschedule requested
+					{/if}
+				{/if}
+			{:else if status === 'confirmed'}
+				Confirmed
+			{:else if status === 'pending'}
+				Pending
+			{:else if status === 'cancelled'}
+				Cancelled
+			{:else if status === 'declined'}
+				Declined
+			{:else if status === 'expired'}
+				Expired
+			{:else if status === 'rescheduled'}
+				Rescheduled
+			{:else}
+				Appointment
+			{/if}
+		</h1>
+		<p class="page-header-desc">
+			{#if status === 'confirmed'}
+				{#if data.flash}
+					{#if data.appointment.attendee_email}
+						A confirmation has been sent to <strong>{data.appointment.attendee_email}</strong>.
+					{:else}
+						Your appointment is confirmed.
+					{/if}
+				{:else}
+					See you soon!
+				{/if}
+			{:else if status === 'pending'}
+				{#if data.appointment.attendee_email}
+					We will email you once confirmed.
+				{:else}
+					Check back here to see when it's confirmed.
+				{/if}
+			{:else if status === 'cancelled'}
+				This appointment has been cancelled.
+			{:else if status === 'declined'}
+				This appointment request was declined.
+			{:else if status === 'expired'}
+				This appointment request has expired.
+			{:else}
+				This appointment has been rescheduled to a new date.
+			{/if}
+		</p>
+	</div>
 
 	<article class="card">
 		<section class="card-section card-section-header">
@@ -393,43 +393,47 @@
 				<div {...props} class="dialog-content cancel-dialog">
 					<Dialog.Title>
 						{#snippet child({ props: titleProps })}
-							<h2 {...titleProps} class="cancel-dialog-title">Provide your reason for cancelling</h2>
+							<h2 {...titleProps} class="cancel-dialog-title">
+								Provide your reason for cancelling
+							</h2>
 						{/snippet}
 					</Dialog.Title>
 
 					<p class="cancel-dialog-desc">
 						{#if data.isAdmin}
-							<strong>{data.appointment.attendee_name}</strong> will be notified by email.
-							This can't be undone.
+							<strong>{data.appointment.attendee_name}</strong> will be notified by email. This can't
+							be undone.
 						{:else}
 							You'll both be notified by email. This can't be undone.
 						{/if}
 					</p>
 
-				<form
-					method="POST"
-					action={data.isAdmin ? `/admin/appointment/${data.appointment.id}?/cancel` : `?token=${encodeURIComponent(data.token)}&/cancel`}
-				>
-					<textarea
-						name="reason"
-						class="cancel-reason-input"
-						placeholder="I can no longer attend"
-						maxlength="500"
-						rows="3"
-						required
-						bind:value={cancelReason}
-						bind:this={reasonTextarea}
-					></textarea>
-					<input type="hidden" name="token" value={data.token} />
-					<div class="cancel-dialog-actions">
-						<button type="submit" class="cancel-confirm-btn">Submit</button>
-						<Dialog.Close>
-							{#snippet child({ props: closeProps })}
-								<button {...closeProps} type="button" class="cancel-cancel-btn">Close</button>
-							{/snippet}
-						</Dialog.Close>
-					</div>
-				</form>
+					<form
+						method="POST"
+						action={data.isAdmin
+							? `/admin/appointment/${data.appointment.id}?/cancel`
+							: `?token=${encodeURIComponent(data.token)}&/cancel`}
+					>
+						<textarea
+							name="reason"
+							class="cancel-reason-input"
+							placeholder="I can no longer attend"
+							maxlength="500"
+							rows="3"
+							required
+							bind:value={cancelReason}
+							bind:this={reasonTextarea}
+						></textarea>
+						<input type="hidden" name="token" value={data.token} />
+						<div class="cancel-dialog-actions">
+							<button type="submit" class="cancel-confirm-btn">Submit</button>
+							<Dialog.Close>
+								{#snippet child({ props: closeProps })}
+									<button {...closeProps} type="button" class="cancel-cancel-btn">Close</button>
+								{/snippet}
+							</Dialog.Close>
+						</div>
+					</form>
 				</div>
 			{/snippet}
 		</Dialog.Content>
