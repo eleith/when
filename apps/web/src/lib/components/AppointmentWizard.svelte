@@ -106,6 +106,7 @@
 
 	let routerReady = $state(false);
 	let nameInput = $state<HTMLInputElement | null>(null);
+	let rescheduleReasonEl = $state<HTMLTextAreaElement | null>(null);
 	let linkNotice = $state<NonNullable<DeepLinkResult['notice']> | null>(null);
 
 	// svelte-ignore state_referenced_locally
@@ -128,6 +129,7 @@
 	);
 
 	let rescheduleReasonValue = $state('');
+	let fieldsDisabled = $derived(data.isAdmin && !!data.rescheduleAppt);
 
 	const initialSlot = page.url.searchParams.get('slot');
 	const initialDate = page.url.searchParams.get('date');
@@ -163,7 +165,11 @@
 
 	$effect(() => {
 		if (step === 3 && selectedSlot) {
-			nameInput?.focus();
+			if (fieldsDisabled) {
+				rescheduleReasonEl?.focus();
+			} else {
+				nameInput?.focus();
+			}
 		}
 	});
 
@@ -433,7 +439,7 @@
 								{#each data.formFields as field (field.id)}
 									<div class="field">
 										<label for={field.id}>
-											{field.label}{#if field.required}<span class="field-req" aria-hidden="true"
+											{field.label}{#if field.required && !fieldsDisabled}<span class="field-req" aria-hidden="true"
 													>*</span
 												>{/if}
 										</label>
@@ -442,7 +448,8 @@
 												id={field.id}
 												name={field.id}
 												type="text"
-												required
+												required={!fieldsDisabled}
+												disabled={fieldsDisabled}
 												autocomplete="name"
 												maxlength="200"
 												bind:this={nameInput}
@@ -453,7 +460,8 @@
 												id={field.id}
 												name={field.id}
 												type="email"
-												required={field.required}
+												required={field.required && !fieldsDisabled}
+												disabled={fieldsDisabled}
 												autocomplete="email"
 												maxlength="254"
 												value={initialFieldValue(field)}
@@ -463,7 +471,8 @@
 												id={field.id}
 												name={field.id}
 												type="number"
-												required={field.required}
+												required={field.required && !fieldsDisabled}
+												disabled={fieldsDisabled}
 												value={initialFieldValue(field)}
 											/>
 										{:else if field.type === 'paragraph'}
@@ -471,15 +480,23 @@
 												id={field.id}
 												name={field.id}
 												rows="3"
-												required={field.required}
+												required={field.required && !fieldsDisabled}
+												disabled={fieldsDisabled}
 												maxlength="1000"
 												bind:value={paragraphValues[field.id]}
 											></textarea>
-											<span class="field-count"
-												>{(paragraphValues[field.id] ?? '').length}/1000</span
-											>
+											{#if !fieldsDisabled}
+												<span class="field-count"
+													>{(paragraphValues[field.id] ?? '').length}/1000</span
+												>
+											{/if}
 										{:else if field.type === 'choice' || (field.type === 'event_location' && field.choices)}
-											<select id={field.id} name={field.id} required={field.required}>
+											<select
+												id={field.id}
+												name={field.id}
+												required={field.required && !fieldsDisabled}
+												disabled={fieldsDisabled}
+											>
 												{#if !field.required}<option value="">Select an option</option>{/if}
 												{#each field.choices ?? [] as choice (choice)}
 													<option value={choice} selected={choice === initialFieldValue(field)}
@@ -492,7 +509,8 @@
 												id={field.id}
 												name={field.id}
 												type="text"
-												required={field.required}
+												required={field.required && !fieldsDisabled}
+												disabled={fieldsDisabled}
 												maxlength="200"
 												value={initialFieldValue(field)}
 											/>
@@ -517,6 +535,7 @@
 											placeholder="e.g. scheduling conflict, double booked..."
 											required
 											bind:value={rescheduleReasonValue}
+											bind:this={rescheduleReasonEl}
 										></textarea>
 										<span class="field-count">{(rescheduleReasonValue ?? '').length}/500</span>
 									</div>
@@ -1320,5 +1339,15 @@
 		border: 0;
 		border-top: 1px dashed var(--border-strong);
 		margin: 0;
+	}
+
+	input:disabled,
+	textarea:disabled,
+	select:disabled {
+		background: var(--surface-muted);
+		border-color: var(--border);
+		color: var(--text-muted);
+		cursor: not-allowed;
+		opacity: 0.7;
 	}
 </style>
