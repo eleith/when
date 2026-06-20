@@ -26,7 +26,11 @@ export async function acceptAppointment(
 	}).accept;
 	if (!gate.allowed) return { ok: false, reason: 'gated' };
 
-	const result = await confirmAppointment(ctx.db, input.appointment.id, ctx.clock.now().toISOString());
+	const result = await confirmAppointment(
+		ctx.db,
+		input.appointment.id,
+		ctx.clock.now().toISOString()
+	);
 	if (!result.ok) return { ok: false, reason: 'conflict' };
 
 	const appointment = await enqueueAppointmentEmail(ctx.db, input.appointment.id, 'confirmed');

@@ -1,5 +1,12 @@
 import { sql, type Kysely } from 'kysely';
-import { originId, appendActionLogSql, createActionLog, type Appointment, type AppointmentStatus, type Database } from '@when/db';
+import {
+	originId,
+	appendActionLogSql,
+	createActionLog,
+	type Appointment,
+	type AppointmentStatus,
+	type Database
+} from '@when/db';
 import { newAppointmentId, newCancelToken } from './ids';
 
 export type TransitionOutcome = { ok: true } | { ok: false; reason: 'conflict' | 'not_found' };

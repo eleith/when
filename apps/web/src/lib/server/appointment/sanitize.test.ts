@@ -89,7 +89,9 @@ describe('toPublicAppointment', () => {
 	test('strips non-cancellation entries for non-admins', () => {
 		const rowWithLog: Appointment = {
 			...baseRow,
-			action_log: JSON.stringify([{ action: 'confirm', actor: 'organizer', at: '2026-05-01T12:00:00Z' }])
+			action_log: JSON.stringify([
+				{ action: 'confirm', actor: 'organizer', at: '2026-05-01T12:00:00Z' }
+			])
 		};
 		const res = toPublicAppointment(rowWithLog, false);
 		expect(res.action_log).toEqual([]);
@@ -100,7 +102,12 @@ describe('toPublicAppointment', () => {
 			...baseRow,
 			action_log: JSON.stringify([
 				{ action: 'confirm', actor: 'organizer', at: '2026-05-01T12:00:00Z' },
-				{ action: 'cancel', actor: 'organizer', at: '2026-05-01T13:00:00Z', payload: { note: 'double booked' } }
+				{
+					action: 'cancel',
+					actor: 'organizer',
+					at: '2026-05-01T13:00:00Z',
+					payload: { note: 'double booked' }
+				}
 			])
 		};
 		const res = toPublicAppointment(rowWithLog, false);
@@ -114,13 +121,23 @@ describe('toPublicAppointment', () => {
 			...baseRow,
 			action_log: JSON.stringify([
 				{ action: 'confirm', actor: 'organizer', at: '2026-05-01T12:00:00Z' },
-				{ action: 'cancel', actor: 'organizer', at: '2026-05-01T13:00:00Z', payload: { note: 'double booked' } }
+				{
+					action: 'cancel',
+					actor: 'organizer',
+					at: '2026-05-01T13:00:00Z',
+					payload: { note: 'double booked' }
+				}
 			])
 		};
 		const res = toPublicAppointment(rowWithLog, true);
 		expect(res.action_log).toEqual([
 			{ action: 'confirm', actor: 'organizer', at: '2026-05-01T12:00:00Z' },
-			{ action: 'cancel', actor: 'organizer', at: '2026-05-01T13:00:00Z', payload: { note: 'double booked' } }
+			{
+				action: 'cancel',
+				actor: 'organizer',
+				at: '2026-05-01T13:00:00Z',
+				payload: { note: 'double booked' }
+			}
 		]);
 	});
 });

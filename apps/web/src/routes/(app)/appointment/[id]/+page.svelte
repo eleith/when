@@ -55,9 +55,7 @@
 		!data.calendarLinks && (data.actions.accept.allowed || data.actions.decline.allowed)
 	);
 
-	let cancelEntry = $derived(
-		data.appointment.action_log.findLast((e) => e.action === 'cancel')
-	);
+	let cancelEntry = $derived(data.appointment.action_log.findLast((e) => e.action === 'cancel'));
 	let cancelReasonText = $derived(cancelEntry?.payload?.note);
 </script>
 
