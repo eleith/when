@@ -58,7 +58,7 @@ test('toAppointmentView enriches appointment rows correctly', () => {
 		rescheduled_from_id: null,
 		rescheduled_to_id: null,
 		cancel_token: 'tok-a1',
-		cancel_reason: null,
+		action_log: null,
 		external_event_id: null,
 		external_calendar_id: null,
 		email_notification_status: null,
