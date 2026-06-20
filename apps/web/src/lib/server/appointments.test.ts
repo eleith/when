@@ -55,8 +55,6 @@ test('toAppointmentView enriches appointment rows correctly', () => {
 		location: 'Zoom',
 		status: 'confirmed',
 		origin_id: null,
-		rescheduled_from_id: null,
-		rescheduled_to_id: null,
 		cancel_token: 'tok-a1',
 		action_log: null,
 		external_event_id: null,

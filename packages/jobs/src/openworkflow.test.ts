@@ -21,8 +21,6 @@ const appointment: Appointment = {
 	location: null,
 	status: 'confirmed',
 	origin_id: 'appt-1',
-	rescheduled_from_id: null,
-	rescheduled_to_id: null,
 	cancel_token: 'tok-1',
 	action_log: null,
 	external_event_id: null,
