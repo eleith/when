@@ -24,7 +24,7 @@ const appointment: Appointment = {
 	rescheduled_from_id: null,
 	rescheduled_to_id: null,
 	cancel_token: 'tok-1',
-	cancel_reason: null,
+	action_log: null,
 	external_event_id: null,
 	external_calendar_id: null,
 	email_notification_status: null,
