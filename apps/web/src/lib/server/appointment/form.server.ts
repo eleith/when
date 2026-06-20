@@ -3,6 +3,7 @@ import { resolveFormFields, type AttendeeAnswer, type EventType } from '@when/co
 const LIMIT_SHORT = 200;
 const LIMIT_LONG = 1000;
 const LIMIT_EMAIL = 254;
+const LIMIT_REASON = 500;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export interface ParsedAppointment {
@@ -96,4 +97,36 @@ export function parseAndValidateAppointmentForm(
 
 	if (Object.keys(errors).length > 0) return { ok: false, errors };
 	return { ok: true, data: { name, email, location, answers } };
+}
+
+export type ReasonPurpose = 'cancelling' | 'rescheduling';
+
+export type ValidateReasonResult =
+	| { ok: true; reason: string }
+	| { ok: false; error: string };
+
+// Cancel and reschedule submit the reason under different field names.
+export function validateReason(form: FormData, purpose: ReasonPurpose): ValidateReasonResult {
+	const field = purpose === 'rescheduling' ? 'reschedule_reason' : 'reason';
+	const reason = String(form.get(field) ?? '').trim();
+
+	if (!reason) {
+		return {
+			ok: false,
+			error:
+				purpose === 'rescheduling'
+					? 'Please provide a reason for rescheduling.'
+					: 'Please provide a reason for cancelling.'
+		};
+	}
+	if (reason.length > LIMIT_REASON) {
+		return {
+			ok: false,
+			error:
+				purpose === 'rescheduling'
+					? `Reason for rescheduling must be ${LIMIT_REASON} characters or fewer.`
+					: `Reason must be ${LIMIT_REASON} characters or fewer.`
+		};
+	}
+	return { ok: true, reason };
 }

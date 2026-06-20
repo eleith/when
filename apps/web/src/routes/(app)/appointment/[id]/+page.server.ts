@@ -16,6 +16,7 @@ import {
 import { toPublicAppointment, toPublicEventType } from '$lib/server/appointment/sanitize';
 import type { Actions, PageServerLoad } from './$types';
 import { cancelAppointment } from '$lib/server/appointment/cancel';
+import { validateReason } from '$lib/server/appointment/form.server';
 import { appointmentContext } from '$lib/server/appointment/context';
 
 type ClockStatus = 'upcoming' | 'in_progress' | 'concluded';
@@ -155,18 +156,13 @@ export const actions: Actions = {
 			return fail(403, { error: 'Invalid cancel token.' });
 		}
 
-		const reason = String(form.get('reason') ?? '').trim();
-		if (!reason) {
-			return fail(400, { error: 'Please provide a reason for cancelling.' });
-		}
-		if (reason.length > 500) {
-			return fail(400, { error: 'Reason must be 500 characters or fewer.' });
-		}
+		const reasonResult = validateReason(form, 'cancelling');
+		if (!reasonResult.ok) return fail(400, { error: reasonResult.error });
 
 		const result = await cancelAppointment(appointmentContext(), {
 			appointment: row,
 			initiator: 'attendee',
-			reason
+			reason: reasonResult.reason
 		});
 		if (!result.ok) {
 			return fail(409, { error: 'This appointment can no longer be cancelled.' });

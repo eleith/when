@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import type { EventType, FormField } from '@when/config';
-import { parseAndValidateAppointmentForm, resolveTimezone } from './form.server';
+import { parseAndValidateAppointmentForm, resolveTimezone, validateReason } from './form.server';
 
 const baseEvent: EventType = {
 	id: 'et',
@@ -120,6 +120,36 @@ describe('parseAndValidateAppointmentForm', () => {
 		).toBe(false);
 		const ok = parseAndValidateAppointmentForm(event, fd({ name: 'Jane', loc: 'Zoom' }));
 		expect(ok.ok && ok.data.location).toBe('Zoom');
+	});
+});
+
+describe('validateReason', () => {
+	test('reads the reschedule field and trims', () => {
+		const r = validateReason(fd({ reschedule_reason: '  conflict  ' }), 'rescheduling');
+		expect(r).toEqual({ ok: true, reason: 'conflict' });
+	});
+
+	test('reads the cancel field', () => {
+		const r = validateReason(fd({ reason: 'no longer needed' }), 'cancelling');
+		expect(r).toEqual({ ok: true, reason: 'no longer needed' });
+	});
+
+	test('blank reason is rejected with a purpose-specific message', () => {
+		expect(validateReason(fd({}), 'cancelling')).toEqual({
+			ok: false,
+			error: 'Please provide a reason for cancelling.'
+		});
+		expect(validateReason(fd({ reschedule_reason: '   ' }), 'rescheduling')).toEqual({
+			ok: false,
+			error: 'Please provide a reason for rescheduling.'
+		});
+	});
+
+	test('over 500 characters is rejected', () => {
+		const long = 'x'.repeat(501);
+		expect(validateReason(fd({ reason: long }), 'cancelling').ok).toBe(false);
+		expect(validateReason(fd({ reschedule_reason: long }), 'rescheduling').ok).toBe(false);
+		expect(validateReason(fd({ reason: 'x'.repeat(500) }), 'cancelling').ok).toBe(true);
 	});
 });
 

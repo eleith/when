@@ -74,3 +74,15 @@ export async function loadAvailability(
 
 	return { settings, slotsByDate, workingWindows, busyBlocks };
 }
+
+// Re-check, at submit time, that a slot is still on offer. `excludeStart` drops the
+// appointment's own current slot so a reschedule can land on its existing time window.
+export async function isSlotBookable(
+	cfg: WhenConfiguration,
+	eventType: EventType,
+	slot: string,
+	excludeStart: string | null = null
+): Promise<boolean> {
+	const { slotsByDate } = await loadAvailability(cfg, eventType, excludeStart);
+	return Object.values(slotsByDate).flat().includes(slot);
+}

@@ -2,8 +2,9 @@ import { fail, redirect } from '@sveltejs/kit';
 import { Temporal } from '@js-temporal/polyfill';
 import { findAppointment } from '@when/db';
 import { getConfig, getDb } from '$lib/server/state';
-import { loadAvailability } from '$lib/server/availability/load';
+import { isSlotBookable } from '$lib/server/availability/load';
 import { rescheduleAppointment } from '$lib/server/appointment/reschedule';
+import { validateReason } from '$lib/server/appointment/form.server';
 import { appointmentContext } from '$lib/server/appointment/context';
 import type { Actions } from './$types';
 
@@ -25,17 +26,12 @@ export const actions: Actions = {
 		const eventType = cfg.event_types.find((e) => e.id === found.event_type_id);
 		if (!eventType) return fail(409, { error: 'This event type no longer exists.' });
 
-		const reason = String(form.get('reschedule_reason') ?? '').trim();
-		if (!reason) {
-			return fail(400, { error: 'Please provide a reason for rescheduling.' });
-		}
-		if (reason.length > 500) {
-			return fail(400, { error: 'Reason for rescheduling must be 500 characters or fewer.' });
-		}
+		const reasonResult = validateReason(form, 'rescheduling');
+		if (!reasonResult.ok) return fail(400, { error: reasonResult.error });
+		const reason = reasonResult.reason;
 
 		// Re-validate the slot is currently bookable, ignoring the appointment's own current slot.
-		const { slotsByDate } = await loadAvailability(cfg, eventType, found.start_time);
-		if (!Object.values(slotsByDate).flat().includes(slotStr)) {
+		if (!(await isSlotBookable(cfg, eventType, slotStr, found.start_time))) {
 			return fail(409, { error: 'That time is no longer available. Please pick another.' });
 		}
 

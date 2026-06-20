@@ -4,6 +4,7 @@ import { findAppointment, isChainTerminal, deleteChain, originId } from '@when/d
 import { acceptAppointment } from '$lib/server/appointment/accept';
 import { declineAppointment } from '$lib/server/appointment/decline';
 import { cancelAppointment } from '$lib/server/appointment/cancel';
+import { validateReason } from '$lib/server/appointment/form.server';
 import { appointmentContext } from '$lib/server/appointment/context';
 import type { Actions, PageServerLoad } from './$types';
 import { systemClock } from '$lib/server/clock';
@@ -41,18 +42,13 @@ export const actions: Actions = {
 		if (!row) return fail(404, { error: 'Appointment not found.' });
 
 		const form = await request.formData();
-		const reason = String(form.get('reason') ?? '').trim();
-		if (!reason) {
-			return fail(400, { error: 'Please provide a reason for cancelling.' });
-		}
-		if (reason.length > 500) {
-			return fail(400, { error: 'Reason must be 500 characters or fewer.' });
-		}
+		const reasonResult = validateReason(form, 'cancelling');
+		if (!reasonResult.ok) return fail(400, { error: reasonResult.error });
 
 		const result = await cancelAppointment(appointmentContext(), {
 			appointment: row,
 			initiator: 'organizer',
-			reason
+			reason: reasonResult.reason
 		});
 		if (!result.ok) {
 			return fail(409, { error: 'This appointment can no longer be cancelled.' });
