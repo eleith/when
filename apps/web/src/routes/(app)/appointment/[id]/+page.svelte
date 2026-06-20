@@ -54,6 +54,11 @@
 	let showDecideCta = $derived(
 		!data.calendarLinks && (data.actions.accept.allowed || data.actions.decline.allowed)
 	);
+
+	let cancelEntry = $derived(
+		data.appointment.action_log.findLast((e) => e.action === 'cancel')
+	);
+	let cancelReasonText = $derived(cancelEntry?.payload?.note);
 </script>
 
 <svelte:head>
@@ -320,12 +325,12 @@
 					</div>
 				</div>
 			</div>
-			{#if status === 'cancelled' && data.appointment.cancel_reason}
+			{#if status === 'cancelled' && cancelReasonText}
 				<div class="detail-row">
 					<span class="detail-icon"><IconCalendarX aria-hidden="true" /></span>
 					<div class="detail-text">
 						<div class="detail-primary">Cancellation note</div>
-						<div class="detail-secondary notes">{data.appointment.cancel_reason}</div>
+						<div class="detail-secondary notes">{cancelReasonText}</div>
 					</div>
 				</div>
 			{:else if data.appointment.answers.length}
