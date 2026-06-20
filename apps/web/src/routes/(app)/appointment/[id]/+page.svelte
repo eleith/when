@@ -292,13 +292,14 @@
 			<div class="detail-row">
 				<span class="detail-icon"><IconUser aria-hidden="true" /></span>
 				<div class="detail-text">
-					<div class="detail-primary">{data.appointment.attendee_name}</div>
+					<div class="detail-primary">Attendees</div>
 					<div class="detail-secondary">
-						{#if data.isAdmin}Attendee{:else}Attendee (you){/if}
+						{data.appointment
+							.attendee_name}{#if data.isAdmin && data.appointment.attendee_email}&nbsp;&lt;{data
+								.appointment.attendee_email}&gt;{/if}{#if !data.isAdmin}&nbsp;(you){/if}
 					</div>
 					{#if data.isAdmin}
 						{#if data.appointment.attendee_email}
-							<div class="detail-secondary">{data.appointment.attendee_email}</div>
 							<div
 								class="detail-secondary"
 								class:notif-failed={data.appointment.email_notification_status === 'failed'}
@@ -315,18 +316,8 @@
 							<div class="detail-secondary">No email collected</div>
 						{/if}
 					{/if}
-				</div>
-			</div>
-			<div class="detail-row">
-				<span class="detail-icon"><IconUser aria-hidden="true" /></span>
-				<div class="detail-text">
-					<div class="detail-primary">{data.user.name}</div>
 					<div class="detail-secondary">
-						{#if data.isAdmin}
-							Attendee (you)
-						{:else}
-							Attendee
-						{/if}
+						{data.user.name}{#if data.isAdmin}&nbsp;(you){/if}
 					</div>
 				</div>
 			</div>
