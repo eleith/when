@@ -14,6 +14,7 @@ import { formCustomization } from './0012_form_customization.js';
 import { eventTypeSnapshot } from './0013_event_type_snapshot.js';
 import { cancelReason } from './0014_cancel_reason.js';
 import { actionLog } from './0015_action_log.js';
+import { dropRescheduleChainColumns } from './0016_drop_reschedule_chain_columns.js';
 
 // Registered in order; keys are the migration names Kysely's Migrator records.
 export const migrations: Record<string, Migration> = {
@@ -31,5 +32,6 @@ export const migrations: Record<string, Migration> = {
 	'0012_form_customization': formCustomization,
 	'0013_event_type_snapshot': eventTypeSnapshot,
 	'0014_cancel_reason': cancelReason,
-	'0015_action_log': actionLog
+	'0015_action_log': actionLog,
+	'0016_drop_reschedule_chain_columns': dropRescheduleChainColumns
 };

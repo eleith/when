@@ -17,7 +17,7 @@ function findChainTip(
 		.selectFrom('appointments')
 		.selectAll()
 		.where('origin_id', '=', chainOriginId)
-		.where('rescheduled_to_id', 'is', null)
+		.where('status', '!=', 'rescheduled')
 		.executeTakeFirst();
 }
 

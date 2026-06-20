@@ -33,8 +33,6 @@ export interface AppointmentsTable {
 	location: string | null;
 	status: AppointmentStatus;
 	origin_id: NullableText;
-	rescheduled_from_id: NullableText;
-	rescheduled_to_id: NullableText;
 	cancel_token: string;
 	action_log: NullableText;
 	external_event_id: string | null;

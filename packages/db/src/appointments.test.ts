@@ -23,8 +23,7 @@ async function insert(
 	id: string,
 	status: AppointmentStatus,
 	startTime: string,
-	origin = id,
-	rescheduledTo: string | null = null
+	origin = id
 ) {
 	await db
 		.insertInto('appointments')
@@ -38,7 +37,6 @@ async function insert(
 			location: null,
 			status,
 			origin_id: origin,
-			rescheduled_to_id: rescheduledTo,
 			cancel_token: `tok-${id}`,
 			external_event_id: null,
 			external_calendar_id: null,
@@ -105,9 +103,9 @@ test('expireStalePending retires only pending rows whose start has passed', asyn
 test('findChainTip returns the end of the chain (the row never rescheduled further)', async () => {
 	const db = await makeDb();
 	try {
-		await insert(db, 'A', 'rescheduled', '2099-01-01T15:00:00Z', 'A', 'B');
-		await insert(db, 'B', 'rescheduled', '2099-01-02T15:00:00Z', 'A', 'C');
-		await insert(db, 'C', 'confirmed', '2099-01-03T15:00:00Z', 'A', null);
+		await insert(db, 'A', 'rescheduled', '2099-01-01T15:00:00Z', 'A');
+		await insert(db, 'B', 'rescheduled', '2099-01-02T15:00:00Z', 'A');
+		await insert(db, 'C', 'confirmed', '2099-01-03T15:00:00Z', 'A');
 
 		expect((await findChainTip(db, 'A'))?.id).toBe('C');
 	} finally {
@@ -118,8 +116,8 @@ test('findChainTip returns the end of the chain (the row never rescheduled furth
 test('findChainTip returns the terminal tip when a chain ends cancelled', async () => {
 	const db = await makeDb();
 	try {
-		await insert(db, 'A', 'rescheduled', '2099-01-01T15:00:00Z', 'A', 'B');
-		await insert(db, 'B', 'cancelled', '2099-01-02T15:00:00Z', 'A', null);
+		await insert(db, 'A', 'rescheduled', '2099-01-01T15:00:00Z', 'A');
+		await insert(db, 'B', 'cancelled', '2099-01-02T15:00:00Z', 'A');
 
 		expect((await findChainTip(db, 'A'))?.id).toBe('B');
 	} finally {
@@ -137,8 +135,7 @@ test('bucket listings and counts', async () => {
 			status: AppointmentStatus,
 			startTime: string,
 			endTime: string,
-			origin = id,
-			rescheduledTo: string | null = null
+			origin = id
 		) => {
 			await db
 				.insertInto('appointments')
@@ -152,7 +149,6 @@ test('bucket listings and counts', async () => {
 					location: null,
 					status,
 					origin_id: origin,
-					rescheduled_to_id: rescheduledTo,
 					cancel_token: `tok-${id}`,
 					external_event_id: null,
 					external_calendar_id: null,
@@ -286,12 +282,12 @@ test('deleteChain purges the entire reschedule chain', async () => {
 	const db = await makeDb();
 	try {
 		// Chain A -> B -> C
-		await insert(db, 'A', 'rescheduled', '2026-06-15T10:00:00Z', 'A', 'B');
-		await insert(db, 'B', 'rescheduled', '2026-06-15T11:00:00Z', 'A', 'C');
-		await insert(db, 'C', 'cancelled', '2026-06-15T12:00:00Z', 'A', null);
+		await insert(db, 'A', 'rescheduled', '2026-06-15T10:00:00Z', 'A');
+		await insert(db, 'B', 'rescheduled', '2026-06-15T11:00:00Z', 'A');
+		await insert(db, 'C', 'cancelled', '2026-06-15T12:00:00Z', 'A');
 
 		// Standalone D
-		await insert(db, 'D', 'cancelled', '2026-06-15T12:00:00Z', 'D', null);
+		await insert(db, 'D', 'cancelled', '2026-06-15T12:00:00Z', 'D');
 
 		const deleted = await deleteChain(db, 'A');
 		expect(deleted).toBe(3); // A, B, C deleted
