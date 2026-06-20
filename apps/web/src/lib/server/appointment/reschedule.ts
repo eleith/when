@@ -75,21 +75,27 @@ export async function rescheduleAppointment(
 
 	let result: RescheduleResult;
 	try {
-		result = await rescheduleAppointmentTransition(ctx.db, input.appointment, {
-			newStart: input.newStart,
-			newEnd: input.newEnd,
-			newStatus,
-			eventTypeSnapshot: JSON.stringify(eventType),
-			attendee: input.attendee
-				? {
-						name: input.attendee.name,
-						email: input.attendee.email,
-						answers: input.attendee.answers.length ? JSON.stringify(input.attendee.answers) : null,
-						location: input.attendee.location,
-						timezone: input.timezone ?? input.appointment.attendee_timezone
-					}
-				: undefined
-		});
+		result = await rescheduleAppointmentTransition(
+			ctx.db,
+			input.appointment,
+			input.initiator === 'organizer' ? 'organizer' : 'attendee',
+			ctx.clock.now().toISOString(),
+			{
+				newStart: input.newStart,
+				newEnd: input.newEnd,
+				newStatus,
+				eventTypeSnapshot: JSON.stringify(eventType),
+				attendee: input.attendee
+					? {
+							name: input.attendee.name,
+							email: input.attendee.email,
+							answers: input.attendee.answers.length ? JSON.stringify(input.attendee.answers) : null,
+							location: input.attendee.location,
+							timezone: input.timezone ?? input.appointment.attendee_timezone
+						}
+					: undefined
+			}
+		);
 	} catch (err) {
 		if (isUniqueViolation(err)) return { ok: false, reason: 'slot_taken' };
 		throw err;

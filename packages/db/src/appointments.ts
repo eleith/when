@@ -1,4 +1,4 @@
-import { sql, type Kysely, type SelectQueryBuilder } from 'kysely';
+import { sql, type Kysely, type SelectQueryBuilder, type RawBuilder } from 'kysely';
 import type { Appointment, Database, ActionLogEntry } from './types.js';
 
 function originId(a: Pick<Appointment, 'id' | 'origin_id'>): string {
@@ -24,7 +24,11 @@ function findChainTip(
 async function expireStalePending(db: Kysely<Database>, nowIso: string): Promise<number> {
 	const result = await db
 		.updateTable('appointments')
-		.set({ status: 'expired', updated_at: sql`CURRENT_TIMESTAMP` })
+		.set({
+			status: 'expired',
+			action_log: appendActionLogSql({ action: 'expire', actor: 'system', at: nowIso }),
+			updated_at: sql`CURRENT_TIMESTAMP`
+		})
 		.where('status', '=', 'pending')
 		.where('start_time', '<=', nowIso)
 		.executeTakeFirst();
@@ -145,6 +149,22 @@ function parseActionLog(raw: string | null): ActionLogEntry[] {
 	}
 }
 
+function appendActionLogSql(
+	entry: Omit<ActionLogEntry, 'at'> & { at: string }
+): RawBuilder<string> {
+	const payloadJson = entry.payload ? JSON.stringify(entry.payload) : null;
+	if (payloadJson) {
+		return sql`json_insert(coalesce(action_log, '[]'), '$[#]', json(json_object('action', ${entry.action}, 'actor', ${entry.actor}, 'at', ${entry.at}, 'payload', json(${payloadJson}))))`;
+	}
+	return sql`json_insert(coalesce(action_log, '[]'), '$[#]', json(json_object('action', ${entry.action}, 'actor', ${entry.actor}, 'at', ${entry.at})))`;
+}
+
+function createActionLog(
+	entries: [ActionLogEntry, ...ActionLogEntry[]]
+): string {
+	return JSON.stringify(entries);
+}
+
 export {
 	originId,
 	findAppointment,
@@ -155,5 +175,7 @@ export {
 	isChainTerminal,
 	deleteChain,
 	parseActionLog,
+	appendActionLogSql,
+	createActionLog,
 	type AppointmentBucket
 };

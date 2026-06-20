@@ -27,7 +27,11 @@ export async function declineAppointment(
 	if (!gate.allowed) return { ok: false, reason: 'gated' };
 
 	// Decline never touches the calendar (pending appointments aren't synced), so no sync.
-	const result = await declineAppointmentTransition(ctx.db, input.appointment.id);
+	const result = await declineAppointmentTransition(
+		ctx.db,
+		input.appointment.id,
+		ctx.clock.now().toISOString()
+	);
 	if (!result.ok) return { ok: false, reason: 'conflict' };
 
 	const appointment = await enqueueAppointmentEmail(ctx.db, input.appointment.id, 'declined');

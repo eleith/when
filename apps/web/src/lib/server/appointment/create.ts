@@ -2,7 +2,7 @@ import { enqueueAppointmentEmail, enqueueCalendarSync } from '../workflow';
 import { newAppointmentId, newCancelToken } from './ids';
 import type { AppointmentContext } from './context';
 import type { AttendeeAnswer, EventType } from '@when/config';
-import type { Appointment } from '@when/db';
+import { createActionLog, type Appointment, type ActionLogEntry } from '@when/db';
 import type { AppointmentEmailKind } from '@when/jobs';
 
 export interface CreateAppointmentInput {
@@ -37,6 +37,14 @@ export async function createAppointment(
 		eventType.appointment_flow === 'requires_confirmation' && input.initiator !== 'organizer'
 			? 'pending'
 			: 'confirmed';
+	const now = ctx.clock.now().toISOString();
+	const initialLog = createActionLog([
+		{
+			action: 'create',
+			actor: input.initiator ?? 'attendee',
+			at: now
+		}
+	]);
 
 	let appointment: Appointment;
 	try {
@@ -57,6 +65,7 @@ export async function createAppointment(
 				status,
 				origin_id: id,
 				cancel_token: cancelToken,
+				action_log: initialLog,
 				external_event_id: null,
 				external_calendar_id: null,
 				event_type_snapshot: JSON.stringify(eventType),

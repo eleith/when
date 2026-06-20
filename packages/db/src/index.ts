@@ -36,7 +36,9 @@ export {
 	countAppointments,
 	isChainTerminal,
 	deleteChain,
-	parseActionLog
+	parseActionLog,
+	appendActionLogSql,
+	createActionLog
 } from './appointments.js';
 export type { AppointmentBucket } from './appointments.js';
 export {

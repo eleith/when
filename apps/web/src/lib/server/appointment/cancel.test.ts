@@ -146,7 +146,8 @@ describe('cancelAppointment', () => {
 
 			expect(result.ok).toBe(true);
 			const persisted = await fetchRow(db, 'a4');
-			expect(persisted.cancel_reason).toBe('I found a conflict');
+			const log = JSON.parse(persisted.action_log!);
+			expect(log.find((e: any) => e.action === 'cancel')?.payload?.note).toBe('I found a conflict');
 		} finally {
 			await db.destroy();
 		}
@@ -165,7 +166,8 @@ describe('cancelAppointment', () => {
 
 			expect(result.ok).toBe(true);
 			const persisted = await fetchRow(db, 'a5');
-			expect(persisted.cancel_reason).toBeNull();
+			const log = JSON.parse(persisted.action_log!);
+			expect(log.find((e: any) => e.action === 'cancel')?.payload?.note).toBeUndefined();
 		} finally {
 			await db.destroy();
 		}
@@ -184,7 +186,7 @@ describe('cancelAppointment', () => {
 
 			const persisted = await fetchRow(db, 'a6');
 			expect(persisted.status).toBe('declined');
-			expect(persisted.cancel_reason).toBeNull();
+			expect(persisted.action_log).toBeNull();
 		} finally {
 			await db.destroy();
 		}

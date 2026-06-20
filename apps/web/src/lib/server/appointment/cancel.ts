@@ -28,7 +28,13 @@ export async function cancelAppointment(
 	}).cancel;
 	if (!gate.allowed) return { ok: false, reason: 'gated' };
 
-	const result = await cancelAppointmentTransition(ctx.db, input.appointment.id, input.reason);
+	const result = await cancelAppointmentTransition(
+		ctx.db,
+		input.appointment.id,
+		input.initiator === 'organizer' ? 'organizer' : 'attendee',
+		ctx.clock.now().toISOString(),
+		input.reason
+	);
 	if (!result.ok) return { ok: false, reason: 'conflict' };
 
 	const kind = input.initiator === 'organizer' ? 'cancelled-by-organizer' : 'cancelled-by-attendee';
