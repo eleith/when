@@ -22,8 +22,6 @@ const existing: Appointment = {
 	location: null,
 	status: 'confirmed',
 	origin_id: 'appt-1',
-	rescheduled_from_id: null,
-	rescheduled_to_id: null,
 	cancel_token: 'tok-good',
 	action_log: null,
 	external_event_id: null,
@@ -257,13 +255,11 @@ describe('rescheduleAppointment', () => {
 				expect(next.status).toBe('confirmed');
 				expect(next.ics_sequence).toBe(1);
 				expect(next.origin_id).toBe('r1');
-				expect(next.rescheduled_from_id).toBe('r1');
 				expect(next.cancel_token).not.toBe('t1');
 				expect(next.calendar_push_notification_status).toBe('queued');
 
 				const old = await fetchRow(db, 'r1');
 				expect(old.status).toBe('rescheduled');
-				expect(old.rescheduled_to_id).toBe(next.id);
 
 				expect(enqueueCalendarSync).toHaveBeenCalledTimes(1);
 				expect(enqueueAppointmentEmail).toHaveBeenCalledWith(

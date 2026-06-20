@@ -36,6 +36,7 @@ export interface RescheduleAppointmentInput {
 	newEnd: string;
 	attendee?: ParsedAppointment;
 	timezone?: string;
+	reason?: string;
 }
 
 export type RescheduleAppointmentResult =
@@ -85,6 +86,7 @@ export async function rescheduleAppointment(
 				newEnd: input.newEnd,
 				newStatus,
 				eventTypeSnapshot: JSON.stringify(eventType),
+				reason: input.reason,
 				attendee: input.attendee
 					? {
 							name: input.attendee.name,

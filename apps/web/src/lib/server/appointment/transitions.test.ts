@@ -97,24 +97,9 @@ test('rescheduleAppointmentTransition ends the old row and creates a linked new 
 		expect(next.status).toBe('confirmed');
 		expect(next.ics_sequence).toBe(1);
 		expect(next.origin_id).toBe('1');
-		expect(next.rescheduled_from_id).toBe('1');
 		expect(next.calendar_push_notification_status).toBe('queued');
 
-		expect(JSON.parse(next.action_log!)).toEqual([
-			{
-				action: 'create',
-				actor: 'attendee',
-				at: '2026-01-01T13:00:00Z',
-				payload: {
-					metadata: { previous_id: '1' }
-				}
-			}
-		]);
-
-		const ended = await fetchRow(db, '1');
-		expect(ended.status).toBe('rescheduled');
-		expect(ended.rescheduled_to_id).toBe(next.id);
-		expect(JSON.parse(ended.action_log!)).toEqual([
+		const expectedLog = [
 			{
 				action: 'reschedule',
 				actor: 'attendee',
@@ -123,10 +108,16 @@ test('rescheduleAppointmentTransition ends the old row and creates a linked new 
 					field: 'status',
 					from: 'confirmed',
 					to: 'rescheduled',
-					metadata: { next_id: next.id }
+					metadata: { next_id: next.id, previous_id: '1' }
 				}
 			}
-		]);
+		];
+
+		expect(JSON.parse(next.action_log!)).toEqual(expectedLog);
+
+		const ended = await fetchRow(db, '1');
+		expect(ended.status).toBe('rescheduled');
+		expect(JSON.parse(ended.action_log!)).toEqual(expectedLog);
 	} finally {
 		await db.destroy();
 	}
@@ -156,6 +147,54 @@ test('rescheduleAppointmentTransition reports conflict when the old row is no lo
 			}
 		);
 		expect(result).toEqual({ ok: false, reason: 'conflict' });
+	} finally {
+		await db.destroy();
+	}
+});
+
+test('rescheduleAppointmentTransition saves the reschedule reason note in the action log', async () => {
+	const db = await makeDb();
+	try {
+		await insert(db, { id: '1', status: 'confirmed', cancel_token: 't1', origin_id: '1' });
+		const old = await fetchRow(db, '1');
+
+		const result = await rescheduleAppointmentTransition(
+			db,
+			old,
+			'attendee',
+			'2026-01-01T13:00:00Z',
+			{
+				newStart: '2099-02-01T10:00:00Z',
+				newEnd: '2099-02-01T10:30:00Z',
+				newStatus: 'confirmed',
+				eventTypeSnapshot: '{}',
+				reason: 'scheduling conflict'
+			}
+		);
+
+		expect(result.ok).toBe(true);
+		if (!result.ok) return;
+		const next = result.appointment;
+
+		const expectedLog = [
+			{
+				action: 'reschedule',
+				actor: 'attendee',
+				at: '2026-01-01T13:00:00Z',
+				payload: {
+					field: 'status',
+					from: 'confirmed',
+					to: 'rescheduled',
+					note: 'scheduling conflict',
+					metadata: { next_id: next.id, previous_id: '1' }
+				}
+			}
+		];
+
+		expect(JSON.parse(next.action_log!)).toEqual(expectedLog);
+
+		const ended = await fetchRow(db, '1');
+		expect(JSON.parse(ended.action_log!)).toEqual(expectedLog);
 	} finally {
 		await db.destroy();
 	}

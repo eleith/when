@@ -2,7 +2,8 @@ import { sql, type Kysely } from 'kysely';
 import {
 	originId,
 	appendActionLogSql,
-	createActionLog,
+	parseActionLog,
+	type ActionLogEntry,
 	type Appointment,
 	type AppointmentStatus,
 	type Database
@@ -77,6 +78,7 @@ export async function rescheduleAppointmentTransition(
 		newStatus: AppointmentStatus;
 		attendee?: RescheduleAttendee;
 		eventTypeSnapshot: string;
+		reason?: string;
 	}
 ): Promise<RescheduleResult> {
 	const newId = newAppointmentId();
@@ -89,34 +91,26 @@ export async function rescheduleAppointmentTransition(
 		timezone: old.attendee_timezone
 	};
 
-	const initialNewLog = createActionLog([
-		{
-			action: 'create',
-			actor,
-			at: now,
-			payload: {
-				metadata: { previous_id: old.id }
-			}
+	const rescheduleEntry: ActionLogEntry = {
+		action: 'reschedule',
+		actor,
+		at: now,
+		payload: {
+			field: 'status',
+			from: old.status,
+			to: 'rescheduled',
+			note: when.reason || undefined,
+			metadata: { next_id: newId, previous_id: old.id }
 		}
-	]);
+	};
+	const updatedLogJson = JSON.stringify([...parseActionLog(old.action_log), rescheduleEntry]);
 
 	const created = await db.transaction().execute(async (trx) => {
 		const terminated = await trx
 			.updateTable('appointments')
 			.set({
 				status: 'rescheduled',
-				rescheduled_to_id: newId,
-				action_log: appendActionLogSql({
-					action: 'reschedule',
-					actor,
-					at: now,
-					payload: {
-						field: 'status',
-						from: old.status,
-						to: 'rescheduled',
-						metadata: { next_id: newId }
-					}
-				}),
+				action_log: updatedLogJson,
 				updated_at: sql`CURRENT_TIMESTAMP`
 			})
 			.where('id', '=', old.id)
@@ -139,9 +133,8 @@ export async function rescheduleAppointmentTransition(
 				location: attendee.location,
 				status: when.newStatus,
 				origin_id: originId(old),
-				rescheduled_from_id: old.id,
 				cancel_token: newToken,
-				action_log: initialNewLog,
+				action_log: updatedLogJson,
 				external_event_id: old.external_event_id,
 				external_calendar_id: old.external_calendar_id,
 				event_type_snapshot: when.eventTypeSnapshot,
