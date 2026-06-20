@@ -106,4 +106,3 @@ export interface ActionLogEntry {
 		metadata?: Record<string, unknown>;
 	};
 }
-

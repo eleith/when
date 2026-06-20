@@ -159,9 +159,7 @@ function appendActionLogSql(
 	return sql`json_insert(coalesce(action_log, '[]'), '$[#]', json(json_object('action', ${entry.action}, 'actor', ${entry.actor}, 'at', ${entry.at})))`;
 }
 
-function createActionLog(
-	entries: [ActionLogEntry, ...ActionLogEntry[]]
-): string {
+function createActionLog(entries: [ActionLogEntry, ...ActionLogEntry[]]): string {
 	return JSON.stringify(entries);
 }
 
