@@ -10,6 +10,7 @@ import {
 	findChainTip,
 	originId,
 	isChainTerminal,
+	parseActionLog,
 	type Appointment
 } from '@when/db';
 import { toPublicAppointment, toPublicEventType } from '$lib/server/appointment/sanitize';
@@ -103,10 +104,13 @@ export const load: PageServerLoad = async ({ params, url, locals, cookies }) => 
 	const notifications = notificationStates(row);
 
 	// A valid token for this row authorises its chain siblings, so we pass their tokens to the links.
-	const predecessor = row.rescheduled_from_id
-		? await findAppointment(getDb(), row.rescheduled_from_id)
-		: null;
-	const tip = row.rescheduled_to_id ? await findChainTip(getDb(), originId(row)) : null;
+	const actionLog = parseActionLog(row.action_log);
+	const rescheduleToSelf = actionLog.findLast(
+		(e) => e.action === 'reschedule' && e.payload?.metadata?.next_id === row.id
+	);
+	const predecessorId = rescheduleToSelf?.payload?.metadata?.previous_id as string | undefined;
+	const predecessor = predecessorId ? await findAppointment(getDb(), predecessorId) : null;
+	const tip = row.status === 'rescheduled' ? await findChainTip(getDb(), originId(row)) : null;
 	const latest = tip && tip.id !== row.id ? tip : null;
 
 	let deleteCheck = null;

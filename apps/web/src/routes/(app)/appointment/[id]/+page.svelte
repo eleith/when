@@ -57,6 +57,13 @@
 
 	let cancelEntry = $derived(data.appointment.action_log.findLast((e) => e.action === 'cancel'));
 	let cancelReasonText = $derived(cancelEntry?.payload?.note);
+
+	let rescheduleEntry = $derived(
+		data.appointment.action_log.findLast(
+			(e) => e.action === 'reschedule' && e.payload?.metadata?.next_id === data.appointment.id
+		)
+	);
+	let rescheduleReasonText = $derived(rescheduleEntry?.payload?.note);
 </script>
 
 <svelte:head>
@@ -331,7 +338,17 @@
 						<div class="detail-secondary notes">{cancelReasonText}</div>
 					</div>
 				</div>
-			{:else if data.appointment.answers.length}
+			{/if}
+			{#if rescheduleReasonText}
+				<div class="detail-row">
+					<span class="detail-icon"><IconNote aria-hidden="true" /></span>
+					<div class="detail-text">
+						<div class="detail-primary">Reschedule note</div>
+						<div class="detail-secondary notes">{rescheduleReasonText}</div>
+					</div>
+				</div>
+			{/if}
+			{#if data.appointment.answers.length}
 				<div class="detail-row">
 					<span class="detail-icon"><IconNote aria-hidden="true" /></span>
 					<div class="detail-text answers">
