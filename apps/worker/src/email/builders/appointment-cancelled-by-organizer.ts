@@ -11,10 +11,12 @@ import { attendeeMessage, messages, organizerMessage, type EmailMessage } from '
 import type { EmailContent } from '../content.js';
 import type { AppointmentEmailInput } from '../types.js';
 
-import type { Appointment } from '@when/db';
+import { parseActionLog, type Appointment } from '@when/db';
 
 function reasonParagraph(a: Appointment): string[] {
-	return a.cancel_reason ? [`Reason: ${a.cancel_reason}`] : [];
+	const log = parseActionLog(a.action_log);
+	const cancel = log.findLast((e) => e.action === 'cancel');
+	return cancel?.payload?.note ? [`Reason: ${cancel.payload.note}`] : [];
 }
 
 export function appointmentCancelledByOrganizer(i: AppointmentEmailInput): EmailMessage[] {

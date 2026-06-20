@@ -26,7 +26,17 @@ describe('appointmentCancelledByAttendee', () => {
 	test('includes cancel reason in both messages when present', () => {
 		const input = {
 			...sampleInput,
-			appointment: { ...sampleAppointment, cancel_reason: 'Double booked' }
+			appointment: {
+				...sampleAppointment,
+				action_log: JSON.stringify([
+					{
+						action: 'cancel',
+						actor: 'attendee',
+						at: '2026-01-01T12:00:00Z',
+						payload: { note: 'Double booked' }
+					}
+				])
+			}
 		};
 		const [attendee, organizer] = appointmentCancelledByAttendee(input);
 
@@ -37,7 +47,7 @@ describe('appointmentCancelledByAttendee', () => {
 		]);
 	});
 
-	test('no reason paragraph when cancel_reason is null', () => {
+	test('no reason paragraph when action_log is null', () => {
 		const [attendee, organizer] = appointmentCancelledByAttendee(sampleInput);
 
 		expect(attendee.content.paragraphs).toEqual([]);

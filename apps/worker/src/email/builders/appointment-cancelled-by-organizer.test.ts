@@ -21,7 +21,17 @@ describe('appointmentCancelledByOrganizer', () => {
 	test('includes cancel reason in both messages when present', () => {
 		const input = {
 			...sampleInput,
-			appointment: { ...sampleAppointment, cancel_reason: 'No longer needed' }
+			appointment: {
+				...sampleAppointment,
+				action_log: JSON.stringify([
+					{
+						action: 'cancel',
+						actor: 'organizer',
+						at: '2026-01-01T12:00:00Z',
+						payload: { note: 'No longer needed' }
+					}
+				])
+			}
 		};
 		const [attendee, organizer] = appointmentCancelledByOrganizer(input);
 
@@ -32,7 +42,7 @@ describe('appointmentCancelledByOrganizer', () => {
 		]);
 	});
 
-	test('no reason paragraph when cancel_reason is null', () => {
+	test('no reason paragraph when action_log is null', () => {
 		const [attendee, organizer] = appointmentCancelledByOrganizer(sampleInput);
 
 		expect(attendee.content.paragraphs).toEqual([]);
