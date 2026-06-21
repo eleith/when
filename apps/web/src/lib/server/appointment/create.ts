@@ -66,10 +66,7 @@ export async function createAppointment(
 				action_log: initialLog,
 				external_event_id: null,
 				external_calendar_id: null,
-				event_type_snapshot: JSON.stringify(eventType),
-				// A confirmed appointment is out of sync (synced stays NULL) and the worker
-				// syncs it to the calendar; a pending one isn't synced until accepted.
-				calendar_push_notification_status: status === 'confirmed' ? 'queued' : null
+				event_type_snapshot: JSON.stringify(eventType)
 			})
 			.returningAll()
 			.executeTakeFirstOrThrow();

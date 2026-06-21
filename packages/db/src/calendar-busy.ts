@@ -1,11 +1,5 @@
 import { sql, type Kysely } from 'kysely';
-import type {
-	Appointment,
-	CalendarHealth,
-	CalendarSyncStatus,
-	Database,
-	NotificationOutcome
-} from './types.js';
+import type { Appointment, CalendarHealth, CalendarSyncStatus, Database } from './types.js';
 
 export interface BusyInterval {
 	start: string;
@@ -143,8 +137,6 @@ export async function listOutOfSyncAppointments(db: Kysely<Database>): Promise<A
 export interface MarkSyncedFields {
 	external_event_id?: string | null;
 	external_calendar_id?: string | null;
-	calendar_push_notification_status?: NotificationOutcome | null;
-	calendar_push_failing_since?: string | null;
 }
 
 export async function markSynced(
@@ -157,21 +149,6 @@ export async function markSynced(
 		.updateTable('appointments')
 		.set({ calendar_synced_revision: revision, ...fields })
 		.where('id', '=', id)
-		.execute();
-}
-
-// Stamp when a publish first started failing; leaves an existing stamp intact so
-// it measures the whole failing stretch (the health evaluator reads it later).
-export async function recordPublishFailure(
-	db: Kysely<Database>,
-	id: string,
-	at: string
-): Promise<void> {
-	await db
-		.updateTable('appointments')
-		.set({ calendar_push_failing_since: at })
-		.where('id', '=', id)
-		.where('calendar_push_failing_since', 'is', null)
 		.execute();
 }
 

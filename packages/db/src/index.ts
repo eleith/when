@@ -55,7 +55,6 @@ export {
 	setPossibleConflicts,
 	listOutOfSyncAppointments,
 	markSynced,
-	recordPublishFailure,
 	listCalendarSyncStatus,
 	setCalendarHealth,
 	listPublishFailingAppointments

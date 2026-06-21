@@ -43,7 +43,6 @@ test('confirmAppointment confirms a pending appointment, queues the sync, bumps 
 		expect(await confirmAppointment(db, '1', '2026-01-01T12:00:00Z')).toEqual({ ok: true });
 		const row = await fetchRow(db, '1');
 		expect(row.status).toBe('confirmed');
-		expect(row.calendar_push_notification_status).toBe('queued');
 		expect(row.calendar_revision).toBe(1);
 		expect(JSON.parse(row.action_log!)).toEqual([
 			{ action: 'confirm', actor: 'organizer', at: '2026-01-01T12:00:00Z' }
@@ -97,7 +96,6 @@ test('rescheduleAppointmentTransition ends the old row and creates a linked new 
 		expect(next.status).toBe('confirmed');
 		expect(next.ics_sequence).toBe(1);
 		expect(next.origin_id).toBe('1');
-		expect(next.calendar_push_notification_status).toBe('queued');
 
 		const expectedLog = [
 			{
@@ -229,7 +227,6 @@ test('cancelAppointmentTransition queues the sync only when there is a published
 
 		const pub = await fetchRow(db, 'published');
 		expect(pub.status).toBe('cancelled');
-		expect(pub.calendar_push_notification_status).toBe('queued');
 		expect(pub.calendar_revision).toBe(1);
 		expect(JSON.parse(pub.action_log!)).toEqual([
 			{
@@ -242,7 +239,6 @@ test('cancelAppointmentTransition queues the sync only when there is a published
 
 		const unpub = await fetchRow(db, 'unpublished');
 		expect(unpub.status).toBe('cancelled');
-		expect(unpub.calendar_push_notification_status).toBeNull();
 		expect(JSON.parse(unpub.action_log!)).toEqual([
 			{
 				action: 'cancel',
@@ -264,7 +260,6 @@ test('declineAppointmentTransition declines a pending request; no event to remov
 		});
 		const row = await fetchRow(db, '1');
 		expect(row.status).toBe('declined');
-		expect(row.calendar_push_notification_status).toBeNull();
 		expect(JSON.parse(row.action_log!)).toEqual([
 			{ action: 'decline', actor: 'organizer', at: '2026-01-01T15:00:00Z' }
 		]);
@@ -292,7 +287,6 @@ test('declineAppointmentTransition queues a delete when a re-approval revert car
 		});
 		const row = await fetchRow(db, '1');
 		expect(row.status).toBe('declined');
-		expect(row.calendar_push_notification_status).toBe('queued');
 		expect(row.calendar_revision).toBe(1);
 		expect(JSON.parse(row.action_log!)).toEqual([
 			{ action: 'decline', actor: 'organizer', at: '2026-01-01T15:00:00Z' }

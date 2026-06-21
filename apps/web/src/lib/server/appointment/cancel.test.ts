@@ -73,7 +73,6 @@ describe('cancelAppointment', () => {
 			const persisted = await fetchRow(db, 'a1');
 			expect(persisted.status).toBe('cancelled');
 			expect(persisted.ics_sequence).toBe(1);
-			expect(persisted.calendar_push_notification_status).toBe('queued');
 			expect(persisted.calendar_revision).toBe(1);
 			expect(enqueueCalendarSync).toHaveBeenCalledTimes(1);
 			expect(enqueueAppointmentEmail).toHaveBeenCalledWith(

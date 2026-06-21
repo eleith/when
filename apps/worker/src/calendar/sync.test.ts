@@ -78,7 +78,6 @@ test('confirmed without an external event is created and marked synced', async (
 		expect(row.external_event_id).toBe('1');
 		expect(row.external_calendar_id).toBe('work');
 		expect(row.calendar_synced_revision).toBe(1);
-		expect(row.calendar_push_notification_status).toBe('ok');
 		expect(calls.some((c) => c.method === 'PUT')).toBe(true);
 		expect(await calendarJobStates(ctx.db, '1')).toEqual(['queued', 'done']);
 	} finally {
@@ -86,7 +85,7 @@ test('confirmed without an external event is created and marked synced', async (
 	}
 });
 
-test('a failing publish stamps failing_since; a later success clears it', async () => {
+test('a failing publish leaves an open queued entry; a later success closes it', async () => {
 	const ctx = await ctxWith();
 	try {
 		await insert(ctx, { id: '1', cancel_token: 't1', calendar_revision: 1 });
@@ -94,18 +93,13 @@ test('a failing publish stamps failing_since; a later success clears it', async 
 		await reconcileAppointment(ctx, await onlyRow(ctx), {
 			fetchImpl: recordingFetch(500).fetchImpl
 		});
-		let row = await rowById(ctx.db, '1');
-		expect(row.calendar_push_failing_since).not.toBeNull();
-		expect(row.calendar_synced_revision).toBeNull(); // still out of sync — will retry
+		expect((await rowById(ctx.db, '1')).calendar_synced_revision).toBeNull(); // still out of sync
 		// queued logged and still open (no done) — this is the log's "failing since"
 		expect(await calendarJobStates(ctx.db, '1')).toEqual(['queued']);
 
 		await reconcileAppointment(ctx, await onlyRow(ctx), {
 			fetchImpl: recordingFetch(201).fetchImpl
 		});
-		row = await rowById(ctx.db, '1');
-		expect(row.calendar_push_failing_since).toBeNull();
-		expect(row.calendar_push_notification_status).toBe('ok');
 		// the retry closes the open queued rather than appending a second one
 		expect(await calendarJobStates(ctx.db, '1')).toEqual(['queued', 'done']);
 	} finally {
@@ -128,8 +122,8 @@ test('confirmed with an external event is updated', async () => {
 		await reconcileAppointment(ctx, await onlyRow(ctx), { fetchImpl });
 		const row = await rowById(ctx.db, '1');
 		expect(row.calendar_synced_revision).toBe(2);
-		expect(row.calendar_push_notification_status).toBe('ok');
 		expect(calls.some((c) => c.method === 'PUT')).toBe(true);
+		expect(await calendarJobStates(ctx.db, '1')).toEqual(['queued', 'done']);
 	} finally {
 		await ctx.db.destroy();
 	}

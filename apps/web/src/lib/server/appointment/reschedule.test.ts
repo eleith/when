@@ -256,7 +256,6 @@ describe('rescheduleAppointment', () => {
 				expect(next.ics_sequence).toBe(1);
 				expect(next.origin_id).toBe('r1');
 				expect(next.cancel_token).not.toBe('t1');
-				expect(next.calendar_push_notification_status).toBe('queued');
 
 				const old = await fetchRow(db, 'r1');
 				expect(old.status).toBe('rescheduled');
@@ -438,7 +437,6 @@ describe('rescheduleAppointment', () => {
 			if (result.ok) {
 				expect(result.appointment.status).toBe('pending');
 				expect(result.appointment.external_event_id).toBe('rc1');
-				expect(result.appointment.calendar_push_notification_status).toBeNull();
 			}
 		} finally {
 			await db.destroy();

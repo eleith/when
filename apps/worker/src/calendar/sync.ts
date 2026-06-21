@@ -1,11 +1,6 @@
 import { deleteAppointmentFromCalendar, pushAppointment, type FetchFn } from '@when/calendar';
 import { Temporal } from '@js-temporal/polyfill';
-import {
-	listOutOfSyncAppointments,
-	markSynced,
-	recordPublishFailure,
-	type Appointment
-} from '@when/db';
+import { listOutOfSyncAppointments, markSynced, type Appointment } from '@when/db';
 import type { WorkerContext } from '../services/context.js';
 import { appointmentLinks } from '../links.js';
 import { appendJobLog, hasOpenCalendarJob } from '../services/job-log.js';
@@ -43,13 +38,10 @@ export async function reconcileAppointment(
 		if (pushed.ok) {
 			await markSynced(ctx.db, row.id, revision, {
 				external_event_id: pushed.externalEventId,
-				external_calendar_id: pushed.externalCalendarId,
-				calendar_push_notification_status: 'ok',
-				calendar_push_failing_since: null
+				external_calendar_id: pushed.externalCalendarId
 			});
 			await appendJobLog(ctx.db, row.id, 'calendar', 'done', Temporal.Now.instant().toString());
 		} else {
-			await recordPublishFailure(ctx.db, row.id, Temporal.Now.instant().toString());
 			ctx.logger.error('calendar sync failed; will retry next scan', {
 				appointmentId: row.id,
 				reason: pushed.reason
@@ -74,13 +66,10 @@ export async function reconcileAppointment(
 		if (deleted.ok) {
 			await markSynced(ctx.db, row.id, revision, {
 				external_event_id: null,
-				external_calendar_id: null,
-				calendar_push_notification_status: 'ok',
-				calendar_push_failing_since: null
+				external_calendar_id: null
 			});
 			await appendJobLog(ctx.db, row.id, 'calendar', 'done', Temporal.Now.instant().toString());
 		} else {
-			await recordPublishFailure(ctx.db, row.id, Temporal.Now.instant().toString());
 			ctx.logger.error('calendar delete failed; will retry next scan', {
 				appointmentId: row.id,
 				reason: deleted.reason

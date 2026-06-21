@@ -42,8 +42,6 @@ export async function confirmAppointment(
 		.updateTable('appointments')
 		.set({
 			status: 'confirmed',
-			email_notification_status: null,
-			calendar_push_notification_status: 'queued',
 			calendar_revision: sql`calendar_revision + 1`,
 			action_log: appendActionLogSql({ action: 'confirm', actor: 'organizer', at: now }),
 			updated_at: sql`CURRENT_TIMESTAMP`
@@ -138,7 +136,6 @@ export async function rescheduleAppointmentTransition(
 				external_event_id: old.external_event_id,
 				external_calendar_id: old.external_calendar_id,
 				event_type_snapshot: when.eventTypeSnapshot,
-				calendar_push_notification_status: when.newStatus === 'confirmed' ? 'queued' : null,
 				ics_sequence: old.ics_sequence + 1
 			})
 			.returningAll()
@@ -162,9 +159,6 @@ export async function cancelAppointmentTransition(
 		.set({
 			status: 'cancelled',
 			ics_sequence: sql`ics_sequence + 1`,
-			email_notification_status: null,
-			// Only worth a sync when there's an event to remove.
-			calendar_push_notification_status: sql`CASE WHEN external_event_id IS NOT NULL THEN 'queued' ELSE NULL END`,
 			calendar_revision: sql`calendar_revision + 1`,
 			action_log: appendActionLogSql({
 				action: 'cancel',
@@ -220,8 +214,6 @@ export async function declineAppointmentTransition(
 		.set({
 			status: 'declined',
 			ics_sequence: sql`ics_sequence + 1`,
-			email_notification_status: null,
-			calendar_push_notification_status: sql`CASE WHEN external_event_id IS NOT NULL THEN 'queued' ELSE NULL END`,
 			calendar_revision: sql`calendar_revision + 1`,
 			action_log: appendActionLogSql({ action: 'decline', actor: 'organizer', at: now }),
 			updated_at: sql`CURRENT_TIMESTAMP`

@@ -53,15 +53,6 @@ async function seedDb(): Promise<Kysely<Database>> {
 	return db;
 }
 
-async function readEmailStatus(db: Kysely<Database>) {
-	const row = await db
-		.selectFrom('appointments')
-		.select('email_notification_status')
-		.where('id', '=', 'appt-1')
-		.executeTakeFirstOrThrow();
-	return row.email_notification_status;
-}
-
 async function readEmailJobStates(db: Kysely<Database>) {
 	const row = await db
 		.selectFrom('appointments')
@@ -89,10 +80,8 @@ describe('runSendAppointmentEmail', () => {
 			'log:queued',
 			'smtp:jane@example.com',
 			'smtp:owner@acme.test',
-			'status',
 			'log:result'
 		]);
-		expect(await readEmailStatus(db)).toBe('ok');
 		expect(await readEmailJobStates(db)).toEqual(['queued', 'done']);
 		await db.destroy();
 	});
@@ -107,7 +96,6 @@ describe('runSendAppointmentEmail', () => {
 		const result = await runSendAppointmentEmail(input, step);
 
 		expect(result).toBe('failed');
-		expect(await readEmailStatus(db)).toBe('failed');
 		expect(await readEmailJobStates(db)).toEqual(['queued', 'failed']);
 		await db.destroy();
 	});

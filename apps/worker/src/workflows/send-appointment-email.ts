@@ -5,7 +5,6 @@ import { sendAppointmentEmail } from '@when/jobs/specs';
 import type { SendAppointmentEmailInput, SendAppointmentEmailResult } from '@when/jobs';
 import { dispatch } from '../email/dispatch.js';
 import { getWorkerContext } from '../services/context.js';
-import { setNotificationStatus } from '../services/notifications.js';
 import { appendJobLog } from '../services/job-log.js';
 
 // Retry the SMTP send itself (a memoized step), with backoff. A send that fails
@@ -58,10 +57,6 @@ export async function runSendAppointmentEmail(
 		}
 	}
 
-	const outcome = allSent ? 'ok' : 'failed';
-	await step.run({ name: 'status' }, () =>
-		setNotificationStatus(db, input.appointment.id, 'email', outcome)
-	);
 	await step.run({ name: 'log:result' }, () =>
 		appendJobLog(
 			db,

@@ -53,7 +53,6 @@ describe('createAppointment', () => {
 					.where('id', '=', result.appointment.id)
 					.executeTakeFirstOrThrow();
 				expect(persisted.status).toBe('confirmed');
-				expect(persisted.calendar_push_notification_status).toBe('queued');
 				expect(enqueueCalendarSync).toHaveBeenCalledTimes(1);
 				expect(enqueueAppointmentEmail).toHaveBeenCalledTimes(1);
 				expect(vi.mocked(enqueueAppointmentEmail).mock.calls[0][2]).toBe('confirmed');

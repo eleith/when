@@ -59,7 +59,6 @@ describe('acceptAppointment', () => {
 				expect(result.appointment.status).toBe('confirmed');
 				const persisted = await fetchRow(db, 'a1');
 				expect(persisted.status).toBe('confirmed');
-				expect(persisted.calendar_push_notification_status).toBe('queued');
 				expect(persisted.calendar_revision).toBe(1);
 				expect(enqueueCalendarSync).toHaveBeenCalledTimes(1);
 				expect(enqueueAppointmentEmail).toHaveBeenCalledWith(

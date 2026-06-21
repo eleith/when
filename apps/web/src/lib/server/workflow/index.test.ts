@@ -35,7 +35,7 @@ async function seed() {
 describe('enqueueAppointmentEmail', () => {
 	beforeEach(() => runWorkflow.mockReset());
 
-	test('marks the email queued, snapshots the appointment, and runs the workflow', async () => {
+	test('snapshots the appointment and runs the workflow', async () => {
 		const db = await seed();
 
 		const result = await enqueueAppointmentEmail(db, 'appt-1', 'confirmed');
@@ -44,17 +44,11 @@ describe('enqueueAppointmentEmail', () => {
 			sendAppointmentEmail,
 			{
 				kind: 'confirmed',
-				appointment: expect.objectContaining({ id: 'appt-1', email_notification_status: 'queued' })
+				appointment: expect.objectContaining({ id: 'appt-1' })
 			},
 			{ idempotencyKey: 'appt-1:confirmed:0' }
 		);
-		const row = await db
-			.selectFrom('appointments')
-			.select('email_notification_status')
-			.where('id', '=', 'appt-1')
-			.executeTakeFirstOrThrow();
-		expect(row.email_notification_status).toBe('queued');
-		expect(result.email_notification_status).toBe('queued');
+		expect(result.id).toBe('appt-1');
 
 		await db.destroy();
 	});

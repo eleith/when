@@ -9,19 +9,17 @@ import {
 } from '@when/jobs';
 import type { Appointment, Database } from '@when/db';
 
-// Marks the email queued and snapshots the appointment as it stands now (so the email
-// reflects this moment), then enqueues the send. Takes an id, not a row, so it's
-// callable from anywhere with an appointment id.
+// Snapshots the appointment as it stands now (so the email reflects this moment),
+// then enqueues the send. Takes an id, not a row, so it's callable from anywhere.
 export async function enqueueAppointmentEmail(
 	db: Kysely<Database>,
 	appointmentId: string,
 	kind: AppointmentEmailKind
 ): Promise<Appointment> {
 	const appointment = await db
-		.updateTable('appointments')
-		.set({ email_notification_status: 'queued' })
+		.selectFrom('appointments')
+		.selectAll()
 		.where('id', '=', appointmentId)
-		.returningAll()
 		.executeTakeFirstOrThrow();
 	await getOpenWorkflow().runWorkflow(
 		sendAppointmentEmail,
