@@ -244,20 +244,6 @@
 					<div class="detail-secondary">
 						{formatWeekday(data.appointment.start_time, displayTz)}
 					</div>
-					{#if data.isAdmin}
-						<div
-							class="detail-secondary"
-							class:notif-failed={data.appointment.calendar_push_notification_status === 'failed'}
-						>
-							{data.appointment.calendar_push_notification_status === 'queued'
-								? 'Calendar sync queued'
-								: data.appointment.calendar_push_notification_status === 'failed'
-									? 'Calendar sync failed'
-									: data.appointment.calendar_push_notification_status === 'ok'
-										? 'Calendar sync added'
-										: 'Calendar sync not added'}
-						</div>
-					{/if}
 				</div>
 			</div>
 			<div class="detail-row">
@@ -298,23 +284,8 @@
 							.attendee_name}{#if data.isAdmin && data.appointment.attendee_email}&nbsp;&lt;{data
 								.appointment.attendee_email}&gt;{/if}{#if !data.isAdmin}&nbsp;(you){/if}
 					</div>
-					{#if data.isAdmin}
-						{#if data.appointment.attendee_email}
-							<div
-								class="detail-secondary"
-								class:notif-failed={data.appointment.email_notification_status === 'failed'}
-							>
-								{data.appointment.email_notification_status === 'queued'
-									? 'Email sending'
-									: data.appointment.email_notification_status === 'failed'
-										? 'Email failed'
-										: data.appointment.email_notification_status === 'ok'
-											? 'Email sent'
-											: 'Email not sent'}
-							</div>
-						{:else}
-							<div class="detail-secondary">No email collected</div>
-						{/if}
+					{#if data.isAdmin && !data.appointment.attendee_email}
+						<div class="detail-secondary">No email collected</div>
 					{/if}
 					<div class="detail-secondary">
 						{data.user.name}{#if data.isAdmin}&nbsp;(you){/if}
@@ -717,10 +688,6 @@
 	.action-arrow {
 		display: inline-flex;
 		transition: transform var(--transition);
-	}
-
-	.notif-failed {
-		color: var(--danger-strong);
 	}
 
 	/* ---- accept / decline CTA (pending, organizer) ---- */

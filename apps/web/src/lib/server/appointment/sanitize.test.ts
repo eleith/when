@@ -62,26 +62,20 @@ describe('toPublicEventType', () => {
 });
 
 describe('toPublicAppointment', () => {
-	test('shows all fields for admins', () => {
+	test('shows location for admins', () => {
 		const res = toPublicAppointment(baseRow, true);
 		expect(res.location).toBe('https://meet.example.com/jane');
-		expect(res.email_notification_status).toBe('ok');
-		expect(res.calendar_push_notification_status).toBe('ok');
 	});
 
-	test('shows location and hides notification status for confirmed non-admins', () => {
+	test('shows location for confirmed non-admins', () => {
 		const res = toPublicAppointment(baseRow, false);
 		expect(res.location).toBe('https://meet.example.com/jane');
-		expect(res.email_notification_status).toBeNull();
-		expect(res.calendar_push_notification_status).toBeNull();
 	});
 
-	test('hides location and notification status for pending non-admins', () => {
+	test('hides location for pending non-admins', () => {
 		const pendingRow = { ...baseRow, status: 'pending' as const };
 		const res = toPublicAppointment(pendingRow, false);
 		expect(res.location).toBeNull();
-		expect(res.email_notification_status).toBeNull();
-		expect(res.calendar_push_notification_status).toBeNull();
 	});
 
 	test('strips non-cancellation entries for non-admins', () => {

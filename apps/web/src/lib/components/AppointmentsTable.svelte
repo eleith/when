@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import IconWarning from 'virtual:icons/ph/warning';
-	import NotificationChips from '$lib/components/NotificationChips.svelte';
 	import type { toAppointmentView } from '$lib/server/appointments';
 
 	interface Props {
@@ -66,9 +65,6 @@
 									{a.display_status}
 								{/if}
 							</span>
-							{#if a.notifications.length > 0}
-								<NotificationChips notifications={a.notifications} />
-							{/if}
 							{#if a.possible_conflict}
 								<span
 									class="conflict-chip"

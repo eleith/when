@@ -1,6 +1,5 @@
 import { parseAttendeeAnswers, type EventType, type Location } from '@when/config';
 import { parseActionLog, type ActionLogEntry, type Appointment } from '@when/db';
-import type { ChannelNotification } from '$lib/notifications';
 
 export interface PublicEventType {
 	id: string;
@@ -26,9 +25,6 @@ export interface PublicAppointment {
 	location: string | null;
 	status: string;
 	action_log: ActionLogEntry[];
-	notifications?: ChannelNotification[];
-	email_notification_status?: string | null;
-	calendar_push_notification_status?: string | null;
 }
 
 export function toPublicEventType(
@@ -56,11 +52,7 @@ export function toPublicEventType(
 	};
 }
 
-export function toPublicAppointment(
-	row: Appointment,
-	isAdmin: boolean,
-	notifications?: ChannelNotification[]
-): PublicAppointment {
+export function toPublicAppointment(row: Appointment, isAdmin: boolean): PublicAppointment {
 	const action_log = parseActionLog(row.action_log);
 
 	if (isAdmin) {
@@ -73,10 +65,7 @@ export function toPublicAppointment(
 			answers: parseAttendeeAnswers(row.attendee_answers),
 			location: row.location,
 			status: row.status,
-			action_log,
-			notifications,
-			email_notification_status: row.email_notification_status,
-			calendar_push_notification_status: row.calendar_push_notification_status
+			action_log
 		};
 	}
 
@@ -103,9 +92,6 @@ export function toPublicAppointment(
 		// Only confirmed appointments can see the location
 		location: isConfirmed ? row.location : null,
 		status: row.status,
-		action_log: publicLog,
-		notifications,
-		email_notification_status: null,
-		calendar_push_notification_status: null
+		action_log: publicLog
 	};
 }

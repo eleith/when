@@ -4,7 +4,6 @@ import { resolveAppointmentActions } from '$lib/server/appointment/actions';
 import { buildAddToCalendarLinks } from '$lib/server/calendar-links';
 import { systemClock } from '$lib/server/clock';
 import { getConfig, getDb } from '$lib/server/state';
-import { notificationStates } from '$lib/notifications';
 import {
 	findAppointment,
 	findChainTip,
@@ -102,8 +101,6 @@ export const load: PageServerLoad = async ({ params, url, locals, cookies }) => 
 				)
 			: null;
 
-	const notifications = notificationStates(row);
-
 	// A valid token for this row authorises its chain siblings, so we pass their tokens to the links.
 	const actionLog = parseActionLog(row.action_log);
 	const rescheduleToSelf = actionLog.findLast(
@@ -124,7 +121,7 @@ export const load: PageServerLoad = async ({ params, url, locals, cookies }) => 
 	}
 
 	return {
-		appointment: toPublicAppointment(row, isAdmin, notifications),
+		appointment: toPublicAppointment(row, isAdmin),
 		eventType: toPublicEventType(resolvedEventType, isAdmin),
 		calendarLinks,
 		actions,
