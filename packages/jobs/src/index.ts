@@ -1,4 +1,4 @@
-export { sendAppointmentEmail, sendOwnerAlert, syncCalendars } from './specs.js';
+export { sendAppointmentEmail, sendOwnerAlert, syncCalendars, purgeAppointment } from './specs.js';
 export type {
 	AppointmentEmailKind,
 	SendAppointmentEmailInput,
@@ -7,7 +7,10 @@ export type {
 	SendOwnerAlertInput,
 	SendOwnerAlertResult,
 	SyncCalendarsInput,
-	SyncCalendarsResult
+	SyncCalendarsResult,
+	PurgeAppointmentRow,
+	PurgeAppointmentInput,
+	PurgeAppointmentResult
 } from './specs.js';
 export {
 	initOpenWorkflow,

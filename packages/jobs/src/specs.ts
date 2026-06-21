@@ -84,6 +84,29 @@ export const sendOwnerAlert: WorkflowSpec<SendOwnerAlertInput, SendOwnerAlertRes
 		}
 	});
 
+export interface PurgeAppointmentRow {
+	id: string;
+	externalEventId: string | null;
+	externalCalendarId: string | null;
+}
+
+export interface PurgeAppointmentInput {
+	rows: PurgeAppointmentRow[];
+}
+
+export type PurgeAppointmentResult = 'purged';
+
+export const purgeAppointment: WorkflowSpec<PurgeAppointmentInput, PurgeAppointmentResult> =
+	defineWorkflowSpec<PurgeAppointmentInput, PurgeAppointmentResult>({
+		name: 'purge-appointment',
+		retryPolicy: {
+			maximumAttempts: 3,
+			initialInterval: '1m',
+			backoffCoefficient: 2,
+			maximumInterval: '15m'
+		}
+	});
+
 export type SyncCalendarsInput = Record<string, never>;
 export type SyncCalendarsResult = 'requested';
 
