@@ -137,8 +137,6 @@ function appendActionLogSql(
 	return sql`json_insert(coalesce(action_log, '[]'), '$[#]', json(json_object('action', ${entry.action}, 'actor', ${entry.actor}, 'at', ${entry.at})))`;
 }
 
-// Append a system job entry (`email`/`calendar`) to the action log. The job kind
-// is the action; state and the appointment it describes live in `metadata`.
 function appendJobLogSql(input: {
 	kind: JobKind;
 	at: string;
