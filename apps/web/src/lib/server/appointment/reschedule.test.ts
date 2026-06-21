@@ -26,12 +26,9 @@ const existing: Appointment = {
 	action_log: null,
 	external_event_id: null,
 	external_calendar_id: null,
-	email_notification_status: null,
-	calendar_push_notification_status: null,
 	calendar_revision: 0,
 	calendar_synced_revision: null,
 	has_possible_conflict: 0,
-	calendar_push_failing_since: null,
 	ics_sequence: 0,
 	event_type_snapshot: null,
 	created_at: '',
@@ -203,9 +200,7 @@ const opBaseRow = {
 	attendee_timezone: null,
 	location: null,
 	external_event_id: null,
-	external_calendar_id: null,
-	email_notification_status: null,
-	calendar_push_notification_status: null
+	external_calendar_id: null
 };
 
 async function makeDb() {

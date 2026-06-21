@@ -177,17 +177,3 @@ export async function setCalendarHealth(
 		.where('calendar_id', '=', calendarId)
 		.execute();
 }
-
-// Appointments whose publish has been failing since before `before` (the cutoff
-// the caller derives from the threshold). NULL `failing_since` is excluded by the
-// `<` comparison, so this is exactly the past-threshold failures.
-export function listPublishFailingAppointments(
-	db: Kysely<Database>,
-	before: string
-): Promise<Appointment[]> {
-	return db
-		.selectFrom('appointments')
-		.selectAll()
-		.where('calendar_push_failing_since', '<', before)
-		.execute();
-}

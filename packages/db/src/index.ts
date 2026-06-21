@@ -21,8 +21,6 @@ export type {
 	CalendarSyncStatus,
 	NewCalendarSyncStatus,
 	CalendarSyncStatusUpdate,
-	NotificationOutcome,
-	NotificationChannel,
 	ActionLogEntry,
 	JobKind,
 	JobState,
@@ -39,7 +37,6 @@ export {
 	listAppointmentsPage,
 	countAppointments,
 	isChainTerminal,
-	deleteChain,
 	parseActionLog,
 	appendActionLogSql,
 	appendJobLogSql,
@@ -56,8 +53,7 @@ export {
 	listOutOfSyncAppointments,
 	markSynced,
 	listCalendarSyncStatus,
-	setCalendarHealth,
-	listPublishFailingAppointments
+	setCalendarHealth
 } from './calendar-busy.js';
 export type {
 	BusyInterval,

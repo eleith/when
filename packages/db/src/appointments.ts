@@ -118,14 +118,6 @@ async function isChainTerminal(
 	return { terminal: true };
 }
 
-async function deleteChain(db: Kysely<Database>, chainOriginId: string): Promise<number> {
-	const result = await db
-		.deleteFrom('appointments')
-		.where((eb) => eb('origin_id', '=', chainOriginId).or('id', '=', chainOriginId))
-		.executeTakeFirst();
-	return Number(result.numDeletedRows);
-}
-
 function parseActionLog(raw: string | null): ActionLogEntry[] {
 	if (!raw) return [];
 	try {
@@ -178,7 +170,6 @@ export {
 	findChainTip,
 	expireStalePending,
 	isChainTerminal,
-	deleteChain,
 	parseActionLog,
 	appendActionLogSql,
 	appendJobLogSql,

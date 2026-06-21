@@ -38,9 +38,7 @@ async function insert(row: {
 			status: row.status,
 			cancel_token: row.cancel_token ?? `tok-${row.id}`,
 			external_event_id: null,
-			external_calendar_id: null,
-			email_notification_status: null,
-			calendar_push_notification_status: null
+			external_calendar_id: null
 		})
 		.execute();
 }

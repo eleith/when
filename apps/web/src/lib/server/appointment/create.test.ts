@@ -135,9 +135,7 @@ describe('createAppointment', () => {
 					status: 'confirmed',
 					cancel_token: 'tok-existing',
 					external_event_id: null,
-					external_calendar_id: null,
-					email_notification_status: null,
-					calendar_push_notification_status: null
+					external_calendar_id: null
 				})
 				.execute();
 

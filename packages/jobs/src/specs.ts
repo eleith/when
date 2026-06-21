@@ -8,11 +8,8 @@ import type { Appointment } from '@when/db';
  */
 type WorkflowSpec<Input, Output> = Workflow<Input, Output, Input>['spec'];
 
-/**
- * Which appointment notification to send. Each value maps — in the worker — to one
- * or more email builders, and to a single `email_notification_status` outcome
- * for the appointment.
- */
+// Which appointment notification to send; each value maps to one or more email
+// builders in the worker.
 export type AppointmentEmailKind =
 	| 'confirmed'
 	| 'pending'

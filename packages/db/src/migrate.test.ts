@@ -78,15 +78,15 @@ test('response_token column is dropped after migrations', async () => {
 	}
 });
 
-test('notification_status is split into typed per-channel columns', async () => {
+test('the notification status columns are dropped (status lives in the action log)', async () => {
 	const db = openDb(':memory:');
 	try {
 		await runMigrations(db);
 		const cols = await sql<{ name: string }>`PRAGMA table_info(appointments)`.execute(db);
 		const colNames = cols.rows.map((r) => r.name);
-		expect(colNames).toContain('email_notification_status');
-		expect(colNames).toContain('calendar_push_notification_status');
 		expect(colNames).not.toContain('notification_status');
+		expect(colNames).not.toContain('email_notification_status');
+		expect(colNames).not.toContain('calendar_push_notification_status');
 	} finally {
 		await db.destroy();
 	}
@@ -141,7 +141,7 @@ test('0007 adds the appointment calendar columns', async () => {
 		expect(colNames).toContain('calendar_revision');
 		expect(colNames).toContain('calendar_synced_revision');
 		expect(colNames).toContain('has_possible_conflict');
-		expect(colNames).toContain('calendar_push_failing_since');
+		expect(colNames).not.toContain('calendar_push_failing_since');
 	} finally {
 		await db.destroy();
 	}

@@ -22,9 +22,7 @@ const baseRow = {
 	attendee_answers: null,
 	location: null,
 	external_event_id: null,
-	external_calendar_id: null,
-	email_notification_status: null,
-	calendar_push_notification_status: null
+	external_calendar_id: null
 };
 
 const insert = (db: Awaited<ReturnType<typeof makeDb>>, over: Record<string, unknown>) =>

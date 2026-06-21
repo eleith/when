@@ -13,15 +13,6 @@ export type CalendarHealth = 'good' | 'bad' | 'unknown';
 
 type NullableText = ColumnType<string | null, string | null | undefined, string | null>;
 
-export type NotificationOutcome = 'queued' | 'ok' | 'failed';
-export type NotificationChannel = 'email' | 'calendar_push';
-
-type NotificationColumn = ColumnType<
-	NotificationOutcome | null,
-	NotificationOutcome | null | undefined,
-	NotificationOutcome | null
->;
-
 export interface AppointmentsTable {
 	id: string;
 	event_type_id: string;
@@ -38,12 +29,9 @@ export interface AppointmentsTable {
 	action_log: NullableText;
 	external_event_id: string | null;
 	external_calendar_id: string | null;
-	email_notification_status: NotificationColumn;
-	calendar_push_notification_status: NotificationColumn;
 	calendar_revision: ColumnType<number, number | undefined, number>;
 	calendar_synced_revision: ColumnType<number | null, number | null | undefined, number | null>;
 	has_possible_conflict: ColumnType<number, number | undefined, number>;
-	calendar_push_failing_since: NullableText;
 	ics_sequence: ColumnType<number, number | undefined, number>;
 	event_type_snapshot: NullableText;
 	created_at: ColumnType<string, string | undefined, string>;

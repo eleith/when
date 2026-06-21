@@ -8,7 +8,6 @@ import {
 	listAppointmentsPage,
 	countAppointments,
 	isChainTerminal,
-	deleteChain,
 	appendJobLogSql,
 	parseActionLog
 } from './appointments.js';
@@ -41,9 +40,7 @@ async function insert(
 			origin_id: origin,
 			cancel_token: `tok-${id}`,
 			external_event_id: null,
-			external_calendar_id: null,
-			email_notification_status: null,
-			calendar_push_notification_status: null
+			external_calendar_id: null
 		})
 		.execute();
 }
@@ -64,9 +61,7 @@ test('findAppointment returns the row by id, or undefined when missing', async (
 				status: 'confirmed',
 				cancel_token: 't1',
 				external_event_id: null,
-				external_calendar_id: null,
-				email_notification_status: null,
-				calendar_push_notification_status: null
+				external_calendar_id: null
 			})
 			.execute();
 
@@ -204,9 +199,7 @@ test('bucket listings and counts', async () => {
 					origin_id: origin,
 					cancel_token: `tok-${id}`,
 					external_event_id: null,
-					external_calendar_id: null,
-					email_notification_status: null,
-					calendar_push_notification_status: null
+					external_calendar_id: null
 				})
 				.execute();
 		};
@@ -315,29 +308,6 @@ test('isChainTerminal validation rules', async () => {
 		expect(await isChainTerminal(db, 'cancelled', now)).toEqual({
 			terminal: true
 		});
-	} finally {
-		await db.destroy();
-	}
-});
-
-test('deleteChain purges the entire reschedule chain', async () => {
-	const db = await makeDb();
-	try {
-		// Chain A -> B -> C
-		await insert(db, 'A', 'rescheduled', '2026-06-15T10:00:00Z', 'A');
-		await insert(db, 'B', 'rescheduled', '2026-06-15T11:00:00Z', 'A');
-		await insert(db, 'C', 'cancelled', '2026-06-15T12:00:00Z', 'A');
-
-		// Standalone D
-		await insert(db, 'D', 'cancelled', '2026-06-15T12:00:00Z', 'D');
-
-		const deleted = await deleteChain(db, 'A');
-		expect(deleted).toBe(3); // A, B, C deleted
-
-		expect(await findAppointment(db, 'A')).toBeUndefined();
-		expect(await findAppointment(db, 'B')).toBeUndefined();
-		expect(await findAppointment(db, 'C')).toBeUndefined();
-		expect(await findAppointment(db, 'D')).toBeDefined(); // D remains untouched
 	} finally {
 		await db.destroy();
 	}

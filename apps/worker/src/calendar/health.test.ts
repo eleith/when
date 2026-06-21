@@ -143,7 +143,6 @@ test('a queued log entry still within the threshold does not flag the calendar',
 					id: '1',
 					external_calendar_id: 'work',
 					calendar_revision: 1,
-					calendar_push_notification_status: 'queued',
 					action_log: calendarQueuedLog(START.subtract({ minutes: 5 }).toString())
 				})
 			)
