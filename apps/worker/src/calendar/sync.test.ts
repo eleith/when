@@ -261,6 +261,27 @@ test('trace: a reschedule after a sync stays out of sync and is caught next scan
 	}
 });
 
+test('the reconcile sweep skips purged rows (the purge workflow owns them)', async () => {
+	const ctx = await ctxWith();
+	try {
+		await insert(ctx, {
+			id: '1',
+			cancel_token: 't1',
+			status: 'purged',
+			external_event_id: '1',
+			external_calendar_id: 'work',
+			calendar_revision: 2
+		});
+		const { fetchImpl, calls } = recordingFetch();
+		await scanOnce(ctx, { fetchImpl });
+		const row = await rowById(ctx.db, '1');
+		expect(calls).toHaveLength(0);
+		expect(row.calendar_synced_revision).toBeNull();
+	} finally {
+		await ctx.db.destroy();
+	}
+});
+
 test('trace: a cancel before the worker runs leaves no orphan event', async () => {
 	const ctx = await ctxWith();
 	try {

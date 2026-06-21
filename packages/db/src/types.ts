@@ -6,7 +6,8 @@ export type AppointmentStatus =
 	| 'declined'
 	| 'cancelled'
 	| 'expired'
-	| 'rescheduled';
+	| 'rescheduled'
+	| 'purged';
 
 export type CalendarHealth = 'good' | 'bad' | 'unknown';
 

@@ -233,13 +233,14 @@ test('bucket listings and counts', async () => {
 		await insertWithEnd('cancelled1', 'cancelled', '2026-06-15T16:00:00Z', '2026-06-15T16:30:00Z');
 		await insertWithEnd('expired1', 'expired', '2026-06-15T08:00:00Z', '2026-06-15T08:30:00Z');
 
-		// rescheduled: should be excluded everywhere
+		// rescheduled and purged: should be excluded everywhere
 		await insertWithEnd(
 			'rescheduled1',
 			'rescheduled',
 			'2026-06-15T13:00:00Z',
 			'2026-06-15T13:30:00Z'
 		);
+		await insertWithEnd('purged1', 'purged', '2026-06-15T16:00:00Z', '2026-06-15T16:30:00Z');
 
 		// --- Test Pending ---
 		expect(await countAppointments(db, { bucket: 'pending', now })).toBe(2);

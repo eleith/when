@@ -335,10 +335,20 @@ test('listOutOfSyncAppointments returns rows whose revision differs from synced,
 					start_time: '2026-05-01T12:00:00Z',
 					end_time: '2026-05-01T12:30:00Z',
 					calendar_revision: 0
+				}),
+				appt({
+					id: 'purged',
+					cancel_token: 'd',
+					status: 'purged',
+					start_time: '2026-05-01T13:00:00Z',
+					end_time: '2026-05-01T13:30:00Z',
+					calendar_revision: 1,
+					calendar_synced_revision: 0
 				})
 			])
 			.execute();
 		const rows = await listOutOfSyncAppointments(db);
+		// purged rows are owned by the purge workflow, not the reconcile sweep
 		expect(rows.map((r) => r.id).sort()).toEqual(['bumped', 'never-synced']);
 	} finally {
 		await db.destroy();

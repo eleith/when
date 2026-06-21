@@ -9,7 +9,8 @@ export type DisplayStatus =
 	| 'cancelled'
 	| 'declined'
 	| 'expired'
-	| 'rescheduled';
+	| 'rescheduled'
+	| 'purged';
 
 export function deriveDisplayStatus(
 	row: Pick<Appointment, 'status' | 'start_time' | 'end_time'>,

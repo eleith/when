@@ -136,6 +136,7 @@ export async function listOutOfSyncAppointments(db: Kysely<Database>): Promise<A
 		.selectFrom('appointments')
 		.selectAll()
 		.where(sql<boolean>`calendar_revision is not calendar_synced_revision`)
+		.where('status', '!=', 'purged')
 		.execute();
 }
 
