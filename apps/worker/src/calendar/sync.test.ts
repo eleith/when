@@ -58,10 +58,12 @@ function recordingFetch(status = 204) {
 const rowById = (db: WorkerContext['db'], id: string) =>
 	db.selectFrom('appointments').selectAll().where('id', '=', id).executeTakeFirstOrThrow();
 
-const calendarJobStates = async (db: WorkerContext['db'], id: string) =>
-	parseActionLog((await rowById(db, id)).action_log)
+const calendarJobStates = async (db: WorkerContext['db'], id: string) => {
+	const row = await rowById(db, id);
+	return parseActionLog(row.action_log)
 		.filter((e) => e.action === 'calendar')
 		.map((e) => e.payload?.metadata?.state);
+};
 
 const insert = (ctx: WorkerContext, over: Record<string, unknown>) =>
 	ctx.db.insertInto('appointments').values(appt(over)).execute();

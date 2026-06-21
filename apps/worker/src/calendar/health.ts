@@ -80,7 +80,8 @@ export async function evaluateHealth(
 
 	// Failing = an open calendar `queued` unanswered past the threshold.
 	const cutoff = now.subtract(PUBLISH_FAILING).toString();
-	const failing = (await listOutOfSyncAppointments(ctx.db)).filter((a) => {
+	const outOfSync = await listOutOfSyncAppointments(ctx.db);
+	const failing = outOfSync.filter((a) => {
 		const queuedAt = openCalendarQueuedAt(a.action_log, a.id);
 		return queuedAt !== null && queuedAt < cutoff;
 	});
