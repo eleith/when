@@ -150,4 +150,9 @@ describe('requireViewableAppointment', () => {
 		);
 		expect(() => requireViewableAppointment(baseRow, 'tok-abc', past)).toThrow();
 	});
+
+	test('throws 404 for a purged appointment even with a valid token', () => {
+		const purged = { ...baseRow, status: 'purged' as const };
+		expect(() => requireViewableAppointment(purged, 'tok-abc', now)).toThrow();
+	});
 });

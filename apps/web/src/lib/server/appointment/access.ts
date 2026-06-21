@@ -35,9 +35,9 @@ export function isRescheduleAllowed(
 }
 
 export function requireViewableAppointment<
-	T extends Pick<Appointment, 'cancel_token' | 'end_time'>
+	T extends Pick<Appointment, 'cancel_token' | 'end_time' | 'status'>
 >(row: T | undefined, token: string | null, now: Date): T {
 	if (!row || !token || row.cancel_token !== token) error(404);
-	if (!isViewable(row, now)) error(404);
+	if (row.status === 'purged' || !isViewable(row, now)) error(404);
 	return row;
 }
