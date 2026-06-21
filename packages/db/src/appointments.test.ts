@@ -86,7 +86,7 @@ test('appendJobLogSql appends system email/calendar entries, leaving prior entri
 				action_log: appendJobLogSql({
 					kind: 'email',
 					at: '2026-06-21T10:00:00Z',
-					state: 'queued',
+					state: 'done',
 					appointment_id: 'a1'
 				})
 			})
@@ -98,9 +98,8 @@ test('appendJobLogSql appends system email/calendar entries, leaving prior entri
 				action_log: appendJobLogSql({
 					kind: 'calendar',
 					at: '2026-06-21T10:01:00Z',
-					state: 'done',
-					appointment_id: 'a1',
-					op: 'create'
+					state: 'failed',
+					appointment_id: 'a1'
 				})
 			})
 			.where('id', '=', 'a1')
@@ -112,13 +111,13 @@ test('appendJobLogSql appends system email/calendar entries, leaving prior entri
 				action: 'email',
 				actor: 'system',
 				at: '2026-06-21T10:00:00Z',
-				payload: { metadata: { state: 'queued', appointment_id: 'a1' } }
+				payload: { metadata: { state: 'done', appointment_id: 'a1' } }
 			},
 			{
 				action: 'calendar',
 				actor: 'system',
 				at: '2026-06-21T10:01:00Z',
-				payload: { metadata: { state: 'done', appointment_id: 'a1', op: 'create' } }
+				payload: { metadata: { state: 'failed', appointment_id: 'a1' } }
 			}
 		]);
 	} finally {

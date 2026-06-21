@@ -23,9 +23,7 @@ export type {
 	CalendarSyncStatusUpdate,
 	ActionLogEntry,
 	JobKind,
-	JobState,
-	CalendarOp,
-	JobLogMetadata
+	JobState
 } from './types.js';
 export { runMigrations } from './migrate.js';
 export { migrations } from './migrations/index.js';

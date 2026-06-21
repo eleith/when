@@ -8,7 +8,7 @@ import {
 } from '@when/db';
 import { getOpenWorkflow, sendOwnerAlert } from '@when/jobs';
 import type { WorkerContext } from '../services/context.js';
-import { openCalendarQueuedAt } from '../services/job-log.js';
+import { openCalendarFailureAt } from '../services/job-log.js';
 import { DEFAULT_REFRESH_INTERVAL_MINUTES } from './intervals.js';
 
 // Surface breakage only past these windows; it clears the moment a cycle succeeds.
@@ -78,12 +78,12 @@ export async function evaluateHealth(
 	const now = opts.now ?? Temporal.Now.instant();
 	const startedAt = opts.startedAt ?? WORKER_STARTED_AT;
 
-	// Failing = an open calendar `queued` unanswered past the threshold.
+	// Failing = an open calendar `failed` (not closed by a later `done`) past the threshold.
 	const cutoff = now.subtract(PUBLISH_FAILING).toString();
 	const outOfSync = await listOutOfSyncAppointments(ctx.db);
 	const failing = outOfSync.filter((a) => {
-		const queuedAt = openCalendarQueuedAt(a.action_log, a.id);
-		return queuedAt !== null && queuedAt < cutoff;
+		const failedAt = openCalendarFailureAt(a.action_log, a.id);
+		return failedAt !== null && failedAt < cutoff;
 	});
 	const failingCalendars = new Set<string>();
 	for (const a of failing) {

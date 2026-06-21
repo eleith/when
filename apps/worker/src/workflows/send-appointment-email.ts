@@ -37,10 +37,6 @@ export async function runSendAppointmentEmail(
 	const { config, db, logger, mailer } = getWorkerContext();
 	const envelopes = await dispatch(input, config);
 
-	await step.run({ name: 'log:queued' }, () =>
-		appendJobLog(db, input.appointment.id, 'email', 'queued', Temporal.Now.instant().toString())
-	);
-
 	let allSent = true;
 	for (const envelope of envelopes) {
 		try {

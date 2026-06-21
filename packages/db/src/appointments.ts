@@ -1,12 +1,5 @@
 import { sql, type Kysely, type SelectQueryBuilder, type RawBuilder } from 'kysely';
-import type {
-	Appointment,
-	Database,
-	ActionLogEntry,
-	JobKind,
-	JobState,
-	CalendarOp
-} from './types.js';
+import type { Appointment, Database, ActionLogEntry, JobKind, JobState } from './types.js';
 
 function originId(a: Pick<Appointment, 'id' | 'origin_id'>): string {
 	return a.origin_id ?? a.id;
@@ -144,17 +137,12 @@ function appendJobLogSql(input: {
 	at: string;
 	state: JobState;
 	appointment_id: string;
-	op?: CalendarOp;
 }): RawBuilder<string> {
 	return appendActionLogSql({
 		action: input.kind,
 		actor: 'system',
 		at: input.at,
-		payload: {
-			metadata: input.op
-				? { state: input.state, appointment_id: input.appointment_id, op: input.op }
-				: { state: input.state, appointment_id: input.appointment_id }
-		}
+		payload: { metadata: { state: input.state, appointment_id: input.appointment_id } }
 	});
 }
 

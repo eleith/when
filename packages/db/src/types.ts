@@ -103,11 +103,4 @@ export interface ActionLogEntry {
 }
 
 export type JobKind = 'email' | 'calendar';
-export type JobState = 'queued' | 'done' | 'failed';
-export type CalendarOp = 'create' | 'update' | 'delete';
-
-export interface JobLogMetadata {
-	state: JobState;
-	appointment_id: string;
-	op?: CalendarOp;
-}
+export type JobState = 'done' | 'failed';

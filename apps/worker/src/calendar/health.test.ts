@@ -98,17 +98,17 @@ test('a never-synced calendar stays unknown through the startup grace, then goes
 	}
 });
 
-const calendarQueuedLog = (at: string) =>
+const calendarFailedLog = (at: string) =>
 	JSON.stringify([
 		{
 			action: 'calendar',
 			actor: 'system',
 			at,
-			payload: { metadata: { state: 'queued', appointment_id: '1' } }
+			payload: { metadata: { state: 'failed', appointment_id: '1' } }
 		}
 	]);
 
-test('a publish whose queued log entry is unanswered past the threshold makes the calendar bad', async () => {
+test('a calendar failure unanswered past the threshold makes the calendar bad', async () => {
 	const ctx = await ctxWith();
 	try {
 		await recordRefreshResult(ctx.db, 'work', { at: START.toString() }); // reads fine
@@ -119,7 +119,7 @@ test('a publish whose queued log entry is unanswered past the threshold makes th
 					id: '1',
 					external_calendar_id: 'work',
 					calendar_revision: 1, // out of sync (synced stays null)
-					action_log: calendarQueuedLog(START.subtract({ minutes: 40 }).toString())
+					action_log: calendarFailedLog(START.subtract({ minutes: 40 }).toString())
 				})
 			)
 			.execute();
@@ -132,7 +132,7 @@ test('a publish whose queued log entry is unanswered past the threshold makes th
 	}
 });
 
-test('a queued log entry still within the threshold does not flag the calendar', async () => {
+test('a recent calendar failure within the threshold does not flag the calendar', async () => {
 	const ctx = await ctxWith();
 	try {
 		await recordRefreshResult(ctx.db, 'work', { at: START.toString() });
@@ -143,7 +143,7 @@ test('a queued log entry still within the threshold does not flag the calendar',
 					id: '1',
 					external_calendar_id: 'work',
 					calendar_revision: 1,
-					action_log: calendarQueuedLog(START.subtract({ minutes: 5 }).toString())
+					action_log: calendarFailedLog(START.subtract({ minutes: 5 }).toString())
 				})
 			)
 			.execute();

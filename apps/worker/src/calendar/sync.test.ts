@@ -81,13 +81,13 @@ test('confirmed without an external event is created and marked synced', async (
 		expect(row.external_calendar_id).toBe('work');
 		expect(row.calendar_synced_revision).toBe(1);
 		expect(calls.some((c) => c.method === 'PUT')).toBe(true);
-		expect(await calendarJobStates(ctx.db, '1')).toEqual(['queued', 'done']);
+		expect(await calendarJobStates(ctx.db, '1')).toEqual(['done']);
 	} finally {
 		await ctx.db.destroy();
 	}
 });
 
-test('a failing publish leaves an open queued entry; a later success closes it', async () => {
+test('a failing publish logs failed once; a later success appends done', async () => {
 	const ctx = await ctxWith();
 	try {
 		await insert(ctx, { id: '1', cancel_token: 't1', calendar_revision: 1 });
@@ -96,14 +96,19 @@ test('a failing publish leaves an open queued entry; a later success closes it',
 			fetchImpl: recordingFetch(500).fetchImpl
 		});
 		expect((await rowById(ctx.db, '1')).calendar_synced_revision).toBeNull(); // still out of sync
-		// queued logged and still open (no done) — this is the log's "failing since"
-		expect(await calendarJobStates(ctx.db, '1')).toEqual(['queued']);
+		// failed logged and still open (no done) — this is the log's "failing since"
+		expect(await calendarJobStates(ctx.db, '1')).toEqual(['failed']);
+
+		// a second failing scan doesn't append a second `failed`
+		await reconcileAppointment(ctx, await onlyRow(ctx), {
+			fetchImpl: recordingFetch(500).fetchImpl
+		});
+		expect(await calendarJobStates(ctx.db, '1')).toEqual(['failed']);
 
 		await reconcileAppointment(ctx, await onlyRow(ctx), {
 			fetchImpl: recordingFetch(201).fetchImpl
 		});
-		// the retry closes the open queued rather than appending a second one
-		expect(await calendarJobStates(ctx.db, '1')).toEqual(['queued', 'done']);
+		expect(await calendarJobStates(ctx.db, '1')).toEqual(['failed', 'done']);
 	} finally {
 		await ctx.db.destroy();
 	}
@@ -125,7 +130,7 @@ test('confirmed with an external event is updated', async () => {
 		const row = await rowById(ctx.db, '1');
 		expect(row.calendar_synced_revision).toBe(2);
 		expect(calls.some((c) => c.method === 'PUT')).toBe(true);
-		expect(await calendarJobStates(ctx.db, '1')).toEqual(['queued', 'done']);
+		expect(await calendarJobStates(ctx.db, '1')).toEqual(['done']);
 	} finally {
 		await ctx.db.destroy();
 	}
@@ -150,7 +155,7 @@ test('a should-not-exist row with an external event is deleted and ids cleared',
 		expect(row.external_calendar_id).toBeNull();
 		expect(row.calendar_synced_revision).toBe(2);
 		expect(calls.some((c) => c.method === 'DELETE')).toBe(true);
-		expect(await calendarJobStates(ctx.db, '1')).toEqual(['queued', 'done']);
+		expect(await calendarJobStates(ctx.db, '1')).toEqual(['done']);
 	} finally {
 		await ctx.db.destroy();
 	}

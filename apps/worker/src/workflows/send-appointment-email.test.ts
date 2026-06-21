@@ -76,13 +76,8 @@ describe('runSendAppointmentEmail', () => {
 
 		expect(result).toBe('sent');
 		expect(send).toHaveBeenCalledTimes(2); // attendee + organizer
-		expect(names).toEqual([
-			'log:queued',
-			'smtp:jane@example.com',
-			'smtp:owner@acme.test',
-			'log:result'
-		]);
-		expect(await readEmailJobStates(db)).toEqual(['queued', 'done']);
+		expect(names).toEqual(['smtp:jane@example.com', 'smtp:owner@acme.test', 'log:result']);
+		expect(await readEmailJobStates(db)).toEqual(['done']);
 		await db.destroy();
 	});
 
@@ -96,7 +91,7 @@ describe('runSendAppointmentEmail', () => {
 		const result = await runSendAppointmentEmail(input, step);
 
 		expect(result).toBe('failed');
-		expect(await readEmailJobStates(db)).toEqual(['queued', 'failed']);
+		expect(await readEmailJobStates(db)).toEqual(['failed']);
 		await db.destroy();
 	});
 });
