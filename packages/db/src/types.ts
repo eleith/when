@@ -93,7 +93,15 @@ export type NewCalendarSyncStatus = Insertable<CalendarSyncStatusTable>;
 export type CalendarSyncStatusUpdate = Updateable<CalendarSyncStatusTable>;
 
 export interface ActionLogEntry {
-	action: 'create' | 'confirm' | 'decline' | 'cancel' | 'reschedule' | 'expire';
+	action:
+		| 'create'
+		| 'confirm'
+		| 'decline'
+		| 'cancel'
+		| 'reschedule'
+		| 'expire'
+		| 'email'
+		| 'calendar';
 	actor: 'attendee' | 'organizer' | 'system';
 	at: string;
 	payload?: {
@@ -103,4 +111,17 @@ export interface ActionLogEntry {
 		to?: unknown;
 		metadata?: Record<string, unknown>;
 	};
+}
+
+export type JobKind = 'email' | 'calendar';
+export type JobState = 'queued' | 'done' | 'failed';
+export type CalendarOp = 'create' | 'update' | 'delete';
+
+// Shape of `payload.metadata` on a system `email`/`calendar` job log entry.
+// `appointment_id` is the row the entry describes, since the log is inherited
+// across a reschedule chain (an entry can outlive the row it was written on).
+export interface JobLogMetadata {
+	state: JobState;
+	appointment_id: string;
+	op?: CalendarOp;
 }

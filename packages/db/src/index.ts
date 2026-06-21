@@ -23,7 +23,11 @@ export type {
 	CalendarSyncStatusUpdate,
 	NotificationOutcome,
 	NotificationChannel,
-	ActionLogEntry
+	ActionLogEntry,
+	JobKind,
+	JobState,
+	CalendarOp,
+	JobLogMetadata
 } from './types.js';
 export { runMigrations } from './migrate.js';
 export { migrations } from './migrations/index.js';
@@ -38,6 +42,7 @@ export {
 	deleteChain,
 	parseActionLog,
 	appendActionLogSql,
+	appendJobLogSql,
 	createActionLog
 } from './appointments.js';
 export type { AppointmentBucket } from './appointments.js';

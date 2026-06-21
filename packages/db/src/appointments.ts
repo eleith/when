@@ -1,5 +1,12 @@
 import { sql, type Kysely, type SelectQueryBuilder, type RawBuilder } from 'kysely';
-import type { Appointment, Database, ActionLogEntry } from './types.js';
+import type {
+	Appointment,
+	Database,
+	ActionLogEntry,
+	JobKind,
+	JobState,
+	CalendarOp
+} from './types.js';
 
 function originId(a: Pick<Appointment, 'id' | 'origin_id'>): string {
 	return a.origin_id ?? a.id;
@@ -159,6 +166,27 @@ function appendActionLogSql(
 	return sql`json_insert(coalesce(action_log, '[]'), '$[#]', json(json_object('action', ${entry.action}, 'actor', ${entry.actor}, 'at', ${entry.at})))`;
 }
 
+// Append a system job entry (`email`/`calendar`) to the action log. The job kind
+// is the action; state and the appointment it describes live in `metadata`.
+function appendJobLogSql(input: {
+	kind: JobKind;
+	at: string;
+	state: JobState;
+	appointment_id: string;
+	op?: CalendarOp;
+}): RawBuilder<string> {
+	return appendActionLogSql({
+		action: input.kind,
+		actor: 'system',
+		at: input.at,
+		payload: {
+			metadata: input.op
+				? { state: input.state, appointment_id: input.appointment_id, op: input.op }
+				: { state: input.state, appointment_id: input.appointment_id }
+		}
+	});
+}
+
 function createActionLog(entries: [ActionLogEntry, ...ActionLogEntry[]]): string {
 	return JSON.stringify(entries);
 }
@@ -174,6 +202,7 @@ export {
 	deleteChain,
 	parseActionLog,
 	appendActionLogSql,
+	appendJobLogSql,
 	createActionLog,
 	type AppointmentBucket
 };

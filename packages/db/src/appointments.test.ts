@@ -8,7 +8,9 @@ import {
 	listAppointmentsPage,
 	countAppointments,
 	isChainTerminal,
-	deleteChain
+	deleteChain,
+	appendJobLogSql,
+	parseActionLog
 } from './appointments.js';
 import type { AppointmentStatus } from './types.js';
 
@@ -73,6 +75,57 @@ test('findAppointment returns the row by id, or undefined when missing', async (
 		expect(found?.status).toBe('confirmed');
 
 		expect(await findAppointment(db, 'ghost')).toBeUndefined();
+	} finally {
+		await db.destroy();
+	}
+});
+
+test('appendJobLogSql appends system email/calendar entries, leaving prior entries intact', async () => {
+	const db = await makeDb();
+	try {
+		await insert(db, 'a1', 'confirmed', '2099-01-01T15:00:00Z');
+
+		await db
+			.updateTable('appointments')
+			.set({
+				action_log: appendJobLogSql({
+					kind: 'email',
+					at: '2026-06-21T10:00:00Z',
+					state: 'queued',
+					appointment_id: 'a1'
+				})
+			})
+			.where('id', '=', 'a1')
+			.execute();
+		await db
+			.updateTable('appointments')
+			.set({
+				action_log: appendJobLogSql({
+					kind: 'calendar',
+					at: '2026-06-21T10:01:00Z',
+					state: 'done',
+					appointment_id: 'a1',
+					op: 'create'
+				})
+			})
+			.where('id', '=', 'a1')
+			.execute();
+
+		const row = await findAppointment(db, 'a1');
+		expect(parseActionLog(row?.action_log ?? null)).toEqual([
+			{
+				action: 'email',
+				actor: 'system',
+				at: '2026-06-21T10:00:00Z',
+				payload: { metadata: { state: 'queued', appointment_id: 'a1' } }
+			},
+			{
+				action: 'calendar',
+				actor: 'system',
+				at: '2026-06-21T10:01:00Z',
+				payload: { metadata: { state: 'done', appointment_id: 'a1', op: 'create' } }
+			}
+		]);
 	} finally {
 		await db.destroy();
 	}
