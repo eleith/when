@@ -43,14 +43,13 @@ export async function enqueueCalendarSync(): Promise<void> {
 }
 
 export async function enqueuePurgeAppointment(rows: PurgeAppointmentRow[]): Promise<void> {
+	const chainKey = rows
+		.map((r) => r.id)
+		.sort()
+		.join(',');
 	await getOpenWorkflow().runWorkflow(
 		purgeAppointment,
 		{ rows },
-		{
-			idempotencyKey: `purge:${rows
-				.map((r) => r.id)
-				.sort()
-				.join(',')}`
-		}
+		{ idempotencyKey: `purge:${chainKey}` }
 	);
 }
