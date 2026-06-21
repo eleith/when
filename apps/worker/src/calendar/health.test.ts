@@ -119,7 +119,6 @@ test('a publish whose queued log entry is unanswered past the threshold makes th
 					id: '1',
 					external_calendar_id: 'work',
 					calendar_revision: 1, // out of sync (synced stays null)
-					calendar_push_notification_status: 'queued',
 					action_log: calendarQueuedLog(START.subtract({ minutes: 40 }).toString())
 				})
 			)
@@ -128,13 +127,6 @@ test('a publish whose queued log entry is unanswered past the threshold makes th
 		await evaluateHealth(ctx, { now: START.add({ minutes: 5 }), startedAt: START });
 		expect(await health(ctx, 'work')).toBe('bad');
 		expect(runWorkflow.mock.calls[0][1]).toMatchObject({ kind: 'broke' });
-
-		const row = await ctx.db
-			.selectFrom('appointments')
-			.select('calendar_push_notification_status')
-			.where('id', '=', '1')
-			.executeTakeFirstOrThrow();
-		expect(row.calendar_push_notification_status).toBe('failed');
 	} finally {
 		await ctx.db.destroy();
 	}
