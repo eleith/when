@@ -3,7 +3,9 @@ import {
 	getOpenWorkflow,
 	sendAppointmentEmail,
 	syncCalendars,
-	type AppointmentEmailKind
+	purgeAppointment,
+	type AppointmentEmailKind,
+	type PurgeAppointmentRow
 } from '@when/jobs';
 import type { Appointment, Database } from '@when/db';
 
@@ -39,5 +41,18 @@ export async function enqueueCalendarSync(): Promise<void> {
 		syncCalendars,
 		{},
 		{ idempotencyKey: `sync-calendars:${crypto.randomUUID()}` }
+	);
+}
+
+export async function enqueuePurgeAppointment(rows: PurgeAppointmentRow[]): Promise<void> {
+	await getOpenWorkflow().runWorkflow(
+		purgeAppointment,
+		{ rows },
+		{
+			idempotencyKey: `purge:${rows
+				.map((r) => r.id)
+				.sort()
+				.join(',')}`
+		}
 	);
 }

@@ -180,6 +180,35 @@ export async function cancelAppointmentTransition(
 	return classify(db, id, result.numUpdatedRows);
 }
 
+export interface PurgeChainRow {
+	id: string;
+	external_event_id: string | null;
+	external_calendar_id: string | null;
+}
+
+// Null when nothing changed (already purged) so the caller can no-op.
+export async function purgeChainTransition(
+	db: Kysely<Database>,
+	chainOriginId: string
+): Promise<PurgeChainRow[] | null> {
+	return db.transaction().execute(async (trx) => {
+		const rows = await trx
+			.selectFrom('appointments')
+			.select(['id', 'external_event_id', 'external_calendar_id'])
+			.where((eb) => eb('origin_id', '=', chainOriginId).or('id', '=', chainOriginId))
+			.where('status', '!=', 'purged')
+			.execute();
+		if (rows.length === 0) return null;
+		await trx
+			.updateTable('appointments')
+			.set({ status: 'purged', updated_at: sql`CURRENT_TIMESTAMP` })
+			.where((eb) => eb('origin_id', '=', chainOriginId).or('id', '=', chainOriginId))
+			.where('status', '!=', 'purged')
+			.execute();
+		return rows;
+	});
+}
+
 /** Decline a pending request, removing the inherited event if a re-approval revert left one. */
 export async function declineAppointmentTransition(
 	db: Kysely<Database>,
