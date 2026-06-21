@@ -1,13 +1,14 @@
 import { Temporal } from '@js-temporal/polyfill';
 import {
 	listCalendarSyncStatus,
-	listPublishFailingAppointments,
+	listOutOfSyncAppointments,
 	setCalendarHealth,
 	type CalendarHealth,
 	type CalendarSyncStatus
 } from '@when/db';
 import { getOpenWorkflow, sendOwnerAlert } from '@when/jobs';
 import type { WorkerContext } from '../services/context.js';
+import { openCalendarQueuedAt } from '../services/job-log.js';
 import { DEFAULT_REFRESH_INTERVAL_MINUTES } from './intervals.js';
 
 // Surface breakage only past these windows; it clears the moment a cycle succeeds.
@@ -77,10 +78,12 @@ export async function evaluateHealth(
 	const now = opts.now ?? Temporal.Now.instant();
 	const startedAt = opts.startedAt ?? WORKER_STARTED_AT;
 
-	const failing = await listPublishFailingAppointments(
-		ctx.db,
-		now.subtract(PUBLISH_FAILING).toString()
-	);
+	// Failing = an open calendar `queued` unanswered past the threshold.
+	const cutoff = now.subtract(PUBLISH_FAILING).toString();
+	const failing = (await listOutOfSyncAppointments(ctx.db)).filter((a) => {
+		const queuedAt = openCalendarQueuedAt(a.action_log, a.id);
+		return queuedAt !== null && queuedAt < cutoff;
+	});
 	const failingCalendars = new Set<string>();
 	for (const a of failing) {
 		const target =

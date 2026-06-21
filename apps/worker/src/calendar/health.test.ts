@@ -98,7 +98,17 @@ test('a never-synced calendar stays unknown through the startup grace, then goes
 	}
 });
 
-test('a publish failing past the threshold makes the target calendar bad', async () => {
+const calendarQueuedLog = (at: string) =>
+	JSON.stringify([
+		{
+			action: 'calendar',
+			actor: 'system',
+			at,
+			payload: { metadata: { state: 'queued', appointment_id: '1' } }
+		}
+	]);
+
+test('a publish whose queued log entry is unanswered past the threshold makes the calendar bad', async () => {
 	const ctx = await ctxWith();
 	try {
 		await recordRefreshResult(ctx.db, 'work', { at: START.toString() }); // reads fine
@@ -108,8 +118,9 @@ test('a publish failing past the threshold makes the target calendar bad', async
 				appt({
 					id: '1',
 					external_calendar_id: 'work',
+					calendar_revision: 1, // out of sync (synced stays null)
 					calendar_push_notification_status: 'queued',
-					calendar_push_failing_since: START.subtract({ minutes: 40 }).toString()
+					action_log: calendarQueuedLog(START.subtract({ minutes: 40 }).toString())
 				})
 			)
 			.execute();
@@ -118,13 +129,36 @@ test('a publish failing past the threshold makes the target calendar bad', async
 		expect(await health(ctx, 'work')).toBe('bad');
 		expect(runWorkflow.mock.calls[0][1]).toMatchObject({ kind: 'broke' });
 
-		// the stuck publish is now surfaced as failed (not just queued)
 		const row = await ctx.db
 			.selectFrom('appointments')
 			.select('calendar_push_notification_status')
 			.where('id', '=', '1')
 			.executeTakeFirstOrThrow();
 		expect(row.calendar_push_notification_status).toBe('failed');
+	} finally {
+		await ctx.db.destroy();
+	}
+});
+
+test('a queued log entry still within the threshold does not flag the calendar', async () => {
+	const ctx = await ctxWith();
+	try {
+		await recordRefreshResult(ctx.db, 'work', { at: START.toString() });
+		await ctx.db
+			.insertInto('appointments')
+			.values(
+				appt({
+					id: '1',
+					external_calendar_id: 'work',
+					calendar_revision: 1,
+					calendar_push_notification_status: 'queued',
+					action_log: calendarQueuedLog(START.subtract({ minutes: 5 }).toString())
+				})
+			)
+			.execute();
+
+		await evaluateHealth(ctx, { now: START.add({ minutes: 5 }), startedAt: START });
+		expect(await health(ctx, 'work')).toBe('good');
 	} finally {
 		await ctx.db.destroy();
 	}

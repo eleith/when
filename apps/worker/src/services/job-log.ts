@@ -7,7 +7,6 @@ import {
 	type JobState
 } from '@when/db';
 
-// Append a system job entry (`email`/`calendar`) to an appointment's action log.
 export async function appendJobLog(
 	db: Kysely<Database>,
 	appointmentId: string,
@@ -22,12 +21,17 @@ export async function appendJobLog(
 		.execute();
 }
 
-// Whether the log already holds an open (not yet `done`) calendar `queued` entry
-// for this row, so a reconcile retry doesn't append a second one. Scoped to
-// `appointment_id` because the log is inherited across a reschedule chain.
-export function hasOpenCalendarJob(actionLog: string | null, appointmentId: string): boolean {
+// Scoped to appointment_id: the log is inherited across a reschedule chain.
+export function openCalendarQueuedAt(
+	actionLog: string | null,
+	appointmentId: string
+): string | null {
 	const last = parseActionLog(actionLog)
 		.filter((e) => e.action === 'calendar' && e.payload?.metadata?.appointment_id === appointmentId)
 		.at(-1);
-	return last?.payload?.metadata?.state === 'queued';
+	return last?.payload?.metadata?.state === 'queued' ? last.at : null;
+}
+
+export function hasOpenCalendarJob(actionLog: string | null, appointmentId: string): boolean {
+	return openCalendarQueuedAt(actionLog, appointmentId) !== null;
 }
