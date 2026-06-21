@@ -315,18 +315,6 @@ test('isChainTerminal validation rules', async () => {
 		expect(await isChainTerminal(db, 'cancelled', now)).toEqual({
 			terminal: true
 		});
-
-		// 5. Notifications queued -> blocked
-		await insert(db, 'queued', 'cancelled', '2026-06-15T13:00:00Z');
-		await db
-			.updateTable('appointments')
-			.set({ email_notification_status: 'queued' })
-			.where('id', '=', 'queued')
-			.execute();
-		expect(await isChainTerminal(db, 'queued', now)).toEqual({
-			terminal: false,
-			reason: 'notifications_queued'
-		});
 	} finally {
 		await db.destroy();
 	}

@@ -1,9 +1,10 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { getConfig, getDb } from '$lib/server/state';
-import { findAppointment, isChainTerminal, deleteChain, originId } from '@when/db';
+import { findAppointment, isChainTerminal } from '@when/db';
 import { acceptAppointment } from '$lib/server/appointment/accept';
 import { declineAppointment } from '$lib/server/appointment/decline';
 import { cancelAppointment } from '$lib/server/appointment/cancel';
+import { purgeAppointment } from '$lib/server/appointment/purge';
 import { validateReason } from '$lib/server/appointment/form.server';
 import { appointmentContext } from '$lib/server/appointment/context';
 import type { Actions, PageServerLoad } from './$types';
@@ -65,23 +66,18 @@ export const actions: Actions = {
 		const eventType = cfg.event_types.find((e) => e.id === row.event_type_id);
 
 		if (eventType) {
-			const now = systemClock.now();
-			const check = await isChainTerminal(db, row.id, now);
+			const check = await isChainTerminal(db, row.id, systemClock.now());
 			if (!check.terminal) {
-				let errorMsg = 'This appointment is not eligible for deletion.';
-				if (check.reason === 'notifications_queued') {
-					errorMsg =
-						'Delete blocked: background notifications or calendar sync are still in progress.';
-				} else if (check.reason === 'not_terminal') {
-					errorMsg = 'Delete blocked: cannot delete an active or upcoming appointment.';
-				}
-				return fail(400, { error: errorMsg });
+				return fail(400, {
+					error:
+						check.reason === 'not_terminal'
+							? 'Delete blocked: cannot delete an active or upcoming appointment.'
+							: 'This appointment is not eligible for deletion.'
+				});
 			}
 		}
 
-		// Delete the entire chain
-		const chainOriginId = originId(row);
-		await deleteChain(db, chainOriginId);
+		await purgeAppointment(appointmentContext(), { appointment: row });
 
 		redirect(303, '/admin/appointments/upcoming');
 	}

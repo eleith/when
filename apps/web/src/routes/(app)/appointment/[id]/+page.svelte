@@ -439,18 +439,10 @@
 					</Dialog.Title>
 
 					{#if !data.deleteCheck?.terminal}
-						{#if data.deleteCheck?.reason === 'notifications_queued'}
-							<p class="cancel-dialog-desc">
-								<strong>Delete blocked</strong>: Background notification or calendar sync tasks are
-								still in progress. Please wait for these tasks to finish before deleting the
-								appointment.
-							</p>
-						{:else}
-							<p class="cancel-dialog-desc">
-								<strong>Delete blocked</strong>: This appointment is not in a terminal state. Only
-								cancelled, declined, expired, or past/concluded appointments can be deleted.
-							</p>
-						{/if}
+						<p class="cancel-dialog-desc">
+							<strong>Delete blocked</strong>: This appointment is not in a terminal state. Only
+							cancelled, declined, expired, or past/concluded appointments can be deleted.
+						</p>
 						<div class="cancel-dialog-actions">
 							<Dialog.Close>
 								{#snippet child({ props: closeProps })}

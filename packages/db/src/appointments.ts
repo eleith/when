@@ -101,32 +101,11 @@ async function isChainTerminal(
 	db: Kysely<Database>,
 	id: string,
 	now: Date
-): Promise<{ terminal: boolean; reason?: 'not_found' | 'not_terminal' | 'notifications_queued' }> {
+): Promise<{ terminal: boolean; reason?: 'not_found' | 'not_terminal' }> {
 	const row = await findAppointment(db, id);
 	if (!row) return { terminal: false, reason: 'not_found' };
 
-	const chainOriginId = originId(row);
-
-	// 1. Check if any notification in the chain is still queued
-	const queuedResult = await db
-		.selectFrom('appointments')
-		.select((eb) => eb.fn.countAll().as('count'))
-		.where((eb) => eb('origin_id', '=', chainOriginId).or('id', '=', chainOriginId))
-		.where((eb) =>
-			eb('email_notification_status', '=', 'queued').or(
-				'calendar_push_notification_status',
-				'=',
-				'queued'
-			)
-		)
-		.executeTakeFirst();
-
-	if (queuedResult && Number(queuedResult.count) > 0) {
-		return { terminal: false, reason: 'notifications_queued' };
-	}
-
-	// 2. Find the chain tip and verify status is terminal or concluded
-	const tip = await findChainTip(db, chainOriginId);
+	const tip = await findChainTip(db, originId(row));
 	if (!tip) return { terminal: false, reason: 'not_terminal' };
 
 	const isTerminal = ['cancelled', 'declined', 'expired'].includes(tip.status);
