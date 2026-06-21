@@ -1,10 +1,12 @@
 import type { RetryPolicy } from 'openworkflow';
+import { Temporal } from '@js-temporal/polyfill';
 import { getOpenWorkflow } from '@when/jobs';
 import { sendAppointmentEmail } from '@when/jobs/specs';
 import type { SendAppointmentEmailInput, SendAppointmentEmailResult } from '@when/jobs';
 import { dispatch } from '../email/dispatch.js';
 import { getWorkerContext } from '../services/context.js';
 import { setNotificationStatus } from '../services/notifications.js';
+import { appendJobLog } from '../services/job-log.js';
 
 // Retry the SMTP send itself (a memoized step), with backoff. A send that fails
 // every attempt is an expected outcome we record, not a workflow crash.
@@ -36,6 +38,10 @@ export async function runSendAppointmentEmail(
 	const { config, db, logger, mailer } = getWorkerContext();
 	const envelopes = await dispatch(input, config);
 
+	await step.run({ name: 'log:queued' }, () =>
+		appendJobLog(db, input.appointment.id, 'email', 'queued', Temporal.Now.instant().toString())
+	);
+
 	let allSent = true;
 	for (const envelope of envelopes) {
 		try {
@@ -55,6 +61,15 @@ export async function runSendAppointmentEmail(
 	const outcome = allSent ? 'ok' : 'failed';
 	await step.run({ name: 'status' }, () =>
 		setNotificationStatus(db, input.appointment.id, 'email', outcome)
+	);
+	await step.run({ name: 'log:result' }, () =>
+		appendJobLog(
+			db,
+			input.appointment.id,
+			'email',
+			allSent ? 'done' : 'failed',
+			Temporal.Now.instant().toString()
+		)
 	);
 	return allSent ? 'sent' : 'failed';
 }

@@ -1,5 +1,5 @@
 import { describe, expect, test, vi } from 'vitest';
-import { openDb, runMigrations } from '@when/db';
+import { openDb, runMigrations, parseActionLog } from '@when/db';
 import type { Database } from '@when/db';
 import type { Kysely } from 'kysely';
 import type { SendAppointmentEmailInput } from '@when/jobs';
@@ -62,6 +62,17 @@ async function readEmailStatus(db: Kysely<Database>) {
 	return row.email_notification_status;
 }
 
+async function readEmailJobStates(db: Kysely<Database>) {
+	const row = await db
+		.selectFrom('appointments')
+		.select('action_log')
+		.where('id', '=', 'appt-1')
+		.executeTakeFirstOrThrow();
+	return parseActionLog(row.action_log)
+		.filter((e) => e.action === 'email')
+		.map((e) => e.payload?.metadata?.state);
+}
+
 describe('runSendAppointmentEmail', () => {
 	test('sends every envelope and records email:ok', async () => {
 		const db = await seedDb();
@@ -74,8 +85,15 @@ describe('runSendAppointmentEmail', () => {
 
 		expect(result).toBe('sent');
 		expect(send).toHaveBeenCalledTimes(2); // attendee + organizer
-		expect(names).toEqual(['smtp:jane@example.com', 'smtp:owner@acme.test', 'status']);
+		expect(names).toEqual([
+			'log:queued',
+			'smtp:jane@example.com',
+			'smtp:owner@acme.test',
+			'status',
+			'log:result'
+		]);
 		expect(await readEmailStatus(db)).toBe('ok');
+		expect(await readEmailJobStates(db)).toEqual(['queued', 'done']);
 		await db.destroy();
 	});
 
@@ -90,6 +108,7 @@ describe('runSendAppointmentEmail', () => {
 
 		expect(result).toBe('failed');
 		expect(await readEmailStatus(db)).toBe('failed');
+		expect(await readEmailJobStates(db)).toEqual(['queued', 'failed']);
 		await db.destroy();
 	});
 });

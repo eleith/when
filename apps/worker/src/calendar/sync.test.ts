@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest';
 import type { WhenConfiguration } from '@when/config';
 import type { FetchFn } from '@when/calendar';
-import { openDb, runMigrations, listOutOfSyncAppointments } from '@when/db';
+import { openDb, runMigrations, listOutOfSyncAppointments, parseActionLog } from '@when/db';
 import type { Logger } from '../services/logger.js';
 import type { WorkerContext } from '../services/context.js';
 import { reconcileAppointment, scanOnce } from './sync.js';
@@ -58,6 +58,11 @@ function recordingFetch(status = 204) {
 const rowById = (db: WorkerContext['db'], id: string) =>
 	db.selectFrom('appointments').selectAll().where('id', '=', id).executeTakeFirstOrThrow();
 
+const calendarJobStates = async (db: WorkerContext['db'], id: string) =>
+	parseActionLog((await rowById(db, id)).action_log)
+		.filter((e) => e.action === 'calendar')
+		.map((e) => e.payload?.metadata?.state);
+
 const insert = (ctx: WorkerContext, over: Record<string, unknown>) =>
 	ctx.db.insertInto('appointments').values(appt(over)).execute();
 
@@ -75,6 +80,7 @@ test('confirmed without an external event is created and marked synced', async (
 		expect(row.calendar_synced_revision).toBe(1);
 		expect(row.calendar_push_notification_status).toBe('ok');
 		expect(calls.some((c) => c.method === 'PUT')).toBe(true);
+		expect(await calendarJobStates(ctx.db, '1')).toEqual(['queued', 'done']);
 	} finally {
 		await ctx.db.destroy();
 	}
@@ -91,6 +97,8 @@ test('a failing publish stamps failing_since; a later success clears it', async 
 		let row = await rowById(ctx.db, '1');
 		expect(row.calendar_push_failing_since).not.toBeNull();
 		expect(row.calendar_synced_revision).toBeNull(); // still out of sync — will retry
+		// queued logged and still open (no done) — this is the log's "failing since"
+		expect(await calendarJobStates(ctx.db, '1')).toEqual(['queued']);
 
 		await reconcileAppointment(ctx, await onlyRow(ctx), {
 			fetchImpl: recordingFetch(201).fetchImpl
@@ -98,6 +106,8 @@ test('a failing publish stamps failing_since; a later success clears it', async 
 		row = await rowById(ctx.db, '1');
 		expect(row.calendar_push_failing_since).toBeNull();
 		expect(row.calendar_push_notification_status).toBe('ok');
+		// the retry closes the open queued rather than appending a second one
+		expect(await calendarJobStates(ctx.db, '1')).toEqual(['queued', 'done']);
 	} finally {
 		await ctx.db.destroy();
 	}
@@ -144,6 +154,7 @@ test('a should-not-exist row with an external event is deleted and ids cleared',
 		expect(row.external_calendar_id).toBeNull();
 		expect(row.calendar_synced_revision).toBe(2);
 		expect(calls.some((c) => c.method === 'DELETE')).toBe(true);
+		expect(await calendarJobStates(ctx.db, '1')).toEqual(['queued', 'done']);
 	} finally {
 		await ctx.db.destroy();
 	}
@@ -204,6 +215,8 @@ test('a should-not-exist row with no external event is a no-op marked synced', a
 		const row = await rowById(ctx.db, '1');
 		expect(row.calendar_synced_revision).toBe(2);
 		expect(calls).toHaveLength(0);
+		// a no-op sync (nothing to delete) logs no calendar job
+		expect(await calendarJobStates(ctx.db, '1')).toEqual([]);
 	} finally {
 		await ctx.db.destroy();
 	}

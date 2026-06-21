@@ -8,6 +8,7 @@ import {
 } from '@when/db';
 import type { WorkerContext } from '../services/context.js';
 import { appointmentLinks } from '../links.js';
+import { appendJobLog, hasOpenCalendarJob } from '../services/job-log.js';
 
 export interface SyncOptions {
 	fetchImpl?: FetchFn;
@@ -32,6 +33,9 @@ export async function reconcileAppointment(
 			baseUrl: ctx.config.url.app,
 			appointment: row
 		}).booked;
+		if (!hasOpenCalendarJob(row.action_log, row.id)) {
+			await appendJobLog(ctx.db, row.id, 'calendar', 'queued', Temporal.Now.instant().toString());
+		}
 		const pushed = await pushAppointment(ctx.config, row, target, {
 			cancelUrl,
 			fetchImpl: opts.fetchImpl
@@ -43,6 +47,7 @@ export async function reconcileAppointment(
 				calendar_push_notification_status: 'ok',
 				calendar_push_failing_since: null
 			});
+			await appendJobLog(ctx.db, row.id, 'calendar', 'done', Temporal.Now.instant().toString());
 		} else {
 			await recordPublishFailure(ctx.db, row.id, Temporal.Now.instant().toString());
 			ctx.logger.error('calendar sync failed; will retry next scan', {
@@ -57,6 +62,9 @@ export async function reconcileAppointment(
 	const shouldRemove =
 		row.status === 'cancelled' || row.status === 'declined' || row.status === 'expired';
 	if (shouldRemove && row.external_event_id && row.external_calendar_id) {
+		if (!hasOpenCalendarJob(row.action_log, row.id)) {
+			await appendJobLog(ctx.db, row.id, 'calendar', 'queued', Temporal.Now.instant().toString());
+		}
 		const deleted = await deleteAppointmentFromCalendar(
 			ctx.config,
 			row.external_calendar_id,
@@ -70,6 +78,7 @@ export async function reconcileAppointment(
 				calendar_push_notification_status: 'ok',
 				calendar_push_failing_since: null
 			});
+			await appendJobLog(ctx.db, row.id, 'calendar', 'done', Temporal.Now.instant().toString());
 		} else {
 			await recordPublishFailure(ctx.db, row.id, Temporal.Now.instant().toString());
 			ctx.logger.error('calendar delete failed; will retry next scan', {
