@@ -76,6 +76,13 @@
 				>
 					Archived
 				</a>
+				<a
+					href="/admin/appointments/purged"
+					class="sub-tab"
+					class:active={currentPath === '/admin/appointments/purged'}
+				>
+					Purged
+				</a>
 			</div>
 		</div>
 

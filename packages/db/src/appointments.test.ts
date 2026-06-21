@@ -274,6 +274,16 @@ test('bucket listings and counts', async () => {
 			offset: 0
 		});
 		expect(archivedList.map((a) => a.id)).toEqual(['cancelled1', 'declined1', 'expired1']);
+
+		// --- Test Purged ---
+		expect(await countAppointments(db, { bucket: 'purged', now })).toBe(1);
+		const purgedList = await listAppointmentsPage(db, {
+			bucket: 'purged',
+			now,
+			limit: 10,
+			offset: 0
+		});
+		expect(purgedList.map((a) => a.id)).toEqual(['purged1']);
 	} finally {
 		await db.destroy();
 	}

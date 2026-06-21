@@ -24,7 +24,7 @@ function findChainTip(
 		.selectFrom('appointments')
 		.selectAll()
 		.where('origin_id', '=', chainOriginId)
-		.where('status', '!=', 'rescheduled')
+		.where('status', 'not in', ['rescheduled', 'purged'])
 		.executeTakeFirst();
 }
 
@@ -42,7 +42,7 @@ async function expireStalePending(db: Kysely<Database>, nowIso: string): Promise
 	return Number(result.numUpdatedRows);
 }
 
-type AppointmentBucket = 'pending' | 'upcoming' | 'concluded' | 'archived';
+type AppointmentBucket = 'pending' | 'upcoming' | 'concluded' | 'archived' | 'purged';
 
 function listAppointmentsPage(
 	db: Kysely<Database>,
@@ -80,6 +80,8 @@ function applyBucket<Selected>(
 			return qb.where('status', '=', 'confirmed').where('end_time', '<=', nowIso);
 		case 'archived':
 			return qb.where('status', 'in', ['declined', 'cancelled', 'expired']);
+		case 'purged':
+			return qb.where('status', '=', 'purged');
 	}
 }
 

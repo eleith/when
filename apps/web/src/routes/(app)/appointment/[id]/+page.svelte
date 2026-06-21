@@ -39,7 +39,7 @@
 	let status = $derived(data.appointment.status);
 	let stateTone = $derived.by(() => {
 		if (status === 'declined' || status === 'cancelled' || status === 'expired') return 'danger';
-		if (status === 'rescheduled') return 'quiet';
+		if (status === 'rescheduled' || status === 'purged') return 'quiet';
 		if (status === 'pending') return 'warning';
 		if (data.clockStatus === 'in_progress') return 'active';
 		if (data.clockStatus === 'concluded') return 'quiet';
@@ -75,6 +75,8 @@
 		<title>Appointment declined — When</title>
 	{:else if status === 'rescheduled'}
 		<title>Appointment rescheduled — When</title>
+	{:else if status === 'purged'}
+		<title>Appointment purged — When</title>
 	{:else if status === 'pending'}
 		<title>Appointment requested — When</title>
 	{:else}
@@ -100,7 +102,7 @@
 				<IconCheckCircle aria-hidden="true" />
 			{:else if status === 'pending'}
 				<IconClock aria-hidden="true" />
-			{:else if status === 'cancelled' || status === 'declined' || status === 'expired'}
+			{:else if status === 'cancelled' || status === 'declined' || status === 'expired' || status === 'purged'}
 				<IconWarningCircle aria-hidden="true" />
 			{:else}
 				<IconClock aria-hidden="true" />
@@ -133,6 +135,8 @@
 				Expired
 			{:else if status === 'rescheduled'}
 				Rescheduled
+			{:else if status === 'purged'}
+				Purged
 			{:else}
 				Appointment
 			{/if}
@@ -160,6 +164,8 @@
 				This appointment request was declined.
 			{:else if status === 'expired'}
 				This appointment request has expired.
+			{:else if status === 'purged'}
+				This appointment is being deleted.
 			{:else}
 				This appointment has been rescheduled to a new date.
 			{/if}
@@ -175,7 +181,7 @@
 						&middot; {data.eventType.description}{/if}
 				</p>
 			</div>
-			{#if hasActions || data.isAdmin}
+			{#if (hasActions || data.isAdmin) && status !== 'purged'}
 				<AppointmentActions
 					actions={data.actions}
 					appointmentId={data.appointment.id}
@@ -202,6 +208,8 @@
 					Expired
 				{:else if status === 'rescheduled'}
 					Rescheduled
+				{:else if status === 'purged'}
+					Purged
 				{:else}
 					Cancelled
 				{/if}
