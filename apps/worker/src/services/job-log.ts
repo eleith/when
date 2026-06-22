@@ -2,6 +2,7 @@ import { type Kysely } from 'kysely';
 import {
 	appendJobLogSql,
 	parseActionLog,
+	type Appointment,
 	type Database,
 	type JobKind,
 	type JobState
@@ -34,6 +35,11 @@ export function openCalendarFailureAt(
 	return last?.payload?.metadata?.state === 'failed' ? last.at : null;
 }
 
-export function hasOpenCalendarFailure(actionLog: string | null, appointmentId: string): boolean {
-	return openCalendarFailureAt(actionLog, appointmentId) !== null;
+export async function markCalendarFailing(
+	db: Kysely<Database>,
+	row: Pick<Appointment, 'id' | 'action_log'>,
+	at: string
+): Promise<void> {
+	if (openCalendarFailureAt(row.action_log, row.id) !== null) return;
+	await appendJobLog(db, row.id, 'calendar', 'failed', at);
 }
