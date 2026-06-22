@@ -10,7 +10,6 @@
 	import IconWarningCircle from 'virtual:icons/ph/warning-circle';
 	import IconCheckCircle from 'virtual:icons/ph/check-circle';
 	import IconNote from 'virtual:icons/ph/note';
-	import IconCalendarX from 'virtual:icons/ph/calendar-x';
 	import AppointmentActions from '$lib/components/AppointmentActions.svelte';
 	import AppointmentLog from '$lib/components/AppointmentLog.svelte';
 	import AppointmentQuestions from '$lib/components/AppointmentQuestions.svelte';
@@ -58,16 +57,17 @@
 	);
 
 	let cancelEntry = $derived(data.appointment.action_log.findLast((e) => e.action === 'cancel'));
-	let cancelReasonText = $derived(cancelEntry?.payload?.note);
-	let cancelReasonActor = $derived(cancelEntry?.actor);
-
 	let rescheduleEntry = $derived(
 		data.appointment.action_log.findLast(
 			(e) => e.action === 'reschedule' && e.payload?.metadata?.next_id === data.appointment.id
 		)
 	);
-	let rescheduleReasonText = $derived(rescheduleEntry?.payload?.note);
-	let rescheduleReasonActor = $derived(rescheduleEntry?.actor);
+
+	let notes = $derived(
+		[status === 'cancelled' ? cancelEntry : undefined, rescheduleEntry]
+			.filter((e) => e?.payload?.note)
+			.map((e) => ({ actor: e!.actor, kind: e!.action, text: e!.payload!.note! }))
+	);
 </script>
 
 <svelte:head>
@@ -300,27 +300,22 @@
 						<div class="detail-secondary">No email collected</div>
 					{/if}
 					<div class="detail-secondary">
-						{data.user.name}
+						{data.user.name} (host)
 					</div>
 				</div>
 			</div>
-			{#if status === 'cancelled' && cancelReasonText && cancelReasonActor}
-				<div class="detail-row">
-					<span class="detail-icon"><IconCalendarX aria-hidden="true" /></span>
-					<div class="detail-text">
-						<div class="detail-primary">Cancellation note</div>
-						<div class="detail-secondary notes">{cancelReasonActor} - {cancelReasonText}</div>
-					</div>
-				</div>
-			{/if}
-			{#if rescheduleReasonText && rescheduleReasonActor}
+			{#if notes.length}
 				<div class="detail-row">
 					<span class="detail-icon"><IconNote aria-hidden="true" /></span>
 					<div class="detail-text">
-						<div class="detail-primary">Reschedule note</div>
-						<div class="detail-secondary notes">
-							{rescheduleReasonActor} - {rescheduleReasonText}
-						</div>
+						<div class="detail-primary">Note</div>
+						{#each notes as note, i (i)}
+							<div class="detail-secondary note-line">
+								{#if note.actor === 'host'}Host{:else if note.actor === 'guest'}Guest{:else}System{/if}:
+								({note.kind})
+								{note.text}
+							</div>
+						{/each}
 					</div>
 				</div>
 			{/if}
@@ -980,9 +975,13 @@
 		margin-top: var(--space-2);
 	}
 
-	.notes {
-		white-space: pre-wrap;
+	/* One note per line: "Host: (reschedule) reason". Notes stack vertically. */
+	.note-line {
 		line-height: 1.5;
+	}
+
+	.note-line + .note-line {
+		margin-top: var(--space-2);
 	}
 
 	/* ---- centered page header ---- */
