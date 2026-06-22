@@ -13,6 +13,7 @@
 	import IconCalendarX from 'virtual:icons/ph/calendar-x';
 	import AppointmentActions from '$lib/components/AppointmentActions.svelte';
 	import AppointmentLog from '$lib/components/AppointmentLog.svelte';
+	import AppointmentQuestions from '$lib/components/AppointmentQuestions.svelte';
 	import AddToCalendar from '$lib/components/AddToCalendar.svelte';
 	import { formatDateShort, formatWeekday, formatTimeRange, formatTzShort } from '$lib/datetime';
 
@@ -319,20 +320,11 @@
 					</div>
 				</div>
 			{/if}
-			{#if data.appointment.answers.length}
-				<div class="detail-row">
-					<span class="detail-icon"><IconNote aria-hidden="true" /></span>
-					<div class="detail-text answers">
-						{#each data.appointment.answers as answer (answer.id)}
-							<div class="answer-item">
-								<div class="detail-secondary">{answer.label}</div>
-								<div class="detail-primary notes">{answer.value}</div>
-							</div>
-						{/each}
-					</div>
-				</div>
-			{/if}
 		</section>
+
+		{#if data.appointment.answers.length}
+			<AppointmentQuestions answers={data.appointment.answers} />
+		{/if}
 
 		{#if data.isAdmin}
 			<AppointmentLog log={data.appointment.action_log} {displayTz} />
@@ -987,10 +979,6 @@
 	.notes {
 		white-space: pre-wrap;
 		line-height: 1.5;
-	}
-
-	.answer-item + .answer-item {
-		margin-top: var(--space-3);
 	}
 
 	/* ---- centered page header ---- */
