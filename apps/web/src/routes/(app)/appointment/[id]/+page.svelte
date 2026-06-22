@@ -335,7 +335,7 @@
 		</section>
 
 		{#if data.isAdmin}
-			<AppointmentLog log={data.appointment.action_log} displayTz={displayTz} />
+			<AppointmentLog log={data.appointment.action_log} {displayTz} />
 		{/if}
 
 		{#if data.calendarLinks}
