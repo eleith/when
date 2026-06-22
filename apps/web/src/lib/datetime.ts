@@ -107,6 +107,17 @@ export function formatSlot(iso: string, tz: string): string {
 	}
 }
 
+/** Log-style timestamp from an instant in `tz`, e.g. "2025-06-15 14:30:45". */
+export function formatTimestamp(iso: string, tz: string): string {
+	try {
+		const z = Temporal.Instant.from(iso).toZonedDateTimeISO(tz);
+		const p = (n: number) => String(n).padStart(2, '0');
+		return `${z.year}-${p(z.month)}-${p(z.day)} ${p(z.hour)}:${p(z.minute)}:${p(z.second)}`;
+	} catch {
+		return iso;
+	}
+}
+
 /** City portion of an IANA timezone, e.g. "America/New_York" → "New York". */
 export function tzCity(tz: string): string {
 	return tz.split('/').pop()?.replace(/_/g, ' ') ?? tz;

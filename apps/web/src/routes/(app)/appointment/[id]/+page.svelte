@@ -12,6 +12,7 @@
 	import IconNote from 'virtual:icons/ph/note';
 	import IconCalendarX from 'virtual:icons/ph/calendar-x';
 	import AppointmentActions from '$lib/components/AppointmentActions.svelte';
+	import AppointmentLog from '$lib/components/AppointmentLog.svelte';
 	import AddToCalendar from '$lib/components/AddToCalendar.svelte';
 	import { formatDateShort, formatWeekday, formatTimeRange, formatTzShort } from '$lib/datetime';
 
@@ -332,6 +333,10 @@
 				</div>
 			{/if}
 		</section>
+
+		{#if data.isAdmin}
+			<AppointmentLog log={data.appointment.action_log} displayTz={displayTz} />
+		{/if}
 
 		{#if data.calendarLinks}
 			<section class="card-section card-cta">
