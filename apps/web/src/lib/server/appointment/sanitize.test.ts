@@ -99,7 +99,12 @@ describe('toPublicAppointment', () => {
 		};
 		const res = toPublicAppointment(rowWithLog, false);
 		expect(res.action_log).toEqual([
-			{ action: 'cancel', at: '2026-05-01T13:00:00Z', payload: { note: 'double booked' } }
+			{
+				action: 'cancel',
+				actor: 'host',
+				at: '2026-05-01T13:00:00Z',
+				payload: { note: 'double booked', metadata: undefined }
+			}
 		]);
 	});
 

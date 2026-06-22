@@ -75,6 +75,7 @@ export function toPublicAppointment(row: Appointment, isAdmin: boolean): PublicA
 		.filter((e) => e.action === 'cancel' || e.action === 'reschedule')
 		.map((e) => ({
 			action: e.action,
+			actor: e.actor,
 			at: e.at,
 			payload: {
 				note: e.payload?.note || undefined,
