@@ -39,7 +39,9 @@ export function buildIcs(input: IcsInput): string {
 		description: describeAppointment(appointment, cancelUrl),
 		location: appointment.location ?? undefined,
 		organizer: { name: hostName, email: hostEmail },
-		attendees: guest ? [guest] : undefined,
+		// The guest booked, so they've effectively accepted; mark it so calendar
+		// clients don't prompt them to RSVP to the noreply organizer.
+		attendees: guest ? [{ ...guest, partstat: 'ACCEPTED', rsvp: false }] : undefined,
 		status: eventStatus(method, appointment.status)
 	};
 

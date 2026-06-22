@@ -5,4 +5,5 @@ export { checkCrossRefs } from './cross-refs.js';
 export { resolveConfigPath } from './paths.js';
 export { resolveFormFields, DEFAULT_FORM_FIELDS, parseGuestAnswers } from './form-fields.js';
 export type { GuestAnswer } from './form-fields.js';
+export { senderEmail } from './sender.js';
 export type * from './schema.js';

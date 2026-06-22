@@ -32,4 +32,18 @@ describe('ics', () => {
 		expect(cancel.content).toContain('METHOD:CANCEL');
 		expect(cancel.content).toContain('STATUS:CANCELLED');
 	});
+
+	test('guest-facing ics organizes as the sender, never the host email', () => {
+		// ts-ics line-folds long property values; unfold before matching.
+		const unfold = (s: string) => s.replace(/\r\n[ \t]/g, '');
+		const req = unfold(requestIcs(sampleInput, sampleInput.links.booked).content);
+		const cancel = unfold(cancelIcs(sampleInput, sampleInput.links.booked).content);
+		// url.app is https://when.example.com and no smtp.from is set.
+		expect(req).toContain('noreply@when.example.com');
+		expect(req).not.toContain('owner@acme.test');
+		expect(cancel).not.toContain('owner@acme.test');
+		// Guest is pre-accepted so clients don't prompt an RSVP to the noreply organizer.
+		expect(req).toContain('PARTSTAT=ACCEPTED');
+		expect(req).toContain('RSVP=FALSE');
+	});
 });

@@ -1,5 +1,5 @@
 import nodemailer from 'nodemailer';
-import type { WhenConfiguration } from '@when/config';
+import { senderEmail, type WhenConfiguration } from '@when/config';
 import type { Logger } from '../services/logger.js';
 import type { Envelope } from './recipients.js';
 
@@ -27,11 +27,13 @@ export function createMailer(config: WhenConfiguration, logger: Logger): Mailer 
 		auth: { user: config.smtp.user, pass: config.smtp.pass }
 	});
 
+	const from = `${config.user.name} <${senderEmail(config)}>`;
+
 	return {
 		async send(envelope: Envelope): Promise<SendResult> {
 			try {
 				await transporter.sendMail({
-					from: `${config.user.name} <${config.user.email}>`,
+					from,
 					to: envelope.to,
 					subject: envelope.subject,
 					text: envelope.text,

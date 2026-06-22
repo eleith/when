@@ -2,6 +2,7 @@ import { error } from '@sveltejs/kit';
 import { requireViewableAppointment } from '$lib/server/appointment/access';
 import { systemClock } from '$lib/server/clock';
 import { buildIcs } from '@when/calendar';
+import { senderEmail } from '@when/config';
 import { findAppointment } from '@when/db';
 import { getConfig, getDb } from '$lib/server/state';
 import type { RequestHandler } from './$types';
@@ -28,7 +29,7 @@ export const GET: RequestHandler = async ({ params, url }) => {
 		appointment: row,
 		eventTypeName: eventType?.name ?? row.event_type_id,
 		hostName: cfg.user.name,
-		hostEmail: cfg.user.email,
+		hostEmail: senderEmail(cfg),
 		cancelUrl,
 		method: 'REQUEST'
 	});

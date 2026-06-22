@@ -73,6 +73,10 @@ export interface Smtp {
   port: number;
   user: string;
   pass: string;
+  /**
+   * Email address used as the From on all emails and as the organizer on guest-facing calendar invites, so the host's own address is never exposed. Must be an address your SMTP server is allowed to send from. Defaults to noreply@<your url.app domain>. The display name always comes from user.name.
+   */
+  from?: string;
 }
 export interface GoogleCalendar {
   id: string;
