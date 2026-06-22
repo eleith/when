@@ -38,8 +38,8 @@ test('partial unique index rejects concurrent active slot but allows cancelled',
 			event_type_id: 'chat',
 			start_time: '2026-05-01T10:00:00Z',
 			end_time: '2026-05-01T10:30:00Z',
-			attendee_name: 'A',
-			attendee_email: 'a@example.com',
+			guest_name: 'A',
+			guest_email: 'a@example.com',
 			location: null,
 			external_event_id: null,
 			external_calendar_id: null
@@ -158,37 +158,17 @@ test('0007 backfills synced_revision only for already-published rows', async () 
 		const before = await migrator.migrateTo('0006_calendar_mirror_tables');
 		expect(before.error).toBeUndefined();
 
-		const base = {
-			event_type_id: 'chat',
-			start_time: '2026-05-01T10:00:00Z',
-			end_time: '2026-05-01T10:30:00Z',
-			attendee_name: 'A',
-			attendee_email: 'a@example.com',
-			location: null,
-			status: 'confirmed' as const
-		};
-		await db
-			.insertInto('appointments')
-			.values({
-				...base,
-				id: 'pub',
-				cancel_token: 't1',
-				external_event_id: 'ext-1',
-				external_calendar_id: 'work'
-			})
-			.execute();
-		await db
-			.insertInto('appointments')
-			.values({
-				...base,
-				id: 'unpub',
-				start_time: '2026-05-01T11:00:00Z',
-				end_time: '2026-05-01T11:30:00Z',
-				cancel_token: 't2',
-				external_event_id: null,
-				external_calendar_id: null
-			})
-			.execute();
+		// Pre-0018 the columns are still attendee_*; seed via raw SQL to match the schema here.
+		await sql`INSERT INTO appointments
+			(id, event_type_id, start_time, end_time, attendee_name, attendee_email, location, status, cancel_token, external_event_id, external_calendar_id)
+			VALUES ('pub', 'chat', '2026-05-01T10:00:00Z', '2026-05-01T10:30:00Z', 'A', 'a@example.com', NULL, 'confirmed', 't1', 'ext-1', 'work')`.execute(
+			db
+		);
+		await sql`INSERT INTO appointments
+			(id, event_type_id, start_time, end_time, attendee_name, attendee_email, location, status, cancel_token, external_event_id, external_calendar_id)
+			VALUES ('unpub', 'chat', '2026-05-01T11:00:00Z', '2026-05-01T11:30:00Z', 'A', 'a@example.com', NULL, 'confirmed', 't2', NULL, NULL)`.execute(
+			db
+		);
 
 		const after = await migrator.migrateTo('0007_appointment_calendar_columns');
 		expect(after.error).toBeUndefined();
@@ -207,7 +187,7 @@ test('0007 backfills synced_revision only for already-published rows', async () 
 	}
 });
 
-test('0012 drops attendee_notes, adds attendee_answers, and allows a null email', async () => {
+test('0012 drops attendee_notes, adds guest_answers, and allows a null email', async () => {
 	const db = openDb(':memory:');
 	try {
 		await runMigrations(db);
@@ -217,8 +197,8 @@ test('0012 drops attendee_notes, adds attendee_answers, and allows a null email'
 		}>`PRAGMA table_info(appointments)`.execute(db);
 		const byName = new Map(cols.rows.map((r) => [r.name, r]));
 		expect(byName.has('attendee_notes')).toBe(false);
-		expect(byName.has('attendee_answers')).toBe(true);
-		expect(byName.get('attendee_email')?.notnull).toBe(0);
+		expect(byName.has('guest_answers')).toBe(true);
+		expect(byName.get('guest_email')?.notnull).toBe(0);
 
 		await db
 			.insertInto('appointments')
@@ -227,8 +207,8 @@ test('0012 drops attendee_notes, adds attendee_answers, and allows a null email'
 				event_type_id: 'chat',
 				start_time: '2026-05-01T10:00:00Z',
 				end_time: '2026-05-01T10:30:00Z',
-				attendee_name: 'A',
-				attendee_email: null,
+				guest_name: 'A',
+				guest_email: null,
 				location: null,
 				status: 'confirmed',
 				cancel_token: 'tok'
@@ -239,8 +219,8 @@ test('0012 drops attendee_notes, adds attendee_answers, and allows a null email'
 			.selectAll()
 			.where('id', '=', 'no-email')
 			.executeTakeFirstOrThrow();
-		expect(row.attendee_email).toBeNull();
-		expect(row.attendee_answers).toBeNull();
+		expect(row.guest_email).toBeNull();
+		expect(row.guest_answers).toBeNull();
 	} finally {
 		await db.destroy();
 	}
@@ -266,7 +246,7 @@ test('0012 preserves the appointment indexes after the table rebuild', async () 
 	}
 });
 
-test('0012 copies existing rows and initialises attendee_answers to null', async () => {
+test('0012 copies existing rows and initialises guest_answers to null', async () => {
 	const db = openDb(':memory:');
 	try {
 		const migrator = new Migrator({
@@ -276,32 +256,25 @@ test('0012 copies existing rows and initialises attendee_answers to null', async
 		const before = await migrator.migrateTo('0011_origin_id_index');
 		expect(before.error).toBeUndefined();
 
-		await db
-			.insertInto('appointments')
-			.values({
-				id: 'keep',
-				event_type_id: 'chat',
-				start_time: '2026-05-01T10:00:00Z',
-				end_time: '2026-05-01T10:30:00Z',
-				attendee_name: 'A',
-				attendee_email: 'a@example.com',
-				location: 'Room 1',
-				status: 'confirmed',
-				cancel_token: 't-keep'
-			})
-			.execute();
+		// Pre-0018 the columns are still attendee_*; seed/read via raw SQL to match the schema here.
+		await sql`INSERT INTO appointments
+			(id, event_type_id, start_time, end_time, attendee_name, attendee_email, location, status, cancel_token)
+			VALUES ('keep', 'chat', '2026-05-01T10:00:00Z', '2026-05-01T10:30:00Z', 'A', 'a@example.com', 'Room 1', 'confirmed', 't-keep')`.execute(
+			db
+		);
 
 		const after = await migrator.migrateTo('0012_form_customization');
 		expect(after.error).toBeUndefined();
 
-		const row = await db
-			.selectFrom('appointments')
-			.selectAll()
-			.where('id', '=', 'keep')
-			.executeTakeFirstOrThrow();
-		expect(row.attendee_name).toBe('A');
-		expect(row.location).toBe('Room 1');
-		expect(row.attendee_answers).toBeNull();
+		const row = await sql<{
+			attendee_name: string;
+			location: string;
+			attendee_answers: string | null;
+		}>`
+			SELECT attendee_name, location, attendee_answers FROM appointments WHERE id = 'keep'`.execute(db);
+		expect(row.rows[0].attendee_name).toBe('A');
+		expect(row.rows[0].location).toBe('Room 1');
+		expect(row.rows[0].attendee_answers).toBeNull();
 	} finally {
 		await db.destroy();
 	}
@@ -314,6 +287,60 @@ test('migrations are idempotent when re-run', async () => {
 		const second = await runMigrations(db);
 		expect(first).toContain('0001_initial');
 		expect(second).toEqual([]);
+	} finally {
+		await db.destroy();
+	}
+});
+
+test('0018 renames attendee columns to guest and rewrites action_log actors', async () => {
+	const db = openDb(':memory:');
+	try {
+		const migrator = new Migrator({
+			db,
+			provider: { getMigrations: async () => migrations }
+		});
+		const before = await migrator.migrateTo('0017_drop_notification_columns');
+		expect(before.error).toBeUndefined();
+
+		// Pre-0018: seed an attendee_* row whose action_log, answers, and snapshot carry old names.
+		const log = JSON.stringify([
+			{ action: 'create', actor: 'attendee', at: '2026-05-01T09:00:00Z' },
+			{ action: 'confirm', actor: 'organizer', at: '2026-05-01T09:05:00Z' }
+		]);
+		const answers = JSON.stringify([
+			{ id: 'name', label: 'Name', type: 'attendee_name', value: 'A' }
+		]);
+		const snapshot = JSON.stringify({
+			form_fields: [{ id: 'name', type: 'attendee_name', label: 'Name', required: true }]
+		});
+		await sql`INSERT INTO appointments
+			(id, event_type_id, start_time, end_time, attendee_name, attendee_email, attendee_answers, status, cancel_token, action_log, event_type_snapshot)
+			VALUES ('a', 'chat', '2026-05-01T10:00:00Z', '2026-05-01T10:30:00Z', 'A', 'a@example.com', ${answers}, 'confirmed', 'tok', ${log}, ${snapshot})`.execute(
+			db
+		);
+
+		const after = await migrator.migrateTo('0018_rename_attendee_to_guest');
+		expect(after.error).toBeUndefined();
+
+		const colNames = (
+			await sql<{ name: string }>`PRAGMA table_info(appointments)`.execute(db)
+		).rows.map((r) => r.name);
+		expect(colNames).toEqual(
+			expect.arrayContaining(['guest_name', 'guest_email', 'guest_answers', 'guest_timezone'])
+		);
+		expect(colNames).not.toContain('attendee_name');
+		expect(colNames).not.toContain('attendee_email');
+
+		const row = await db
+			.selectFrom('appointments')
+			.select(['guest_name', 'guest_answers', 'action_log', 'event_type_snapshot'])
+			.where('id', '=', 'a')
+			.executeTakeFirstOrThrow();
+		expect(row.guest_name).toBe('A');
+		const actors = (JSON.parse(row.action_log!) as { actor: string }[]).map((e) => e.actor);
+		expect(actors).toEqual(['guest', 'host']);
+		expect(JSON.parse(row.guest_answers!)[0].type).toBe('guest_name');
+		expect(JSON.parse(row.event_type_snapshot!).form_fields[0].type).toBe('guest_name');
 	} finally {
 		await db.destroy();
 	}

@@ -19,7 +19,7 @@ describe('cancel', () => {
 	test('allowed for confirmed before start', () => {
 		const a = resolveAppointmentActions({
 			row: row('confirmed'),
-			viewer: 'attendee',
+			viewer: 'guest',
 			now: before,
 			eventType: eventTypeNoNotice
 		});
@@ -29,7 +29,7 @@ describe('cancel', () => {
 	test('allowed for pending before start', () => {
 		const a = resolveAppointmentActions({
 			row: row('pending'),
-			viewer: 'attendee',
+			viewer: 'guest',
 			now: before,
 			eventType: eventTypeNoNotice
 		});
@@ -39,7 +39,7 @@ describe('cancel', () => {
 	test('past_start at exact start_time', () => {
 		const a = resolveAppointmentActions({
 			row: row('confirmed'),
-			viewer: 'attendee',
+			viewer: 'guest',
 			now: atStart,
 			eventType: eventTypeNoNotice
 		});
@@ -49,7 +49,7 @@ describe('cancel', () => {
 	test('past_start after start_time', () => {
 		const a = resolveAppointmentActions({
 			row: row('confirmed'),
-			viewer: 'attendee',
+			viewer: 'guest',
 			now: after,
 			eventType: eventTypeNoNotice
 		});
@@ -59,7 +59,7 @@ describe('cancel', () => {
 	test('terminal_status for cancelled (even before start)', () => {
 		const a = resolveAppointmentActions({
 			row: row('cancelled'),
-			viewer: 'attendee',
+			viewer: 'guest',
 			now: before,
 			eventType: eventTypeNoNotice
 		});
@@ -69,7 +69,7 @@ describe('cancel', () => {
 	test('terminal_status for declined', () => {
 		const a = resolveAppointmentActions({
 			row: row('declined'),
-			viewer: 'attendee',
+			viewer: 'guest',
 			now: before,
 			eventType: eventTypeNoNotice
 		});
@@ -81,7 +81,7 @@ describe('reschedule', () => {
 	test('allowed when notice satisfied', () => {
 		const a = resolveAppointmentActions({
 			row: row('confirmed'),
-			viewer: 'attendee',
+			viewer: 'guest',
 			now: before,
 			eventType: eventType30
 		});
@@ -91,7 +91,7 @@ describe('reschedule', () => {
 	test('allowed at exact notice boundary', () => {
 		const a = resolveAppointmentActions({
 			row: row('confirmed'),
-			viewer: 'attendee',
+			viewer: 'guest',
 			now: noticeBoundary,
 			eventType: eventType30
 		});
@@ -101,7 +101,7 @@ describe('reschedule', () => {
 	test('minimum_notice when inside notice window', () => {
 		const a = resolveAppointmentActions({
 			row: row('confirmed'),
-			viewer: 'attendee',
+			viewer: 'guest',
 			now: new Date('2026-05-01T14:45:00Z'),
 			eventType: eventType30
 		});
@@ -111,7 +111,7 @@ describe('reschedule', () => {
 	test('past_start beats minimum_notice when clock is past start', () => {
 		const a = resolveAppointmentActions({
 			row: row('confirmed'),
-			viewer: 'attendee',
+			viewer: 'guest',
 			now: after,
 			eventType: eventType30
 		});
@@ -121,7 +121,7 @@ describe('reschedule', () => {
 	test('terminal_status for cancelled', () => {
 		const a = resolveAppointmentActions({
 			row: row('cancelled'),
-			viewer: 'attendee',
+			viewer: 'guest',
 			now: before,
 			eventType: eventType30
 		});
@@ -131,7 +131,7 @@ describe('reschedule', () => {
 	test('missing eventType defaults minimum_notice to 0', () => {
 		const a = resolveAppointmentActions({
 			row: row('confirmed'),
-			viewer: 'attendee',
+			viewer: 'guest',
 			now: noticeBoundary,
 			eventType: undefined
 		});
@@ -140,10 +140,10 @@ describe('reschedule', () => {
 });
 
 describe('accept / decline', () => {
-	test('allowed for organizer + pending + before start', () => {
+	test('allowed for host + pending + before start', () => {
 		const a = resolveAppointmentActions({
 			row: row('pending'),
-			viewer: 'organizer',
+			viewer: 'host',
 			now: before,
 			eventType: eventTypeNoNotice
 		});
@@ -151,10 +151,10 @@ describe('accept / decline', () => {
 		expect(a.decline).toEqual({ allowed: true });
 	});
 
-	test('wrong_viewer for attendee regardless of status', () => {
+	test('wrong_viewer for guest regardless of status', () => {
 		const a = resolveAppointmentActions({
 			row: row('pending'),
-			viewer: 'attendee',
+			viewer: 'guest',
 			now: before,
 			eventType: eventTypeNoNotice
 		});
@@ -162,11 +162,11 @@ describe('accept / decline', () => {
 		expect(a.decline).toEqual({ allowed: false, reason: 'wrong_viewer' });
 	});
 
-	test('terminal_status for organizer + non-pending status', () => {
+	test('terminal_status for host + non-pending status', () => {
 		for (const status of ['confirmed', 'cancelled', 'declined'] as const) {
 			const a = resolveAppointmentActions({
 				row: row(status),
-				viewer: 'organizer',
+				viewer: 'host',
 				now: before,
 				eventType: eventTypeNoNotice
 			});
@@ -175,10 +175,10 @@ describe('accept / decline', () => {
 		}
 	});
 
-	test('past_start for organizer + pending after start_time', () => {
+	test('past_start for host + pending after start_time', () => {
 		const a = resolveAppointmentActions({
 			row: row('pending'),
-			viewer: 'organizer',
+			viewer: 'host',
 			now: after,
 			eventType: eventTypeNoNotice
 		});
@@ -187,10 +187,10 @@ describe('accept / decline', () => {
 	});
 
 	test('wrong_viewer takes precedence over status', () => {
-		// attendee viewing a confirmed appointment — wrong_viewer, not terminal_status
+		// guest viewing a confirmed appointment — wrong_viewer, not terminal_status
 		const a = resolveAppointmentActions({
 			row: row('confirmed'),
-			viewer: 'attendee',
+			viewer: 'guest',
 			now: before,
 			eventType: eventTypeNoNotice
 		});

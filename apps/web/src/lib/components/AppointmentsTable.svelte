@@ -33,7 +33,7 @@
 	<table>
 		<thead>
 			<tr>
-				<th>Attendee</th>
+				<th>Guest</th>
 				<th>Event type</th>
 				<th>Date & Time</th>
 				<th>Status</th>
@@ -42,11 +42,11 @@
 		<tbody>
 			{#each appointments as a (a.id)}
 				<tr class:past={a.is_past} onclick={(e) => handleRowClick(e, a.id)}>
-					<td class="cell-attendee">
-						<div class="attendee-info">
-							<a href="/appointment/{a.id}" class="row-link">{a.attendee_name}</a>
-							<span class="attendee-email" class:no-email={!a.attendee_email}>
-								{a.attendee_email ?? 'No email'}
+					<td class="cell-guest">
+						<div class="guest-info">
+							<a href="/appointment/{a.id}" class="row-link">{a.guest_name}</a>
+							<span class="guest-email" class:no-email={!a.guest_email}>
+								{a.guest_email ?? 'No email'}
 							</span>
 						</div>
 					</td>
@@ -140,7 +140,7 @@
 	}
 
 	/* cell specifics */
-	.attendee-info {
+	.guest-info {
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-1);
@@ -153,7 +153,7 @@
 		font-size: var(--font-size-lg);
 	}
 
-	.attendee-email {
+	.guest-email {
 		display: inline-flex;
 		align-items: center;
 		gap: var(--space-1);
@@ -161,7 +161,7 @@
 		color: var(--text-muted);
 	}
 
-	.attendee-email.no-email {
+	.guest-email.no-email {
 		font-style: italic;
 		opacity: 0.7;
 	}

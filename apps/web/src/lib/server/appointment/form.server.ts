@@ -1,4 +1,4 @@
-import { resolveFormFields, type AttendeeAnswer, type EventType } from '@when/config';
+import { resolveFormFields, type GuestAnswer, type EventType } from '@when/config';
 
 const LIMIT_SHORT = 200;
 const LIMIT_LONG = 1000;
@@ -10,7 +10,7 @@ export interface ParsedAppointment {
 	name: string;
 	email: string | null;
 	location: string | null;
-	answers: AttendeeAnswer[];
+	answers: GuestAnswer[];
 }
 
 export type ParseAppointmentResult =
@@ -34,7 +34,7 @@ export function parseAndValidateAppointmentForm(
 ): ParseAppointmentResult {
 	const fields = resolveFormFields(eventType);
 	const errors: Record<string, string> = {};
-	const answers: AttendeeAnswer[] = [];
+	const answers: GuestAnswer[] = [];
 
 	let name = '';
 	let email: string | null = null;
@@ -45,14 +45,14 @@ export function parseAndValidateAppointmentForm(
 		const value = typeof raw === 'string' ? raw.trim() : '';
 
 		switch (field.type) {
-			case 'attendee_name': {
+			case 'guest_name': {
 				if (!value) errors[field.id] = 'Please enter your name.';
 				else if (value.length > LIMIT_SHORT)
 					errors[field.id] = `Please keep this under ${LIMIT_SHORT} characters.`;
 				else name = value;
 				break;
 			}
-			case 'attendee_email': {
+			case 'guest_email': {
 				if (!value) {
 					if (field.required) errors[field.id] = 'Please enter your email.';
 				} else if (value.length > LIMIT_EMAIL) {

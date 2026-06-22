@@ -105,8 +105,7 @@
 							{#if isAdmin}
 								<DropdownMenu.Item onSelect={() => (shareDialogOpen = true)}>
 									{#snippet child({ props: itemProps })}
-										<button {...itemProps} type="button" class="action-item"
-											>Copy Attendee Link</button
+										<button {...itemProps} type="button" class="action-item">Copy Guest Link</button
 										>
 									{/snippet}
 								</DropdownMenu.Item>
@@ -140,7 +139,7 @@
 						<header class="share-dialog-header">
 							<Dialog.Title>
 								{#snippet child({ props: titleProps })}
-									<h2 {...titleProps} class="share-dialog-title">Copy Attendee Link</h2>
+									<h2 {...titleProps} class="share-dialog-title">Copy Guest Link</h2>
 								{/snippet}
 							</Dialog.Title>
 							<Dialog.Close>
@@ -153,7 +152,7 @@
 						</header>
 
 						<p class="share-dialog-desc">
-							Share this link with the attendee to let them view, cancel, or reschedule the
+							Share this link with the guest to let them view, cancel, or reschedule the
 							appointment.
 						</p>
 

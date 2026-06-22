@@ -1,5 +1,5 @@
 import { generateIcsCalendar, type IcsCalendar, type IcsEvent } from 'ts-ics';
-import { attendeeGuest, describeAppointment } from '@when/calendar';
+import { guestContact, describeAppointment } from '@when/calendar';
 import { originId, type Appointment, type AppointmentStatus } from '@when/db';
 import { systemClock, type Clock } from './clock.js';
 import { eventTypeName } from './format.js';
@@ -11,8 +11,8 @@ export type IcsMethod = 'REQUEST' | 'CANCEL';
 export interface IcsInput {
 	appointment: Appointment;
 	eventTypeName: string;
-	organizerName: string;
-	organizerEmail: string;
+	hostName: string;
+	hostEmail: string;
 	/** Public URL the booker can use to cancel or reschedule. */
 	cancelUrl: string;
 	/**
@@ -24,16 +24,9 @@ export interface IcsInput {
 }
 
 export function buildIcs(input: IcsInput): string {
-	const {
-		appointment,
-		eventTypeName: name,
-		organizerName,
-		organizerEmail,
-		cancelUrl,
-		method
-	} = input;
+	const { appointment, eventTypeName: name, hostName, hostEmail, cancelUrl, method } = input;
 	const clock = input.clock ?? systemClock;
-	const guest = attendeeGuest(appointment);
+	const guest = guestContact(appointment);
 
 	const event: IcsEvent = {
 		uid: originId(appointment),
@@ -44,7 +37,7 @@ export function buildIcs(input: IcsInput): string {
 		stamp: { date: clock.now(), type: 'DATE-TIME' },
 		description: describeAppointment(appointment, cancelUrl),
 		location: appointment.location ?? undefined,
-		organizer: { name: organizerName, email: organizerEmail },
+		organizer: { name: hostName, email: hostEmail },
 		attendees: guest ? [guest] : undefined,
 		status: eventStatus(method, appointment.status)
 	};
@@ -76,25 +69,25 @@ function icsAttachment(input: IcsInput): Attachment {
 	};
 }
 
-/** A `METHOD:REQUEST` invite for a confirmed appointment (attendee attachment). */
+/** A `METHOD:REQUEST` invite for a confirmed appointment (guest attachment). */
 export function requestIcs(i: AppointmentEmailInput, bookedUrl: string): Attachment {
 	return icsAttachment({
 		appointment: { ...i.appointment, status: 'confirmed' },
 		eventTypeName: eventTypeName(i.eventType, i.appointment),
-		organizerName: i.cfg.user.name,
-		organizerEmail: i.cfg.user.email,
+		hostName: i.cfg.user.name,
+		hostEmail: i.cfg.user.email,
 		cancelUrl: bookedUrl,
 		method: 'REQUEST'
 	});
 }
 
-/** A `METHOD:CANCEL` invite for a cancelled appointment (attendee attachment). */
+/** A `METHOD:CANCEL` invite for a cancelled appointment (guest attachment). */
 export function cancelIcs(i: AppointmentEmailInput, bookedUrl: string): Attachment {
 	return icsAttachment({
 		appointment: i.appointment,
 		eventTypeName: eventTypeName(i.eventType, i.appointment),
-		organizerName: i.cfg.user.name,
-		organizerEmail: i.cfg.user.email,
+		hostName: i.cfg.user.name,
+		hostEmail: i.cfg.user.email,
 		cancelUrl: bookedUrl,
 		method: 'CANCEL'
 	});

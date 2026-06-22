@@ -43,7 +43,7 @@ export async function confirmAppointment(
 		.set({
 			status: 'confirmed',
 			calendar_revision: sql`calendar_revision + 1`,
-			action_log: appendActionLogSql({ action: 'confirm', actor: 'organizer', at: now }),
+			action_log: appendActionLogSql({ action: 'confirm', actor: 'host', at: now }),
 			updated_at: sql`CURRENT_TIMESTAMP`
 		})
 		.where('id', '=', id)
@@ -57,7 +57,7 @@ export async function confirmAppointment(
  * event pointer and `origin_id` so the published event moves rather than being recreated. A taken
  * slot throws UNIQUE (caller maps to `slot_taken`); an already-terminal old row is `conflict`.
  */
-export interface RescheduleAttendee {
+export interface RescheduleGuest {
 	name: string;
 	email: string | null;
 	answers: string | null;
@@ -68,25 +68,25 @@ export interface RescheduleAttendee {
 export async function rescheduleAppointmentTransition(
 	db: Kysely<Database>,
 	old: Appointment,
-	actor: 'attendee' | 'organizer',
+	actor: 'guest' | 'host',
 	now: string,
 	when: {
 		newStart: string;
 		newEnd: string;
 		newStatus: AppointmentStatus;
-		attendee?: RescheduleAttendee;
+		guest?: RescheduleGuest;
 		eventTypeSnapshot: string;
 		reason?: string;
 	}
 ): Promise<RescheduleResult> {
 	const newId = newAppointmentId();
 	const newToken = newCancelToken();
-	const attendee: RescheduleAttendee = when.attendee ?? {
-		name: old.attendee_name,
-		email: old.attendee_email,
-		answers: old.attendee_answers,
+	const guest: RescheduleGuest = when.guest ?? {
+		name: old.guest_name,
+		email: old.guest_email,
+		answers: old.guest_answers,
 		location: old.location,
-		timezone: old.attendee_timezone
+		timezone: old.guest_timezone
 	};
 
 	const rescheduleEntry: ActionLogEntry = {
@@ -124,11 +124,11 @@ export async function rescheduleAppointmentTransition(
 				event_type_id: old.event_type_id,
 				start_time: when.newStart,
 				end_time: when.newEnd,
-				attendee_name: attendee.name,
-				attendee_email: attendee.email,
-				attendee_answers: attendee.answers,
-				attendee_timezone: attendee.timezone,
-				location: attendee.location,
+				guest_name: guest.name,
+				guest_email: guest.email,
+				guest_answers: guest.answers,
+				guest_timezone: guest.timezone,
+				location: guest.location,
 				status: when.newStatus,
 				origin_id: originId(old),
 				cancel_token: newToken,
@@ -150,7 +150,7 @@ export async function rescheduleAppointmentTransition(
 export async function cancelAppointmentTransition(
 	db: Kysely<Database>,
 	id: string,
-	actor: 'attendee' | 'organizer',
+	actor: 'guest' | 'host',
 	now: string,
 	reason?: string
 ): Promise<TransitionOutcome> {
@@ -215,7 +215,7 @@ export async function declineAppointmentTransition(
 			status: 'declined',
 			ics_sequence: sql`ics_sequence + 1`,
 			calendar_revision: sql`calendar_revision + 1`,
-			action_log: appendActionLogSql({ action: 'decline', actor: 'organizer', at: now }),
+			action_log: appendActionLogSql({ action: 'decline', actor: 'host', at: now }),
 			updated_at: sql`CURRENT_TIMESTAMP`
 		})
 		.where('id', '=', id)

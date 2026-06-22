@@ -17,9 +17,9 @@ const baseRow = {
 	event_type_id: 'chat',
 	start_time: '2099-01-01T15:00:00Z',
 	end_time: '2099-01-01T15:30:00Z',
-	attendee_name: 'Booker',
-	attendee_email: 'booker@example.com',
-	attendee_answers: null,
+	guest_name: 'Booker',
+	guest_email: 'booker@example.com',
+	guest_answers: null,
 	location: null,
 	external_event_id: null,
 	external_calendar_id: null
@@ -43,7 +43,7 @@ test('confirmAppointment confirms a pending appointment, queues the sync, bumps 
 		expect(row.status).toBe('confirmed');
 		expect(row.calendar_revision).toBe(1);
 		expect(JSON.parse(row.action_log!)).toEqual([
-			{ action: 'confirm', actor: 'organizer', at: '2026-01-01T12:00:00Z' }
+			{ action: 'confirm', actor: 'host', at: '2026-01-01T12:00:00Z' }
 		]);
 	} finally {
 		await db.destroy();
@@ -73,18 +73,12 @@ test('rescheduleAppointmentTransition ends the old row and creates a linked new 
 		await insert(db, { id: '1', status: 'confirmed', cancel_token: 't1', origin_id: '1' });
 		const old = await fetchRow(db, '1');
 
-		const result = await rescheduleAppointmentTransition(
-			db,
-			old,
-			'attendee',
-			'2026-01-01T13:00:00Z',
-			{
-				newStart: '2099-02-01T10:00:00Z',
-				newEnd: '2099-02-01T10:30:00Z',
-				newStatus: 'confirmed',
-				eventTypeSnapshot: '{}'
-			}
-		);
+		const result = await rescheduleAppointmentTransition(db, old, 'guest', '2026-01-01T13:00:00Z', {
+			newStart: '2099-02-01T10:00:00Z',
+			newEnd: '2099-02-01T10:30:00Z',
+			newStatus: 'confirmed',
+			eventTypeSnapshot: '{}'
+		});
 
 		expect(result.ok).toBe(true);
 		if (!result.ok) return;
@@ -98,7 +92,7 @@ test('rescheduleAppointmentTransition ends the old row and creates a linked new 
 		const expectedLog = [
 			{
 				action: 'reschedule',
-				actor: 'attendee',
+				actor: 'guest',
 				at: '2026-01-01T13:00:00Z',
 				payload: {
 					field: 'status',
@@ -130,18 +124,12 @@ test('rescheduleAppointmentTransition reports conflict when the old row is no lo
 			.where('id', '=', '1')
 			.execute();
 
-		const result = await rescheduleAppointmentTransition(
-			db,
-			old,
-			'attendee',
-			'2026-01-01T13:00:00Z',
-			{
-				newStart: '2099-02-01T10:00:00Z',
-				newEnd: '2099-02-01T10:30:00Z',
-				newStatus: 'confirmed',
-				eventTypeSnapshot: '{}'
-			}
-		);
+		const result = await rescheduleAppointmentTransition(db, old, 'guest', '2026-01-01T13:00:00Z', {
+			newStart: '2099-02-01T10:00:00Z',
+			newEnd: '2099-02-01T10:30:00Z',
+			newStatus: 'confirmed',
+			eventTypeSnapshot: '{}'
+		});
 		expect(result).toEqual({ ok: false, reason: 'conflict' });
 	} finally {
 		await db.destroy();
@@ -154,19 +142,13 @@ test('rescheduleAppointmentTransition saves the reschedule reason note in the ac
 		await insert(db, { id: '1', status: 'confirmed', cancel_token: 't1', origin_id: '1' });
 		const old = await fetchRow(db, '1');
 
-		const result = await rescheduleAppointmentTransition(
-			db,
-			old,
-			'attendee',
-			'2026-01-01T13:00:00Z',
-			{
-				newStart: '2099-02-01T10:00:00Z',
-				newEnd: '2099-02-01T10:30:00Z',
-				newStatus: 'confirmed',
-				eventTypeSnapshot: '{}',
-				reason: 'scheduling conflict'
-			}
-		);
+		const result = await rescheduleAppointmentTransition(db, old, 'guest', '2026-01-01T13:00:00Z', {
+			newStart: '2099-02-01T10:00:00Z',
+			newEnd: '2099-02-01T10:30:00Z',
+			newStatus: 'confirmed',
+			eventTypeSnapshot: '{}',
+			reason: 'scheduling conflict'
+		});
 
 		expect(result.ok).toBe(true);
 		if (!result.ok) return;
@@ -175,7 +157,7 @@ test('rescheduleAppointmentTransition saves the reschedule reason note in the ac
 		const expectedLog = [
 			{
 				action: 'reschedule',
-				actor: 'attendee',
+				actor: 'guest',
 				at: '2026-01-01T13:00:00Z',
 				payload: {
 					field: 'status',
@@ -217,11 +199,11 @@ test('cancelAppointmentTransition queues the sync only when there is a published
 		await cancelAppointmentTransition(
 			db,
 			'published',
-			'attendee',
+			'guest',
 			'2026-01-01T14:00:00Z',
 			'Reason note'
 		);
-		await cancelAppointmentTransition(db, 'unpublished', 'organizer', '2026-01-01T14:05:00Z');
+		await cancelAppointmentTransition(db, 'unpublished', 'host', '2026-01-01T14:05:00Z');
 
 		const pub = await fetchRow(db, 'published');
 		expect(pub.status).toBe('cancelled');
@@ -229,7 +211,7 @@ test('cancelAppointmentTransition queues the sync only when there is a published
 		expect(JSON.parse(pub.action_log!)).toEqual([
 			{
 				action: 'cancel',
-				actor: 'attendee',
+				actor: 'guest',
 				at: '2026-01-01T14:00:00Z',
 				payload: { note: 'Reason note' }
 			}
@@ -240,7 +222,7 @@ test('cancelAppointmentTransition queues the sync only when there is a published
 		expect(JSON.parse(unpub.action_log!)).toEqual([
 			{
 				action: 'cancel',
-				actor: 'organizer',
+				actor: 'host',
 				at: '2026-01-01T14:05:00Z'
 			}
 		]);
@@ -259,7 +241,7 @@ test('declineAppointmentTransition declines a pending request; no event to remov
 		const row = await fetchRow(db, '1');
 		expect(row.status).toBe('declined');
 		expect(JSON.parse(row.action_log!)).toEqual([
-			{ action: 'decline', actor: 'organizer', at: '2026-01-01T15:00:00Z' }
+			{ action: 'decline', actor: 'host', at: '2026-01-01T15:00:00Z' }
 		]);
 		expect(await declineAppointmentTransition(db, '1', '2026-01-01T15:00:00Z')).toEqual({
 			ok: false,
@@ -287,7 +269,7 @@ test('declineAppointmentTransition queues a delete when a re-approval revert car
 		expect(row.status).toBe('declined');
 		expect(row.calendar_revision).toBe(1);
 		expect(JSON.parse(row.action_log!)).toEqual([
-			{ action: 'decline', actor: 'organizer', at: '2026-01-01T15:00:00Z' }
+			{ action: 'decline', actor: 'host', at: '2026-01-01T15:00:00Z' }
 		]);
 	} finally {
 		await db.destroy();

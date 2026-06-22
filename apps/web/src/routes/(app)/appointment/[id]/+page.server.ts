@@ -69,7 +69,7 @@ export const load: PageServerLoad = async ({ params, url, locals, cookies }) => 
 		error(404);
 	}
 
-	const viewer = isAdmin ? 'organizer' : 'attendee';
+	const viewer = isAdmin ? 'host' : 'guest';
 	let actions = resolveAppointmentActions({ row, viewer, now, eventType: resolvedEventType });
 	if (!eventType) {
 		actions = {
@@ -127,12 +127,12 @@ export const load: PageServerLoad = async ({ params, url, locals, cookies }) => 
 		actions,
 		flash: flash ?? null,
 		clockStatus,
-		// Admins are trusted with the attendee's cancel_token so reschedule/cancel
-		// links work without a token in the URL; attendees only ever see their own.
+		// Admins are trusted with the guest's cancel_token so reschedule/cancel
+		// links work without a token in the URL; guests only ever see their own.
 		token: isAdmin ? (token ?? row.cancel_token) : (token ?? ''),
 		isAdmin,
-		organizerTz: cfg.user.timezone,
-		attendeeTz: row.attendee_timezone ?? cfg.user.timezone,
+		hostTz: cfg.user.timezone,
+		guestTz: row.guest_timezone ?? cfg.user.timezone,
 		rescheduledFrom: predecessor
 			? { id: predecessor.id, token: predecessor.cancel_token, start_time: predecessor.start_time }
 			: null,
@@ -148,8 +148,8 @@ export const actions: Actions = {
 		if (!row) return fail(404, { error: 'Appointment not found.' });
 
 		const form = await request.formData();
-		const attendeeToken = String(form.get('token') ?? '');
-		if (row.cancel_token !== attendeeToken) {
+		const guestToken = String(form.get('token') ?? '');
+		if (row.cancel_token !== guestToken) {
 			return fail(403, { error: 'Invalid cancel token.' });
 		}
 
@@ -158,13 +158,13 @@ export const actions: Actions = {
 
 		const result = await cancelAppointment(appointmentContext(), {
 			appointment: row,
-			initiator: 'attendee',
+			initiator: 'guest',
 			reason: reasonResult.reason
 		});
 		if (!result.ok) {
 			return fail(409, { error: 'This appointment can no longer be cancelled.' });
 		}
 
-		redirect(303, `/appointment/${row.id}?token=${encodeURIComponent(attendeeToken)}`);
+		redirect(303, `/appointment/${row.id}?token=${encodeURIComponent(guestToken)}`);
 	}
 };

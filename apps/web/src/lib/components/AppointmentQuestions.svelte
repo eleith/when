@@ -1,12 +1,12 @@
 <script lang="ts">
-	import type { AttendeeAnswer } from '@when/config';
+	import type { GuestAnswer } from '@when/config';
 	import IconQuestion from 'virtual:icons/ph/question';
 	import IconCaretDown from 'virtual:icons/ph/caret-down';
 
 	let {
 		answers
 	}: {
-		answers: AttendeeAnswer[];
+		answers: GuestAnswer[];
 	} = $props();
 </script>
 

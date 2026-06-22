@@ -18,10 +18,10 @@ export interface AppointmentsTable {
 	event_type_id: string;
 	start_time: string;
 	end_time: string;
-	attendee_name: string;
-	attendee_email: NullableText;
-	attendee_answers: NullableText;
-	attendee_timezone: NullableText;
+	guest_name: string;
+	guest_email: NullableText;
+	guest_answers: NullableText;
+	guest_timezone: NullableText;
 	location: string | null;
 	status: AppointmentStatus;
 	origin_id: NullableText;
@@ -91,7 +91,7 @@ export interface ActionLogEntry {
 		| 'expire'
 		| 'email'
 		| 'calendar';
-	actor: 'attendee' | 'organizer' | 'system';
+	actor: 'guest' | 'host' | 'system';
 	at: string;
 	payload?: {
 		note?: string;

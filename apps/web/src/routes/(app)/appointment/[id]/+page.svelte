@@ -48,9 +48,9 @@
 		return 'info';
 	});
 	let canRebook = $derived(status === 'declined' || status === 'cancelled' || status === 'expired');
-	let displayTz = $derived(data.isAdmin ? data.organizerTz : data.attendeeTz);
-	let counterpartTz = $derived(data.isAdmin ? data.attendeeTz : data.organizerTz);
-	let counterpartName = $derived(data.isAdmin ? data.appointment.attendee_name : data.user.name);
+	let displayTz = $derived(data.isAdmin ? data.hostTz : data.guestTz);
+	let counterpartTz = $derived(data.isAdmin ? data.guestTz : data.hostTz);
+	let counterpartName = $derived(data.isAdmin ? data.appointment.guest_name : data.user.name);
 	let zonesDiffer = $derived(displayTz !== counterpartTz);
 	let hasActions = $derived(data.actions.cancel.allowed || data.actions.reschedule.allowed);
 	let showDecideCta = $derived(
@@ -59,6 +59,7 @@
 
 	let cancelEntry = $derived(data.appointment.action_log.findLast((e) => e.action === 'cancel'));
 	let cancelReasonText = $derived(cancelEntry?.payload?.note);
+	let cancelReasonActor = $derived(cancelEntry?.actor);
 
 	let rescheduleEntry = $derived(
 		data.appointment.action_log.findLast(
@@ -66,6 +67,7 @@
 		)
 	);
 	let rescheduleReasonText = $derived(rescheduleEntry?.payload?.note);
+	let rescheduleReasonActor = $derived(rescheduleEntry?.actor);
 </script>
 
 <svelte:head>
@@ -146,8 +148,8 @@
 		<p class="page-header-desc">
 			{#if status === 'confirmed'}
 				{#if data.flash}
-					{#if data.appointment.attendee_email}
-						A confirmation has been sent to <strong>{data.appointment.attendee_email}</strong>.
+					{#if data.appointment.guest_email}
+						A confirmation has been sent to <strong>{data.appointment.guest_email}</strong>.
 					{:else}
 						Your appointment is confirmed.
 					{/if}
@@ -155,7 +157,7 @@
 					See you soon!
 				{/if}
 			{:else if status === 'pending'}
-				{#if data.appointment.attendee_email}
+				{#if data.appointment.guest_email}
 					We will email you once confirmed.
 				{:else}
 					Check back here to see when it's confirmed.
@@ -203,7 +205,7 @@
 					{:else if data.clockStatus === 'in_progress'}In progress
 					{:else}Concluded{/if}
 				{:else if status === 'pending'}
-					Pending · waiting for {#if data.isAdmin}you{:else}{data.user.name}{/if}
+					Pending · waiting for host
 				{:else if status === 'declined'}
 					Declined
 				{:else if status === 'expired'}
@@ -288,35 +290,37 @@
 			<div class="detail-row">
 				<span class="detail-icon"><IconUser aria-hidden="true" /></span>
 				<div class="detail-text">
-					<div class="detail-primary">Attendees</div>
+					<div class="detail-primary">People</div>
 					<div class="detail-secondary">
 						{data.appointment
-							.attendee_name}{#if data.isAdmin && data.appointment.attendee_email}&nbsp;&lt;{data
-								.appointment.attendee_email}&gt;{/if}{#if !data.isAdmin}&nbsp;(you){/if}
+							.guest_name}{#if data.isAdmin && data.appointment.guest_email}&nbsp;&lt;{data
+								.appointment.guest_email}&gt;{/if}
 					</div>
-					{#if data.isAdmin && !data.appointment.attendee_email}
+					{#if data.isAdmin && !data.appointment.guest_email}
 						<div class="detail-secondary">No email collected</div>
 					{/if}
 					<div class="detail-secondary">
-						{data.user.name}{#if data.isAdmin}&nbsp;(you){/if}
+						{data.user.name}
 					</div>
 				</div>
 			</div>
-			{#if status === 'cancelled' && cancelReasonText}
+			{#if status === 'cancelled' && cancelReasonText && cancelReasonActor}
 				<div class="detail-row">
 					<span class="detail-icon"><IconCalendarX aria-hidden="true" /></span>
 					<div class="detail-text">
 						<div class="detail-primary">Cancellation note</div>
-						<div class="detail-secondary notes">{cancelReasonText}</div>
+						<div class="detail-secondary notes">{cancelReasonActor} - {cancelReasonText}</div>
 					</div>
 				</div>
 			{/if}
-			{#if rescheduleReasonText}
+			{#if rescheduleReasonText && rescheduleReasonActor}
 				<div class="detail-row">
 					<span class="detail-icon"><IconNote aria-hidden="true" /></span>
 					<div class="detail-text">
 						<div class="detail-primary">Reschedule note</div>
-						<div class="detail-secondary notes">{rescheduleReasonText}</div>
+						<div class="detail-secondary notes">
+							{rescheduleReasonActor} - {rescheduleReasonText}
+						</div>
 					</div>
 				</div>
 			{/if}
@@ -388,8 +392,8 @@
 
 					<p class="cancel-dialog-desc">
 						{#if data.isAdmin}
-							<strong>{data.appointment.attendee_name}</strong> will be notified by email. This can't
-							be undone.
+							<strong>{data.appointment.guest_name}</strong> will be notified by email. This can't be
+							undone.
 						{:else}
 							You'll both be notified by email. This can't be undone.
 						{/if}
@@ -494,7 +498,7 @@
 		color: var(--text);
 	}
 
-	/* Full-bleed page nav; empty for attendees, holds the back arrow for admins. */
+	/* Full-bleed page nav; empty for guests, holds the back arrow for admins. */
 	.page-nav {
 		display: flex;
 		align-items: center;
@@ -687,7 +691,7 @@
 		transition: transform var(--transition);
 	}
 
-	/* ---- accept / decline CTA (pending, organizer) ---- */
+	/* ---- accept / decline CTA (pending, host) ---- */
 	.decide-cta {
 		display: flex;
 		gap: var(--space-4);

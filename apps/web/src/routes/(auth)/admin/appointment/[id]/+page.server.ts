@@ -48,7 +48,7 @@ export const actions: Actions = {
 
 		const result = await cancelAppointment(appointmentContext(), {
 			appointment: row,
-			initiator: 'organizer',
+			initiator: 'host',
 			reason: reasonResult.reason
 		});
 		if (!result.ok) {

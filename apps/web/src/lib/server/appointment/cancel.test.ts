@@ -11,9 +11,9 @@ const baseRow = {
 	event_type_id: '30-min-chat',
 	start_time: '2099-01-01T15:00:00Z', // far future so the cancel gate is allowed
 	end_time: '2099-01-01T15:30:00Z',
-	attendee_name: 'Booker',
-	attendee_email: 'booker@example.com',
-	attendee_answers: null,
+	guest_name: 'Booker',
+	guest_email: 'booker@example.com',
+	guest_answers: null,
 	location: null,
 	external_event_id: null,
 	external_calendar_id: null
@@ -59,7 +59,7 @@ describe('cancelAppointment', () => {
 
 			const result = await cancelAppointment(
 				{ db, cfg: validConfig, clock: systemClock },
-				{ appointment: row, initiator: 'attendee' }
+				{ appointment: row, initiator: 'guest' }
 			);
 
 			expect(result.ok).toBe(true);
@@ -76,7 +76,7 @@ describe('cancelAppointment', () => {
 			expect(enqueueAppointmentEmail).toHaveBeenCalledWith(
 				expect.anything(),
 				expect.any(String),
-				'cancelled-by-attendee'
+				'cancelled-by-guest'
 			);
 		} finally {
 			await db.destroy();
@@ -91,7 +91,7 @@ describe('cancelAppointment', () => {
 
 			const result = await cancelAppointment(
 				{ db, cfg: validConfig, clock: systemClock },
-				{ appointment: row, initiator: 'attendee' }
+				{ appointment: row, initiator: 'guest' }
 			);
 
 			expect(result).toEqual({ ok: false, reason: 'gated' });
@@ -121,7 +121,7 @@ describe('cancelAppointment', () => {
 			// owns the CAS and reports the conflict.
 			const result = await cancelAppointment(
 				{ db, cfg: validConfig, clock: systemClock },
-				{ appointment: row, initiator: 'attendee' }
+				{ appointment: row, initiator: 'guest' }
 			);
 
 			expect(result).toEqual({ ok: false, reason: 'conflict' });
@@ -138,7 +138,7 @@ describe('cancelAppointment', () => {
 
 			const result = await cancelAppointment(
 				{ db, cfg: validConfig, clock: systemClock },
-				{ appointment: row, initiator: 'attendee', reason: 'I found a conflict' }
+				{ appointment: row, initiator: 'guest', reason: 'I found a conflict' }
 			);
 
 			expect(result.ok).toBe(true);
@@ -160,7 +160,7 @@ describe('cancelAppointment', () => {
 
 			const result = await cancelAppointment(
 				{ db, cfg: validConfig, clock: systemClock },
-				{ appointment: row, initiator: 'organizer' }
+				{ appointment: row, initiator: 'host' }
 			);
 
 			expect(result.ok).toBe(true);
@@ -180,7 +180,7 @@ describe('cancelAppointment', () => {
 
 			await cancelAppointment(
 				{ db, cfg: validConfig, clock: systemClock },
-				{ appointment: row, initiator: 'attendee', reason: 'Not interested' }
+				{ appointment: row, initiator: 'guest', reason: 'Not interested' }
 			);
 
 			const persisted = await fetchRow(db, 'a6');

@@ -18,10 +18,10 @@ const baseRow: Appointment = {
 	event_type_id: '30-min-chat',
 	start_time: '2026-05-01T15:00:00Z',
 	end_time: '2026-05-01T15:30:00Z',
-	attendee_name: 'Booker',
-	attendee_email: 'booker@example.com',
-	attendee_answers: null,
-	attendee_timezone: null,
+	guest_name: 'Booker',
+	guest_email: 'booker@example.com',
+	guest_answers: null,
+	guest_timezone: null,
 	location: 'https://meet.example.com/jane',
 	status: 'confirmed',
 	origin_id: 'appt-1',
@@ -78,9 +78,7 @@ describe('toPublicAppointment', () => {
 	test('strips non-cancellation entries for non-admins', () => {
 		const rowWithLog: Appointment = {
 			...baseRow,
-			action_log: JSON.stringify([
-				{ action: 'confirm', actor: 'organizer', at: '2026-05-01T12:00:00Z' }
-			])
+			action_log: JSON.stringify([{ action: 'confirm', actor: 'host', at: '2026-05-01T12:00:00Z' }])
 		};
 		const res = toPublicAppointment(rowWithLog, false);
 		expect(res.action_log).toEqual([]);
@@ -90,10 +88,10 @@ describe('toPublicAppointment', () => {
 		const rowWithLog: Appointment = {
 			...baseRow,
 			action_log: JSON.stringify([
-				{ action: 'confirm', actor: 'organizer', at: '2026-05-01T12:00:00Z' },
+				{ action: 'confirm', actor: 'host', at: '2026-05-01T12:00:00Z' },
 				{
 					action: 'cancel',
-					actor: 'organizer',
+					actor: 'host',
 					at: '2026-05-01T13:00:00Z',
 					payload: { note: 'double booked' }
 				}
@@ -109,10 +107,10 @@ describe('toPublicAppointment', () => {
 		const rowWithLog: Appointment = {
 			...baseRow,
 			action_log: JSON.stringify([
-				{ action: 'confirm', actor: 'organizer', at: '2026-05-01T12:00:00Z' },
+				{ action: 'confirm', actor: 'host', at: '2026-05-01T12:00:00Z' },
 				{
 					action: 'cancel',
-					actor: 'organizer',
+					actor: 'host',
 					at: '2026-05-01T13:00:00Z',
 					payload: { note: 'double booked' }
 				}
@@ -120,10 +118,10 @@ describe('toPublicAppointment', () => {
 		};
 		const res = toPublicAppointment(rowWithLog, true);
 		expect(res.action_log).toEqual([
-			{ action: 'confirm', actor: 'organizer', at: '2026-05-01T12:00:00Z' },
+			{ action: 'confirm', actor: 'host', at: '2026-05-01T12:00:00Z' },
 			{
 				action: 'cancel',
-				actor: 'organizer',
+				actor: 'host',
 				at: '2026-05-01T13:00:00Z',
 				payload: { note: 'double booked' }
 			}

@@ -3,18 +3,18 @@ import { appointmentDeclined } from './appointment-declined.js';
 import { sampleInput } from '../__fixtures__/appointment.js';
 
 describe('appointmentDeclined', () => {
-	test('attendee + organizer messages, no ics', () => {
-		const [attendee, organizer] = appointmentDeclined(sampleInput);
+	test('guest + host messages, no ics', () => {
+		const [guest, host] = appointmentDeclined(sampleInput);
 
-		expect(attendee.to).toBe('jane@example.com');
-		expect(attendee.content.subject).toBe('Declined: 30-min with Acme Scheduling');
-		expect(attendee.content.heading).toBe('Your appointment request was declined.');
-		expect(attendee.ics).toBeUndefined();
+		expect(guest.to).toBe('jane@example.com');
+		expect(guest.content.subject).toBe('Declined: 30-min with Acme Scheduling');
+		expect(guest.content.heading).toBe('Your appointment request was declined.');
+		expect(guest.ics).toBeUndefined();
 
-		expect(organizer.content.subject).toBe('Declined: 30-min from Jane Doe');
-		expect(organizer.content.paragraphs).toContain(
+		expect(host.content.subject).toBe('Declined: 30-min from Jane Doe');
+		expect(host.content.paragraphs).toContain(
 			'You declined the request from Jane Doe <jane@example.com>.'
 		);
-		expect(organizer.ics).toBeUndefined();
+		expect(host.ics).toBeUndefined();
 	});
 });

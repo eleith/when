@@ -1,35 +1,35 @@
 import {
 	answerRows,
-	attendeeLabel,
+	guestLabel,
 	deriveBrand,
 	eventTypeName,
-	whenForAttendee,
-	whenForOrganizer
+	whenForGuest,
+	whenForHost
 } from '../format.js';
 import { requestIcs } from '../ics.js';
-import { attendeeMessage, messages, organizerMessage, type EmailMessage } from '../recipients.js';
+import { guestMessage, messages, hostMessage, type EmailMessage } from '../recipients.js';
 import type { EmailContent } from '../content.js';
 import type { AppointmentEmailInput } from '../types.js';
 
-export function appointmentRescheduledByOrganizer(i: AppointmentEmailInput): EmailMessage[] {
+export function appointmentRescheduledByHost(i: AppointmentEmailInput): EmailMessage[] {
 	const a = i.appointment;
 	const brand = deriveBrand(i.cfg, i.logo?.cid);
 	const eventName = eventTypeName(i.eventType, a);
-	const attendeeWhen = whenForAttendee(i);
-	const organizerWhen = whenForOrganizer(i);
-	const attendeeRows = [
+	const guestWhen = whenForGuest(i);
+	const hostWhen = whenForHost(i);
+	const guestRows = [
 		{ label: 'What', value: eventName },
-		{ label: 'When', value: attendeeWhen },
+		{ label: 'When', value: guestWhen },
 		{ label: 'Where', value: a.location }
 	];
-	const organizerRows = [
+	const hostRows = [
 		{ label: 'What', value: eventName },
-		{ label: 'When', value: organizerWhen },
+		{ label: 'When', value: hostWhen },
 		...answerRows(a)
 	];
 
 	if (a.status === 'pending') {
-		const attendee: EmailContent = {
+		const guest: EmailContent = {
 			brand,
 			subject: `New time proposed: ${eventName} with ${brand.name}`,
 			heading: `${brand.name} proposed a new time for your request.`,
@@ -37,48 +37,45 @@ export function appointmentRescheduledByOrganizer(i: AppointmentEmailInput): Ema
 				`${brand.name} will confirm the new time and email you.`,
 				...(i.rescheduleReason ? [`Reason for rescheduling: ${i.rescheduleReason}`] : [])
 			],
-			rows: attendeeRows,
+			rows: guestRows,
 			actions: [{ href: i.links.booked, label: 'View this appointment', variant: 'primary' }],
-			previewText: `Requested for ${attendeeWhen}.`
+			previewText: `Requested for ${guestWhen}.`
 		};
-		const organizer: EmailContent = {
+		const host: EmailContent = {
 			brand,
-			subject: `Rescheduled: ${eventName} with ${a.attendee_name}`,
+			subject: `Rescheduled: ${eventName} with ${a.guest_name}`,
 			heading: 'Appointment rescheduled',
 			paragraphs: [
-				`You moved the pending request for ${attendeeLabel(a)} to a new time.`,
+				`You moved the pending request for ${guestLabel(a)} to a new time.`,
 				...(i.rescheduleReason ? [`Reason for rescheduling: ${i.rescheduleReason}`] : [])
 			],
-			rows: organizerRows,
+			rows: hostRows,
 			actions: [],
-			previewText: `Requested for ${organizerWhen}.`
+			previewText: `Requested for ${hostWhen}.`
 		};
-		return messages(attendeeMessage(i, attendee), organizerMessage(i, organizer));
+		return messages(guestMessage(i, guest), hostMessage(i, host));
 	}
 
-	const attendee: EmailContent = {
+	const guest: EmailContent = {
 		brand,
 		subject: `Rescheduled: ${eventName} with ${brand.name}`,
 		heading: `${brand.name} moved this appointment to a new time.`,
 		paragraphs: i.rescheduleReason ? [`Reason for rescheduling: ${i.rescheduleReason}`] : [],
-		rows: attendeeRows,
+		rows: guestRows,
 		actions: [{ href: i.links.booked, label: 'View this appointment', variant: 'primary' }],
-		previewText: `Now scheduled for ${attendeeWhen}.`
+		previewText: `Now scheduled for ${guestWhen}.`
 	};
-	const organizer: EmailContent = {
+	const host: EmailContent = {
 		brand,
-		subject: `Rescheduled: ${eventName} with ${a.attendee_name}`,
+		subject: `Rescheduled: ${eventName} with ${a.guest_name}`,
 		heading: 'Appointment rescheduled',
 		paragraphs: [
-			`You rescheduled the appointment for ${attendeeLabel(a)}.`,
+			`You rescheduled the appointment for ${guestLabel(a)}.`,
 			...(i.rescheduleReason ? [`Reason for rescheduling: ${i.rescheduleReason}`] : [])
 		],
-		rows: organizerRows,
+		rows: hostRows,
 		actions: [],
-		previewText: `Now scheduled for ${organizerWhen}.`
+		previewText: `Now scheduled for ${hostWhen}.`
 	};
-	return messages(
-		attendeeMessage(i, attendee, requestIcs(i, i.links.booked)),
-		organizerMessage(i, organizer)
-	);
+	return messages(guestMessage(i, guest, requestIcs(i, i.links.booked)), hostMessage(i, host));
 }

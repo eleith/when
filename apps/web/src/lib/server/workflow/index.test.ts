@@ -21,9 +21,9 @@ async function seed() {
 			event_type_id: '30-min',
 			start_time: '2099-01-01T15:00:00Z',
 			end_time: '2099-01-01T15:30:00Z',
-			attendee_name: 'Booker',
-			attendee_email: 'booker@example.com',
-			attendee_answers: null,
+			guest_name: 'Booker',
+			guest_email: 'booker@example.com',
+			guest_answers: null,
 			location: null,
 			status: 'confirmed',
 			cancel_token: 't1'
@@ -61,10 +61,10 @@ describe('enqueueAppointmentEmail', () => {
 			.where('id', '=', 'appt-1')
 			.execute();
 
-		await enqueueAppointmentEmail(db, 'appt-1', 'rescheduled-by-attendee');
+		await enqueueAppointmentEmail(db, 'appt-1', 'rescheduled-by-guest');
 
 		expect(runWorkflow).toHaveBeenCalledWith(sendAppointmentEmail, expect.anything(), {
-			idempotencyKey: 'appt-1:rescheduled-by-attendee:2'
+			idempotencyKey: 'appt-1:rescheduled-by-guest:2'
 		});
 
 		await db.destroy();

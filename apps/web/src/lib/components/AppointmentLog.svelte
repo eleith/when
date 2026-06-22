@@ -105,10 +105,10 @@
 								{/if}
 							</div>
 							<div class="log-secondary">
-								{#if entry.actor === 'attendee'}
-									Attendee
-								{:else if entry.actor === 'organizer'}
-									Organizer
+								{#if entry.actor === 'guest'}
+									Guest
+								{:else if entry.actor === 'host'}
+									Host
 								{:else}
 									System
 								{/if}

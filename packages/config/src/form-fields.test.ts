@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { DEFAULT_FORM_FIELDS, parseAttendeeAnswers, resolveFormFields } from './form-fields.js';
+import { DEFAULT_FORM_FIELDS, parseGuestAnswers, resolveFormFields } from './form-fields.js';
 import type { EventType } from './schema.js';
 
 const baseEventType: EventType = {
@@ -16,27 +16,27 @@ test('resolveFormFields falls back to the default form when unset', () => {
 });
 
 test('resolveFormFields returns the configured fields when present', () => {
-	const form = [{ id: 'name', type: 'attendee_name' as const, label: 'Name', required: true }];
+	const form = [{ id: 'name', type: 'guest_name' as const, label: 'Name', required: true }];
 	expect(resolveFormFields({ ...baseEventType, form_fields: form })).toBe(form);
 });
 
 test('the default form is valid against its own rules', () => {
-	const names = DEFAULT_FORM_FIELDS.filter((f) => f.type === 'attendee_name');
+	const names = DEFAULT_FORM_FIELDS.filter((f) => f.type === 'guest_name');
 	expect(names).toHaveLength(1);
 	expect(names[0].required).toBe(true);
 });
 
-test('parseAttendeeAnswers parses a stored array', () => {
+test('parseGuestAnswers parses a stored array', () => {
 	const json = JSON.stringify([{ id: 'phone', label: 'Phone', type: 'text', value: '+1' }]);
-	expect(parseAttendeeAnswers(json)).toEqual([
+	expect(parseGuestAnswers(json)).toEqual([
 		{ id: 'phone', label: 'Phone', type: 'text', value: '+1' }
 	]);
 });
 
-test('parseAttendeeAnswers returns [] for null, empty, or malformed input', () => {
-	expect(parseAttendeeAnswers(null)).toEqual([]);
-	expect(parseAttendeeAnswers(undefined)).toEqual([]);
-	expect(parseAttendeeAnswers('')).toEqual([]);
-	expect(parseAttendeeAnswers('not json')).toEqual([]);
-	expect(parseAttendeeAnswers('{"not":"array"}')).toEqual([]);
+test('parseGuestAnswers returns [] for null, empty, or malformed input', () => {
+	expect(parseGuestAnswers(null)).toEqual([]);
+	expect(parseGuestAnswers(undefined)).toEqual([]);
+	expect(parseGuestAnswers('')).toEqual([]);
+	expect(parseGuestAnswers('not json')).toEqual([]);
+	expect(parseGuestAnswers('{"not":"array"}')).toEqual([]);
 });

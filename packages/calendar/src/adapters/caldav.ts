@@ -166,8 +166,8 @@ export class CalDavAdapter implements CalendarAdapter {
 		const ics = buildIcs({
 			appointment,
 			eventTypeName,
-			organizerName: cfg.user.name,
-			organizerEmail: cfg.user.email,
+			hostName: cfg.user.name,
+			hostEmail: cfg.user.email,
 			cancelUrl: opts.cancelUrl
 			// No method — CalDAV calendar object resources must not have METHOD.
 			// (Nextcloud and other servers reject such PUTs with 415.)

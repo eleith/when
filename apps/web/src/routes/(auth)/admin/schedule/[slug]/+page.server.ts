@@ -67,14 +67,14 @@ export const actions: Actions = {
 			eventType,
 			start: start.toString(),
 			end: end.toString(),
-			attendee: {
+			guest: {
 				name,
 				email,
 				answers,
 				timezone: resolveTimezone(form.get('timezone'), userTz)
 			},
 			location: resolvedLocation,
-			initiator: 'organizer'
+			initiator: 'host'
 		});
 
 		if (!result.ok) {

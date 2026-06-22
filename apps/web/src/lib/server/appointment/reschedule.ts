@@ -34,7 +34,7 @@ export interface RescheduleAppointmentInput {
 	newStart: string;
 	/** New end_time as ISO instant. */
 	newEnd: string;
-	attendee?: ParsedAppointment;
+	guest?: ParsedAppointment;
 	timezone?: string;
 	reason?: string;
 }
@@ -63,12 +63,12 @@ export async function rescheduleAppointment(
 	}).reschedule;
 	if (!gate.allowed) return { ok: false, reason: 'gated' };
 
-	// Organizer reschedules are auto-confirmed. Attendee reschedules preserve status,
-	// except when moving a confirmed requires-confirmation appointment which re-arms organizer approval.
+	// Host reschedules are auto-confirmed. Guest reschedules preserve status,
+	// except when moving a confirmed requires-confirmation appointment which re-arms host approval.
 	const newStatus =
-		input.initiator === 'organizer'
+		input.initiator === 'host'
 			? 'confirmed'
-			: input.initiator === 'attendee' &&
+			: input.initiator === 'guest' &&
 				  eventType?.appointment_flow === 'requires_confirmation' &&
 				  input.appointment.status === 'confirmed'
 				? 'pending'
@@ -79,7 +79,7 @@ export async function rescheduleAppointment(
 		result = await rescheduleAppointmentTransition(
 			ctx.db,
 			input.appointment,
-			input.initiator === 'organizer' ? 'organizer' : 'attendee',
+			input.initiator === 'host' ? 'host' : 'guest',
 			ctx.clock.now().toISOString(),
 			{
 				newStart: input.newStart,
@@ -87,15 +87,13 @@ export async function rescheduleAppointment(
 				newStatus,
 				eventTypeSnapshot: JSON.stringify(eventType),
 				reason: input.reason,
-				attendee: input.attendee
+				guest: input.guest
 					? {
-							name: input.attendee.name,
-							email: input.attendee.email,
-							answers: input.attendee.answers.length
-								? JSON.stringify(input.attendee.answers)
-								: null,
-							location: input.attendee.location,
-							timezone: input.timezone ?? input.appointment.attendee_timezone
+							name: input.guest.name,
+							email: input.guest.email,
+							answers: input.guest.answers.length ? JSON.stringify(input.guest.answers) : null,
+							location: input.guest.location,
+							timezone: input.timezone ?? input.appointment.guest_timezone
 						}
 					: undefined
 			}
@@ -106,8 +104,7 @@ export async function rescheduleAppointment(
 	}
 	if (!result.ok) return { ok: false, reason: 'conflict' };
 
-	const kind =
-		input.initiator === 'organizer' ? 'rescheduled-by-organizer' : 'rescheduled-by-attendee';
+	const kind = input.initiator === 'host' ? 'rescheduled-by-host' : 'rescheduled-by-guest';
 	const appointment = await enqueueAppointmentEmail(ctx.db, result.appointment.id, kind);
 	await enqueueCalendarSync();
 

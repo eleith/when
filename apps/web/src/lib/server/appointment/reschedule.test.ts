@@ -15,10 +15,10 @@ const existing: Appointment = {
 	event_type_id: 'chat',
 	start_time: '2026-05-01T15:00:00Z',
 	end_time: '2026-05-01T15:30:00Z',
-	attendee_name: 'Booker',
-	attendee_email: 'booker@example.com',
-	attendee_answers: null,
-	attendee_timezone: null,
+	guest_name: 'Booker',
+	guest_email: 'booker@example.com',
+	guest_answers: null,
+	guest_timezone: null,
 	location: null,
 	status: 'confirmed',
 	origin_id: 'appt-1',
@@ -194,10 +194,10 @@ const opBaseRow = {
 	event_type_id: '30-min-chat',
 	start_time: '2099-01-01T15:00:00Z',
 	end_time: '2099-01-01T15:30:00Z',
-	attendee_name: 'Booker',
-	attendee_email: 'booker@example.com',
-	attendee_answers: null,
-	attendee_timezone: null,
+	guest_name: 'Booker',
+	guest_email: 'booker@example.com',
+	guest_answers: null,
+	guest_timezone: null,
 	location: null,
 	external_event_id: null,
 	external_calendar_id: null
@@ -235,7 +235,7 @@ describe('rescheduleAppointment', () => {
 				{ db, cfg: validConfig, clock: systemClock },
 				{
 					appointment: row,
-					initiator: 'attendee',
+					initiator: 'guest',
 					newStart: '2099-01-02T10:00:00Z',
 					newEnd: '2099-01-02T10:30:00Z'
 				}
@@ -259,7 +259,7 @@ describe('rescheduleAppointment', () => {
 				expect(enqueueAppointmentEmail).toHaveBeenCalledWith(
 					expect.anything(),
 					next.id,
-					'rescheduled-by-attendee'
+					'rescheduled-by-guest'
 				);
 			}
 		} finally {
@@ -267,7 +267,7 @@ describe('rescheduleAppointment', () => {
 		}
 	});
 
-	test('attendee re-collect: the new row takes the re-submitted form values', async () => {
+	test('guest re-collect: the new row takes the re-submitted form values', async () => {
 		const db = await makeDb();
 		try {
 			await db
@@ -280,10 +280,10 @@ describe('rescheduleAppointment', () => {
 				{ db, cfg: validConfig, clock: systemClock },
 				{
 					appointment: row,
-					initiator: 'attendee',
+					initiator: 'guest',
 					newStart: '2099-01-02T10:00:00Z',
 					newEnd: '2099-01-02T10:30:00Z',
-					attendee: {
+					guest: {
 						name: 'Booker Renamed',
 						email: null,
 						location: 'Room B',
@@ -296,11 +296,11 @@ describe('rescheduleAppointment', () => {
 			expect(result.ok).toBe(true);
 			if (result.ok) {
 				const next = result.appointment;
-				expect(next.attendee_name).toBe('Booker Renamed');
-				expect(next.attendee_email).toBeNull();
+				expect(next.guest_name).toBe('Booker Renamed');
+				expect(next.guest_email).toBeNull();
 				expect(next.location).toBe('Room B');
-				expect(next.attendee_timezone).toBe('Europe/London');
-				expect(next.attendee_answers).toBe(
+				expect(next.guest_timezone).toBe('Europe/London');
+				expect(next.guest_answers).toBe(
 					JSON.stringify([{ id: 'why', label: 'Why move?', type: 'text', value: 'conflict' }])
 				);
 			}
@@ -309,7 +309,7 @@ describe('rescheduleAppointment', () => {
 		}
 	});
 
-	test('organizer reschedule with no override carries the old values forward', async () => {
+	test('host reschedule with no override carries the old values forward', async () => {
 		const db = await makeDb();
 		try {
 			await db
@@ -319,9 +319,9 @@ describe('rescheduleAppointment', () => {
 					id: 'r1',
 					status: 'confirmed',
 					cancel_token: 't1',
-					attendee_name: 'Original',
-					attendee_email: 'orig@example.com',
-					attendee_answers: JSON.stringify([{ id: 'q', label: 'Q', type: 'text', value: 'kept' }])
+					guest_name: 'Original',
+					guest_email: 'orig@example.com',
+					guest_answers: JSON.stringify([{ id: 'q', label: 'Q', type: 'text', value: 'kept' }])
 				})
 				.execute();
 			const row = await fetchRow(db, 'r1');
@@ -330,15 +330,15 @@ describe('rescheduleAppointment', () => {
 				{ db, cfg: validConfig, clock: systemClock },
 				{
 					appointment: row,
-					initiator: 'organizer',
+					initiator: 'host',
 					newStart: '2099-01-02T10:00:00Z',
 					newEnd: '2099-01-02T10:30:00Z'
 				}
 			);
 
-			expect(result.ok && result.appointment.attendee_name).toBe('Original');
-			expect(result.ok && result.appointment.attendee_email).toBe('orig@example.com');
-			expect(result.ok && result.appointment.attendee_answers).toBe(
+			expect(result.ok && result.appointment.guest_name).toBe('Original');
+			expect(result.ok && result.appointment.guest_email).toBe('orig@example.com');
+			expect(result.ok && result.appointment.guest_answers).toBe(
 				JSON.stringify([{ id: 'q', label: 'Q', type: 'text', value: 'kept' }])
 			);
 		} finally {
@@ -367,7 +367,7 @@ describe('rescheduleAppointment', () => {
 				{ db, cfg: validConfig, clock: systemClock },
 				{
 					appointment: row,
-					initiator: 'organizer',
+					initiator: 'host',
 					newStart: '2099-03-02T10:00:00Z',
 					newEnd: '2099-03-02T10:30:00Z'
 				}
@@ -381,7 +381,7 @@ describe('rescheduleAppointment', () => {
 				expect(enqueueAppointmentEmail).toHaveBeenCalledWith(
 					expect.anything(),
 					result.appointment.id,
-					'rescheduled-by-organizer'
+					'rescheduled-by-host'
 				);
 			}
 		} finally {
@@ -401,7 +401,7 @@ describe('rescheduleAppointment', () => {
 		]
 	};
 
-	test('attendee moving a confirmed requires-confirmation appointment reverts to pending, keeps the event', async () => {
+	test('guest moving a confirmed requires-confirmation appointment reverts to pending, keeps the event', async () => {
 		const db = await makeDb();
 		try {
 			await db
@@ -422,7 +422,7 @@ describe('rescheduleAppointment', () => {
 				{ db, cfg: reapprovalCfg, clock: systemClock },
 				{
 					appointment: row,
-					initiator: 'attendee',
+					initiator: 'guest',
 					newStart: '2099-04-02T10:00:00Z',
 					newEnd: '2099-04-02T10:30:00Z'
 				}
@@ -438,7 +438,7 @@ describe('rescheduleAppointment', () => {
 		}
 	});
 
-	test('organizer moving the same requires-confirmation appointment stays confirmed', async () => {
+	test('host moving the same requires-confirmation appointment stays confirmed', async () => {
 		const db = await makeDb();
 		try {
 			await db
@@ -457,7 +457,7 @@ describe('rescheduleAppointment', () => {
 				{ db, cfg: reapprovalCfg, clock: systemClock },
 				{
 					appointment: row,
-					initiator: 'organizer',
+					initiator: 'host',
 					newStart: '2099-04-03T10:00:00Z',
 					newEnd: '2099-04-03T10:30:00Z'
 				}
@@ -470,7 +470,7 @@ describe('rescheduleAppointment', () => {
 		}
 	});
 
-	test('organizer moving a pending requires-confirmation appointment changes status to confirmed', async () => {
+	test('host moving a pending requires-confirmation appointment changes status to confirmed', async () => {
 		const db = await makeDb();
 		try {
 			await db
@@ -489,7 +489,7 @@ describe('rescheduleAppointment', () => {
 				{ db, cfg: reapprovalCfg, clock: systemClock },
 				{
 					appointment: row,
-					initiator: 'organizer',
+					initiator: 'host',
 					newStart: '2099-04-03T10:00:00Z',
 					newEnd: '2099-04-03T10:30:00Z'
 				}
@@ -515,7 +515,7 @@ describe('rescheduleAppointment', () => {
 				{ db, cfg: validConfig, clock: systemClock },
 				{
 					appointment: row,
-					initiator: 'attendee',
+					initiator: 'guest',
 					newStart: '2099-01-02T10:00:00Z',
 					newEnd: '2099-01-02T10:30:00Z'
 				}
@@ -552,7 +552,7 @@ describe('rescheduleAppointment', () => {
 				{ db, cfg: validConfig, clock: systemClock },
 				{
 					appointment: row,
-					initiator: 'attendee',
+					initiator: 'guest',
 					newStart: '2099-02-01T10:00:00Z',
 					newEnd: '2099-02-01T10:30:00Z'
 				}
@@ -587,7 +587,7 @@ describe('rescheduleAppointment', () => {
 				{ db, cfg: validConfig, clock: systemClock },
 				{
 					appointment: row,
-					initiator: 'attendee',
+					initiator: 'guest',
 					newStart: '2099-01-02T10:00:00Z',
 					newEnd: '2099-01-02T10:30:00Z'
 				}

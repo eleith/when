@@ -10,12 +10,12 @@ const base = {
 const run = (kind: AppointmentEmailKind) => dispatch({ kind, ...base }, sampleInput.cfg);
 
 describe('dispatch', () => {
-	test('confirmed → attendee then organizer', async () => {
+	test('confirmed → guest then host', async () => {
 		const e = await run('confirmed');
 		expect(e.map((x) => x.to)).toEqual(['jane@example.com', 'owner@acme.test']);
 	});
 
-	test('pending fans out to both the attendee and organizer builders', async () => {
+	test('pending fans out to both the guest and host builders', async () => {
 		const e = await run('pending');
 		expect(e.map((x) => x.to)).toEqual(['jane@example.com', 'owner@acme.test']);
 		expect(e[0].subject).toContain('Appointment request received');
@@ -28,15 +28,15 @@ describe('dispatch', () => {
 		expect(e.every((x) => x.attachments === undefined)).toBe(true);
 	});
 
-	test('cancelled-by-attendee → the attendee gets a CANCEL ics', async () => {
-		const [attendee] = await run('cancelled-by-attendee');
-		expect(attendee.attachments?.[0].content).toContain('METHOD:CANCEL');
+	test('cancelled-by-guest → the guest gets a CANCEL ics', async () => {
+		const [guest] = await run('cancelled-by-guest');
+		expect(guest.attachments?.[0].content).toContain('METHOD:CANCEL');
 	});
 
-	test('no-email appointment yields only the organizer envelope', async () => {
+	test('no-email appointment yields only the host envelope', async () => {
 		const noEmail = {
 			kind: 'confirmed' as const,
-			appointment: { ...sampleInput.appointment, attendee_email: null },
+			appointment: { ...sampleInput.appointment, guest_email: null },
 			eventType: sampleInput.eventType
 		};
 		const e = await dispatch(noEmail, sampleInput.cfg);
@@ -47,10 +47,10 @@ describe('dispatch', () => {
 		const kinds: AppointmentEmailKind[] = [
 			'confirmed',
 			'pending',
-			'cancelled-by-attendee',
-			'cancelled-by-organizer',
-			'rescheduled-by-attendee',
-			'rescheduled-by-organizer',
+			'cancelled-by-guest',
+			'cancelled-by-host',
+			'rescheduled-by-guest',
+			'rescheduled-by-host',
 			'declined'
 		];
 		for (const kind of kinds) {

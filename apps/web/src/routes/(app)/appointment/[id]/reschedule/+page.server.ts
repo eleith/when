@@ -73,7 +73,7 @@ export const actions: Actions = {
 
 		const parsed = parseAndValidateAppointmentForm(eventType, form);
 		if (!parsed.ok) return fail(400, { fieldErrors: parsed.errors });
-		const attendee = parsed.data;
+		const guest = parsed.data;
 		const timezone = resolveTimezone(form.get('timezone'), cfg.user.timezone);
 
 		const reasonResult = validateReason(form, 'rescheduling');
@@ -89,10 +89,10 @@ export const actions: Actions = {
 		const end = start.add({ minutes: eventType.duration });
 		const result = await rescheduleAppointment(appointmentContext(), {
 			appointment: found,
-			initiator: 'attendee',
+			initiator: 'guest',
 			newStart: start.toString(),
 			newEnd: end.toString(),
-			attendee,
+			guest,
 			timezone,
 			reason
 		});

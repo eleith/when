@@ -5,10 +5,10 @@ export interface CalendarGuest {
 	name: string;
 }
 
-export function attendeeGuest(
-	appointment: Pick<Appointment, 'attendee_name' | 'attendee_email'>
+export function guestContact(
+	appointment: Pick<Appointment, 'guest_name' | 'guest_email'>
 ): CalendarGuest | null {
-	return appointment.attendee_email
-		? { email: appointment.attendee_email, name: appointment.attendee_name }
+	return appointment.guest_email
+		? { email: appointment.guest_email, name: appointment.guest_name }
 		: null;
 }

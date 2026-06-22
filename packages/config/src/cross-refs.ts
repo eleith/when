@@ -99,17 +99,17 @@ function checkFormFields(
 		}
 	});
 
-	const nameFields = fields.filter((f) => f.type === 'attendee_name');
+	const nameFields = fields.filter((f) => f.type === 'guest_name');
 	if (nameFields.length === 0) {
-		issues.push({ path: base, message: 'form must include an attendee_name field' });
+		issues.push({ path: base, message: 'form must include a guest_name field' });
 	} else if (nameFields.length > 1) {
-		issues.push({ path: base, message: 'attendee_name must appear exactly once' });
+		issues.push({ path: base, message: 'guest_name must appear exactly once' });
 	} else if (!nameFields[0].required) {
 		const at = fields.indexOf(nameFields[0]);
-		issues.push({ path: `${base}/${at}/required`, message: 'attendee_name must be required' });
+		issues.push({ path: `${base}/${at}/required`, message: 'guest_name must be required' });
 	}
 
-	for (const type of ['attendee_email', 'event_location'] as const) {
+	for (const type of ['guest_email', 'event_location'] as const) {
 		if ((typeCounts.get(type) ?? 0) > 1) {
 			issues.push({ path: base, message: `${type} may appear at most once` });
 		}

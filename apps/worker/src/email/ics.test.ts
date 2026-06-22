@@ -9,8 +9,8 @@ describe('ics', () => {
 		const ics = buildIcs({
 			appointment: sampleAppointment,
 			eventTypeName: '30 Minute Chat',
-			organizerName: 'Acme',
-			organizerEmail: 'owner@acme.test',
+			hostName: 'Acme',
+			hostEmail: 'owner@acme.test',
 			cancelUrl: 'https://when.example.com/appointment/appt-1',
 			method: 'REQUEST',
 			clock

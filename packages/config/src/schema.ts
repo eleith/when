@@ -147,7 +147,7 @@ export interface LocationFixed {
 }
 export interface FormField {
   id: string;
-  type: "attendee_name" | "attendee_email" | "event_location" | "text" | "number" | "paragraph" | "choice";
+  type: "guest_name" | "guest_email" | "event_location" | "text" | "number" | "paragraph" | "choice";
   label: string;
   required: boolean;
   choices?: string[];

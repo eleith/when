@@ -12,9 +12,9 @@ const baseAppointment: Appointment = {
 	event_type_id: '30-min-chat',
 	start_time: '2026-04-27T13:00:00Z',
 	end_time: '2026-04-27T13:30:00Z',
-	attendee_name: 'Booker',
-	attendee_email: 'booker@example.com',
-	attendee_answers: null,
+	guest_name: 'Booker',
+	guest_email: 'booker@example.com',
+	guest_answers: null,
 	location: null,
 	status: 'confirmed',
 	origin_id: 'appt-xyz',
@@ -29,7 +29,7 @@ const baseAppointment: Appointment = {
 	event_type_snapshot: null,
 	created_at: '',
 	updated_at: '',
-	attendee_timezone: 'America/New_York'
+	guest_timezone: 'America/New_York'
 };
 
 const cfgWithCalDav: WhenConfiguration = {

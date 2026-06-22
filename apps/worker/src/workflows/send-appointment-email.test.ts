@@ -41,8 +41,8 @@ async function seedDb(): Promise<Kysely<Database>> {
 			event_type_id: '30-min',
 			start_time: '2026-01-05T15:00:00Z',
 			end_time: '2026-01-05T15:30:00Z',
-			attendee_name: 'Jane Doe',
-			attendee_email: 'jane@example.com',
+			guest_name: 'Jane Doe',
+			guest_email: 'jane@example.com',
 			location: null,
 			external_event_id: null,
 			external_calendar_id: null,
@@ -75,7 +75,7 @@ describe('runSendAppointmentEmail', () => {
 		const result = await runSendAppointmentEmail(input, step);
 
 		expect(result).toBe('sent');
-		expect(send).toHaveBeenCalledTimes(2); // attendee + organizer
+		expect(send).toHaveBeenCalledTimes(2); // guest + host
 		expect(names).toEqual(['smtp:jane@example.com', 'smtp:owner@acme.test', 'log:result']);
 		expect(await readEmailJobStates(db)).toEqual(['done']);
 		await db.destroy();

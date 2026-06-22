@@ -8,8 +8,8 @@ function clone<T>(v: T): T {
 }
 
 const validForm: FormField[] = [
-	{ id: 'name', type: 'attendee_name', label: 'Name', required: true },
-	{ id: 'email', type: 'attendee_email', label: 'Email', required: false },
+	{ id: 'name', type: 'guest_name', label: 'Name', required: true },
+	{ id: 'email', type: 'guest_email', label: 'Email', required: false },
 	{ id: 'notes', type: 'paragraph', label: 'Notes', required: false }
 ];
 
@@ -130,37 +130,32 @@ test('duplicate form field id flagged with index', () => {
 	expect(issues.some((i) => i.path === '/event_types/0/form_fields/3/id')).toBe(true);
 });
 
-test('missing attendee_name flagged', () => {
+test('missing guest_name flagged', () => {
 	const issues = issuesFor(
-		withForm([{ id: 'email', type: 'attendee_email', label: 'Email', required: false }])
+		withForm([{ id: 'email', type: 'guest_email', label: 'Email', required: false }])
 	);
-	expect(issues.some((i) => i.message.includes('must include an attendee_name'))).toBe(true);
+	expect(issues.some((i) => i.message.includes('must include a guest_name'))).toBe(true);
 });
 
-test('attendee_name not required flagged', () => {
+test('guest_name not required flagged', () => {
 	const issues = issuesFor(
-		withForm([{ id: 'name', type: 'attendee_name', label: 'Name', required: false }])
+		withForm([{ id: 'name', type: 'guest_name', label: 'Name', required: false }])
 	);
-	expect(issues.some((i) => i.message.includes('attendee_name must be required'))).toBe(true);
+	expect(issues.some((i) => i.message.includes('guest_name must be required'))).toBe(true);
 });
 
-test('attendee_name appearing twice flagged', () => {
+test('guest_name appearing twice flagged', () => {
 	const issues = issuesFor(
-		withForm([...validForm, { id: 'name2', type: 'attendee_name', label: 'Name', required: true }])
+		withForm([...validForm, { id: 'name2', type: 'guest_name', label: 'Name', required: true }])
 	);
 	expect(issues.some((i) => i.message.includes('exactly once'))).toBe(true);
 });
 
-test('attendee_email appearing twice flagged', () => {
+test('guest_email appearing twice flagged', () => {
 	const issues = issuesFor(
-		withForm([
-			...validForm,
-			{ id: 'email2', type: 'attendee_email', label: 'Email', required: false }
-		])
+		withForm([...validForm, { id: 'email2', type: 'guest_email', label: 'Email', required: false }])
 	);
-	expect(issues.some((i) => i.message.includes('attendee_email may appear at most once'))).toBe(
-		true
-	);
+	expect(issues.some((i) => i.message.includes('guest_email may appear at most once'))).toBe(true);
 });
 
 test('event_location appearing twice flagged', () => {

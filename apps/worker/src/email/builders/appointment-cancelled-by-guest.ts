@@ -1,13 +1,13 @@
 import {
 	answerRows,
-	attendeeLabel,
+	guestLabel,
 	deriveBrand,
 	eventTypeName,
-	whenForAttendee,
-	whenForOrganizer
+	whenForGuest,
+	whenForHost
 } from '../format.js';
 import { cancelIcs } from '../ics.js';
-import { attendeeMessage, messages, organizerMessage, type EmailMessage } from '../recipients.js';
+import { guestMessage, messages, hostMessage, type EmailMessage } from '../recipients.js';
 import type { EmailContent } from '../content.js';
 import type { AppointmentEmailInput } from '../types.js';
 
@@ -19,41 +19,38 @@ function reasonParagraph(a: Appointment): string[] {
 	return cancel?.payload?.note ? [`Reason: ${cancel.payload.note}`] : [];
 }
 
-export function appointmentCancelledByOrganizer(i: AppointmentEmailInput): EmailMessage[] {
+export function appointmentCancelledByGuest(i: AppointmentEmailInput): EmailMessage[] {
 	const a = i.appointment;
 	const brand = deriveBrand(i.cfg, i.logo?.cid);
 	const eventName = eventTypeName(i.eventType, a);
-	const attendeeWhen = whenForAttendee(i);
-	const organizerWhen = whenForOrganizer(i);
+	const guestWhen = whenForGuest(i);
+	const hostWhen = whenForHost(i);
 
-	const attendee: EmailContent = {
+	const guest: EmailContent = {
 		brand,
 		subject: `Cancelled: ${eventName} with ${brand.name}`,
-		heading: `${brand.name} cancelled this appointment.`,
+		heading: 'Your appointment has been cancelled.',
 		paragraphs: reasonParagraph(a),
 		rows: [
 			{ label: 'What', value: eventName },
-			{ label: 'When', value: attendeeWhen }
+			{ label: 'When', value: guestWhen }
 		],
 		actions: [],
-		previewText: `Was scheduled for ${attendeeWhen}.`
+		previewText: `Was scheduled for ${guestWhen}.`
 	};
 	const admin: EmailContent = {
 		brand,
-		subject: `Cancelled: ${eventName} with ${a.attendee_name}`,
+		subject: `Cancelled: ${eventName} with ${a.guest_name}`,
 		heading: 'Appointment cancelled',
-		paragraphs: [`You cancelled the appointment for ${attendeeLabel(a)}.`, ...reasonParagraph(a)],
+		paragraphs: [`${guestLabel(a)} cancelled this appointment.`, ...reasonParagraph(a)],
 		rows: [
 			{ label: 'What', value: eventName },
-			{ label: 'When', value: organizerWhen },
+			{ label: 'When', value: hostWhen },
 			...answerRows(a)
 		],
 		actions: [],
-		previewText: `Was scheduled for ${organizerWhen}.`
+		previewText: `Was scheduled for ${hostWhen}.`
 	};
 
-	return messages(
-		attendeeMessage(i, attendee, cancelIcs(i, i.links.booked)),
-		organizerMessage(i, admin)
-	);
+	return messages(guestMessage(i, guest, cancelIcs(i, i.links.booked)), hostMessage(i, admin));
 }

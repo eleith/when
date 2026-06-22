@@ -13,10 +13,10 @@ type WorkflowSpec<Input, Output> = Workflow<Input, Output, Input>['spec'];
 export type AppointmentEmailKind =
 	| 'confirmed'
 	| 'pending'
-	| 'cancelled-by-attendee'
-	| 'cancelled-by-organizer'
-	| 'rescheduled-by-attendee'
-	| 'rescheduled-by-organizer'
+	| 'cancelled-by-guest'
+	| 'cancelled-by-host'
+	| 'rescheduled-by-guest'
+	| 'rescheduled-by-host'
 	| 'declined';
 
 /**

@@ -25,25 +25,25 @@ export interface EmailMessage {
 	ics?: Attachment;
 }
 
-/** Message addressed to the appointment's attendee, or null when no email was collected. */
-export function attendeeMessage(
+/** Message addressed to the appointment's guest, or null when no email was collected. */
+export function guestMessage(
 	i: Pick<AppointmentEmailInput, 'appointment'>,
 	content: EmailContent,
 	ics?: Attachment
 ): EmailMessage | null {
-	if (!i.appointment.attendee_email) return null;
-	return { to: i.appointment.attendee_email, content, ics };
+	if (!i.appointment.guest_email) return null;
+	return { to: i.appointment.guest_email, content, ics };
 }
 
-/** Message addressed to the organizer (the single configured user). */
-export function organizerMessage(
+/** Message addressed to the host (the single configured user). */
+export function hostMessage(
 	i: Pick<AppointmentEmailInput, 'cfg'>,
 	content: EmailContent
 ): EmailMessage {
 	return { to: i.cfg.user.email, content };
 }
 
-/** Collect a builder's messages, dropping any that had no recipient (e.g. no attendee email). */
+/** Collect a builder's messages, dropping any that had no recipient (e.g. no guest email). */
 export function messages(...list: (EmailMessage | null)[]): EmailMessage[] {
 	return list.filter((m): m is EmailMessage => m !== null);
 }

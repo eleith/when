@@ -18,7 +18,7 @@
 		formatTzAbbrev
 	} from '$lib/datetime';
 	import { getPreferredTimezone } from '$lib/preferredTimezone.svelte';
-	import type { AttendeeAnswer, Branding, FormField, Location } from '@when/config';
+	import type { GuestAnswer, Branding, FormField, Location } from '@when/config';
 
 	// Shared shape served by both the new-appointment route and the reschedule route.
 	export interface AppointmentWizardData {
@@ -48,9 +48,9 @@
 			id: string;
 			start_time: string;
 			end_time: string;
-			attendee_name: string;
-			attendee_email: string | null;
-			answers: AttendeeAnswer[];
+			guest_name: string;
+			guest_email: string | null;
+			answers: GuestAnswer[];
 			location: string | null;
 		} | null;
 		rescheduleError: string | null;
@@ -115,8 +115,8 @@
 	function initialFieldValue(field: FormField): string {
 		const r = data.rescheduleAppt;
 		if (!r) return '';
-		if (field.type === 'attendee_name') return r.attendee_name ?? '';
-		if (field.type === 'attendee_email') return r.attendee_email ?? '';
+		if (field.type === 'guest_name') return r.guest_name ?? '';
+		if (field.type === 'guest_email') return r.guest_email ?? '';
 		if (field.type === 'event_location') return r.location ?? '';
 		return priorAnswers.find((a) => a.id === field.id)?.value ?? '';
 	}
@@ -444,7 +444,7 @@
 													aria-hidden="true">*</span
 												>{/if}
 										</label>
-										{#if field.type === 'attendee_name'}
+										{#if field.type === 'guest_name'}
 											<input
 												id={field.id}
 												name={field.id}
@@ -456,7 +456,7 @@
 												bind:this={nameInput}
 												value={initialFieldValue(field)}
 											/>
-										{:else if field.type === 'attendee_email'}
+										{:else if field.type === 'guest_email'}
 											<input
 												id={field.id}
 												name={field.id}

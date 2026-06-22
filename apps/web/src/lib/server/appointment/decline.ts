@@ -20,7 +20,7 @@ export async function declineAppointment(
 
 	const gate = resolveAppointmentActions({
 		row: input.appointment,
-		viewer: 'organizer',
+		viewer: 'host',
 		now: ctx.clock.now(),
 		eventType
 	}).decline;

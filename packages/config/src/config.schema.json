@@ -531,8 +531,8 @@
 				},
 				"type": {
 					"enum": [
-						"attendee_name",
-						"attendee_email",
+						"guest_name",
+						"guest_email",
 						"event_location",
 						"text",
 						"number",

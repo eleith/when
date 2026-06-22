@@ -4,7 +4,7 @@ import { deriveBrand } from '../format.js';
 import type { Attachment, EmailMessage } from '../recipients.js';
 import type { EmailContent } from '../content.js';
 
-// An owner-only alert (no attendee, no appointment), addressed straight to the
+// An owner-only alert (no guest, no appointment), addressed straight to the
 // configured owner. `broke` explains the consequence; `recovered` is the all-clear.
 // Pure builder: the handler fetches the logo and renders via renderMessage.
 export function ownerAlert(

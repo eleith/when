@@ -18,7 +18,7 @@ const eventType = validConfig.event_types[0];
 const input = {
 	start: '2099-01-01T15:00:00Z',
 	end: '2099-01-01T15:30:00Z',
-	attendee: {
+	guest: {
 		name: 'Booker',
 		email: 'booker@example.com',
 		answers: [],
@@ -90,7 +90,7 @@ describe('createAppointment', () => {
 		}
 	});
 
-	test('requires_confirmation flow inserts a confirmed appointment if created by organizer', async () => {
+	test('requires_confirmation flow inserts a confirmed appointment if created by host', async () => {
 		const db = await makeDb();
 		try {
 			const reqType = { ...eventType, appointment_flow: 'requires_confirmation' as const };
@@ -100,7 +100,7 @@ describe('createAppointment', () => {
 					cfg: { ...validConfig, event_types: [reqType] as typeof validConfig.event_types },
 					clock: systemClock
 				},
-				{ ...input, eventType: reqType, initiator: 'organizer' }
+				{ ...input, eventType: reqType, initiator: 'host' }
 			);
 
 			expect(result.ok).toBe(true);
@@ -128,9 +128,9 @@ describe('createAppointment', () => {
 					event_type_id: eventType.id,
 					start_time: input.start,
 					end_time: input.end,
-					attendee_name: 'Other',
-					attendee_email: 'other@example.com',
-					attendee_answers: null,
+					guest_name: 'Other',
+					guest_email: 'other@example.com',
+					guest_answers: null,
 					location: null,
 					status: 'confirmed',
 					cancel_token: 'tok-existing',

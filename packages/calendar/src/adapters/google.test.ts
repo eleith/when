@@ -15,9 +15,9 @@ const baseAppointment: Appointment = {
 	event_type_id: 'chat',
 	start_time: '2026-04-27T13:00:00Z',
 	end_time: '2026-04-27T13:30:00Z',
-	attendee_name: 'Booker',
-	attendee_email: 'booker@example.com',
-	attendee_answers: null,
+	guest_name: 'Booker',
+	guest_email: 'booker@example.com',
+	guest_answers: null,
 	location: null,
 	status: 'confirmed',
 	origin_id: 'appt-1',
@@ -32,7 +32,7 @@ const baseAppointment: Appointment = {
 	event_type_snapshot: null,
 	created_at: '',
 	updated_at: '',
-	attendee_timezone: 'America/New_York'
+	guest_timezone: 'America/New_York'
 };
 
 function mockFetch(captured: { payload?: Record<string, unknown> }): FetchFn {
@@ -50,7 +50,7 @@ async function push(appointment: Appointment) {
 	await putGoogleEvent(cfg, appointment, {
 		cancelUrl: 'https://when.example.com/appointment/appt-1?token=tok',
 		eventTypeName: 'Chat',
-		organizerName: 'Jane',
+		hostName: 'Jane',
 		fetchImpl: mockFetch(captured)
 	});
 	return captured.payload!;
@@ -59,7 +59,7 @@ async function push(appointment: Appointment) {
 test('description and attendees include the email when present', async () => {
 	const payload = await push({
 		...baseAppointment,
-		attendee_answers: JSON.stringify([
+		guest_answers: JSON.stringify([
 			{ id: 'phone', label: 'Phone', type: 'text', value: '+15550199' }
 		])
 	});
@@ -70,7 +70,7 @@ test('description and attendees include the email when present', async () => {
 });
 
 test('email line is dropped and attendees empty when there is no email', async () => {
-	const payload = await push({ ...baseAppointment, attendee_email: null });
+	const payload = await push({ ...baseAppointment, guest_email: null });
 	expect(payload.description).toContain('Name: Booker');
 	expect(payload.description).not.toContain('Email:');
 	expect(payload.attendees).toEqual([]);

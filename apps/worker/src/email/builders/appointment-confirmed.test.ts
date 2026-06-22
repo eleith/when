@@ -3,44 +3,44 @@ import { appointmentConfirmed } from './appointment-confirmed.js';
 import { sampleInput } from '../__fixtures__/appointment.js';
 
 describe('appointmentConfirmed', () => {
-	test('attendee message: confirmed content, View CTA, REQUEST ics', () => {
-		const [attendee] = appointmentConfirmed(sampleInput);
+	test('guest message: confirmed content, View CTA, REQUEST ics', () => {
+		const [guest] = appointmentConfirmed(sampleInput);
 
-		expect(attendee.to).toBe('jane@example.com');
-		expect(attendee.content.subject).toBe('Confirmed: 30-min with Acme Scheduling');
-		expect(attendee.content.heading).toBe('Your appointment is confirmed.');
-		expect(attendee.content.rows).toEqual([
+		expect(guest.to).toBe('jane@example.com');
+		expect(guest.content.subject).toBe('Confirmed: 30-min with Acme Scheduling');
+		expect(guest.content.heading).toBe('Your appointment is confirmed.');
+		expect(guest.content.rows).toEqual([
 			{ label: 'What', value: '30-min' },
 			{ label: 'When', value: expect.any(String) },
 			{ label: 'Where', value: 'Zoom' }
 		]);
-		expect(attendee.content.actions).toEqual([
+		expect(guest.content.actions).toEqual([
 			{ href: sampleInput.links.booked, label: 'View this appointment', variant: 'primary' }
 		]);
-		expect(attendee.ics?.content).toContain('METHOD:REQUEST');
+		expect(guest.ics?.content).toContain('METHOD:REQUEST');
 	});
 
-	test('organizer message: new-appointment content, answer rows, no ics', () => {
-		const [, organizer] = appointmentConfirmed(sampleInput);
+	test('host message: new-appointment content, answer rows, no ics', () => {
+		const [, host] = appointmentConfirmed(sampleInput);
 
-		expect(organizer?.to).toBe('owner@acme.test');
-		expect(organizer?.content.subject).toBe('New appointment: 30-min with Jane Doe');
-		expect(organizer?.content.heading).toBe('New appointment');
-		expect(organizer?.content.paragraphs).toContain(
+		expect(host?.to).toBe('owner@acme.test');
+		expect(host?.content.subject).toBe('New appointment: 30-min with Jane Doe');
+		expect(host?.content.heading).toBe('New appointment');
+		expect(host?.content.paragraphs).toContain(
 			'Jane Doe <jane@example.com> just scheduled an appointment.'
 		);
-		expect(organizer?.content.rows).toContainEqual({
+		expect(host?.content.rows).toContainEqual({
 			label: 'Anything else?',
 			value: 'Looking forward to it'
 		});
-		expect(organizer?.content.actions).toEqual([]);
-		expect(organizer?.ics).toBeUndefined();
+		expect(host?.content.actions).toEqual([]);
+		expect(host?.ics).toBeUndefined();
 	});
 
-	test('no attendee message and no email line when the appointment has no email', () => {
+	test('no guest message and no email line when the appointment has no email', () => {
 		const noEmail = {
 			...sampleInput,
-			appointment: { ...sampleInput.appointment, attendee_email: null }
+			appointment: { ...sampleInput.appointment, guest_email: null }
 		};
 		const result = appointmentConfirmed(noEmail);
 
@@ -50,12 +50,12 @@ describe('appointmentConfirmed', () => {
 	});
 
 	test('each recipient sees the time in their own zone', () => {
-		const [attendee, organizer] = appointmentConfirmed(sampleInput);
-		const whenOf = (m: typeof attendee) => m.content.rows.find((r) => r.label === 'When')?.value;
+		const [guest, host] = appointmentConfirmed(sampleInput);
+		const whenOf = (m: typeof guest) => m.content.rows.find((r) => r.label === 'When')?.value;
 
-		// fixture: attendee in America/Los_Angeles, organizer in America/New_York
-		expect(whenOf(attendee)).not.toBe(whenOf(organizer));
-		expect(whenOf(attendee)).toContain('GMT-8');
-		expect(whenOf(organizer)).toContain('GMT-5');
+		// fixture: guest in America/Los_Angeles, host in America/New_York
+		expect(whenOf(guest)).not.toBe(whenOf(host));
+		expect(whenOf(guest)).toContain('GMT-8');
+		expect(whenOf(host)).toContain('GMT-5');
 	});
 });

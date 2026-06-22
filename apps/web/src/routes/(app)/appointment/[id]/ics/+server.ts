@@ -27,8 +27,8 @@ export const GET: RequestHandler = async ({ params, url }) => {
 	const ics = buildIcs({
 		appointment: row,
 		eventTypeName: eventType?.name ?? row.event_type_id,
-		organizerName: cfg.user.name,
-		organizerEmail: cfg.user.email,
+		hostName: cfg.user.name,
+		hostEmail: cfg.user.email,
 		cancelUrl,
 		method: 'REQUEST'
 	});

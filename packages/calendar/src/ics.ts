@@ -1,6 +1,6 @@
 import { generateIcsCalendar, type IcsCalendar, type IcsEvent } from 'ts-ics';
 import { describeAppointment } from './description.js';
-import { attendeeGuest } from './guest.js';
+import { guestContact } from './guest.js';
 import { systemClock, type Clock } from './clock.js';
 import { originId, type Appointment, type AppointmentStatus } from '@when/db';
 
@@ -9,8 +9,8 @@ export type IcsMethod = 'REQUEST' | 'CANCEL';
 export interface IcsInput {
 	appointment: Appointment;
 	eventTypeName: string;
-	organizerName: string;
-	organizerEmail: string;
+	hostName: string;
+	hostEmail: string;
 	/** Public URL the booker can use to cancel or reschedule. */
 	cancelUrl: string;
 	/**
@@ -25,9 +25,9 @@ export interface IcsInput {
 }
 
 export function buildIcs(input: IcsInput): string {
-	const { appointment, eventTypeName, organizerName, organizerEmail, cancelUrl, method } = input;
+	const { appointment, eventTypeName, hostName, hostEmail, cancelUrl, method } = input;
 	const clock = input.clock ?? systemClock;
-	const guest = attendeeGuest(appointment);
+	const guest = guestContact(appointment);
 
 	const event: IcsEvent = {
 		uid: originId(appointment),
@@ -38,7 +38,7 @@ export function buildIcs(input: IcsInput): string {
 		stamp: { date: clock.now(), type: 'DATE-TIME' },
 		description: describeAppointment(appointment, cancelUrl),
 		location: appointment.location ?? undefined,
-		organizer: { name: organizerName, email: organizerEmail },
+		organizer: { name: hostName, email: hostEmail },
 		attendees: guest ? [guest] : undefined,
 		status: eventStatus(method, appointment.status)
 	};

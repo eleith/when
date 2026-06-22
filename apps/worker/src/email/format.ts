@@ -1,5 +1,5 @@
 import { Temporal } from '@js-temporal/polyfill';
-import { parseAttendeeAnswers, type EventType, type WhenConfiguration } from '@when/config';
+import { parseGuestAnswers, type EventType, type WhenConfiguration } from '@when/config';
 import type { Appointment } from '@when/db';
 import type { DetailRow } from './content.js';
 import type { AppointmentEmailInput } from './types.js';
@@ -11,12 +11,12 @@ export function eventTypeName(
 	return eventType?.name ?? appointment.event_type_id;
 }
 
-export function attendeeLabel(a: Pick<Appointment, 'attendee_name' | 'attendee_email'>): string {
-	return a.attendee_email ? `${a.attendee_name} <${a.attendee_email}>` : a.attendee_name;
+export function guestLabel(a: Pick<Appointment, 'guest_name' | 'guest_email'>): string {
+	return a.guest_email ? `${a.guest_name} <${a.guest_email}>` : a.guest_name;
 }
 
-export function answerRows(a: Pick<Appointment, 'attendee_answers'>): DetailRow[] {
-	return parseAttendeeAnswers(a.attendee_answers).map((ans) => ({
+export function answerRows(a: Pick<Appointment, 'guest_answers'>): DetailRow[] {
+	return parseGuestAnswers(a.guest_answers).map((ans) => ({
 		label: ans.label,
 		value: ans.value
 	}));
@@ -45,12 +45,12 @@ export function fmtWhen(start: string, end: string, tz: string): string {
 	}
 }
 
-export function whenForAttendee(i: AppointmentEmailInput): string {
+export function whenForGuest(i: AppointmentEmailInput): string {
 	const a = i.appointment;
-	return fmtWhen(a.start_time, a.end_time, a.attendee_timezone ?? i.cfg.user.timezone);
+	return fmtWhen(a.start_time, a.end_time, a.guest_timezone ?? i.cfg.user.timezone);
 }
 
-export function whenForOrganizer(i: AppointmentEmailInput): string {
+export function whenForHost(i: AppointmentEmailInput): string {
 	const a = i.appointment;
 	return fmtWhen(a.start_time, a.end_time, i.cfg.user.timezone);
 }

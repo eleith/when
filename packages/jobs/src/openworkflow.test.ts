@@ -15,9 +15,9 @@ const appointment: Appointment = {
 	event_type_id: '30-min',
 	start_time: '2026-01-01T10:00:00Z',
 	end_time: '2026-01-01T10:30:00Z',
-	attendee_name: 'Jane',
-	attendee_email: 'jane@example.com',
-	attendee_answers: null,
+	guest_name: 'Jane',
+	guest_email: 'jane@example.com',
+	guest_answers: null,
 	location: null,
 	status: 'confirmed',
 	origin_id: 'appt-1',
@@ -32,7 +32,7 @@ const appointment: Appointment = {
 	event_type_snapshot: null,
 	created_at: '2026-01-01T09:00:00Z',
 	updated_at: '2026-01-01T09:00:00Z',
-	attendee_timezone: 'America/New_York'
+	guest_timezone: 'America/New_York'
 };
 
 describe('client singleton', () => {

@@ -13,10 +13,10 @@ const mockAppt: Appointment = {
 	event_type_id: '30-min-chat',
 	start_time: '2099-05-01T15:00:00Z',
 	end_time: '2099-05-01T15:30:00Z',
-	attendee_name: 'Booker',
-	attendee_email: 'booker@example.com',
-	attendee_answers: null,
-	attendee_timezone: null,
+	guest_name: 'Booker',
+	guest_email: 'booker@example.com',
+	guest_answers: null,
+	guest_timezone: null,
 	location: 'Meet link',
 	status: 'confirmed',
 	origin_id: 'appt-1',
@@ -53,7 +53,7 @@ vi.mock('@when/db', async (importOriginal) => {
 });
 
 describe('/appointment/[id] server load', () => {
-	test('renders successfully for attendee when event type is active', async () => {
+	test('renders successfully for guest when event type is active', async () => {
 		const mockLocals = {
 			auth: vi.fn().mockResolvedValue(null)
 		};
@@ -76,7 +76,7 @@ describe('/appointment/[id] server load', () => {
 		expect(result.actions.cancel.allowed).toBe(true);
 	});
 
-	test('throws 404 for attendee when event type is missing/deleted from config', async () => {
+	test('throws 404 for guest when event type is missing/deleted from config', async () => {
 		const mockLocals = {
 			auth: vi.fn().mockResolvedValue(null)
 		};

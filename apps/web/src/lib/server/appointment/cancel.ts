@@ -31,13 +31,13 @@ export async function cancelAppointment(
 	const result = await cancelAppointmentTransition(
 		ctx.db,
 		input.appointment.id,
-		input.initiator === 'organizer' ? 'organizer' : 'attendee',
+		input.initiator === 'host' ? 'host' : 'guest',
 		ctx.clock.now().toISOString(),
 		input.reason
 	);
 	if (!result.ok) return { ok: false, reason: 'conflict' };
 
-	const kind = input.initiator === 'organizer' ? 'cancelled-by-organizer' : 'cancelled-by-attendee';
+	const kind = input.initiator === 'host' ? 'cancelled-by-host' : 'cancelled-by-guest';
 	const appointment = await enqueueAppointmentEmail(ctx.db, input.appointment.id, kind);
 	await enqueueCalendarSync();
 

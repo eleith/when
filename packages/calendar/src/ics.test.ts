@@ -7,9 +7,9 @@ const baseAppointment: Appointment = {
 	event_type_id: 'chat',
 	start_time: '2026-04-27T13:00:00Z',
 	end_time: '2026-04-27T13:30:00Z',
-	attendee_name: 'Booker',
-	attendee_email: 'booker@example.com',
-	attendee_answers: null,
+	guest_name: 'Booker',
+	guest_email: 'booker@example.com',
+	guest_answers: null,
 	location: null,
 	status: 'confirmed',
 	origin_id: 'appt-123',
@@ -24,13 +24,13 @@ const baseAppointment: Appointment = {
 	event_type_snapshot: null,
 	created_at: '2026-04-25T10:00:00Z',
 	updated_at: '2026-04-25T10:00:00Z',
-	attendee_timezone: 'America/New_York'
+	guest_timezone: 'America/New_York'
 };
 
 const baseInput = {
 	eventTypeName: 'Chat',
-	organizerName: 'Jane Doe',
-	organizerEmail: 'jane@example.com',
+	hostName: 'Jane Doe',
+	hostEmail: 'jane@example.com',
 	cancelUrl: 'https://when.example.com/appointment/appt-123?token=tok-abc',
 	method: 'REQUEST' as const
 };
@@ -71,11 +71,11 @@ test('DESCRIPTION contains the cancel URL', () => {
 	expect(unfold(ics)).toContain('https://when.example.com/appointment/appt-123');
 });
 
-test('DESCRIPTION includes attendee answers when present', () => {
+test('DESCRIPTION includes guest answers when present', () => {
 	const ics = buildIcs({
 		appointment: {
 			...baseAppointment,
-			attendee_answers: JSON.stringify([
+			guest_answers: JSON.stringify([
 				{
 					id: 'notes',
 					label: 'Anything else?',
@@ -110,7 +110,7 @@ test('ORGANIZER and ATTENDEE lines are present', () => {
 
 test('ATTENDEE is omitted when the appointment has no email', () => {
 	const ics = buildIcs({
-		appointment: { ...baseAppointment, attendee_email: null },
+		appointment: { ...baseAppointment, guest_email: null },
 		...baseInput
 	});
 	expect(ics).not.toMatch(/^ATTENDEE/m);

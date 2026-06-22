@@ -116,14 +116,14 @@ export const actions: Actions = {
 				eventType,
 				start: start.toString(),
 				end: end.toString(),
-				attendee: {
+				guest: {
 					name,
 					email,
 					answers,
 					timezone: resolveTimezone(form.get('timezone'), cfg.user.timezone)
 				},
 				location: resolvedLocation,
-				initiator: 'attendee'
+				initiator: 'guest'
 			});
 		} catch (err) {
 			logger.error(

@@ -1,6 +1,6 @@
 import { Temporal } from '@js-temporal/polyfill';
 import { describeAppointment } from '../description.js';
-import { attendeeGuest } from '../guest.js';
+import { guestContact } from '../guest.js';
 import { logger } from '../logger.js';
 import type { BusyEvent } from '../types.js';
 import type { Appointment } from '@when/db';
@@ -148,7 +148,7 @@ export async function fetchGoogleBusy(
 export interface GooglePushOptions {
 	cancelUrl: string;
 	eventTypeName: string;
-	organizerName: string;
+	hostName: string;
 	fetchImpl?: FetchFn;
 }
 
@@ -174,9 +174,9 @@ export async function putGoogleEvent(
 
 	const method = isUpdate ? 'PUT' : 'POST';
 
-	const guest = attendeeGuest(appointment);
+	const guest = guestContact(appointment);
 	const payload = {
-		summary: `${opts.eventTypeName} with ${appointment.attendee_name}`,
+		summary: `${opts.eventTypeName} with ${appointment.guest_name}`,
 		description: describeAppointment(appointment, opts.cancelUrl),
 		location: appointment.location || undefined,
 		start: { dateTime: appointment.start_time },
@@ -242,7 +242,7 @@ export class GoogleAdapter implements CalendarAdapter {
 		const result = await putGoogleEvent(this.cal, appointment, {
 			cancelUrl: opts.cancelUrl,
 			eventTypeName,
-			organizerName: cfg.user.name,
+			hostName: cfg.user.name,
 			fetchImpl: opts.fetchImpl
 		});
 		return { ok: true, externalEventId: result.externalEventId, externalCalendarId: this.cal.id };

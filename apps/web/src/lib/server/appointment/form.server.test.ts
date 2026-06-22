@@ -56,8 +56,8 @@ describe('parseAndValidateAppointmentForm', () => {
 
 	test('email may be omitted when the field is optional', () => {
 		const event = eventWith([
-			{ id: 'name', type: 'attendee_name', label: 'Name', required: true },
-			{ id: 'email', type: 'attendee_email', label: 'Email', required: false }
+			{ id: 'name', type: 'guest_name', label: 'Name', required: true },
+			{ id: 'email', type: 'guest_email', label: 'Email', required: false }
 		]);
 		const r = parseAndValidateAppointmentForm(event, fd({ name: 'Jane' }));
 		expect(r.ok && r.data.email).toBeNull();
@@ -65,7 +65,7 @@ describe('parseAndValidateAppointmentForm', () => {
 
 	test('number must parse as a number', () => {
 		const event = eventWith([
-			{ id: 'name', type: 'attendee_name', label: 'Name', required: true },
+			{ id: 'name', type: 'guest_name', label: 'Name', required: true },
 			{ id: 'age', type: 'number', label: 'Age', required: true }
 		]);
 		expect(parseAndValidateAppointmentForm(event, fd({ name: 'Jane', age: 'abc' })).ok).toBe(false);
@@ -74,7 +74,7 @@ describe('parseAndValidateAppointmentForm', () => {
 
 	test('choice must be one of the configured options', () => {
 		const event = eventWith([
-			{ id: 'name', type: 'attendee_name', label: 'Name', required: true },
+			{ id: 'name', type: 'guest_name', label: 'Name', required: true },
 			{ id: 'how', type: 'choice', label: 'How?', required: true, choices: ['phone', 'video'] }
 		]);
 		expect(parseAndValidateAppointmentForm(event, fd({ name: 'Jane', how: 'fax' })).ok).toBe(false);
@@ -93,7 +93,7 @@ describe('parseAndValidateAppointmentForm', () => {
 	test('event_location overrides a fixed config when filled', () => {
 		const event = eventWith(
 			[
-				{ id: 'name', type: 'attendee_name', label: 'Name', required: true },
+				{ id: 'name', type: 'guest_name', label: 'Name', required: true },
 				{ id: 'loc', type: 'event_location', label: 'Where', required: false }
 			],
 			{ mode: 'fixed', fixed: 'Room A' }
@@ -106,7 +106,7 @@ describe('parseAndValidateAppointmentForm', () => {
 
 	test('event_location with choices validates membership', () => {
 		const event = eventWith([
-			{ id: 'name', type: 'attendee_name', label: 'Name', required: true },
+			{ id: 'name', type: 'guest_name', label: 'Name', required: true },
 			{
 				id: 'loc',
 				type: 'event_location',

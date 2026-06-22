@@ -13,7 +13,7 @@ export interface AppointmentActions {
 	decline: ActionGate;
 }
 
-export type Viewer = 'attendee' | 'organizer';
+export type Viewer = 'guest' | 'host';
 
 export interface ResolveAppointmentActionsInput {
 	row: Pick<Appointment, 'status' | 'start_time'>;
@@ -49,12 +49,12 @@ function resolveReschedule(
 	return { allowed: false, reason: 'minimum_notice' };
 }
 
-function resolveOrganizerDecision(
+function resolveHostDecision(
 	row: Pick<Appointment, 'status' | 'start_time'>,
 	viewer: Viewer,
 	now: Date
 ): ActionGate {
-	if (viewer !== 'organizer') return { allowed: false, reason: 'wrong_viewer' };
+	if (viewer !== 'host') return { allowed: false, reason: 'wrong_viewer' };
 	if (row.status !== 'pending') return { allowed: false, reason: 'terminal_status' };
 	if (now.getTime() >= Date.parse(row.start_time)) return { allowed: false, reason: 'past_start' };
 	return ALLOWED;
@@ -67,7 +67,7 @@ export function resolveAppointmentActions({
 	eventType
 }: ResolveAppointmentActionsInput): AppointmentActions {
 	const minimumNotice = eventType?.minimum_notice ?? 0;
-	const decision = resolveOrganizerDecision(row, viewer, now);
+	const decision = resolveHostDecision(row, viewer, now);
 	return {
 		cancel: resolveCancel(row, now),
 		reschedule: resolveReschedule(row, now, minimumNotice),

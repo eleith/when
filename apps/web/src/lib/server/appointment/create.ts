@@ -1,7 +1,7 @@
 import { enqueueAppointmentEmail, enqueueCalendarSync } from '../workflow';
 import { newAppointmentId, newCancelToken } from './ids';
 import type { AppointmentContext } from './context';
-import type { AttendeeAnswer, EventType } from '@when/config';
+import type { GuestAnswer, EventType } from '@when/config';
 import { createActionLog, type Appointment } from '@when/db';
 import type { AppointmentEmailKind } from '@when/jobs';
 
@@ -9,9 +9,9 @@ export interface CreateAppointmentInput {
 	eventType: EventType;
 	start: string;
 	end: string;
-	attendee: { name: string; email: string | null; answers: AttendeeAnswer[]; timezone: string };
+	guest: { name: string; email: string | null; answers: GuestAnswer[]; timezone: string };
 	location: string | null;
-	initiator?: 'organizer' | 'attendee';
+	initiator?: 'host' | 'guest';
 }
 
 export type CreateAppointmentResult =
@@ -32,14 +32,14 @@ export async function createAppointment(
 	const cancelToken = newCancelToken();
 	const eventType = input.eventType;
 	const status =
-		eventType.appointment_flow === 'requires_confirmation' && input.initiator !== 'organizer'
+		eventType.appointment_flow === 'requires_confirmation' && input.initiator !== 'host'
 			? 'pending'
 			: 'confirmed';
 	const now = ctx.clock.now().toISOString();
 	const initialLog = createActionLog([
 		{
 			action: 'create',
-			actor: input.initiator ?? 'attendee',
+			actor: input.initiator ?? 'guest',
 			at: now
 		}
 	]);
@@ -53,12 +53,10 @@ export async function createAppointment(
 				event_type_id: eventType.id,
 				start_time: input.start,
 				end_time: input.end,
-				attendee_name: input.attendee.name,
-				attendee_email: input.attendee.email,
-				attendee_answers: input.attendee.answers.length
-					? JSON.stringify(input.attendee.answers)
-					: null,
-				attendee_timezone: input.attendee.timezone,
+				guest_name: input.guest.name,
+				guest_email: input.guest.email,
+				guest_answers: input.guest.answers.length ? JSON.stringify(input.guest.answers) : null,
+				guest_timezone: input.guest.timezone,
 				location: input.location,
 				status,
 				origin_id: id,

@@ -1,4 +1,4 @@
-import { parseAttendeeAnswers, type EventType, type Location } from '@when/config';
+import { parseGuestAnswers, type EventType, type Location } from '@when/config';
 import { parseActionLog, type ActionLogEntry, type Appointment } from '@when/db';
 
 export interface PublicEventType {
@@ -19,9 +19,9 @@ export interface PublicAppointment {
 	id: string;
 	start_time: string;
 	end_time: string;
-	attendee_name: string;
-	attendee_email: string | null;
-	answers: ReturnType<typeof parseAttendeeAnswers>;
+	guest_name: string;
+	guest_email: string | null;
+	answers: ReturnType<typeof parseGuestAnswers>;
 	location: string | null;
 	status: string;
 	action_log: ActionLogEntry[];
@@ -60,9 +60,9 @@ export function toPublicAppointment(row: Appointment, isAdmin: boolean): PublicA
 			id: row.id,
 			start_time: row.start_time,
 			end_time: row.end_time,
-			attendee_name: row.attendee_name,
-			attendee_email: row.attendee_email,
-			answers: parseAttendeeAnswers(row.attendee_answers),
+			guest_name: row.guest_name,
+			guest_email: row.guest_email,
+			answers: parseGuestAnswers(row.guest_answers),
 			location: row.location,
 			status: row.status,
 			action_log
@@ -86,9 +86,9 @@ export function toPublicAppointment(row: Appointment, isAdmin: boolean): PublicA
 		id: row.id,
 		start_time: row.start_time,
 		end_time: row.end_time,
-		attendee_name: row.attendee_name,
-		attendee_email: row.attendee_email,
-		answers: parseAttendeeAnswers(row.attendee_answers),
+		guest_name: row.guest_name,
+		guest_email: row.guest_email,
+		answers: parseGuestAnswers(row.guest_answers),
 		// Only confirmed appointments can see the location
 		location: isConfirmed ? row.location : null,
 		status: row.status,
