@@ -99,10 +99,19 @@ vi.mock('$lib/server/appointment/cancel', () => ({
 	}
 }));
 
+const mockAcceptAppointment = vi.fn();
+vi.mock('$lib/server/appointment/accept', () => ({
+	acceptAppointment: async (_ctx: unknown, input: { appointment: Appointment }) => {
+		mockAcceptAppointment(input.appointment.id);
+		return { ok: true };
+	}
+}));
+
 describe('Admin Bulk Actions server actions', () => {
 	beforeEach(() => {
 		mockPurgeAppointment.mockClear();
 		mockCancelAppointment.mockClear();
+		mockAcceptAppointment.mockClear();
 	});
 
 	test('bulkDelete deletes terminal appointments successfully', async () => {
@@ -199,5 +208,27 @@ describe('Admin Bulk Actions server actions', () => {
 		expect(result.status).toBe(400);
 		expect(result.data.error).toBe('Please provide a reason for cancelling.');
 		expect(mockCancelAppointment).not.toHaveBeenCalled();
+	});
+
+	test('bulkAccept accepts appointments successfully', async () => {
+		const formData = new FormData();
+		formData.append('ids', 'appt-upcoming');
+
+		const request = new Request('http://localhost', {
+			method: 'POST',
+			body: formData
+		});
+
+		const result = await actions.bulkAccept({
+			request,
+			params: {},
+			route: { id: '/(auth)/admin/appointments' },
+			url: new URL('http://localhost'),
+			cookies: {} as any,
+			locals: {} as any
+		} as any);
+
+		expect(result).toEqual({ success: 'Successfully accepted 1 appointment(s).' });
+		expect(mockAcceptAppointment).toHaveBeenCalledWith('appt-upcoming');
 	});
 });

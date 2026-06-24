@@ -3,6 +3,7 @@ import { getConfig, getDb } from '$lib/server/state';
 import { findAppointment, isChainTerminal } from '@when/db';
 import { purgeAppointment } from '$lib/server/appointment/purge';
 import { cancelAppointment } from '$lib/server/appointment/cancel';
+import { acceptAppointment } from '$lib/server/appointment/accept';
 import { validateReason } from '$lib/server/appointment/form.server';
 import { appointmentContext } from '$lib/server/appointment/context';
 import { systemClock } from '$lib/server/clock';
@@ -118,5 +119,46 @@ export const actions: Actions = {
 		}
 
 		return { success: `Successfully cancelled ${cancelledCount} appointment(s).` };
+	},
+
+	bulkAccept: async ({ request }) => {
+		const db = getDb();
+		const form = await request.formData();
+		const ids = form.getAll('ids') as string[];
+
+		if (!ids || ids.length === 0) {
+			return fail(400, { error: 'No appointments selected for acceptance.' });
+		}
+
+		let acceptedCount = 0;
+		const errors: string[] = [];
+
+		for (const id of ids) {
+			try {
+				const row = await findAppointment(db, id);
+				if (!row) {
+					errors.push(`Appointment ${id} not found.`);
+					continue;
+				}
+
+				const result = await acceptAppointment(appointmentContext(), { appointment: row });
+				if (result.ok) {
+					acceptedCount++;
+				} else {
+					errors.push(`Failed to accept appointment for ${row.guest_name}: ${result.reason}`);
+				}
+			} catch (e: any) {
+				errors.push(`Error accepting appointment ${id}: ${e.message || String(e)}`);
+			}
+		}
+
+		if (errors.length > 0) {
+			return fail(400, {
+				successCount: acceptedCount,
+				error: `Accepted ${acceptedCount} appointment(s). Errors: ${errors.join('; ')}`
+			});
+		}
+
+		return { success: `Successfully accepted ${acceptedCount} appointment(s).` };
 	}
 };
