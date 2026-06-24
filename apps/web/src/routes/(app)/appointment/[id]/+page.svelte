@@ -19,7 +19,6 @@
 	let { data, form } = $props();
 
 	let cancelDialogOpen = $state(false);
-	let deleteDialogOpen = $state(false);
 	let cancelReason = $state('I can no longer attend');
 	let reasonTextarea = $state<HTMLTextAreaElement | null>(null);
 
@@ -192,7 +191,6 @@
 					token={data.token}
 					isAdmin={data.isAdmin}
 					onCancel={() => (cancelDialogOpen = true)}
-					onDelete={() => (deleteDialogOpen = true)}
 				/>
 			{/if}
 		</section>
@@ -420,65 +418,6 @@
 							</Dialog.Close>
 						</div>
 					</form>
-				</div>
-			{/snippet}
-		</Dialog.Content>
-	</Dialog.Portal>
-</Dialog.Root>
-
-<Dialog.Root bind:open={deleteDialogOpen}>
-	<Dialog.Portal>
-		<Dialog.Overlay>
-			{#snippet child({ props })}
-				<div {...props} class="dialog-overlay"></div>
-			{/snippet}
-		</Dialog.Overlay>
-		<Dialog.Content>
-			{#snippet child({ props })}
-				<div {...props} class="dialog-content cancel-dialog">
-					<Dialog.Title>
-						{#snippet child({ props: titleProps })}
-							<h2 {...titleProps} class="cancel-dialog-title">Delete appointment?</h2>
-						{/snippet}
-					</Dialog.Title>
-
-					{#if !data.deleteCheck?.terminal}
-						<p class="cancel-dialog-desc">
-							<strong>Delete blocked</strong>: This appointment is not in a terminal state. Only
-							cancelled, declined, expired, or past/concluded appointments can be deleted.
-						</p>
-						<div class="cancel-dialog-actions">
-							<Dialog.Close>
-								{#snippet child({ props: closeProps })}
-									<button
-										{...closeProps}
-										type="button"
-										class="cancel-cancel-btn"
-										style="width: 100%">Close</button
-									>
-								{/snippet}
-							</Dialog.Close>
-						</div>
-					{:else}
-						<p class="cancel-dialog-desc">
-							Are you sure you want to delete this appointment?
-							<strong>This will delete the entire rescheduling chain for this appointment.</strong> This
-							action cannot be undone.
-						</p>
-
-						<form
-							method="POST"
-							action="/admin/appointment/{data.appointment.id}?/delete"
-							class="cancel-dialog-actions"
-						>
-							<button type="submit" class="cancel-confirm-btn">Yes, delete</button>
-							<Dialog.Close>
-								{#snippet child({ props: closeProps })}
-									<button {...closeProps} type="button" class="cancel-cancel-btn">Cancel</button>
-								{/snippet}
-							</Dialog.Close>
-						</form>
-					{/if}
 				</div>
 			{/snippet}
 		</Dialog.Content>

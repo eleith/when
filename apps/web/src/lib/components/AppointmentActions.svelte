@@ -11,10 +11,9 @@
 		token: string;
 		onCancel: () => void;
 		isAdmin?: boolean;
-		onDelete?: () => void;
 	}
 
-	let { actions, appointmentId, token, onCancel, isAdmin = false, onDelete }: Props = $props();
+	let { actions, appointmentId, token, onCancel, isAdmin = false }: Props = $props();
 
 	let menuOpen = $state(false);
 	let shareDialogOpen = $state(false);
@@ -60,11 +59,6 @@
 		menuOpen = false;
 		onCancel();
 	}
-
-	function requestDelete() {
-		menuOpen = false;
-		onDelete?.();
-	}
 </script>
 
 <DropdownMenu.Root bind:open={menuOpen}>
@@ -106,13 +100,6 @@
 								<DropdownMenu.Item onSelect={() => (shareDialogOpen = true)}>
 									{#snippet child({ props: itemProps })}
 										<button {...itemProps} type="button" class="action-item">Copy Guest Link</button
-										>
-									{/snippet}
-								</DropdownMenu.Item>
-								<DropdownMenu.Item onSelect={requestDelete}>
-									{#snippet child({ props: itemProps })}
-										<button {...itemProps} type="button" class="action-item action-item-danger"
-											>Delete</button
 										>
 									{/snippet}
 								</DropdownMenu.Item>
