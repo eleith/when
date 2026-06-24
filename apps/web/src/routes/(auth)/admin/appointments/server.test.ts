@@ -1,5 +1,6 @@
 import { describe, expect, test, vi, beforeEach } from 'vitest';
-import { actions } from './+page.server';
+import type { RequestEvent } from './$types';
+import { POST } from './+server';
 import { validConfig } from '$lib/server/__fixtures__/valid-config';
 import type { Appointment } from '@when/db';
 
@@ -132,16 +133,20 @@ describe('Admin Bulk Actions server actions', () => {
 			body: formData
 		});
 
-		const result = await actions.bulkDelete({
-			request,
-			params: {},
-			route: { id: '/(auth)/admin/appointments' },
-			url: new URL('http://localhost'),
-			cookies: {} as any,
-			locals: {} as any
-		} as any);
+		await expect(
+			POST({
+				request,
+				params: {},
+				route: { id: '/(auth)/admin/appointments' },
+				url: new URL('http://localhost?/bulkDelete'),
+				cookies: {} as unknown as RequestEvent['cookies'],
+				locals: {} as unknown as RequestEvent['locals']
+			} as unknown as RequestEvent)
+		).rejects.toMatchObject({
+			status: 303,
+			location: '/admin/appointments/upcoming'
+		});
 
-		expect(result).toEqual({ success: 'Successfully deleted 1 appointment(s).' });
 		expect(mockPurgeAppointment).toHaveBeenCalledWith('appt-concluded');
 	});
 
@@ -155,20 +160,18 @@ describe('Admin Bulk Actions server actions', () => {
 			body: formData
 		});
 
-		const result = (await actions.bulkDelete({
+		const response = await POST({
 			request,
 			params: {},
 			route: { id: '/(auth)/admin/appointments' },
-			url: new URL('http://localhost'),
-			cookies: {} as any,
-			locals: {} as any
-		} as any)) as any;
+			url: new URL('http://localhost?/bulkDelete'),
+			cookies: {} as unknown as RequestEvent['cookies'],
+			locals: {} as unknown as RequestEvent['locals']
+		} as unknown as RequestEvent);
 
-		expect(result.status).toBe(400);
-		expect(result.data.successCount).toBe(1);
-		expect(result.data.error).toContain(
-			'Delete blocked: Appointment for Upcoming Booker is active/upcoming'
-		);
+		expect(response.status).toBe(400);
+		const text = await response.text();
+		expect(text).toContain('Delete blocked: Appointment for Upcoming Booker is active/upcoming');
 		expect(mockPurgeAppointment).toHaveBeenCalledTimes(1);
 		expect(mockPurgeAppointment).toHaveBeenCalledWith('appt-concluded');
 	});
@@ -183,16 +186,20 @@ describe('Admin Bulk Actions server actions', () => {
 			body: formData
 		});
 
-		const result = await actions.bulkCancel({
-			request,
-			params: {},
-			route: { id: '/(auth)/admin/appointments' },
-			url: new URL('http://localhost'),
-			cookies: {} as any,
-			locals: {} as any
-		} as any);
+		await expect(
+			POST({
+				request,
+				params: {},
+				route: { id: '/(auth)/admin/appointments' },
+				url: new URL('http://localhost?/bulkCancel'),
+				cookies: {} as unknown as RequestEvent['cookies'],
+				locals: {} as unknown as RequestEvent['locals']
+			} as unknown as RequestEvent)
+		).rejects.toMatchObject({
+			status: 303,
+			location: '/admin/appointments/upcoming'
+		});
 
-		expect(result).toEqual({ success: 'Successfully cancelled 1 appointment(s).' });
 		expect(mockCancelAppointment).toHaveBeenCalledWith('appt-upcoming', 'Scheduling conflict');
 	});
 
@@ -205,17 +212,18 @@ describe('Admin Bulk Actions server actions', () => {
 			body: formData
 		});
 
-		const result = (await actions.bulkCancel({
+		const response = await POST({
 			request,
 			params: {},
 			route: { id: '/(auth)/admin/appointments' },
-			url: new URL('http://localhost'),
-			cookies: {} as any,
-			locals: {} as any
-		} as any)) as any;
+			url: new URL('http://localhost?/bulkCancel'),
+			cookies: {} as unknown as RequestEvent['cookies'],
+			locals: {} as unknown as RequestEvent['locals']
+		} as unknown as RequestEvent);
 
-		expect(result.status).toBe(400);
-		expect(result.data.error).toBe('Please provide a reason for cancelling.');
+		expect(response.status).toBe(400);
+		const text = await response.text();
+		expect(text).toBe('Please provide a reason for cancelling.');
 		expect(mockCancelAppointment).not.toHaveBeenCalled();
 	});
 
@@ -228,16 +236,20 @@ describe('Admin Bulk Actions server actions', () => {
 			body: formData
 		});
 
-		const result = await actions.bulkAccept({
-			request,
-			params: {},
-			route: { id: '/(auth)/admin/appointments' },
-			url: new URL('http://localhost'),
-			cookies: {} as any,
-			locals: {} as any
-		} as any);
+		await expect(
+			POST({
+				request,
+				params: {},
+				route: { id: '/(auth)/admin/appointments' },
+				url: new URL('http://localhost?/bulkAccept'),
+				cookies: {} as unknown as RequestEvent['cookies'],
+				locals: {} as unknown as RequestEvent['locals']
+			} as unknown as RequestEvent)
+		).rejects.toMatchObject({
+			status: 303,
+			location: '/admin/appointments/upcoming'
+		});
 
-		expect(result).toEqual({ success: 'Successfully accepted 1 appointment(s).' });
 		expect(mockAcceptAppointment).toHaveBeenCalledWith('appt-upcoming');
 	});
 
@@ -250,16 +262,20 @@ describe('Admin Bulk Actions server actions', () => {
 			body: formData
 		});
 
-		const result = await actions.bulkDecline({
-			request,
-			params: {},
-			route: { id: '/(auth)/admin/appointments' },
-			url: new URL('http://localhost'),
-			cookies: {} as any,
-			locals: {} as any
-		} as any);
+		await expect(
+			POST({
+				request,
+				params: {},
+				route: { id: '/(auth)/admin/appointments' },
+				url: new URL('http://localhost?/bulkDecline'),
+				cookies: {} as unknown as RequestEvent['cookies'],
+				locals: {} as unknown as RequestEvent['locals']
+			} as unknown as RequestEvent)
+		).rejects.toMatchObject({
+			status: 303,
+			location: '/admin/appointments/upcoming'
+		});
 
-		expect(result).toEqual({ success: 'Successfully declined 1 appointment(s).' });
 		expect(mockDeclineAppointment).toHaveBeenCalledWith('appt-upcoming');
 	});
 });

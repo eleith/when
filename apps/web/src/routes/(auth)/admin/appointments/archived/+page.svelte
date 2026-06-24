@@ -13,7 +13,7 @@
 		<p class="empty-text">No archived appointments.</p>
 	</div>
 {:else}
-	<AppointmentsTable appointments={data.appointments} />
+	<AppointmentsTable appointments={data.appointments} bucket="archived" />
 {/if}
 
 <style>

@@ -14,7 +14,7 @@
 	</div>
 {:else}
 	<p class="purged-note">These appointments are being deleted in the background.</p>
-	<AppointmentsTable appointments={data.appointments} />
+	<AppointmentsTable appointments={data.appointments} bucket="purged" />
 {/if}
 
 <style>

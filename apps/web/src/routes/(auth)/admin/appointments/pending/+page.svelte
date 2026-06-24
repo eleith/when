@@ -13,7 +13,7 @@
 		<p class="empty-text">No pending appointments.</p>
 	</div>
 {:else}
-	<AppointmentsTable appointments={data.appointments} />
+	<AppointmentsTable appointments={data.appointments} bucket="pending" />
 {/if}
 
 <style>

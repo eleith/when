@@ -13,7 +13,7 @@
 		<p class="empty-text">No concluded appointments.</p>
 	</div>
 {:else}
-	<AppointmentsTable appointments={data.appointments} />
+	<AppointmentsTable appointments={data.appointments} bucket="concluded" />
 {/if}
 
 <style>

@@ -124,7 +124,6 @@
 		gap: var(--space-4);
 	}
 
-	/* ---- card styling ---- */
 	.card {
 		background: var(--surface);
 		border: 1px solid var(--border);
