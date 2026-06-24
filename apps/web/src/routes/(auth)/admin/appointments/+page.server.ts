@@ -4,6 +4,7 @@ import { findAppointment, isChainTerminal } from '@when/db';
 import { purgeAppointment } from '$lib/server/appointment/purge';
 import { cancelAppointment } from '$lib/server/appointment/cancel';
 import { acceptAppointment } from '$lib/server/appointment/accept';
+import { declineAppointment } from '$lib/server/appointment/decline';
 import { validateReason } from '$lib/server/appointment/form.server';
 import { appointmentContext } from '$lib/server/appointment/context';
 import { systemClock } from '$lib/server/clock';
@@ -160,5 +161,46 @@ export const actions: Actions = {
 		}
 
 		return { success: `Successfully accepted ${acceptedCount} appointment(s).` };
+	},
+
+	bulkDecline: async ({ request }) => {
+		const db = getDb();
+		const form = await request.formData();
+		const ids = form.getAll('ids') as string[];
+
+		if (!ids || ids.length === 0) {
+			return fail(400, { error: 'No appointments selected for declination.' });
+		}
+
+		let declinedCount = 0;
+		const errors: string[] = [];
+
+		for (const id of ids) {
+			try {
+				const row = await findAppointment(db, id);
+				if (!row) {
+					errors.push(`Appointment ${id} not found.`);
+					continue;
+				}
+
+				const result = await declineAppointment(appointmentContext(), { appointment: row });
+				if (result.ok) {
+					declinedCount++;
+				} else {
+					errors.push(`Failed to decline appointment for ${row.guest_name}: ${result.reason}`);
+				}
+			} catch (e: any) {
+				errors.push(`Error declining appointment ${id}: ${e.message || String(e)}`);
+			}
+		}
+
+		if (errors.length > 0) {
+			return fail(400, {
+				successCount: declinedCount,
+				error: `Declined ${declinedCount} appointment(s). Errors: ${errors.join('; ')}`
+			});
+		}
+
+		return { success: `Successfully declined ${declinedCount} appointment(s).` };
 	}
 };
