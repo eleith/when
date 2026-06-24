@@ -2,6 +2,8 @@ import { fail, redirect } from '@sveltejs/kit';
 import { getConfig, getDb } from '$lib/server/state';
 import { findAppointment, isChainTerminal } from '@when/db';
 import { purgeAppointment } from '$lib/server/appointment/purge';
+import { cancelAppointment } from '$lib/server/appointment/cancel';
+import { validateReason } from '$lib/server/appointment/form.server';
 import { appointmentContext } from '$lib/server/appointment/context';
 import { systemClock } from '$lib/server/clock';
 import type { Actions, PageServerLoad } from './$types';
@@ -65,5 +67,56 @@ export const actions: Actions = {
 		}
 
 		return { success: `Successfully deleted ${deletedCount} appointment(s).` };
+	},
+
+	bulkCancel: async ({ request }) => {
+		const db = getDb();
+		const form = await request.formData();
+		const ids = form.getAll('ids') as string[];
+
+		if (!ids || ids.length === 0) {
+			return fail(400, { error: 'No appointments selected for cancellation.' });
+		}
+
+		const reasonResult = validateReason(form, 'cancelling');
+		if (!reasonResult.ok) {
+			return fail(400, { error: reasonResult.error });
+		}
+
+		let cancelledCount = 0;
+		const errors: string[] = [];
+
+		for (const id of ids) {
+			try {
+				const row = await findAppointment(db, id);
+				if (!row) {
+					errors.push(`Appointment ${id} not found.`);
+					continue;
+				}
+
+				const result = await cancelAppointment(appointmentContext(), {
+					appointment: row,
+					initiator: 'host',
+					reason: reasonResult.reason
+				});
+
+				if (result.ok) {
+					cancelledCount++;
+				} else {
+					errors.push(`Failed to cancel appointment for ${row.guest_name}: ${result.reason}`);
+				}
+			} catch (e: any) {
+				errors.push(`Error cancelling appointment ${id}: ${e.message || String(e)}`);
+			}
+		}
+
+		if (errors.length > 0) {
+			return fail(400, {
+				successCount: cancelledCount,
+				error: `Cancelled ${cancelledCount} appointment(s). Errors: ${errors.join('; ')}`
+			});
+		}
+
+		return { success: `Successfully cancelled ${cancelledCount} appointment(s).` };
 	}
 };

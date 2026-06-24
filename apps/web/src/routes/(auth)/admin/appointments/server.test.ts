@@ -88,9 +88,21 @@ vi.mock('$lib/server/appointment/purge', () => ({
 	}
 }));
 
+const mockCancelAppointment = vi.fn();
+vi.mock('$lib/server/appointment/cancel', () => ({
+	cancelAppointment: async (
+		_ctx: unknown,
+		input: { appointment: Appointment; initiator: string; reason: string }
+	) => {
+		mockCancelAppointment(input.appointment.id, input.reason);
+		return { ok: true };
+	}
+}));
+
 describe('Admin Bulk Actions server actions', () => {
 	beforeEach(() => {
 		mockPurgeAppointment.mockClear();
+		mockCancelAppointment.mockClear();
 	});
 
 	test('bulkDelete deletes terminal appointments successfully', async () => {
@@ -141,5 +153,51 @@ describe('Admin Bulk Actions server actions', () => {
 		);
 		expect(mockPurgeAppointment).toHaveBeenCalledTimes(1);
 		expect(mockPurgeAppointment).toHaveBeenCalledWith('appt-concluded');
+	});
+
+	test('bulkCancel cancels appointments successfully with reason', async () => {
+		const formData = new FormData();
+		formData.append('ids', 'appt-upcoming');
+		formData.append('reason', 'Scheduling conflict');
+
+		const request = new Request('http://localhost', {
+			method: 'POST',
+			body: formData
+		});
+
+		const result = await actions.bulkCancel({
+			request,
+			params: {},
+			route: { id: '/(auth)/admin/appointments' },
+			url: new URL('http://localhost'),
+			cookies: {} as any,
+			locals: {} as any
+		} as any);
+
+		expect(result).toEqual({ success: 'Successfully cancelled 1 appointment(s).' });
+		expect(mockCancelAppointment).toHaveBeenCalledWith('appt-upcoming', 'Scheduling conflict');
+	});
+
+	test('bulkCancel validation failure when reason is missing', async () => {
+		const formData = new FormData();
+		formData.append('ids', 'appt-upcoming');
+
+		const request = new Request('http://localhost', {
+			method: 'POST',
+			body: formData
+		});
+
+		const result = (await actions.bulkCancel({
+			request,
+			params: {},
+			route: { id: '/(auth)/admin/appointments' },
+			url: new URL('http://localhost'),
+			cookies: {} as any,
+			locals: {} as any
+		} as any)) as any;
+
+		expect(result.status).toBe(400);
+		expect(result.data.error).toBe('Please provide a reason for cancelling.');
+		expect(mockCancelAppointment).not.toHaveBeenCalled();
 	});
 });
