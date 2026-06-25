@@ -345,3 +345,15 @@ test('0018 renames attendee columns to guest and rewrites action_log actors', as
 		await db.destroy();
 	}
 });
+
+test('0019 adds the note column to appointments', async () => {
+	const db = openDb(':memory:');
+	try {
+		await runMigrations(db);
+		const cols = await sql<{ name: string }>`PRAGMA table_info(appointments)`.execute(db);
+		const colNames = cols.rows.map((r) => r.name);
+		expect(colNames).toContain('note');
+	} finally {
+		await db.destroy();
+	}
+});

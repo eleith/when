@@ -23,6 +23,7 @@ export interface AppointmentsTable {
 	guest_answers: NullableText;
 	guest_timezone: NullableText;
 	location: string | null;
+	note: string | null;
 	status: AppointmentStatus;
 	origin_id: NullableText;
 	cancel_token: string;
@@ -90,7 +91,8 @@ export interface ActionLogEntry {
 		| 'reschedule'
 		| 'expire'
 		| 'email'
-		| 'calendar';
+		| 'calendar'
+		| 'edit';
 	actor: 'guest' | 'host' | 'system';
 	at: string;
 	payload?: {
