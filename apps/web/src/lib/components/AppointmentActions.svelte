@@ -11,7 +11,6 @@
 		token: string;
 		onCancel: () => void;
 		isAdmin?: boolean;
-		onDelete?: () => void;
 		hasNote?: boolean;
 		onEditNote?: () => void;
 	}
@@ -22,7 +21,6 @@
 		token,
 		onCancel,
 		isAdmin = false,
-		onDelete,
 		hasNote = false,
 		onEditNote
 	}: Props = $props();
@@ -117,9 +115,7 @@
 										}}
 									>
 										{#snippet child({ props: itemProps })}
-											<button {...itemProps} type="button" class="action-item"
-												>Add Note</button
-											>
+											<button {...itemProps} type="button" class="action-item">Add Note</button>
 										{/snippet}
 									</DropdownMenu.Item>
 								{/if}
