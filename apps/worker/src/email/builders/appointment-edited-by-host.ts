@@ -51,69 +51,71 @@ export function appointmentEditedByHost(i: AppointmentEmailInput): EmailMessage[
 		...answerRows(a)
 	];
 
-	const hostParagraphs = [
-		`You updated the details for the appointment with ${guestLabel(a)}.`
-	];
+	const hostParagraphs = [`You updated the details for the appointment with ${guestLabel(a)}.`];
 
-	let guestSubject = '';
-	let guestHeading = '';
-	let guestPreview = '';
-	let hostSubject = '';
-	let hostHeading = '';
-	let hostPreview = '';
+	const guestEmail = {
+		subject: '',
+		heading: '',
+		previewText: ''
+	};
+	const hostEmail = {
+		subject: '',
+		heading: '',
+		previewText: ''
+	};
 
 	if (changes.includes('note_added')) {
-		guestSubject = `Note added: ${eventName} with ${brand.name}`;
-		guestHeading = 'Note added to appointment';
-		guestPreview = `A note was added to your appointment on ${guestWhen}.`;
+		guestEmail.subject = `Note added: ${eventName} with ${brand.name}`;
+		guestEmail.heading = 'Note added to appointment';
+		guestEmail.previewText = `A note was added to your appointment on ${guestWhen}.`;
 
-		hostSubject = `Note added: ${eventName} with ${a.guest_name}`;
-		hostHeading = 'Note added to appointment';
-		hostPreview = `You added a note to the appointment on ${hostWhen}.`;
+		hostEmail.subject = `Note added: ${eventName} with ${a.guest_name}`;
+		hostEmail.heading = 'Note added to appointment';
+		hostEmail.previewText = `You added a note to the appointment on ${hostWhen}.`;
 	} else if (changes.includes('note_updated')) {
-		guestSubject = `Note updated: ${eventName} with ${brand.name}`;
-		guestHeading = 'Note updated for appointment';
-		guestPreview = `The note on your appointment on ${guestWhen} was updated.`;
+		guestEmail.subject = `Note updated: ${eventName} with ${brand.name}`;
+		guestEmail.heading = 'Note updated for appointment';
+		guestEmail.previewText = `The note on your appointment on ${guestWhen} was updated.`;
 
-		hostSubject = `Note updated: ${eventName} with ${a.guest_name}`;
-		hostHeading = 'Note updated for appointment';
-		hostPreview = `You updated the note on the appointment on ${hostWhen}.`;
+		hostEmail.subject = `Note updated: ${eventName} with ${a.guest_name}`;
+		hostEmail.heading = 'Note updated for appointment';
+		hostEmail.previewText = `You updated the note on the appointment on ${hostWhen}.`;
 	} else if (changes.includes('note_removed')) {
-		guestSubject = `Note removed: ${eventName} with ${brand.name}`;
-		guestHeading = 'Note removed from appointment';
-		guestPreview = `The note was removed from your appointment on ${guestWhen}.`;
+		guestEmail.subject = `Note removed: ${eventName} with ${brand.name}`;
+		guestEmail.heading = 'Note removed from appointment';
+		guestEmail.previewText = `The note was removed from your appointment on ${guestWhen}.`;
 
-		hostSubject = `Note removed: ${eventName} with ${a.guest_name}`;
-		hostHeading = 'Note removed from appointment';
-		hostPreview = `You removed the note from the appointment on ${hostWhen}.`;
+		hostEmail.subject = `Note removed: ${eventName} with ${a.guest_name}`;
+		hostEmail.heading = 'Note removed from appointment';
+		hostEmail.previewText = `You removed the note from the appointment on ${hostWhen}.`;
 	} else {
-		guestSubject = `Updated details: ${eventName} with ${brand.name}`;
-		guestHeading = 'Appointment details updated';
-		guestPreview = `Details updated for your appointment on ${guestWhen}.`;
+		guestEmail.subject = `Updated details: ${eventName} with ${brand.name}`;
+		guestEmail.heading = 'Appointment details updated';
+		guestEmail.previewText = `Details updated for your appointment on ${guestWhen}.`;
 
-		hostSubject = `Updated details: ${eventName} with ${a.guest_name}`;
-		hostHeading = 'Appointment details updated';
-		hostPreview = `Details updated for the appointment on ${hostWhen}.`;
+		hostEmail.subject = `Updated details: ${eventName} with ${a.guest_name}`;
+		hostEmail.heading = 'Appointment details updated';
+		hostEmail.previewText = `Details updated for the appointment on ${hostWhen}.`;
 	}
 
 	const guest: EmailContent = {
 		brand,
-		subject: guestSubject,
-		heading: guestHeading,
+		subject: guestEmail.subject,
+		heading: guestEmail.heading,
 		paragraphs,
 		rows: guestRows,
 		actions: [{ href: i.links.booked, label: 'View this appointment', variant: 'primary' }],
-		previewText: guestPreview
+		previewText: guestEmail.previewText
 	};
 
 	const host: EmailContent = {
 		brand,
-		subject: hostSubject,
-		heading: hostHeading,
+		subject: hostEmail.subject,
+		heading: hostEmail.heading,
 		paragraphs: hostParagraphs,
 		rows: hostRows,
 		actions: [],
-		previewText: hostPreview
+		previewText: hostEmail.previewText
 	};
 
 	// Only send to the guest if the appointment is confirmed (notes/details are hidden when pending)

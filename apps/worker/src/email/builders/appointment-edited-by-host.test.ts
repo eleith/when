@@ -33,13 +33,18 @@ describe('appointmentEditedByHost', () => {
 		expect(guest.content.subject).toBe('Note added: 30-min with Acme Scheduling');
 		expect(guest.content.heading).toBe('Note added to appointment');
 		expect(guest.content.paragraphs).toContain('A note was added to your appointment.');
-		expect(guest.content.rows).toContainEqual({ label: 'Note', value: 'Please bring your laptop.' });
+		expect(guest.content.rows).toContainEqual({
+			label: 'Note',
+			value: 'Please bring your laptop.'
+		});
 		expect(guest.ics?.content).toContain('METHOD:REQUEST');
 
 		expect(host.to).toBe('owner@acme.test');
 		expect(host.content.subject).toBe('Note added: 30-min with Jane Doe');
 		expect(host.content.heading).toBe('Note added to appointment');
-		expect(host.content.paragraphs).toContain('You updated the details for the appointment with Jane Doe <jane@example.com>.');
+		expect(host.content.paragraphs).toContain(
+			'You updated the details for the appointment with Jane Doe <jane@example.com>.'
+		);
 		expect(host.content.rows).toContainEqual({ label: 'Note', value: 'Please bring your laptop.' });
 		expect(host.ics).toBeUndefined();
 	});
@@ -73,7 +78,10 @@ describe('appointmentEditedByHost', () => {
 		expect(guest.content.subject).toBe('Note updated: 30-min with Acme Scheduling');
 		expect(guest.content.heading).toBe('Note updated for appointment');
 		expect(guest.content.paragraphs).toContain('The note on your appointment was updated.');
-		expect(guest.content.rows).toContainEqual({ label: 'Note', value: 'Location changed to Zoom.' });
+		expect(guest.content.rows).toContainEqual({
+			label: 'Note',
+			value: 'Location changed to Zoom.'
+		});
 
 		expect(host.content.subject).toBe('Note updated: 30-min with Jane Doe');
 		expect(host.content.heading).toBe('Note updated for appointment');
