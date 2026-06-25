@@ -488,6 +488,10 @@
 				"location": {
 					"$ref": "#/$defs/Location"
 				},
+				"note": {
+					"type": "string",
+					"minLength": 1
+				},
 				"slot_granularity": {
 					"type": "integer",
 					"minimum": 1

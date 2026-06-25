@@ -136,6 +136,7 @@ export interface EventType {
   conflict_calendars?: string[];
   destination_calendar: string;
   location?: Location;
+  note?: string;
   slot_granularity?: number;
   minimum_notice?: number;
   maximum_lookahead?: number;

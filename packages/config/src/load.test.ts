@@ -104,3 +104,16 @@ test('env vars are interpolated before validation', () => {
 		else process.env.ADMIN_HASH = prev;
 	}
 });
+
+test('event_type note accepts valid string note', () => {
+	const good = clone(validConfig);
+	good.event_types[0].note = 'Please read the notes before scheduling.';
+	const cfg = validateConfig(good);
+	expect(cfg.event_types[0].note).toBe('Please read the notes before scheduling.');
+});
+
+test('event_type note with empty string fails validation', () => {
+	const bad = clone(validConfig);
+	bad.event_types[0].note = '' as never;
+	expect(() => validateConfig(bad)).toThrow(ConfigError);
+});
