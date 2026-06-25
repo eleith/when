@@ -16,6 +16,7 @@ export const sampleAppointment: Appointment = {
 	guest_timezone: 'America/Los_Angeles',
 	location: 'Zoom',
 	status: 'confirmed',
+	note: null,
 	cancel_token: 'tok-1',
 	action_log: null,
 	external_event_id: null,
