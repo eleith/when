@@ -8,6 +8,7 @@ import { appointmentDeclined } from './builders/appointment-declined.js';
 import { appointmentPending } from './builders/appointment-pending.js';
 import { appointmentRescheduledByGuest } from './builders/appointment-rescheduled-by-guest.js';
 import { appointmentRescheduledByHost } from './builders/appointment-rescheduled-by-host.js';
+import { appointmentEditedByHost } from './builders/appointment-edited-by-host.js';
 import type { EmailMessage, Envelope } from './recipients.js';
 import { renderMessage } from './render.js';
 import { appointmentLinks } from '../links.js';
@@ -30,6 +31,8 @@ function build(i: AppointmentEmailInput, kind: SendAppointmentEmailInput['kind']
 			return appointmentRescheduledByHost(i);
 		case 'declined':
 			return appointmentDeclined(i);
+		case 'edited-by-host':
+			return appointmentEditedByHost(i);
 		default: {
 			const unhandled: never = kind;
 			throw new Error(`unhandled appointment email kind: ${String(unhandled)}`);

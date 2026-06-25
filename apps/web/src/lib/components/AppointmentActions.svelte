@@ -11,9 +11,21 @@
 		token: string;
 		onCancel: () => void;
 		isAdmin?: boolean;
+		onDelete?: () => void;
+		hasNote?: boolean;
+		onEditNote?: () => void;
 	}
 
-	let { actions, appointmentId, token, onCancel, isAdmin = false }: Props = $props();
+	let {
+		actions,
+		appointmentId,
+		token,
+		onCancel,
+		isAdmin = false,
+		onDelete,
+		hasNote = false,
+		onEditNote
+	}: Props = $props();
 
 	let menuOpen = $state(false);
 	let shareDialogOpen = $state(false);
@@ -97,6 +109,20 @@
 								</DropdownMenu.Item>
 							{/if}
 							{#if isAdmin}
+								{#if onEditNote && !hasNote}
+									<DropdownMenu.Item
+										onSelect={() => {
+											menuOpen = false;
+											onEditNote();
+										}}
+									>
+										{#snippet child({ props: itemProps })}
+											<button {...itemProps} type="button" class="action-item"
+												>Add Note</button
+											>
+										{/snippet}
+									</DropdownMenu.Item>
+								{/if}
 								<DropdownMenu.Item onSelect={() => (shareDialogOpen = true)}>
 									{#snippet child({ props: itemProps })}
 										<button {...itemProps} type="button" class="action-item">Copy Guest Link</button

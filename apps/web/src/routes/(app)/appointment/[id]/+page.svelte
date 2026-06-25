@@ -10,6 +10,7 @@
 	import IconWarningCircle from 'virtual:icons/ph/warning-circle';
 	import IconCheckCircle from 'virtual:icons/ph/check-circle';
 	import IconNote from 'virtual:icons/ph/note';
+	import IconPencilSimple from 'virtual:icons/ph/pencil-simple';
 	import AppointmentActions from '$lib/components/AppointmentActions.svelte';
 	import AppointmentLog from '$lib/components/AppointmentLog.svelte';
 	import AppointmentQuestions from '$lib/components/AppointmentQuestions.svelte';
@@ -19,8 +20,12 @@
 	let { data, form } = $props();
 
 	let cancelDialogOpen = $state(false);
+	let deleteDialogOpen = $state(false);
+	let editNoteDialogOpen = $state(false);
 	let cancelReason = $state('I can no longer attend');
+	let editNoteValue = $state('');
 	let reasonTextarea = $state<HTMLTextAreaElement | null>(null);
+	let noteTextareaEl = $state<HTMLTextAreaElement | null>(null);
 
 	$effect(() => {
 		if (cancelDialogOpen) {
@@ -33,7 +38,24 @@
 	});
 
 	$effect(() => {
+		if (editNoteDialogOpen) {
+			editNoteValue = data.appointment.note ?? '';
+			tick().then(() => {
+				noteTextareaEl?.focus();
+				noteTextareaEl?.select();
+			});
+		}
+	});
+
+	$effect(() => {
 		if (data.appointment.status === 'cancelled') cancelDialogOpen = false;
+	});
+
+	$effect(() => {
+		const actionData = form as unknown as { success?: string };
+		if (actionData?.success === 'edited') {
+			editNoteDialogOpen = false;
+		}
 	});
 
 	let status = $derived(data.appointment.status);
@@ -191,31 +213,46 @@
 					token={data.token}
 					isAdmin={data.isAdmin}
 					onCancel={() => (cancelDialogOpen = true)}
+					onDelete={() => (deleteDialogOpen = true)}
+					hasNote={!!data.appointment.note}
+					onEditNote={() => (editNoteDialogOpen = true)}
 				/>
 			{/if}
 		</section>
 
 		<section class="card-section card-state state-{stateTone}">
 			<span class="state-dot" aria-hidden="true"></span>
-			<span class="state-text">
-				{#if status === 'confirmed'}
-					{#if data.clockStatus === 'upcoming'}Upcoming
-					{:else if data.clockStatus === 'in_progress'}In progress
-					{:else}Concluded{/if}
-				{:else if status === 'pending'}
-					Pending · waiting for host
-				{:else if status === 'declined'}
-					Declined
-				{:else if status === 'expired'}
-					Expired
-				{:else if status === 'rescheduled'}
-					Rescheduled
-				{:else if status === 'purged'}
-					Purged
-				{:else}
-					Cancelled
+			<div class="state-info-group">
+				<span class="state-text">
+					{#if status === 'confirmed'}
+						{#if data.clockStatus === 'upcoming'}Upcoming
+						{:else if data.clockStatus === 'in_progress'}In progress
+						{:else}Concluded{/if}
+					{:else if status === 'pending'}
+						Pending · waiting for host
+					{:else if status === 'declined'}
+						Declined
+					{:else if status === 'expired'}
+						Expired
+					{:else if status === 'rescheduled'}
+						Rescheduled
+					{:else if status === 'purged'}
+						Purged
+					{:else}
+						Cancelled
+					{/if}
+				</span>
+				{#if notes.length}
+					<div class="state-notes">
+						{#each notes as note, i (i)}
+							<div class="state-note-line">
+								{#if note.actor === 'host'}Host{:else if note.actor === 'guest'}Guest{:else}System{/if}:
+								{note.text}
+							</div>
+						{/each}
+					</div>
 				{/if}
-			</span>
+			</div>
 			{#if data.rescheduledFrom || data.latestAppointment}
 				<span class="state-meta">
 					{#if data.rescheduledFrom}
@@ -302,21 +339,32 @@
 					</div>
 				</div>
 			</div>
-			{#if notes.length}
-				<div class="detail-row">
-					<span class="detail-icon"><IconNote aria-hidden="true" /></span>
-					<div class="detail-text">
-						<div class="detail-primary">Note</div>
-						{#each notes as note, i (i)}
-							<div class="detail-secondary note-line">
-								{#if note.actor === 'host'}Host{:else if note.actor === 'guest'}Guest{:else}System{/if}:
-								({note.kind})
-								{note.text}
-							</div>
-						{/each}
+			{#if data.appointment.note}
+				{#if data.isAdmin}
+					<button
+						type="button"
+						class="detail-row-button"
+						onclick={() => (editNoteDialogOpen = true)}
+						aria-label="Edit note"
+					>
+						<span class="detail-icon"><IconNote aria-hidden="true" /></span>
+						<div class="detail-text">
+							<div class="detail-primary">Note</div>
+							<div class="detail-secondary note-text-val">{data.appointment.note}</div>
+						</div>
+						<span class="detail-edit-icon"><IconPencilSimple aria-hidden="true" /></span>
+					</button>
+				{:else}
+					<div class="detail-row">
+						<span class="detail-icon"><IconNote aria-hidden="true" /></span>
+						<div class="detail-text">
+							<div class="detail-primary">Note</div>
+							<div class="detail-secondary note-text-val">{data.appointment.note}</div>
+						</div>
 					</div>
-				</div>
+				{/if}
 			{/if}
+
 		</section>
 
 		{#if data.appointment.answers.length}
@@ -424,6 +472,124 @@
 	</Dialog.Portal>
 </Dialog.Root>
 
+<Dialog.Root bind:open={deleteDialogOpen}>
+	<Dialog.Portal>
+		<Dialog.Overlay>
+			{#snippet child({ props })}
+				<div {...props} class="dialog-overlay"></div>
+			{/snippet}
+		</Dialog.Overlay>
+		<Dialog.Content>
+			{#snippet child({ props })}
+				<div {...props} class="dialog-content cancel-dialog">
+					<Dialog.Title>
+						{#snippet child({ props: titleProps })}
+							<h2 {...titleProps} class="cancel-dialog-title">Delete appointment?</h2>
+						{/snippet}
+					</Dialog.Title>
+
+					{#if !data.deleteCheck?.terminal}
+						<p class="cancel-dialog-desc">
+							<strong>Delete blocked</strong>: This appointment is not in a terminal state. Only
+							cancelled, declined, expired, or past/concluded appointments can be deleted.
+						</p>
+						<div class="cancel-dialog-actions">
+							<Dialog.Close>
+								{#snippet child({ props: closeProps })}
+									<button
+										{...closeProps}
+										type="button"
+										class="cancel-cancel-btn"
+										style="width: 100%">Close</button
+									>
+								{/snippet}
+							</Dialog.Close>
+						</div>
+					{:else}
+						<p class="cancel-dialog-desc">
+							Are you sure you want to delete this appointment?
+							<strong>This will delete the entire rescheduling chain for this appointment.</strong> This
+							action cannot be undone.
+						</p>
+
+						<form
+							method="POST"
+							action="/admin/appointment/{data.appointment.id}?/delete"
+							class="cancel-dialog-actions"
+						>
+							<button type="submit" class="cancel-confirm-btn">Yes, delete</button>
+							<Dialog.Close>
+								{#snippet child({ props: closeProps })}
+									<button {...closeProps} type="button" class="cancel-cancel-btn">Cancel</button>
+								{/snippet}
+							</Dialog.Close>
+						</form>
+					{/if}
+				</div>
+			{/snippet}
+		</Dialog.Content>
+	</Dialog.Portal>
+</Dialog.Root>
+
+<Dialog.Root bind:open={editNoteDialogOpen}>
+	<Dialog.Portal>
+		<Dialog.Overlay>
+			{#snippet child({ props })}
+				<div {...props} class="dialog-overlay"></div>
+			{/snippet}
+		</Dialog.Overlay>
+		<Dialog.Content>
+			{#snippet child({ props })}
+				<div {...props} class="dialog-content cancel-dialog">
+					<Dialog.Title>
+						{#snippet child({ props: titleProps })}
+							<h2 {...titleProps} class="cancel-dialog-title">
+								{#if data.appointment.note}Edit Note{:else}Add Note{/if}
+							</h2>
+						{/snippet}
+					</Dialog.Title>
+
+					<p class="cancel-dialog-desc">
+						This note will be included in the calendar ICS and email notifications sent to the
+						guest.
+					</p>
+
+					<form method="POST" action="/admin/appointment/{data.appointment.id}?/edit">
+						<textarea
+							name="note"
+							class="cancel-reason-input"
+							placeholder="e.g., Note or instructions for the guest"
+							maxlength="1000"
+							rows="5"
+							bind:value={editNoteValue}
+							bind:this={noteTextareaEl}
+						></textarea>
+						<div class="cancel-dialog-actions edit-note-actions">
+							<button type="submit" class="cancel-confirm-btn">Save</button>
+							{#if data.appointment.note}
+								<button
+									type="submit"
+									class="delete-note-btn"
+									onclick={() => {
+										editNoteValue = '';
+									}}
+								>
+									Delete
+								</button>
+							{/if}
+							<Dialog.Close>
+								{#snippet child({ props: closeProps })}
+									<button {...closeProps} type="button" class="cancel-cancel-btn">Close</button>
+								{/snippet}
+							</Dialog.Close>
+						</div>
+					</form>
+				</div>
+			{/snippet}
+		</Dialog.Content>
+	</Dialog.Portal>
+</Dialog.Root>
+
 <style>
 	.page {
 		max-width: 640px;
@@ -514,7 +680,7 @@
 	/* ---- state stripe (the appointment's single state line) ---- */
 	.card-state {
 		display: flex;
-		align-items: center;
+		align-items: flex-start;
 		gap: var(--space-3);
 		padding: var(--space-4) var(--space-7);
 		font-size: var(--font-size-lg);
@@ -527,6 +693,7 @@
 		border-radius: var(--radius-pill);
 		background: currentColor;
 		flex-shrink: 0;
+		margin-top: 8px;
 	}
 
 	.state-meta {
@@ -582,17 +749,19 @@
 		margin: 0;
 	}
 
-	/* ---- detail rows ---- */
-	.detail-list {
+	.card-section.detail-list {
+		padding: var(--space-4) 0;
 		display: flex;
 		flex-direction: column;
-		gap: var(--space-5);
+		gap: 0;
 	}
 
 	.detail-row {
 		display: flex;
 		align-items: flex-start;
 		gap: var(--space-4);
+		padding: var(--space-3) var(--space-7);
+		box-sizing: border-box;
 	}
 
 	.detail-icon {
@@ -738,6 +907,15 @@
 			width: 100%;
 			justify-content: center;
 			min-height: 56px;
+		}
+
+		.card-section.detail-list {
+			padding: var(--space-3) 0;
+		}
+
+		.detail-row,
+		.detail-row-button {
+			padding: var(--space-3) var(--space-5);
 		}
 	}
 
@@ -972,5 +1150,76 @@
 		max-width: 480px;
 		margin: 0 auto;
 		line-height: 1.5;
+	}
+
+	.detail-row-button {
+		display: flex;
+		align-items: flex-start;
+		gap: var(--space-4);
+		width: 100%;
+		border: none;
+		background: none;
+		text-align: left;
+		font-family: inherit;
+		padding: var(--space-3) var(--space-7);
+		border-radius: 0;
+		cursor: pointer;
+		color: inherit;
+		transition: background-color var(--transition);
+		box-sizing: border-box;
+	}
+
+	.detail-row-button:hover {
+		background-color: var(--surface-muted);
+	}
+
+	.detail-edit-icon {
+		margin-left: auto;
+		align-self: center;
+		display: inline-flex;
+		color: var(--text-muted);
+		transition: color var(--transition);
+	}
+
+	.detail-row-button:hover .detail-edit-icon {
+		color: var(--text);
+	}
+
+	.delete-note-btn {
+		background: none;
+		border: 1px solid var(--danger-border);
+		border-radius: var(--radius);
+		padding: var(--space-3) var(--space-6);
+		font-size: var(--font-size-md);
+		font-weight: 600;
+		color: var(--danger-strong);
+		cursor: pointer;
+		transition: background var(--transition);
+	}
+
+	.delete-note-btn:hover {
+		background: var(--danger-bg);
+	}
+
+	.edit-note-actions .cancel-cancel-btn {
+		margin-left: auto;
+	}
+
+	.state-info-group {
+		display: flex;
+		flex-direction: column;
+		min-width: 0;
+	}
+
+	.state-notes {
+		margin-top: var(--space-1);
+		font-size: var(--font-size-base);
+		font-weight: 500;
+		line-height: 1.4;
+	}
+
+	.state-note-line {
+		color: inherit;
+		opacity: 0.85;
 	}
 </style>

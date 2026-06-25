@@ -10,6 +10,7 @@
 	import IconHourglass from 'virtual:icons/ph/hourglass';
 	import IconEnvelope from 'virtual:icons/ph/envelope-simple';
 	import IconCalendarBlank from 'virtual:icons/ph/calendar-blank';
+	import IconPencilSimple from 'virtual:icons/ph/pencil-simple';
 	import IconDot from 'virtual:icons/ph/dot-outline';
 	import { formatTimestamp } from '$lib/datetime';
 
@@ -63,6 +64,8 @@
 								<IconEnvelope aria-hidden="true" />
 							{:else if entry.action === 'calendar'}
 								<IconCalendarBlank aria-hidden="true" />
+							{:else if entry.action === 'edit'}
+								<IconPencilSimple aria-hidden="true" />
 							{:else}
 								<IconDot aria-hidden="true" />
 							{/if}
@@ -96,6 +99,17 @@
 										Calendar sync failed
 									{:else}
 										Calendar sync queued
+									{/if}
+								{:else if entry.action === 'edit'}
+									{@const changes = (entry.payload?.metadata?.changes as string[]) || []}
+									{#if changes.includes('note_added')}
+										Note added
+									{:else if changes.includes('note_updated')}
+										Note updated
+									{:else if changes.includes('note_removed')}
+										Note removed
+									{:else}
+										Details updated
 									{/if}
 								{:else}
 									{entry.action}

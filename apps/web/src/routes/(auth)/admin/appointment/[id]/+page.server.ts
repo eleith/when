@@ -5,6 +5,7 @@ import { acceptAppointment } from '$lib/server/appointment/accept';
 import { declineAppointment } from '$lib/server/appointment/decline';
 import { cancelAppointment } from '$lib/server/appointment/cancel';
 import { purgeAppointment } from '$lib/server/appointment/purge';
+import { editAppointment } from '$lib/server/appointment/edit';
 import { validateReason } from '$lib/server/appointment/form.server';
 import { appointmentContext } from '$lib/server/appointment/context';
 import type { Actions, PageServerLoad } from './$types';
@@ -80,5 +81,31 @@ export const actions: Actions = {
 		await purgeAppointment(appointmentContext(), { appointment: row });
 
 		redirect(303, '/admin/appointments/upcoming');
+	},
+
+	edit: async ({ params, request }) => {
+		const row = await findAppointment(getDb(), params.id);
+		if (!row) return fail(404, { error: 'Appointment not found.' });
+
+		const form = await request.formData();
+		const noteInput = form.get('note');
+		const note = typeof noteInput === 'string' ? noteInput.trim() || null : undefined;
+
+		const result = await editAppointment(appointmentContext(), {
+			appointment: row,
+			note
+		});
+
+		if (!result.ok) {
+			if (result.reason === 'gated') {
+				return fail(400, { error: 'This appointment cannot be edited.' });
+			}
+			if (result.reason === 'no_changes') {
+				return { success: 'no_change' };
+			}
+			return fail(409, { error: 'This appointment can no longer be edited.' });
+		}
+
+		return { success: 'edited' };
 	}
 };
