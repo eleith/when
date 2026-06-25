@@ -41,7 +41,6 @@ export function toPublicEventType(
 		description: eventType.description ?? null,
 		visibility: eventType.visibility ?? 'public',
 		appointment_flow: eventType.appointment_flow,
-		// Statically configured fixed location only visible to admins
 		location: isAdmin ? (eventType.location ?? null) : null,
 		...(settings
 			? {
@@ -92,7 +91,6 @@ export function toPublicAppointment(row: Appointment, isAdmin: boolean): PublicA
 		guest_name: row.guest_name,
 		guest_email: row.guest_email,
 		answers: parseGuestAnswers(row.guest_answers),
-		// Only confirmed appointments can see the location and note
 		location: isConfirmed ? row.location : null,
 		note: isConfirmed ? row.note : null,
 		status: row.status,
