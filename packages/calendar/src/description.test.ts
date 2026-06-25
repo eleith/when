@@ -4,7 +4,8 @@ import { describeAppointment } from './description.js';
 const base = {
 	guest_name: 'Booker',
 	guest_email: 'booker@example.com',
-	guest_answers: null
+	guest_answers: null,
+	note: null
 };
 
 test('includes name, email, and the cancel link', () => {
@@ -26,5 +27,16 @@ test('renders answers as label/value lines, skipping empty values', () => {
 	]);
 	expect(describeAppointment({ ...base, guest_answers: answers }, 'https://when.test/cancel')).toBe(
 		'Name: Booker\nEmail: booker@example.com\nPhone: +15550199\n\nReschedule or cancel: https://when.test/cancel'
+	);
+});
+
+test('appends note to description when present', () => {
+	expect(
+		describeAppointment(
+			{ ...base, note: 'Please prepare the homework document' },
+			'https://when.test/cancel'
+		)
+	).toBe(
+		'Name: Booker\nEmail: booker@example.com\nNote: Please prepare the homework document\n\nReschedule or cancel: https://when.test/cancel'
 	);
 });

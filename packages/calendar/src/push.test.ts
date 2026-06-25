@@ -16,6 +16,7 @@ const baseAppointment: Appointment = {
 	guest_email: 'booker@example.com',
 	guest_answers: null,
 	location: null,
+	note: null,
 	status: 'confirmed',
 	origin_id: 'appt-xyz',
 	cancel_token: 'tok',
