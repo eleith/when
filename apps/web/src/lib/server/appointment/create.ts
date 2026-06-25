@@ -58,6 +58,7 @@ export async function createAppointment(
 				guest_answers: input.guest.answers.length ? JSON.stringify(input.guest.answers) : null,
 				guest_timezone: input.guest.timezone,
 				location: input.location,
+				note: eventType.note ?? null,
 				status,
 				origin_id: id,
 				cancel_token: cancelToken,

@@ -18,6 +18,7 @@ const baseRow: Appointment = {
 	guest_answers: null,
 	guest_timezone: null,
 	location: null,
+	note: null,
 	status: 'confirmed',
 	origin_id: 'appt-1',
 	cancel_token: 'tok-abc',

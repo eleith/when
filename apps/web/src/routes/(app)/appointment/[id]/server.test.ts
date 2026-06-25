@@ -18,6 +18,7 @@ const mockAppt: Appointment = {
 	guest_answers: null,
 	guest_timezone: null,
 	location: 'Meet link',
+	note: null,
 	status: 'confirmed',
 	origin_id: 'appt-1',
 	cancel_token: 'tok-abc',

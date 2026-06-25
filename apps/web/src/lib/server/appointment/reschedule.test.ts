@@ -20,6 +20,7 @@ const existing: Appointment = {
 	guest_answers: null,
 	guest_timezone: null,
 	location: null,
+	note: null,
 	status: 'confirmed',
 	origin_id: 'appt-1',
 	cancel_token: 'tok-good',
@@ -199,6 +200,7 @@ const opBaseRow = {
 	guest_answers: null,
 	guest_timezone: null,
 	location: null,
+	note: null,
 	external_event_id: null,
 	external_calendar_id: null
 };

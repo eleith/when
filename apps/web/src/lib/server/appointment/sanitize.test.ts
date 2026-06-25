@@ -23,6 +23,7 @@ const baseRow: Appointment = {
 	guest_answers: null,
 	guest_timezone: null,
 	location: 'https://meet.example.com/jane',
+	note: 'Meeting prep document link: test',
 	status: 'confirmed',
 	origin_id: 'appt-1',
 	cancel_token: 'tok-abc',
@@ -59,20 +60,23 @@ describe('toPublicEventType', () => {
 });
 
 describe('toPublicAppointment', () => {
-	test('shows location for admins', () => {
+	test('shows location and note for admins', () => {
 		const res = toPublicAppointment(baseRow, true);
 		expect(res.location).toBe('https://meet.example.com/jane');
+		expect(res.note).toBe('Meeting prep document link: test');
 	});
 
-	test('shows location for confirmed non-admins', () => {
+	test('shows location and note for confirmed non-admins', () => {
 		const res = toPublicAppointment(baseRow, false);
 		expect(res.location).toBe('https://meet.example.com/jane');
+		expect(res.note).toBe('Meeting prep document link: test');
 	});
 
-	test('hides location for pending non-admins', () => {
+	test('hides location and note for pending non-admins', () => {
 		const pendingRow = { ...baseRow, status: 'pending' as const };
 		const res = toPublicAppointment(pendingRow, false);
 		expect(res.location).toBeNull();
+		expect(res.note).toBeNull();
 	});
 
 	test('strips non-cancellation entries for non-admins', () => {

@@ -17,7 +17,8 @@ export type AppointmentEmailKind =
 	| 'cancelled-by-host'
 	| 'rescheduled-by-guest'
 	| 'rescheduled-by-host'
-	| 'declined';
+	| 'declined'
+	| 'edited-by-host';
 
 /**
  * Self-contained input for a send-appointment-email run. Carries the appointment

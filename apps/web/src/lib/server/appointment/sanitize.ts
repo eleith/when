@@ -23,6 +23,7 @@ export interface PublicAppointment {
 	guest_email: string | null;
 	answers: ReturnType<typeof parseGuestAnswers>;
 	location: string | null;
+	note: string | null;
 	status: string;
 	action_log: ActionLogEntry[];
 }
@@ -64,6 +65,7 @@ export function toPublicAppointment(row: Appointment, isAdmin: boolean): PublicA
 			guest_email: row.guest_email,
 			answers: parseGuestAnswers(row.guest_answers),
 			location: row.location,
+			note: row.note,
 			status: row.status,
 			action_log
 		};
@@ -90,8 +92,9 @@ export function toPublicAppointment(row: Appointment, isAdmin: boolean): PublicA
 		guest_name: row.guest_name,
 		guest_email: row.guest_email,
 		answers: parseGuestAnswers(row.guest_answers),
-		// Only confirmed appointments can see the location
+		// Only confirmed appointments can see the location and note
 		location: isConfirmed ? row.location : null,
+		note: isConfirmed ? row.note : null,
 		status: row.status,
 		action_log: publicLog
 	};
