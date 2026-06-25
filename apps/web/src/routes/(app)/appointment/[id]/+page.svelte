@@ -329,9 +329,6 @@
 							.guest_name}{#if data.isAdmin && data.appointment.guest_email}&nbsp;&lt;{data
 								.appointment.guest_email}&gt;{/if}
 					</div>
-					{#if data.isAdmin && !data.appointment.guest_email}
-						<div class="detail-secondary">No email collected</div>
-					{/if}
 					<div class="detail-secondary">
 						{data.user.name} (host)
 					</div>
