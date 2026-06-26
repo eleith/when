@@ -153,4 +153,123 @@ describe('appointmentEditedByHost', () => {
 		expect(host.to).toBe('owner@acme.test');
 		expect(host.content.rows).toContainEqual({ label: 'Note', value: 'Draft note.' });
 	});
+
+	test('location added on a confirmed appointment (notifies both, has guest ics)', () => {
+		const action_log = JSON.stringify([
+			{
+				action: 'edit',
+				actor: 'host',
+				at: '2026-01-02T10:00:00Z',
+				payload: {
+					metadata: {
+						changes: ['location_added']
+					}
+				}
+			}
+		]);
+
+		const input = {
+			...sampleInput,
+			appointment: {
+				...sampleInput.appointment,
+				status: 'confirmed' as const,
+				location: 'Meeting Room C',
+				action_log
+			}
+		};
+
+		const [guest, host] = appointmentEditedByHost(input);
+
+		expect(guest.to).toBe('jane@example.com');
+		expect(guest.content.subject).toBe('Location added: 30-min with Acme Scheduling');
+		expect(guest.content.heading).toBe('Location added to appointment');
+		expect(guest.content.paragraphs).toContain('A location was added to your appointment.');
+		expect(guest.content.rows).toContainEqual({
+			label: 'Where',
+			value: 'Meeting Room C'
+		});
+		expect(guest.ics?.content).toContain('METHOD:REQUEST');
+
+		expect(host.to).toBe('owner@acme.test');
+		expect(host.content.subject).toBe('Location added: 30-min with Jane Doe');
+		expect(host.content.heading).toBe('Location added to appointment');
+		expect(host.content.paragraphs).toContain(
+			'You updated the details for the appointment with Jane Doe <jane@example.com>.'
+		);
+		expect(host.content.rows).toContainEqual({ label: 'Where', value: 'Meeting Room C' });
+		expect(host.ics).toBeUndefined();
+	});
+
+	test('location updated on a confirmed appointment', () => {
+		const action_log = JSON.stringify([
+			{
+				action: 'edit',
+				actor: 'host',
+				at: '2026-01-02T10:00:00Z',
+				payload: {
+					metadata: {
+						changes: ['location_updated']
+					}
+				}
+			}
+		]);
+
+		const input = {
+			...sampleInput,
+			appointment: {
+				...sampleInput.appointment,
+				status: 'confirmed' as const,
+				location: 'Meeting Room D',
+				action_log
+			}
+		};
+
+		const [guest, host] = appointmentEditedByHost(input);
+
+		expect(guest.content.subject).toBe('Location updated: 30-min with Acme Scheduling');
+		expect(guest.content.heading).toBe('Location updated for appointment');
+		expect(guest.content.paragraphs).toContain('The location of your appointment was updated.');
+		expect(guest.content.rows).toContainEqual({
+			label: 'Where',
+			value: 'Meeting Room D'
+		});
+
+		expect(host.content.subject).toBe('Location updated: 30-min with Jane Doe');
+		expect(host.content.heading).toBe('Location updated for appointment');
+	});
+
+	test('location removed on a confirmed appointment', () => {
+		const action_log = JSON.stringify([
+			{
+				action: 'edit',
+				actor: 'host',
+				at: '2026-01-02T10:00:00Z',
+				payload: {
+					metadata: {
+						changes: ['location_removed']
+					}
+				}
+			}
+		]);
+
+		const input = {
+			...sampleInput,
+			appointment: {
+				...sampleInput.appointment,
+				status: 'confirmed' as const,
+				location: null,
+				action_log
+			}
+		};
+
+		const [guest, host] = appointmentEditedByHost(input);
+
+		expect(guest.content.subject).toBe('Location removed: 30-min with Acme Scheduling');
+		expect(guest.content.heading).toBe('Location removed from appointment');
+		expect(guest.content.paragraphs).toContain('The location of your appointment was removed.');
+		expect(guest.content.rows.find((r) => r.label === 'Where')?.value).toBeNull();
+
+		expect(host.content.subject).toBe('Location removed: 30-min with Jane Doe');
+		expect(host.content.heading).toBe('Location removed from appointment');
+	});
 });

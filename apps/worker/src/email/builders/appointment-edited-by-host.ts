@@ -30,7 +30,17 @@ export function appointmentEditedByHost(i: AppointmentEmailInput): EmailMessage[
 		paragraphs.push('The note on your appointment was updated.');
 	} else if (changes.includes('note_removed')) {
 		paragraphs.push('The note on your appointment was removed.');
-	} else {
+	}
+
+	if (changes.includes('location_added')) {
+		paragraphs.push('A location was added to your appointment.');
+	} else if (changes.includes('location_updated')) {
+		paragraphs.push('The location of your appointment was updated.');
+	} else if (changes.includes('location_removed')) {
+		paragraphs.push('The location of your appointment was removed.');
+	}
+
+	if (paragraphs.length === 0) {
 		paragraphs.push('The details of your appointment were updated.');
 	}
 
@@ -64,30 +74,62 @@ export function appointmentEditedByHost(i: AppointmentEmailInput): EmailMessage[
 		previewText: ''
 	};
 
-	if (changes.includes('note_added')) {
-		guestEmail.subject = `Note added: ${eventName} with ${brand.name}`;
-		guestEmail.heading = 'Note added to appointment';
-		guestEmail.previewText = `A note was added to your appointment on ${guestWhen}.`;
+	const hasNoteChange = changes.some((c) => c.startsWith('note_'));
+	const hasLocationChange = changes.some((c) => c.startsWith('location_'));
+	const isMultipleChanges = (hasNoteChange && hasLocationChange) || changes.length > 1;
 
-		hostEmail.subject = `Note added: ${eventName} with ${a.guest_name}`;
-		hostEmail.heading = 'Note added to appointment';
-		hostEmail.previewText = `You added a note to the appointment on ${hostWhen}.`;
-	} else if (changes.includes('note_updated')) {
-		guestEmail.subject = `Note updated: ${eventName} with ${brand.name}`;
-		guestEmail.heading = 'Note updated for appointment';
-		guestEmail.previewText = `The note on your appointment on ${guestWhen} was updated.`;
+	if (!isMultipleChanges && hasNoteChange) {
+		if (changes.includes('note_added')) {
+			guestEmail.subject = `Note added: ${eventName} with ${brand.name}`;
+			guestEmail.heading = 'Note added to appointment';
+			guestEmail.previewText = `A note was added to your appointment on ${guestWhen}.`;
 
-		hostEmail.subject = `Note updated: ${eventName} with ${a.guest_name}`;
-		hostEmail.heading = 'Note updated for appointment';
-		hostEmail.previewText = `You updated the note on the appointment on ${hostWhen}.`;
-	} else if (changes.includes('note_removed')) {
-		guestEmail.subject = `Note removed: ${eventName} with ${brand.name}`;
-		guestEmail.heading = 'Note removed from appointment';
-		guestEmail.previewText = `The note was removed from your appointment on ${guestWhen}.`;
+			hostEmail.subject = `Note added: ${eventName} with ${a.guest_name}`;
+			hostEmail.heading = 'Note added to appointment';
+			hostEmail.previewText = `You added a note to the appointment on ${hostWhen}.`;
+		} else if (changes.includes('note_updated')) {
+			guestEmail.subject = `Note updated: ${eventName} with ${brand.name}`;
+			guestEmail.heading = 'Note updated for appointment';
+			guestEmail.previewText = `The note on your appointment on ${guestWhen} was updated.`;
 
-		hostEmail.subject = `Note removed: ${eventName} with ${a.guest_name}`;
-		hostEmail.heading = 'Note removed from appointment';
-		hostEmail.previewText = `You removed the note from the appointment on ${hostWhen}.`;
+			hostEmail.subject = `Note updated: ${eventName} with ${a.guest_name}`;
+			hostEmail.heading = 'Note updated for appointment';
+			hostEmail.previewText = `You updated the note on the appointment on ${hostWhen}.`;
+		} else if (changes.includes('note_removed')) {
+			guestEmail.subject = `Note removed: ${eventName} with ${brand.name}`;
+			guestEmail.heading = 'Note removed from appointment';
+			guestEmail.previewText = `The note was removed from your appointment on ${guestWhen}.`;
+
+			hostEmail.subject = `Note removed: ${eventName} with ${a.guest_name}`;
+			hostEmail.heading = 'Note removed from appointment';
+			hostEmail.previewText = `You removed the note from the appointment on ${hostWhen}.`;
+		}
+	} else if (!isMultipleChanges && hasLocationChange) {
+		if (changes.includes('location_added')) {
+			guestEmail.subject = `Location added: ${eventName} with ${brand.name}`;
+			guestEmail.heading = 'Location added to appointment';
+			guestEmail.previewText = `A location was added to your appointment on ${guestWhen}.`;
+
+			hostEmail.subject = `Location added: ${eventName} with ${a.guest_name}`;
+			hostEmail.heading = 'Location added to appointment';
+			hostEmail.previewText = `You added a location to the appointment on ${hostWhen}.`;
+		} else if (changes.includes('location_updated')) {
+			guestEmail.subject = `Location updated: ${eventName} with ${brand.name}`;
+			guestEmail.heading = 'Location updated for appointment';
+			guestEmail.previewText = `The location of your appointment on ${guestWhen} was updated.`;
+
+			hostEmail.subject = `Location updated: ${eventName} with ${a.guest_name}`;
+			hostEmail.heading = 'Location updated for appointment';
+			hostEmail.previewText = `You updated the location of the appointment on ${hostWhen}.`;
+		} else if (changes.includes('location_removed')) {
+			guestEmail.subject = `Location removed: ${eventName} with ${brand.name}`;
+			guestEmail.heading = 'Location removed from appointment';
+			guestEmail.previewText = `The location was removed from your appointment on ${guestWhen}.`;
+
+			hostEmail.subject = `Location removed: ${eventName} with ${a.guest_name}`;
+			hostEmail.heading = 'Location removed from appointment';
+			hostEmail.previewText = `You removed the location from the appointment on ${hostWhen}.`;
+		}
 	} else {
 		guestEmail.subject = `Updated details: ${eventName} with ${brand.name}`;
 		guestEmail.heading = 'Appointment details updated';
