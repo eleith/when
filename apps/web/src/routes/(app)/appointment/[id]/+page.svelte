@@ -21,10 +21,13 @@
 
 	let cancelDialogOpen = $state(false);
 	let editNoteDialogOpen = $state(false);
+	let editLocationDialogOpen = $state(false);
 	let cancelReason = $state('I can no longer attend');
 	let editNoteValue = $state('');
+	let editLocationValue = $state('');
 	let reasonTextarea = $state<HTMLTextAreaElement | null>(null);
 	let noteTextareaEl = $state<HTMLTextAreaElement | null>(null);
+	let locationInputEl = $state<HTMLInputElement | null>(null);
 
 	$effect(() => {
 		if (cancelDialogOpen) {
@@ -47,6 +50,16 @@
 	});
 
 	$effect(() => {
+		if (editLocationDialogOpen) {
+			editLocationValue = data.appointment.location ?? '';
+			tick().then(() => {
+				locationInputEl?.focus();
+				locationInputEl?.select();
+			});
+		}
+	});
+
+	$effect(() => {
 		if (data.appointment.status === 'cancelled') cancelDialogOpen = false;
 	});
 
@@ -54,10 +67,14 @@
 		const actionData = form as unknown as { success?: string };
 		if (actionData?.success === 'edited') {
 			editNoteDialogOpen = false;
+			editLocationDialogOpen = false;
 		}
 	});
 
 	let status = $derived(data.appointment.status);
+	let isEditable = $derived(
+		(status === 'pending' || status === 'confirmed') && data.clockStatus !== 'concluded'
+	);
 	let stateTone = $derived.by(() => {
 		if (status === 'declined' || status === 'cancelled' || status === 'expired') return 'danger';
 		if (status === 'rescheduled' || status === 'purged') return 'quiet';
@@ -214,6 +231,9 @@
 					onCancel={() => (cancelDialogOpen = true)}
 					hasNote={!!data.appointment.note}
 					onEditNote={() => (editNoteDialogOpen = true)}
+					hasLocation={!!data.appointment.location}
+					onEditLocation={() => (editLocationDialogOpen = true)}
+					{isEditable}
 				/>
 			{/if}
 		</section>
@@ -312,13 +332,29 @@
 					{/if}
 				</div>
 			</div>
-			{#if data.appointment.location && status === 'confirmed'}
-				<div class="detail-row">
-					<span class="detail-icon"><IconMapPin aria-hidden="true" /></span>
-					<div class="detail-text">
-						<div class="detail-primary">{data.appointment.location}</div>
+			{#if data.appointment.location}
+				{#if data.isAdmin && isEditable}
+					<button
+						type="button"
+						class="detail-row-button"
+						onclick={() => (editLocationDialogOpen = true)}
+						aria-label="Edit location"
+					>
+						<span class="detail-icon"><IconMapPin aria-hidden="true" /></span>
+						<div class="detail-text">
+							<div class="detail-primary">Location</div>
+							<div class="detail-secondary location-text-val">{data.appointment.location}</div>
+						</div>
+						<span class="detail-edit-icon"><IconPencilSimple aria-hidden="true" /></span>
+					</button>
+				{:else if status === 'confirmed' || data.isAdmin}
+					<div class="detail-row">
+						<span class="detail-icon"><IconMapPin aria-hidden="true" /></span>
+						<div class="detail-text">
+							<div class="detail-primary">{data.appointment.location}</div>
+						</div>
 					</div>
-				</div>
+				{/if}
 			{/if}
 			<div class="detail-row">
 				<span class="detail-icon"><IconUser aria-hidden="true" /></span>
@@ -335,7 +371,7 @@
 				</div>
 			</div>
 			{#if data.appointment.note}
-				{#if data.isAdmin}
+				{#if data.isAdmin && isEditable}
 					<button
 						type="button"
 						class="detail-row-button"
@@ -507,6 +543,65 @@
 									class="delete-note-btn"
 									onclick={() => {
 										editNoteValue = '';
+									}}
+								>
+									Delete
+								</button>
+							{/if}
+							<Dialog.Close>
+								{#snippet child({ props: closeProps })}
+									<button {...closeProps} type="button" class="cancel-cancel-btn">Close</button>
+								{/snippet}
+							</Dialog.Close>
+						</div>
+					</form>
+				</div>
+			{/snippet}
+		</Dialog.Content>
+	</Dialog.Portal>
+</Dialog.Root>
+
+<Dialog.Root bind:open={editLocationDialogOpen}>
+	<Dialog.Portal>
+		<Dialog.Overlay>
+			{#snippet child({ props })}
+				<div {...props} class="dialog-overlay"></div>
+			{/snippet}
+		</Dialog.Overlay>
+		<Dialog.Content>
+			{#snippet child({ props })}
+				<div {...props} class="dialog-content cancel-dialog">
+					<Dialog.Title>
+						{#snippet child({ props: titleProps })}
+							<h2 {...titleProps} class="cancel-dialog-title">
+								{#if data.appointment.location}Edit Location{:else}Add Location{/if}
+							</h2>
+						{/snippet}
+					</Dialog.Title>
+
+					<p class="cancel-dialog-desc">
+						This location will be included in the calendar ICS and email notifications sent to the
+						guest.
+					</p>
+
+					<form method="POST" action="/admin/appointment/{data.appointment.id}?/edit">
+						<input
+							type="text"
+							name="location"
+							class="cancel-reason-input"
+							placeholder="e.g., Google Meet, Phone call, Office address"
+							maxlength="200"
+							bind:value={editLocationValue}
+							bind:this={locationInputEl}
+						/>
+						<div class="cancel-dialog-actions edit-note-actions">
+							<button type="submit" class="cancel-confirm-btn">Save</button>
+							{#if data.appointment.location}
+								<button
+									type="submit"
+									class="delete-note-btn"
+									onclick={() => {
+										editLocationValue = '';
 									}}
 								>
 									Delete

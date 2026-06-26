@@ -13,6 +13,9 @@
 		isAdmin?: boolean;
 		hasNote?: boolean;
 		onEditNote?: () => void;
+		hasLocation?: boolean;
+		onEditLocation?: () => void;
+		isEditable?: boolean;
 	}
 
 	let {
@@ -22,7 +25,10 @@
 		onCancel,
 		isAdmin = false,
 		hasNote = false,
-		onEditNote
+		onEditNote,
+		hasLocation = false,
+		onEditLocation,
+		isEditable = false
 	}: Props = $props();
 
 	let menuOpen = $state(false);
@@ -36,6 +42,10 @@
 		if (typeof window === 'undefined') return '';
 		return `${window.location.origin}/appointment/${appointmentId}?token=${encodeURIComponent(token)}`;
 	});
+
+	let hasAnyAction = $derived(
+		actions.reschedule.allowed || actions.cancel.allowed || (isAdmin && isEditable)
+	);
 
 	let copied = $state(false);
 	let feedbackTimeout: ReturnType<typeof setTimeout>;
@@ -71,68 +81,87 @@
 	}
 </script>
 
-<DropdownMenu.Root bind:open={menuOpen}>
-	<DropdownMenu.Trigger>
-		{#snippet child({ props })}
-			<button
-				{...props}
-				type="button"
-				class="change-trigger {props.class || ''}"
-				aria-label="Appointment actions"
-			>
-				<IconDotsThreeVertical aria-hidden="true" />
-			</button>
-		{/snippet}
-	</DropdownMenu.Trigger>
-	<DropdownMenu.Portal>
-		<DropdownMenu.Content align="end" sideOffset={6} forceMount>
-			{#snippet child({ wrapperProps, props, open })}
-				{#if open}
-					<div {...wrapperProps}>
-						<div {...props} class="ba-menu">
-							{#if actions.reschedule.allowed}
-								<DropdownMenu.Item>
-									{#snippet child({ props: itemProps })}
-										<a {...itemProps} href={rescheduleHref} class="action-item">Reschedule</a>
-									{/snippet}
-								</DropdownMenu.Item>
-							{/if}
-							{#if actions.cancel.allowed}
-								<DropdownMenu.Item onSelect={requestCancel}>
-									{#snippet child({ props: itemProps })}
-										<button {...itemProps} type="button" class="action-item action-item-danger"
-											>Cancel</button
+{#if hasAnyAction}
+	<DropdownMenu.Root bind:open={menuOpen}>
+		<DropdownMenu.Trigger>
+			{#snippet child({ props })}
+				<button
+					{...props}
+					type="button"
+					class="change-trigger {props.class || ''}"
+					aria-label="Appointment actions"
+				>
+					<IconDotsThreeVertical aria-hidden="true" />
+				</button>
+			{/snippet}
+		</DropdownMenu.Trigger>
+		<DropdownMenu.Portal>
+			<DropdownMenu.Content align="end" sideOffset={6} forceMount>
+				{#snippet child({ wrapperProps, props, open })}
+					{#if open}
+						<div {...wrapperProps}>
+							<div {...props} class="ba-menu">
+								{#if isAdmin && isEditable}
+									{#if onEditNote && !hasNote}
+										<DropdownMenu.Item
+											onSelect={() => {
+												menuOpen = false;
+												onEditNote();
+											}}
 										>
-									{/snippet}
-								</DropdownMenu.Item>
-							{/if}
-							{#if isAdmin}
-								{#if onEditNote && !hasNote}
-									<DropdownMenu.Item
-										onSelect={() => {
-											menuOpen = false;
-											onEditNote();
-										}}
-									>
+											{#snippet child({ props: itemProps })}
+												<button {...itemProps} type="button" class="action-item">Add Note</button>
+											{/snippet}
+										</DropdownMenu.Item>
+									{/if}
+									{#if onEditLocation && !hasLocation}
+										<DropdownMenu.Item
+											onSelect={() => {
+												menuOpen = false;
+												onEditLocation();
+											}}
+										>
+											{#snippet child({ props: itemProps })}
+												<button {...itemProps} type="button" class="action-item"
+													>Add Location</button
+												>
+											{/snippet}
+										</DropdownMenu.Item>
+									{/if}
+									<DropdownMenu.Item onSelect={() => (shareDialogOpen = true)}>
 										{#snippet child({ props: itemProps })}
-											<button {...itemProps} type="button" class="action-item">Add Note</button>
+											<button {...itemProps} type="button" class="action-item"
+												>Copy Guest Link</button
+											>
 										{/snippet}
 									</DropdownMenu.Item>
 								{/if}
-								<DropdownMenu.Item onSelect={() => (shareDialogOpen = true)}>
-									{#snippet child({ props: itemProps })}
-										<button {...itemProps} type="button" class="action-item">Copy Guest Link</button
-										>
-									{/snippet}
-								</DropdownMenu.Item>
-							{/if}
+								{#if actions.reschedule.allowed}
+									<DropdownMenu.Item>
+										{#snippet child({ props: itemProps })}
+											<a {...itemProps} href={rescheduleHref} class="action-item action-item-info"
+												>Reschedule</a
+											>
+										{/snippet}
+									</DropdownMenu.Item>
+								{/if}
+								{#if actions.cancel.allowed}
+									<DropdownMenu.Item onSelect={requestCancel}>
+										{#snippet child({ props: itemProps })}
+											<button {...itemProps} type="button" class="action-item action-item-danger"
+												>Cancel</button
+											>
+										{/snippet}
+									</DropdownMenu.Item>
+								{/if}
+							</div>
 						</div>
-					</div>
-				{/if}
-			{/snippet}
-		</DropdownMenu.Content>
-	</DropdownMenu.Portal>
-</DropdownMenu.Root>
+					{/if}
+				{/snippet}
+			</DropdownMenu.Content>
+		</DropdownMenu.Portal>
+	</DropdownMenu.Root>
+{/if}
 
 {#if isAdmin}
 	<Dialog.Root bind:open={shareDialogOpen}>
@@ -244,6 +273,16 @@
 	.action-item-danger:focus-visible {
 		background: var(--danger-bg);
 		color: var(--danger-strong);
+	}
+
+	.action-item-info {
+		color: var(--info);
+	}
+
+	.action-item-info:hover,
+	.action-item-info:focus-visible {
+		background: var(--info-bg);
+		color: var(--info-strong);
 	}
 
 	.ba-menu {
