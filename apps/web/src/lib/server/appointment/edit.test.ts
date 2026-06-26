@@ -152,4 +152,98 @@ describe('editAppointment', () => {
 			await db.destroy();
 		}
 	});
+
+	test('gated: cannot edit a concluded appointment', async () => {
+		const db = await makeDb();
+		try {
+			await db
+				.insertInto('appointments')
+				.values({
+					...baseRow,
+					id: 'a-concluded',
+					status: 'confirmed',
+					cancel_token: 't-concluded',
+					end_time: '2000-01-01T15:30:00Z'
+				})
+				.execute();
+			const row = await fetchRow(db, 'a-concluded');
+
+			const result = await editAppointment(
+				{ db, cfg: validConfig, clock: systemClock },
+				{ appointment: row, note: 'Some new note' }
+			);
+
+			expect(result).toEqual({ ok: false, reason: 'gated' });
+		} finally {
+			await db.destroy();
+		}
+	});
+
+	test('happy path: add location, edit location, remove location', async () => {
+		const db = await makeDb();
+		try {
+			// Seed a confirmed appointment with no location
+			await db
+				.insertInto('appointments')
+				.values({ ...baseRow, id: 'loc1', status: 'confirmed', cancel_token: 't-loc1' })
+				.execute();
+
+			// 1. Add Location
+			let row = await fetchRow(db, 'loc1');
+			let result = await editAppointment(
+				{ db, cfg: validConfig, clock: systemClock },
+				{ appointment: row, location: 'Meeting Room A' }
+			);
+
+			expect(result.ok).toBe(true);
+			if (result.ok) {
+				expect(result.appointment.location).toBe('Meeting Room A');
+				expect(result.appointment.calendar_revision).toBe(1);
+				expect(result.appointment.ics_sequence).toBe(1);
+				const log = parseActionLog(result.appointment.action_log);
+				expect(log.length).toBe(1);
+				expect(log[0].action).toBe('edit');
+				expect(log[0].payload?.metadata?.changes).toEqual(['location_added']);
+			}
+
+			// 2. Edit Location
+			row = await fetchRow(db, 'loc1');
+			result = await editAppointment(
+				{ db, cfg: validConfig, clock: systemClock },
+				{ appointment: row, location: 'Meeting Room B' }
+			);
+
+			expect(result.ok).toBe(true);
+			if (result.ok) {
+				expect(result.appointment.location).toBe('Meeting Room B');
+				expect(result.appointment.calendar_revision).toBe(2);
+				expect(result.appointment.ics_sequence).toBe(2);
+				const log = parseActionLog(result.appointment.action_log);
+				expect(log.length).toBe(2);
+				expect(log[1].payload?.metadata?.changes).toEqual(['location_updated']);
+			}
+
+			// 3. Remove Location (passing null or empty string)
+			row = await fetchRow(db, 'loc1');
+			result = await editAppointment(
+				{ db, cfg: validConfig, clock: systemClock },
+				{ appointment: row, location: null }
+			);
+
+			expect(result.ok).toBe(true);
+			if (result.ok) {
+				expect(result.appointment.location).toBeNull();
+				expect(result.appointment.calendar_revision).toBe(3);
+				expect(result.appointment.ics_sequence).toBe(3);
+				const log = parseActionLog(result.appointment.action_log);
+				expect(log.length).toBe(3);
+				expect(log[2].payload?.metadata?.changes).toEqual(['location_removed']);
+			}
+
+			expect(enqueueCalendarSync).toHaveBeenCalledTimes(3);
+			expect(enqueueAppointmentEmail).toHaveBeenCalledTimes(3);
+		} finally {
+			await db.destroy();
+		}
+	});
 });

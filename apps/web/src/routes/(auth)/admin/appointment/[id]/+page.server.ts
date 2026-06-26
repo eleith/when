@@ -91,9 +91,13 @@ export const actions: Actions = {
 		const noteInput = form.get('note');
 		const note = typeof noteInput === 'string' ? noteInput.trim() || null : undefined;
 
+		const locationInput = form.get('location');
+		const location = typeof locationInput === 'string' ? locationInput.trim() || null : undefined;
+
 		const result = await editAppointment(appointmentContext(), {
 			appointment: row,
-			note
+			note,
+			location
 		});
 
 		if (!result.ok) {
