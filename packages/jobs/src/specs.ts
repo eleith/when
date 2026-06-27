@@ -53,8 +53,6 @@ export const sendAppointmentEmail: WorkflowSpec<
 	}
 });
 
-
-
 export interface PurgeAppointmentRow {
 	id: string;
 	externalEventId: string | null;

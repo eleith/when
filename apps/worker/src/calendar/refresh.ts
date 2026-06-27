@@ -10,7 +10,6 @@ import {
 } from '@when/db';
 import type { WorkerContext } from '../services/context.js';
 import { flagConflicts } from './conflicts.js';
-import { evaluateHealth } from './health.js';
 import { DEFAULT_REFRESH_INTERVAL_MINUTES } from './intervals.js';
 
 const DEFAULT_MAX_LOOKAHEAD_DAYS = 60;
@@ -104,5 +103,4 @@ export async function refreshCycle(ctx: WorkerContext, opts: RefreshOptions = {}
 	const now = opts.now ?? Temporal.Now.instant();
 	await refreshCalendars(ctx, { ...opts, now });
 	await flagConflicts(ctx, { now });
-	await evaluateHealth(ctx, { now });
 }

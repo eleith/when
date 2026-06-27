@@ -9,8 +9,6 @@ export type AppointmentStatus =
 	| 'rescheduled'
 	| 'purged';
 
-export type CalendarHealth = 'good' | 'bad' | 'unknown';
-
 type NullableText = ColumnType<string | null, string | null | undefined, string | null>;
 
 export interface AppointmentsTable {
@@ -60,9 +58,6 @@ export interface CalendarSyncStatusTable {
 	last_refresh_at: NullableText;
 	last_successful_refresh_at: NullableText;
 	error: NullableText;
-	health: ColumnType<CalendarHealth, CalendarHealth | undefined, CalendarHealth>;
-	health_changed_at: NullableText;
-	health_reason: NullableText;
 }
 
 export interface Database {

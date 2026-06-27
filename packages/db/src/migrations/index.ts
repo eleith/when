@@ -19,6 +19,7 @@ import { dropNotificationColumns } from './0017_drop_notification_columns.js';
 import { renameAttendeeToGuest } from './0018_rename_attendee_to_guest.js';
 import { addAppointmentNote } from './0019_add_appointment_note.js';
 import { addAppointmentConference } from './0020_add_appointment_conference.js';
+import { dropCalendarHealthColumns } from './0021_drop_calendar_health_columns.js';
 
 // Registered in order; keys are the migration names Kysely's Migrator records.
 export const migrations: Record<string, Migration> = {
@@ -41,5 +42,6 @@ export const migrations: Record<string, Migration> = {
 	'0017_drop_notification_columns': dropNotificationColumns,
 	'0018_rename_attendee_to_guest': renameAttendeeToGuest,
 	'0019_add_appointment_note': addAppointmentNote,
-	'0020_add_appointment_conference': addAppointmentConference
+	'0020_add_appointment_conference': addAppointmentConference,
+	'0021_drop_calendar_health_columns': dropCalendarHealthColumns
 };

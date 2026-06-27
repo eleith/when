@@ -1,5 +1,5 @@
 import { sql, type Kysely } from 'kysely';
-import type { Appointment, CalendarHealth, CalendarSyncStatus, Database } from './types.js';
+import type { Appointment, CalendarSyncStatus, Database } from './types.js';
 
 export interface BusyInterval {
 	start: string;
@@ -154,26 +154,4 @@ export async function markSynced(
 
 export function listCalendarSyncStatus(db: Kysely<Database>): Promise<CalendarSyncStatus[]> {
 	return db.selectFrom('calendar_sync_status').selectAll().execute();
-}
-
-export interface CalendarHealthUpdate {
-	health: CalendarHealth;
-	changedAt: string;
-	reason: string | null;
-}
-
-export async function setCalendarHealth(
-	db: Kysely<Database>,
-	calendarId: string,
-	update: CalendarHealthUpdate
-): Promise<void> {
-	await db
-		.updateTable('calendar_sync_status')
-		.set({
-			health: update.health,
-			health_changed_at: update.changedAt,
-			health_reason: update.reason
-		})
-		.where('calendar_id', '=', calendarId)
-		.execute();
 }

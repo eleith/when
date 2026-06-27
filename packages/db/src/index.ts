@@ -12,7 +12,6 @@ export type {
 	ExternalCalendarBusyTable,
 	CalendarSyncStatusTable,
 	AppointmentStatus,
-	CalendarHealth,
 	Appointment,
 	NewAppointment,
 	AppointmentUpdate,
@@ -50,15 +49,13 @@ export {
 	setPossibleConflicts,
 	listOutOfSyncAppointments,
 	markSynced,
-	listCalendarSyncStatus,
-	setCalendarHealth
+	listCalendarSyncStatus
 } from './calendar-busy.js';
 export type {
 	BusyInterval,
 	RefreshResult,
 	UpcomingAppointment,
-	MarkSyncedFields,
-	CalendarHealthUpdate
+	MarkSyncedFields
 } from './calendar-busy.js';
 
 export function openDb(path: string): Kysely<Database> {

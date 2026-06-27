@@ -116,22 +116,6 @@ test('calendar mirror tables and busy range index exist', async () => {
 	}
 });
 
-test('calendar_sync_status.health defaults to unknown', async () => {
-	const db = openDb(':memory:');
-	try {
-		await runMigrations(db);
-		await db.insertInto('calendar_sync_status').values({ calendar_id: 'work' }).execute();
-		const row = await db
-			.selectFrom('calendar_sync_status')
-			.selectAll()
-			.where('calendar_id', '=', 'work')
-			.executeTakeFirstOrThrow();
-		expect(row.health).toBe('unknown');
-	} finally {
-		await db.destroy();
-	}
-});
-
 test('0007 adds the appointment calendar columns', async () => {
 	const db = openDb(':memory:');
 	try {

@@ -9,9 +9,7 @@ import {
 	listUpcomingActiveAppointments,
 	setPossibleConflicts,
 	listOutOfSyncAppointments,
-	markSynced,
-	listCalendarSyncStatus,
-	setCalendarHealth
+	markSynced
 } from './calendar-busy.js';
 
 async function freshDb() {
@@ -378,26 +376,6 @@ test('markSynced sets the synced revision and any provided fields, leaving other
 			.executeTakeFirstOrThrow();
 		expect(row.calendar_synced_revision).toBe(3);
 		expect(row.external_event_id).toBe('ext');
-	} finally {
-		await db.destroy();
-	}
-});
-
-test('setCalendarHealth updates the row that listCalendarSyncStatus returns', async () => {
-	const db = await freshDb();
-	try {
-		await recordRefreshResult(db, 'work', { at: '2026-05-01T10:00:00Z' });
-		await setCalendarHealth(db, 'work', {
-			health: 'bad',
-			changedAt: '2026-05-01T11:00:00Z',
-			reason: 'no successful refresh in 2h'
-		});
-		const rows = await listCalendarSyncStatus(db);
-		expect(rows).toHaveLength(1);
-		expect(rows[0].calendar_id).toBe('work');
-		expect(rows[0].health).toBe('bad');
-		expect(rows[0].health_changed_at).toBe('2026-05-01T11:00:00Z');
-		expect(rows[0].health_reason).toBe('no successful refresh in 2h');
 	} finally {
 		await db.destroy();
 	}
