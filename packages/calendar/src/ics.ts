@@ -42,7 +42,8 @@ export function buildIcs(input: IcsInput): string {
 		// The guest booked, so they've effectively accepted; mark it so calendar
 		// clients don't prompt them to RSVP to the noreply organizer.
 		attendees: guest ? [{ ...guest, partstat: 'ACCEPTED', rsvp: false }] : undefined,
-		status: eventStatus(method, appointment.status)
+		status: eventStatus(method, appointment.status),
+		nonStandard: appointment.conference ? { conference: appointment.conference } : undefined
 	};
 
 	const calendar: IcsCalendar = {
@@ -52,7 +53,14 @@ export function buildIcs(input: IcsInput): string {
 	};
 	if (method) calendar.method = method;
 
-	return generateIcsCalendar(calendar);
+	return generateIcsCalendar(calendar, {
+		nonStandard: {
+			conference: {
+				name: 'CONFERENCE' as 'X-CONFERENCE',
+				generate: (val) => ({ value: val as string, options: { VALUE: 'URI' } })
+			}
+		}
+	});
 }
 
 function eventStatus(

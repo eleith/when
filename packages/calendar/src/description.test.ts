@@ -5,7 +5,8 @@ const base = {
 	guest_name: 'Booker',
 	guest_email: 'booker@example.com',
 	guest_answers: null,
-	note: null
+	note: null,
+	conference: null
 };
 
 test('includes name, email, and the cancel link', () => {
@@ -38,5 +39,16 @@ test('appends note to description when present', () => {
 		)
 	).toBe(
 		'Name: Booker\nEmail: booker@example.com\nNote: Please prepare the homework document\n\nReschedule or cancel: https://when.test/cancel'
+	);
+});
+
+test('appends conference link to description when present', () => {
+	expect(
+		describeAppointment(
+			{ ...base, conference: 'https://zoom.us/j/12345' },
+			'https://when.test/cancel'
+		)
+	).toBe(
+		'Name: Booker\nEmail: booker@example.com\nVideo Link: https://zoom.us/j/12345\n\nReschedule or cancel: https://when.test/cancel'
 	);
 });

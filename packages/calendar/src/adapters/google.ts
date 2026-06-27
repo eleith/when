@@ -169,8 +169,8 @@ export async function putGoogleEvent(
 	const eventId = isUpdate ? appointment.external_event_id : '';
 
 	const url = isUpdate
-		? `https://www.googleapis.com/calendar/v3/calendars/${calId}/events/${eventId}`
-		: `https://www.googleapis.com/calendar/v3/calendars/${calId}/events`;
+		? `https://www.googleapis.com/calendar/v3/calendars/${calId}/events/${eventId}?conferenceDataVersion=1`
+		: `https://www.googleapis.com/calendar/v3/calendars/${calId}/events?conferenceDataVersion=1`;
 
 	const method = isUpdate ? 'PUT' : 'POST';
 
@@ -181,7 +181,17 @@ export async function putGoogleEvent(
 		location: appointment.location || undefined,
 		start: { dateTime: appointment.start_time },
 		end: { dateTime: appointment.end_time },
-		attendees: guest ? [{ email: guest.email, displayName: guest.name }] : []
+		attendees: guest ? [{ email: guest.email, displayName: guest.name }] : [],
+		conferenceData: appointment.conference
+			? {
+					entryPoints: [
+						{
+							entryPointType: 'video',
+							uri: appointment.conference
+						}
+					]
+				}
+			: undefined
 	};
 
 	const res = await (opts.fetchImpl ?? fetch)(url, {

@@ -37,43 +37,65 @@ const baseAppointment: Appointment = {
 	guest_timezone: 'America/New_York'
 };
 
-function mockFetch(captured: { payload?: Record<string, unknown> }): FetchFn {
+function mockFetch(captured: { url?: string; payload?: Record<string, unknown> }): FetchFn {
 	return (async (url: string | URL, init?: RequestInit) => {
 		if (String(url).includes('oauth2.googleapis.com/token')) {
 			return new Response(JSON.stringify({ access_token: 't', expires_in: 3600 }), { status: 200 });
 		}
+		captured.url = String(url);
 		captured.payload = JSON.parse(String(init?.body));
 		return new Response(JSON.stringify({ id: 'evt-1' }), { status: 200 });
 	}) as FetchFn;
 }
 
 async function push(appointment: Appointment) {
-	const captured: { payload?: Record<string, unknown> } = {};
+	const captured: { url?: string; payload?: Record<string, unknown> } = {};
 	await putGoogleEvent(cfg, appointment, {
 		cancelUrl: 'https://when.example.com/appointment/appt-1?token=tok',
 		eventTypeName: 'Chat',
 		hostName: 'Jane',
 		fetchImpl: mockFetch(captured)
 	});
-	return captured.payload!;
+	return captured;
 }
 
 test('description and attendees include the email when present', async () => {
-	const payload = await push({
+	const { payload } = await push({
 		...baseAppointment,
 		guest_answers: JSON.stringify([
 			{ id: 'phone', label: 'Phone', type: 'text', value: '+15550199' }
 		])
 	});
-	expect(payload.description).toContain('Name: Booker');
-	expect(payload.description).toContain('Email: booker@example.com');
-	expect(payload.description).toContain('Phone: +15550199');
-	expect(payload.attendees).toEqual([{ email: 'booker@example.com', displayName: 'Booker' }]);
+	expect(payload!.description).toContain('Name: Booker');
+	expect(payload!.description).toContain('Email: booker@example.com');
+	expect(payload!.description).toContain('Phone: +15550199');
+	expect(payload!.attendees).toEqual([{ email: 'booker@example.com', displayName: 'Booker' }]);
 });
 
 test('email line is dropped and attendees empty when there is no email', async () => {
-	const payload = await push({ ...baseAppointment, guest_email: null });
-	expect(payload.description).toContain('Name: Booker');
-	expect(payload.description).not.toContain('Email:');
-	expect(payload.attendees).toEqual([]);
+	const { payload } = await push({ ...baseAppointment, guest_email: null });
+	expect(payload!.description).toContain('Name: Booker');
+	expect(payload!.description).not.toContain('Email:');
+	expect(payload!.attendees).toEqual([]);
+});
+
+test('includes conferenceData and appends version query parameter when conference link is present', async () => {
+	const { url, payload } = await push({
+		...baseAppointment,
+		conference: 'https://zoom.us/j/12345'
+	});
+	expect(url).toContain('conferenceDataVersion=1');
+	expect(payload?.conferenceData).toEqual({
+		entryPoints: [
+			{
+				entryPointType: 'video',
+				uri: 'https://zoom.us/j/12345'
+			}
+		]
+	});
+});
+
+test('omits conferenceData when conference link is absent', async () => {
+	const { payload } = await push(baseAppointment);
+	expect(payload?.conferenceData).toBeUndefined();
 });

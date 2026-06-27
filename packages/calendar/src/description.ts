@@ -3,7 +3,7 @@ import type { Appointment } from '@when/db';
 
 type DescribableAppointment = Pick<
 	Appointment,
-	'guest_name' | 'guest_email' | 'guest_answers' | 'note'
+	'guest_name' | 'guest_email' | 'guest_answers' | 'note' | 'conference'
 >;
 
 export function describeAppointment(
@@ -16,5 +16,6 @@ export function describeAppointment(
 		if (answer.value) lines.push(`${answer.label}: ${answer.value}`);
 	}
 	if (appointment.note) lines.push(`Note: ${appointment.note}`);
+	if (appointment.conference) lines.push(`Video Link: ${appointment.conference}`);
 	return `${lines.join('\n')}\n\nReschedule or cancel: ${cancelUrl}`;
 }

@@ -167,3 +167,16 @@ test('UID follows origin_id so a rescheduled occurrence updates the same event',
 	});
 	expect(ics).toContain('UID:appt-123');
 });
+
+test('CONFERENCE is set when the appointment has a conference link', () => {
+	const ics = buildIcs({
+		appointment: { ...baseAppointment, conference: 'https://zoom.us/j/12345' },
+		...baseInput
+	});
+	expect(ics).toContain('CONFERENCE;VALUE=URI:https://zoom.us/j/12345');
+});
+
+test('CONFERENCE is omitted when the appointment has none', () => {
+	const ics = buildIcs({ appointment: baseAppointment, ...baseInput });
+	expect(ics).not.toMatch(/^CONFERENCE/m);
+});
