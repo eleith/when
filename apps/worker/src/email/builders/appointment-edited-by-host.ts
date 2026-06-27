@@ -40,6 +40,14 @@ export function appointmentEditedByHost(i: AppointmentEmailInput): EmailMessage[
 		paragraphs.push('The location of your appointment was removed.');
 	}
 
+	if (changes.includes('conference_added')) {
+		paragraphs.push('A video link was added to your appointment.');
+	} else if (changes.includes('conference_updated')) {
+		paragraphs.push('The video link of your appointment was updated.');
+	} else if (changes.includes('conference_removed')) {
+		paragraphs.push('The video link of your appointment was removed.');
+	}
+
 	if (paragraphs.length === 0) {
 		paragraphs.push('The details of your appointment were updated.');
 	}
@@ -50,6 +58,7 @@ export function appointmentEditedByHost(i: AppointmentEmailInput): EmailMessage[
 		{ label: 'What', value: eventName },
 		{ label: 'When', value: guestWhen },
 		{ label: 'Where', value: a.location },
+		...(isConfirmed && a.conference ? [{ label: 'Video link', value: a.conference }] : []),
 		...(isConfirmed && a.note ? [{ label: 'Note', value: a.note }] : [])
 	];
 
@@ -57,6 +66,7 @@ export function appointmentEditedByHost(i: AppointmentEmailInput): EmailMessage[
 		{ label: 'What', value: eventName },
 		{ label: 'When', value: hostWhen },
 		{ label: 'Where', value: a.location },
+		...(a.conference ? [{ label: 'Video link', value: a.conference }] : []),
 		...(a.note ? [{ label: 'Note', value: a.note }] : []),
 		...answerRows(a)
 	];
@@ -76,7 +86,12 @@ export function appointmentEditedByHost(i: AppointmentEmailInput): EmailMessage[
 
 	const hasNoteChange = changes.some((c) => c.startsWith('note_'));
 	const hasLocationChange = changes.some((c) => c.startsWith('location_'));
-	const isMultipleChanges = (hasNoteChange && hasLocationChange) || changes.length > 1;
+	const hasConferenceChange = changes.some((c) => c.startsWith('conference_'));
+	const isMultipleChanges =
+		(hasNoteChange && hasLocationChange) ||
+		(hasNoteChange && hasConferenceChange) ||
+		(hasLocationChange && hasConferenceChange) ||
+		changes.length > 1;
 
 	if (!isMultipleChanges && hasNoteChange) {
 		if (changes.includes('note_added')) {
@@ -129,6 +144,32 @@ export function appointmentEditedByHost(i: AppointmentEmailInput): EmailMessage[
 			hostEmail.subject = `Location removed: ${eventName} with ${a.guest_name}`;
 			hostEmail.heading = 'Location removed from appointment';
 			hostEmail.previewText = `You removed the location from the appointment on ${hostWhen}.`;
+		}
+	} else if (!isMultipleChanges && hasConferenceChange) {
+		if (changes.includes('conference_added')) {
+			guestEmail.subject = `Video link added: ${eventName} with ${brand.name}`;
+			guestEmail.heading = 'Video link added to appointment';
+			guestEmail.previewText = `A video link was added to your appointment on ${guestWhen}.`;
+
+			hostEmail.subject = `Video link added: ${eventName} with ${a.guest_name}`;
+			hostEmail.heading = 'Video link added to appointment';
+			hostEmail.previewText = `You added a video link to the appointment on ${hostWhen}.`;
+		} else if (changes.includes('conference_updated')) {
+			guestEmail.subject = `Video link updated: ${eventName} with ${brand.name}`;
+			guestEmail.heading = 'Video link updated for appointment';
+			guestEmail.previewText = `The video link of your appointment on ${guestWhen} was updated.`;
+
+			hostEmail.subject = `Video link updated: ${eventName} with ${a.guest_name}`;
+			hostEmail.heading = 'Video link updated for appointment';
+			hostEmail.previewText = `You updated the video link of the appointment on ${hostWhen}.`;
+		} else if (changes.includes('conference_removed')) {
+			guestEmail.subject = `Video link removed: ${eventName} with ${brand.name}`;
+			guestEmail.heading = 'Video link removed from appointment';
+			guestEmail.previewText = `The video link was removed from your appointment on ${guestWhen}.`;
+
+			hostEmail.subject = `Video link removed: ${eventName} with ${a.guest_name}`;
+			hostEmail.heading = 'Video link removed from appointment';
+			hostEmail.previewText = `You removed the video link from the appointment on ${hostWhen}.`;
 		}
 	} else {
 		guestEmail.subject = `Updated details: ${eventName} with ${brand.name}`;

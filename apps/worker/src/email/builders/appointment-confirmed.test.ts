@@ -58,4 +58,21 @@ describe('appointmentConfirmed', () => {
 		expect(whenOf(guest)).toContain('GMT-8');
 		expect(whenOf(host)).toContain('GMT-5');
 	});
+
+	test('guest and host messages: include Video link when conference is present', () => {
+		const inputWithConf = {
+			...sampleInput,
+			appointment: { ...sampleInput.appointment, conference: 'https://zoom.us/j/12345' }
+		};
+		const [guest, host] = appointmentConfirmed(inputWithConf);
+
+		expect(guest.content.rows).toContainEqual({
+			label: 'Video link',
+			value: 'https://zoom.us/j/12345'
+		});
+		expect(host?.content.rows).toContainEqual({
+			label: 'Video link',
+			value: 'https://zoom.us/j/12345'
+		});
+	});
 });

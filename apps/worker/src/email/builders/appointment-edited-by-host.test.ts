@@ -272,4 +272,119 @@ describe('appointmentEditedByHost', () => {
 		expect(host.content.subject).toBe('Location removed: 30-min with Jane Doe');
 		expect(host.content.heading).toBe('Location removed from appointment');
 	});
+
+	test('conference link added on a confirmed appointment', () => {
+		const action_log = JSON.stringify([
+			{
+				action: 'edit',
+				actor: 'host',
+				at: '2026-01-02T10:00:00Z',
+				payload: {
+					metadata: {
+						changes: ['conference_added']
+					}
+				}
+			}
+		]);
+
+		const input = {
+			...sampleInput,
+			appointment: {
+				...sampleInput.appointment,
+				status: 'confirmed' as const,
+				conference: 'https://zoom.us/j/12345',
+				action_log
+			}
+		};
+
+		const [guest, host] = appointmentEditedByHost(input);
+
+		expect(guest.content.subject).toBe('Video link added: 30-min with Acme Scheduling');
+		expect(guest.content.heading).toBe('Video link added to appointment');
+		expect(guest.content.paragraphs).toContain('A video link was added to your appointment.');
+		expect(guest.content.rows).toContainEqual({
+			label: 'Video link',
+			value: 'https://zoom.us/j/12345'
+		});
+
+		expect(host.content.subject).toBe('Video link added: 30-min with Jane Doe');
+		expect(host.content.heading).toBe('Video link added to appointment');
+		expect(host.content.rows).toContainEqual({
+			label: 'Video link',
+			value: 'https://zoom.us/j/12345'
+		});
+	});
+
+	test('conference link updated on a confirmed appointment', () => {
+		const action_log = JSON.stringify([
+			{
+				action: 'edit',
+				actor: 'host',
+				at: '2026-01-02T10:00:00Z',
+				payload: {
+					metadata: {
+						changes: ['conference_updated']
+					}
+				}
+			}
+		]);
+
+		const input = {
+			...sampleInput,
+			appointment: {
+				...sampleInput.appointment,
+				status: 'confirmed' as const,
+				conference: 'https://zoom.us/j/67890',
+				action_log
+			}
+		};
+
+		const [guest, host] = appointmentEditedByHost(input);
+
+		expect(guest.content.subject).toBe('Video link updated: 30-min with Acme Scheduling');
+		expect(guest.content.heading).toBe('Video link updated for appointment');
+		expect(guest.content.paragraphs).toContain('The video link of your appointment was updated.');
+		expect(guest.content.rows).toContainEqual({
+			label: 'Video link',
+			value: 'https://zoom.us/j/67890'
+		});
+
+		expect(host.content.subject).toBe('Video link updated: 30-min with Jane Doe');
+		expect(host.content.heading).toBe('Video link updated for appointment');
+	});
+
+	test('conference link removed on a confirmed appointment', () => {
+		const action_log = JSON.stringify([
+			{
+				action: 'edit',
+				actor: 'host',
+				at: '2026-01-02T10:00:00Z',
+				payload: {
+					metadata: {
+						changes: ['conference_removed']
+					}
+				}
+			}
+		]);
+
+		const input = {
+			...sampleInput,
+			appointment: {
+				...sampleInput.appointment,
+				status: 'confirmed' as const,
+				conference: null,
+				action_log
+			}
+		};
+
+		const [guest, host] = appointmentEditedByHost(input);
+
+		expect(guest.content.subject).toBe('Video link removed: 30-min with Acme Scheduling');
+		expect(guest.content.heading).toBe('Video link removed from appointment');
+		expect(guest.content.paragraphs).toContain('The video link of your appointment was removed.');
+		expect(guest.content.rows.find((r) => r.label === 'Video link')?.value).toBeUndefined();
+
+		expect(host.content.subject).toBe('Video link removed: 30-min with Jane Doe');
+		expect(host.content.heading).toBe('Video link removed from appointment');
+	});
 });
