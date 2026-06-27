@@ -137,6 +137,7 @@ export interface EventType {
   destination_calendar: string;
   location?: Location;
   note?: string;
+  conference?: string;
   slot_granularity?: number;
   minimum_notice?: number;
   maximum_lookahead?: number;

@@ -529,6 +529,10 @@
 					"type": "string",
 					"minLength": 1
 				},
+				"conference": {
+					"type": "string",
+					"format": "uri"
+				},
 				"slot_granularity": {
 					"type": "integer",
 					"minimum": 1

@@ -86,6 +86,19 @@ test('location mode=fixed accepts fixed value', () => {
 	});
 });
 
+test('conference field accepts valid URI', () => {
+	const good = clone(validConfig);
+	good.event_types[0].conference = 'https://meet.example.com/jane';
+	const cfg = validateConfig(good);
+	expect(cfg.event_types[0].conference).toBe('https://meet.example.com/jane');
+});
+
+test('conference field rejects invalid URI', () => {
+	const bad = clone(validConfig);
+	bad.event_types[0].conference = 'invalid-uri-not-a-link';
+	expect(() => validateConfig(bad)).toThrow(ConfigError);
+});
+
 test('env vars are interpolated before validation', () => {
 	const raw = clone(validConfig) as unknown as typeof validConfig & {
 		auth: { credentials: { password_hash: string } };
