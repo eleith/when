@@ -11,6 +11,7 @@
 	import IconCheckCircle from 'virtual:icons/ph/check-circle';
 	import IconNote from 'virtual:icons/ph/note';
 	import IconPencilSimple from 'virtual:icons/ph/pencil-simple';
+	import IconVideo from 'virtual:icons/ph/video-conference';
 	import AppointmentActions from '$lib/components/AppointmentActions.svelte';
 	import AppointmentLog from '$lib/components/AppointmentLog.svelte';
 	import AppointmentQuestions from '$lib/components/AppointmentQuestions.svelte';
@@ -22,12 +23,15 @@
 	let cancelDialogOpen = $state(false);
 	let editNoteDialogOpen = $state(false);
 	let editLocationDialogOpen = $state(false);
+	let editConferenceDialogOpen = $state(false);
 	let cancelReason = $state('I can no longer attend');
 	let editNoteValue = $state('');
 	let editLocationValue = $state('');
+	let editConferenceValue = $state('');
 	let reasonTextarea = $state<HTMLTextAreaElement | null>(null);
 	let noteTextareaEl = $state<HTMLTextAreaElement | null>(null);
 	let locationInputEl = $state<HTMLInputElement | null>(null);
+	let conferenceInputEl = $state<HTMLInputElement | null>(null);
 
 	$effect(() => {
 		if (cancelDialogOpen) {
@@ -55,6 +59,16 @@
 			tick().then(() => {
 				locationInputEl?.focus();
 				locationInputEl?.select();
+			});
+		}
+	});
+
+	$effect(() => {
+		if (editConferenceDialogOpen) {
+			editConferenceValue = data.appointment.conference ?? '';
+			tick().then(() => {
+				conferenceInputEl?.focus();
+				conferenceInputEl?.select();
 			});
 		}
 	});
@@ -233,6 +247,8 @@
 					onEditNote={() => (editNoteDialogOpen = true)}
 					hasLocation={!!data.appointment.location}
 					onEditLocation={() => (editLocationDialogOpen = true)}
+					hasConference={!!data.appointment.conference}
+					onEditConference={() => (editConferenceDialogOpen = true)}
 					{isEditable}
 				/>
 			{/if}
@@ -352,6 +368,44 @@
 						<span class="detail-icon"><IconMapPin aria-hidden="true" /></span>
 						<div class="detail-text">
 							<div class="detail-primary">{data.appointment.location}</div>
+						</div>
+					</div>
+				{/if}
+			{/if}
+			{#if data.appointment.conference}
+				{#if data.isAdmin && isEditable}
+					<button
+						type="button"
+						class="detail-row-button"
+						onclick={() => (editConferenceDialogOpen = true)}
+						aria-label="Edit video link"
+					>
+						<span class="detail-icon"><IconVideo aria-hidden="true" /></span>
+						<div class="detail-text">
+							<div class="detail-primary">Video link</div>
+							<div class="detail-secondary conference-text-val">
+								<a
+									href={data.appointment.conference}
+									target="_blank"
+									rel="noopener noreferrer"
+									onclick={(e) => e.stopPropagation()}
+								>
+									{data.appointment.conference}
+								</a>
+							</div>
+						</div>
+						<span class="detail-edit-icon"><IconPencilSimple aria-hidden="true" /></span>
+					</button>
+				{:else}
+					<div class="detail-row">
+						<span class="detail-icon"><IconVideo aria-hidden="true" /></span>
+						<div class="detail-text">
+							<div class="detail-primary">Video link</div>
+							<div class="detail-secondary conference-text-val">
+								<a href={data.appointment.conference} target="_blank" rel="noopener noreferrer">
+									{data.appointment.conference}
+								</a>
+							</div>
 						</div>
 					</div>
 				{/if}
@@ -620,6 +674,64 @@
 	</Dialog.Portal>
 </Dialog.Root>
 
+<Dialog.Root bind:open={editConferenceDialogOpen}>
+	<Dialog.Portal>
+		<Dialog.Overlay>
+			{#snippet child({ props })}
+				<div {...props} class="dialog-overlay"></div>
+			{/snippet}
+		</Dialog.Overlay>
+		<Dialog.Content>
+			{#snippet child({ props })}
+				<div {...props} class="dialog-content cancel-dialog">
+					<Dialog.Title>
+						{#snippet child({ props: titleProps })}
+							<h2 {...titleProps} class="cancel-dialog-title">
+								{#if data.appointment.conference}Edit Video Link{:else}Add Video Link{/if}
+							</h2>
+						{/snippet}
+					</Dialog.Title>
+
+					<p class="cancel-dialog-desc">
+						This link will be included in the calendar invitation and email notifications sent to
+						the guest.
+					</p>
+
+					<form method="POST" action="/admin/appointment/{data.appointment.id}?/edit">
+						<input
+							type="url"
+							name="conference"
+							class="cancel-reason-input"
+							placeholder="e.g., https://zoom.us/j/..."
+							bind:value={editConferenceValue}
+							bind:this={conferenceInputEl}
+						/>
+						<div class="cancel-dialog-actions edit-note-actions">
+							<button type="submit" class="cancel-confirm-btn">Save</button>
+							{#if data.appointment.conference}
+								<button
+									type="submit"
+									class="delete-note-btn"
+									onclick={() => {
+										editConferenceValue = '';
+									}}
+								>
+									Delete
+								</button>
+							{/if}
+							<Dialog.Close>
+								{#snippet child({ props: closeProps })}
+									<button {...closeProps} type="button" class="cancel-cancel-btn">Close</button>
+								{/snippet}
+							</Dialog.Close>
+						</div>
+					</form>
+				</div>
+			{/snippet}
+		</Dialog.Content>
+	</Dialog.Portal>
+</Dialog.Root>
+
 <style>
 	.page {
 		max-width: 640px;
@@ -819,6 +931,16 @@
 		margin-top: 2px;
 	}
 
+	.detail-secondary a {
+		color: var(--primary);
+		text-decoration: underline;
+		word-break: break-all;
+	}
+
+	.detail-secondary a:hover {
+		opacity: 0.8;
+	}
+
 	.action-arrow {
 		display: inline-flex;
 		transition: transform var(--transition);
@@ -957,7 +1079,6 @@
 		backdrop-filter: blur(4px);
 		-webkit-backdrop-filter: blur(4px);
 		z-index: 200;
-		animation: cancel-fade-in 0.15s ease-out;
 	}
 
 	.dialog-content.cancel-dialog {
@@ -975,7 +1096,7 @@
 		padding: var(--space-6);
 		gap: var(--space-5);
 		box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.12);
-		animation: cancel-slide-up 0.2s ease-out;
+		animation: cancel-slide-up 0.12s cubic-bezier(0.16, 1, 0.3, 1);
 	}
 
 	@media (min-width: 769px) {
@@ -990,7 +1111,7 @@
 			transform: translate(-50%, -50%);
 			border: 1px solid var(--border);
 			border-radius: var(--radius-md);
-			animation: cancel-fade-up-desktop 0.2s ease-out;
+			animation: none;
 		}
 	}
 
@@ -1014,12 +1135,10 @@
 
 	@keyframes cancel-fade-up-desktop {
 		from {
-			transform: translate(-50%, calc(-50% + 8px));
-			opacity: 0;
+			transform: translate(-50%, calc(-50% + 15px));
 		}
 		to {
 			transform: translate(-50%, -50%);
-			opacity: 1;
 		}
 	}
 

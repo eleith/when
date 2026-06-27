@@ -15,6 +15,8 @@
 		onEditNote?: () => void;
 		hasLocation?: boolean;
 		onEditLocation?: () => void;
+		hasConference?: boolean;
+		onEditConference?: () => void;
 		isEditable?: boolean;
 	}
 
@@ -28,6 +30,8 @@
 		onEditNote,
 		hasLocation = false,
 		onEditLocation,
+		hasConference = false,
+		onEditConference,
 		isEditable = false
 	}: Props = $props();
 
@@ -124,6 +128,20 @@
 											{#snippet child({ props: itemProps })}
 												<button {...itemProps} type="button" class="action-item"
 													>Add Location</button
+												>
+											{/snippet}
+										</DropdownMenu.Item>
+									{/if}
+									{#if onEditConference && !hasConference}
+										<DropdownMenu.Item
+											onSelect={() => {
+												menuOpen = false;
+												onEditConference();
+											}}
+										>
+											{#snippet child({ props: itemProps })}
+												<button {...itemProps} type="button" class="action-item"
+													>Add Conference Link</button
 												>
 											{/snippet}
 										</DropdownMenu.Item>
@@ -306,7 +324,6 @@
 		backdrop-filter: blur(4px);
 		-webkit-backdrop-filter: blur(4px);
 		z-index: 200;
-		animation: share-fade-in 0.15s ease-out;
 	}
 
 	.dialog-content.share-dialog {
@@ -324,7 +341,7 @@
 		padding: var(--space-6);
 		gap: var(--space-5);
 		box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.12);
-		animation: share-slide-up 0.2s ease-out;
+		animation: share-slide-up 0.12s cubic-bezier(0.16, 1, 0.3, 1);
 	}
 
 	@media (min-width: 769px) {
@@ -338,7 +355,7 @@
 			transform: translate(-50%, -50%);
 			border: 1px solid var(--border);
 			border-radius: var(--radius-md);
-			animation: share-fade-up-desktop 0.2s ease-out;
+			animation: none;
 		}
 	}
 
@@ -362,12 +379,10 @@
 
 	@keyframes share-fade-up-desktop {
 		from {
-			transform: translate(-50%, calc(-50% + 8px));
-			opacity: 0;
+			transform: translate(-50%, calc(-50% + 15px));
 		}
 		to {
 			transform: translate(-50%, -50%);
-			opacity: 1;
 		}
 	}
 

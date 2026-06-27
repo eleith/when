@@ -94,10 +94,23 @@ export const actions: Actions = {
 		const locationInput = form.get('location');
 		const location = typeof locationInput === 'string' ? locationInput.trim() || null : undefined;
 
+		const conferenceInput = form.get('conference');
+		const conference =
+			typeof conferenceInput === 'string' ? conferenceInput.trim() || null : undefined;
+
+		if (conference) {
+			try {
+				new URL(conference);
+			} catch {
+				return fail(400, { error: 'Please enter a valid conference URL.' });
+			}
+		}
+
 		const result = await editAppointment(appointmentContext(), {
 			appointment: row,
 			note,
-			location
+			location,
+			conference
 		});
 
 		if (!result.ok) {

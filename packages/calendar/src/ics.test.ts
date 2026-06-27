@@ -12,6 +12,7 @@ const baseAppointment: Appointment = {
 	guest_answers: null,
 	location: null,
 	note: null,
+	conference: null,
 	status: 'confirmed',
 	origin_id: 'appt-123',
 	cancel_token: 'tok-abc',

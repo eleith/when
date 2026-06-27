@@ -24,6 +24,7 @@ export interface PublicAppointment {
 	answers: ReturnType<typeof parseGuestAnswers>;
 	location: string | null;
 	note: string | null;
+	conference: string | null;
 	status: string;
 	action_log: ActionLogEntry[];
 }
@@ -65,6 +66,7 @@ export function toPublicAppointment(row: Appointment, isAdmin: boolean): PublicA
 			answers: parseGuestAnswers(row.guest_answers),
 			location: row.location,
 			note: row.note,
+			conference: row.conference,
 			status: row.status,
 			action_log
 		};
@@ -93,6 +95,7 @@ export function toPublicAppointment(row: Appointment, isAdmin: boolean): PublicA
 		answers: parseGuestAnswers(row.guest_answers),
 		location: isConfirmed ? row.location : null,
 		note: isConfirmed ? row.note : null,
+		conference: isConfirmed ? row.conference : null,
 		status: row.status,
 		action_log: publicLog
 	};

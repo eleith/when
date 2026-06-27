@@ -17,6 +17,7 @@ export const sampleAppointment: Appointment = {
 	location: 'Zoom',
 	status: 'confirmed',
 	note: null,
+	conference: null,
 	cancel_token: 'tok-1',
 	action_log: null,
 	external_event_id: null,
