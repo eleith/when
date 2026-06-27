@@ -1,11 +1,8 @@
-export { sendAppointmentEmail, sendOwnerAlert, syncCalendars, purgeAppointment } from './specs.js';
+export { sendAppointmentEmail, syncCalendars, purgeAppointment } from './specs.js';
 export type {
 	AppointmentEmailKind,
 	SendAppointmentEmailInput,
 	SendAppointmentEmailResult,
-	OwnerAlertKind,
-	SendOwnerAlertInput,
-	SendOwnerAlertResult,
 	SyncCalendarsInput,
 	SyncCalendarsResult,
 	PurgeAppointmentRow,

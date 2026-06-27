@@ -53,34 +53,7 @@ export const sendAppointmentEmail: WorkflowSpec<
 	}
 });
 
-/** A calendar broke (`broke`) or recovered (`recovered`); drives the owner email. */
-export type OwnerAlertKind = 'broke' | 'recovered';
 
-/**
- * Self-contained input for an owner-alert run: the raw facts of the transition.
- * The worker renders the email from these + its own config (owner address, brand).
- */
-export interface SendOwnerAlertInput {
-	calendarId: string;
-	kind: OwnerAlertKind;
-	/** When the breakage began (for `broke`); null for a recovery. */
-	since: string | null;
-	reason: string;
-}
-
-export type SendOwnerAlertResult = 'sent' | 'failed';
-
-/** Producer-side contract for the owner-alert email; worker implements it. */
-export const sendOwnerAlert: WorkflowSpec<SendOwnerAlertInput, SendOwnerAlertResult> =
-	defineWorkflowSpec<SendOwnerAlertInput, SendOwnerAlertResult>({
-		name: 'send-owner-alert',
-		retryPolicy: {
-			maximumAttempts: 3,
-			initialInterval: '1m',
-			backoffCoefficient: 2,
-			maximumInterval: '15m'
-		}
-	});
 
 export interface PurgeAppointmentRow {
 	id: string;

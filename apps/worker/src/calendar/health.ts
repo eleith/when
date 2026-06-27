@@ -6,7 +6,6 @@ import {
 	type CalendarHealth,
 	type CalendarSyncStatus
 } from '@when/db';
-import { getOpenWorkflow, sendOwnerAlert } from '@when/jobs';
 import type { WorkerContext } from '../services/context.js';
 import { openCalendarFailureAt } from '../services/job-log.js';
 import { DEFAULT_REFRESH_INTERVAL_MINUTES } from './intervals.js';
@@ -108,35 +107,10 @@ export async function evaluateHealth(
 		);
 		if (next.health === status.health) continue;
 
-		// Enqueue the alert (a durable job) BEFORE flipping, so a crash in between
-		// re-fires at most one duplicate rather than losing the alert.
-		await alertOnEdge(status, next, now);
 		await setCalendarHealth(ctx.db, status.calendar_id, {
 			health: next.health,
 			changedAt: now.toString(),
 			reason: next.reason
 		});
 	}
-}
-
-async function alertOnEdge(
-	status: CalendarSyncStatus,
-	next: Derived,
-	now: Temporal.Instant
-): Promise<void> {
-	const broke = next.health === 'bad' && status.health !== 'bad';
-	const recovered = next.health === 'good' && status.health === 'bad';
-	if (!broke && !recovered) return;
-
-	const kind = broke ? 'broke' : 'recovered';
-	await getOpenWorkflow().runWorkflow(
-		sendOwnerAlert,
-		{
-			calendarId: status.calendar_id,
-			kind,
-			since: broke ? status.last_successful_refresh_at : null,
-			reason: next.reason ?? 'A refresh just succeeded.'
-		},
-		{ idempotencyKey: `owner-alert:${status.calendar_id}:${kind}:${now.toString()}` }
-	);
 }

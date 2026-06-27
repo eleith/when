@@ -1,5 +1,4 @@
 import { registerSendAppointmentEmailWorkflow } from './send-appointment-email.js';
-import { registerSendOwnerAlertWorkflow } from './send-owner-alert.js';
 import { registerPurgeAppointmentWorkflow } from './purge-appointment.js';
 
 /**
@@ -8,6 +7,5 @@ import { registerPurgeAppointmentWorkflow } from './purge-appointment.js';
  */
 export function registerWorkflows(): void {
 	registerSendAppointmentEmailWorkflow();
-	registerSendOwnerAlertWorkflow();
 	registerPurgeAppointmentWorkflow();
 }
