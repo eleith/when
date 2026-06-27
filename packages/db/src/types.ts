@@ -24,6 +24,7 @@ export interface AppointmentsTable {
 	guest_timezone: NullableText;
 	location: string | null;
 	note: string | null;
+	conference: string | null;
 	status: AppointmentStatus;
 	origin_id: NullableText;
 	cancel_token: string;
@@ -97,6 +98,7 @@ export interface ActionLogEntry {
 	at: string;
 	payload?: {
 		note?: string;
+		conference?: string;
 		field?: string;
 		from?: unknown;
 		to?: unknown;
