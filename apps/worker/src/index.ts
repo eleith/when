@@ -75,7 +75,7 @@ async function main(): Promise<void> {
 	logger.info({ tickMinutes: EXPIRE_TICK_MINUTES }, 'expiry sweep scheduled');
 
 	const port = Number(process.env.PORT) || DEFAULT_PORT;
-	const server = createHealthServer();
+	const server = createHealthServer(config);
 	server.listen(port, () => logger.info({ port }, 'health server listening'));
 
 	const shutdown = async (signal: string): Promise<void> => {
