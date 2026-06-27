@@ -54,6 +54,7 @@ test('toAppointmentView enriches appointment rows correctly', () => {
 		guest_timezone: 'UTC',
 		location: 'Zoom',
 		note: null,
+		conference: null,
 		status: 'confirmed',
 		origin_id: null,
 		cancel_token: 'tok-a1',

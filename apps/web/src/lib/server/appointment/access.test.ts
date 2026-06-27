@@ -19,6 +19,7 @@ const baseRow: Appointment = {
 	guest_timezone: null,
 	location: null,
 	note: null,
+	conference: null,
 	status: 'confirmed',
 	origin_id: 'appt-1',
 	cancel_token: 'tok-abc',

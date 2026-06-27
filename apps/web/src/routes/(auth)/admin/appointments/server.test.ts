@@ -32,6 +32,7 @@ const mockAppts: Record<string, Appointment> = {
 		ics_sequence: 0,
 		event_type_snapshot: JSON.stringify(validConfig.event_types[0]),
 		note: null,
+		conference: null,
 		created_at: '',
 		updated_at: ''
 	},
@@ -57,6 +58,7 @@ const mockAppts: Record<string, Appointment> = {
 		ics_sequence: 0,
 		event_type_snapshot: JSON.stringify(validConfig.event_types[0]),
 		note: null,
+		conference: null,
 		created_at: '',
 		updated_at: ''
 	}

@@ -8,6 +8,7 @@ export interface EditAppointmentInput {
 	appointment: Appointment;
 	note?: string | null;
 	location?: string | null;
+	conference?: string | null;
 }
 
 export type EditAppointmentResult =
@@ -53,11 +54,16 @@ export async function editAppointment(
 		| 'location_added'
 		| 'location_updated'
 		| 'location_removed'
+		| 'conference_added'
+		| 'conference_updated'
+		| 'conference_removed'
 	)[] = [];
 
 	const noteValue = input.note !== undefined ? input.note?.trim() || null : appointment.note;
 	const locationValue =
 		input.location !== undefined ? input.location?.trim() || null : appointment.location;
+	const conferenceValue =
+		input.conference !== undefined ? input.conference?.trim() || null : appointment.conference;
 
 	const noteChange = detectFieldChange(appointment.note, input.note);
 	if (noteChange) {
@@ -67,6 +73,11 @@ export async function editAppointment(
 	const locationChange = detectFieldChange(appointment.location, input.location);
 	if (locationChange) {
 		changes.push(`location_${locationChange}`);
+	}
+
+	const conferenceChange = detectFieldChange(appointment.conference, input.conference);
+	if (conferenceChange) {
+		changes.push(`conference_${conferenceChange}`);
 	}
 
 	if (changes.length === 0) {
@@ -88,6 +99,7 @@ export async function editAppointment(
 		.set({
 			note: noteValue,
 			location: locationValue,
+			conference: conferenceValue,
 			ics_sequence: sql`ics_sequence + 1`,
 			calendar_revision: sql`calendar_revision + 1`,
 			action_log: appendActionLogSql(editEntry),

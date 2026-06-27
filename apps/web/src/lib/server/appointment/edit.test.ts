@@ -16,6 +16,7 @@ const baseRow = {
 	guest_answers: null,
 	location: null,
 	note: null,
+	conference: null,
 	external_event_id: null,
 	external_calendar_id: null
 };
@@ -98,6 +99,74 @@ describe('editAppointment', () => {
 				const log = parseActionLog(result.appointment.action_log);
 				expect(log.length).toBe(3);
 				expect(log[2].payload?.metadata?.changes).toEqual(['note_removed']);
+			}
+
+			expect(enqueueCalendarSync).toHaveBeenCalledTimes(3);
+			expect(enqueueAppointmentEmail).toHaveBeenCalledTimes(3);
+		} finally {
+			await db.destroy();
+		}
+	});
+
+	test('happy path: add conference, edit conference, remove conference', async () => {
+		const db = await makeDb();
+		try {
+			// Seed a confirmed appointment with no conference link
+			await db
+				.insertInto('appointments')
+				.values({ ...baseRow, id: 'a1_c', status: 'confirmed', cancel_token: 't1_c' })
+				.execute();
+
+			// 1. Add Conference
+			let row = await fetchRow(db, 'a1_c');
+			let result = await editAppointment(
+				{ db, cfg: validConfig, clock: systemClock },
+				{ appointment: row, conference: 'https://zoom.us/j/12345' }
+			);
+
+			expect(result.ok).toBe(true);
+			if (result.ok) {
+				expect(result.appointment.conference).toBe('https://zoom.us/j/12345');
+				expect(result.appointment.calendar_revision).toBe(1);
+				expect(result.appointment.ics_sequence).toBe(1);
+				const log = parseActionLog(result.appointment.action_log);
+				expect(log.length).toBe(1);
+				expect(log[0].action).toBe('edit');
+				expect(log[0].payload?.metadata?.changes).toEqual(['conference_added']);
+			}
+
+			// 2. Edit Conference
+			row = await fetchRow(db, 'a1_c');
+			result = await editAppointment(
+				{ db, cfg: validConfig, clock: systemClock },
+				{ appointment: row, conference: 'https://zoom.us/j/67890' }
+			);
+
+			expect(result.ok).toBe(true);
+			if (result.ok) {
+				expect(result.appointment.conference).toBe('https://zoom.us/j/67890');
+				expect(result.appointment.calendar_revision).toBe(2);
+				expect(result.appointment.ics_sequence).toBe(2);
+				const log = parseActionLog(result.appointment.action_log);
+				expect(log.length).toBe(2);
+				expect(log[1].payload?.metadata?.changes).toEqual(['conference_updated']);
+			}
+
+			// 3. Remove Conference (passing null or empty string)
+			row = await fetchRow(db, 'a1_c');
+			result = await editAppointment(
+				{ db, cfg: validConfig, clock: systemClock },
+				{ appointment: row, conference: null }
+			);
+
+			expect(result.ok).toBe(true);
+			if (result.ok) {
+				expect(result.appointment.conference).toBeNull();
+				expect(result.appointment.calendar_revision).toBe(3);
+				expect(result.appointment.ics_sequence).toBe(3);
+				const log = parseActionLog(result.appointment.action_log);
+				expect(log.length).toBe(3);
+				expect(log[2].payload?.metadata?.changes).toEqual(['conference_removed']);
 			}
 
 			expect(enqueueCalendarSync).toHaveBeenCalledTimes(3);
