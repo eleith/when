@@ -64,10 +64,13 @@ export async function refreshCalendar(
 		await recordRefreshResult(ctx.db, cal.id, { at });
 	} catch (err) {
 		const error = err instanceof Error ? err.message : String(err);
-		ctx.logger.error('calendar refresh failed; keeping stale busy times', {
-			calendarId: cal.id,
-			error
-		});
+		ctx.logger.error(
+			{
+				calendarId: cal.id,
+				error
+			},
+			'calendar refresh failed; keeping stale busy times'
+		);
 		await recordRefreshResult(ctx.db, cal.id, { at, error });
 	}
 }
@@ -82,7 +85,7 @@ export async function refreshCalendars(
 	for (const id of conflictCalendarIds(ctx.config)) {
 		const cal = ctx.config.calendars.find((c) => c.id === id);
 		if (!cal) {
-			ctx.logger.warn('conflict_calendar id not found in calendars; skipping', { calendarId: id });
+			ctx.logger.warn({ calendarId: id }, 'conflict_calendar id not found in calendars; skipping');
 			continue;
 		}
 		// Each calendar refreshes on its own interval; a never-synced or failing one

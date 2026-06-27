@@ -1,4 +1,5 @@
 import { expect, test } from 'vitest';
+import pino from 'pino';
 import { Temporal } from '@js-temporal/polyfill';
 import type { Calendar, WhenConfiguration } from '@when/config';
 import type { FetchFn } from '@when/calendar';
@@ -14,7 +15,7 @@ import {
 
 const inst = (s: string) => Temporal.Instant.from(s);
 const window = { start: inst('2026-04-01T00:00:00Z'), end: inst('2026-05-01T00:00:00Z') };
-const silent: Logger = { debug() {}, info() {}, warn() {}, error() {} };
+const silent: Logger = pino({ level: 'silent' });
 
 const workCal: Calendar = {
 	id: 'work',

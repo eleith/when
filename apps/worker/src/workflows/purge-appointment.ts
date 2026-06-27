@@ -46,12 +46,15 @@ export async function runPurgeAppointment(
 				});
 			} catch (err) {
 				// Give up but still delete the row; the orphan is logged, not retried forever.
-				logger.warn('purge left an orphaned calendar event', {
-					appointmentId: row.id,
-					calendarId: externalCalendarId,
-					externalEventId,
-					error: err instanceof Error ? err.message : String(err)
-				});
+				logger.warn(
+					{
+						appointmentId: row.id,
+						calendarId: externalCalendarId,
+						externalEventId,
+						error: err instanceof Error ? err.message : String(err)
+					},
+					'purge left an orphaned calendar event'
+				);
 			}
 		}
 		await step.run({ name: `delete:${row.id}` }, async () => {

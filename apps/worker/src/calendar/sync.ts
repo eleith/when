@@ -40,10 +40,13 @@ export async function reconcileAppointment(
 			await appendJobLog(ctx.db, row.id, 'calendar', 'done', Temporal.Now.instant().toString());
 		} else {
 			await markCalendarFailing(ctx.db, row, Temporal.Now.instant().toString());
-			ctx.logger.error('calendar sync failed; will retry next scan', {
-				appointmentId: row.id,
-				reason: pushed.reason
-			});
+			ctx.logger.error(
+				{
+					appointmentId: row.id,
+					reason: pushed.reason
+				},
+				'calendar sync failed; will retry next scan'
+			);
 		}
 		return;
 	}
@@ -66,10 +69,13 @@ export async function reconcileAppointment(
 			await appendJobLog(ctx.db, row.id, 'calendar', 'done', Temporal.Now.instant().toString());
 		} else {
 			await markCalendarFailing(ctx.db, row, Temporal.Now.instant().toString());
-			ctx.logger.error('calendar delete failed; will retry next scan', {
-				appointmentId: row.id,
-				reason: deleted.reason
-			});
+			ctx.logger.error(
+				{
+					appointmentId: row.id,
+					reason: deleted.reason
+				},
+				'calendar delete failed; will retry next scan'
+			);
 		}
 		return;
 	}

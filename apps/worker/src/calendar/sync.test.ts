@@ -1,4 +1,5 @@
 import { expect, test } from 'vitest';
+import pino from 'pino';
 import type { WhenConfiguration } from '@when/config';
 import type { FetchFn } from '@when/calendar';
 import { openDb, runMigrations, listOutOfSyncAppointments, parseActionLog } from '@when/db';
@@ -6,7 +7,7 @@ import type { Logger } from '../services/logger.js';
 import type { WorkerContext } from '../services/context.js';
 import { reconcileAppointment, scanOnce } from './sync.js';
 
-const silent: Logger = { debug() {}, info() {}, warn() {}, error() {} };
+const silent: Logger = pino({ level: 'silent' });
 
 const config = {
 	user: { name: 'Jane', email: 'jane@example.com', timezone: 'America/New_York' },

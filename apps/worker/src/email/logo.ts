@@ -1,5 +1,5 @@
 import type { WhenConfiguration } from '@when/config';
-import { log } from '../services/logger.js';
+import { logger } from '../services/logger.js';
 import type { Attachment } from './recipients.js';
 
 export const BRAND_LOGO_CID = 'brand-logo';
@@ -29,20 +29,20 @@ async function load(url: string): Promise<Attachment | null> {
 	try {
 		const res = await fetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
 		if (!res.ok) {
-			log('warn', 'brand logo fetch returned non-200', { url, status: res.status });
+			logger.warn({ url, status: res.status }, 'brand logo fetch returned non-200');
 			return null;
 		}
 		const contentType = res.headers.get('content-type') ?? 'image/png';
 		if (!contentType.startsWith('image/')) {
-			log('warn', 'brand logo response is not an image', { url, contentType });
+			logger.warn({ url, contentType }, 'brand logo response is not an image');
 			return null;
 		}
 		const bytes = Buffer.from(await res.arrayBuffer());
 		if (bytes.length === 0) {
-			log('warn', 'brand logo response was empty', { url });
+			logger.warn({ url }, 'brand logo response was empty');
 			return null;
 		}
-		log('info', 'brand logo embedded in email', { url, bytes: bytes.length, contentType });
+		logger.info({ url, bytes: bytes.length, contentType }, 'brand logo embedded in email');
 		return {
 			filename: filenameFor(contentType),
 			content: bytes.toString('base64'),
@@ -51,10 +51,13 @@ async function load(url: string): Promise<Attachment | null> {
 			encoding: 'base64'
 		};
 	} catch (err) {
-		log('warn', 'brand logo fetch failed', {
-			url,
-			error: err instanceof Error ? err.message : String(err)
-		});
+		logger.warn(
+			{
+				url,
+				error: err instanceof Error ? err.message : String(err)
+			},
+			'brand logo fetch failed'
+		);
 		return null;
 	}
 }
@@ -62,7 +65,7 @@ async function load(url: string): Promise<Attachment | null> {
 export async function fetchBrandLogo(cfg: WhenConfiguration): Promise<Attachment | null> {
 	const url = resolveImageUrl(cfg);
 	if (!url) {
-		log('debug', 'no brand image configured for email header (logo_url/avatar_url)');
+		logger.debug('no brand image configured for email header (logo_url/avatar_url)');
 		return null;
 	}
 	const cached = cache.get(url);

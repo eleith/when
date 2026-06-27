@@ -68,7 +68,7 @@ async function seedDb(rows: Record<string, unknown>[]): Promise<Kysely<Database>
 
 function useContext(db: Kysely<Database>) {
 	const warn = vi.fn();
-	const logger: Logger = { debug() {}, info() {}, warn, error() {} };
+	const logger: Logger = { debug() {}, info() {}, warn, error() {} } as unknown as Logger;
 	setWorkerContext({ config, db, logger, mailer: { send: async () => ({ ok: true as const }) } });
 	return { warn };
 }
@@ -111,8 +111,8 @@ test('unreachable calendar: logs the orphan but still deletes the row', async ()
 
 		expect(await runPurgeAppointment(input, makeStep().step, { fetchImpl })).toBe('purged');
 		expect(warn).toHaveBeenCalledWith(
-			'purge left an orphaned calendar event',
-			expect.objectContaining({ appointmentId: '1', externalEventId: '1' })
+			expect.objectContaining({ appointmentId: '1', externalEventId: '1' }),
+			'purge left an orphaned calendar event'
 		);
 		expect(await exists(db, '1')).toBe(false);
 	} finally {

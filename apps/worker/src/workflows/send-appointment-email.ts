@@ -46,10 +46,13 @@ export async function runSendAppointmentEmail(
 			});
 		} catch (err) {
 			allSent = false;
-			logger.error('appointment email send failed after retries', {
-				to: envelope.to,
-				error: err instanceof Error ? err.message : String(err)
-			});
+			logger.error(
+				{
+					to: envelope.to,
+					error: err instanceof Error ? err.message : String(err)
+				},
+				'appointment email send failed after retries'
+			);
 		}
 	}
 

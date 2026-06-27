@@ -1,23 +1,43 @@
-export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+import pino, { type Logger as PinoLogger, type LoggerOptions } from 'pino';
 
-export interface Logger {
-	debug(message: string, fields?: Record<string, unknown>): void;
-	info(message: string, fields?: Record<string, unknown>): void;
-	warn(message: string, fields?: Record<string, unknown>): void;
-	error(message: string, fields?: Record<string, unknown>): void;
-}
+export type Logger = PinoLogger;
 
-/** Write one structured JSON log line to stdout. */
-export function log(level: LogLevel, message: string, fields: Record<string, unknown> = {}): void {
-	const line = JSON.stringify({ ts: new Date().toISOString(), level, message, ...fields });
-	process.stdout.write(line + '\n');
-}
+const isDev = process.env.NODE_ENV !== 'production';
+
+export const loggerOptions: LoggerOptions = {
+	level: process.env.WHEN_LOG_LEVEL ?? (isDev ? 'debug' : 'info'),
+	base: { app: 'when-worker' },
+	redact: {
+		paths: [
+			'password',
+			'password_hash',
+			'client_secret',
+			'access_token',
+			'refresh_token',
+			'cancel_token',
+			'authorization',
+			'cookie',
+			'*.password',
+			'*.password_hash',
+			'*.client_secret',
+			'*.access_token',
+			'*.refresh_token',
+			'*.cancel_token'
+		],
+		censor: '[REDACTED]'
+	},
+	...(isDev
+		? {
+				transport: {
+					target: 'pino-pretty',
+					options: { colorize: true, translateTime: 'HH:MM:ss.l', singleLine: false }
+				}
+			}
+		: {})
+};
+
+export const logger: Logger = pino(loggerOptions);
 
 export function createLogger(): Logger {
-	return {
-		debug: (message, fields) => log('debug', message, fields),
-		info: (message, fields) => log('info', message, fields),
-		warn: (message, fields) => log('warn', message, fields),
-		error: (message, fields) => log('error', message, fields)
-	};
+	return logger;
 }

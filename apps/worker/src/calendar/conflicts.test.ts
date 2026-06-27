@@ -1,4 +1,5 @@
 import { expect, test } from 'vitest';
+import pino from 'pino';
 import { Temporal } from '@js-temporal/polyfill';
 import type { WhenConfiguration } from '@when/config';
 import { openDb, runMigrations, replaceCalendarBusy } from '@when/db';
@@ -7,7 +8,7 @@ import type { WorkerContext } from '../services/context.js';
 import { flagConflicts } from './conflicts.js';
 
 const inst = (s: string) => Temporal.Instant.from(s);
-const silent: Logger = { debug() {}, info() {}, warn() {}, error() {} };
+const silent: Logger = pino({ level: 'silent' });
 
 const appt = (over: Record<string, unknown>) => ({
 	id: 'a',
