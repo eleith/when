@@ -59,5 +59,13 @@ export const validConfig: WhenConfiguration = {
 		app: './data/when.sqlite',
 		queue: './data/openworkflow.sqlite'
 	},
-	url: { app: 'localhost:3000', internal: 'http://localhost:3000' }
+	url: {
+		app: 'localhost:3000',
+		internal: 'http://localhost:3000',
+		worker: 'http://localhost:9000'
+	},
+	prometheus: {
+		enabled: false,
+		secret: 'test-token'
+	}
 };

@@ -13,7 +13,8 @@
 		"availability",
 		"event_types",
 		"database",
-		"url"
+		"url",
+		"prometheus"
 	],
 	"properties": {
 		"auth": {
@@ -48,6 +49,10 @@
 		"url": {
 			"$ref": "#/$defs/Url",
 			"default": {}
+		},
+		"prometheus": {
+			"$ref": "#/$defs/PrometheusConfig",
+			"default": {}
 		}
 	},
 	"$defs": {
@@ -56,7 +61,7 @@
 			"description": "Public URLs for the app.",
 			"type": "object",
 			"additionalProperties": false,
-			"required": ["app", "internal"],
+			"required": ["app", "internal", "worker"],
 			"properties": {
 				"app": {
 					"type": "string",
@@ -68,6 +73,11 @@
 					"type": "string",
 					"description": "Base URL the worker uses to reach the app over the internal network (e.g. http://when-app:3000), used to fetch relative branding images for embedding in emails. Defaults to the WHEN_URL_INTERNAL env var (baked into the Docker images per target); empty falls back to `app`.",
 					"default": "${WHEN_URL_INTERNAL:-}"
+				},
+				"worker": {
+					"type": "string",
+					"description": "Base URL the web app uses to reach the worker over the internal network (e.g. http://when-worker:9000), used to query private worker telemetry and metrics.",
+					"default": "http://when-worker:9000"
 				}
 			}
 		},
@@ -590,6 +600,25 @@
 				"fixed": {
 					"type": "string",
 					"minLength": 1
+				}
+			}
+		},
+		"PrometheusConfig": {
+			"title": "PrometheusConfig",
+			"description": "Prometheus metrics collection settings.",
+			"type": "object",
+			"additionalProperties": false,
+			"required": ["enabled", "secret"],
+			"properties": {
+				"enabled": {
+					"type": "boolean",
+					"description": "Whether metrics collection and endpoint are active.",
+					"default": false
+				},
+				"secret": {
+					"type": "string",
+					"description": "Bearer token for scraping metrics. Defaults to METRICS_TOKEN env var.",
+					"default": "${METRICS_TOKEN:-}"
 				}
 			}
 		}

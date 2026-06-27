@@ -30,6 +30,7 @@ export interface WhenConfiguration {
   event_types: [EventType, ...EventType[]];
   database: DatabaseConfig;
   url: Url;
+  prometheus: PrometheusConfig;
 }
 export interface OidcAuth {
   issuer: string;
@@ -183,4 +184,21 @@ export interface Url {
    * Base URL the worker uses to reach the app over the internal network (e.g. http://when-app:3000), used to fetch relative branding images for embedding in emails. Defaults to the WHEN_URL_INTERNAL env var (baked into the Docker images per target); empty falls back to `app`.
    */
   internal: string;
+  /**
+   * Base URL the web app uses to reach the worker over the internal network (e.g. http://when-worker:9000), used to query private worker telemetry and metrics.
+   */
+  worker: string;
+}
+/**
+ * Prometheus metrics collection settings.
+ */
+export interface PrometheusConfig {
+  /**
+   * Whether metrics collection and endpoint are active.
+   */
+  enabled: boolean;
+  /**
+   * Bearer token for scraping metrics. Defaults to METRICS_TOKEN env var.
+   */
+  secret: string;
 }
