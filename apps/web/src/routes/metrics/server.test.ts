@@ -1,4 +1,5 @@
 import { describe, expect, test, vi } from 'vitest';
+import type { RequestEvent } from './$types';
 import { GET } from './+server';
 import { register } from '$lib/server/metrics';
 
@@ -30,7 +31,7 @@ describe('GET /metrics scrape aggregator endpoint', () => {
 			GET({
 				request: mockRequest,
 				fetch: vi.fn()
-			} as any)
+			} as unknown as RequestEvent)
 		).rejects.toThrow();
 	});
 
@@ -46,7 +47,7 @@ describe('GET /metrics scrape aggregator endpoint', () => {
 		const res = await GET({
 			request: mockRequest,
 			fetch: vi.fn()
-		} as any);
+		} as unknown as RequestEvent);
 
 		expect(res.status).toBe(401);
 		expect(await res.text()).toBe('Unauthorized');
@@ -63,13 +64,14 @@ describe('GET /metrics scrape aggregator endpoint', () => {
 
 		const mockFetch = vi.fn().mockResolvedValue({
 			ok: true,
-			text: async () => `# HELP when_jobs_total Total jobs.\n# TYPE when_jobs_total counter\nwhen_jobs_total{job_name="sendAppointmentEmail",status="success"} 12`
+			text: async () =>
+				`# HELP when_jobs_total Total jobs.\n# TYPE when_jobs_total counter\nwhen_jobs_total{job_name="sendAppointmentEmail",status="success"} 12`
 		});
 
 		const res = await GET({
 			request: mockRequest,
 			fetch: mockFetch
-		} as any);
+		} as unknown as RequestEvent);
 
 		expect(res.status).toBe(200);
 		expect(res.headers.get('content-type')).toBe(register.contentType);
@@ -107,7 +109,7 @@ describe('GET /metrics scrape aggregator endpoint', () => {
 		const res = await GET({
 			request: mockRequest,
 			fetch: mockFetch
-		} as any);
+		} as unknown as RequestEvent);
 
 		expect(res.status).toBe(200);
 		const text = await res.text();
