@@ -1,6 +1,5 @@
 import type { RetryPolicy } from 'openworkflow';
 import { deleteAppointmentFromCalendar, type FetchFn } from '@when/calendar';
-import { getOpenWorkflow } from '@when/jobs';
 import { purgeAppointment } from '@when/jobs/specs';
 import type { PurgeAppointmentInput, PurgeAppointmentResult } from '@when/jobs';
 import { getWorkerContext } from '../services/context.js';

@@ -1,6 +1,5 @@
 import type { RetryPolicy } from 'openworkflow';
 import { Temporal } from '@js-temporal/polyfill';
-import { getOpenWorkflow } from '@when/jobs';
 import { sendAppointmentEmail } from '@when/jobs/specs';
 import type { SendAppointmentEmailInput, SendAppointmentEmailResult } from '@when/jobs';
 import { dispatch } from '../email/dispatch.js';
