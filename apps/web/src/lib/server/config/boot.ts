@@ -1,11 +1,10 @@
 import { access } from 'node:fs/promises';
 import { logger } from '../logger';
-import { configValid } from '../metrics';
+
 import { ConfigError, loadConfigFile, MissingEnvVarsError, resolveConfigPath } from '@when/config';
 import type { WhenConfiguration } from '@when/config';
 
 export async function bootConfig(path: string = resolveConfigPath()): Promise<WhenConfiguration> {
-	configValid.set(0);
 	const exists = await access(path).then(
 		() => true,
 		() => false
@@ -19,7 +18,6 @@ export async function bootConfig(path: string = resolveConfigPath()): Promise<Wh
 	}
 	try {
 		const cfg = await loadConfigFile(path);
-		configValid.set(1);
 		logger.info(
 			{
 				path,

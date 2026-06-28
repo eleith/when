@@ -2,6 +2,7 @@ import { redirect } from '@sveltejs/kit';
 import { isRedirect } from '@sveltejs/kit';
 import { signInAction } from '$lib/server/auth';
 import { getConfig } from '$lib/server/state';
+import { userLoginsTotal } from '$lib/server/metrics';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ url, locals }) => {
@@ -17,12 +18,19 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 
 export const actions: Actions = {
 	default: async (event) => {
+		const cfg = getConfig();
+		const provider = 'credentials' in cfg.auth ? 'credentials' : 'oidc';
 		try {
-			return await signInAction(event);
+			const result = await signInAction(event);
+			userLoginsTotal.inc({ provider, status: 'success' });
+			return result;
 		} catch (error) {
 			if (isRedirect(error)) {
+				userLoginsTotal.inc({ provider, status: 'success' });
 				throw error;
 			}
+
+			userLoginsTotal.inc({ provider, status: 'failure' });
 
 			const callbackUrl = event.url.searchParams.get('callbackUrl') ?? '/admin';
 			let errorType = 'CredentialsSignin';

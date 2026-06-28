@@ -17,6 +17,7 @@ import {
 import { appointmentContext } from '$lib/server/appointment/context';
 import { normalizeDeepLinkParams } from '$lib/appointment';
 import { toPublicEventType } from '$lib/server/appointment/sanitize';
+import { bookingAttemptsTotal } from '$lib/server/metrics';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params, url, locals }) => {
@@ -71,11 +72,13 @@ export const actions: Actions = {
 		const slotStr = String(form.get('slot') ?? '');
 
 		if (!slotStr) {
+			bookingAttemptsTotal.inc({ event_type_id: eventType.id, status: 'invalid_input' });
 			return fail(400, { error: 'Please pick a time slot.' });
 		}
 
 		const parsed = parseAndValidateAppointmentForm(eventType, form);
 		if (!parsed.ok) {
+			bookingAttemptsTotal.inc({ event_type_id: eventType.id, status: 'invalid_input' });
 			return fail(400, { fieldErrors: parsed.errors });
 		}
 		const { name, email, answers, location: resolvedLocation } = parsed.data;
@@ -104,6 +107,7 @@ export const actions: Actions = {
 			perDayCount: blocks.perDayCount
 		});
 		if (!slots.some((s) => s.toString() === slotStr)) {
+			bookingAttemptsTotal.inc({ event_type_id: eventType.id, status: 'slot_taken' });
 			return fail(409, { error: 'That time is no longer available. Please pick another.' });
 		}
 
@@ -126,6 +130,7 @@ export const actions: Actions = {
 				initiator: 'guest'
 			});
 		} catch (err) {
+			bookingAttemptsTotal.inc({ event_type_id: eventType.id, status: 'database_error' });
 			logger.error(
 				{ err, eventTypeId: eventType.id, slot: slotStr },
 				'failed to insert appointment'
@@ -133,8 +138,11 @@ export const actions: Actions = {
 			return fail(500, { error: 'Could not save the appointment. Please try again.' });
 		}
 		if (!created.ok) {
+			bookingAttemptsTotal.inc({ event_type_id: eventType.id, status: 'slot_taken' });
 			return fail(409, { error: 'That time was just taken. Please pick another.' });
 		}
+
+		bookingAttemptsTotal.inc({ event_type_id: eventType.id, status: 'success' });
 
 		cookies.set('submitted', 'request', {
 			path: '/',
