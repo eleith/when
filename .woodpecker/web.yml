@@ -18,31 +18,29 @@ when:
 
 steps:
   prepare:
-    image: node:24
+    image: node:26
     commands:
-      - corepack enable
-      - pnpm install --frozen-lockfile
-      - pnpm build:packages
+      - npm install pnpm@11.5.0 --no-save
+      - npx pnpm install --frozen-lockfile
+      - npx pnpm build:packages
 
   lint:
-    image: node:24
+    image: node:26
     commands:
-      - corepack enable
       - cd apps/web
       - touch config.yaml
       - touch .env
-      - pnpm run check
-      - pnpm run lint
+      - npx pnpm run check
+      - npx pnpm run lint
 
   test:
-    image: node:24
+    image: node:26
     commands:
-      - corepack enable
       - cd apps/web
-      - pnpm run test
+      - npx pnpm run test
 
   check-version:
-    image: node:24
+    image: node:26
     commands:
       - cd apps/web
       - |

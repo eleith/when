@@ -16,28 +16,25 @@ when:
 
 steps:
   prepare:
-    image: node:24
+    image: node:26
     commands:
-      - corepack enable
-      - pnpm install --frozen-lockfile
+      - npm install pnpm@11.5.0 --no-save
+      - npx pnpm install --frozen-lockfile
 
   build:
-    image: node:24
+    image: node:26
     commands:
-      - corepack enable
-      - pnpm --filter "@when/calendar..." build
+      - npx pnpm --filter "@when/calendar..." build
 
   lint:
-    image: node:24
+    image: node:26
     commands:
-      - corepack enable
-      - pnpm --filter @when/calendar lint
+      - npx pnpm --filter @when/calendar lint
 
   test:
-    image: node:24
+    image: node:26
     commands:
-      - corepack enable
-      - pnpm --filter @when/calendar test
+      - npx pnpm --filter @when/calendar test
 
   notify-success:
     image: deblan/woodpecker-email:3.2.0

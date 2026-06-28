@@ -18,33 +18,30 @@ when:
 
 steps:
   prepare:
-    image: node:24
+    image: node:26
     commands:
-      - corepack enable
-      - pnpm install --frozen-lockfile
-      - pnpm build:packages
+      - npm install pnpm@11.5.0 --no-save
+      - npx pnpm install --frozen-lockfile
+      - npx pnpm build:packages
 
   lint:
-    image: node:24
+    image: node:26
     commands:
-      - corepack enable
-      - pnpm --filter @when/worker check
-      - pnpm --filter @when/worker lint
+      - npx pnpm --filter @when/worker check
+      - npx pnpm --filter @when/worker lint
 
   test:
-    image: node:24
+    image: node:26
     commands:
-      - corepack enable
-      - pnpm --filter @when/worker test
+      - npx pnpm --filter @when/worker test
 
   build:
-    image: node:24
+    image: node:26
     commands:
-      - corepack enable
-      - pnpm --filter @when/worker build
+      - npx pnpm --filter @when/worker build
 
   check-version:
-    image: node:24
+    image: node:26
     commands:
       - cd apps/worker
       - |
