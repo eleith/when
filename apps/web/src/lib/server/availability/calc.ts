@@ -1,4 +1,3 @@
-import type { Temporal } from '@js-temporal/polyfill';
 import { mergeBlocks } from './blocks';
 import { filterSlots } from './filter';
 import { generateSlots } from './slots';

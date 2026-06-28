@@ -1,5 +1,4 @@
 import { error, fail, redirect } from '@sveltejs/kit';
-import { Temporal } from '@js-temporal/polyfill';
 import { computeSlots } from '$lib/server/availability';
 import { loadAppointmentBlocks } from '$lib/server/availability/db-blocks';
 import { resolveAvailabilitySettings } from '$lib/server/availability/settings';

@@ -1,5 +1,4 @@
 import { expect, test } from 'vitest';
-import { Temporal } from '@js-temporal/polyfill';
 import { mergeBlocks, overlapsAny } from './blocks';
 import { generateSlots } from '$lib/server/availability/slots';
 

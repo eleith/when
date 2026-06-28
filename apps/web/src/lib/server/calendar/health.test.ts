@@ -1,5 +1,4 @@
 import { expect, test } from 'vitest';
-import { Temporal } from '@js-temporal/polyfill';
 import type { CalendarSyncStatus, Appointment } from '@when/db';
 import type { WhenConfiguration } from '@when/config';
 import { evaluateCalendarStatuses } from './health.js';

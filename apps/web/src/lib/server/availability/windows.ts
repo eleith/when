@@ -1,4 +1,3 @@
-import { Temporal } from '@js-temporal/polyfill';
 import type { Interval, Weekday, WeeklySchedule } from './types';
 
 const WEEKDAYS: readonly Weekday[] = [

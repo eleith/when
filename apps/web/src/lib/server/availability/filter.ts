@@ -1,4 +1,3 @@
-import { Temporal } from '@js-temporal/polyfill';
 import { overlapsAny } from './blocks';
 import type { AvailabilitySettings, Interval } from './types';
 

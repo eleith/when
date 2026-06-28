@@ -1,4 +1,3 @@
-import { Temporal } from '@js-temporal/polyfill';
 import { getBusyIntervals } from '@when/db';
 import type { EventType, WhenConfiguration } from '@when/config';
 import { systemClock } from '$lib/server/clock';

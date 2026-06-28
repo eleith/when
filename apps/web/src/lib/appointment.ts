@@ -1,4 +1,8 @@
-import { Temporal } from '@js-temporal/polyfill';
+import * as CalendarFns from 'temporal-polyfill/fns/Calendar';
+import * as PlainDateFns from 'temporal-polyfill/fns/PlainDate';
+import * as InstantFns from 'temporal-polyfill/fns/Instant';
+import * as ZonedDateTimeFns from 'temporal-polyfill/fns/ZonedDateTime';
+import * as NowFns from 'temporal-polyfill/fns/Now';
 import { formatTime } from './datetime';
 
 export type WizardStep = 1 | 2 | 3;
@@ -14,17 +18,22 @@ export function dateKeys(slotsByDate: Record<string, string[]>): Set<string> {
 export function availableDates(slots: string[], tz: string): Set<string> {
 	const dates = new Set<string>();
 	for (const iso of slots) {
-		dates.add(Temporal.Instant.from(iso).toZonedDateTimeISO(tz).toPlainDate().toString());
+		const inst = InstantFns.fromString(iso);
+		const zdt = InstantFns.toZonedDateTimeISO(inst, tz);
+		const plainDate = ZonedDateTimeFns.toPlainDate(zdt);
+		dates.add(PlainDateFns.toString(plainDate));
 	}
 	return dates;
 }
 
 export function slotsOnDate(slots: string[], dateKey: string, tz: string): string[] {
 	return slots
-		.filter(
-			(iso) =>
-				Temporal.Instant.from(iso).toZonedDateTimeISO(tz).toPlainDate().toString() === dateKey
-		)
+		.filter((iso) => {
+			const inst = InstantFns.fromString(iso);
+			const zdt = InstantFns.toZonedDateTimeISO(inst, tz);
+			const plainDate = ZonedDateTimeFns.toPlainDate(zdt);
+			return PlainDateFns.toString(plainDate) === dateKey;
+		})
 		.sort();
 }
 
@@ -47,7 +56,7 @@ export interface DeepLinkResult {
 
 function isInstant(s: string): boolean {
 	try {
-		Temporal.Instant.from(s);
+		InstantFns.fromString(s);
 		return true;
 	} catch {
 		return false;
@@ -57,7 +66,7 @@ function isInstant(s: string): boolean {
 function isDateKey(s: string): boolean {
 	if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
 	try {
-		Temporal.PlainDate.from(s);
+		PlainDateFns.fromString(s, CalendarFns.getAny);
 		return true;
 	} catch {
 		return false;
@@ -76,11 +85,13 @@ export function resolveDeepLink(p: {
 	tz: string;
 }): DeepLinkResult {
 	if (p.slotParam && isInstant(p.slotParam)) {
-		const instant = Temporal.Instant.from(p.slotParam).toString();
+		const instant = InstantFns.toString(InstantFns.fromString(p.slotParam));
 		if (p.allSlots.includes(instant)) {
 			return { step: 3, slot: instant };
 		}
-		const date = Temporal.Instant.from(instant).toZonedDateTimeISO(p.tz).toPlainDate().toString();
+		const inst = InstantFns.fromString(instant);
+		const zdt = InstantFns.toZonedDateTimeISO(inst, p.tz);
+		const date = PlainDateFns.toString(ZonedDateTimeFns.toPlainDate(zdt));
 		if (availableDates(p.allSlots, p.tz).has(date)) {
 			return { step: 2, date, notice: { kind: 'slot', requested: instant } };
 		}
@@ -100,7 +111,7 @@ export function resolveDeepLink(p: {
 export function normalizeDeepLinkParams(params: URLSearchParams): { date?: string; slot?: string } {
 	const slot = params.get('slot');
 	if (params.has('slot') && slot && isInstant(slot)) {
-		return { slot: Temporal.Instant.from(slot).toString() };
+		return { slot: InstantFns.toString(InstantFns.fromString(slot)) };
 	}
 
 	const date = params.get('date');
@@ -153,7 +164,17 @@ export interface BuildDayTimelineParams {
 	daySlots: string[];
 	tz: string;
 	originalSlot?: string | null;
-	now?: Temporal.Instant;
+	now?: InstantFns.Record | unknown;
+}
+
+function resolveInstant(inst: unknown): InstantFns.Record {
+	if (InstantFns.isRecord(inst)) return inst;
+	if (inst && typeof inst === 'object' && 'epochMilliseconds' in inst) {
+		return InstantFns.fromEpochMilliseconds(
+			Number((inst as { epochMilliseconds: number | bigint }).epochMilliseconds)
+		);
+	}
+	return InstantFns.fromEpochMilliseconds(Date.now());
 }
 
 /**
@@ -170,21 +191,22 @@ export function buildDayTimeline({
 	daySlots,
 	tz,
 	originalSlot = null,
-	now = Temporal.Now.instant()
+	now
 }: BuildDayTimelineParams): DayTimeline | null {
-	const dateObj = Temporal.PlainDate.from(viewDate);
-	const startOfDay = dateObj.toZonedDateTime(tz).toInstant();
-	const endOfDay = dateObj.add({ days: 1 }).toZonedDateTime(tz).toInstant();
+	const nowInst = now ? resolveInstant(now) : NowFns.instant();
+	const dateObj = PlainDateFns.fromString(viewDate, CalendarFns.getAny);
+	const startOfDay = ZonedDateTimeFns.toInstant(PlainDateFns.toZonedDateTime(dateObj, tz));
+	const endOfDay = ZonedDateTimeFns.toInstant(
+		PlainDateFns.toZonedDateTime(PlainDateFns.addDays(dateObj, 1), tz)
+	);
 
 	const dayWindows = workingWindows
 		.map((w) => ({
-			start: Temporal.Instant.from(w.start),
-			end: Temporal.Instant.from(w.end)
+			start: InstantFns.fromString(w.start),
+			end: InstantFns.fromString(w.end)
 		}))
 		.filter(
-			(w) =>
-				Temporal.Instant.compare(w.start, endOfDay) < 0 &&
-				Temporal.Instant.compare(w.end, startOfDay) > 0
+			(w) => InstantFns.compare(w.start, endOfDay) < 0 && InstantFns.compare(w.end, startOfDay) > 0
 		);
 
 	if (dayWindows.length === 0) return null;
@@ -192,33 +214,31 @@ export function buildDayTimeline({
 	let earliest = dayWindows[0].start;
 	let latest = dayWindows[0].end;
 	for (const w of dayWindows) {
-		if (Temporal.Instant.compare(w.start, earliest) < 0) earliest = w.start;
-		if (Temporal.Instant.compare(w.end, latest) > 0) latest = w.end;
+		if (InstantFns.compare(w.start, earliest) < 0) earliest = w.start;
+		if (InstantFns.compare(w.end, latest) > 0) latest = w.end;
 	}
 
-	let viewStart = earliest.subtract({ hours: 1 });
-	if (Temporal.Instant.compare(viewStart, startOfDay) < 0) viewStart = startOfDay;
+	let viewStart = InstantFns.subtractHours(earliest, 1);
+	if (InstantFns.compare(viewStart, startOfDay) < 0) viewStart = startOfDay;
 
-	let viewEnd = latest.add({ hours: 1 });
-	if (Temporal.Instant.compare(viewEnd, endOfDay) > 0) viewEnd = endOfDay;
+	let viewEnd = InstantFns.addHours(latest, 1);
+	if (InstantFns.compare(viewEnd, endOfDay) > 0) viewEnd = endOfDay;
 
-	const totalMs = Number(viewEnd.epochMilliseconds - viewStart.epochMilliseconds);
+	const totalMs = viewEnd.epochMilliseconds - viewStart.epochMilliseconds;
 	if (totalMs <= 0) return null;
 
-	const toPercent = (inst: Temporal.Instant) => {
-		const ms = Number(inst.epochMilliseconds - viewStart.epochMilliseconds);
+	const toPercent = (inst: InstantFns.Record) => {
+		const ms = inst.epochMilliseconds - viewStart.epochMilliseconds;
 		return Math.max(0, Math.min(100, (ms / totalMs) * 100));
 	};
 
 	const busy = busyBlocks
 		.map((b) => ({
-			start: Temporal.Instant.from(b.start),
-			end: Temporal.Instant.from(b.end)
+			start: InstantFns.fromString(b.start),
+			end: InstantFns.fromString(b.end)
 		}))
 		.filter(
-			(b) =>
-				Temporal.Instant.compare(b.start, viewEnd) < 0 &&
-				Temporal.Instant.compare(b.end, viewStart) > 0
+			(b) => InstantFns.compare(b.start, viewEnd) < 0 && InstantFns.compare(b.end, viewStart) > 0
 		)
 		.map((b) => ({
 			top: toPercent(b.start),
@@ -227,16 +247,15 @@ export function buildDayTimeline({
 
 	const buffers = busyBlocks
 		.map((b) => {
-			const start = Temporal.Instant.from(b.start).subtract({
-				minutes: eventType.buffer_before ?? 0
-			});
-			const end = Temporal.Instant.from(b.end).add({ minutes: eventType.buffer_after ?? 0 });
+			const start = InstantFns.subtractMinutes(
+				InstantFns.fromString(b.start),
+				eventType.buffer_before ?? 0
+			);
+			const end = InstantFns.addMinutes(InstantFns.fromString(b.end), eventType.buffer_after ?? 0);
 			return { start, end };
 		})
 		.filter(
-			(b) =>
-				Temporal.Instant.compare(b.start, viewEnd) < 0 &&
-				Temporal.Instant.compare(b.end, viewStart) > 0
+			(b) => InstantFns.compare(b.start, viewEnd) < 0 && InstantFns.compare(b.end, viewStart) > 0
 		)
 		.map((b) => ({
 			top: toPercent(b.start),
@@ -249,8 +268,8 @@ export function buildDayTimeline({
 	}));
 
 	const slots = daySlots.map((iso) => {
-		const start = Temporal.Instant.from(iso);
-		const end = start.add({ minutes: eventType.duration });
+		const start = InstantFns.fromString(iso);
+		const end = InstantFns.addMinutes(start, eventType.duration);
 		return {
 			iso,
 			time: formatTime(iso, tz),
@@ -261,27 +280,34 @@ export function buildDayTimeline({
 	});
 
 	const labels: TimelineLabel[] = [];
-	let current = viewStart
-		.toZonedDateTimeISO(tz)
-		.with({ minute: 0, second: 0, millisecond: 0, microsecond: 0, nanosecond: 0 });
-	if (Temporal.Instant.compare(current.toInstant(), viewStart) < 0) {
-		current = current.add({ hours: 1 });
+	const startZdt = InstantFns.toZonedDateTimeISO(viewStart, tz);
+	let current = ZonedDateTimeFns.withFields(startZdt, {
+		minute: 0,
+		second: 0,
+		millisecond: 0,
+		microsecond: 0,
+		nanosecond: 0
+	});
+
+	if (InstantFns.compare(ZonedDateTimeFns.toInstant(current), viewStart) < 0) {
+		current = ZonedDateTimeFns.addHours(current, 1);
 	}
-	while (Temporal.Instant.compare(current.toInstant(), viewEnd) < 0) {
+	while (InstantFns.compare(ZonedDateTimeFns.toInstant(current), viewEnd) < 0) {
 		labels.push({
-			label: current.toLocaleString(undefined, { hour: 'numeric' }),
-			top: toPercent(current.toInstant())
+			label: ZonedDateTimeFns.toLocaleString(current, undefined, { hour: 'numeric' }),
+			top: toPercent(ZonedDateTimeFns.toInstant(current))
 		});
-		current = current.add({ hours: 1 });
+		current = ZonedDateTimeFns.addHours(current, 1);
 	}
 
 	let past: TimelineBlock | null = null;
-	const noticeInst = now.add({
-		minutes: (eventType.minimum_notice ?? 0) + (eventType.buffer_before ?? 0)
-	});
+	const noticeInst = InstantFns.addMinutes(
+		nowInst,
+		(eventType.minimum_notice ?? 0) + (eventType.buffer_before ?? 0)
+	);
 
-	if (Temporal.Instant.compare(noticeInst, viewStart) > 0) {
-		if (Temporal.Instant.compare(noticeInst, viewEnd) >= 0) {
+	if (InstantFns.compare(noticeInst, viewStart) > 0) {
+		if (InstantFns.compare(noticeInst, viewEnd) >= 0) {
 			past = { top: 0, height: 100 };
 		} else {
 			past = { top: 0, height: toPercent(noticeInst) };

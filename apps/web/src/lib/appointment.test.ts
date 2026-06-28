@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'vitest';
-import { Temporal } from '@js-temporal/polyfill';
 import {
 	flattenSlots,
 	availableDates,

@@ -1,5 +1,4 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { Temporal } from '@js-temporal/polyfill';
 import { findAppointment } from '@when/db';
 import { getConfig, getDb } from '$lib/server/state';
 import { isSlotBookable } from '$lib/server/availability/load';

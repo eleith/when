@@ -3,7 +3,6 @@ import { getConfig, getDb } from '$lib/server/state';
 import { countAppointments, listCalendarSyncStatus, listOutOfSyncAppointments } from '@when/db';
 import { evaluateCalendarStatuses } from '$lib/server/calendar/health';
 import { sql } from 'kysely';
-import { Temporal } from '@js-temporal/polyfill';
 import type { LayoutServerLoad } from './$types';
 
 export const load: LayoutServerLoad = async () => {

@@ -1,4 +1,3 @@
-import { Temporal } from '@js-temporal/polyfill';
 import type { Interval } from './types';
 
 /** Sort and merge overlapping/touching intervals. */

@@ -1,5 +1,4 @@
 import { expect, test } from 'vitest';
-import { Temporal } from '@js-temporal/polyfill';
 import { computeSlots } from '$lib/server/availability';
 import type { AvailabilitySettings, Interval } from '$lib/server/availability';
 
