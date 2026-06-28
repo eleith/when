@@ -4,6 +4,7 @@ import { getOpenWorkflow } from '@when/jobs';
 import { purgeAppointment } from '@when/jobs/specs';
 import type { PurgeAppointmentInput, PurgeAppointmentResult } from '@when/jobs';
 import { getWorkerContext } from '../services/context.js';
+import { implementObservedWorkflow } from '../services/metrics.js';
 
 // ~24h of bounded effort before we give up and orphan the remote event.
 const CALENDAR_RETRY: Partial<RetryPolicy> = {
@@ -66,7 +67,7 @@ export async function runPurgeAppointment(
 }
 
 export function registerPurgeAppointmentWorkflow(): void {
-	getOpenWorkflow().implementWorkflow(purgeAppointment, ({ input, step }) =>
+	implementObservedWorkflow(purgeAppointment, ({ input, step }) =>
 		runPurgeAppointment(input, step)
 	);
 }

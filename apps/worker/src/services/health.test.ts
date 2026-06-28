@@ -70,7 +70,7 @@ test('GET /metrics returns 200 with metrics if successfully authenticated', asyn
 
 	const text = await res.text();
 	// Should contain system metrics we keep
-	expect(text).toContain('nodejs_resident_memory_bytes');
+	expect(text).toContain('process_resident_memory_bytes');
 	// Should contain custom worker metrics
 	expect(text).toContain('when_jobs_total');
 });

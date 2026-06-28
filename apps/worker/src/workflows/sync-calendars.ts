@@ -1,8 +1,9 @@
-import { getOpenWorkflow, syncCalendars, type SyncCalendarsResult } from '@when/jobs';
+import { syncCalendars, type SyncCalendarsResult } from '@when/jobs';
 import type { CalendarSyncScanner } from '../calendar/sync-scanner.js';
+import { implementObservedWorkflow } from '../services/metrics.js';
 
 export function registerSyncCalendarsWorkflow(scanner: CalendarSyncScanner): void {
-	getOpenWorkflow().implementWorkflow(syncCalendars, (): SyncCalendarsResult => {
+	implementObservedWorkflow(syncCalendars, (): SyncCalendarsResult => {
 		scanner.requestScan();
 		return 'requested';
 	});

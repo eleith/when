@@ -9,6 +9,7 @@ import {
 	replaceCalendarBusy
 } from '@when/db';
 import type { WorkerContext } from '../services/context.js';
+import { calendarRefreshTotal } from '../services/metrics.js';
 import { flagConflicts } from './conflicts.js';
 import { DEFAULT_REFRESH_INTERVAL_MINUTES } from './intervals.js';
 
@@ -62,6 +63,11 @@ export async function refreshCalendar(
 			intervals.map((i) => ({ start: i.start.toString(), end: i.end.toString() }))
 		);
 		await recordRefreshResult(ctx.db, cal.id, { at });
+		calendarRefreshTotal.inc({
+			calendar_id: cal.id,
+			provider_type: cal.type,
+			status: 'success'
+		});
 	} catch (err) {
 		const error = err instanceof Error ? err.message : String(err);
 		ctx.logger.error(
@@ -72,6 +78,11 @@ export async function refreshCalendar(
 			'calendar refresh failed; keeping stale busy times'
 		);
 		await recordRefreshResult(ctx.db, cal.id, { at, error });
+		calendarRefreshTotal.inc({
+			calendar_id: cal.id,
+			provider_type: cal.type,
+			status: 'failure'
+		});
 	}
 }
 

@@ -7,6 +7,8 @@ import { dispatch } from '../email/dispatch.js';
 import { getWorkerContext } from '../services/context.js';
 import { appendJobLog } from '../services/job-log.js';
 
+import { implementObservedWorkflow, emailsTotal } from '../services/metrics.js';
+
 // Retry the SMTP send itself (a memoized step), with backoff. A send that fails
 // every attempt is an expected outcome we record, not a workflow crash.
 const SEND_RETRY: Partial<RetryPolicy> = {
@@ -42,7 +44,19 @@ export async function runSendAppointmentEmail(
 		try {
 			await step.run({ name: `smtp:${envelope.to}`, retryPolicy: SEND_RETRY }, async () => {
 				const result = await mailer.send(envelope);
-				if (!result.ok) throw new Error(result.reason);
+				if (!result.ok) {
+					emailsTotal.inc({
+						recipient_type: envelope.to === config.user.email ? 'host' : 'guest',
+						email_kind: input.kind,
+						status: 'failure'
+					});
+					throw new Error(result.reason);
+				}
+				emailsTotal.inc({
+					recipient_type: envelope.to === config.user.email ? 'host' : 'guest',
+					email_kind: input.kind,
+					status: 'success'
+				});
 			});
 		} catch (err) {
 			allSent = false;
@@ -69,7 +83,7 @@ export async function runSendAppointmentEmail(
 }
 
 export function registerSendAppointmentEmailWorkflow(): void {
-	getOpenWorkflow().implementWorkflow(sendAppointmentEmail, ({ input, step }) =>
+	implementObservedWorkflow(sendAppointmentEmail, ({ input, step }) =>
 		runSendAppointmentEmail(input, step)
 	);
 }

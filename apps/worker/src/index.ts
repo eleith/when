@@ -13,6 +13,7 @@ import { refreshCycle } from './calendar/refresh.js';
 import { createRefreshScheduler } from './calendar/scheduler.js';
 import { scanOnce } from './calendar/sync.js';
 import { createCalendarSyncScanner } from './calendar/sync-scanner.js';
+import { calendarSyncTotal } from './services/metrics.js';
 
 const DEFAULT_PORT = 9000;
 const CALENDAR_SYNC_FLOOR_MS = 10 * 60_000;
@@ -35,7 +36,9 @@ async function main(): Promise<void> {
 	const calendarSync = createCalendarSyncScanner(async () => {
 		try {
 			await scanOnce(ctx);
+			calendarSyncTotal.inc({ status: 'success' });
 		} catch (err) {
+			calendarSyncTotal.inc({ status: 'failure' });
 			logger.error(
 				{
 					error: err instanceof Error ? err.message : String(err)
