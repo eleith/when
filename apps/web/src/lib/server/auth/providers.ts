@@ -2,8 +2,9 @@ import Credentials from '@auth/sveltekit/providers/credentials';
 import type { WhenConfiguration } from '@when/config';
 
 export function buildProviders(cfg: WhenConfiguration) {
-	if ('credentials' in cfg.auth) {
-		const { username, password } = cfg.auth.credentials;
+	const auth = cfg.auth as any;
+	if ('credentials' in auth) {
+		const { username, password } = auth.credentials;
 		return [
 			Credentials({
 				name: 'Password',
@@ -22,7 +23,7 @@ export function buildProviders(cfg: WhenConfiguration) {
 		];
 	}
 
-	const { issuer, client_id, client_secret } = cfg.auth.oidc;
+	const { issuer, client_id, client_secret } = auth.oidc;
 	return [
 		{
 			id: 'oidc',
