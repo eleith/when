@@ -2,9 +2,8 @@ import Credentials from '@auth/sveltekit/providers/credentials';
 import type { WhenConfiguration } from '@when/config';
 
 export function buildProviders(cfg: WhenConfiguration) {
-	const auth = cfg.auth as any;
-	if ('credentials' in auth) {
-		const { username, password } = auth.credentials;
+	if (cfg.auth.credentials) {
+		const { username, password } = cfg.auth.credentials;
 		return [
 			Credentials({
 				name: 'Password',
@@ -23,15 +22,19 @@ export function buildProviders(cfg: WhenConfiguration) {
 		];
 	}
 
-	const { issuer, client_id, client_secret } = auth.oidc;
-	return [
-		{
-			id: 'oidc',
-			name: 'Single Sign-On',
-			type: 'oidc' as const,
-			issuer,
-			clientId: client_id,
-			clientSecret: client_secret
-		}
-	];
+	if (cfg.auth.oidc) {
+		const { issuer, client_id, client_secret } = cfg.auth.oidc;
+		return [
+			{
+				id: 'oidc',
+				name: 'Single Sign-On',
+				type: 'oidc' as const,
+				issuer,
+				clientId: client_id,
+				clientSecret: client_secret
+			}
+		];
+	}
+
+	return [];
 }

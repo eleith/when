@@ -1,26 +1,39 @@
 import { readFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
-import Ajv, { type ErrorObject } from 'ajv/dist/2020.js';
-import addFormats from 'ajv-formats';
 import { parse as parseYaml } from 'yaml';
+import { FormatRegistry, type TSchema } from '@sinclair/typebox';
+import { Value, type ValueError } from '@sinclair/typebox/value';
 import schema from './config.schema.json' with { type: 'json' };
-import externalSchema from './config.external.schema.json' with { type: 'json' };
-import type { WhenConfiguration } from './schema.js';
+import * as schemas from './schema.js';
 import { interpolate } from './interpolate.js';
 import { checkCrossRefs } from './cross-refs.js';
 import { resolveConfigPath } from './paths.js';
 
-// `schema` validates (ajv fills defaults); `externalSchema` is the relaxed copy
-// editors point `$schema` at, so defaulted fields aren't flagged as missing.
+const { WhenConfigurationSchema } = schemas;
+type WhenConfiguration = schemas.WhenConfiguration;
+
+// `schema` is our single relaxed schema file, served for validation and autocomplete.
+const externalSchema = schema;
 export { schema, externalSchema };
 
-const fillAjv = new Ajv({ allErrors: true, useDefaults: true, strict: false });
-addFormats(fillAjv);
-const fillDefaults = fillAjv.compile(schema);
+// Register formats for runtime validation using TypeBox
+FormatRegistry.Set('email', (value) => {
+	return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+});
 
-const validateAjv = new Ajv({ allErrors: true, strict: false });
-addFormats(validateAjv);
-const validateSchema = validateAjv.compile<WhenConfiguration>(schema);
+FormatRegistry.Set('uri', (value) => {
+	try {
+		new URL(value);
+		return true;
+	} catch {
+		return false;
+	}
+});
+
+// Gather all subschemas so TypeBox can dereference refs during Value.Check / Value.Default
+const subschemas = Object.entries(schemas)
+	.filter(([key]) => key.endsWith('Schema') && key !== 'WhenConfigurationSchema')
+	.map(([_, val]) => val as unknown as TSchema);
 
 export interface ConfigIssue {
 	path: string;
@@ -38,10 +51,13 @@ export class ConfigError extends Error {
 
 export function validateConfig(raw: unknown): WhenConfiguration {
 	const withDefaults = structuredClone(raw) ?? {};
-	fillDefaults(withDefaults);
+	Value.Default(WhenConfigurationSchema, subschemas, withDefaults);
+
 	const interpolated = interpolate(withDefaults) as WhenConfiguration;
-	if (!validateSchema(interpolated)) {
-		const issues = (validateSchema.errors ?? []).map(toIssue);
+	const errors = [...Value.Errors(WhenConfigurationSchema, subschemas, interpolated)];
+
+	if (errors.length > 0) {
+		const issues = errors.map(toIssue);
 		throw new ConfigError(`config failed schema validation`, issues);
 	}
 	const crossRefIssues = checkCrossRefs(interpolated);
@@ -79,7 +95,7 @@ function resolveDatabasePaths(config: WhenConfiguration, configPath: string): vo
 	config.database.queue = process.env.WHEN_QUEUE_DB_PATH ?? resolve(dir, config.database.queue);
 }
 
-function toIssue(err: ErrorObject): ConfigIssue {
-	const path = err.instancePath === '' ? '/' : err.instancePath;
+function toIssue(err: ValueError): ConfigIssue {
+	const path = err.path === '' ? '/' : err.path;
 	return { path, message: err.message ?? 'invalid' };
 }

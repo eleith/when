@@ -1,21 +1,11 @@
 {
 	"$schema": "https://json-schema.org/draft/2020-12/schema",
 	"$id": "https://when.app/schema/config.json",
+	"additionalProperties": false,
 	"title": "When configuration",
 	"description": "Canonical schema for the When self-hosted scheduling app's config.yaml.",
 	"type": "object",
-	"additionalProperties": false,
-	"required": [
-		"auth",
-		"user",
-		"smtp",
-		"calendars",
-		"availability",
-		"event_types",
-		"database",
-		"url",
-		"prometheus"
-	],
+	"required": ["auth", "user", "smtp", "calendars", "availability", "event_types"],
 	"properties": {
 		"auth": {
 			"$ref": "#/$defs/Auth"
@@ -36,247 +26,190 @@
 			"$ref": "#/$defs/Availability"
 		},
 		"event_types": {
-			"type": "array",
 			"minItems": 1,
+			"type": "array",
 			"items": {
 				"$ref": "#/$defs/EventType"
 			}
 		},
 		"database": {
-			"$ref": "#/$defs/DatabaseConfig",
-			"default": {}
+			"default": {},
+			"$ref": "#/$defs/DatabaseConfig"
 		},
 		"url": {
-			"$ref": "#/$defs/Url",
-			"default": {}
+			"default": {},
+			"$ref": "#/$defs/Url"
 		},
 		"prometheus": {
-			"$ref": "#/$defs/PrometheusConfig",
-			"default": {}
+			"default": {},
+			"$ref": "#/$defs/PrometheusConfig"
 		}
 	},
 	"$defs": {
-		"Url": {
-			"title": "Url",
-			"description": "Public URLs for the app.",
-			"type": "object",
-			"additionalProperties": false,
-			"required": ["app", "internal", "worker"],
-			"properties": {
-				"app": {
-					"type": "string",
-					"description": "Public base URL of the app (include the scheme), used to build links in emails and calendar events.",
-					"minLength": 1,
-					"default": "http://localhost:5173"
-				},
-				"internal": {
-					"type": "string",
-					"description": "Base URL the worker uses to reach the app over the internal network (e.g. http://when-app:3000), used to fetch relative branding images for embedding in emails. Defaults to the WHEN_URL_INTERNAL env var (baked into the Docker images per target); empty falls back to `app`.",
-					"default": "${WHEN_URL_INTERNAL:-}"
-				},
-				"worker": {
-					"type": "string",
-					"description": "Base URL the web app uses to reach the worker over the internal network (e.g. http://when-worker:9000), used to query private worker telemetry and metrics.",
-					"default": "http://when-worker:9000"
-				}
-			}
-		},
-		"DatabaseConfig": {
-			"title": "DatabaseConfig",
-			"description": "On-disk SQLite paths. Relative paths resolve against this config file's directory, so web and worker (which load the same config.yaml) open the same files.",
-			"type": "object",
-			"additionalProperties": false,
-			"required": ["app", "queue"],
-			"properties": {
-				"app": {
-					"type": "string",
-					"description": "Application database (appointments, oauth tokens).",
-					"minLength": 1,
-					"default": "./data/when.sqlite"
-				},
-				"queue": {
-					"type": "string",
-					"description": "openworkflow job queue database.",
-					"minLength": 1,
-					"default": "./data/openworkflow.sqlite"
-				}
-			}
-		},
 		"Auth": {
 			"title": "Auth",
 			"description": "Admin auth strategy. Exactly one of `oidc` or `credentials` must be declared.",
-			"type": "object",
-			"additionalProperties": false,
-			"properties": {
-				"oidc": {
-					"$ref": "#/$defs/OidcAuth"
-				},
-				"credentials": {
-					"$ref": "#/$defs/CredentialsAuth"
-				}
-			},
-			"oneOf": [
+			"anyOf": [
 				{
-					"required": ["oidc"]
+					"additionalProperties": false,
+					"type": "object",
+					"required": ["oidc"],
+					"properties": {
+						"oidc": {
+							"$ref": "#/$defs/OidcAuth"
+						},
+						"credentials": {
+							"type": "null"
+						}
+					}
 				},
 				{
-					"required": ["credentials"]
+					"additionalProperties": false,
+					"type": "object",
+					"required": ["credentials"],
+					"properties": {
+						"credentials": {
+							"$ref": "#/$defs/CredentialsAuth"
+						},
+						"oidc": {
+							"type": "null"
+						}
+					}
 				}
 			]
 		},
-		"OidcAuth": {
-			"title": "OidcAuth",
-			"type": "object",
+		"Availability": {
 			"additionalProperties": false,
-			"required": ["issuer", "client_id", "client_secret"],
-			"properties": {
-				"issuer": {
-					"type": "string",
-					"format": "uri"
-				},
-				"client_id": {
-					"type": "string",
-					"minLength": 1
-				},
-				"client_secret": {
-					"type": "string",
-					"minLength": 1
-				}
-			}
-		},
-		"CredentialsAuth": {
-			"title": "CredentialsAuth",
-			"description": "Local username/password.",
+			"title": "Availability",
+			"description": "Global availability defaults. Each knob is overridable per event type.",
 			"type": "object",
-			"additionalProperties": false,
-			"required": ["username", "password"],
+			"required": ["default"],
 			"properties": {
-				"username": {
-					"type": "string",
-					"minLength": 1
+				"slot_granularity": {
+					"minimum": 1,
+					"default": 15,
+					"type": "integer"
 				},
-				"password": {
-					"type": "string",
-					"minLength": 1,
-					"default": "${WHEN_ADMIN_PASSWORD}"
-				}
-			}
-		},
-		"User": {
-			"title": "User",
-			"type": "object",
-			"additionalProperties": false,
-			"required": ["name", "timezone", "email", "branding"],
-			"properties": {
-				"name": {
-					"type": "string",
-					"minLength": 1
+				"minimum_notice": {
+					"minimum": 0,
+					"default": 120,
+					"type": "integer"
 				},
-				"timezone": {
-					"type": "string",
-					"description": "IANA timezone identifier (e.g. America/New_York).",
-					"minLength": 1
+				"maximum_lookahead": {
+					"minimum": 1,
+					"default": 60,
+					"type": "integer"
 				},
-				"email": {
-					"type": "string",
-					"format": "email"
+				"buffer_before": {
+					"minimum": 0,
+					"default": 0,
+					"type": "integer"
 				},
-				"branding": {
-					"$ref": "#/$defs/Branding",
-					"default": {}
+				"buffer_after": {
+					"minimum": 0,
+					"default": 0,
+					"type": "integer"
+				},
+				"max_appointments_per_day": {
+					"default": null,
+					"anyOf": [
+						{
+							"minimum": 1,
+							"type": "integer"
+						},
+						{
+							"type": "null"
+						}
+					]
+				},
+				"default": {
+					"$ref": "#/$defs/WeeklySchedule"
 				}
 			}
 		},
 		"Branding": {
+			"additionalProperties": false,
 			"title": "Branding",
 			"type": "object",
-			"additionalProperties": false,
-			"required": ["color"],
 			"properties": {
 				"logo_url": {
-					"type": "string",
-					"minLength": 1
+					"minLength": 1,
+					"type": "string"
 				},
 				"color": {
-					"type": "object",
 					"additionalProperties": false,
-					"required": ["primary"],
 					"default": {},
+					"type": "object",
 					"properties": {
 						"primary": {
-							"type": "object",
 							"additionalProperties": false,
-							"required": ["light", "dark"],
 							"default": {},
+							"type": "object",
 							"properties": {
 								"light": {
-									"$ref": "#/$defs/HexColor",
-									"default": "#4f46e5"
+									"default": "#4f46e5",
+									"$ref": "#/$defs/HexColor"
 								},
 								"dark": {
-									"$ref": "#/$defs/HexColor",
-									"default": "#818cf8"
+									"default": "#818cf8",
+									"$ref": "#/$defs/HexColor"
 								}
 							}
 						}
 					}
 				},
 				"avatar_url": {
-					"type": "string",
-					"minLength": 1
+					"minLength": 1,
+					"type": "string"
 				},
 				"favicon_url": {
-					"type": "string",
-					"minLength": 1
+					"minLength": 1,
+					"type": "string"
 				},
 				"page_title": {
-					"type": "string",
-					"minLength": 1
+					"minLength": 1,
+					"type": "string"
 				},
 				"description": {
-					"type": "string",
-					"minLength": 1
+					"minLength": 1,
+					"type": "string"
 				}
 			}
 		},
-		"HexColor": {
-			"type": "string",
-			"pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
-		},
-		"Smtp": {
-			"title": "Smtp",
-			"description": "SMTP server used to send appointment emails. Required — the appointment system relies on it.",
-			"type": "object",
+		"CalDavCalendar": {
 			"additionalProperties": false,
-			"required": ["host", "port", "user", "pass"],
+			"title": "CalDavCalendar",
+			"type": "object",
+			"required": ["id", "type", "url", "username", "password"],
 			"properties": {
-				"host": {
-					"type": "string",
-					"minLength": 1
+				"id": {
+					"minLength": 1,
+					"type": "string"
 				},
-				"port": {
-					"type": "integer",
-					"minimum": 1,
-					"maximum": 65535
+				"type": {
+					"const": "caldav",
+					"type": "string"
 				},
-				"user": {
-					"type": "string",
-					"minLength": 1
+				"url": {
+					"format": "uri",
+					"type": "string"
 				},
-				"pass": {
-					"type": "string",
-					"minLength": 1
+				"username": {
+					"minLength": 1,
+					"type": "string"
 				},
-				"from": {
-					"type": "string",
-					"description": "Email address used as the From on all emails and as the organizer on guest-facing calendar invites, so the host's own address is never exposed. Must be an address your SMTP server is allowed to send from. Defaults to noreply@<your url.app domain>. The display name always comes from user.name.",
-					"minLength": 1
+				"password": {
+					"minLength": 1,
+					"type": "string"
+				},
+				"sync": {
+					"$ref": "#/$defs/CalendarSync"
 				}
 			}
 		},
 		"Calendar": {
 			"title": "Calendar",
-			"oneOf": [
+			"anyOf": [
 				{
 					"$ref": "#/$defs/GoogleCalendar"
 				},
@@ -285,10 +218,246 @@
 				}
 			]
 		},
+		"CalendarSync": {
+			"additionalProperties": false,
+			"title": "CalendarSync",
+			"description": "Per-calendar sync cadence.",
+			"type": "object",
+			"properties": {
+				"refresh_interval": {
+					"description": "Minutes between the worker's busy-time refreshes for this calendar.",
+					"minimum": 1,
+					"default": 10,
+					"type": "integer"
+				}
+			}
+		},
+		"CredentialsAuth": {
+			"additionalProperties": false,
+			"title": "CredentialsAuth",
+			"description": "Local username/password.",
+			"type": "object",
+			"required": ["username"],
+			"properties": {
+				"username": {
+					"minLength": 1,
+					"type": "string"
+				},
+				"password": {
+					"minLength": 1,
+					"default": "${WHEN_ADMIN_PASSWORD}",
+					"type": "string"
+				}
+			}
+		},
+		"DatabaseConfig": {
+			"additionalProperties": false,
+			"title": "DatabaseConfig",
+			"description": "On-disk SQLite paths. Relative paths resolve against this config file's directory, so web and worker (which load the same config.yaml) open the same files.",
+			"type": "object",
+			"properties": {
+				"app": {
+					"description": "Application database (appointments, oauth tokens).",
+					"minLength": 1,
+					"default": "./data/when.sqlite",
+					"type": "string"
+				},
+				"queue": {
+					"description": "openworkflow job queue database.",
+					"minLength": 1,
+					"default": "./data/openworkflow.sqlite",
+					"type": "string"
+				}
+			}
+		},
+		"DaySchedule": {
+			"title": "DaySchedule",
+			"description": "Array of HH:MM-HH:MM time ranges in the user's timezone.",
+			"type": "array",
+			"items": {
+				"pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]-([01][0-9]|2[0-3]):[0-5][0-9]$",
+				"type": "string"
+			}
+		},
+		"EventType": {
+			"additionalProperties": false,
+			"title": "EventType",
+			"type": "object",
+			"required": ["id", "name", "duration", "slug", "appointment_flow", "destination_calendar"],
+			"properties": {
+				"id": {
+					"minLength": 1,
+					"type": "string"
+				},
+				"name": {
+					"minLength": 1,
+					"type": "string"
+				},
+				"duration": {
+					"minimum": 1,
+					"type": "integer"
+				},
+				"description": {
+					"type": "string"
+				},
+				"slug": {
+					"pattern": "^[a-z0-9][a-z0-9-]*$",
+					"type": "string"
+				},
+				"visibility": {
+					"default": "public",
+					"anyOf": [
+						{
+							"const": "public",
+							"type": "string"
+						},
+						{
+							"const": "private",
+							"type": "string"
+						}
+					]
+				},
+				"appointment_flow": {
+					"anyOf": [
+						{
+							"const": "auto",
+							"type": "string"
+						},
+						{
+							"const": "requires_confirmation",
+							"type": "string"
+						}
+					]
+				},
+				"conflict_calendars": {
+					"default": [],
+					"type": "array",
+					"items": {
+						"minLength": 1,
+						"type": "string"
+					}
+				},
+				"destination_calendar": {
+					"minLength": 1,
+					"type": "string"
+				},
+				"location": {
+					"$ref": "#/$defs/Location"
+				},
+				"note": {
+					"minLength": 1,
+					"type": "string"
+				},
+				"conference": {
+					"format": "uri",
+					"type": "string"
+				},
+				"slot_granularity": {
+					"minimum": 1,
+					"type": "integer"
+				},
+				"minimum_notice": {
+					"minimum": 0,
+					"type": "integer"
+				},
+				"maximum_lookahead": {
+					"minimum": 1,
+					"type": "integer"
+				},
+				"buffer_before": {
+					"minimum": 0,
+					"type": "integer"
+				},
+				"buffer_after": {
+					"minimum": 0,
+					"type": "integer"
+				},
+				"max_appointments_per_day": {
+					"anyOf": [
+						{
+							"minimum": 1,
+							"type": "integer"
+						},
+						{
+							"type": "null"
+						}
+					]
+				},
+				"image_url": {
+					"minLength": 1,
+					"type": "string"
+				},
+				"form_fields": {
+					"type": "array",
+					"items": {
+						"$ref": "#/$defs/FormField"
+					}
+				}
+			}
+		},
+		"FormField": {
+			"additionalProperties": false,
+			"title": "FormField",
+			"type": "object",
+			"required": ["id", "type", "label"],
+			"properties": {
+				"id": {
+					"minLength": 1,
+					"type": "string"
+				},
+				"type": {
+					"anyOf": [
+						{
+							"const": "guest_name",
+							"type": "string"
+						},
+						{
+							"const": "guest_email",
+							"type": "string"
+						},
+						{
+							"const": "event_location",
+							"type": "string"
+						},
+						{
+							"const": "text",
+							"type": "string"
+						},
+						{
+							"const": "number",
+							"type": "string"
+						},
+						{
+							"const": "paragraph",
+							"type": "string"
+						},
+						{
+							"const": "choice",
+							"type": "string"
+						}
+					]
+				},
+				"label": {
+					"minLength": 1,
+					"type": "string"
+				},
+				"required": {
+					"default": false,
+					"type": "boolean"
+				},
+				"choices": {
+					"type": "array",
+					"items": {
+						"minLength": 1,
+						"type": "string"
+					}
+				}
+			}
+		},
 		"GoogleCalendar": {
+			"additionalProperties": false,
 			"title": "GoogleCalendar",
 			"type": "object",
-			"additionalProperties": false,
 			"required": [
 				"id",
 				"type",
@@ -299,123 +468,180 @@
 			],
 			"properties": {
 				"id": {
-					"type": "string",
-					"minLength": 1
+					"minLength": 1,
+					"type": "string"
 				},
 				"type": {
-					"const": "google"
+					"const": "google",
+					"type": "string"
 				},
 				"client_id": {
-					"type": "string",
-					"minLength": 1
+					"minLength": 1,
+					"type": "string"
 				},
 				"client_secret": {
-					"type": "string",
-					"minLength": 1
+					"minLength": 1,
+					"type": "string"
 				},
 				"refresh_token": {
-					"type": "string",
-					"minLength": 1
+					"minLength": 1,
+					"type": "string"
 				},
 				"google_calendar_id": {
-					"type": "string",
-					"minLength": 1
+					"minLength": 1,
+					"type": "string"
 				},
 				"sync": {
 					"$ref": "#/$defs/CalendarSync"
 				}
 			}
 		},
-		"CalDavCalendar": {
-			"title": "CalDavCalendar",
-			"type": "object",
+		"HexColor": {
+			"pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$",
+			"type": "string"
+		},
+		"LocationFixed": {
 			"additionalProperties": false,
-			"required": ["id", "type", "url", "username", "password"],
+			"title": "LocationFixed",
+			"type": "object",
+			"required": ["mode", "fixed"],
 			"properties": {
-				"id": {
-					"type": "string",
-					"minLength": 1
+				"mode": {
+					"const": "fixed",
+					"type": "string"
 				},
-				"type": {
-					"const": "caldav"
-				},
-				"url": {
-					"type": "string",
-					"format": "uri"
-				},
-				"username": {
-					"type": "string",
-					"minLength": 1
-				},
-				"password": {
-					"type": "string",
-					"minLength": 1
-				},
-				"sync": {
-					"$ref": "#/$defs/CalendarSync"
+				"fixed": {
+					"minLength": 1,
+					"type": "string"
 				}
 			}
 		},
-		"CalendarSync": {
-			"title": "CalendarSync",
-			"description": "Per-calendar sync cadence.",
-			"type": "object",
+		"Location": {
+			"title": "Location",
+			"$ref": "#/$defs/LocationFixed"
+		},
+		"OidcAuth": {
 			"additionalProperties": false,
+			"title": "OidcAuth",
+			"type": "object",
+			"required": ["issuer", "client_id", "client_secret"],
 			"properties": {
-				"refresh_interval": {
-					"type": "integer",
-					"description": "Minutes between the worker's busy-time refreshes for this calendar.",
-					"minimum": 1,
-					"default": 10
+				"issuer": {
+					"format": "uri",
+					"type": "string"
+				},
+				"client_id": {
+					"minLength": 1,
+					"type": "string"
+				},
+				"client_secret": {
+					"minLength": 1,
+					"type": "string"
 				}
 			}
 		},
-		"Availability": {
-			"title": "Availability",
-			"description": "Global availability defaults. Each knob is overridable per event type.",
-			"type": "object",
+		"PrometheusConfig": {
 			"additionalProperties": false,
-			"required": ["default"],
+			"title": "PrometheusConfig",
+			"description": "Prometheus metrics collection settings.",
+			"type": "object",
 			"properties": {
-				"slot_granularity": {
-					"type": "integer",
+				"enabled": {
+					"description": "Whether metrics collection and endpoint are active.",
+					"default": false,
+					"type": "boolean"
+				},
+				"secret": {
+					"description": "Bearer token for scraping metrics. Defaults to METRICS_TOKEN env var.",
+					"default": "${METRICS_TOKEN:-}",
+					"type": "string"
+				}
+			}
+		},
+		"Smtp": {
+			"additionalProperties": false,
+			"title": "Smtp",
+			"description": "SMTP server used to send appointment emails. Required — the appointment system relies on it.",
+			"type": "object",
+			"required": ["host", "port", "user", "pass"],
+			"properties": {
+				"host": {
+					"minLength": 1,
+					"type": "string"
+				},
+				"port": {
 					"minimum": 1,
-					"default": 15
+					"maximum": 65535,
+					"type": "integer"
 				},
-				"minimum_notice": {
-					"type": "integer",
-					"minimum": 0,
-					"default": 120
+				"user": {
+					"minLength": 1,
+					"type": "string"
 				},
-				"maximum_lookahead": {
-					"type": "integer",
-					"minimum": 1,
-					"default": 60
+				"pass": {
+					"minLength": 1,
+					"type": "string"
 				},
-				"buffer_before": {
-					"type": "integer",
-					"minimum": 0,
-					"default": 0
+				"from": {
+					"description": "Email address used as the From on all emails and as the organizer on guest-facing calendar invites, so the host's own address is never exposed. Must be an address your SMTP server is allowed to send from. Defaults to noreply@<your url.app domain>. The display name always comes from user.name.",
+					"minLength": 1,
+					"type": "string"
+				}
+			}
+		},
+		"Url": {
+			"additionalProperties": false,
+			"title": "Url",
+			"description": "Public URLs for the app.",
+			"type": "object",
+			"properties": {
+				"app": {
+					"description": "Public base URL of the app (include the scheme), used to build links in emails and calendar events.",
+					"minLength": 1,
+					"default": "http://localhost:5173",
+					"type": "string"
 				},
-				"buffer_after": {
-					"type": "integer",
-					"minimum": 0,
-					"default": 0
+				"internal": {
+					"description": "Base URL the worker uses to reach the app over the internal network (e.g. http://when-app:3000), used to fetch relative branding images for embedding in emails. Defaults to the WHEN_URL_INTERNAL env var (baked into the Docker images per target); empty falls back to `app`.",
+					"default": "${WHEN_URL_INTERNAL:-}",
+					"type": "string"
 				},
-				"max_appointments_per_day": {
-					"type": ["integer", "null"],
-					"minimum": 1,
-					"default": null
+				"worker": {
+					"description": "Base URL the web app uses to reach the worker over the internal network (e.g. http://when-worker:9000), used to query private worker telemetry and metrics.",
+					"default": "http://when-worker:9000",
+					"type": "string"
+				}
+			}
+		},
+		"User": {
+			"additionalProperties": false,
+			"title": "User",
+			"type": "object",
+			"required": ["name", "timezone", "email"],
+			"properties": {
+				"name": {
+					"minLength": 1,
+					"type": "string"
 				},
-				"default": {
-					"$ref": "#/$defs/WeeklySchedule"
+				"timezone": {
+					"description": "IANA timezone identifier (e.g. America/New_York).",
+					"minLength": 1,
+					"type": "string"
+				},
+				"email": {
+					"format": "email",
+					"type": "string"
+				},
+				"branding": {
+					"default": {},
+					"$ref": "#/$defs/Branding"
 				}
 			}
 		},
 		"WeeklySchedule": {
+			"additionalProperties": false,
 			"title": "WeeklySchedule",
 			"type": "object",
-			"additionalProperties": false,
 			"properties": {
 				"monday": {
 					"$ref": "#/$defs/DaySchedule"
@@ -437,186 +663,6 @@
 				},
 				"sunday": {
 					"$ref": "#/$defs/DaySchedule"
-				}
-			}
-		},
-		"DaySchedule": {
-			"title": "DaySchedule",
-			"description": "Array of HH:MM-HH:MM time ranges in the user's timezone.",
-			"type": "array",
-			"items": {
-				"type": "string",
-				"pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]-([01][0-9]|2[0-3]):[0-5][0-9]$"
-			}
-		},
-		"EventType": {
-			"title": "EventType",
-			"type": "object",
-			"additionalProperties": false,
-			"required": ["id", "name", "duration", "slug", "appointment_flow", "destination_calendar"],
-			"properties": {
-				"id": {
-					"type": "string",
-					"minLength": 1
-				},
-				"name": {
-					"type": "string",
-					"minLength": 1
-				},
-				"duration": {
-					"type": "integer",
-					"minimum": 1
-				},
-				"description": {
-					"type": "string"
-				},
-				"slug": {
-					"type": "string",
-					"pattern": "^[a-z0-9][a-z0-9-]*$"
-				},
-				"visibility": {
-					"enum": ["public", "private"],
-					"default": "public"
-				},
-				"appointment_flow": {
-					"enum": ["auto", "requires_confirmation"]
-				},
-				"conflict_calendars": {
-					"type": "array",
-					"items": {
-						"type": "string",
-						"minLength": 1
-					},
-					"default": []
-				},
-				"destination_calendar": {
-					"type": "string",
-					"minLength": 1
-				},
-				"location": {
-					"$ref": "#/$defs/Location"
-				},
-				"note": {
-					"type": "string",
-					"minLength": 1
-				},
-				"conference": {
-					"type": "string",
-					"format": "uri"
-				},
-				"slot_granularity": {
-					"type": "integer",
-					"minimum": 1
-				},
-				"minimum_notice": {
-					"type": "integer",
-					"minimum": 0
-				},
-				"maximum_lookahead": {
-					"type": "integer",
-					"minimum": 1
-				},
-				"buffer_before": {
-					"type": "integer",
-					"minimum": 0
-				},
-				"buffer_after": {
-					"type": "integer",
-					"minimum": 0
-				},
-				"max_appointments_per_day": {
-					"type": ["integer", "null"],
-					"minimum": 1
-				},
-				"image_url": {
-					"type": "string",
-					"minLength": 1
-				},
-				"form_fields": {
-					"type": "array",
-					"items": {
-						"$ref": "#/$defs/FormField"
-					}
-				}
-			}
-		},
-		"FormField": {
-			"title": "FormField",
-			"type": "object",
-			"additionalProperties": false,
-			"required": ["id", "type", "label", "required"],
-			"properties": {
-				"id": {
-					"type": "string",
-					"minLength": 1
-				},
-				"type": {
-					"enum": [
-						"guest_name",
-						"guest_email",
-						"event_location",
-						"text",
-						"number",
-						"paragraph",
-						"choice"
-					]
-				},
-				"label": {
-					"type": "string",
-					"minLength": 1
-				},
-				"required": {
-					"type": "boolean",
-					"default": false
-				},
-				"choices": {
-					"type": "array",
-					"items": {
-						"type": "string",
-						"minLength": 1
-					}
-				}
-			}
-		},
-		"Location": {
-			"title": "Location",
-			"oneOf": [
-				{
-					"$ref": "#/$defs/LocationFixed"
-				}
-			]
-		},
-		"LocationFixed": {
-			"title": "LocationFixed",
-			"type": "object",
-			"additionalProperties": false,
-			"required": ["mode", "fixed"],
-			"properties": {
-				"mode": {
-					"const": "fixed"
-				},
-				"fixed": {
-					"type": "string",
-					"minLength": 1
-				}
-			}
-		},
-		"PrometheusConfig": {
-			"title": "PrometheusConfig",
-			"description": "Prometheus metrics collection settings.",
-			"type": "object",
-			"additionalProperties": false,
-			"required": ["enabled", "secret"],
-			"properties": {
-				"enabled": {
-					"type": "boolean",
-					"description": "Whether metrics collection and endpoint are active.",
-					"default": false
-				},
-				"secret": {
-					"type": "string",
-					"description": "Bearer token for scraping metrics. Defaults to METRICS_TOKEN env var.",
-					"default": "${METRICS_TOKEN:-}"
 				}
 			}
 		}

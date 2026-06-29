@@ -14,17 +14,15 @@
 		"package.json"
 	],
 	"scripts": {
-		"generate:types": "json2ts --input src/config.schema.json --output src/schema.ts --no-bannerComment",
-		"generate:external-schema": "node scripts/generate-external-schema.js",
-		"build:assets": "cp src/config.schema.json src/config.external.schema.json dist/src/",
-		"build": "pnpm generate:types && pnpm generate:external-schema && tsc -p tsconfig.json && tsc -p tsconfig.build.json && pnpm build:assets",
+		"generate:schema": "node --experimental-strip-types scripts/generate-json-schemas.js && prettier --write src/config.schema.json",
+		"build:assets": "cp src/config.schema.json dist/src/",
+		"build": "pnpm generate:schema && tsc -p tsconfig.json && tsc -p tsconfig.build.json && pnpm build:assets",
 		"lint": "prettier --check . && eslint .",
 		"test": "vitest run",
 		"test:coverage": "vitest run --coverage"
 	},
 	"dependencies": {
-		"ajv": "8.20.0",
-		"ajv-formats": "3.0.1",
+		"@sinclair/typebox": "0.34.49",
 		"yaml": "2.9.0"
 	},
 	"devDependencies": {
