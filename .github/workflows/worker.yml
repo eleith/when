@@ -1,0 +1,101 @@
+name: CI/CD (Worker App)
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/worker.yml'
+      - 'apps/worker/**'
+      - 'packages/**'
+      - 'package.json'
+      - 'pnpm-workspace.yaml'
+      - 'pnpm-lock.yaml'
+    tags:
+      - 'worker/v*'
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/worker
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 11.5.0
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 26
+          cache: 'pnpm'
+          cache-dependency-path: 'pnpm-lock.yaml'
+
+      - name: Install dependencies
+        working-directory: .
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared packages
+        working-directory: .
+        run: pnpm build:packages
+
+      - name: Lint
+        run: pnpm run lint
+
+      - name: Check
+        run: pnpm run check
+
+  build-push:
+    needs: check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Check Version
+        if: github.ref_type == 'tag'
+        run: |
+          VERSION_FROM_PKG=$(node -p "require('./apps/worker/package.json').version")
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          VERSION_FROM_TAG=${TAG_NAME#worker/v}
+
+          if [ "$VERSION_FROM_TAG" != "$VERSION_FROM_PKG" ]; then
+            echo "Version mismatch: Tag version $VERSION_FROM_TAG does not match package.json version $VERSION_FROM_PKG"
+            exit 1
+          fi
+          echo "Version $VERSION_FROM_PKG matches."
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ghcr.io/${{ github.repository }}-worker
+          tags: |
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=match,pattern=worker/v(\d+),group=1
+            type=match,pattern=worker/v(\d+\.\d+),group=1
+            type=match,pattern=worker/v(\d+\.\d+\.\d+),group=1
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: apps/worker/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}

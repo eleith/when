@@ -1,0 +1,44 @@
+name: CI (Jobs Package)
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/jobs.yml'
+      - 'packages/jobs/**'
+      - 'packages/config/**'
+      - 'packages/db/**'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.5.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build packages
+        run: pnpm --filter "@when/jobs..." build
+
+      - name: Lint
+        run: pnpm --filter @when/jobs lint
+
+      - name: Test
+        run: pnpm --filter @when/jobs test
