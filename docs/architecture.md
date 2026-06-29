@@ -10,7 +10,7 @@ for the web app. SQLite through Node's built-in `node:sqlite` behind a small Kys
 dialect. [openworkflow](https://openworkflow.dev) for durable background jobs. Vitest
 for tests, Prettier + ESLint for formatting/linting. Email templates render with Eta;
 zoned time math uses `@js-temporal/polyfill`; calendar iCal in and out goes through
-`ts-ics`; password hashing uses `@node-rs/argon2`.
+`ts-ics`.
 
 ## Monorepo layout
 
@@ -137,7 +137,7 @@ moment, not a zone.
 
 ### Security
 
-- Passwords are stored only as argon2id hashes (`@node-rs/argon2`).
+- Credentials auth compares plain passwords resolved from environment variables/config.
 - Secrets are injected via `${ENV_VAR}` interpolation in `config.yaml`, never committed.
 - Secrets persisted to SQLite (OAuth refresh tokens) are encrypted at the column level
   with AES-256-GCM using the `ENCRYPTION_KEY` env var.

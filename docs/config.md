@@ -36,7 +36,7 @@ Declare **exactly one** strategy for the `/admin` interface.
 auth:
   credentials:
     username: 'admin'
-    password_hash: '${ADMIN_PASSWORD_HASH}' # generate with `pnpm hash-password`
+    password: '${WHEN_ADMIN_PASSWORD}' # defaults to WHEN_ADMIN_PASSWORD env var if omitted
 
 # — or — single sign-on via OIDC:
 auth:

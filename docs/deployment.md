@@ -20,7 +20,7 @@ in `config.example.yaml`:
 
 | Variable                                                             | Needed when       | Notes                                                      |
 | -------------------------------------------------------------------- | ----------------- | ---------------------------------------------------------- |
-| `ADMIN_PASSWORD_HASH`                                                | credentials auth  | argon2id hash of the admin password. `pnpm hash-password`. |
+| `WHEN_ADMIN_PASSWORD`                                                 | credentials auth  | Plain text password of the admin (defaults to this if omitted in config). |
 | `OIDC_CLIENT_SECRET`                                                 | OIDC auth         | OIDC provider client secret.                               |
 | `CALDAV_PASSWORD`                                                    | a CalDAV calendar | CalDAV password / app password.                            |
 | `SMTP_USER` / `SMTP_PASS`                                            | always            | SMTP credentials — SMTP is required.                       |
@@ -73,7 +73,6 @@ Worker:
 
 Run inside the container, or with `pnpm` in a checkout:
 
-- `pnpm hash-password` — interactive prompt; emits an argon2id hash for `ADMIN_PASSWORD_HASH`.
 - `pnpm setup-google` — opens your browser to authenticate with Google and prints the
   `config.yaml` calendar block (requires a Google Cloud OAuth 2.0 Client ID of type
   "Desktop app").

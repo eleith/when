@@ -24,7 +24,10 @@ calendar sync and sends appointment emails off the request path. The bundled
 2. Generate the secrets the app needs and export them in your environment:
 
    ```sh
-   pnpm hash-password            # -> ADMIN_PASSWORD_HASH (skip if using OIDC)
+   # Set your admin password (skip if using OIDC):
+   export WHEN_ADMIN_PASSWORD="your-secure-password"
+
+   # Generate the other secrets:
    openssl rand -base64 32       # -> ENCRYPTION_KEY
    openssl rand -base64 32       # -> AUTH_SECRET
    ```

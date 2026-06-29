@@ -1,13 +1,9 @@
 /**
  * Admin auth strategy. Exactly one of `oidc` or `credentials` must be declared.
  */
-export type Auth =
-  | {
-      oidc: OidcAuth;
-    }
-  | {
-      credentials: CredentialsAuth;
-    };
+export type Auth = {
+  [k: string]: unknown;
+};
 export type Calendar = GoogleCalendar | CalDavCalendar;
 /**
  * Array of HH:MM-HH:MM time ranges in the user's timezone.
@@ -31,18 +27,6 @@ export interface WhenConfiguration {
   database: DatabaseConfig;
   url: Url;
   prometheus: PrometheusConfig;
-}
-export interface OidcAuth {
-  issuer: string;
-  client_id: string;
-  client_secret: string;
-}
-/**
- * Local username/password. `password_hash` is an argon2/bcrypt hash (generate with `pnpm hash-password`).
- */
-export interface CredentialsAuth {
-  username: string;
-  password_hash: string;
 }
 export interface User {
   name: string;

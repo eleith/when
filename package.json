@@ -13,9 +13,7 @@
 		"format": "pnpm --filter @when/web format",
 		"test": "pnpm --filter @when/web test",
 		"test:e2e": "pnpm --filter @when/web test:e2e",
-		"validate-config": "pnpm --filter @when/web validate-config",
-		"hash-password": "pnpm --filter @when/web hash-password",
-		"setup-google": "pnpm --filter @when/web setup-google"
+		"validate-config": "pnpm --filter @when/web validate-config"
 	},
 	"devDependencies": {
 		"prettier": "^3.8.1",

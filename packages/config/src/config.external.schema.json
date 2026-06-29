@@ -101,28 +101,25 @@
 			"title": "Auth",
 			"description": "Admin auth strategy. Exactly one of `oidc` or `credentials` must be declared.",
 			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"oidc": {
+					"$ref": "#/$defs/OidcAuth"
+				},
+				"credentials": {
+					"$ref": "#/$defs/CredentialsAuth"
+				}
+			},
 			"oneOf": [
 				{
-					"additionalProperties": false,
 					"required": [
 						"oidc"
-					],
-					"properties": {
-						"oidc": {
-							"$ref": "#/$defs/OidcAuth"
-						}
-					}
+					]
 				},
 				{
-					"additionalProperties": false,
 					"required": [
 						"credentials"
-					],
-					"properties": {
-						"credentials": {
-							"$ref": "#/$defs/CredentialsAuth"
-						}
-					}
+					]
 				}
 			]
 		},
@@ -152,21 +149,21 @@
 		},
 		"CredentialsAuth": {
 			"title": "CredentialsAuth",
-			"description": "Local username/password. `password_hash` is an argon2/bcrypt hash (generate with `pnpm hash-password`).",
+			"description": "Local username/password.",
 			"type": "object",
 			"additionalProperties": false,
 			"required": [
-				"username",
-				"password_hash"
+				"username"
 			],
 			"properties": {
 				"username": {
 					"type": "string",
 					"minLength": 1
 				},
-				"password_hash": {
+				"password": {
 					"type": "string",
-					"minLength": 1
+					"minLength": 1,
+					"default": "${WHEN_ADMIN_PASSWORD}"
 				}
 			}
 		},

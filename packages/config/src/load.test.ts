@@ -35,7 +35,7 @@ test('auth with both oidc and credentials fails oneOf', () => {
 	const bad = clone(validConfig);
 	(bad as { auth: unknown }).auth = {
 		oidc: { issuer: 'https://auth.example.com', client_id: 'a', client_secret: 'b' },
-		credentials: { username: 'u', password_hash: 'h' }
+		credentials: { username: 'u', password: 'h' }
 	};
 	expect(() => validateConfig(bad)).toThrow(ConfigError);
 });
@@ -100,21 +100,35 @@ test('conference field rejects invalid URI', () => {
 });
 
 test('env vars are interpolated before validation', () => {
-	const raw = clone(validConfig) as unknown as typeof validConfig & {
-		auth: { credentials: { password_hash: string } };
-	};
-	raw.auth = { credentials: { username: 'admin', password_hash: '${ADMIN_HASH}' } };
+	const raw = clone(validConfig) as any;
+	raw.auth = { credentials: { username: 'admin', password: '${ADMIN_PW_TEST}' } };
 	// Stash and restore process.env for the test
-	const prev = process.env.ADMIN_HASH;
-	process.env.ADMIN_HASH = '$argon2id$real-hash';
+	const prev = process.env.ADMIN_PW_TEST;
+	process.env.ADMIN_PW_TEST = 'real-password';
 	try {
 		const cfg = validateConfig(raw);
 		expect(cfg.auth).toEqual({
-			credentials: { username: 'admin', password_hash: '$argon2id$real-hash' }
+			credentials: { username: 'admin', password: 'real-password' }
 		});
 	} finally {
-		if (prev === undefined) delete process.env.ADMIN_HASH;
-		else process.env.ADMIN_HASH = prev;
+		if (prev === undefined) delete process.env.ADMIN_PW_TEST;
+		else process.env.ADMIN_PW_TEST = prev;
+	}
+});
+
+test('password defaults to WHEN_ADMIN_PASSWORD if omitted', () => {
+	const raw = clone(validConfig) as any;
+	delete raw.auth.credentials.password;
+	const prev = process.env.WHEN_ADMIN_PASSWORD;
+	process.env.WHEN_ADMIN_PASSWORD = 'defaulted-password';
+	try {
+		const cfg = validateConfig(raw);
+		expect(cfg.auth).toEqual({
+			credentials: { username: 'admin', password: 'defaulted-password' }
+		});
+	} finally {
+		if (prev === undefined) delete process.env.WHEN_ADMIN_PASSWORD;
+		else process.env.WHEN_ADMIN_PASSWORD = prev;
 	}
 });
 
