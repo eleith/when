@@ -1,6 +1,7 @@
 import { expect, test } from 'vitest';
 import { ConfigError, validateConfig } from './load.js';
 import { validConfig } from './__fixtures__/valid-config.js';
+import type { WhenConfiguration } from './schema.js';
 
 function clone<T>(v: T): T {
 	return JSON.parse(JSON.stringify(v));
@@ -100,7 +101,7 @@ test('conference field rejects invalid URI', () => {
 });
 
 test('env vars are interpolated before validation', () => {
-	const raw = clone(validConfig) as any;
+	const raw = clone(validConfig) as WhenConfiguration;
 	raw.auth = { credentials: { username: 'admin', password: '${ADMIN_PW_TEST}' } };
 	// Stash and restore process.env for the test
 	const prev = process.env.ADMIN_PW_TEST;
@@ -117,7 +118,7 @@ test('env vars are interpolated before validation', () => {
 });
 
 test('password defaults to WHEN_ADMIN_PASSWORD if omitted', () => {
-	const raw = clone(validConfig) as any;
+	const raw = clone(validConfig) as unknown as { auth: { credentials: { password?: string } } };
 	delete raw.auth.credentials.password;
 	const prev = process.env.WHEN_ADMIN_PASSWORD;
 	process.env.WHEN_ADMIN_PASSWORD = 'defaulted-password';
