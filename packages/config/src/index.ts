@@ -6,4 +6,5 @@ export { resolveConfigPath } from './paths.js';
 export { resolveFormFields, DEFAULT_FORM_FIELDS, parseGuestAnswers } from './form-fields.js';
 export type { GuestAnswer } from './form-fields.js';
 export { senderEmail } from './sender.js';
+export { ConfigEditor } from './editor.js';
 export type * from './schema.js';
