@@ -1,0 +1,45 @@
+name: CI (CLI Package)
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/cli.yml'
+      - 'apps/cli/**'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.5.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build packages
+        run: pnpm --filter "@when/cli..." build
+
+      - name: Check
+        run: pnpm --filter @when/cli check
+
+      - name: Lint
+        run: pnpm --filter @when/cli lint
+
+      - name: Test
+        run: pnpm --filter @when/cli test

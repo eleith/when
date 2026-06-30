@@ -19,8 +19,9 @@ the code they cover — there is no top-level `tests/` directory.
 
 | Path                | Role                                                                                          |
 | ------------------- | --------------------------------------------------------------------------------------------- |
-| `apps/web`          | SvelteKit app: appointment page, admin UI, API routes. Also holds `e2e/` (Playwright) and `cli/`. |
+| `apps/web`          | SvelteKit app: appointment page, admin UI, API routes. Also holds `e2e/` (Playwright).        |
 | `apps/worker`       | Long-running background service: calendar sync + email delivery. See its README.              |
+| `apps/cli`          | Helper command-line tool (`when-cli`) for config validation and calendar setups.              |
 | `packages/config`   | Canonical `config.yaml` schema, generated types, loader/validator. See its README.            |
 | `packages/db`       | SQLite data layer: `node:sqlite` + Kysely dialect, schema types, migrations. See its README.  |
 | `packages/jobs`     | The job/workflow contract shared by web (producer) and worker (consumer). See its README.     |

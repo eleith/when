@@ -23,7 +23,6 @@
 		"test": "vitest run",
 		"test:coverage": "vitest run --coverage",
 		"test:e2e": "playwright test",
-		"validate-config": "node ./cli/validate-config.ts",
 		"dev:docker": "docker compose -f docker-compose.dev.yml up"
 	},
 	"devDependencies": {

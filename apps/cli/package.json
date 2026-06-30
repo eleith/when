@@ -1,0 +1,42 @@
+{
+	"name": "@when/cli",
+	"version": "0.0.1",
+	"private": true,
+	"type": "module",
+	"files": [
+		"dist/*",
+		"package.json"
+	],
+	"bin": {
+		"when-cli": "./dist/index.js"
+	},
+	"scripts": {
+		"build": "esbuild src/index.ts --bundle --platform=node --format=esm --outfile=dist/index.js --banner:js='#!/usr/bin/env node'",
+		"start": "node src/index.ts",
+		"check": "tsc --noEmit",
+		"lint": "prettier --check . && eslint .",
+		"format": "prettier --write .",
+		"test": "vitest run",
+		"test:coverage": "vitest run --coverage"
+	},
+	"dependencies": {
+		"@clack/prompts": "1.6.0",
+		"@when/calendar": "workspace:*",
+		"@when/config": "workspace:*",
+		"gunshi": "0.35.1"
+	},
+	"devDependencies": {
+		"@eslint/js": "catalog:",
+		"@types/node": "catalog:",
+		"@vitest/coverage-v8": "catalog:",
+		"esbuild": "0.25.0",
+		"eslint": "catalog:",
+		"eslint-config-prettier": "catalog:",
+		"globals": "catalog:",
+		"prettier": "catalog:",
+		"typescript": "catalog:",
+		"typescript-eslint": "catalog:",
+		"vite": "catalog:",
+		"vitest": "catalog:"
+	}
+}

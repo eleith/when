@@ -13,7 +13,7 @@
 		"format": "pnpm --filter @when/web format",
 		"test": "pnpm --filter @when/web test",
 		"test:e2e": "pnpm --filter @when/web test:e2e",
-		"validate-config": "pnpm --filter @when/web validate-config"
+		"cli": "pnpm --filter @when/cli"
 	},
 	"devDependencies": {
 		"prettier": "^3.8.1",
