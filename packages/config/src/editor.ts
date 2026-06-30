@@ -16,24 +16,21 @@ export class ConfigEditor {
 		});
 	}
 
-	get(path: string): any {
+	get(path: string): unknown {
 		const keys = this.parsePath(path);
 		const node = this.doc.getIn(keys);
 		if (node === undefined || node === null) {
 			return undefined;
 		}
 		if (typeof node === 'object' && 'toJSON' in node) {
-			return (node as any).toJSON();
+			return (node as { toJSON: () => unknown }).toJSON();
 		}
 		return node;
 	}
 
-	set(path: string, value: any): void {
+	set(path: string, value: unknown): void {
 		const keys = this.parsePath(path);
 		this.doc.setIn(keys, value);
-	}
-
-	save(): void {
 		writeFileSync(this.configPath, this.doc.toString());
 	}
 }

@@ -18,6 +18,7 @@
 		"build:assets": "cp src/config.schema.json dist/src/",
 		"build": "pnpm generate:schema && tsc -p tsconfig.json && tsc -p tsconfig.build.json && pnpm build:assets",
 		"lint": "prettier --check . && eslint .",
+		"format": "prettier --write .",
 		"test": "vitest run",
 		"test:coverage": "vitest run --coverage"
 	},

@@ -41,13 +41,16 @@ END:VCALENDAR
 		});
 
 		await expect(verifyCalDavConnection(cal, mockFetch)).resolves.toBeUndefined();
-		expect(mockFetch).toHaveBeenCalledWith(cal.url, expect.objectContaining({
-			method: 'REPORT',
-			headers: expect.objectContaining({
-				Authorization: 'Basic dXNlcjpwYXNzd29yZA==',
-				Depth: '1'
+		expect(mockFetch).toHaveBeenCalledWith(
+			cal.url,
+			expect.objectContaining({
+				method: 'REPORT',
+				headers: expect.objectContaining({
+					Authorization: 'Basic dXNlcjpwYXNzd29yZA==',
+					Depth: '1'
+				})
 			})
-		}));
+		);
 	});
 
 	test('verifyCalDavConnection throws an error on 401 Unauthorized response', async () => {
@@ -58,7 +61,9 @@ END:VCALENDAR
 			text: async () => 'Unauthorized'
 		});
 
-		await expect(verifyCalDavConnection(cal, mockFetch)).rejects.toThrow('CalDAV REPORT https://example.com/caldav/ failed: 401 Unauthorized');
+		await expect(verifyCalDavConnection(cal, mockFetch)).rejects.toThrow(
+			'CalDAV REPORT https://example.com/caldav/ failed: 401 Unauthorized'
+		);
 	});
 
 	test('command execution fails if configuration file does not exist', async () => {
@@ -71,12 +76,14 @@ END:VCALENDAR
 				values: { config: 'nonexistent-config.yaml' },
 				positionals: [],
 				commandPath: []
-			} as any;
+			} as unknown as Parameters<NonNullable<typeof caldavSetupCommand.run>>[0];
 
 			await caldavSetupCommand.run!(ctx);
 
 			expect(process.exitCode).toBe(1);
-			expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('FAIL  No configuration file found at:'));
+			expect(errorSpy).toHaveBeenCalledWith(
+				expect.stringContaining('FAIL  No configuration file found at:')
+			);
 		} finally {
 			errorSpy.mockRestore();
 			process.exitCode = originalExitCode;

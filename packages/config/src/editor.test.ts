@@ -7,7 +7,11 @@ describe('ConfigEditor', () => {
 	const tempPath = join(process.cwd(), 'temp-editor-test.yaml');
 
 	afterEach(() => {
-		try { unlinkSync(tempPath); } catch {}
+		try {
+			unlinkSync(tempPath);
+		} catch {
+			/* ignore */
+		}
 	});
 
 	test('gets and sets nested values using dot notation', () => {
@@ -34,8 +38,6 @@ calendars:
 		editor.set('calendars.1', { id: 'personal', type: 'caldav' });
 		editor.set('newSection.value', 42);
 
-		editor.save();
-
 		const result = readFileSync(tempPath, 'utf8');
 
 		expect(result).toContain('username: "superadmin"');
@@ -50,7 +52,6 @@ calendars:
 
 		const editor = new ConfigEditor(tempPath);
 		editor.set('deeply.nested.property.value', 'hello');
-		editor.save();
 
 		const result = readFileSync(tempPath, 'utf8');
 		expect(result).toContain('deeply:');
@@ -71,7 +72,6 @@ auth:
 
 		const editor = new ConfigEditor(tempPath);
 		editor.set('auth.credentials.password', 'secret');
-		editor.save();
 
 		const result = readFileSync(tempPath, 'utf8');
 
