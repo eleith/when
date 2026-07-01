@@ -11,7 +11,7 @@
 		"when-cli": "./dist/index.js"
 	},
 	"scripts": {
-		"build": "esbuild src/index.ts --bundle --platform=node --format=esm --outfile=dist/index.js --banner:js='#!/usr/bin/env node'",
+		"build": "esbuild src/index.ts --bundle --platform=neutral --format=esm --outfile=dist/index.js --banner:js='#!/usr/bin/env node' --main-fields=module,main --conditions=import --external:fs --external:path --external:os --external:crypto --external:process --external:readline --external:events --external:module --external:node:*",
 		"start": "node src/index.ts",
 		"check": "tsc --noEmit",
 		"lint": "prettier --check . && eslint .",

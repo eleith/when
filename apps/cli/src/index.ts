@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 import { cli, define } from 'gunshi';
 import { intro, outro } from '@clack/prompts';
 import { configCommand } from './commands/config/index.ts';
