@@ -44,6 +44,9 @@ importers:
 
   .:
     devDependencies:
+      '@when/cli':
+        specifier: workspace:*
+        version: link:apps/cli
       prettier:
         specifier: ^3.8.1
         version: 3.8.3

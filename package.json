@@ -1,7 +1,7 @@
 {
 	"name": "when-monorepo",
 	"private": true,
-	"packageManager": "pnpm@11.5.0",
+	"packageManager": "pnpm@11.9.0",
 	"scripts": {
 		"build:packages": "pnpm --filter \"./packages/*\" -r build",
 		"dev": "pnpm --filter @when/web dev",
@@ -16,6 +16,7 @@
 		"cli": "pnpm --filter @when/cli"
 	},
 	"devDependencies": {
+		"@when/cli": "workspace:*",
 		"prettier": "^3.8.1",
 		"typescript": "^6.0.2"
 	}

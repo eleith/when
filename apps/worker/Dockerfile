@@ -1,14 +1,13 @@
-FROM node:24-alpine AS base
+FROM node:26-alpine AS base
 WORKDIR /m
 
-RUN corepack enable
+RUN npm install -g pnpm@11.9.0
 
 FROM base AS dev
 
-ENV COREPACK_HOME=/usr/local/corepack
 ENV WHEN_URL_INTERNAL=http://when-app:5173
 COPY . .
-RUN pnpm install --frozen-lockfile && pnpm build:packages && chmod -R a+rX "$COREPACK_HOME"
+RUN pnpm install --frozen-lockfile && pnpm build:packages
 RUN mkdir -p /m/apps/worker/dist /m/apps/worker/data && \
     chmod -R 777 /m/apps/worker/dist /m/apps/worker/data /m/packages/*/dist
 EXPOSE 9000

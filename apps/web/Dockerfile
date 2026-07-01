@@ -1,19 +1,17 @@
-FROM node:24-alpine AS base
+FROM node:26-alpine AS base
 WORKDIR /m
 
-RUN corepack enable
+RUN npm install -g pnpm@11.9.0
 
 FROM base AS dev
 
-ENV COREPACK_HOME=/usr/local/corepack
 COPY . .
 RUN pnpm install --frozen-lockfile --ignore-scripts && pnpm build:packages
 WORKDIR /m/apps/web
 RUN mkdir -p data .svelte-kit node_modules/.cache node_modules/.vite node_modules/.vite-temp && \
     chmod 777 . && \
     chmod -R 777 data .svelte-kit node_modules/.cache node_modules/.vite node_modules/.vite-temp && \
-    chmod -R 777 /m/packages/*/dist && \
-    chmod -R a+rX "$COREPACK_HOME"
+    chmod -R 777 /m/packages/*/dist
 EXPOSE 5173
 CMD ["sh", "-c", "pnpm -C /m build:packages && pnpm run dev --host 0.0.0.0"]
 

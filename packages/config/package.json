@@ -14,7 +14,7 @@
 		"package.json"
 	],
 	"scripts": {
-		"generate:schema": "node --experimental-strip-types scripts/generate-json-schemas.js && prettier --write src/config.schema.json",
+		"generate:schema": "node scripts/generate-json-schemas.js && prettier --write src/config.schema.json",
 		"build:assets": "cp src/config.schema.json dist/src/",
 		"build": "pnpm generate:schema && tsc -p tsconfig.json && tsc -p tsconfig.build.json && pnpm build:assets",
 		"lint": "prettier --check . && eslint .",
