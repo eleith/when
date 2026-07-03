@@ -16,7 +16,7 @@ steps:
   prepare:
     image: node:26
     commands:
-      - npm install pnpm@11.5.0 --no-save
+      - npm install pnpm@11.9.0 --no-save
       - npx pnpm install --frozen-lockfile
 
   build:
