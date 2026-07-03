@@ -23,3 +23,15 @@ services:
       - ./config.yaml:/app/config.yaml
       - ./data:/app/data
     restart: unless-stopped
+
+  when-cli:
+    build:
+      context: ../..
+      dockerfile: apps/cli/Dockerfile
+      target: prod
+    platform: linux/amd64
+    stdin_open: true
+    tty: true
+    volumes:
+      - ./config.yaml:/app/config.yaml
+      - ./data:/app/data

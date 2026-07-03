@@ -49,6 +49,28 @@ services:
       - ../../packages/jobs/src:/m/packages/jobs/src
       - ../../packages/calendar/src:/m/packages/calendar/src
 
+  when-cli:
+    build:
+      context: ../..
+      dockerfile: apps/cli/Dockerfile
+      target: dev
+    user: '${UID:-1000}:${GID:-1000}'
+    stdin_open: true
+    tty: true
+    env_file:
+      - ./.env
+    environment:
+      NODE_ENV: development
+
+    volumes:
+      - ../cli/src:/m/apps/cli/src
+      - ./config.yaml:/m/apps/cli/config.yaml
+      - ./data:/m/apps/cli/data
+      - ../../packages/config/src:/m/packages/config/src
+      - ../../packages/db/src:/m/packages/db/src
+      - ../../packages/jobs/src:/m/packages/jobs/src
+      - ../../packages/calendar/src:/m/packages/calendar/src
+
   when-mailpit:
     image: axllent/mailpit:latest
     ports:
