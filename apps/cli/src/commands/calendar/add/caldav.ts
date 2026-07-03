@@ -7,17 +7,7 @@ import type { CalDavCalendar } from '@when/config';
 import type { FetchFn } from '@when/calendar';
 import { getValidatedConfigPath } from '../../../utils/config-path.ts';
 
-interface TemporalInstant {
-	add(duration: { hours: number }): TemporalInstant;
-}
 
-interface TemporalGlobal {
-	Now: {
-		instant(): TemporalInstant;
-	};
-}
-
-const { Temporal } = globalThis as unknown as { Temporal: TemporalGlobal };
 
 export async function verifyCalDavConnection(
 	cal: CalDavCalendar,

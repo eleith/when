@@ -7,17 +7,7 @@ import type { GoogleCalendar } from '@when/config';
 import type { FetchFn } from '@when/calendar';
 import { getValidatedConfigPath } from '../../../utils/config-path.ts';
 
-interface TemporalInstant {
-	add(duration: { hours: number }): TemporalInstant;
-}
 
-interface TemporalGlobal {
-	Now: {
-		instant(): TemporalInstant;
-	};
-}
-
-const { Temporal } = globalThis as unknown as { Temporal: TemporalGlobal };
 
 export async function verifyGoogleConnection(
 	cal: GoogleCalendar,
@@ -138,8 +128,7 @@ async function promptGoogleAppCredentials(configPath: string): Promise<GoogleApp
 		placeholder: 'personal',
 		validate(value) {
 			if (!value || !value.trim()) return 'Calendar ID is required';
-			const duplicate = existingCalendarIds.find((c) => c.id === value.trim());
-			if (duplicate) return `A calendar with ID "${value.trim()}" already exists in config.yaml.`;
+			if (existingCalendarIds.includes(value.trim())) return `A calendar with ID "${value.trim()}" already exists in config.yaml.`;
 		}
 	});
 	if (isCancel(calendarId)) return null;
