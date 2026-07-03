@@ -19,25 +19,38 @@ when:
 steps:
   prepare:
     image: node:26
+    environment:
+      COREPACK_HOME: /workspace/src/.corepack
     commands:
-      - npm install pnpm@11.9.0 --no-save
-      - npx pnpm install --frozen-lockfile
-      - npx pnpm build:packages
+      - npm install --global corepack@latest
+      - corepack enable
+      - corepack prepare pnpm@11.9.0 --activate
+      - pnpm config set store-dir .pnpm-store
+      - pnpm install --frozen-lockfile
+      - pnpm build:packages
 
   lint:
     image: node:26
+    environment:
+      COREPACK_HOME: /workspace/src/.corepack
     commands:
       - cd apps/web
       - touch config.yaml
       - touch .env
-      - npx pnpm run check
-      - npx pnpm run lint
+      - npm install --global corepack@latest
+      - corepack enable
+      - pnpm run check
+      - pnpm run lint
 
   test:
     image: node:26
+    environment:
+      COREPACK_HOME: /workspace/src/.corepack
     commands:
       - cd apps/web
-      - npx pnpm run test
+      - npm install --global corepack@latest
+      - corepack enable
+      - pnpm run test
 
   check-version:
     image: node:26

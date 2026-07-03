@@ -19,26 +19,43 @@ when:
 steps:
   prepare:
     image: node:26
+    environment:
+      COREPACK_HOME: /workspace/src/.corepack
     commands:
-      - npm install pnpm@11.9.0 --no-save
-      - npx pnpm install --frozen-lockfile
-      - npx pnpm build:packages
+      - npm install --global corepack@latest
+      - corepack enable
+      - corepack prepare pnpm@11.9.0 --activate
+      - pnpm config set store-dir .pnpm-store
+      - pnpm install --frozen-lockfile
+      - pnpm build:packages
 
   lint:
     image: node:26
+    environment:
+      COREPACK_HOME: /workspace/src/.corepack
     commands:
-      - npx pnpm --filter @when/worker check
-      - npx pnpm --filter @when/worker lint
+      - npm install --global corepack@latest
+      - corepack enable
+      - pnpm --filter @when/worker check
+      - pnpm --filter @when/worker lint
 
   test:
     image: node:26
+    environment:
+      COREPACK_HOME: /workspace/src/.corepack
     commands:
-      - npx pnpm --filter @when/worker test
+      - npm install --global corepack@latest
+      - corepack enable
+      - pnpm --filter @when/worker test
 
   build:
     image: node:26
+    environment:
+      COREPACK_HOME: /workspace/src/.corepack
     commands:
-      - npx pnpm --filter @when/worker build
+      - npm install --global corepack@latest
+      - corepack enable
+      - pnpm --filter @when/worker build
 
   check-version:
     image: node:26

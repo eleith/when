@@ -17,24 +17,41 @@ when:
 steps:
   prepare:
     image: node:26
+    environment:
+      COREPACK_HOME: /workspace/src/.corepack
     commands:
-      - npm install pnpm@11.9.0 --no-save
-      - npx pnpm install --frozen-lockfile
+      - npm install --global corepack@latest
+      - corepack enable
+      - corepack prepare pnpm@11.9.0 --activate
+      - pnpm config set store-dir .pnpm-store
+      - pnpm install --frozen-lockfile
 
   build:
     image: node:26
+    environment:
+      COREPACK_HOME: /workspace/src/.corepack
     commands:
-      - npx pnpm --filter "@when/jobs..." build
+      - npm install --global corepack@latest
+      - corepack enable
+      - pnpm --filter "@when/jobs..." build
 
   lint:
     image: node:26
+    environment:
+      COREPACK_HOME: /workspace/src/.corepack
     commands:
-      - npx pnpm --filter @when/jobs lint
+      - npm install --global corepack@latest
+      - corepack enable
+      - pnpm --filter @when/jobs lint
 
   test:
     image: node:26
+    environment:
+      COREPACK_HOME: /workspace/src/.corepack
     commands:
-      - npx pnpm --filter @when/jobs test
+      - npm install --global corepack@latest
+      - corepack enable
+      - pnpm --filter @when/jobs test
 
   notify-success:
     image: deblan/woodpecker-email:3.2.0
