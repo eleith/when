@@ -96,9 +96,9 @@ const SCOPES = [
 	'https://www.googleapis.com/auth/calendar.readonly'
 ].join(' ');
 
-export const googleSetupCommand = define({
+export const googleAddCommand = define({
 	name: 'google',
-	description: 'Wizard to setup Google Calendar integration',
+	description: 'Wizard to add Google Calendar integration',
 	args: {
 		config: {
 			type: 'string',

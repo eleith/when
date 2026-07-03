@@ -31,9 +31,9 @@ export async function verifyCalDavConnection(
 	});
 }
 
-export const caldavSetupCommand = define({
+export const caldavAddCommand = define({
 	name: 'caldav',
-	description: 'Wizard to setup CalDAV calendar integration',
+	description: 'Wizard to add CalDAV calendar integration',
 	args: {
 		config: {
 			type: 'string',

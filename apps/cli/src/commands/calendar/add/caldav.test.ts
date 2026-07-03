@@ -1,8 +1,8 @@
 import { describe, expect, test, vi } from 'vitest';
 import type { CalDavCalendar } from '@when/config';
-import { caldavSetupCommand, verifyCalDavConnection } from './caldav.ts';
+import { caldavAddCommand, verifyCalDavConnection } from './caldav.ts';
 
-describe('caldav setup command', () => {
+describe('caldav add command', () => {
 	const cal: CalDavCalendar = {
 		id: 'work',
 		type: 'caldav',
@@ -76,9 +76,9 @@ END:VCALENDAR
 				values: { config: 'nonexistent-config.yaml' },
 				positionals: [],
 				commandPath: []
-			} as unknown as Parameters<NonNullable<typeof caldavSetupCommand.run>>[0];
+			} as unknown as Parameters<NonNullable<typeof caldavAddCommand.run>>[0];
 
-			await caldavSetupCommand.run!(ctx);
+			await caldavAddCommand.run!(ctx);
 
 			expect(process.exitCode).toBe(1);
 			expect(errorSpy).toHaveBeenCalledWith(

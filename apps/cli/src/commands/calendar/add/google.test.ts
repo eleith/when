@@ -1,13 +1,13 @@
 import { describe, expect, test, vi } from 'vitest';
 import type { GoogleCalendar } from '@when/config';
 import {
-	googleSetupCommand,
+	googleAddCommand,
 	verifyGoogleConnection,
 	exchangeCodeForTokens,
 	fetchCalendarList
 } from './google.ts';
 
-describe('google setup command helpers', () => {
+describe('google add command helpers', () => {
 	const cal: GoogleCalendar = {
 		id: 'personal',
 		type: 'google',
@@ -176,9 +176,9 @@ describe('google setup command helpers', () => {
 				values: { config: 'nonexistent-config.yaml' },
 				positionals: [],
 				commandPath: []
-			} as unknown as Parameters<NonNullable<typeof googleSetupCommand.run>>[0];
+			} as unknown as Parameters<NonNullable<typeof googleAddCommand.run>>[0];
 
-			await googleSetupCommand.run!(ctx);
+			await googleAddCommand.run!(ctx);
 
 			expect(process.exitCode).toBe(1);
 			expect(errorSpy).toHaveBeenCalledWith(

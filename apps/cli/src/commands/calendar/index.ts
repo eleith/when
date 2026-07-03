@@ -1,13 +1,13 @@
 import { define } from 'gunshi';
-import { setupCommand } from './setup/index.ts';
+import { addCommand } from './add/index.ts';
 
 export const calendarCommand = define({
 	name: 'calendar',
 	description: 'Manage calendar integrations',
 	subCommands: {
-		setup: setupCommand
+		add: addCommand
 	},
 	run() {
-		console.log('Use "when-cli calendar setup"');
+		console.log('Use "when-cli calendar add"');
 	}
 });
