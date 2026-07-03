@@ -7,8 +7,6 @@ import type { CalDavCalendar } from '@when/config';
 import type { FetchFn } from '@when/calendar';
 import { getValidatedConfigPath } from '../../../utils/config-path.ts';
 
-
-
 export async function verifyCalDavConnection(
 	cal: CalDavCalendar,
 	fetchImpl?: FetchFn
