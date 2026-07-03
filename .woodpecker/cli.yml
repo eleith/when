@@ -9,8 +9,12 @@ when:
       include:
         - ".woodpecker/cli.yml"
         - "apps/cli/**"
-        - "pnpm-lock.yaml"
+        - "packages/**"
+        - "package.json"
         - "pnpm-workspace.yaml"
+        - "pnpm-lock.yaml"
+  - event: tag
+    ref: "refs/tags/cli/v*"
 
 steps:
   prepare:
@@ -18,21 +22,87 @@ steps:
     commands:
       - npm install pnpm@11.5.0 --no-save
       - npx pnpm install --frozen-lockfile
-
-  build:
-    image: node:26
-    commands:
-      - npx pnpm --filter "@when/cli..." build
+      - npx pnpm build:packages
 
   lint:
     image: node:26
     commands:
+      - npx pnpm --filter @when/cli check
       - npx pnpm --filter @when/cli lint
 
   test:
     image: node:26
     commands:
       - npx pnpm --filter @when/cli test
+
+  build:
+    image: node:26
+    commands:
+      - npx pnpm --filter @when/cli build
+
+  check-version:
+    image: node:26
+    commands:
+      - cd apps/cli
+      - |
+        VERSION_FROM_PKG=$(node -p "require('./package.json').version")
+
+        if [ "$VERSION_FROM_TAG" != "$VERSION_FROM_PKG" ]; then
+          echo "Version mismatch: Git tag version $VERSION_FROM_TAG does not match package.json version: $VERSION_FROM_PKG"
+          exit 1
+        fi
+    environment:
+      VERSION_FROM_TAG: ${CI_COMMIT_TAG#cli/v}
+    when:
+      - event: tag
+
+  extract-semver-tags:
+    image: alpine/git:latest
+    commands:
+      - |
+        VERSION_FULL="${CI_COMMIT_TAG#cli/v}"
+        VERSION_MAJOR=$(echo "$VERSION_FULL" | cut -d. -f1)
+        VERSION_MINOR=$(echo "$VERSION_FULL" | cut -d. -f2)
+
+        SEMVER_FULL="$VERSION_FULL"
+        SEMVER_MAJOR_MINOR="$VERSION_MAJOR.$VERSION_MINOR"
+        SEMVER_MAJOR="$VERSION_MAJOR"
+
+        echo "Extracted versions: $SEMVER_FULL, $SEMVER_MAJOR_MINOR, $SEMVER_MAJOR"
+        echo -e "$SEMVER_FULL\n$SEMVER_MAJOR\n$SEMVER_MAJOR_MINOR" >> .tags
+        cat .tags
+    when:
+      - event: tag
+
+  build-docker-main:
+    image: woodpeckerci/plugin-docker-buildx:6.0.3
+    settings:
+      repo: git.eleith.com/eleith/when-cli
+      username: eleith
+      dockerfile: apps/cli/Dockerfile
+      context: .
+      registry: https://git.eleith.com
+      tags:
+        - latest
+      password:
+        from_secret: gitea_docker_registry
+    when:
+      - event: push
+        branch: main
+
+  build-docker-tag:
+    image: woodpeckerci/plugin-docker-buildx:6.0.3
+    settings:
+      repo: git.eleith.com/eleith/when-cli
+      username: eleith
+      dockerfile: apps/cli/Dockerfile
+      context: .
+      registry: https://git.eleith.com
+      tags_file: .tags
+      password:
+        from_secret: gitea_docker_registry
+    when:
+      - event: tag
 
   notify-success:
     image: deblan/woodpecker-email:3.2.0
