@@ -71,32 +71,33 @@ test('empty event_types array fails', () => {
 	expect(() => validateConfig(bad)).toThrow(ConfigError);
 });
 
-test('location mode=fixed requires fixed field', () => {
+test('location accepts string value', () => {
+	const good = clone(validConfig);
+	good.event_types[0].location = 'Meeting Room A';
+	const cfg = validateConfig(good);
+	expect(cfg.event_types[0].location).toBe('Meeting Room A');
+});
+
+test('location rejects non-string value', () => {
 	const bad = clone(validConfig);
-	bad.event_types[0].location = { mode: 'fixed' } as never;
+	bad.event_types[0].location = 123 as never;
 	expect(() => validateConfig(bad)).toThrow(ConfigError);
 });
 
-test('location mode=fixed accepts fixed value', () => {
+test('video_chat accepts valid string', () => {
 	const good = clone(validConfig);
-	good.event_types[0].location = { mode: 'fixed', fixed: 'https://meet.example.com/jane' } as never;
+	good.event_types[0].video_chat = 'google-service'; // must be a valid reference in fixture to pass cross-refs
+	// Wait, validConfig has services[0].id === 'google-service' but not video_chats.
+	// In cross-refs, if it's not a URL, it checks if it exists in video_chats.
+	// Let's use a URL (e.g. 'https://meet.google.com/abc') so it doesn't fail cross-refs.
+	good.event_types[0].video_chat = 'https://meet.google.com/abc';
 	const cfg = validateConfig(good);
-	expect(cfg.event_types[0].location).toEqual({
-		mode: 'fixed',
-		fixed: 'https://meet.example.com/jane'
-	});
+	expect(cfg.event_types[0].video_chat).toBe('https://meet.google.com/abc');
 });
 
-test('conference field accepts valid URI', () => {
-	const good = clone(validConfig);
-	good.event_types[0].conference = 'https://meet.example.com/jane';
-	const cfg = validateConfig(good);
-	expect(cfg.event_types[0].conference).toBe('https://meet.example.com/jane');
-});
-
-test('conference field rejects invalid URI', () => {
+test('video_chat rejects non-string value', () => {
 	const bad = clone(validConfig);
-	bad.event_types[0].conference = 'invalid-uri-not-a-link';
+	bad.event_types[0].video_chat = 123 as never;
 	expect(() => validateConfig(bad)).toThrow(ConfigError);
 });
 

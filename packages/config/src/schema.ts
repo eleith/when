@@ -81,12 +81,57 @@ export const CalendarSyncSchema = Type.Object({
 	}))
 }, { $id: 'CalendarSync', additionalProperties: false, title: 'CalendarSync', description: 'Per-calendar sync cadence.' });
 
-export const GoogleCalendarSchema = Type.Object({
+export const GoogleServiceSchema = Type.Object({
 	id: Type.String({ minLength: 1 }),
 	type: Type.Literal('google'),
 	client_id: Type.String({ minLength: 1 }),
 	client_secret: Type.String({ minLength: 1 }),
-	refresh_token: Type.String({ minLength: 1 }),
+	refresh_token: Type.String({ minLength: 1 })
+}, { $id: 'GoogleService', additionalProperties: false, title: 'GoogleService' });
+
+export const NextcloudServiceSchema = Type.Object({
+	id: Type.String({ minLength: 1 }),
+	type: Type.Literal('nextcloud'),
+	url: Type.String({ format: 'uri' }),
+	username: Type.String({ minLength: 1 }),
+	password: Type.String({ minLength: 1 })
+}, { $id: 'NextcloudService', additionalProperties: false, title: 'NextcloudService' });
+
+export const CalDavServiceSchema = Type.Object({
+	id: Type.String({ minLength: 1 }),
+	type: Type.Literal('caldav'),
+	url: Type.String({ format: 'uri' }),
+	username: Type.String({ minLength: 1 }),
+	password: Type.String({ minLength: 1 })
+}, { $id: 'CalDavService', additionalProperties: false, title: 'CalDavService' });
+
+export const ServiceSchema = Type.Union([
+	Ref(GoogleServiceSchema),
+	Ref(NextcloudServiceSchema),
+	Ref(CalDavServiceSchema)
+], { $id: 'Service', title: 'Service' });
+
+export const NextcloudTalkVideoChatSchema = Type.Object({
+	id: Type.String({ minLength: 1 }),
+	type: Type.Literal('nextcloud-talk'),
+	service_id: Type.String({ minLength: 1 })
+}, { $id: 'NextcloudTalkVideoChat', additionalProperties: false, title: 'NextcloudTalkVideoChat' });
+
+export const GoogleMeetVideoChatSchema = Type.Object({
+	id: Type.String({ minLength: 1 }),
+	type: Type.Literal('google-meet'),
+	service_id: Type.String({ minLength: 1 })
+}, { $id: 'GoogleMeetVideoChat', additionalProperties: false, title: 'GoogleMeetVideoChat' });
+
+export const VideoChatSchema = Type.Union([
+	Ref(NextcloudTalkVideoChatSchema),
+	Ref(GoogleMeetVideoChatSchema)
+], { $id: 'VideoChat', title: 'VideoChat' });
+
+export const GoogleCalendarSchema = Type.Object({
+	id: Type.String({ minLength: 1 }),
+	type: Type.Literal('google'),
+	service_id: Type.String({ minLength: 1 }),
 	google_calendar_id: Type.String({ minLength: 1 }),
 	sync: Type.Optional(Ref(CalendarSyncSchema))
 }, { $id: 'GoogleCalendar', additionalProperties: false, title: 'GoogleCalendar' });
@@ -94,9 +139,8 @@ export const GoogleCalendarSchema = Type.Object({
 export const CalDavCalendarSchema = Type.Object({
 	id: Type.String({ minLength: 1 }),
 	type: Type.Literal('caldav'),
+	service_id: Type.String({ minLength: 1 }),
 	url: Type.String({ format: 'uri' }),
-	username: Type.String({ minLength: 1 }),
-	password: Type.String({ minLength: 1 }),
 	sync: Type.Optional(Ref(CalendarSyncSchema))
 }, { $id: 'CalDavCalendar', additionalProperties: false, title: 'CalDavCalendar' });
 
@@ -130,14 +174,7 @@ export const AvailabilitySchema = Type.Object({
 	default: Ref(WeeklyScheduleSchema)
 }, { $id: 'Availability', additionalProperties: false, title: 'Availability', description: 'Global availability defaults. Each knob is overridable per event type.' });
 
-export const LocationFixedSchema = Type.Object({
-	mode: Type.Literal('fixed'),
-	fixed: Type.String({ minLength: 1 })
-}, { $id: 'LocationFixed', additionalProperties: false, title: 'LocationFixed' });
-
-export const LocationSchema = Type.Union([
-	Ref(LocationFixedSchema)
-], { $id: 'Location', title: 'Location' });
+export const LocationSchema = Type.String({ $id: 'Location', title: 'Location', minLength: 1 });
 
 export const FormFieldSchema = Type.Object({
 	id: Type.String({ minLength: 1 }),
@@ -167,7 +204,7 @@ export const EventTypeSchema = Type.Object({
 	destination_calendar: Type.String({ minLength: 1 }),
 	location: Type.Optional(Ref(LocationSchema)),
 	note: Type.Optional(Type.String({ minLength: 1 })),
-	conference: Type.Optional(Type.String({ format: 'uri' })),
+	video_chat: Type.Optional(Type.String({ minLength: 1 })),
 	slot_granularity: Type.Optional(Type.Integer({ minimum: 1 })),
 	minimum_notice: Type.Optional(Type.Integer({ minimum: 0 })),
 	maximum_lookahead: Type.Optional(Type.Integer({ minimum: 1 })),
@@ -216,6 +253,8 @@ export const WhenConfigurationSchema = Type.Object({
 	auth: Ref(AuthSchema),
 	user: Ref(UserSchema),
 	smtp: Ref(SmtpSchema),
+	services: Type.Optional(Type.Array(Ref(ServiceSchema), { default: [] })),
+	video_chats: Type.Optional(Type.Array(Ref(VideoChatSchema), { default: [] })),
 	calendars: Type.Array(Ref(CalendarSchema)),
 	availability: Ref(AvailabilitySchema),
 	event_types: Type.Array(Ref(EventTypeSchema), { minItems: 1 }),
@@ -233,6 +272,13 @@ export type Auth = Static<typeof AuthSchema>;
 export type User = Static<typeof UserSchema>;
 export type Branding = Static<typeof BrandingSchema>;
 export type Smtp = Static<typeof SmtpSchema>;
+export type Service = Static<typeof ServiceSchema>;
+export type GoogleService = Static<typeof GoogleServiceSchema>;
+export type NextcloudService = Static<typeof NextcloudServiceSchema>;
+export type CalDavService = Static<typeof CalDavServiceSchema>;
+export type VideoChat = Static<typeof VideoChatSchema>;
+export type NextcloudTalkVideoChat = Static<typeof NextcloudTalkVideoChatSchema>;
+export type GoogleMeetVideoChat = Static<typeof GoogleMeetVideoChatSchema>;
 export type Calendar = Static<typeof CalendarSchema>;
 export type GoogleCalendar = Static<typeof GoogleCalendarSchema>;
 export type CalendarSync = Static<typeof CalendarSyncSchema>;
@@ -243,7 +289,6 @@ export type DaySchedule = Static<typeof DayScheduleSchema>;
 export type EventType = Static<typeof EventTypeSchema>;
 export type FormField = Static<typeof FormFieldSchema>;
 export type Location = Static<typeof LocationSchema>;
-export type LocationFixed = Static<typeof LocationFixedSchema>;
 export type PrometheusConfig = Static<typeof PrometheusConfigSchema>;
 export type DatabaseConfig = Static<typeof DatabaseConfigSchema>;
 export type Url = Static<typeof UrlSchema>;

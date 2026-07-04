@@ -16,6 +16,20 @@
 		"smtp": {
 			"$ref": "#/$defs/Smtp"
 		},
+		"services": {
+			"default": [],
+			"type": "array",
+			"items": {
+				"$ref": "#/$defs/Service"
+			}
+		},
+		"video_chats": {
+			"default": [],
+			"type": "array",
+			"items": {
+				"$ref": "#/$defs/VideoChat"
+			}
+		},
 		"calendars": {
 			"type": "array",
 			"items": {
@@ -180,6 +194,33 @@
 			"additionalProperties": false,
 			"title": "CalDavCalendar",
 			"type": "object",
+			"required": ["id", "type", "service_id", "url"],
+			"properties": {
+				"id": {
+					"minLength": 1,
+					"type": "string"
+				},
+				"type": {
+					"const": "caldav",
+					"type": "string"
+				},
+				"service_id": {
+					"minLength": 1,
+					"type": "string"
+				},
+				"url": {
+					"format": "uri",
+					"type": "string"
+				},
+				"sync": {
+					"$ref": "#/$defs/CalendarSync"
+				}
+			}
+		},
+		"CalDavService": {
+			"additionalProperties": false,
+			"title": "CalDavService",
+			"type": "object",
 			"required": ["id", "type", "url", "username", "password"],
 			"properties": {
 				"id": {
@@ -201,9 +242,6 @@
 				"password": {
 					"minLength": 1,
 					"type": "string"
-				},
-				"sync": {
-					"$ref": "#/$defs/CalendarSync"
 				}
 			}
 		},
@@ -348,8 +386,8 @@
 					"minLength": 1,
 					"type": "string"
 				},
-				"conference": {
-					"format": "uri",
+				"video_chat": {
+					"minLength": 1,
 					"type": "string"
 				},
 				"slot_granularity": {
@@ -458,14 +496,54 @@
 			"additionalProperties": false,
 			"title": "GoogleCalendar",
 			"type": "object",
-			"required": [
-				"id",
-				"type",
-				"client_id",
-				"client_secret",
-				"refresh_token",
-				"google_calendar_id"
-			],
+			"required": ["id", "type", "service_id", "google_calendar_id"],
+			"properties": {
+				"id": {
+					"minLength": 1,
+					"type": "string"
+				},
+				"type": {
+					"const": "google",
+					"type": "string"
+				},
+				"service_id": {
+					"minLength": 1,
+					"type": "string"
+				},
+				"google_calendar_id": {
+					"minLength": 1,
+					"type": "string"
+				},
+				"sync": {
+					"$ref": "#/$defs/CalendarSync"
+				}
+			}
+		},
+		"GoogleMeetVideoChat": {
+			"additionalProperties": false,
+			"title": "GoogleMeetVideoChat",
+			"type": "object",
+			"required": ["id", "type", "service_id"],
+			"properties": {
+				"id": {
+					"minLength": 1,
+					"type": "string"
+				},
+				"type": {
+					"const": "google-meet",
+					"type": "string"
+				},
+				"service_id": {
+					"minLength": 1,
+					"type": "string"
+				}
+			}
+		},
+		"GoogleService": {
+			"additionalProperties": false,
+			"title": "GoogleService",
+			"type": "object",
+			"required": ["id", "type", "client_id", "client_secret", "refresh_token"],
 			"properties": {
 				"id": {
 					"minLength": 1,
@@ -486,13 +564,6 @@
 				"refresh_token": {
 					"minLength": 1,
 					"type": "string"
-				},
-				"google_calendar_id": {
-					"minLength": 1,
-					"type": "string"
-				},
-				"sync": {
-					"$ref": "#/$defs/CalendarSync"
 				}
 			}
 		},
@@ -500,25 +571,58 @@
 			"pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$",
 			"type": "string"
 		},
-		"LocationFixed": {
+		"Location": {
+			"title": "Location",
+			"minLength": 1,
+			"type": "string"
+		},
+		"NextcloudService": {
 			"additionalProperties": false,
-			"title": "LocationFixed",
+			"title": "NextcloudService",
 			"type": "object",
-			"required": ["mode", "fixed"],
+			"required": ["id", "type", "url", "username", "password"],
 			"properties": {
-				"mode": {
-					"const": "fixed",
+				"id": {
+					"minLength": 1,
 					"type": "string"
 				},
-				"fixed": {
+				"type": {
+					"const": "nextcloud",
+					"type": "string"
+				},
+				"url": {
+					"format": "uri",
+					"type": "string"
+				},
+				"username": {
+					"minLength": 1,
+					"type": "string"
+				},
+				"password": {
 					"minLength": 1,
 					"type": "string"
 				}
 			}
 		},
-		"Location": {
-			"title": "Location",
-			"$ref": "#/$defs/LocationFixed"
+		"NextcloudTalkVideoChat": {
+			"additionalProperties": false,
+			"title": "NextcloudTalkVideoChat",
+			"type": "object",
+			"required": ["id", "type", "service_id"],
+			"properties": {
+				"id": {
+					"minLength": 1,
+					"type": "string"
+				},
+				"type": {
+					"const": "nextcloud-talk",
+					"type": "string"
+				},
+				"service_id": {
+					"minLength": 1,
+					"type": "string"
+				}
+			}
 		},
 		"OidcAuth": {
 			"additionalProperties": false,
@@ -557,6 +661,20 @@
 					"type": "string"
 				}
 			}
+		},
+		"Service": {
+			"title": "Service",
+			"anyOf": [
+				{
+					"$ref": "#/$defs/GoogleService"
+				},
+				{
+					"$ref": "#/$defs/NextcloudService"
+				},
+				{
+					"$ref": "#/$defs/CalDavService"
+				}
+			]
 		},
 		"Smtp": {
 			"additionalProperties": false,
@@ -637,6 +755,17 @@
 					"$ref": "#/$defs/Branding"
 				}
 			}
+		},
+		"VideoChat": {
+			"title": "VideoChat",
+			"anyOf": [
+				{
+					"$ref": "#/$defs/NextcloudTalkVideoChat"
+				},
+				{
+					"$ref": "#/$defs/GoogleMeetVideoChat"
+				}
+			]
 		},
 		"WeeklySchedule": {
 			"additionalProperties": false,

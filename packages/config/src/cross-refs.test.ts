@@ -177,3 +177,51 @@ test('choice field without choices flagged', () => {
 	);
 	expect(issues.some((i) => i.path === '/event_types/0/form_fields/3/choices')).toBe(true);
 });
+
+test('unknown service_id in calendar flagged', () => {
+	const bad = clone(validConfig);
+	bad.calendars[0].service_id = 'non-existent';
+	const issues = issuesFor(bad);
+	expect(issues.some((i) => i.path === '/calendars/0/service_id' && i.message.includes('unknown service'))).toBe(true);
+});
+
+test('duplicate service id flagged', () => {
+	const bad = clone(validConfig);
+	bad.services!.push({ ...bad.services![0] });
+	const issues = issuesFor(bad);
+	expect(issues.some((i) => i.path === '/services/1/id' && i.message.includes('duplicate service'))).toBe(true);
+});
+
+test('unknown video_chat reference in event_type flagged', () => {
+	const bad = clone(validConfig);
+	bad.event_types[0].video_chat = 'non-existent';
+	const issues = issuesFor(bad);
+	expect(issues.some((i) => i.path === '/event_types/0/video_chat' && i.message.includes('unknown video_chat id'))).toBe(true);
+});
+
+test('Google Meet video_chat with CalDAV destination calendar flagged', () => {
+	const bad = clone(validConfig);
+	bad.services!.push({
+		id: 'nextcloud-service',
+		type: 'nextcloud',
+		url: 'https://cloud.example.com',
+		username: 'jane',
+		password: 'pwd'
+	});
+	bad.calendars.push({
+		id: 'caldav-cal',
+		type: 'caldav',
+		service_id: 'nextcloud-service',
+		url: 'https://cloud.example.com/cal/'
+	});
+	bad.video_chats!.push({
+		id: 'my-meet',
+		type: 'google-meet',
+		service_id: 'google-service'
+	});
+	bad.event_types[0].destination_calendar = 'caldav-cal';
+	bad.event_types[0].video_chat = 'my-meet';
+
+	const issues = issuesFor(bad);
+	expect(issues.some((i) => i.path === '/event_types/0/video_chat' && i.message.includes('Google Meet dynamic video chat is only supported'))).toBe(true);
+});
