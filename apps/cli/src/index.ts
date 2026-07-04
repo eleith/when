@@ -2,6 +2,7 @@ import { cli, define } from 'gunshi';
 import { intro, outro } from '@clack/prompts';
 import { configCommand } from './commands/config/index.ts';
 import { calendarCommand } from './commands/calendar/index.ts';
+import { videoChatCommand } from './commands/video-chat/index.ts';
 
 const rootCommand = define({
 	name: 'when-cli',
@@ -17,7 +18,8 @@ try {
 		name: 'when-cli',
 		subCommands: {
 			config: configCommand,
-			calendar: calendarCommand
+			calendar: calendarCommand,
+			'video-chat': videoChatCommand
 		}
 	});
 } catch (err) {

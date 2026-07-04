@@ -88,6 +88,7 @@ export interface ActionLogEntry {
 		| 'expire'
 		| 'email'
 		| 'calendar'
+		| 'video_chat'
 		| 'edit';
 	actor: 'guest' | 'host' | 'system';
 	at: string;
@@ -101,5 +102,5 @@ export interface ActionLogEntry {
 	};
 }
 
-export type JobKind = 'email' | 'calendar';
+export type JobKind = 'email' | 'calendar' | 'video_chat';
 export type JobState = 'done' | 'failed';

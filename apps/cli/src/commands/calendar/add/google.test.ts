@@ -11,11 +11,22 @@ describe('google add command helpers', () => {
 	const cal: GoogleCalendar = {
 		id: 'personal',
 		type: 'google',
-		client_id: 'client-id-123',
-		client_secret: 'client-secret-456',
-		refresh_token: 'refresh-token-789',
+		service_id: 'google-service',
 		google_calendar_id: 'primary'
 	};
+
+	const testConfig = {
+		services: [
+			{
+				id: 'google-service',
+				type: 'google',
+				client_id: 'client-id-123',
+				client_secret: 'client-secret-456',
+				refresh_token: 'refresh-token-789'
+			}
+		],
+		calendars: [cal]
+	} as any;
 
 	test('exchangeCodeForTokens returns tokens on successful POST', async () => {
 		const mockFetch = vi.fn().mockResolvedValue({
@@ -144,7 +155,7 @@ describe('google add command helpers', () => {
 			return { ok: false, status: 404 };
 		});
 
-		await expect(verifyGoogleConnection(cal, mockFetch)).resolves.toBeUndefined();
+		await expect(verifyGoogleConnection(cal, testConfig, mockFetch)).resolves.toBeUndefined();
 	});
 
 	test('verifyGoogleConnection throws error when token endpoint fails', async () => {
@@ -160,8 +171,16 @@ describe('google add command helpers', () => {
 			return { ok: false, status: 404 };
 		});
 
-		const calFailed = { ...cal, refresh_token: 'refresh-token-failed-test' };
-		await expect(verifyGoogleConnection(calFailed, mockFetch)).rejects.toThrow(
+		const failedConfig = {
+			services: [
+				{
+					...testConfig.services[0],
+					refresh_token: 'refresh-token-failed-test'
+				}
+			],
+			calendars: [cal]
+		} as any;
+		await expect(verifyGoogleConnection(cal, failedConfig, mockFetch)).rejects.toThrow(
 			'Google token refresh failed: 400 Bad Request'
 		);
 	});

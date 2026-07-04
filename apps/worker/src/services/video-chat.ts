@@ -5,7 +5,6 @@ import type { Database, Appointment } from '@when/db';
 import type { WhenConfiguration } from '@when/config';
 import { appointmentLinks } from '../links.js';
 import { appendJobLog } from './job-log.js';
-import { Temporal } from '@js-temporal/polyfill';
 
 export async function ensureVideoChatLink(
 	db: Kysely<Database>,

@@ -65,6 +65,9 @@ importers:
       '@when/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@when/video-chat':
+        specifier: workspace:*
+        version: link:../../packages/video-chat
       gunshi:
         specifier: 0.35.1
         version: 0.35.1

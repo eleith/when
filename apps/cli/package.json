@@ -23,6 +23,7 @@
 		"@clack/prompts": "1.6.0",
 		"@when/calendar": "workspace:*",
 		"@when/config": "workspace:*",
+		"@when/video-chat": "workspace:*",
 		"gunshi": "0.35.1",
 		"yaml": "2.9.0"
 	},

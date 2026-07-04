@@ -28,12 +28,17 @@ smtp:
   port: 587
   user: "smtp_user"
   pass: "smtp_pass"
-calendars:
-  - id: "work"
+services:
+  - id: "work-dav"
     type: "caldav"
     url: "https://example.com"
     username: "u"
     password: "p"
+calendars:
+  - id: "work"
+    type: "caldav"
+    service_id: "work-dav"
+    url: "https://example.com"
 availability:
   default:
     monday: ["09:00-17:00"]
@@ -73,12 +78,17 @@ smtp:
   port: 587
   user: "smtp_user"
   pass: "smtp_pass"
-calendars:
-  - id: "work"
+services:
+  - id: "work-dav"
     type: "caldav"
     url: "https://example.com"
     username: "u"
     password: "p"
+calendars:
+  - id: "work"
+    type: "caldav"
+    service_id: "work-dav"
+    url: "https://example.com"
 availability:
   default:
     monday: ["09:00-17:00"]

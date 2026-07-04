@@ -6,10 +6,22 @@ describe('caldav add command', () => {
 	const cal: CalDavCalendar = {
 		id: 'work',
 		type: 'caldav',
-		url: 'https://example.com/caldav/',
-		username: 'user',
-		password: 'password'
+		service_id: 'work-service',
+		url: 'https://example.com/caldav/'
 	};
+
+	const testConfig = {
+		services: [
+			{
+				id: 'work-service',
+				type: 'caldav',
+				url: 'https://example.com/caldav/',
+				username: 'user',
+				password: 'password'
+			}
+		],
+		calendars: [cal]
+	} as any;
 
 	test('verifyCalDavConnection resolves successfully on 200 OK response', async () => {
 		const mockFetch = vi.fn().mockResolvedValue({
@@ -40,7 +52,7 @@ END:VCALENDAR
 			`
 		});
 
-		await expect(verifyCalDavConnection(cal, mockFetch)).resolves.toBeUndefined();
+		await expect(verifyCalDavConnection(cal, testConfig, mockFetch)).resolves.toBeUndefined();
 		expect(mockFetch).toHaveBeenCalledWith(
 			cal.url,
 			expect.objectContaining({
@@ -61,7 +73,7 @@ END:VCALENDAR
 			text: async () => 'Unauthorized'
 		});
 
-		await expect(verifyCalDavConnection(cal, mockFetch)).rejects.toThrow(
+		await expect(verifyCalDavConnection(cal, testConfig, mockFetch)).rejects.toThrow(
 			'CalDAV REPORT https://example.com/caldav/ failed: 401 Unauthorized'
 		);
 	});
