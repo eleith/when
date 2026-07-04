@@ -8,7 +8,7 @@ export interface EditAppointmentInput {
 	appointment: Appointment;
 	note?: string | null;
 	location?: string | null;
-	conference?: string | null;
+	video_chat?: string | null;
 }
 
 export type EditAppointmentResult =
@@ -54,16 +54,16 @@ export async function editAppointment(
 		| 'location_added'
 		| 'location_updated'
 		| 'location_removed'
-		| 'conference_added'
-		| 'conference_updated'
-		| 'conference_removed'
+		| 'video_chat_added'
+		| 'video_chat_updated'
+		| 'video_chat_removed'
 	)[] = [];
 
 	const noteValue = input.note !== undefined ? input.note?.trim() || null : appointment.note;
 	const locationValue =
 		input.location !== undefined ? input.location?.trim() || null : appointment.location;
-	const conferenceValue =
-		input.conference !== undefined ? input.conference?.trim() || null : appointment.conference;
+	const video_chatValue =
+		input.video_chat !== undefined ? input.video_chat?.trim() || null : appointment.video_chat;
 
 	const noteChange = detectFieldChange(appointment.note, input.note);
 	if (noteChange) {
@@ -75,9 +75,9 @@ export async function editAppointment(
 		changes.push(`location_${locationChange}`);
 	}
 
-	const conferenceChange = detectFieldChange(appointment.conference, input.conference);
-	if (conferenceChange) {
-		changes.push(`conference_${conferenceChange}`);
+	const video_chatChange = detectFieldChange(appointment.video_chat, input.video_chat);
+	if (video_chatChange) {
+		changes.push(`video_chat_${video_chatChange}`);
 	}
 
 	if (changes.length === 0) {
@@ -99,7 +99,7 @@ export async function editAppointment(
 		.set({
 			note: noteValue,
 			location: locationValue,
-			conference: conferenceValue,
+			video_chat: video_chatValue,
 			ics_sequence: sql`ics_sequence + 1`,
 			calendar_revision: sql`calendar_revision + 1`,
 			action_log: appendActionLogSql(editEntry),

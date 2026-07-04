@@ -96,7 +96,7 @@ describe('parseAndValidateAppointmentForm', () => {
 				{ id: 'name', type: 'guest_name', label: 'Name', required: true },
 				{ id: 'loc', type: 'event_location', label: 'Where', required: false }
 			],
-			{ mode: 'fixed', fixed: 'Room A' }
+			'Room A'
 		);
 		const filled = parseAndValidateAppointmentForm(event, fd({ name: 'Jane', loc: 'Room B' }));
 		expect(filled.ok && filled.data.location).toBe('Room B');

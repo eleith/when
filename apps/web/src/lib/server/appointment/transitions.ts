@@ -130,6 +130,7 @@ export async function rescheduleAppointmentTransition(
 				guest_timezone: guest.timezone,
 				location: guest.location,
 				status: when.newStatus,
+				video_chat: old.video_chat,
 				origin_id: originId(old),
 				cancel_token: newToken,
 				action_log: updatedLogJson,

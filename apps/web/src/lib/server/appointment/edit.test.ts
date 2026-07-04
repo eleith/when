@@ -16,7 +16,7 @@ const baseRow = {
 	guest_answers: null,
 	location: null,
 	note: null,
-	conference: null,
+	video_chat: null,
 	external_event_id: null,
 	external_calendar_id: null
 };
@@ -108,65 +108,65 @@ describe('editAppointment', () => {
 		}
 	});
 
-	test('happy path: add conference, edit conference, remove conference', async () => {
+	test('happy path: add video_chat, edit video_chat, remove video_chat', async () => {
 		const db = await makeDb();
 		try {
-			// Seed a confirmed appointment with no conference link
+			// Seed a confirmed appointment with no video_chat link
 			await db
 				.insertInto('appointments')
 				.values({ ...baseRow, id: 'a1_c', status: 'confirmed', cancel_token: 't1_c' })
 				.execute();
 
-			// 1. Add Conference
+			// 1. Add Video Chat
 			let row = await fetchRow(db, 'a1_c');
 			let result = await editAppointment(
 				{ db, cfg: validConfig, clock: systemClock },
-				{ appointment: row, conference: 'https://zoom.us/j/12345' }
+				{ appointment: row, video_chat: 'https://zoom.us/j/12345' }
 			);
 
 			expect(result.ok).toBe(true);
 			if (result.ok) {
-				expect(result.appointment.conference).toBe('https://zoom.us/j/12345');
+				expect(result.appointment.video_chat).toBe('https://zoom.us/j/12345');
 				expect(result.appointment.calendar_revision).toBe(1);
 				expect(result.appointment.ics_sequence).toBe(1);
 				const log = parseActionLog(result.appointment.action_log);
 				expect(log.length).toBe(1);
 				expect(log[0].action).toBe('edit');
-				expect(log[0].payload?.metadata?.changes).toEqual(['conference_added']);
+				expect(log[0].payload?.metadata?.changes).toEqual(['video_chat_added']);
 			}
 
-			// 2. Edit Conference
+			// 2. Edit Video Chat
 			row = await fetchRow(db, 'a1_c');
 			result = await editAppointment(
 				{ db, cfg: validConfig, clock: systemClock },
-				{ appointment: row, conference: 'https://zoom.us/j/67890' }
+				{ appointment: row, video_chat: 'https://zoom.us/j/67890' }
 			);
 
 			expect(result.ok).toBe(true);
 			if (result.ok) {
-				expect(result.appointment.conference).toBe('https://zoom.us/j/67890');
+				expect(result.appointment.video_chat).toBe('https://zoom.us/j/67890');
 				expect(result.appointment.calendar_revision).toBe(2);
 				expect(result.appointment.ics_sequence).toBe(2);
 				const log = parseActionLog(result.appointment.action_log);
 				expect(log.length).toBe(2);
-				expect(log[1].payload?.metadata?.changes).toEqual(['conference_updated']);
+				expect(log[1].payload?.metadata?.changes).toEqual(['video_chat_updated']);
 			}
 
-			// 3. Remove Conference (passing null or empty string)
+			// 3. Remove Video Chat (passing null or empty string)
 			row = await fetchRow(db, 'a1_c');
 			result = await editAppointment(
 				{ db, cfg: validConfig, clock: systemClock },
-				{ appointment: row, conference: null }
+				{ appointment: row, video_chat: null }
 			);
 
 			expect(result.ok).toBe(true);
 			if (result.ok) {
-				expect(result.appointment.conference).toBeNull();
+				expect(result.appointment.video_chat).toBeNull();
 				expect(result.appointment.calendar_revision).toBe(3);
 				expect(result.appointment.ics_sequence).toBe(3);
 				const log = parseActionLog(result.appointment.action_log);
 				expect(log.length).toBe(3);
-				expect(log[2].payload?.metadata?.changes).toEqual(['conference_removed']);
+				expect(log[2].payload?.metadata?.changes).toEqual(['video_chat_removed']);
 			}
 
 			expect(enqueueCalendarSync).toHaveBeenCalledTimes(3);

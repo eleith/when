@@ -38,7 +38,7 @@ export function parseAndValidateAppointmentForm(
 
 	let name = '';
 	let email: string | null = null;
-	let location: string | null = eventType.location?.fixed ?? null;
+	let location: string | null = eventType.location ?? null;
 
 	for (const field of fields) {
 		const raw = formData.get(field.id);

@@ -59,7 +59,7 @@ export async function createAppointment(
 				guest_timezone: input.guest.timezone,
 				location: input.location,
 				note: eventType.note ?? null,
-				conference: eventType.conference ?? null,
+				video_chat: eventType.video_chat ?? null,
 				status,
 				origin_id: id,
 				cancel_token: cancelToken,

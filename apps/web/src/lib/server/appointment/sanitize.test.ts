@@ -10,7 +10,7 @@ const baseEventType: EventType = {
 	slug: 'chat',
 	appointment_flow: 'auto',
 	destination_calendar: 'main',
-	location: { mode: 'fixed', fixed: 'https://meet.example.com/jane' }
+	location: 'https://meet.example.com/jane'
 };
 
 const baseRow: Appointment = {
@@ -24,7 +24,7 @@ const baseRow: Appointment = {
 	guest_timezone: null,
 	location: 'https://meet.example.com/jane',
 	note: 'Meeting prep document link: test',
-	conference: 'https://zoom.us/j/12345',
+	video_chat: 'https://zoom.us/j/12345',
 	status: 'confirmed',
 	origin_id: 'appt-1',
 	cancel_token: 'tok-abc',
@@ -48,7 +48,7 @@ describe('toPublicEventType', () => {
 
 	test('shows location for admins', () => {
 		const res = toPublicEventType(baseEventType, true);
-		expect(res.location).toEqual({ mode: 'fixed', fixed: 'https://meet.example.com/jane' });
+		expect(res.location).toBe('https://meet.example.com/jane');
 	});
 
 	test('maps settings when provided', () => {
@@ -61,26 +61,26 @@ describe('toPublicEventType', () => {
 });
 
 describe('toPublicAppointment', () => {
-	test('shows location, note, and conference for admins', () => {
+	test('shows location, note, and video_chat for admins', () => {
 		const res = toPublicAppointment(baseRow, true);
 		expect(res.location).toBe('https://meet.example.com/jane');
 		expect(res.note).toBe('Meeting prep document link: test');
-		expect(res.conference).toBe('https://zoom.us/j/12345');
+		expect(res.video_chat).toBe('https://zoom.us/j/12345');
 	});
 
-	test('shows location, note, and conference for confirmed non-admins', () => {
+	test('shows location, note, and video_chat for confirmed non-admins', () => {
 		const res = toPublicAppointment(baseRow, false);
 		expect(res.location).toBe('https://meet.example.com/jane');
 		expect(res.note).toBe('Meeting prep document link: test');
-		expect(res.conference).toBe('https://zoom.us/j/12345');
+		expect(res.video_chat).toBe('https://zoom.us/j/12345');
 	});
 
-	test('hides location, note, and conference for pending non-admins', () => {
+	test('hides location, note, and video_chat for pending non-admins', () => {
 		const pendingRow = { ...baseRow, status: 'pending' as const };
 		const res = toPublicAppointment(pendingRow, false);
 		expect(res.location).toBeNull();
 		expect(res.note).toBeNull();
-		expect(res.conference).toBeNull();
+		expect(res.video_chat).toBeNull();
 	});
 
 	test('strips non-cancellation entries for non-admins', () => {
