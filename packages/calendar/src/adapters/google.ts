@@ -6,7 +6,7 @@ import type { BusyEvent } from '../types.js';
 import type { Appointment } from '@when/db';
 import type { FetchBusyOptions, FetchFn } from './caldav.js';
 import type { CalendarAdapter, PushOptions, PushResult, DeleteResult } from '../adapter.js';
-import type { WhenConfiguration, GoogleCalendar } from '@when/config';
+import type { WhenConfiguration, GoogleCalendar, GoogleService } from '@when/config';
 import type { ExpandWindow } from '../expand.js';
 
 export interface GoogleConfig {
@@ -159,7 +159,7 @@ export async function putGoogleEvent(
 	cfg: GoogleConfig,
 	appointment: Appointment,
 	opts: GooglePushOptions
-): Promise<{ externalEventId: string }> {
+): Promise<{ externalEventId: string; videoChatUrl?: string }> {
 	const token = await getGoogleAccessToken(cfg, opts.fetchImpl ?? fetch);
 	const calId = encodeURIComponent(cfg.google_calendar_id);
 
@@ -175,6 +175,8 @@ export async function putGoogleEvent(
 	const method = isUpdate ? 'PUT' : 'POST';
 
 	const guest = guestContact(appointment);
+	const shouldCreateMeet = appointment.video_chat === 'google-meet';
+
 	const payload = {
 		summary: `${opts.eventTypeName} with ${appointment.guest_name}`,
 		description: describeAppointment(appointment, opts.cancelUrl),
@@ -182,12 +184,21 @@ export async function putGoogleEvent(
 		start: { dateTime: appointment.start_time },
 		end: { dateTime: appointment.end_time },
 		attendees: guest ? [{ email: guest.email, displayName: guest.name }] : [],
-		conferenceData: appointment.conference
+		conferenceData: shouldCreateMeet
+			? {
+					createRequest: {
+						requestId: appointment.id,
+						conferenceSolutionKey: {
+							type: 'hangoutsMeet'
+						}
+					}
+				}
+			: appointment.video_chat && appointment.video_chat.startsWith('http')
 			? {
 					entryPoints: [
 						{
 							entryPointType: 'video',
-							uri: appointment.conference
+							uri: appointment.video_chat
 						}
 					]
 				}
@@ -208,8 +219,16 @@ export async function putGoogleEvent(
 		throw new Error(`Google Calendar ${method} failed: ${res.status} ${text}`);
 	}
 
-	const data = (await res.json()) as GoogleEventResult;
-	return { externalEventId: data.id };
+	const data = (await res.json()) as any;
+	let videoChatUrl: string | undefined;
+	if (data.conferenceData?.entryPoints) {
+		const meetEntryPoint = data.conferenceData.entryPoints.find((ep: any) => ep.entryPointType === 'video');
+		if (meetEntryPoint?.uri) {
+			videoChatUrl = meetEntryPoint.uri;
+		}
+	}
+
+	return { externalEventId: data.id, videoChatUrl };
 }
 
 /**
@@ -237,10 +256,25 @@ export async function deleteGoogleEvent(
 }
 
 export class GoogleAdapter implements CalendarAdapter {
-	constructor(private cal: GoogleCalendar) {}
+	constructor(
+		private cal: GoogleCalendar,
+		private service?: GoogleService
+	) {}
+
+	private get googleCfg(): GoogleConfig {
+		if (!this.service) {
+			throw new Error(`Credentials service "${this.cal.service_id}" was not provided to GoogleAdapter`);
+		}
+		return {
+			client_id: this.service.client_id,
+			client_secret: this.service.client_secret,
+			refresh_token: this.service.refresh_token,
+			google_calendar_id: this.cal.google_calendar_id
+		};
+	}
 
 	async fetchBusy(window: ExpandWindow, opts?: { fetchImpl?: FetchFn }) {
-		return fetchGoogleBusy(this.cal, { start: window.start, end: window.end }, opts?.fetchImpl);
+		return fetchGoogleBusy(this.googleCfg, { start: window.start, end: window.end }, opts?.fetchImpl);
 	}
 
 	async pushAppointment(
@@ -249,20 +283,25 @@ export class GoogleAdapter implements CalendarAdapter {
 		eventTypeName: string,
 		opts: PushOptions
 	): Promise<PushResult> {
-		const result = await putGoogleEvent(this.cal, appointment, {
+		const result = await putGoogleEvent(this.googleCfg, appointment, {
 			cancelUrl: opts.cancelUrl,
 			eventTypeName,
 			hostName: cfg.user.name,
 			fetchImpl: opts.fetchImpl
 		});
-		return { ok: true, externalEventId: result.externalEventId, externalCalendarId: this.cal.id };
+		return {
+			ok: true,
+			externalEventId: result.externalEventId,
+			externalCalendarId: this.cal.id,
+			videoChatUrl: result.videoChatUrl
+		};
 	}
 
 	async deleteAppointment(
 		externalEventId: string,
 		opts?: { fetchImpl?: FetchFn }
 	): Promise<DeleteResult> {
-		await deleteGoogleEvent(this.cal, externalEventId, { fetchImpl: opts?.fetchImpl });
+		await deleteGoogleEvent(this.googleCfg, externalEventId, { fetchImpl: opts?.fetchImpl });
 		return { ok: true };
 	}
 }

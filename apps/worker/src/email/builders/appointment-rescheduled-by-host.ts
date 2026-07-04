@@ -21,7 +21,7 @@ export function appointmentRescheduledByHost(i: AppointmentEmailInput): EmailMes
 		{ label: 'What', value: eventName },
 		{ label: 'When', value: guestWhen },
 		{ label: 'Where', value: a.location },
-		...(a.conference ? [{ label: 'Video link', value: a.conference }] : [])
+		...(a.video_chat ? [{ label: 'Video link', value: a.video_chat }] : [])
 	];
 	const hostRows = [
 		{ label: 'What', value: eventName },

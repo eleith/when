@@ -273,7 +273,7 @@ describe('appointmentEditedByHost', () => {
 		expect(host.content.heading).toBe('Location removed from appointment');
 	});
 
-	test('conference link added on a confirmed appointment', () => {
+	test('video_chat link added on a confirmed appointment', () => {
 		const action_log = JSON.stringify([
 			{
 				action: 'edit',
@@ -281,7 +281,7 @@ describe('appointmentEditedByHost', () => {
 				at: '2026-01-02T10:00:00Z',
 				payload: {
 					metadata: {
-						changes: ['conference_added']
+						changes: ['video_chat_added']
 					}
 				}
 			}
@@ -292,7 +292,7 @@ describe('appointmentEditedByHost', () => {
 			appointment: {
 				...sampleInput.appointment,
 				status: 'confirmed' as const,
-				conference: 'https://zoom.us/j/12345',
+				video_chat: 'https://zoom.us/j/12345',
 				action_log
 			}
 		};
@@ -315,7 +315,7 @@ describe('appointmentEditedByHost', () => {
 		});
 	});
 
-	test('conference link updated on a confirmed appointment', () => {
+	test('video_chat link updated on a confirmed appointment', () => {
 		const action_log = JSON.stringify([
 			{
 				action: 'edit',
@@ -323,7 +323,7 @@ describe('appointmentEditedByHost', () => {
 				at: '2026-01-02T10:00:00Z',
 				payload: {
 					metadata: {
-						changes: ['conference_updated']
+						changes: ['video_chat_updated']
 					}
 				}
 			}
@@ -334,7 +334,7 @@ describe('appointmentEditedByHost', () => {
 			appointment: {
 				...sampleInput.appointment,
 				status: 'confirmed' as const,
-				conference: 'https://zoom.us/j/67890',
+				video_chat: 'https://zoom.us/j/67890',
 				action_log
 			}
 		};
@@ -353,7 +353,7 @@ describe('appointmentEditedByHost', () => {
 		expect(host.content.heading).toBe('Video link updated for appointment');
 	});
 
-	test('conference link removed on a confirmed appointment', () => {
+	test('video_chat link removed on a confirmed appointment', () => {
 		const action_log = JSON.stringify([
 			{
 				action: 'edit',
@@ -361,7 +361,7 @@ describe('appointmentEditedByHost', () => {
 				at: '2026-01-02T10:00:00Z',
 				payload: {
 					metadata: {
-						changes: ['conference_removed']
+						changes: ['video_chat_removed']
 					}
 				}
 			}
@@ -372,7 +372,7 @@ describe('appointmentEditedByHost', () => {
 			appointment: {
 				...sampleInput.appointment,
 				status: 'confirmed' as const,
-				conference: null,
+				video_chat: null,
 				action_log
 			}
 		};

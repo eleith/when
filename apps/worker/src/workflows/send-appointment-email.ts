@@ -5,6 +5,7 @@ import type { SendAppointmentEmailInput, SendAppointmentEmailResult } from '@whe
 import { dispatch } from '../email/dispatch.js';
 import { getWorkerContext } from '../services/context.js';
 import { appendJobLog } from '../services/job-log.js';
+import { ensureVideoChatLink } from '../services/video-chat.js';
 
 import { implementObservedWorkflow, emailsTotal } from '../services/metrics.js';
 
@@ -36,7 +37,11 @@ export async function runSendAppointmentEmail(
 	step: EmailStep
 ): Promise<SendAppointmentEmailResult> {
 	const { config, db, logger, mailer } = getWorkerContext();
-	const envelopes = await dispatch(input, config);
+	const appointment = await step.run({ name: 'ensure-video-chat' }, () =>
+		ensureVideoChatLink(db, input.appointment.id, config)
+	);
+	const updatedInput = { ...input, appointment };
+	const envelopes = await dispatch(updatedInput, config);
 
 	let allSent = true;
 	for (const envelope of envelopes) {

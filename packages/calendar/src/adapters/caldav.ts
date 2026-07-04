@@ -3,7 +3,7 @@ import { logger } from '../logger.js';
 import { parseBusyEvents } from '../parse.js';
 import type { BusyEvent } from '../types.js';
 import type { CalendarAdapter, PushOptions, PushResult, DeleteResult } from '../adapter.js';
-import type { WhenConfiguration, CalDavCalendar } from '@when/config';
+import type { WhenConfiguration, CalDavCalendar, CalDavService } from '@when/config';
 import { originId, type Appointment } from '@when/db';
 import type { ExpandWindow } from '../expand.js';
 import { buildIcs } from '../ics.js';
@@ -147,11 +147,25 @@ function decodeXmlEntities(s: string): string {
 }
 
 export class CalDavAdapter implements CalendarAdapter {
-	constructor(private cal: CalDavCalendar) {}
+	constructor(
+		private cal: CalDavCalendar,
+		private service?: CalDavService
+	) {}
+
+	private get adapterCfg(): CalDavConfig {
+		if (!this.service) {
+			throw new Error(`Credentials service "${this.cal.service_id}" was not provided to CalDavAdapter`);
+		}
+		return {
+			url: this.cal.url,
+			username: this.service.username,
+			password: this.service.password
+		};
+	}
 
 	async fetchBusy(window: ExpandWindow, opts?: { fetchImpl?: FetchFn }) {
 		return fetchCalDavBusy(
-			{ url: this.cal.url, username: this.cal.username, password: this.cal.password },
+			this.adapterCfg,
 			{ start: window.start, end: window.end },
 			opts?.fetchImpl
 		);
@@ -175,7 +189,7 @@ export class CalDavAdapter implements CalendarAdapter {
 
 		const uid = originId(appointment);
 		await putCalDavEvent(
-			{ url: this.cal.url, username: this.cal.username, password: this.cal.password },
+			this.adapterCfg,
 			uid,
 			ics,
 			{ fetchImpl: opts.fetchImpl }
@@ -188,7 +202,7 @@ export class CalDavAdapter implements CalendarAdapter {
 		opts?: { fetchImpl?: FetchFn }
 	): Promise<DeleteResult> {
 		await deleteCalDavEvent(
-			{ url: this.cal.url, username: this.cal.username, password: this.cal.password },
+			this.adapterCfg,
 			externalEventId,
 			{ fetchImpl: opts?.fetchImpl }
 		);

@@ -10,10 +10,21 @@ const window = { start: inst('2026-04-01T00:00:00Z'), end: inst('2026-05-01T00:0
 const workCal: Calendar = {
 	id: 'work',
 	type: 'caldav',
-	url: 'https://cal.example.com/work/',
-	username: 'jane',
-	password: 'secret'
+	service_id: 'work-dav',
+	url: 'https://cal.example.com/work/'
 };
+
+const fakeConfig = {
+	services: [
+		{
+			id: 'work-dav',
+			type: 'caldav',
+			url: 'https://cal.example.com/work/',
+			username: 'jane',
+			password: 'secret'
+		}
+	]
+} as any;
 
 const twoEvents = `<?xml version="1.0"?>
 <multistatus xmlns:C="urn:ietf:params:xml:ns:caldav">
@@ -41,13 +52,14 @@ END:VCALENDAR</C:calendar-data>
 
 test('returns all intervals when nothing is excluded', async () => {
 	const fakeFetch: FetchFn = async () => new Response(twoEvents, { status: 207 });
-	const intervals = await fetchBusyIntervals(workCal, window, { fetchImpl: fakeFetch });
+	const intervals = await fetchBusyIntervals(workCal, window, { config: fakeConfig, fetchImpl: fakeFetch });
 	expect(intervals).toHaveLength(2);
 });
 
 test('drops our own event by uid but keeps a genuine event at the same time', async () => {
 	const fakeFetch: FetchFn = async () => new Response(twoEvents, { status: 207 });
 	const intervals = await fetchBusyIntervals(workCal, window, {
+		config: fakeConfig,
 		fetchImpl: fakeFetch,
 		excludeUids: new Set(['our-appt-1'])
 	});
@@ -58,7 +70,7 @@ test('drops our own event by uid but keeps a genuine event at the same time', as
 test('propagates a provider failure to the caller', async () => {
 	const fakeFetch: FetchFn = async () =>
 		new Response('boom', { status: 500, statusText: 'Internal Server Error' });
-	await expect(fetchBusyIntervals(workCal, window, { fetchImpl: fakeFetch })).rejects.toThrow(
+	await expect(fetchBusyIntervals(workCal, window, { config: fakeConfig, fetchImpl: fakeFetch })).rejects.toThrow(
 		/500/
 	);
 });

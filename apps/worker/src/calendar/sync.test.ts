@@ -12,13 +12,21 @@ const silent: Logger = pino({ level: 'silent' });
 const config = {
 	user: { name: 'Jane', email: 'jane@example.com', timezone: 'America/New_York' },
 	url: { app: 'https://when.example.com' },
-	calendars: [
+	services: [
 		{
-			id: 'work',
+			id: 'work-dav',
 			type: 'caldav',
 			url: 'https://cal.example.com/work/',
 			username: 'u',
 			password: 'p'
+		}
+	],
+	calendars: [
+		{
+			id: 'work',
+			type: 'caldav',
+			service_id: 'work-dav',
+			url: 'https://cal.example.com/work/'
 		}
 	],
 	event_types: [

@@ -43,7 +43,7 @@ export function buildIcs(input: IcsInput): string {
 		// clients don't prompt them to RSVP to the noreply organizer.
 		attendees: guest ? [{ ...guest, partstat: 'ACCEPTED', rsvp: false }] : undefined,
 		status: eventStatus(method, appointment.status),
-		nonStandard: appointment.conference ? { conference: appointment.conference } : undefined
+		nonStandard: appointment.video_chat ? { conference: appointment.video_chat } : undefined
 	};
 
 	const calendar: IcsCalendar = {

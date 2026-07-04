@@ -12,7 +12,7 @@ const baseAppointment: Appointment = {
 	guest_answers: null,
 	location: null,
 	note: null,
-	conference: null,
+	video_chat: null,
 	status: 'confirmed',
 	origin_id: 'appt-123',
 	cancel_token: 'tok-abc',
@@ -168,9 +168,9 @@ test('UID follows origin_id so a rescheduled occurrence updates the same event',
 	expect(ics).toContain('UID:appt-123');
 });
 
-test('CONFERENCE is set when the appointment has a conference link', () => {
+test('CONFERENCE is set when the appointment has a video_chat link', () => {
 	const ics = buildIcs({
-		appointment: { ...baseAppointment, conference: 'https://zoom.us/j/12345' },
+		appointment: { ...baseAppointment, video_chat: 'https://zoom.us/j/12345' },
 		...baseInput
 	});
 	expect(ics).toContain('CONFERENCE;VALUE=URI:https://zoom.us/j/12345');

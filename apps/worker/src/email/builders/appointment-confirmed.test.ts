@@ -59,10 +59,10 @@ describe('appointmentConfirmed', () => {
 		expect(whenOf(host)).toContain('GMT-5');
 	});
 
-	test('guest and host messages: include Video link when conference is present', () => {
+	test('guest and host messages: include Video link when video_chat is present', () => {
 		const inputWithConf = {
 			...sampleInput,
-			appointment: { ...sampleInput.appointment, conference: 'https://zoom.us/j/12345' }
+			appointment: { ...sampleInput.appointment, video_chat: 'https://zoom.us/j/12345' }
 		};
 		const [guest, host] = appointmentConfirmed(inputWithConf);
 

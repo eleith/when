@@ -1,4 +1,4 @@
-import type { Calendar, CalDavCalendar, GoogleCalendar, WhenConfiguration } from '@when/config';
+import type { Calendar, CalDavCalendar, GoogleCalendar, WhenConfiguration, CalDavService, GoogleService } from '@when/config';
 import type { Appointment } from '@when/db';
 import type { ExpandWindow } from './expand.js';
 import type { BusyEvent } from './types.js';
@@ -13,7 +13,7 @@ export interface PushOptions {
 }
 
 export type PushResult =
-	| { ok: true; externalEventId: string; externalCalendarId: string }
+	| { ok: true; externalEventId: string; externalCalendarId: string; videoChatUrl?: string }
 	| { ok: false; reason: string };
 
 export type DeleteResult = { ok: true } | { ok: false; reason: string };
@@ -29,13 +29,15 @@ export interface CalendarAdapter {
 	deleteAppointment(externalEventId: string, opts?: { fetchImpl?: FetchFn }): Promise<DeleteResult>;
 }
 
-export function getCalendarAdapter(cal: Calendar): CalendarAdapter {
+export function getCalendarAdapter(cal: Calendar, config?: WhenConfiguration): CalendarAdapter {
 	const type = cal.type;
 	if (type === 'caldav') {
-		return new CalDavAdapter(cal as CalDavCalendar);
+		const service = config?.services?.find((s) => s.id === (cal as CalDavCalendar).service_id);
+		return new CalDavAdapter(cal as CalDavCalendar, service as CalDavService | undefined);
 	}
 	if (type === 'google') {
-		return new GoogleAdapter(cal as GoogleCalendar);
+		const service = config?.services?.find((s) => s.id === (cal as GoogleCalendar).service_id);
+		return new GoogleAdapter(cal as GoogleCalendar, service as GoogleService | undefined);
 	}
 	throw new Error(`Unsupported calendar type: ${type}`);
 }

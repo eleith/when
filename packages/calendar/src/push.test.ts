@@ -17,7 +17,7 @@ const baseAppointment: Appointment = {
 	guest_answers: null,
 	location: null,
 	note: null,
-	conference: null,
+	video_chat: null,
 	status: 'confirmed',
 	origin_id: 'appt-xyz',
 	cancel_token: 'tok',
@@ -36,8 +36,17 @@ const baseAppointment: Appointment = {
 
 const cfgWithCalDav: WhenConfiguration = {
 	...validConfig,
+	services: [
+		{
+			id: 'work-dav-service',
+			type: 'caldav',
+			url: caldavCfg.url,
+			username: 'jane',
+			password: 'secret'
+		}
+	],
 	calendars: [
-		{ id: 'work', type: 'caldav', url: caldavCfg.url, username: 'jane', password: 'secret' }
+		{ id: 'work', type: 'caldav', service_id: 'work-dav-service', url: caldavCfg.url }
 	],
 	event_types: [
 		{
@@ -125,13 +134,20 @@ test('pushAppointment routes to CalDAV PUT and returns external ids', async () =
 test('pushAppointment succeeds on Google calendar', async () => {
 	const cfgGoogle: WhenConfiguration = {
 		...validConfig,
+		services: [
+			{
+				id: 'google-service-2',
+				type: 'google',
+				client_id: 'gid',
+				client_secret: 'gsec',
+				refresh_token: 'gtoken'
+			}
+		],
 		calendars: [
 			{
 				id: 'g',
 				type: 'google',
-				client_id: 'gid',
-				client_secret: 'gsec',
-				refresh_token: 'gtoken',
+				service_id: 'google-service-2',
 				google_calendar_id: 'gcal'
 			}
 		],

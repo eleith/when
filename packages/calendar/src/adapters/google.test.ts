@@ -20,7 +20,7 @@ const baseAppointment: Appointment = {
 	guest_answers: null,
 	location: null,
 	note: null,
-	conference: null,
+	video_chat: null,
 	status: 'confirmed',
 	origin_id: 'appt-1',
 	cancel_token: 'tok',
@@ -79,10 +79,10 @@ test('email line is dropped and attendees empty when there is no email', async (
 	expect(payload!.attendees).toEqual([]);
 });
 
-test('includes conferenceData and appends version query parameter when conference link is present', async () => {
+test('includes conferenceData and appends version query parameter when video_chat link is present', async () => {
 	const { url, payload } = await push({
 		...baseAppointment,
-		conference: 'https://zoom.us/j/12345'
+		video_chat: 'https://zoom.us/j/12345'
 	});
 	expect(url).toContain('conferenceDataVersion=1');
 	expect(payload?.conferenceData).toEqual({
@@ -95,7 +95,7 @@ test('includes conferenceData and appends version query parameter when conferenc
 	});
 });
 
-test('omits conferenceData when conference link is absent', async () => {
+test('omits conferenceData when video_chat link is absent', async () => {
 	const { payload } = await push(baseAppointment);
 	expect(payload?.conferenceData).toBeUndefined();
 });

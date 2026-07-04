@@ -76,7 +76,12 @@ describe('runSendAppointmentEmail', () => {
 
 		expect(result).toBe('sent');
 		expect(send).toHaveBeenCalledTimes(2); // guest + host
-		expect(names).toEqual(['smtp:jane@example.com', 'smtp:owner@acme.test', 'log:result']);
+		expect(names).toEqual([
+			'ensure-video-chat',
+			'smtp:jane@example.com',
+			'smtp:owner@acme.test',
+			'log:result'
+		]);
 		expect(await readEmailJobStates(db)).toEqual(['done']);
 		await db.destroy();
 	});

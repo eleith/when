@@ -24,6 +24,7 @@
 		"@when/config": "workspace:*",
 		"@when/db": "workspace:*",
 		"@when/jobs": "workspace:*",
+		"@when/video-chat": "workspace:*",
 		"eta": "4.6.0",
 		"kysely": "0.28.17",
 		"nodemailer": "8.0.10",

@@ -27,7 +27,7 @@ export function appointmentConfirmed(i: AppointmentEmailInput): EmailMessage[] {
 			{ label: 'What', value: eventName },
 			{ label: 'When', value: guestWhen },
 			{ label: 'Where', value: a.location },
-			...(a.conference ? [{ label: 'Video link', value: a.conference }] : [])
+			...(a.video_chat ? [{ label: 'Video link', value: a.video_chat }] : [])
 		],
 		actions: [{ href: i.links.booked, label: 'View this appointment', variant: 'primary' }],
 		previewText: `See you on ${guestWhen}.`
@@ -41,7 +41,7 @@ export function appointmentConfirmed(i: AppointmentEmailInput): EmailMessage[] {
 			{ label: 'What', value: eventName },
 			{ label: 'When', value: hostWhen },
 			{ label: 'Where', value: a.location },
-			...(a.conference ? [{ label: 'Video link', value: a.conference }] : []),
+			...(a.video_chat ? [{ label: 'Video link', value: a.video_chat }] : []),
 			...answerRows(a)
 		],
 		actions: [],

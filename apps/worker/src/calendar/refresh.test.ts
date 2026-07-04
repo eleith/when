@@ -20,9 +20,8 @@ const silent: Logger = pino({ level: 'silent' });
 const workCal: Calendar = {
 	id: 'work',
 	type: 'caldav',
-	url: 'https://cal.example.com/work/',
-	username: 'jane',
-	password: 'secret'
+	service_id: 'work-dav',
+	url: 'https://cal.example.com/work/'
 };
 
 const oneEvent = (uid: string) => `<?xml version="1.0"?>
@@ -42,11 +41,42 @@ END:VCALENDAR</C:calendar-data>
   </response>
 </multistatus>`;
 
-async function ctxWithDb(config: Partial<WhenConfiguration> = {}): Promise<WorkerContext> {
+const defaultTestConfig: WhenConfiguration = {
+	services: [
+		{
+			id: 'work-dav',
+			type: 'caldav',
+			url: 'https://cal.example.com/work/',
+			username: 'jane',
+			password: 'secret'
+		}
+	],
+	calendars: [
+		workCal
+	],
+	event_types: [
+		{
+			id: 'chat',
+			name: 'Chat',
+			slug: 'chat',
+			duration: 30,
+			appointment_flow: 'auto',
+			destination_calendar: 'work',
+			conflict_calendars: ['work']
+		}
+	],
+	user: { name: 'Jane', timezone: 'America/New_York', email: 'jane@example.com' },
+	url: { app: 'https://when.example.com' },
+	availability: {
+		default: {}
+	}
+} as unknown as WhenConfiguration;
+
+async function ctxWithDb(configOverrides: Partial<WhenConfiguration> = {}): Promise<WorkerContext> {
 	const db = openDb(':memory:');
 	await runMigrations(db);
 	return {
-		config: config as WhenConfiguration,
+		config: { ...defaultTestConfig, ...configOverrides } as WhenConfiguration,
 		logger: silent,
 		db,
 		mailer: { send: async () => ({ ok: true as const }) }
@@ -161,6 +191,7 @@ test('refreshCalendars refreshes known conflict calendars and skips unknown ids'
 	const ctx: WorkerContext = {
 		config: {
 			availability: {},
+			services: defaultTestConfig.services,
 			calendars: [workCal],
 			event_types: [{ conflict_calendars: ['work', 'ghost'] }]
 		} as unknown as WhenConfiguration,
@@ -194,6 +225,7 @@ test('refreshCalendars skips a calendar refreshed within its interval, refreshes
 	const ctx: WorkerContext = {
 		config: {
 			availability: {},
+			services: defaultTestConfig.services,
 			calendars: [{ ...workCal, sync: { refresh_interval: 30 } }],
 			event_types: [{ conflict_calendars: ['work'] }]
 		} as unknown as WhenConfiguration,

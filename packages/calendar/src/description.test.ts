@@ -6,7 +6,7 @@ const base = {
 	guest_email: 'booker@example.com',
 	guest_answers: null,
 	note: null,
-	conference: null
+	video_chat: null
 };
 
 test('includes name, email, and the cancel link', () => {
@@ -42,10 +42,10 @@ test('appends note to description when present', () => {
 	);
 });
 
-test('appends conference link to description when present', () => {
+test('appends video_chat link to description when present', () => {
 	expect(
 		describeAppointment(
-			{ ...base, conference: 'https://zoom.us/j/12345' },
+			{ ...base, video_chat: 'https://zoom.us/j/12345' },
 			'https://when.test/cancel'
 		)
 	).toBe(

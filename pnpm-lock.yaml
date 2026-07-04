@@ -244,6 +244,9 @@ importers:
       '@when/jobs':
         specifier: workspace:*
         version: link:../../packages/jobs
+      '@when/video-chat':
+        specifier: workspace:*
+        version: link:../../packages/video-chat
       eta:
         specifier: 4.6.0
         version: 4.6.0
