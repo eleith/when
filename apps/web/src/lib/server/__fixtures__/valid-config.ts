@@ -26,13 +26,27 @@ export const validConfig: WhenConfiguration = {
 		user: 'mailer',
 		pass: 'secret'
 	},
+	services: [
+		{
+			id: 'google-service',
+			type: 'google',
+			client_id: 'gc-id',
+			client_secret: 'gc-secret',
+			refresh_token: 'gc-token'
+		}
+	],
+	video_chats: [
+		{
+			id: 'my-google-meet',
+			type: 'google-meet',
+			service_id: 'google-service'
+		}
+	],
 	calendars: [
 		{
 			id: 'my-google-cal',
 			type: 'google',
-			client_id: 'gc-id',
-			client_secret: 'gc-secret',
-			refresh_token: 'gc-token',
+			service_id: 'google-service',
 			google_calendar_id: 'gc-calid'
 		}
 	],

@@ -15,8 +15,8 @@
 		onEditNote?: () => void;
 		hasLocation?: boolean;
 		onEditLocation?: () => void;
-		hasConference?: boolean;
-		onEditConference?: () => void;
+		hasVideoChat?: boolean;
+		onEditVideoChat?: () => void;
 		isEditable?: boolean;
 	}
 
@@ -30,8 +30,8 @@
 		onEditNote,
 		hasLocation = false,
 		onEditLocation,
-		hasConference = false,
-		onEditConference,
+		hasVideoChat = false,
+		onEditVideoChat,
 		isEditable = false
 	}: Props = $props();
 
@@ -132,16 +132,16 @@
 											{/snippet}
 										</DropdownMenu.Item>
 									{/if}
-									{#if onEditConference && !hasConference}
+									{#if onEditVideoChat && !hasVideoChat}
 										<DropdownMenu.Item
 											onSelect={() => {
 												menuOpen = false;
-												onEditConference();
+												onEditVideoChat();
 											}}
 										>
 											{#snippet child({ props: itemProps })}
 												<button {...itemProps} type="button" class="action-item"
-													>Add Conference Link</button
+													>Add Video Link</button
 												>
 											{/snippet}
 										</DropdownMenu.Item>

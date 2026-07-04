@@ -19,7 +19,7 @@ const mockAppt: Appointment = {
 	guest_timezone: null,
 	location: 'Meet link',
 	note: null,
-	conference: null,
+	video_chat: null,
 	status: 'confirmed',
 	origin_id: 'appt-1',
 	cancel_token: 'tok-abc',

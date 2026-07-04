@@ -20,7 +20,7 @@ const appointment: Appointment = {
 	guest_answers: null,
 	location: null,
 	note: null,
-	conference: null,
+	video_chat: null,
 	status: 'confirmed',
 	origin_id: 'appt-1',
 	cancel_token: 'tok-1',

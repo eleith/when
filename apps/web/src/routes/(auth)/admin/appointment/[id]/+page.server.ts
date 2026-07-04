@@ -94,15 +94,15 @@ export const actions: Actions = {
 		const locationInput = form.get('location');
 		const location = typeof locationInput === 'string' ? locationInput.trim() || null : undefined;
 
-		const conferenceInput = form.get('conference');
-		const conference =
-			typeof conferenceInput === 'string' ? conferenceInput.trim() || null : undefined;
+		const videoChatInput = form.get('video_chat');
+		const videoChat =
+			typeof videoChatInput === 'string' ? videoChatInput.trim() || null : undefined;
 
-		if (conference) {
+		if (videoChat) {
 			try {
-				new URL(conference);
+				new URL(videoChat);
 			} catch {
-				return fail(400, { error: 'Please enter a valid conference URL.' });
+				return fail(400, { error: 'Please enter a valid video link URL.' });
 			}
 		}
 
@@ -110,7 +110,7 @@ export const actions: Actions = {
 			appointment: row,
 			note,
 			location,
-			conference
+			video_chat: videoChat
 		});
 
 		if (!result.ok) {

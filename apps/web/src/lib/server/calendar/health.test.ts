@@ -117,7 +117,7 @@ test('evaluateCalendarStatuses: bad status when write failure is open past thres
 			guest_timezone: null,
 			location: null,
 			note: null,
-			conference: null,
+			video_chat: null,
 			status: 'confirmed',
 			origin_id: null,
 			cancel_token: 't',

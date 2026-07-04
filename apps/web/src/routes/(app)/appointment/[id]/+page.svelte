@@ -23,15 +23,15 @@
 	let cancelDialogOpen = $state(false);
 	let editNoteDialogOpen = $state(false);
 	let editLocationDialogOpen = $state(false);
-	let editConferenceDialogOpen = $state(false);
+	let editVideoChatDialogOpen = $state(false);
 	let cancelReason = $state('I can no longer attend');
 	let editNoteValue = $state('');
 	let editLocationValue = $state('');
-	let editConferenceValue = $state('');
+	let editVideoChatValue = $state('');
 	let reasonTextarea = $state<HTMLTextAreaElement | null>(null);
 	let noteTextareaEl = $state<HTMLTextAreaElement | null>(null);
 	let locationInputEl = $state<HTMLInputElement | null>(null);
-	let conferenceInputEl = $state<HTMLInputElement | null>(null);
+	let videoChatInputEl = $state<HTMLInputElement | null>(null);
 
 	$effect(() => {
 		if (cancelDialogOpen) {
@@ -64,11 +64,11 @@
 	});
 
 	$effect(() => {
-		if (editConferenceDialogOpen) {
-			editConferenceValue = data.appointment.conference ?? '';
+		if (editVideoChatDialogOpen) {
+			editVideoChatValue = data.appointment.video_chat ?? '';
 			tick().then(() => {
-				conferenceInputEl?.focus();
-				conferenceInputEl?.select();
+				videoChatInputEl?.focus();
+				videoChatInputEl?.select();
 			});
 		}
 	});
@@ -247,8 +247,8 @@
 					onEditNote={() => (editNoteDialogOpen = true)}
 					hasLocation={!!data.appointment.location}
 					onEditLocation={() => (editLocationDialogOpen = true)}
-					hasConference={!!data.appointment.conference}
-					onEditConference={() => (editConferenceDialogOpen = true)}
+					hasVideoChat={!!data.appointment.video_chat}
+					onEditVideoChat={() => (editVideoChatDialogOpen = true)}
 					{isEditable}
 				/>
 			{/if}
@@ -372,12 +372,12 @@
 					</div>
 				{/if}
 			{/if}
-			{#if data.appointment.conference}
+			{#if data.appointment.video_chat}
 				{#if data.isAdmin && isEditable}
 					<button
 						type="button"
 						class="detail-row-button"
-						onclick={() => (editConferenceDialogOpen = true)}
+						onclick={() => (editVideoChatDialogOpen = true)}
 						aria-label="Edit video link"
 					>
 						<span class="detail-icon"><IconVideo aria-hidden="true" /></span>
@@ -385,12 +385,12 @@
 							<div class="detail-primary">Video link</div>
 							<div class="detail-secondary conference-text-val">
 								<a
-									href={data.appointment.conference}
+									href={data.appointment.video_chat}
 									target="_blank"
 									rel="noopener noreferrer"
 									onclick={(e) => e.stopPropagation()}
 								>
-									{data.appointment.conference}
+									{data.appointment.video_chat}
 								</a>
 							</div>
 						</div>
@@ -402,8 +402,8 @@
 						<div class="detail-text">
 							<div class="detail-primary">Video link</div>
 							<div class="detail-secondary conference-text-val">
-								<a href={data.appointment.conference} target="_blank" rel="noopener noreferrer">
-									{data.appointment.conference}
+								<a href={data.appointment.video_chat} target="_blank" rel="noopener noreferrer">
+									{data.appointment.video_chat}
 								</a>
 							</div>
 						</div>
@@ -674,7 +674,7 @@
 	</Dialog.Portal>
 </Dialog.Root>
 
-<Dialog.Root bind:open={editConferenceDialogOpen}>
+<Dialog.Root bind:open={editVideoChatDialogOpen}>
 	<Dialog.Portal>
 		<Dialog.Overlay>
 			{#snippet child({ props })}
@@ -687,33 +687,33 @@
 					<Dialog.Title>
 						{#snippet child({ props: titleProps })}
 							<h2 {...titleProps} class="cancel-dialog-title">
-								{#if data.appointment.conference}Edit Video Link{:else}Add Video Link{/if}
+								{#if data.appointment.video_chat}Edit Video Link{:else}Add Video Link{/if}
 							</h2>
 						{/snippet}
 					</Dialog.Title>
-
+ 
 					<p class="cancel-dialog-desc">
 						This link will be included in the calendar invitation and email notifications sent to
 						the guest.
 					</p>
-
+ 
 					<form method="POST" action="/admin/appointment/{data.appointment.id}?/edit">
 						<input
 							type="url"
-							name="conference"
+							name="video_chat"
 							class="cancel-reason-input"
 							placeholder="e.g., https://zoom.us/j/..."
-							bind:value={editConferenceValue}
-							bind:this={conferenceInputEl}
+							bind:value={editVideoChatValue}
+							bind:this={videoChatInputEl}
 						/>
 						<div class="cancel-dialog-actions edit-note-actions">
 							<button type="submit" class="cancel-confirm-btn">Save</button>
-							{#if data.appointment.conference}
+							{#if data.appointment.video_chat}
 								<button
 									type="submit"
 									class="delete-note-btn"
 									onclick={() => {
-										editConferenceValue = '';
+										editVideoChatValue = '';
 									}}
 								>
 									Delete
