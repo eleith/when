@@ -342,13 +342,14 @@ test('0019 adds the note column to appointments', async () => {
 	}
 });
 
-test('0020 adds the conference column to appointments', async () => {
+test('0020 and 0022 migration: conference column is renamed to video_chat', async () => {
 	const db = openDb(':memory:');
 	try {
 		await runMigrations(db);
 		const cols = await sql<{ name: string }>`PRAGMA table_info(appointments)`.execute(db);
 		const colNames = cols.rows.map((r) => r.name);
-		expect(colNames).toContain('conference');
+		expect(colNames).not.toContain('conference');
+		expect(colNames).toContain('video_chat');
 	} finally {
 		await db.destroy();
 	}
