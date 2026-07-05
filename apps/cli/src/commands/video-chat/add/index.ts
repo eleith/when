@@ -10,6 +10,8 @@ export const addCommand = define({
 		'nextcloud-talk': nextcloudTalkAddCommand
 	},
 	run() {
-		console.log('Use "when-cli video-chat add google-meet" or "when-cli video-chat add nextcloud-talk"');
+		console.log(
+			'Use "when-cli video-chat add google-meet" or "when-cli video-chat add nextcloud-talk"'
+		);
 	}
 });

@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
 import { Temporal } from '@js-temporal/polyfill';
-import type { Calendar } from '@when/config';
+import type { Calendar, WhenConfiguration } from '@when/config';
 import type { FetchFn } from './adapter.js';
 import { fetchBusyIntervals } from './busy.js';
 
@@ -24,7 +24,7 @@ const fakeConfig = {
 			password: 'secret'
 		}
 	]
-} as any;
+} as unknown as WhenConfiguration;
 
 const twoEvents = `<?xml version="1.0"?>
 <multistatus xmlns:C="urn:ietf:params:xml:ns:caldav">
@@ -52,7 +52,10 @@ END:VCALENDAR</C:calendar-data>
 
 test('returns all intervals when nothing is excluded', async () => {
 	const fakeFetch: FetchFn = async () => new Response(twoEvents, { status: 207 });
-	const intervals = await fetchBusyIntervals(workCal, window, { config: fakeConfig, fetchImpl: fakeFetch });
+	const intervals = await fetchBusyIntervals(workCal, window, {
+		config: fakeConfig,
+		fetchImpl: fakeFetch
+	});
 	expect(intervals).toHaveLength(2);
 });
 
@@ -70,7 +73,7 @@ test('drops our own event by uid but keeps a genuine event at the same time', as
 test('propagates a provider failure to the caller', async () => {
 	const fakeFetch: FetchFn = async () =>
 		new Response('boom', { status: 500, statusText: 'Internal Server Error' });
-	await expect(fetchBusyIntervals(workCal, window, { config: fakeConfig, fetchImpl: fakeFetch })).rejects.toThrow(
-		/500/
-	);
+	await expect(
+		fetchBusyIntervals(workCal, window, { config: fakeConfig, fetchImpl: fakeFetch })
+	).rejects.toThrow(/500/);
 });

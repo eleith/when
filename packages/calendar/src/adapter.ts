@@ -1,4 +1,11 @@
-import type { Calendar, CalDavCalendar, GoogleCalendar, WhenConfiguration, CalDavService, GoogleService } from '@when/config';
+import type {
+	Calendar,
+	CalDavCalendar,
+	GoogleCalendar,
+	WhenConfiguration,
+	CalDavService,
+	GoogleService
+} from '@when/config';
 import type { Appointment } from '@when/db';
 import type { ExpandWindow } from './expand.js';
 import type { BusyEvent } from './types.js';

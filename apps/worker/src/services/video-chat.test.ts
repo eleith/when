@@ -149,7 +149,9 @@ describe('ensureVideoChatLink', () => {
 				.execute();
 
 			const mockAdapter = {
-				createRoom: vi.fn().mockResolvedValue({ ok: true, url: 'https://cloud.example.com/call/abc' })
+				createRoom: vi
+					.fn()
+					.mockResolvedValue({ ok: true, url: 'https://cloud.example.com/call/abc' })
 			};
 			vi.mocked(getVideoChatAdapter).mockReturnValue(mockAdapter);
 
@@ -212,8 +214,8 @@ describe('ensureVideoChatLink', () => {
 
 			const logs = parseActionLog(res.action_log);
 			expect(logs).toHaveLength(2);
-			expect(logs.map(l => l.action)).toContain('video_chat');
-			expect(logs.map(l => l.action)).toContain('calendar');
+			expect(logs.map((l) => l.action)).toContain('video_chat');
+			expect(logs.map((l) => l.action)).toContain('calendar');
 		} finally {
 			await db.destroy();
 		}

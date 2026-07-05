@@ -45,9 +45,7 @@ const cfgWithCalDav: WhenConfiguration = {
 			password: 'secret'
 		}
 	],
-	calendars: [
-		{ id: 'work', type: 'caldav', service_id: 'work-dav-service', url: caldavCfg.url }
-	],
+	calendars: [{ id: 'work', type: 'caldav', service_id: 'work-dav-service', url: caldavCfg.url }],
 	event_types: [
 		{
 			...validConfig.event_types[0],

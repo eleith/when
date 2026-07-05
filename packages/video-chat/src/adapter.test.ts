@@ -52,6 +52,8 @@ describe('getVideoChatAdapter', () => {
 			type: 'nextcloud-talk' as const,
 			service_id: 'missing-service'
 		};
-		expect(() => getVideoChatAdapter(vc, mockConfig)).toThrow('Service "missing-service" not found');
+		expect(() => getVideoChatAdapter(vc, mockConfig)).toThrow(
+			'Service "missing-service" not found'
+		);
 	});
 });

@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs';
 import { define } from 'gunshi';
 import { text, spinner, note, isCancel } from '@clack/prompts';
 import { ConfigEditor } from '@when/config';
-import type { WhenConfiguration } from '@when/config';
+import type { Service, VideoChat } from '@when/config';
 import { getValidatedConfigPath } from '../../../utils/config-path.ts';
 import { getOrCreateGoogleService } from '../../../services/google.ts';
 
@@ -61,7 +61,15 @@ export const googleMeetAddCommand = define({
 		const serviceResult = await getOrCreateGoogleService(configPath, id);
 		if (!serviceResult) return;
 
-		const { serviceId, clientId, clientSecret, refreshToken, isNew, envClientSecret, envRefreshToken } = serviceResult;
+		const {
+			serviceId,
+			clientId,
+			clientSecret,
+			refreshToken,
+			isNew,
+			envClientSecret,
+			envRefreshToken
+		} = serviceResult;
 
 		const s = spinner();
 		s.start('Verifying Google API access...');
@@ -86,8 +94,8 @@ export const googleMeetAddCommand = define({
 			s.message('Writing Google Meet configuration...');
 
 			const editor = new ConfigEditor(configPath);
-			const servicesList = (editor.get('services') as any[]) ?? [];
-			const videoChatsList = (editor.get('video_chats') as any[]) ?? [];
+			const servicesList = (editor.get('services') as Service[]) ?? [];
+			const videoChatsList = (editor.get('video_chats') as VideoChat[]) ?? [];
 
 			if (isNew) {
 				const serviceToWrite = {
@@ -110,7 +118,8 @@ export const googleMeetAddCommand = define({
 
 			let completionMsg = `Successfully verified and added video chat "${id}" to config.yaml!\n`;
 			if (isNew) {
-				completionMsg += `\n⚠️  Please define the following environment variables (e.g. in your .env or Docker config):\n\n` +
+				completionMsg +=
+					`\n⚠️  Please define the following environment variables (e.g. in your .env or Docker config):\n\n` +
 					`${envClientSecret}="${clientSecret}"\n` +
 					`${envRefreshToken}="${refreshToken}"`;
 			} else {

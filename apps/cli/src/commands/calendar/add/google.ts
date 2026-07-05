@@ -3,7 +3,7 @@ import { define } from 'gunshi';
 import { text, spinner, note, isCancel, select } from '@clack/prompts';
 import { getCalendarAdapter } from '@when/calendar';
 import { ConfigEditor } from '@when/config';
-import type { GoogleCalendar, WhenConfiguration } from '@when/config';
+import type { GoogleCalendar, WhenConfiguration, Service } from '@when/config';
 import type { FetchFn } from '@when/calendar';
 import { getValidatedConfigPath } from '../../../utils/config-path.ts';
 import { getOrCreateGoogleService } from '../../../services/google.ts';
@@ -154,7 +154,15 @@ export const googleAddCommand = define({
 		const serviceResult = await getOrCreateGoogleService(configPath, id);
 		if (!serviceResult) return;
 
-		const { serviceId, clientId, clientSecret, refreshToken, isNew, envClientSecret, envRefreshToken } = serviceResult;
+		const {
+			serviceId,
+			clientId,
+			clientSecret,
+			refreshToken,
+			isNew,
+			envClientSecret,
+			envRefreshToken
+		} = serviceResult;
 
 		const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
 			method: 'POST',
@@ -209,8 +217,8 @@ export const googleAddCommand = define({
 			s.message('Writing calendar and service to configuration...');
 
 			const editor = new ConfigEditor(configPath);
-			const servicesList = (editor.get('services') as any[]) ?? [];
-			const calendarsList = (editor.get('calendars') as any[]) ?? [];
+			const servicesList = (editor.get('services') as Service[]) ?? [];
+			const calendarsList = (editor.get('calendars') as GoogleCalendar[]) ?? [];
 
 			if (isNew) {
 				const serviceToWrite = {
@@ -228,7 +236,8 @@ export const googleAddCommand = define({
 
 			let completionMsg = `Successfully verified and added calendar "${id}" to config.yaml!\n`;
 			if (isNew) {
-				completionMsg += `\n⚠️  Please define the following environment variables (e.g. in your .env or Docker config):\n\n` +
+				completionMsg +=
+					`\n⚠️  Please define the following environment variables (e.g. in your .env or Docker config):\n\n` +
 					`${envClientSecret}="${clientSecret}"\n` +
 					`${envRefreshToken}="${refreshToken}"`;
 			} else {

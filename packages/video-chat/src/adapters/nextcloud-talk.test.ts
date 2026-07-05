@@ -44,9 +44,9 @@ describe('NextcloudTalkAdapter', () => {
 				method: 'POST',
 				headers: expect.objectContaining({
 					'OCS-APIRequest': 'true',
-					'Accept': 'application/json',
+					Accept: 'application/json',
 					'Content-Type': 'application/json',
-					'Authorization': expect.stringContaining('Basic')
+					Authorization: expect.stringContaining('Basic')
 				}),
 				body: JSON.stringify({
 					roomType: 3,

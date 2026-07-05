@@ -3,7 +3,7 @@ import { define } from 'gunshi';
 import { text, spinner, note, isCancel } from '@clack/prompts';
 import { getCalendarAdapter } from '@when/calendar';
 import { ConfigEditor } from '@when/config';
-import type { CalDavCalendar, WhenConfiguration } from '@when/config';
+import type { CalDavCalendar, WhenConfiguration, Service } from '@when/config';
 import type { FetchFn } from '@when/calendar';
 import { getValidatedConfigPath } from '../../../utils/config-path.ts';
 import { getOrCreateCalDavService } from '../../../services/caldav.ts';
@@ -108,8 +108,8 @@ export const caldavAddCommand = define({
 			s.message('Writing calendar and service to configuration...');
 
 			const editor = new ConfigEditor(configPath);
-			const services = (editor.get('services') as any[]) ?? [];
-			const calendarsList = (editor.get('calendars') as any[]) ?? [];
+			const services = (editor.get('services') as Service[]) ?? [];
+			const calendarsList = (editor.get('calendars') as CalDavCalendar[]) ?? [];
 
 			if (isNew) {
 				const serviceToWrite = {
@@ -127,7 +127,8 @@ export const caldavAddCommand = define({
 
 			let completionMsg = `Successfully verified and added calendar "${id}" to config.yaml!\n`;
 			if (isNew) {
-				completionMsg += `\n⚠️  Please define the following environment variable (e.g. in your .env or Docker config):\n\n` +
+				completionMsg +=
+					`\n⚠️  Please define the following environment variable (e.g. in your .env or Docker config):\n\n` +
 					`${envVarName}="[your-password-here]"`;
 			} else {
 				completionMsg += `\nReused existing service configuration "${serviceId}".`;

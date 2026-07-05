@@ -19,9 +19,10 @@
 	],
 	"scripts": {
 		"build": "tsc -p tsconfig.json && tsc -p tsconfig.build.json",
+		"check": "tsc --noEmit",
 		"lint": "prettier --check . && eslint .",
-		"test": "vitest run",
 		"format": "prettier --write .",
+		"test": "vitest run",
 		"test:coverage": "vitest run --coverage"
 	},
 	"dependencies": {

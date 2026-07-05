@@ -691,12 +691,12 @@
 							</h2>
 						{/snippet}
 					</Dialog.Title>
- 
+
 					<p class="cancel-dialog-desc">
 						This link will be included in the calendar invitation and email notifications sent to
 						the guest.
 					</p>
- 
+
 					<form method="POST" action="/admin/appointment/{data.appointment.id}?/edit">
 						<input
 							type="url"

@@ -182,21 +182,31 @@ test('unknown service_id in calendar flagged', () => {
 	const bad = clone(validConfig);
 	bad.calendars[0].service_id = 'non-existent';
 	const issues = issuesFor(bad);
-	expect(issues.some((i) => i.path === '/calendars/0/service_id' && i.message.includes('unknown service'))).toBe(true);
+	expect(
+		issues.some(
+			(i) => i.path === '/calendars/0/service_id' && i.message.includes('unknown service')
+		)
+	).toBe(true);
 });
 
 test('duplicate service id flagged', () => {
 	const bad = clone(validConfig);
 	bad.services!.push({ ...bad.services![0] });
 	const issues = issuesFor(bad);
-	expect(issues.some((i) => i.path === '/services/1/id' && i.message.includes('duplicate service'))).toBe(true);
+	expect(
+		issues.some((i) => i.path === '/services/1/id' && i.message.includes('duplicate service'))
+	).toBe(true);
 });
 
 test('unknown video_chat reference in event_type flagged', () => {
 	const bad = clone(validConfig);
 	bad.event_types[0].video_chat = 'non-existent';
 	const issues = issuesFor(bad);
-	expect(issues.some((i) => i.path === '/event_types/0/video_chat' && i.message.includes('unknown video_chat id'))).toBe(true);
+	expect(
+		issues.some(
+			(i) => i.path === '/event_types/0/video_chat' && i.message.includes('unknown video_chat id')
+		)
+	).toBe(true);
 });
 
 test('Google Meet video_chat with CalDAV destination calendar flagged', () => {
@@ -223,5 +233,11 @@ test('Google Meet video_chat with CalDAV destination calendar flagged', () => {
 	bad.event_types[0].video_chat = 'my-meet';
 
 	const issues = issuesFor(bad);
-	expect(issues.some((i) => i.path === '/event_types/0/video_chat' && i.message.includes('Google Meet dynamic video chat is only supported'))).toBe(true);
+	expect(
+		issues.some(
+			(i) =>
+				i.path === '/event_types/0/video_chat' &&
+				i.message.includes('Google Meet dynamic video chat is only supported')
+		)
+	).toBe(true);
 });

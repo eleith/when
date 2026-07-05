@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs';
 import { define } from 'gunshi';
 import { text, spinner, note, isCancel } from '@clack/prompts';
 import { ConfigEditor } from '@when/config';
-import type { WhenConfiguration } from '@when/config';
+import type { WhenConfiguration, Service, VideoChat } from '@when/config';
 import { getValidatedConfigPath } from '../../../utils/config-path.ts';
 import { getOrCreateNextcloudService } from '../../../services/nextcloud.ts';
 import { getVideoChatAdapter } from '@when/video-chat';
@@ -96,8 +96,8 @@ export const nextcloudTalkAddCommand = define({
 			s.message('Writing Nextcloud video chat configuration...');
 
 			const editor = new ConfigEditor(configPath);
-			const servicesList = (editor.get('services') as any[]) ?? [];
-			const videoChatsList = (editor.get('video_chats') as any[]) ?? [];
+			const servicesList = (editor.get('services') as Service[]) ?? [];
+			const videoChatsList = (editor.get('video_chats') as VideoChat[]) ?? [];
 
 			if (isNew) {
 				const serviceToWrite = {
@@ -120,7 +120,8 @@ export const nextcloudTalkAddCommand = define({
 
 			let completionMsg = `Successfully verified and added video chat "${id}" to config.yaml!\n`;
 			if (isNew) {
-				completionMsg += `\n⚠️  Please define the following environment variable:\n\n` +
+				completionMsg +=
+					`\n⚠️  Please define the following environment variable:\n\n` +
 					`${envVarName}="[your-password-here]"`;
 			} else {
 				completionMsg += `\nReused existing service configuration "${serviceId}".`;

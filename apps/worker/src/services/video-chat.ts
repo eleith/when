@@ -58,7 +58,9 @@ export async function ensureVideoChatLink(
 		const eventType = config.event_types.find((e) => e.id === row.event_type_id);
 		const targetCalendarId = row.external_calendar_id ?? eventType?.destination_calendar ?? null;
 		if (!targetCalendarId) {
-			throw new Error(`Google Meet requires a destination calendar for appointment "${appointmentId}"`);
+			throw new Error(
+				`Google Meet requires a destination calendar for appointment "${appointmentId}"`
+			);
 		}
 
 		const cancelUrl = appointmentLinks({
@@ -95,11 +97,11 @@ export async function ensureVideoChatLink(
 		await appendJobLog(db, appointmentId, 'calendar', 'done', now);
 	}
 
-	return await db
+	return (await db
 		.selectFrom('appointments')
 		.selectAll()
 		.where('id', '=', appointmentId)
-		.executeTakeFirstOrThrow() as Appointment;
+		.executeTakeFirstOrThrow()) as Appointment;
 }
 
 export async function cleanupVideoChatLink(

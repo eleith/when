@@ -1,5 +1,5 @@
 import { describe, expect, test, vi } from 'vitest';
-import type { GoogleCalendar } from '@when/config';
+import type { GoogleCalendar, WhenConfiguration } from '@when/config';
 import {
 	googleAddCommand,
 	verifyGoogleConnection,
@@ -15,18 +15,18 @@ describe('google add command helpers', () => {
 		google_calendar_id: 'primary'
 	};
 
+	const testService = {
+		id: 'google-service',
+		type: 'google' as const,
+		client_id: 'client-id-123',
+		client_secret: 'client-secret-456',
+		refresh_token: 'refresh-token-789'
+	};
+
 	const testConfig = {
-		services: [
-			{
-				id: 'google-service',
-				type: 'google',
-				client_id: 'client-id-123',
-				client_secret: 'client-secret-456',
-				refresh_token: 'refresh-token-789'
-			}
-		],
+		services: [testService],
 		calendars: [cal]
-	} as any;
+	} as unknown as WhenConfiguration;
 
 	test('exchangeCodeForTokens returns tokens on successful POST', async () => {
 		const mockFetch = vi.fn().mockResolvedValue({
@@ -174,12 +174,12 @@ describe('google add command helpers', () => {
 		const failedConfig = {
 			services: [
 				{
-					...testConfig.services[0],
+					...testService,
 					refresh_token: 'refresh-token-failed-test'
 				}
 			],
 			calendars: [cal]
-		} as any;
+		} as unknown as WhenConfiguration;
 		await expect(verifyGoogleConnection(cal, failedConfig, mockFetch)).rejects.toThrow(
 			'Google token refresh failed: 400 Bad Request'
 		);

@@ -1,14 +1,22 @@
 import { text, select, password, isCancel } from '@clack/prompts';
 import { ConfigEditor } from '@when/config';
+import type { Service } from '@when/config';
 
 export async function getOrCreateCalDavService(
 	configPath: string,
 	baseId: string
-): Promise<{ serviceId: string; url: string; username: string; passwordPlain: string; isNew: boolean; envVarName: string } | null> {
-	let services: any[] = [];
+): Promise<{
+	serviceId: string;
+	url: string;
+	username: string;
+	passwordPlain: string;
+	isNew: boolean;
+	envVarName: string;
+} | null> {
+	let services: Service[] = [];
 	try {
 		const editor = new ConfigEditor(configPath);
-		services = (editor.get('services') as any[]) ?? [];
+		services = (editor.get('services') as Service[]) ?? [];
 	} catch {
 		// ignore
 	}

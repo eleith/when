@@ -51,9 +51,7 @@ const defaultTestConfig: WhenConfiguration = {
 			password: 'secret'
 		}
 	],
-	calendars: [
-		workCal
-	],
+	calendars: [workCal],
 	event_types: [
 		{
 			id: 'chat',

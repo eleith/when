@@ -39,10 +39,6 @@ interface GoogleEventsResponse {
 	items?: GoogleEvent[];
 }
 
-interface GoogleEventResult {
-	id: string;
-}
-
 const tokenCache = new Map<string, { token: string; expiresAt: number }>();
 
 export async function getGoogleAccessToken(
@@ -194,15 +190,15 @@ export async function putGoogleEvent(
 					}
 				}
 			: appointment.video_chat && appointment.video_chat.startsWith('http')
-			? {
-					entryPoints: [
-						{
-							entryPointType: 'video',
-							uri: appointment.video_chat
-						}
-					]
-				}
-			: undefined
+				? {
+						entryPoints: [
+							{
+								entryPointType: 'video',
+								uri: appointment.video_chat
+							}
+						]
+					}
+				: undefined
 	};
 
 	const res = await (opts.fetchImpl ?? fetch)(url, {
@@ -219,10 +215,22 @@ export async function putGoogleEvent(
 		throw new Error(`Google Calendar ${method} failed: ${res.status} ${text}`);
 	}
 
-	const data = (await res.json()) as any;
+	interface GoogleEventResponse {
+		id: string;
+		conferenceData?: {
+			entryPoints?: {
+				entryPointType: string;
+				uri?: string;
+			}[];
+		};
+	}
+
+	const data = (await res.json()) as GoogleEventResponse;
 	let videoChatUrl: string | undefined;
 	if (data.conferenceData?.entryPoints) {
-		const meetEntryPoint = data.conferenceData.entryPoints.find((ep: any) => ep.entryPointType === 'video');
+		const meetEntryPoint = data.conferenceData.entryPoints.find(
+			(ep) => ep.entryPointType === 'video'
+		);
 		if (meetEntryPoint?.uri) {
 			videoChatUrl = meetEntryPoint.uri;
 		}
@@ -263,7 +271,9 @@ export class GoogleAdapter implements CalendarAdapter {
 
 	private get googleCfg(): GoogleConfig {
 		if (!this.service) {
-			throw new Error(`Credentials service "${this.cal.service_id}" was not provided to GoogleAdapter`);
+			throw new Error(
+				`Credentials service "${this.cal.service_id}" was not provided to GoogleAdapter`
+			);
 		}
 		return {
 			client_id: this.service.client_id,
@@ -274,7 +284,11 @@ export class GoogleAdapter implements CalendarAdapter {
 	}
 
 	async fetchBusy(window: ExpandWindow, opts?: { fetchImpl?: FetchFn }) {
-		return fetchGoogleBusy(this.googleCfg, { start: window.start, end: window.end }, opts?.fetchImpl);
+		return fetchGoogleBusy(
+			this.googleCfg,
+			{ start: window.start, end: window.end },
+			opts?.fetchImpl
+		);
 	}
 
 	async pushAppointment(

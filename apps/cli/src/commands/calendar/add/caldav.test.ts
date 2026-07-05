@@ -1,5 +1,5 @@
 import { describe, expect, test, vi } from 'vitest';
-import type { CalDavCalendar } from '@when/config';
+import type { CalDavCalendar, WhenConfiguration } from '@when/config';
 import { caldavAddCommand, verifyCalDavConnection } from './caldav.ts';
 
 describe('caldav add command', () => {
@@ -21,7 +21,7 @@ describe('caldav add command', () => {
 			}
 		],
 		calendars: [cal]
-	} as any;
+	} as unknown as WhenConfiguration;
 
 	test('verifyCalDavConnection resolves successfully on 200 OK response', async () => {
 		const mockFetch = vi.fn().mockResolvedValue({

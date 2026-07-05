@@ -154,7 +154,9 @@ export class CalDavAdapter implements CalendarAdapter {
 
 	private get adapterCfg(): CalDavConfig {
 		if (!this.service) {
-			throw new Error(`Credentials service "${this.cal.service_id}" was not provided to CalDavAdapter`);
+			throw new Error(
+				`Credentials service "${this.cal.service_id}" was not provided to CalDavAdapter`
+			);
 		}
 		return {
 			url: this.cal.url,
@@ -188,12 +190,7 @@ export class CalDavAdapter implements CalendarAdapter {
 		});
 
 		const uid = originId(appointment);
-		await putCalDavEvent(
-			this.adapterCfg,
-			uid,
-			ics,
-			{ fetchImpl: opts.fetchImpl }
-		);
+		await putCalDavEvent(this.adapterCfg, uid, ics, { fetchImpl: opts.fetchImpl });
 		return { ok: true, externalEventId: uid, externalCalendarId: this.cal.id };
 	}
 
@@ -201,11 +198,7 @@ export class CalDavAdapter implements CalendarAdapter {
 		externalEventId: string,
 		opts?: { fetchImpl?: FetchFn }
 	): Promise<DeleteResult> {
-		await deleteCalDavEvent(
-			this.adapterCfg,
-			externalEventId,
-			{ fetchImpl: opts?.fetchImpl }
-		);
+		await deleteCalDavEvent(this.adapterCfg, externalEventId, { fetchImpl: opts?.fetchImpl });
 		return { ok: true };
 	}
 }

@@ -1,5 +1,6 @@
 import { text, select, password, spinner, note, isCancel } from '@clack/prompts';
 import { ConfigEditor } from '@when/config';
+import type { Service } from '@when/config';
 import { exchangeCodeForTokens } from '../commands/calendar/add/google.ts';
 
 const SCOPES = [
@@ -10,11 +11,19 @@ const SCOPES = [
 export async function getOrCreateGoogleService(
 	configPath: string,
 	baseId: string
-): Promise<{ serviceId: string; clientId: string; clientSecret: string; refreshToken: string; isNew: boolean; envClientSecret: string; envRefreshToken: string } | null> {
-	let services: any[] = [];
+): Promise<{
+	serviceId: string;
+	clientId: string;
+	clientSecret: string;
+	refreshToken: string;
+	isNew: boolean;
+	envClientSecret: string;
+	envRefreshToken: string;
+} | null> {
+	let services: Service[] = [];
 	try {
 		const editor = new ConfigEditor(configPath);
-		services = (editor.get('services') as any[]) ?? [];
+		services = (editor.get('services') as Service[]) ?? [];
 	} catch {
 		// ignore
 	}
@@ -146,5 +155,13 @@ export async function getOrCreateGoogleService(
 		envRefreshToken = `WHEN_SERVICE_GOOGLE_${envId}_REFRESH_TOKEN`;
 	}
 
-	return { serviceId, clientId, clientSecret, refreshToken, isNew, envClientSecret, envRefreshToken };
+	return {
+		serviceId,
+		clientId,
+		clientSecret,
+		refreshToken,
+		isNew,
+		envClientSecret,
+		envRefreshToken
+	};
 }
