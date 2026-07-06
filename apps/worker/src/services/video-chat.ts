@@ -1,4 +1,4 @@
-import { getVideoChatAdapter } from '@when/video-chat';
+import { getVideoChatAdapter, type FetchFn } from '@when/video-chat';
 import { pushAppointment } from '@when/calendar';
 import type { Kysely } from 'kysely';
 import type { Database, Appointment } from '@when/db';
@@ -105,10 +105,50 @@ export async function ensureVideoChatLink(
 }
 
 export async function cleanupVideoChatLink(
-	_db: Kysely<Database>,
-	_appointmentId: string,
-	_config: WhenConfiguration
+	db: Kysely<Database>,
+	appointmentId: string,
+	config: WhenConfiguration,
+	opts: { fetchImpl?: FetchFn } = {}
 ): Promise<void> {
-	// No-op: Nextcloud Talk has no public deletion OCS endpoint, and Google Calendar
-	// deletion automatically cleans up Google Meet links.
+	const row = await db
+		.selectFrom('appointments')
+		.selectAll()
+		.where('id', '=', appointmentId)
+		.executeTakeFirst();
+
+	if (!row || !row.video_chat || !row.video_chat.startsWith('http')) {
+		return;
+	}
+
+	const eventType = config.event_types.find((e) => e.id === row.event_type_id);
+	if (!eventType || !eventType.video_chat) {
+		return;
+	}
+
+	const vcConfig = (config.video_chats ?? []).find((vc) => vc.id === eventType.video_chat);
+	if (!vcConfig) {
+		return;
+	}
+
+	try {
+		const adapter = getVideoChatAdapter(vcConfig, config);
+		const deleteResult = await adapter.deleteRoom(row.video_chat, { fetchImpl: opts.fetchImpl });
+		if (!deleteResult.ok) {
+			console.warn(`Failed to delete video chat room: ${deleteResult.reason}`);
+		}
+	} catch (err) {
+		console.warn(`Error deleting video chat room: ${err instanceof Error ? err.message : String(err)}`);
+	}
+
+	const now = Temporal.Now.instant().toString();
+	await db
+		.updateTable('appointments')
+		.set({
+			video_chat: null,
+			updated_at: now
+		})
+		.where('id', '=', appointmentId)
+		.execute();
+
+	await appendJobLog(db, appointmentId, 'video_chat', 'done', now);
 }

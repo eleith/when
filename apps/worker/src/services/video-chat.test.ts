@@ -1,8 +1,8 @@
-import { describe, expect, test, vi } from 'vitest';
+import { describe, expect, test, vi, beforeEach } from 'vitest';
 import { openDb, runMigrations, parseActionLog } from '@when/db';
 import type { WhenConfiguration } from '@when/config';
-import { ensureVideoChatLink } from './video-chat.js';
-import { getVideoChatAdapter } from '@when/video-chat';
+import { ensureVideoChatLink, cleanupVideoChatLink } from './video-chat.js';
+import { getVideoChatAdapter, type VideoChatAdapter } from '@when/video-chat';
 import { pushAppointment } from '@when/calendar';
 
 vi.mock('@when/video-chat', () => ({
@@ -12,6 +12,10 @@ vi.mock('@when/video-chat', () => ({
 vi.mock('@when/calendar', () => ({
 	pushAppointment: vi.fn()
 }));
+
+beforeEach(() => {
+	vi.clearAllMocks();
+});
 
 const mockConfig = {
 	url: { app: 'https://when.example.com' },
@@ -151,8 +155,9 @@ describe('ensureVideoChatLink', () => {
 			const mockAdapter = {
 				createRoom: vi
 					.fn()
-					.mockResolvedValue({ ok: true, url: 'https://cloud.example.com/call/abc' })
-			};
+					.mockResolvedValue({ ok: true, url: 'https://cloud.example.com/call/abc' }),
+				deleteRoom: vi.fn()
+			} as unknown as VideoChatAdapter;
 			vi.mocked(getVideoChatAdapter).mockReturnValue(mockAdapter);
 
 			const res = await ensureVideoChatLink(db, 'a3', mockConfig);
@@ -216,6 +221,104 @@ describe('ensureVideoChatLink', () => {
 			expect(logs).toHaveLength(2);
 			expect(logs.map((l) => l.action)).toContain('video_chat');
 			expect(logs.map((l) => l.action)).toContain('calendar');
+		} finally {
+			await db.destroy();
+		}
+	});
+});
+
+describe('cleanupVideoChatLink', () => {
+	test('no-op if video_chat does not start with http', async () => {
+		const db = await makeDb();
+		try {
+			await db
+				.insertInto('appointments')
+				.values({
+					id: 'c1',
+					event_type_id: 'chat',
+					start_time: '2026-05-01T15:00:00Z',
+					end_time: '2026-05-01T15:30:00Z',
+					guest_name: 'Booker',
+					guest_email: 'booker@example.com',
+					location: null,
+					video_chat: 'my-talk',
+					status: 'cancelled',
+					cancel_token: 'tok',
+					origin_id: 'c1',
+					calendar_revision: 1
+				})
+				.execute();
+
+			await cleanupVideoChatLink(db, 'c1', mockConfig);
+
+			const row = await db
+				.selectFrom('appointments')
+				.selectAll()
+				.where('id', '=', 'c1')
+				.executeTakeFirstOrThrow();
+			expect(row.video_chat).toBe('my-talk');
+			expect(getVideoChatAdapter).not.toHaveBeenCalled();
+		} finally {
+			await db.destroy();
+		}
+	});
+
+	test('deletes Nextcloud Talk room, sets video_chat to null', async () => {
+		const db = await makeDb();
+		try {
+			const configWithVc = {
+				...mockConfig,
+				event_types: [
+					{
+						id: 'chat',
+						name: 'Chat',
+						destination_calendar: 'g-cal',
+						video_chat: 'my-talk'
+					}
+				]
+			} as unknown as WhenConfiguration;
+
+			await db
+				.insertInto('appointments')
+				.values({
+					id: 'c2',
+					event_type_id: 'chat',
+					start_time: '2026-05-01T15:00:00Z',
+					end_time: '2026-05-01T15:30:00Z',
+					guest_name: 'Booker',
+					guest_email: 'booker@example.com',
+					location: null,
+					video_chat: 'https://cloud.example.com/call/room-abc',
+					status: 'cancelled',
+					cancel_token: 'tok',
+					origin_id: 'c2',
+					calendar_revision: 1
+				})
+				.execute();
+
+			const mockAdapter = {
+				createRoom: vi.fn(),
+				deleteRoom: vi.fn().mockResolvedValue({ ok: true })
+			} as unknown as VideoChatAdapter;
+			vi.mocked(getVideoChatAdapter).mockReturnValue(mockAdapter);
+
+			await cleanupVideoChatLink(db, 'c2', configWithVc);
+
+			expect(getVideoChatAdapter).toHaveBeenCalledWith(
+				mockConfig.video_chats![0],
+				configWithVc
+			);
+			expect(mockAdapter.deleteRoom).toHaveBeenCalledWith(
+				'https://cloud.example.com/call/room-abc',
+				expect.any(Object)
+			);
+
+			const row = await db
+				.selectFrom('appointments')
+				.selectAll()
+				.where('id', '=', 'c2')
+				.executeTakeFirstOrThrow();
+			expect(row.video_chat).toBeNull();
 		} finally {
 			await db.destroy();
 		}

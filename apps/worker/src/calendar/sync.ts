@@ -5,6 +5,7 @@ import type { WorkerContext } from '../services/context.js';
 import { appointmentLinks } from '../links.js';
 import { appendJobLog, markCalendarFailing } from '../services/job-log.js';
 import { calendarSyncDuration } from '../services/metrics.js';
+import { cleanupVideoChatLink } from '../services/video-chat.js';
 
 export interface SyncOptions {
 	fetchImpl?: FetchFn;
@@ -61,6 +62,9 @@ export async function reconcileAppointment(
 		// `pending` and `rescheduled` keep their inherited event; only these remove it.
 		const shouldRemove =
 			row.status === 'cancelled' || row.status === 'declined' || row.status === 'expired';
+		if (shouldRemove) {
+			await cleanupVideoChatLink(ctx.db, row.id, ctx.config, { fetchImpl: opts.fetchImpl });
+		}
 		if (shouldRemove && row.external_event_id && row.external_calendar_id) {
 			const deleted = await deleteAppointmentFromCalendar(
 				ctx.config,

@@ -1,12 +1,19 @@
-import type { VideoChat, NextcloudService } from '@when/config';
-import type { VideoChatAdapter, VideoChatResult, FetchFn } from '../adapter.js';
+import type { VideoChat, NextcloudService, Service } from '@when/config';
+import type { VideoChatAdapter, VideoChatResult, VideoChatDeleteResult, FetchFn } from '../adapter.js';
 import { Buffer } from 'node:buffer';
 
 export class NextcloudTalkAdapter implements VideoChatAdapter {
+	static readonly type = 'nextcloud-talk';
+	static readonly expectedServiceType = 'nextcloud';
+
+	private readonly service: NextcloudService;
+
 	constructor(
 		private readonly vc: VideoChat,
-		private readonly service: NextcloudService
-	) {}
+		service: Service
+	) {
+		this.service = service as NextcloudService;
+	}
 
 	async createRoom(roomName: string, opts: { fetchImpl?: FetchFn } = {}): Promise<VideoChatResult> {
 		const fetcher = opts.fetchImpl ?? globalThis.fetch;
@@ -51,6 +58,46 @@ export class NextcloudTalkAdapter implements VideoChatAdapter {
 			}
 
 			return { ok: true, url: `${baseUrl}/call/${token}` };
+		} catch (err) {
+			return { ok: false, reason: err instanceof Error ? err.message : String(err) };
+		}
+	}
+
+	async deleteRoom(roomUrl: string, opts: { fetchImpl?: FetchFn } = {}): Promise<VideoChatDeleteResult> {
+		const fetcher = opts.fetchImpl ?? globalThis.fetch;
+
+		const baseUrl = this.service.url.replace(/\/$/, '');
+		const match = roomUrl.match(/\/call\/([^/]+)$/);
+		if (!match) {
+			return { ok: false, reason: `Invalid room URL format: ${roomUrl}` };
+		}
+		const token = match[1];
+		const endpoint = `${baseUrl}/ocs/v2.php/apps/spreed/api/v4/room/${token}`;
+
+		const credentials = Buffer.from(`${this.service.username}:${this.service.password}`).toString(
+			'base64'
+		);
+
+		try {
+			const res = await fetcher(endpoint, {
+				method: 'DELETE',
+				headers: {
+					'OCS-APIRequest': 'true',
+					Accept: 'application/json',
+					'Content-Type': 'application/json',
+					Authorization: `Basic ${credentials}`
+				}
+			});
+
+			if (!res.ok) {
+				const bodyText = await res.text();
+				return {
+					ok: false,
+					reason: `Nextcloud Talk API returned status ${res.status}: ${bodyText}`
+				};
+			}
+
+			return { ok: true };
 		} catch (err) {
 			return { ok: false, reason: err instanceof Error ? err.message : String(err) };
 		}

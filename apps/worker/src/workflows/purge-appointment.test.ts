@@ -98,7 +98,7 @@ test('reachable calendar: deletes the remote event and the row', async () => {
 
 		expect(await runPurgeAppointment(input, step, { fetchImpl })).toBe('purged');
 		expect(calls.some((c) => c.method === 'DELETE')).toBe(true);
-		expect(names).toEqual(['calendar:1', 'delete:1']);
+		expect(names).toEqual(['calendar:1', 'video-chat-cleanup:1', 'delete:1']);
 		expect(await exists(db, '1')).toBe(false);
 		expect(warn).not.toHaveBeenCalled();
 	} finally {
@@ -140,7 +140,7 @@ test('no remote event: no calendar call, row still deleted', async () => {
 
 		await runPurgeAppointment(input, step, { fetchImpl });
 		expect(calls).toHaveLength(0);
-		expect(names).toEqual(['delete:1']);
+		expect(names).toEqual(['video-chat-cleanup:1', 'delete:1']);
 		expect(await exists(db, '1')).toBe(false);
 	} finally {
 		await db.destroy();

@@ -11,6 +11,13 @@ describe('getVideoChatAdapter', () => {
 				url: 'https://cloud.example.com',
 				username: 'user',
 				password: 'pwd'
+			},
+			{
+				id: 'google-service',
+				type: 'google',
+				client_id: 'gc-id',
+				client_secret: 'gc-secret',
+				refresh_token: 'gc-token'
 			}
 		],
 		video_chats: [
