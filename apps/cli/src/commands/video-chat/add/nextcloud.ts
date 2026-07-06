@@ -5,6 +5,7 @@ import { ConfigEditor } from '@when/config';
 import type { WhenConfiguration, Service, VideoChat } from '@when/config';
 import { getValidatedConfigPath } from '../../../utils/config-path.ts';
 import { getOrCreateNextcloudService } from '../../../services/nextcloud.ts';
+import { getExistingIds } from '../../../utils/config.ts';
 import { getVideoChatAdapter } from '@when/video-chat';
 
 function validateConfigExists(configPath: string): boolean {
@@ -37,14 +38,7 @@ export const nextcloudTalkAddCommand = define({
 			return;
 		}
 
-		let existingVideoChatIds: string[] = [];
-		try {
-			const editor = new ConfigEditor(configPath);
-			const videoChats = (editor.get('video_chats') as { id: string }[]) ?? [];
-			existingVideoChatIds = videoChats.map((vc) => vc.id);
-		} catch {
-			// ignore
-		}
+		const existingVideoChatIds = getExistingIds(configPath, 'video_chats');
 
 		const videoChatId = await text({
 			message: 'Enter a unique ID for this Nextcloud Talk integration (e.g. "my-talk"):',

@@ -2,11 +2,11 @@ import { existsSync } from 'node:fs';
 import { define } from 'gunshi';
 import { text, spinner, note, isCancel } from '@clack/prompts';
 import { getCalendarAdapter } from '@when/calendar';
-import { ConfigEditor } from '@when/config';
-import type { CalDavCalendar, WhenConfiguration, Service } from '@when/config';
+import { ConfigEditor, type CalDavCalendar, type WhenConfiguration, type Service } from '@when/config';
 
 import { getValidatedConfigPath } from '../../../utils/config-path.ts';
 import { getOrCreateCalDavService } from '../../../services/caldav.ts';
+import { getExistingIds } from '../../../utils/config.ts';
 
 export async function verifyCalDavConnection(
 	cal: CalDavCalendar,
@@ -48,15 +48,7 @@ export const caldavAddCommand = define({
 			return;
 		}
 
-		const existingCalendarIds = (() => {
-			try {
-				const editor = new ConfigEditor(configPath);
-				const calendars = (editor.get('calendars') as { id: string }[]) ?? [];
-				return calendars.map((c) => c.id);
-			} catch {
-				return [];
-			}
-		})();
+		const existingCalendarIds = getExistingIds(configPath, 'calendars');
 
 		const calendarId = await text({
 			message: 'Enter a unique ID for this calendar (e.g., "work"):',

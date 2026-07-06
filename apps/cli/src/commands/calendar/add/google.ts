@@ -7,6 +7,7 @@ import type { GoogleCalendar, WhenConfiguration, Service } from '@when/config';
 
 import { getValidatedConfigPath } from '../../../utils/config-path.ts';
 import { getOrCreateGoogleService } from '../../../services/google.ts';
+import { getExistingIds } from '../../../utils/config.ts';
 
 export async function verifyGoogleConnection(
 	cal: GoogleCalendar,
@@ -125,15 +126,7 @@ export const googleAddCommand = define({
 			return;
 		}
 
-		const existingCalendarIds = (() => {
-			try {
-				const editor = new ConfigEditor(configPath);
-				const calendars = (editor.get('calendars') as { id: string }[]) ?? [];
-				return calendars.map((c) => c.id);
-			} catch {
-				return [];
-			}
-		})();
+		const existingCalendarIds = getExistingIds(configPath, 'calendars');
 
 		const calendarId = await text({
 			message: 'Enter a unique ID for this calendar (e.g., "personal"):',

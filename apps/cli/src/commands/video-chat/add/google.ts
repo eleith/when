@@ -5,6 +5,7 @@ import { ConfigEditor } from '@when/config';
 import type { Service, VideoChat } from '@when/config';
 import { getValidatedConfigPath } from '../../../utils/config-path.ts';
 import { getOrCreateGoogleService } from '../../../services/google.ts';
+import { getExistingIds } from '../../../utils/config.ts';
 
 function validateConfigExists(configPath: string): boolean {
 	if (!existsSync(configPath)) {
@@ -36,14 +37,7 @@ export const googleMeetAddCommand = define({
 			return;
 		}
 
-		let existingVideoChatIds: string[] = [];
-		try {
-			const editor = new ConfigEditor(configPath);
-			const videoChats = (editor.get('video_chats') as { id: string }[]) ?? [];
-			existingVideoChatIds = videoChats.map((vc) => vc.id);
-		} catch {
-			// ignore
-		}
+		const existingVideoChatIds = getExistingIds(configPath, 'video_chats');
 
 		const videoChatId = await text({
 			message: 'Enter a unique ID for this Google Meet integration (e.g. "my-meet"):',
