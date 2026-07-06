@@ -118,7 +118,7 @@ describe('google add command helpers', () => {
 	});
 
 	test('verifyGoogleConnection resolves successfully when fetch busy times resolves', async () => {
-		vi.spyOn(globalThis, 'fetch').mockImplementation(async (url: RequestInfo | URL) => {
+		vi.spyOn(globalThis, 'fetch').mockImplementation(async (url: Parameters<typeof fetch>[0]) => {
 			if (String(url).includes('oauth2.googleapis.com/token')) {
 				return new Response(
 					JSON.stringify({
@@ -150,7 +150,7 @@ describe('google add command helpers', () => {
 	});
 
 	test('verifyGoogleConnection throws error when token endpoint fails', async () => {
-		vi.spyOn(globalThis, 'fetch').mockImplementation(async (url: RequestInfo | URL) => {
+		vi.spyOn(globalThis, 'fetch').mockImplementation(async (url: Parameters<typeof fetch>[0]) => {
 			if (String(url).includes('oauth2.googleapis.com/token')) {
 				return new Response('invalid_grant', { status: 400, statusText: 'Bad Request' });
 			}

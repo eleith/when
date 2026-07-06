@@ -43,7 +43,7 @@ function makeMailer() {
 function recordingFetch(status = 204) {
 	const calls: { method: string; url: string }[] = [];
 	vi.spyOn(globalThis, 'fetch').mockImplementation(
-		async (url: RequestInfo | URL, init?: RequestInit) => {
+		async (url: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) => {
 			calls.push({ method: (init?.method as string) ?? 'GET', url: String(url) });
 			return new Response(null, { status });
 		}

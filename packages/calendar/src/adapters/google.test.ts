@@ -44,7 +44,7 @@ async function push(appointment: Appointment) {
 	const captured: { url?: string; payload?: Record<string, unknown> } = {};
 
 	vi.spyOn(globalThis, 'fetch').mockImplementation(
-		async (url: RequestInfo | URL, init?: RequestInit) => {
+		async (url: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) => {
 			if (String(url).includes('oauth2.googleapis.com/token')) {
 				return new Response(JSON.stringify({ access_token: 't', expires_in: 3600 }), {
 					status: 200

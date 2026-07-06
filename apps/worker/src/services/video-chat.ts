@@ -9,7 +9,7 @@ export async function createStandaloneVideoChat(
 	appointmentId: string,
 	config: WhenConfiguration
 ): Promise<Appointment> {
-	let row = await db
+	const row = await db
 		.selectFrom('appointments')
 		.selectAll()
 		.where('id', '=', appointmentId)
