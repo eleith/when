@@ -1,4 +1,4 @@
-import { getVideoChatAdapter, type FetchFn } from '@when/video-chat';
+import { getVideoChatAdapter } from '@when/video-chat';
 import { pushAppointment } from '@when/calendar';
 import type { Kysely } from 'kysely';
 import type { Database, Appointment } from '@when/db';
@@ -107,8 +107,7 @@ export async function ensureVideoChatLink(
 export async function cleanupVideoChatLink(
 	db: Kysely<Database>,
 	appointmentId: string,
-	config: WhenConfiguration,
-	opts: { fetchImpl?: FetchFn } = {}
+	config: WhenConfiguration
 ): Promise<void> {
 	const row = await db
 		.selectFrom('appointments')
@@ -132,7 +131,7 @@ export async function cleanupVideoChatLink(
 
 	try {
 		const adapter = getVideoChatAdapter(vcConfig, config);
-		const deleteResult = await adapter.deleteRoom(row.video_chat, { fetchImpl: opts.fetchImpl });
+		const deleteResult = await adapter.deleteRoom(row.video_chat);
 		if (!deleteResult.ok) {
 			console.warn(`Failed to delete video chat room: ${deleteResult.reason}`);
 		}

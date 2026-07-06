@@ -1,5 +1,5 @@
 import type { VideoChat, NextcloudService, Service } from '@when/config';
-import type { VideoChatAdapter, VideoChatResult, VideoChatDeleteResult, FetchFn } from '../adapter.js';
+import type { VideoChatAdapter, VideoChatResult, VideoChatDeleteResult } from '../adapter.js';
 import { Buffer } from 'node:buffer';
 
 export class NextcloudTalkAdapter implements VideoChatAdapter {
@@ -15,9 +15,7 @@ export class NextcloudTalkAdapter implements VideoChatAdapter {
 		this.service = service as NextcloudService;
 	}
 
-	async createRoom(roomName: string, opts: { fetchImpl?: FetchFn } = {}): Promise<VideoChatResult> {
-		const fetcher = opts.fetchImpl ?? globalThis.fetch;
-
+	async createRoom(roomName: string): Promise<VideoChatResult> {
 		const baseUrl = this.service.url.replace(/\/$/, '');
 		const endpoint = `${baseUrl}/ocs/v2.php/apps/spreed/api/v4/room`;
 
@@ -26,7 +24,7 @@ export class NextcloudTalkAdapter implements VideoChatAdapter {
 		);
 
 		try {
-			const res = await fetcher(endpoint, {
+			const res = await fetch(endpoint, {
 				method: 'POST',
 				headers: {
 					'OCS-APIRequest': 'true',
@@ -63,9 +61,7 @@ export class NextcloudTalkAdapter implements VideoChatAdapter {
 		}
 	}
 
-	async deleteRoom(roomUrl: string, opts: { fetchImpl?: FetchFn } = {}): Promise<VideoChatDeleteResult> {
-		const fetcher = opts.fetchImpl ?? globalThis.fetch;
-
+	async deleteRoom(roomUrl: string): Promise<VideoChatDeleteResult> {
 		const baseUrl = this.service.url.replace(/\/$/, '');
 		const match = roomUrl.match(/\/call\/([^/]+)$/);
 		if (!match) {
@@ -79,7 +75,7 @@ export class NextcloudTalkAdapter implements VideoChatAdapter {
 		);
 
 		try {
-			const res = await fetcher(endpoint, {
+			const res = await fetch(endpoint, {
 				method: 'DELETE',
 				headers: {
 					'OCS-APIRequest': 'true',

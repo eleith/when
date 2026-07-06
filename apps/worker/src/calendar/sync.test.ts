@@ -1,7 +1,6 @@
-import { expect, test } from 'vitest';
+import { expect, test, vi, beforeEach } from 'vitest';
 import pino from 'pino';
 import type { WhenConfiguration } from '@when/config';
-import type { FetchFn } from '@when/calendar';
 import { openDb, runMigrations, listOutOfSyncAppointments, parseActionLog } from '@when/db';
 import type { Logger } from '../services/logger.js';
 import type { WorkerContext } from '../services/context.js';
@@ -57,12 +56,16 @@ async function ctxWith(): Promise<WorkerContext> {
 
 function recordingFetch(status = 204) {
 	const calls: { method: string; url: string }[] = [];
-	const fetchImpl: FetchFn = async (url, init) => {
+	vi.spyOn(globalThis, 'fetch').mockImplementation(async (url: any, init?: RequestInit) => {
 		calls.push({ method: (init?.method as string) ?? 'GET', url: String(url) });
 		return new Response(null, { status });
-	};
-	return { fetchImpl, calls };
+	});
+	return { calls };
 }
+
+beforeEach(() => {
+	vi.restoreAllMocks();
+});
 
 const rowById = (db: WorkerContext['db'], id: string) =>
 	db.selectFrom('appointments').selectAll().where('id', '=', id).executeTakeFirstOrThrow();
@@ -83,8 +86,8 @@ test('confirmed without an external event is created and marked synced', async (
 	const ctx = await ctxWith();
 	try {
 		await insert(ctx, { id: '1', cancel_token: 't1', calendar_revision: 1 });
-		const { fetchImpl, calls } = recordingFetch(201);
-		await reconcileAppointment(ctx, await onlyRow(ctx), { fetchImpl });
+		const { calls } = recordingFetch(201);
+		await reconcileAppointment(ctx, await onlyRow(ctx));
 		const row = await rowById(ctx.db, '1');
 		expect(row.external_event_id).toBe('1');
 		expect(row.external_calendar_id).toBe('work');
@@ -101,22 +104,18 @@ test('a failing publish logs failed once; a later success appends done', async (
 	try {
 		await insert(ctx, { id: '1', cancel_token: 't1', calendar_revision: 1 });
 
-		await reconcileAppointment(ctx, await onlyRow(ctx), {
-			fetchImpl: recordingFetch(500).fetchImpl
-		});
+		recordingFetch(500);
+		await reconcileAppointment(ctx, await onlyRow(ctx));
 		expect((await rowById(ctx.db, '1')).calendar_synced_revision).toBeNull(); // still out of sync
-		// failed logged and still open (no done) — this is the log's "failing since"
 		expect(await calendarJobStates(ctx.db, '1')).toEqual(['failed']);
 
 		// a second failing scan doesn't append a second `failed`
-		await reconcileAppointment(ctx, await onlyRow(ctx), {
-			fetchImpl: recordingFetch(500).fetchImpl
-		});
+		recordingFetch(500);
+		await reconcileAppointment(ctx, await onlyRow(ctx));
 		expect(await calendarJobStates(ctx.db, '1')).toEqual(['failed']);
 
-		await reconcileAppointment(ctx, await onlyRow(ctx), {
-			fetchImpl: recordingFetch(201).fetchImpl
-		});
+		recordingFetch(201);
+		await reconcileAppointment(ctx, await onlyRow(ctx));
 		expect(await calendarJobStates(ctx.db, '1')).toEqual(['failed', 'done']);
 	} finally {
 		await ctx.db.destroy();
@@ -134,8 +133,8 @@ test('confirmed with an external event is updated', async () => {
 			calendar_revision: 2,
 			calendar_synced_revision: 1
 		});
-		const { fetchImpl, calls } = recordingFetch(204);
-		await reconcileAppointment(ctx, await onlyRow(ctx), { fetchImpl });
+		const { calls } = recordingFetch(204);
+		await reconcileAppointment(ctx, await onlyRow(ctx));
 		const row = await rowById(ctx.db, '1');
 		expect(row.calendar_synced_revision).toBe(2);
 		expect(calls.some((c) => c.method === 'PUT')).toBe(true);
@@ -157,8 +156,8 @@ test('a should-not-exist row with an external event is deleted and ids cleared',
 			calendar_revision: 2,
 			calendar_synced_revision: 1
 		});
-		const { fetchImpl, calls } = recordingFetch(204);
-		await reconcileAppointment(ctx, await onlyRow(ctx), { fetchImpl });
+		const { calls } = recordingFetch(204);
+		await reconcileAppointment(ctx, await onlyRow(ctx));
 		const row = await rowById(ctx.db, '1');
 		expect(row.external_event_id).toBeNull();
 		expect(row.external_calendar_id).toBeNull();
@@ -182,8 +181,8 @@ test('a rescheduled row keeps its event (inherited by the successor) and is mark
 			calendar_revision: 2,
 			calendar_synced_revision: 1
 		});
-		const { fetchImpl, calls } = recordingFetch(204);
-		await reconcileAppointment(ctx, await onlyRow(ctx), { fetchImpl });
+		const { calls } = recordingFetch(204);
+		await reconcileAppointment(ctx, await onlyRow(ctx));
 		const row = await rowById(ctx.db, '1');
 		expect(calls.some((c) => c.method === 'DELETE')).toBe(false);
 		expect(row.external_event_id).toBe('1');
@@ -205,8 +204,8 @@ test('a pending row that inherited an event keeps it (frozen until re-approval)'
 			calendar_revision: 2,
 			calendar_synced_revision: 1
 		});
-		const { fetchImpl, calls } = recordingFetch(204);
-		await reconcileAppointment(ctx, await onlyRow(ctx), { fetchImpl });
+		const { calls } = recordingFetch(204);
+		await reconcileAppointment(ctx, await onlyRow(ctx));
 		const row = await rowById(ctx.db, '1');
 		expect(calls).toHaveLength(0);
 		expect(row.external_event_id).toBe('1');
@@ -220,12 +219,11 @@ test('a should-not-exist row with no external event is a no-op marked synced', a
 	const ctx = await ctxWith();
 	try {
 		await insert(ctx, { id: '1', cancel_token: 't1', status: 'cancelled', calendar_revision: 2 });
-		const { fetchImpl, calls } = recordingFetch();
-		await reconcileAppointment(ctx, await onlyRow(ctx), { fetchImpl });
+		const { calls } = recordingFetch();
+		await reconcileAppointment(ctx, await onlyRow(ctx));
 		const row = await rowById(ctx.db, '1');
 		expect(row.calendar_synced_revision).toBe(2);
 		expect(calls).toHaveLength(0);
-		// a no-op sync (nothing to delete) logs no calendar job
 		expect(await calendarJobStates(ctx.db, '1')).toEqual([]);
 	} finally {
 		await ctx.db.destroy();
@@ -236,8 +234,8 @@ test('confirmed with no destination calendar is a no-op marked synced', async ()
 	const ctx = await ctxWith();
 	try {
 		await insert(ctx, { id: '1', cancel_token: 't1', event_type_id: 'gone', calendar_revision: 1 });
-		const { fetchImpl, calls } = recordingFetch();
-		await reconcileAppointment(ctx, await onlyRow(ctx), { fetchImpl });
+		const { calls } = recordingFetch();
+		await reconcileAppointment(ctx, await onlyRow(ctx));
 		const row = await rowById(ctx.db, '1');
 		expect(row.calendar_synced_revision).toBe(1);
 		expect(calls).toHaveLength(0);
@@ -250,8 +248,8 @@ test('trace: a reschedule after a sync stays out of sync and is caught next scan
 	const ctx = await ctxWith();
 	try {
 		await insert(ctx, { id: '1', cancel_token: 't1', calendar_revision: 1 });
-		const { fetchImpl } = recordingFetch(201);
-		await scanOnce(ctx, { fetchImpl });
+		recordingFetch(201);
+		await scanOnce(ctx);
 		expect((await rowById(ctx.db, '1')).calendar_synced_revision).toBe(1);
 
 		await ctx.db
@@ -261,7 +259,8 @@ test('trace: a reschedule after a sync stays out of sync and is caught next scan
 			.execute();
 		expect((await listOutOfSyncAppointments(ctx.db)).map((r) => r.id)).toEqual(['1']);
 
-		await scanOnce(ctx, { fetchImpl });
+		recordingFetch(201);
+		await scanOnce(ctx);
 		const row = await rowById(ctx.db, '1');
 		expect(row.calendar_synced_revision).toBe(2);
 		expect(row.external_event_id).toBe('1');
@@ -282,8 +281,8 @@ test('the reconcile sweep skips purged rows (the purge workflow owns them)', asy
 			external_calendar_id: 'work',
 			calendar_revision: 2
 		});
-		const { fetchImpl, calls } = recordingFetch();
-		await scanOnce(ctx, { fetchImpl });
+		const { calls } = recordingFetch();
+		await scanOnce(ctx);
 		const row = await rowById(ctx.db, '1');
 		expect(calls).toHaveLength(0);
 		expect(row.calendar_synced_revision).toBeNull();
@@ -296,8 +295,8 @@ test('trace: a cancel before the worker runs leaves no orphan event', async () =
 	const ctx = await ctxWith();
 	try {
 		await insert(ctx, { id: '1', cancel_token: 't1', status: 'cancelled', calendar_revision: 2 });
-		const { fetchImpl, calls } = recordingFetch();
-		await scanOnce(ctx, { fetchImpl });
+		const { calls } = recordingFetch();
+		await scanOnce(ctx);
 		const row = await rowById(ctx.db, '1');
 		expect(row.calendar_synced_revision).toBe(2);
 		expect(row.external_event_id).toBeNull();

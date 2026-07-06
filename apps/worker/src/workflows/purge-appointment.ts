@@ -1,5 +1,5 @@
 import type { RetryPolicy } from 'openworkflow';
-import { deleteAppointmentFromCalendar, type FetchFn } from '@when/calendar';
+import { deleteAppointmentFromCalendar } from '@when/calendar';
 import { purgeAppointment } from '@when/jobs/specs';
 import type { PurgeAppointmentInput, PurgeAppointmentResult } from '@when/jobs';
 import { getWorkerContext } from '../services/context.js';
@@ -21,14 +21,9 @@ interface PurgeStep {
 	): Promise<T>;
 }
 
-export interface PurgeOptions {
-	fetchImpl?: FetchFn;
-}
-
 export async function runPurgeAppointment(
 	input: PurgeAppointmentInput,
-	step: PurgeStep,
-	opts: PurgeOptions = {}
+	step: PurgeStep
 ): Promise<PurgeAppointmentResult> {
 	const { config, db, logger } = getWorkerContext();
 
@@ -40,8 +35,7 @@ export async function runPurgeAppointment(
 					const res = await deleteAppointmentFromCalendar(
 						config,
 						externalCalendarId,
-						externalEventId,
-						{ fetchImpl: opts.fetchImpl }
+						externalEventId
 					);
 					if (!res.ok) throw new Error(res.reason);
 				});
@@ -59,7 +53,7 @@ export async function runPurgeAppointment(
 			}
 		}
 		await step.run({ name: `video-chat-cleanup:${row.id}` }, async () => {
-			await cleanupVideoChatLink(db, row.id, config, { fetchImpl: opts.fetchImpl });
+			await cleanupVideoChatLink(db, row.id, config);
 		});
 		await step.run({ name: `delete:${row.id}` }, async () => {
 			await db.deleteFrom('appointments').where('id', '=', row.id).execute();

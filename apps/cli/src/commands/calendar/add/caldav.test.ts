@@ -1,4 +1,4 @@
-import { describe, expect, test, vi } from 'vitest';
+import { describe, expect, test, vi, beforeEach } from 'vitest';
 import type { CalDavCalendar, WhenConfiguration } from '@when/config';
 import { caldavAddCommand, verifyCalDavConnection } from './caldav.ts';
 
@@ -23,8 +23,12 @@ describe('caldav add command', () => {
 		calendars: [cal]
 	} as unknown as WhenConfiguration;
 
+	beforeEach(() => {
+		vi.restoreAllMocks();
+	});
+
 	test('verifyCalDavConnection resolves successfully on 200 OK response', async () => {
-		const mockFetch = vi.fn().mockResolvedValue({
+		const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
 			ok: true,
 			status: 200,
 			statusText: 'OK',
@@ -50,10 +54,10 @@ END:VCALENDAR
 					</d:response>
 				</d:multistatus>
 			`
-		});
+		} as Response);
 
-		await expect(verifyCalDavConnection(cal, testConfig, mockFetch)).resolves.toBeUndefined();
-		expect(mockFetch).toHaveBeenCalledWith(
+		await expect(verifyCalDavConnection(cal, testConfig)).resolves.toBeUndefined();
+		expect(fetchSpy).toHaveBeenCalledWith(
 			cal.url,
 			expect.objectContaining({
 				method: 'REPORT',
@@ -66,14 +70,14 @@ END:VCALENDAR
 	});
 
 	test('verifyCalDavConnection throws an error on 401 Unauthorized response', async () => {
-		const mockFetch = vi.fn().mockResolvedValue({
+		vi.spyOn(globalThis, 'fetch').mockResolvedValue({
 			ok: false,
 			status: 401,
 			statusText: 'Unauthorized',
 			text: async () => 'Unauthorized'
-		});
+		} as Response);
 
-		await expect(verifyCalDavConnection(cal, testConfig, mockFetch)).rejects.toThrow(
+		await expect(verifyCalDavConnection(cal, testConfig)).rejects.toThrow(
 			'CalDAV REPORT https://example.com/caldav/ failed: 401 Unauthorized'
 		);
 	});

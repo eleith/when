@@ -12,31 +12,28 @@ import type { BusyEvent } from './types.js';
 import { CalDavAdapter } from './adapters/caldav.js';
 import { GoogleAdapter } from './adapters/google.js';
 
-export type FetchFn = (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
-
-export interface PushOptions {
+interface PushOptions {
 	cancelUrl: string;
-	fetchImpl?: FetchFn;
 }
 
-export type PushResult =
+type PushResult =
 	| { ok: true; externalEventId: string; externalCalendarId: string; videoChatUrl?: string }
 	| { ok: false; reason: string };
 
-export type DeleteResult = { ok: true } | { ok: false; reason: string };
+type DeleteResult = { ok: true } | { ok: false; reason: string };
 
-export interface CalendarAdapter {
-	fetchBusy(window: ExpandWindow, opts?: { fetchImpl?: FetchFn }): Promise<BusyEvent[]>;
+interface CalendarAdapter {
+	fetchBusy(window: ExpandWindow): Promise<BusyEvent[]>;
 	pushAppointment(
 		cfg: WhenConfiguration,
 		appointment: Appointment,
 		eventTypeName: string,
 		opts: PushOptions
 	): Promise<PushResult>;
-	deleteAppointment(externalEventId: string, opts?: { fetchImpl?: FetchFn }): Promise<DeleteResult>;
+	deleteAppointment(externalEventId: string): Promise<DeleteResult>;
 }
 
-export function getCalendarAdapter(cal: Calendar, config?: WhenConfiguration): CalendarAdapter {
+function getCalendarAdapter(cal: Calendar, config?: WhenConfiguration): CalendarAdapter {
 	const type = cal.type;
 	if (type === 'caldav') {
 		const service = config?.services?.find((s) => s.id === (cal as CalDavCalendar).service_id);
@@ -48,3 +45,12 @@ export function getCalendarAdapter(cal: Calendar, config?: WhenConfiguration): C
 	}
 	throw new Error(`Unsupported calendar type: ${type}`);
 }
+
+export type {
+	PushOptions,
+	PushResult,
+	DeleteResult,
+	CalendarAdapter
+};
+
+export { getCalendarAdapter };

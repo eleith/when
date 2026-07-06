@@ -1,4 +1,4 @@
-import { deleteAppointmentFromCalendar, pushAppointment, type FetchFn } from '@when/calendar';
+import { deleteAppointmentFromCalendar, pushAppointment } from '@when/calendar';
 import { Temporal } from '@js-temporal/polyfill';
 import { listOutOfSyncAppointments, markSynced, type Appointment } from '@when/db';
 import type { WorkerContext } from '../services/context.js';
@@ -7,14 +7,9 @@ import { appendJobLog, markCalendarFailing } from '../services/job-log.js';
 import { calendarSyncDuration } from '../services/metrics.js';
 import { cleanupVideoChatLink } from '../services/video-chat.js';
 
-export interface SyncOptions {
-	fetchImpl?: FetchFn;
-}
-
 export async function reconcileAppointment(
 	ctx: WorkerContext,
-	row: Appointment,
-	opts: SyncOptions = {}
+	row: Appointment
 ): Promise<void> {
 	const eventType = ctx.config.event_types.find((e) => e.id === row.event_type_id);
 	const targetId = row.external_calendar_id ?? eventType?.destination_calendar ?? null;
@@ -37,8 +32,7 @@ export async function reconcileAppointment(
 				appointment: row
 			}).booked;
 			const pushed = await pushAppointment(ctx.config, row, target, {
-				cancelUrl,
-				fetchImpl: opts.fetchImpl
+				cancelUrl
 			});
 			if (pushed.ok) {
 				await markSynced(ctx.db, row.id, revision, {
@@ -63,14 +57,13 @@ export async function reconcileAppointment(
 		const shouldRemove =
 			row.status === 'cancelled' || row.status === 'declined' || row.status === 'expired';
 		if (shouldRemove) {
-			await cleanupVideoChatLink(ctx.db, row.id, ctx.config, { fetchImpl: opts.fetchImpl });
+			await cleanupVideoChatLink(ctx.db, row.id, ctx.config);
 		}
 		if (shouldRemove && row.external_event_id && row.external_calendar_id) {
 			const deleted = await deleteAppointmentFromCalendar(
 				ctx.config,
 				row.external_calendar_id,
-				row.external_event_id,
-				{ fetchImpl: opts.fetchImpl }
+				row.external_event_id
 			);
 			if (deleted.ok) {
 				await markSynced(ctx.db, row.id, revision, {
@@ -97,8 +90,8 @@ export async function reconcileAppointment(
 	}
 }
 
-export async function scanOnce(ctx: WorkerContext, opts: SyncOptions = {}): Promise<void> {
+export async function scanOnce(ctx: WorkerContext): Promise<void> {
 	for (const row of await listOutOfSyncAppointments(ctx.db)) {
-		await reconcileAppointment(ctx, row, opts);
+		await reconcileAppointment(ctx, row);
 	}
 }

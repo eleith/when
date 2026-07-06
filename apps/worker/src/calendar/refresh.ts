@@ -1,6 +1,6 @@
 import { Temporal } from '@js-temporal/polyfill';
 import type { Calendar, WhenConfiguration } from '@when/config';
-import type { ExpandWindow, FetchFn } from '@when/calendar';
+import type { ExpandWindow } from '@when/calendar';
 import { fetchBusyIntervals } from '@when/calendar';
 import {
 	listCalendarSyncStatus,
@@ -17,7 +17,6 @@ const DEFAULT_MAX_LOOKAHEAD_DAYS = 60;
 
 export interface RefreshOptions {
 	now?: Temporal.Instant;
-	fetchImpl?: FetchFn;
 }
 
 export function conflictCalendarIds(config: WhenConfiguration): string[] {
@@ -55,8 +54,7 @@ export async function refreshCalendar(
 		const excludeUids = new Set(await listOwnEventIds(ctx.db, cal.id));
 		const intervals = await fetchBusyIntervals(cal, window, {
 			excludeUids,
-			config: ctx.config,
-			fetchImpl: opts.fetchImpl
+			config: ctx.config
 		});
 		await replaceCalendarBusy(
 			ctx.db,

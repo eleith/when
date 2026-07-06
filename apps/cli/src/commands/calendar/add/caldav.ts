@@ -4,21 +4,18 @@ import { text, spinner, note, isCancel } from '@clack/prompts';
 import { getCalendarAdapter } from '@when/calendar';
 import { ConfigEditor } from '@when/config';
 import type { CalDavCalendar, WhenConfiguration, Service } from '@when/config';
-import type { FetchFn } from '@when/calendar';
+
 import { getValidatedConfigPath } from '../../../utils/config-path.ts';
 import { getOrCreateCalDavService } from '../../../services/caldav.ts';
 
 export async function verifyCalDavConnection(
 	cal: CalDavCalendar,
-	config: WhenConfiguration,
-	fetchImpl?: FetchFn
+	config: WhenConfiguration
 ): Promise<void> {
 	const adapter = getCalendarAdapter(cal, config);
 	const now = Temporal.Now.instant();
 	const window = { start: now, end: now.add({ hours: 1 }) };
-	await adapter.fetchBusy(window as unknown as import('@when/calendar').ExpandWindow, {
-		fetchImpl
-	});
+	await adapter.fetchBusy(window as unknown as import('@when/calendar').ExpandWindow);
 }
 
 function validateConfigExists(configPath: string): boolean {

@@ -1,8 +1,7 @@
-import { expect, test } from 'vitest';
+import { expect, test, vi, beforeEach } from 'vitest';
 import pino from 'pino';
 import { Temporal } from '@js-temporal/polyfill';
 import type { Calendar, WhenConfiguration } from '@when/config';
-import type { FetchFn } from '@when/calendar';
 import { openDb, runMigrations, replaceCalendarBusy, recordRefreshResult } from '@when/db';
 import type { Logger } from '../services/logger.js';
 import type { WorkerContext } from '../services/context.js';
@@ -35,13 +34,15 @@ UID:${uid}
 DTSTAMP:20260101T000000Z
 DTSTART:20260415T140000Z
 DTEND:20260415T150000Z
-SUMMARY:Remote
+SUMMARY:Test event
 END:VEVENT
 END:VCALENDAR</C:calendar-data>
   </response>
 </multistatus>`;
 
-const defaultTestConfig: WhenConfiguration = {
+const defaultTestConfig = {
+	url: { app: 'https://when.example.com' },
+	user: { name: 'Jane', email: 'jane@example.com' },
 	services: [
 		{
 			id: 'work-dav',
@@ -52,23 +53,11 @@ const defaultTestConfig: WhenConfiguration = {
 		}
 	],
 	calendars: [workCal],
-	event_types: [
-		{
-			id: 'chat',
-			name: 'Chat',
-			slug: 'chat',
-			duration: 30,
-			appointment_flow: 'auto',
-			destination_calendar: 'work',
-			conflict_calendars: ['work']
-		}
-	],
-	user: { name: 'Jane', timezone: 'America/New_York', email: 'jane@example.com' },
-	url: { app: 'https://when.example.com' },
 	availability: {
-		default: {}
-	}
-} as unknown as WhenConfiguration;
+		weekly: []
+	},
+	event_types: []
+};
 
 async function ctxWithDb(configOverrides: Partial<WhenConfiguration> = {}): Promise<WorkerContext> {
 	const db = openDb(':memory:');
@@ -81,11 +70,17 @@ async function ctxWithDb(configOverrides: Partial<WhenConfiguration> = {}): Prom
 	};
 }
 
+beforeEach(() => {
+	vi.restoreAllMocks();
+});
+
 test('refreshCalendar populates the mirror and records success', async () => {
 	const ctx = await ctxWithDb();
 	try {
-		const fetchImpl: FetchFn = async () => new Response(oneEvent('remote-1@x'), { status: 207 });
-		await refreshCalendar(ctx, workCal, window, { fetchImpl, now: window.start });
+		vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+			new Response(oneEvent('remote-1@x'), { status: 207 })
+		);
+		await refreshCalendar(ctx, workCal, window, { now: window.start });
 		const busy = await ctx.db.selectFrom('external_calendar_busy').selectAll().execute();
 		expect(busy).toHaveLength(1);
 		expect(busy[0].start_time).toBe('2026-04-15T14:00:00Z');
@@ -107,8 +102,10 @@ test('refreshCalendar keeps stale data and records the error on provider failure
 		await replaceCalendarBusy(ctx.db, 'work', [
 			{ start: '2026-04-10T09:00:00Z', end: '2026-04-10T09:30:00Z' }
 		]);
-		const fetchImpl: FetchFn = async () => new Response('boom', { status: 500, statusText: 'err' });
-		await refreshCalendar(ctx, workCal, window, { fetchImpl, now: window.start });
+		vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+			new Response('boom', { status: 500, statusText: 'err' })
+		);
+		await refreshCalendar(ctx, workCal, window, { now: window.start });
 		const busy = await ctx.db.selectFrom('external_calendar_busy').selectAll().execute();
 		expect(busy).toHaveLength(1);
 		expect(busy[0].start_time).toBe('2026-04-10T09:00:00Z');
@@ -143,8 +140,10 @@ test('refreshCalendar drops our own published event', async () => {
 				external_calendar_id: 'work'
 			})
 			.execute();
-		const fetchImpl: FetchFn = async () => new Response(oneEvent('remote-1@x'), { status: 207 });
-		await refreshCalendar(ctx, workCal, window, { fetchImpl, now: window.start });
+		vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+			new Response(oneEvent('remote-1@x'), { status: 207 })
+		);
+		await refreshCalendar(ctx, workCal, window, { now: window.start });
 		const busy = await ctx.db.selectFrom('external_calendar_busy').selectAll().execute();
 		expect(busy).toHaveLength(0);
 	} finally {
@@ -198,8 +197,8 @@ test('refreshCalendars refreshes known conflict calendars and skips unknown ids'
 		mailer: { send: async () => ({ ok: true as const }) }
 	};
 	try {
-		const fetchImpl: FetchFn = async () => new Response(oneEvent('r1'), { status: 207 });
-		await refreshCalendars(ctx, { fetchImpl, now: window.start });
+		vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(oneEvent('r1'), { status: 207 }));
+		await refreshCalendars(ctx, { now: window.start });
 		const work = await db
 			.selectFrom('external_calendar_busy')
 			.selectAll()
@@ -235,17 +234,17 @@ test('refreshCalendars skips a calendar refreshed within its interval, refreshes
 		await recordRefreshResult(db, 'work', { at: window.start.toString() }); // succeeded just now
 
 		let fetched = false;
-		const fetchImpl: FetchFn = async () => {
+		vi.spyOn(globalThis, 'fetch').mockImplementation(async () => {
 			fetched = true;
 			return new Response(oneEvent('r1'), { status: 207 });
-		};
+		});
 
 		// 10 min later, interval is 30 → not due, no provider call
-		await refreshCalendars(ctx, { fetchImpl, now: window.start.add({ minutes: 10 }) });
+		await refreshCalendars(ctx, { now: window.start.add({ minutes: 10 }) });
 		expect(fetched).toBe(false);
 
 		// past the interval → due, refreshes
-		await refreshCalendars(ctx, { fetchImpl, now: window.start.add({ minutes: 31 }) });
+		await refreshCalendars(ctx, { now: window.start.add({ minutes: 31 }) });
 		expect(fetched).toBe(true);
 	} finally {
 		await db.destroy();

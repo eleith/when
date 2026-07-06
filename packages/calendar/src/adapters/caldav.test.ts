@@ -1,8 +1,12 @@
-import { expect, test } from 'vitest';
+import { expect, test, vi, beforeEach } from 'vitest';
 import { Temporal } from '@js-temporal/polyfill';
-import { buildReportBody, extractCalendarData, fetchCalDavBusy, type FetchFn } from './caldav.js';
+import { buildReportBody, extractCalendarData, fetchCalDavBusy } from './caldav.js';
 
 const inst = (s: string): Temporal.Instant => Temporal.Instant.from(s);
+
+beforeEach(() => {
+	vi.restoreAllMocks();
+});
 
 test('buildReportBody emits CalDAV time-range in basic ISO format', () => {
 	const body = buildReportBody(inst('2026-04-01T00:00:00Z'), inst('2026-05-01T00:00:00Z'));
@@ -66,7 +70,7 @@ test('extractCalendarData returns empty array when no calendar-data', () => {
 
 test('fetchCalDavBusy sends a REPORT request with basic auth', async () => {
 	let captured: { url: string; init: RequestInit } | null = null;
-	const fakeFetch: FetchFn = async (url, init) => {
+	vi.spyOn(globalThis, 'fetch').mockImplementation(async (url, init) => {
 		captured = { url: String(url), init: init as RequestInit };
 		return new Response(
 			`<multistatus xmlns:C="urn:ietf:params:xml:ns:caldav">
@@ -86,12 +90,11 @@ END:VCALENDAR</C:calendar-data>
 			</multistatus>`,
 			{ status: 207 }
 		);
-	};
+	});
 
 	const events = await fetchCalDavBusy(
 		{ url: 'https://cal.example.com/cal/', username: 'jane', password: 'secret' },
-		{ start: inst('2026-04-01T00:00:00Z'), end: inst('2026-05-01T00:00:00Z') },
-		fakeFetch
+		{ start: inst('2026-04-01T00:00:00Z'), end: inst('2026-05-01T00:00:00Z') }
 	);
 
 	expect(events).toHaveLength(1);
@@ -107,13 +110,13 @@ END:VCALENDAR</C:calendar-data>
 });
 
 test('fetchCalDavBusy throws on non-2xx response', async () => {
-	const fakeFetch: FetchFn = async () =>
-		new Response('forbidden', { status: 403, statusText: 'Forbidden' });
+	vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+		new Response('forbidden', { status: 403, statusText: 'Forbidden' })
+	);
 	await expect(
 		fetchCalDavBusy(
 			{ url: 'https://cal.example.com/cal/', username: 'a', password: 'b' },
-			{ start: inst('2026-04-01T00:00:00Z'), end: inst('2026-05-01T00:00:00Z') },
-			fakeFetch
+			{ start: inst('2026-04-01T00:00:00Z'), end: inst('2026-05-01T00:00:00Z') }
 		)
 	).rejects.toThrow(/403/);
 });

@@ -4,7 +4,7 @@ import { guestContact } from '../guest.js';
 import { logger } from '../logger.js';
 import type { BusyEvent } from '../types.js';
 import type { Appointment } from '@when/db';
-import type { FetchBusyOptions, FetchFn } from './caldav.js';
+import type { FetchBusyOptions } from './caldav.js';
 import type { CalendarAdapter, PushOptions, PushResult, DeleteResult } from '../adapter.js';
 import type { WhenConfiguration, GoogleCalendar, GoogleService } from '@when/config';
 import type { ExpandWindow } from '../expand.js';
@@ -42,8 +42,7 @@ interface GoogleEventsResponse {
 const tokenCache = new Map<string, { token: string; expiresAt: number }>();
 
 export async function getGoogleAccessToken(
-	cfg: GoogleConfig,
-	fetchImpl: FetchFn = fetch
+	cfg: GoogleConfig
 ): Promise<string> {
 	const cacheKey = cfg.refresh_token;
 	const cached = tokenCache.get(cacheKey);
@@ -51,7 +50,7 @@ export async function getGoogleAccessToken(
 		return cached.token;
 	}
 
-	const res = await fetchImpl('https://oauth2.googleapis.com/token', {
+	const res = await fetch('https://oauth2.googleapis.com/token', {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
 		body: new URLSearchParams({
@@ -79,10 +78,9 @@ export async function getGoogleAccessToken(
  */
 export async function fetchGoogleBusy(
 	cfg: GoogleConfig,
-	opts: FetchBusyOptions,
-	fetchImpl: FetchFn = fetch
+	opts: FetchBusyOptions
 ): Promise<BusyEvent[]> {
-	const token = await getGoogleAccessToken(cfg, fetchImpl);
+	const token = await getGoogleAccessToken(cfg);
 	const calId = encodeURIComponent(cfg.google_calendar_id);
 
 	const url = new URL(`https://www.googleapis.com/calendar/v3/calendars/${calId}/events`);
@@ -91,7 +89,7 @@ export async function fetchGoogleBusy(
 	url.searchParams.set('singleEvents', 'true');
 	url.searchParams.set('orderBy', 'startTime');
 
-	const res = await fetchImpl(url.toString(), {
+	const res = await fetch(url.toString(), {
 		headers: { Authorization: `Bearer ${token}` }
 	});
 
@@ -145,7 +143,6 @@ export interface GooglePushOptions {
 	cancelUrl: string;
 	eventTypeName: string;
 	hostName: string;
-	fetchImpl?: FetchFn;
 }
 
 /**
@@ -156,7 +153,7 @@ export async function putGoogleEvent(
 	appointment: Appointment,
 	opts: GooglePushOptions
 ): Promise<{ externalEventId: string; videoChatUrl?: string }> {
-	const token = await getGoogleAccessToken(cfg, opts.fetchImpl ?? fetch);
+	const token = await getGoogleAccessToken(cfg);
 	const calId = encodeURIComponent(cfg.google_calendar_id);
 
 	// Existing events are updated via PUT with the stored external_event_id;
@@ -201,7 +198,7 @@ export async function putGoogleEvent(
 				: undefined
 	};
 
-	const res = await (opts.fetchImpl ?? fetch)(url, {
+	const res = await fetch(url, {
 		method,
 		headers: {
 			Authorization: `Bearer ${token}`,
@@ -244,14 +241,13 @@ export async function putGoogleEvent(
  */
 export async function deleteGoogleEvent(
 	cfg: GoogleConfig,
-	externalEventId: string,
-	opts: { fetchImpl?: FetchFn } = {}
+	externalEventId: string
 ): Promise<void> {
-	const token = await getGoogleAccessToken(cfg, opts.fetchImpl ?? fetch);
+	const token = await getGoogleAccessToken(cfg);
 	const calId = encodeURIComponent(cfg.google_calendar_id);
 	const url = `https://www.googleapis.com/calendar/v3/calendars/${calId}/events/${externalEventId}`;
 
-	const res = await (opts.fetchImpl ?? fetch)(url, {
+	const res = await fetch(url, {
 		method: 'DELETE',
 		headers: { Authorization: `Bearer ${token}` }
 	});
@@ -283,11 +279,10 @@ export class GoogleAdapter implements CalendarAdapter {
 		};
 	}
 
-	async fetchBusy(window: ExpandWindow, opts?: { fetchImpl?: FetchFn }) {
+	async fetchBusy(window: ExpandWindow) {
 		return fetchGoogleBusy(
 			this.googleCfg,
-			{ start: window.start, end: window.end },
-			opts?.fetchImpl
+			{ start: window.start, end: window.end }
 		);
 	}
 
@@ -300,8 +295,7 @@ export class GoogleAdapter implements CalendarAdapter {
 		const result = await putGoogleEvent(this.googleCfg, appointment, {
 			cancelUrl: opts.cancelUrl,
 			eventTypeName,
-			hostName: cfg.user.name,
-			fetchImpl: opts.fetchImpl
+			hostName: cfg.user.name
 		});
 		return {
 			ok: true,
@@ -312,10 +306,9 @@ export class GoogleAdapter implements CalendarAdapter {
 	}
 
 	async deleteAppointment(
-		externalEventId: string,
-		opts?: { fetchImpl?: FetchFn }
+		externalEventId: string
 	): Promise<DeleteResult> {
-		await deleteGoogleEvent(this.googleCfg, externalEventId, { fetchImpl: opts?.fetchImpl });
+		await deleteGoogleEvent(this.googleCfg, externalEventId);
 		return { ok: true };
 	}
 }

@@ -1,6 +1,5 @@
-import { expect, test } from 'vitest';
+import { expect, test, vi, beforeEach } from 'vitest';
 import { putGoogleEvent, type GoogleConfig } from './google.js';
-import type { FetchFn } from './caldav.js';
 import type { Appointment } from '@when/db';
 
 const cfg: GoogleConfig = {
@@ -37,24 +36,26 @@ const baseAppointment: Appointment = {
 	guest_timezone: 'America/New_York'
 };
 
-function mockFetch(captured: { url?: string; payload?: Record<string, unknown> }): FetchFn {
-	return (async (url: string | URL, init?: RequestInit) => {
+beforeEach(() => {
+	vi.restoreAllMocks();
+});
+
+async function push(appointment: Appointment) {
+	const captured: { url?: string; payload?: Record<string, unknown> } = {};
+
+	vi.spyOn(globalThis, 'fetch').mockImplementation(async (url: any, init?: RequestInit) => {
 		if (String(url).includes('oauth2.googleapis.com/token')) {
 			return new Response(JSON.stringify({ access_token: 't', expires_in: 3600 }), { status: 200 });
 		}
 		captured.url = String(url);
 		captured.payload = JSON.parse(String(init?.body));
 		return new Response(JSON.stringify({ id: 'evt-1' }), { status: 200 });
-	}) as FetchFn;
-}
+	});
 
-async function push(appointment: Appointment) {
-	const captured: { url?: string; payload?: Record<string, unknown> } = {};
 	await putGoogleEvent(cfg, appointment, {
 		cancelUrl: 'https://when.example.com/appointment/appt-1?token=tok',
 		eventTypeName: 'Chat',
-		hostName: 'Jane',
-		fetchImpl: mockFetch(captured)
+		hostName: 'Jane'
 	});
 	return captured;
 }

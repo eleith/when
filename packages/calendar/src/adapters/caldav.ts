@@ -19,8 +19,6 @@ export interface FetchBusyOptions {
 	end: Temporal.Instant;
 }
 
-export type FetchFn = (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
-
 /**
  * Run a CalDAV REPORT calendar-query against the given calendar URL,
  * returning all VEVENTs that intersect [start, end). Recurring masters
@@ -28,12 +26,11 @@ export type FetchFn = (input: string | URL | Request, init?: RequestInit) => Pro
  */
 export async function fetchCalDavBusy(
 	cfg: CalDavConfig,
-	opts: FetchBusyOptions,
-	fetchImpl: FetchFn = fetch
+	opts: FetchBusyOptions
 ): Promise<BusyEvent[]> {
 	const body = buildReportBody(opts.start, opts.end);
 	const auth = btoa(`${cfg.username}:${cfg.password}`);
-	const res = await fetchImpl(cfg.url, {
+	const res = await fetch(cfg.url, {
 		method: 'REPORT',
 		headers: {
 			Authorization: `Basic ${auth}`,
@@ -64,7 +61,7 @@ export async function putCalDavEvent(
 	cfg: CalDavConfig,
 	uid: string,
 	ics: string,
-	opts: { etag?: string | null; fetchImpl?: FetchFn } = {}
+	opts: { etag?: string | null } = {}
 ): Promise<{ url: string; etag: string | null }> {
 	const auth = btoa(`${cfg.username}:${cfg.password}`);
 	const url = joinPath(cfg.url, `${encodeURIComponent(uid)}.ics`);
@@ -73,8 +70,7 @@ export async function putCalDavEvent(
 		'Content-Type': 'text/calendar; charset=utf-8'
 	};
 	if (opts.etag) headers['If-Match'] = opts.etag;
-	const fetchImpl = opts.fetchImpl ?? fetch;
-	const res = await fetchImpl(url, { method: 'PUT', headers, body: ics });
+	const res = await fetch(url, { method: 'PUT', headers, body: ics });
 	if (!res.ok) {
 		throw new Error(`CalDAV PUT ${url} failed: ${res.status} ${res.statusText}`);
 	}
@@ -87,14 +83,13 @@ export async function putCalDavEvent(
 export async function deleteCalDavEvent(
 	cfg: CalDavConfig,
 	uid: string,
-	opts: { etag?: string | null; fetchImpl?: FetchFn } = {}
+	opts: { etag?: string | null } = {}
 ): Promise<void> {
 	const auth = btoa(`${cfg.username}:${cfg.password}`);
 	const url = joinPath(cfg.url, `${encodeURIComponent(uid)}.ics`);
 	const headers: Record<string, string> = { Authorization: `Basic ${auth}` };
 	if (opts.etag) headers['If-Match'] = opts.etag;
-	const fetchImpl = opts.fetchImpl ?? fetch;
-	const res = await fetchImpl(url, { method: 'DELETE', headers });
+	const res = await fetch(url, { method: 'DELETE', headers });
 	// 404 means the event is already gone; treat as success.
 	if (!res.ok && res.status !== 404) {
 		throw new Error(`CalDAV DELETE ${url} failed: ${res.status} ${res.statusText}`);
@@ -165,11 +160,10 @@ export class CalDavAdapter implements CalendarAdapter {
 		};
 	}
 
-	async fetchBusy(window: ExpandWindow, opts?: { fetchImpl?: FetchFn }) {
+	async fetchBusy(window: ExpandWindow) {
 		return fetchCalDavBusy(
 			this.adapterCfg,
-			{ start: window.start, end: window.end },
-			opts?.fetchImpl
+			{ start: window.start, end: window.end }
 		);
 	}
 
@@ -190,15 +184,14 @@ export class CalDavAdapter implements CalendarAdapter {
 		});
 
 		const uid = originId(appointment);
-		await putCalDavEvent(this.adapterCfg, uid, ics, { fetchImpl: opts.fetchImpl });
+		await putCalDavEvent(this.adapterCfg, uid, ics);
 		return { ok: true, externalEventId: uid, externalCalendarId: this.cal.id };
 	}
 
 	async deleteAppointment(
-		externalEventId: string,
-		opts?: { fetchImpl?: FetchFn }
+		externalEventId: string
 	): Promise<DeleteResult> {
-		await deleteCalDavEvent(this.adapterCfg, externalEventId, { fetchImpl: opts?.fetchImpl });
+		await deleteCalDavEvent(this.adapterCfg, externalEventId);
 		return { ok: true };
 	}
 }

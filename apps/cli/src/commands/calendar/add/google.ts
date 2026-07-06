@@ -4,21 +4,18 @@ import { text, spinner, note, isCancel, select } from '@clack/prompts';
 import { getCalendarAdapter } from '@when/calendar';
 import { ConfigEditor } from '@when/config';
 import type { GoogleCalendar, WhenConfiguration, Service } from '@when/config';
-import type { FetchFn } from '@when/calendar';
+
 import { getValidatedConfigPath } from '../../../utils/config-path.ts';
 import { getOrCreateGoogleService } from '../../../services/google.ts';
 
 export async function verifyGoogleConnection(
 	cal: GoogleCalendar,
-	config: WhenConfiguration,
-	fetchImpl?: FetchFn
+	config: WhenConfiguration
 ): Promise<void> {
 	const adapter = getCalendarAdapter(cal, config);
 	const now = Temporal.Now.instant();
 	const window = { start: now, end: now.add({ hours: 1 }) };
-	await adapter.fetchBusy(window as unknown as import('@when/calendar').ExpandWindow, {
-		fetchImpl
-	});
+	await adapter.fetchBusy(window as unknown as import('@when/calendar').ExpandWindow);
 }
 
 export interface GoogleTokens {
@@ -31,10 +28,9 @@ export async function exchangeCodeForTokens(
 	clientId: string,
 	clientSecret: string,
 	code: string,
-	redirectUri: string,
-	fetchImpl: FetchFn = fetch
+	redirectUri: string
 ): Promise<GoogleTokens> {
-	const response = await fetchImpl('https://oauth2.googleapis.com/token', {
+	const response = await fetch('https://oauth2.googleapis.com/token', {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/x-www-form-urlencoded'
@@ -63,10 +59,9 @@ export interface GoogleCalendarItem {
 }
 
 export async function fetchCalendarList(
-	accessToken: string,
-	fetchImpl: FetchFn = fetch
+	accessToken: string
 ): Promise<GoogleCalendarItem[]> {
-	const response = await fetchImpl('https://www.googleapis.com/calendar/v3/users/me/calendarList', {
+	const response = await fetch('https://www.googleapis.com/calendar/v3/users/me/calendarList', {
 		headers: {
 			Authorization: `Bearer ${accessToken}`
 		}

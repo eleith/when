@@ -1,4 +1,4 @@
-import { describe, expect, test, vi } from 'vitest';
+import { describe, expect, test, vi, beforeEach } from 'vitest';
 import type { GoogleCalendar, WhenConfiguration } from '@when/config';
 import {
 	googleAddCommand,
@@ -28,8 +28,12 @@ describe('google add command helpers', () => {
 		calendars: [cal]
 	} as unknown as WhenConfiguration;
 
+	beforeEach(() => {
+		vi.restoreAllMocks();
+	});
+
 	test('exchangeCodeForTokens returns tokens on successful POST', async () => {
-		const mockFetch = vi.fn().mockResolvedValue({
+		const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
 			ok: true,
 			status: 200,
 			json: async () => ({
@@ -37,14 +41,13 @@ describe('google add command helpers', () => {
 				refresh_token: 'refresh-token-789',
 				expires_in: 3600
 			})
-		});
+		} as Response);
 
 		const tokens = await exchangeCodeForTokens(
 			'client-id-123',
 			'client-secret-456',
 			'auth-code-000',
-			'http://localhost',
-			mockFetch
+			'http://localhost'
 		);
 
 		expect(tokens).toEqual({
@@ -53,7 +56,7 @@ describe('google add command helpers', () => {
 			expires_in: 3600
 		});
 
-		expect(mockFetch).toHaveBeenCalledWith(
+		expect(fetchSpy).toHaveBeenCalledWith(
 			'https://oauth2.googleapis.com/token',
 			expect.objectContaining({
 				method: 'POST',
@@ -66,25 +69,24 @@ describe('google add command helpers', () => {
 	});
 
 	test('exchangeCodeForTokens throws error if response is not ok', async () => {
-		const mockFetch = vi.fn().mockResolvedValue({
+		vi.spyOn(globalThis, 'fetch').mockResolvedValue({
 			ok: false,
 			status: 400,
 			text: async () => 'invalid_grant'
-		});
+		} as Response);
 
 		await expect(
 			exchangeCodeForTokens(
 				'client-id-123',
 				'client-secret-456',
 				'auth-code-000',
-				'http://localhost',
-				mockFetch
+				'http://localhost'
 			)
 		).rejects.toThrow('Failed to exchange authorization code: 400 invalid_grant');
 	});
 
 	test('fetchCalendarList returns items on successful GET', async () => {
-		const mockFetch = vi.fn().mockResolvedValue({
+		const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
 			ok: true,
 			status: 200,
 			json: async () => ({
@@ -93,16 +95,16 @@ describe('google add command helpers', () => {
 					{ id: 'work', summary: 'Work' }
 				]
 			})
-		});
+		} as Response);
 
-		const list = await fetchCalendarList('access-token-123', mockFetch);
+		const list = await fetchCalendarList('access-token-123');
 
 		expect(list).toEqual([
 			{ id: 'primary', summary: 'Primary Calendar', primary: true },
 			{ id: 'work', summary: 'Work' }
 		]);
 
-		expect(mockFetch).toHaveBeenCalledWith(
+		expect(fetchSpy).toHaveBeenCalledWith(
 			'https://www.googleapis.com/calendar/v3/users/me/calendarList',
 			expect.objectContaining({
 				headers: {
@@ -113,62 +115,49 @@ describe('google add command helpers', () => {
 	});
 
 	test('fetchCalendarList throws error if response is not ok', async () => {
-		const mockFetch = vi.fn().mockResolvedValue({
+		vi.spyOn(globalThis, 'fetch').mockResolvedValue({
 			ok: false,
 			status: 401,
 			text: async () => 'Unauthorized'
-		});
+		} as Response);
 
-		await expect(fetchCalendarList('access-token-123', mockFetch)).rejects.toThrow(
+		await expect(fetchCalendarList('access-token-123')).rejects.toThrow(
 			'Failed to fetch calendar list: 401 Unauthorized'
 		);
 	});
 
 	test('verifyGoogleConnection resolves successfully when fetch busy times resolves', async () => {
-		const mockFetch = vi.fn().mockImplementation(async (url: string) => {
-			if (url.includes('oauth2.googleapis.com/token')) {
-				return {
-					ok: true,
-					status: 200,
-					json: async () => ({
-						access_token: 'access-token-123',
-						expires_in: 3600
-					})
-				};
+		vi.spyOn(globalThis, 'fetch').mockImplementation(async (url: any) => {
+			if (String(url).includes('oauth2.googleapis.com/token')) {
+				return new Response(JSON.stringify({
+					access_token: 'access-token-123',
+					expires_in: 3600
+				}), { status: 200 });
 			}
-			if (url.includes('googleapis.com/calendar/v3/calendars')) {
-				return {
-					ok: true,
-					status: 200,
-					json: async () => ({
-						items: [
-							{
-								id: 'event-1',
-								status: 'confirmed',
-								start: { dateTime: '2026-07-01T09:00:00Z' },
-								end: { dateTime: '2026-07-01T10:00:00Z' }
-							}
-						]
-					})
-				};
+			if (String(url).includes('googleapis.com/calendar/v3/calendars')) {
+				return new Response(JSON.stringify({
+					items: [
+						{
+							id: 'event-1',
+							status: 'confirmed',
+							start: { dateTime: '2026-07-01T09:00:00Z' },
+							end: { dateTime: '2026-07-01T10:00:00Z' }
+						}
+					]
+				}), { status: 200 });
 			}
-			return { ok: false, status: 404 };
+			return new Response(null, { status: 404 });
 		});
 
-		await expect(verifyGoogleConnection(cal, testConfig, mockFetch)).resolves.toBeUndefined();
+		await expect(verifyGoogleConnection(cal, testConfig)).resolves.toBeUndefined();
 	});
 
 	test('verifyGoogleConnection throws error when token endpoint fails', async () => {
-		const mockFetch = vi.fn().mockImplementation(async (url: string) => {
-			if (url.includes('oauth2.googleapis.com/token')) {
-				return {
-					ok: false,
-					status: 400,
-					statusText: 'Bad Request',
-					text: async () => 'invalid_grant'
-				};
+		vi.spyOn(globalThis, 'fetch').mockImplementation(async (url: any) => {
+			if (String(url).includes('oauth2.googleapis.com/token')) {
+				return new Response('invalid_grant', { status: 400, statusText: 'Bad Request' });
 			}
-			return { ok: false, status: 404 };
+			return new Response(null, { status: 404 });
 		});
 
 		const failedConfig = {
@@ -180,7 +169,7 @@ describe('google add command helpers', () => {
 			],
 			calendars: [cal]
 		} as unknown as WhenConfiguration;
-		await expect(verifyGoogleConnection(cal, failedConfig, mockFetch)).rejects.toThrow(
+		await expect(verifyGoogleConnection(cal, failedConfig)).rejects.toThrow(
 			'Google token refresh failed: 400 Bad Request'
 		);
 	});

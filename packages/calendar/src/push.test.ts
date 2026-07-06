@@ -1,5 +1,5 @@
-import { expect, test } from 'vitest';
-import { deleteCalDavEvent, putCalDavEvent, type FetchFn } from './adapters/caldav.js';
+import { expect, test, vi, beforeEach } from 'vitest';
+import { deleteCalDavEvent, putCalDavEvent } from './adapters/caldav.js';
 import { deleteAppointmentFromCalendar, pushAppointment } from './push.js';
 import type { Appointment } from '@when/db';
 import type { WhenConfiguration } from '@when/config';
@@ -54,15 +54,18 @@ const cfgWithCalDav: WhenConfiguration = {
 	]
 };
 
+beforeEach(() => {
+	vi.restoreAllMocks();
+});
+
 test('putCalDavEvent issues PUT with basic auth and text/calendar body', async () => {
 	let captured: { url: string; init: RequestInit } | null = null;
-	const fakeFetch: FetchFn = async (url, init) => {
+	vi.spyOn(globalThis, 'fetch').mockImplementation(async (url, init) => {
 		captured = { url: String(url), init: init as RequestInit };
 		return new Response('', { status: 201, headers: { etag: '"abc"' } });
-	};
-	const result = await putCalDavEvent(caldavCfg, 'appt-xyz', 'BEGIN:VCALENDAR\nEND:VCALENDAR', {
-		fetchImpl: fakeFetch
 	});
+
+	const result = await putCalDavEvent(caldavCfg, 'appt-xyz', 'BEGIN:VCALENDAR\nEND:VCALENDAR');
 	expect(result.url).toBe('https://cal.example.com/work/appt-xyz.ics');
 	expect(result.etag).toBe('"abc"');
 	expect(captured).not.toBeNull();
@@ -76,12 +79,12 @@ test('putCalDavEvent issues PUT with basic auth and text/calendar body', async (
 
 test('putCalDavEvent forwards If-Match when etag is provided', async () => {
 	let captured: RequestInit | null = null;
-	const fakeFetch: FetchFn = async (_url, init) => {
+	vi.spyOn(globalThis, 'fetch').mockImplementation(async (_url, init) => {
 		captured = init as RequestInit;
 		return new Response(null, { status: 204 });
-	};
+	});
+
 	await putCalDavEvent(caldavCfg, 'appt-xyz', 'BEGIN:VCALENDAR\nEND:VCALENDAR', {
-		fetchImpl: fakeFetch,
 		etag: '"prev"'
 	});
 	expect(captured).not.toBeNull();
@@ -90,35 +93,37 @@ test('putCalDavEvent forwards If-Match when etag is provided', async () => {
 });
 
 test('putCalDavEvent throws on non-2xx', async () => {
-	const fakeFetch: FetchFn = async () =>
-		new Response('forbidden', { status: 403, statusText: 'Forbidden' });
+	vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+		new Response('forbidden', { status: 403, statusText: 'Forbidden' })
+	);
 	await expect(
-		putCalDavEvent(caldavCfg, 'appt-xyz', 'x', { fetchImpl: fakeFetch })
+		putCalDavEvent(caldavCfg, 'appt-xyz', 'x')
 	).rejects.toThrow(/403/);
 });
 
 test('deleteCalDavEvent treats 404 as success', async () => {
-	const fakeFetch: FetchFn = async () => new Response('', { status: 404 });
-	await deleteCalDavEvent(caldavCfg, 'appt-xyz', { fetchImpl: fakeFetch });
+	vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('', { status: 404 }));
+	await deleteCalDavEvent(caldavCfg, 'appt-xyz');
 });
 
 test('deleteCalDavEvent throws on 5xx', async () => {
-	const fakeFetch: FetchFn = async () =>
-		new Response('boom', { status: 500, statusText: 'Internal Server Error' });
-	await expect(deleteCalDavEvent(caldavCfg, 'appt-xyz', { fetchImpl: fakeFetch })).rejects.toThrow(
+	vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+		new Response('boom', { status: 500, statusText: 'Internal Server Error' })
+	);
+	await expect(deleteCalDavEvent(caldavCfg, 'appt-xyz')).rejects.toThrow(
 		/500/
 	);
 });
 
 test('pushAppointment routes to CalDAV PUT and returns external ids', async () => {
 	let body = '';
-	const fakeFetch: FetchFn = async (_url, init) => {
+	vi.spyOn(globalThis, 'fetch').mockImplementation(async (_url, init) => {
 		body = (init as RequestInit).body as string;
 		return new Response('', { status: 201 });
-	};
+	});
+
 	const result = await pushAppointment(cfgWithCalDav, baseAppointment, 'work', {
-		cancelUrl: 'https://when.example.com/appointment/appt-xyz?token=tok',
-		fetchImpl: fakeFetch
+		cancelUrl: 'https://when.example.com/appointment/appt-xyz?token=tok'
 	});
 	expect(result.ok).toBe(true);
 	if (result.ok) {
@@ -153,7 +158,7 @@ test('pushAppointment succeeds on Google calendar', async () => {
 	};
 
 	let reqCount = 0;
-	const fakeFetch: FetchFn = async (input) => {
+	vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
 		reqCount++;
 		const url = input.toString();
 		if (url.includes('oauth2')) {
@@ -164,11 +169,10 @@ test('pushAppointment succeeds on Google calendar', async () => {
 			return new Response(JSON.stringify({ id: 'ext-g-123' }), { status: 200 });
 		}
 		return new Response('Not found', { status: 404 });
-	};
+	});
 
 	const result = await pushAppointment(cfgGoogle, baseAppointment, 'g', {
-		cancelUrl: 'https://when.example.com/appointment/appt-xyz?token=tok',
-		fetchImpl: fakeFetch
+		cancelUrl: 'https://when.example.com/appointment/appt-xyz?token=tok'
 	});
 
 	expect(result.ok).toBe(true);
@@ -187,27 +191,23 @@ test('pushAppointment fails on unknown destination calendar id', async () => {
 });
 
 test('pushAppointment surfaces network failures as ok:false', async () => {
-	const fakeFetch: FetchFn = async () =>
-		new Response('', { status: 500, statusText: 'Internal Server Error' });
+	vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+		new Response('', { status: 500, statusText: 'Internal Server Error' })
+	);
 	const result = await pushAppointment(cfgWithCalDav, baseAppointment, 'work', {
-		cancelUrl: 'https://when.example.com/appointment/appt-xyz?token=tok',
-		fetchImpl: fakeFetch
+		cancelUrl: 'https://when.example.com/appointment/appt-xyz?token=tok'
 	});
 	expect(result.ok).toBe(false);
 });
 
 test('deleteAppointmentFromCalendar returns ok on success', async () => {
-	const fakeFetch: FetchFn = async () => new Response(null, { status: 204 });
-	const result = await deleteAppointmentFromCalendar(cfgWithCalDav, 'work', 'appt-xyz', {
-		fetchImpl: fakeFetch
-	});
+	vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 204 }));
+	const result = await deleteAppointmentFromCalendar(cfgWithCalDav, 'work', 'appt-xyz');
 	expect(result.ok).toBe(true);
 });
 
 test('deleteAppointmentFromCalendar returns ok on 404 (already gone)', async () => {
-	const fakeFetch: FetchFn = async () => new Response('', { status: 404 });
-	const result = await deleteAppointmentFromCalendar(cfgWithCalDav, 'work', 'appt-xyz', {
-		fetchImpl: fakeFetch
-	});
+	vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('', { status: 404 }));
+	const result = await deleteAppointmentFromCalendar(cfgWithCalDav, 'work', 'appt-xyz');
 	expect(result.ok).toBe(true);
 });

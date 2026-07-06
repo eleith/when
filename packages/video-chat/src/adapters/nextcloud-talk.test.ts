@@ -1,4 +1,4 @@
-import { describe, expect, test, vi } from 'vitest';
+import { describe, expect, test, vi, beforeEach } from 'vitest';
 import { NextcloudTalkAdapter } from './nextcloud-talk.js';
 import type { VideoChat, NextcloudService } from '@when/config';
 
@@ -17,10 +17,14 @@ describe('NextcloudTalkAdapter', () => {
 		password: 'password'
 	};
 
+	beforeEach(() => {
+		vi.restoreAllMocks();
+	});
+
 	test('createRoom success returns meeting URL', async () => {
 		const adapter = new NextcloudTalkAdapter(mockVc, mockService);
 
-		const fakeFetch = vi.fn().mockResolvedValue({
+		const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
 			ok: true,
 			json: async () => ({
 				ocs: {
@@ -29,16 +33,16 @@ describe('NextcloudTalkAdapter', () => {
 					}
 				}
 			})
-		});
+		} as Response);
 
-		const result = await adapter.createRoom('Meeting: Alice', { fetchImpl: fakeFetch });
+		const result = await adapter.createRoom('Meeting: Alice');
 
 		expect(result).toEqual({
 			ok: true,
 			url: 'https://cloud.example.com/call/room-token-123'
 		});
 
-		expect(fakeFetch).toHaveBeenCalledWith(
+		expect(fetchSpy).toHaveBeenCalledWith(
 			'https://cloud.example.com/ocs/v2.php/apps/spreed/api/v4/room',
 			expect.objectContaining({
 				method: 'POST',
@@ -59,13 +63,13 @@ describe('NextcloudTalkAdapter', () => {
 	test('createRoom failure returns error reason', async () => {
 		const adapter = new NextcloudTalkAdapter(mockVc, mockService);
 
-		const fakeFetch = vi.fn().mockResolvedValue({
+		vi.spyOn(globalThis, 'fetch').mockResolvedValue({
 			ok: false,
 			status: 500,
 			text: async () => 'Internal Server Error'
-		});
+		} as Response);
 
-		const result = await adapter.createRoom('Meeting: Alice', { fetchImpl: fakeFetch });
+		const result = await adapter.createRoom('Meeting: Alice');
 
 		expect(result.ok).toBe(false);
 		if (!result.ok) {
@@ -77,17 +81,15 @@ describe('NextcloudTalkAdapter', () => {
 	test('deleteRoom success returns ok', async () => {
 		const adapter = new NextcloudTalkAdapter(mockVc, mockService);
 
-		const fakeFetch = vi.fn().mockResolvedValue({
+		const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
 			ok: true
-		});
+		} as Response);
 
-		const result = await adapter.deleteRoom('https://cloud.example.com/call/room-token-123', {
-			fetchImpl: fakeFetch
-		});
+		const result = await adapter.deleteRoom('https://cloud.example.com/call/room-token-123');
 
 		expect(result).toEqual({ ok: true });
 
-		expect(fakeFetch).toHaveBeenCalledWith(
+		expect(fetchSpy).toHaveBeenCalledWith(
 			'https://cloud.example.com/ocs/v2.php/apps/spreed/api/v4/room/room-token-123',
 			expect.objectContaining({
 				method: 'DELETE',
@@ -104,15 +106,13 @@ describe('NextcloudTalkAdapter', () => {
 	test('deleteRoom failure returns error reason', async () => {
 		const adapter = new NextcloudTalkAdapter(mockVc, mockService);
 
-		const fakeFetch = vi.fn().mockResolvedValue({
+		vi.spyOn(globalThis, 'fetch').mockResolvedValue({
 			ok: false,
 			status: 404,
 			text: async () => 'Not Found'
-		});
+		} as Response);
 
-		const result = await adapter.deleteRoom('https://cloud.example.com/call/room-token-123', {
-			fetchImpl: fakeFetch
-		});
+		const result = await adapter.deleteRoom('https://cloud.example.com/call/room-token-123');
 
 		expect(result.ok).toBe(false);
 		if (!result.ok) {

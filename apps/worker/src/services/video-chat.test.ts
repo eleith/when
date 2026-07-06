@@ -309,8 +309,7 @@ describe('cleanupVideoChatLink', () => {
 				configWithVc
 			);
 			expect(mockAdapter.deleteRoom).toHaveBeenCalledWith(
-				'https://cloud.example.com/call/room-abc',
-				expect.any(Object)
+				'https://cloud.example.com/call/room-abc'
 			);
 
 			const row = await db

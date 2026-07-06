@@ -1,7 +1,6 @@
-import { expect, test } from 'vitest';
+import { expect, test, vi, beforeEach } from 'vitest';
 import { Temporal } from '@js-temporal/polyfill';
 import type { Calendar, WhenConfiguration } from '@when/config';
-import type { FetchFn } from './adapter.js';
 import { fetchBusyIntervals } from './busy.js';
 
 const inst = (s: string): Temporal.Instant => Temporal.Instant.from(s);
@@ -50,20 +49,22 @@ END:VCALENDAR</C:calendar-data>
   </response>
 </multistatus>`;
 
+beforeEach(() => {
+	vi.restoreAllMocks();
+});
+
 test('returns all intervals when nothing is excluded', async () => {
-	const fakeFetch: FetchFn = async () => new Response(twoEvents, { status: 207 });
+	vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(twoEvents, { status: 207 }));
 	const intervals = await fetchBusyIntervals(workCal, window, {
-		config: fakeConfig,
-		fetchImpl: fakeFetch
+		config: fakeConfig
 	});
 	expect(intervals).toHaveLength(2);
 });
 
 test('drops our own event by uid but keeps a genuine event at the same time', async () => {
-	const fakeFetch: FetchFn = async () => new Response(twoEvents, { status: 207 });
+	vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(twoEvents, { status: 207 }));
 	const intervals = await fetchBusyIntervals(workCal, window, {
 		config: fakeConfig,
-		fetchImpl: fakeFetch,
 		excludeUids: new Set(['our-appt-1'])
 	});
 	expect(intervals).toHaveLength(1);
@@ -71,9 +72,10 @@ test('drops our own event by uid but keeps a genuine event at the same time', as
 });
 
 test('propagates a provider failure to the caller', async () => {
-	const fakeFetch: FetchFn = async () =>
-		new Response('boom', { status: 500, statusText: 'Internal Server Error' });
+	vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+		new Response('boom', { status: 500, statusText: 'Internal Server Error' })
+	);
 	await expect(
-		fetchBusyIntervals(workCal, window, { config: fakeConfig, fetchImpl: fakeFetch })
+		fetchBusyIntervals(workCal, window, { config: fakeConfig })
 	).rejects.toThrow(/500/);
 });
