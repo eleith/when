@@ -4,7 +4,7 @@ import { text, spinner, note, isCancel } from '@clack/prompts';
 import { getCalendarAdapter, type ExpandWindow } from '@when/calendar';
 import { ConfigEditor, type CalDavCalendar, type WhenConfiguration, type Service } from '@when/config';
 
-import { getValidatedConfigPath } from '../../../utils/config-path.ts';
+import { getValidatedConfigPath, validateConfigExists } from '../../../utils/config-path.ts';
 import { getOrCreateCalDavService } from '../../../services/caldav.ts';
 import { getExistingIds } from '../../../utils/config.ts';
 
@@ -16,18 +16,6 @@ export async function verifyCalDavConnection(
 	const now = Temporal.Now.instant();
 	const window: ExpandWindow = { start: now, end: now.add({ hours: 1 }) };
 	await adapter.fetchBusy(window);
-}
-
-function validateConfigExists(configPath: string): boolean {
-	if (!existsSync(configPath)) {
-		console.error(`FAIL  No configuration file found at: ${configPath}`);
-		console.error(
-			`      Please specify the path to your config.yaml using --config (e.g., "--config apps/web/config.yaml").`
-		);
-		process.exitCode = 1;
-		return false;
-	}
-	return true;
 }
 
 export const caldavAddCommand = define({

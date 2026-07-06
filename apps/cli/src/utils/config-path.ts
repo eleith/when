@@ -19,3 +19,15 @@ export function getValidatedConfigPath(pathArg?: string): string {
 	// Fallback
 	return resolveConfigPath();
 }
+
+export function validateConfigExists(configPath: string): boolean {
+	if (!existsSync(configPath)) {
+		console.error(`FAIL  No configuration file found at: ${configPath}`);
+		console.error(
+			`      Please specify the path to your config.yaml using --config (e.g., "--config apps/web/config.yaml").`
+		);
+		process.exitCode = 1;
+		return false;
+	}
+	return true;
+}
