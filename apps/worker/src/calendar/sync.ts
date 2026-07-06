@@ -1,5 +1,4 @@
 import { deleteAppointmentFromCalendar, pushAppointment } from '@when/calendar';
-import { Temporal } from '@js-temporal/polyfill';
 import { listOutOfSyncAppointments, markSynced, type Appointment } from '@when/db';
 import type { WorkerContext } from '../services/context.js';
 import { appointmentLinks } from '../links.js';

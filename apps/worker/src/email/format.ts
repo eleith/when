@@ -1,4 +1,3 @@
-import { Temporal } from '@js-temporal/polyfill';
 import { parseGuestAnswers, type EventType, type WhenConfiguration } from '@when/config';
 import type { Appointment } from '@when/db';
 import type { DetailRow } from './content.js';

@@ -1,5 +1,4 @@
 import type { RetryPolicy } from 'openworkflow';
-import { Temporal } from '@js-temporal/polyfill';
 import { reconcileAppointment } from '@when/jobs';
 import type { ReconcileAppointmentInput, ReconcileAppointmentResult } from '@when/jobs';
 import { dispatch } from '../email/dispatch.js';

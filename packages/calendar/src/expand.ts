@@ -1,4 +1,3 @@
-import { Temporal } from '@js-temporal/polyfill';
 import { extendByRecurrenceRule } from 'ts-ics';
 import type { BusyEvent } from './types.js';
 

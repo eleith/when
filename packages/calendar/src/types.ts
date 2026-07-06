@@ -1,4 +1,3 @@
-import type { Temporal } from '@js-temporal/polyfill';
 import type { IcsRecurrenceRule } from 'ts-ics';
 
 /**

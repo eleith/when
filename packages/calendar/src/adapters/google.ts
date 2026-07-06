@@ -1,4 +1,3 @@
-import { Temporal } from '@js-temporal/polyfill';
 import { describeAppointment } from '../description.js';
 import { guestContact } from '../guest.js';
 import { logger } from '../logger.js';

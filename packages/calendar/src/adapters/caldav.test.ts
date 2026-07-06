@@ -1,5 +1,4 @@
 import { expect, test, vi, beforeEach } from 'vitest';
-import { Temporal } from '@js-temporal/polyfill';
 import { buildReportBody, extractCalendarData, fetchCalDavBusy } from './caldav.js';
 
 const inst = (s: string): Temporal.Instant => Temporal.Instant.from(s);

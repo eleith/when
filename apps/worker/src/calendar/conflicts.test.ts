@@ -1,6 +1,5 @@
 import { expect, test } from 'vitest';
 import pino from 'pino';
-import { Temporal } from '@js-temporal/polyfill';
 import type { WhenConfiguration } from '@when/config';
 import { openDb, runMigrations, replaceCalendarBusy } from '@when/db';
 import type { Logger } from '../services/logger.js';

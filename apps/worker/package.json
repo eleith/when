@@ -19,7 +19,6 @@
 		"test:coverage": "vitest run --coverage"
 	},
 	"dependencies": {
-		"@js-temporal/polyfill": "0.5.1",
 		"@when/calendar": "workspace:*",
 		"@when/config": "workspace:*",
 		"@when/db": "workspace:*",

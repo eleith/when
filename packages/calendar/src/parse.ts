@@ -1,4 +1,3 @@
-import { Temporal } from '@js-temporal/polyfill';
 import { convertIcsCalendar, getEventEnd, type IcsEvent } from 'ts-ics';
 import { logger } from './logger.js';
 import type { BusyEvent } from './types.js';

@@ -1,5 +1,4 @@
 import { expect, test } from 'vitest';
-import { Temporal } from '@js-temporal/polyfill';
 import { expandBusy, type ExpandWindow } from './expand.js';
 import type { BusyEvent } from './types.js';
 

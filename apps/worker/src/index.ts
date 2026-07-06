@@ -1,4 +1,3 @@
-import { Temporal } from '@js-temporal/polyfill';
 import { loadConfigFile } from '@when/config';
 import { expireStalePending, openDb, runMigrations } from '@when/db';
 import { initOpenWorkflow } from '@when/jobs';

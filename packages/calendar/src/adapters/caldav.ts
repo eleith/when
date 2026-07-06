@@ -1,4 +1,3 @@
-import type { Temporal } from '@js-temporal/polyfill';
 import { logger } from '../logger.js';
 import { parseBusyEvents } from '../parse.js';
 import type { BusyEvent } from '../types.js';

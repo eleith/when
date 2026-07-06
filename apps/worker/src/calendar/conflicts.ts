@@ -1,4 +1,3 @@
-import { Temporal } from '@js-temporal/polyfill';
 import { getBusyIntervals, listUpcomingActiveAppointments, setPossibleConflicts } from '@when/db';
 import type { WorkerContext } from '../services/context.js';
 

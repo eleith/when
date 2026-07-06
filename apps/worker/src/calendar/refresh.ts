@@ -1,4 +1,3 @@
-import { Temporal } from '@js-temporal/polyfill';
 import type { Calendar, WhenConfiguration } from '@when/config';
 import type { ExpandWindow } from '@when/calendar';
 import { fetchBusyIntervals } from '@when/calendar';

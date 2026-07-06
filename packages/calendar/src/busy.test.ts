@@ -1,5 +1,4 @@
 import { expect, test, vi, beforeEach } from 'vitest';
-import { Temporal } from '@js-temporal/polyfill';
 import type { Calendar, WhenConfiguration } from '@when/config';
 import { fetchBusyIntervals } from './busy.js';
 
