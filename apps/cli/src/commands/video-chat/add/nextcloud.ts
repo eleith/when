@@ -64,24 +64,19 @@ export const nextcloudTalkAddCommand = define({
 			service_id: serviceId
 		};
 
-		const tempConfig = {
-			services: [
-				{
-					id: serviceId,
-					type: 'nextcloud' as const,
-					url,
-					username,
-					password: passwordPlain
-				}
-			],
-			video_chats: [videoChatConfig]
-		} as WhenConfiguration;
+		const service: Service = {
+			id: serviceId,
+			type: 'nextcloud' as const,
+			url,
+			username,
+			password: passwordPlain
+		};
 
 		const s = spinner();
 		s.start('Verifying Nextcloud Talk room creation capabilities...');
 
 		try {
-			const adapter = getVideoChatAdapter(videoChatConfig, tempConfig);
+			const adapter = getVideoChatAdapter(videoChatConfig, [service]);
 			const roomResult = await adapter.createRoom('Verification test room');
 			if (!roomResult.ok) {
 				throw new Error(roomResult.reason);

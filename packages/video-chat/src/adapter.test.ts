@@ -42,14 +42,14 @@ describe('getVideoChatAdapter', () => {
 
 	test('returns NextcloudTalkAdapter for nextcloud-talk', () => {
 		const vc = mockConfig.video_chats![0];
-		const adapter = getVideoChatAdapter(vc, mockConfig);
+		const adapter = getVideoChatAdapter(vc, mockConfig.services);
 		expect(adapter).toBeDefined();
 		expect(adapter.constructor.name).toBe('NextcloudTalkAdapter');
 	});
 
 	test('returns native meet adapter for google-meet', () => {
 		const vc = mockConfig.video_chats![1];
-		const adapter = getVideoChatAdapter(vc, mockConfig);
+		const adapter = getVideoChatAdapter(vc, mockConfig.services);
 		expect(adapter).toBeDefined();
 	});
 
@@ -59,7 +59,7 @@ describe('getVideoChatAdapter', () => {
 			type: 'nextcloud-talk' as const,
 			service_id: 'missing-service'
 		};
-		expect(() => getVideoChatAdapter(vc, mockConfig)).toThrow(
+		expect(() => getVideoChatAdapter(vc, mockConfig.services)).toThrow(
 			'Service "missing-service" not found'
 		);
 	});

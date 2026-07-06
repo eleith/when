@@ -9,7 +9,7 @@ export async function fetchBusyIntervals(
 	window: ExpandWindow,
 	opts: { config?: WhenConfiguration; excludeUids?: Set<string> } = {}
 ): Promise<Interval[]> {
-	const adapter = getCalendarAdapter(cal, opts.config);
+	const adapter = getCalendarAdapter(cal, opts.config?.services);
 	const events = await adapter.fetchBusy(window);
 	const exclude = opts.excludeUids;
 	const kept = exclude ? events.filter((e) => !exclude.has(e.uid)) : events;

@@ -11,9 +11,9 @@ import { getExistingIds } from '../../../utils/config.ts';
 
 export async function verifyGoogleConnection(
 	cal: GoogleCalendar,
-	config: WhenConfiguration
+	service: Service
 ): Promise<void> {
-	const adapter = getCalendarAdapter(cal, config);
+	const adapter = getCalendarAdapter(cal, [service]);
 	const now = Temporal.Now.instant();
 	const window: ExpandWindow = { start: now, end: now.add({ hours: 1 }) };
 	await adapter.fetchBusy(window);
@@ -185,24 +185,19 @@ export const googleAddCommand = define({
 			google_calendar_id: selectedCalendarId
 		};
 
-		const tempConfig = {
-			services: [
-				{
-					id: serviceId,
-					type: 'google',
-					client_id: clientId,
-					client_secret: clientSecret,
-					refresh_token: refreshToken
-				}
-			],
-			calendars: [cal]
-		} as WhenConfiguration;
+		const service: Service = {
+			id: serviceId,
+			type: 'google',
+			client_id: clientId,
+			client_secret: clientSecret,
+			refresh_token: refreshToken
+		};
 
 		const s = spinner();
 		s.start('Verifying calendar connection...');
 
 		try {
-			await verifyGoogleConnection(cal, tempConfig);
+			await verifyGoogleConnection(cal, service);
 			s.message('Writing calendar and service to configuration...');
 
 			const editor = new ConfigEditor(configPath);

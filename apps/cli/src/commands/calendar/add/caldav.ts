@@ -10,9 +10,9 @@ import { getExistingIds } from '../../../utils/config.ts';
 
 export async function verifyCalDavConnection(
 	cal: CalDavCalendar,
-	config: WhenConfiguration
+	service: Service
 ): Promise<void> {
-	const adapter = getCalendarAdapter(cal, config);
+	const adapter = getCalendarAdapter(cal, [service]);
 	const now = Temporal.Now.instant();
 	const window: ExpandWindow = { start: now, end: now.add({ hours: 1 }) };
 	await adapter.fetchBusy(window);
@@ -77,24 +77,19 @@ export const caldavAddCommand = define({
 			url
 		};
 
-		const tempConfig = {
-			services: [
-				{
-					id: serviceId,
-					type: 'caldav',
-					url,
-					username,
-					password: passwordPlain
-				}
-			],
-			calendars: [cal]
-		} as WhenConfiguration;
+		const service: Service = {
+			id: serviceId,
+			type: 'caldav',
+			url,
+			username,
+			password: passwordPlain
+		};
 
 		const s = spinner();
 		s.start('Verifying CalDAV connection...');
 
 		try {
-			await verifyCalDavConnection(cal, tempConfig);
+			await verifyCalDavConnection(cal, service);
 			s.message('Writing calendar and service to configuration...');
 
 			const editor = new ConfigEditor(configPath);

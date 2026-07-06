@@ -27,13 +27,13 @@ const ADAPTERS: VideoChatAdapterClass[] = [
 	GoogleMeetAdapter
 ];
 
-function getVideoChatAdapter(vc: VideoChat, config: WhenConfiguration): VideoChatAdapter {
+function getVideoChatAdapter(vc: VideoChat, services?: Service[]): VideoChatAdapter {
 	const AdapterClass = ADAPTERS.find((a) => a.type === vc.type);
 	if (!AdapterClass) {
 		throw new Error("Unsupported video chat type: " + vc.type);
 	}
 
-	const service = (config.services ?? []).find((s) => s.id === vc.service_id);
+	const service = (services ?? []).find((s) => s.id === vc.service_id);
 	if (!service) {
 		throw new Error("Service \"" + vc.service_id + "\" not found");
 	}

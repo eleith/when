@@ -1,5 +1,5 @@
 import { describe, expect, test, vi, beforeEach } from 'vitest';
-import type { CalDavCalendar, WhenConfiguration } from '@when/config';
+import type { CalDavCalendar, Service } from '@when/config';
 import { caldavAddCommand, verifyCalDavConnection } from './caldav.ts';
 
 describe('caldav add command', () => {
@@ -10,18 +10,13 @@ describe('caldav add command', () => {
 		url: 'https://example.com/caldav/'
 	};
 
-	const testConfig = {
-		services: [
-			{
-				id: 'work-service',
-				type: 'caldav',
-				url: 'https://example.com/caldav/',
-				username: 'user',
-				password: 'password'
-			}
-		],
-		calendars: [cal]
-	} as WhenConfiguration;
+	const testService: Service = {
+		id: 'work-service',
+		type: 'caldav',
+		url: 'https://example.com/caldav/',
+		username: 'user',
+		password: 'password'
+	};
 
 	beforeEach(() => {
 		vi.restoreAllMocks();
@@ -56,7 +51,7 @@ END:VCALENDAR
 			`
 		} as Response);
 
-		await expect(verifyCalDavConnection(cal, testConfig)).resolves.toBeUndefined();
+		await expect(verifyCalDavConnection(cal, testService)).resolves.toBeUndefined();
 		expect(fetchSpy).toHaveBeenCalledWith(
 			cal.url,
 			expect.objectContaining({
@@ -77,7 +72,7 @@ END:VCALENDAR
 			text: async () => 'Unauthorized'
 		} as Response);
 
-		await expect(verifyCalDavConnection(cal, testConfig)).rejects.toThrow(
+		await expect(verifyCalDavConnection(cal, testService)).rejects.toThrow(
 			'CalDAV REPORT https://example.com/caldav/ failed: 401 Unauthorized'
 		);
 	});

@@ -33,7 +33,7 @@ export async function createStandaloneVideoChat(
 	// Google Meet is calendar-integrated, so its creation is handled by the Calendar Sync step.
 	if (vcConfig.type === 'nextcloud-talk') {
 		const now = Temporal.Now.instant().toString();
-		const adapter = getVideoChatAdapter(vcConfig, config);
+		const adapter = getVideoChatAdapter(vcConfig, config.services);
 		const roomName = `Meeting: ${row.guest_name}`;
 		const result = await adapter.createRoom(roomName);
 
@@ -88,7 +88,7 @@ export async function deleteStandaloneVideoChat(
 	}
 
 	try {
-		const adapter = getVideoChatAdapter(vcConfig, config);
+		const adapter = getVideoChatAdapter(vcConfig, config.services);
 		const deleteResult = await adapter.deleteRoom(row.video_chat);
 		if (!deleteResult.ok) {
 			console.warn(`Failed to delete video chat room: ${deleteResult.reason}`);
