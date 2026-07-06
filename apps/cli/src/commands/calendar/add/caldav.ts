@@ -48,14 +48,15 @@ export const caldavAddCommand = define({
 			return;
 		}
 
-		let existingCalendarIds: string[] = [];
-		try {
-			const editor = new ConfigEditor(configPath);
-			const calendars = (editor.get('calendars') as { id: string }[]) ?? [];
-			existingCalendarIds = calendars.map((c) => c.id);
-		} catch {
-			// ignore
-		}
+		const existingCalendarIds = (() => {
+			try {
+				const editor = new ConfigEditor(configPath);
+				const calendars = (editor.get('calendars') as { id: string }[]) ?? [];
+				return calendars.map((c) => c.id);
+			} catch {
+				return [];
+			}
+		})();
 
 		const calendarId = await text({
 			message: 'Enter a unique ID for this calendar (e.g., "work"):',
