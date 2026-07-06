@@ -1,12 +1,95 @@
-import { existsSync } from 'node:fs';
 import { define } from 'gunshi';
 import { text, spinner, note, isCancel } from '@clack/prompts';
 import { ConfigEditor } from '@when/config';
-import type { WhenConfiguration, Service, VideoChat } from '@when/config';
+import type { Service, VideoChat } from '@when/config';
 import { getValidatedConfigPath, validateConfigExists } from '../../../utils/config-path.ts';
 import { getOrCreateNextcloudService } from '../../../services/nextcloud.ts';
 import { getExistingIds } from '../../../utils/config.ts';
 import { getVideoChatAdapter } from '@when/video-chat';
+
+async function promptNextcloudTalkId(existingIds: string[]): Promise<string | null> {
+	const videoChatId = await text({
+		message: 'Enter a unique ID for this Nextcloud Talk integration (e.g. "my-talk"):',
+		placeholder: 'my-talk',
+		validate(value) {
+			if (!value || !value.trim()) return 'ID is required';
+			if (existingIds.includes(value.trim())) {
+				return `A video chat with ID "${value.trim()}" already exists.`;
+			}
+		}
+	});
+	if (isCancel(videoChatId)) return null;
+	return videoChatId.trim();
+}
+
+async function verifyNextcloudTalkAccess(
+	videoChatConfig: { id: string; type: 'nextcloud-talk'; service_id: string },
+	service: Service
+): Promise<void> {
+	const adapter = getVideoChatAdapter(videoChatConfig, [service]);
+	const roomResult = await adapter.createRoom('Verification test room');
+	if (!roomResult.ok) {
+		throw new Error(roomResult.reason);
+	}
+}
+
+interface WriteNextcloudConfigOpts {
+	configPath: string;
+	id: string;
+	serviceId: string;
+	url: string;
+	username: string;
+	envVarName: string;
+	isNew: boolean;
+}
+
+function writeNextcloudTalkConfig({
+	configPath,
+	id,
+	serviceId,
+	url,
+	username,
+	envVarName,
+	isNew
+}: WriteNextcloudConfigOpts): void {
+	const editor = new ConfigEditor(configPath);
+	const servicesList = (editor.get('services') as Service[]) ?? [];
+	const videoChatsList = (editor.get('video_chats') as VideoChat[]) ?? [];
+
+	if (isNew) {
+		const serviceToWrite = {
+			id: serviceId,
+			type: 'nextcloud',
+			url,
+			username,
+			password: `\${${envVarName}}`
+		};
+		editor.set(`services.${servicesList.length}`, serviceToWrite);
+	}
+
+	editor.set(`video_chats.${videoChatsList.length}`, {
+		id,
+		type: 'nextcloud-talk',
+		service_id: serviceId
+	});
+}
+
+function getCompletionMessage(
+	id: string,
+	serviceId: string,
+	envVarName: string,
+	isNew: boolean
+): string {
+	let message = `Successfully verified and added video chat "${id}" to config.yaml!\n`;
+	if (isNew) {
+		message +=
+			`\n⚠️  Please define the following environment variable:\n\n` +
+			`${envVarName}="[your-password-here]"`;
+	} else {
+		message += `\nReused existing service configuration "${serviceId}".`;
+	}
+	return message;
+}
 
 export const nextcloudTalkAddCommand = define({
 	name: 'nextcloud-talk',
@@ -27,19 +110,8 @@ export const nextcloudTalkAddCommand = define({
 		}
 
 		const existingVideoChatIds = getExistingIds(configPath, 'video_chats');
-
-		const videoChatId = await text({
-			message: 'Enter a unique ID for this Nextcloud Talk integration (e.g. "my-talk"):',
-			placeholder: 'my-talk',
-			validate(value) {
-				if (!value || !value.trim()) return 'ID is required';
-				if (existingVideoChatIds.includes(value.trim())) {
-					return `A video chat with ID "${value.trim()}" already exists.`;
-				}
-			}
-		});
-		if (isCancel(videoChatId)) return;
-		const id = videoChatId.trim();
+		const id = await promptNextcloudTalkId(existingVideoChatIds);
+		if (!id) return;
 
 		const serviceResult = await getOrCreateNextcloudService(configPath, id);
 		if (!serviceResult) return;
@@ -64,46 +136,23 @@ export const nextcloudTalkAddCommand = define({
 		s.start('Verifying Nextcloud Talk room creation capabilities...');
 
 		try {
-			const adapter = getVideoChatAdapter(videoChatConfig, [service]);
-			const roomResult = await adapter.createRoom('Verification test room');
-			if (!roomResult.ok) {
-				throw new Error(roomResult.reason);
-			}
+			await verifyNextcloudTalkAccess(videoChatConfig, service);
 
 			s.message('Writing Nextcloud video chat configuration...');
 
-			const editor = new ConfigEditor(configPath);
-			const servicesList = (editor.get('services') as Service[]) ?? [];
-			const videoChatsList = (editor.get('video_chats') as VideoChat[]) ?? [];
-
-			if (isNew) {
-				const serviceToWrite = {
-					id: serviceId,
-					type: 'nextcloud',
-					url,
-					username,
-					password: `\${${envVarName}}`
-				};
-				editor.set(`services.${servicesList.length}`, serviceToWrite);
-			}
-
-			editor.set(`video_chats.${videoChatsList.length}`, {
+			writeNextcloudTalkConfig({
+				configPath,
 				id,
-				type: 'nextcloud-talk',
-				service_id: serviceId
+				serviceId,
+				url,
+				username,
+				envVarName,
+				isNew
 			});
 
 			s.stop('Setup completed successfully!');
 
-			let completionMsg = `Successfully verified and added video chat "${id}" to config.yaml!\n`;
-			if (isNew) {
-				completionMsg +=
-					`\n⚠️  Please define the following environment variable:\n\n` +
-					`${envVarName}="[your-password-here]"`;
-			} else {
-				completionMsg += `\nReused existing service configuration "${serviceId}".`;
-			}
-
+			const completionMsg = getCompletionMessage(id, serviceId, envVarName, isNew);
 			note(completionMsg, 'Setup Complete');
 		} catch (err) {
 			s.stop('Failed!');

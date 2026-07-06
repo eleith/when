@@ -1,4 +1,3 @@
-import { existsSync } from 'node:fs';
 import { define } from 'gunshi';
 import { text, spinner, note, isCancel } from '@clack/prompts';
 import { ConfigEditor } from '@when/config';
@@ -6,6 +5,107 @@ import type { Service, VideoChat } from '@when/config';
 import { getValidatedConfigPath, validateConfigExists } from '../../../utils/config-path.ts';
 import { getOrCreateGoogleService } from '../../../services/google.ts';
 import { getExistingIds } from '../../../utils/config.ts';
+
+async function promptGoogleMeetId(existingIds: string[]): Promise<string | null> {
+	const videoChatId = await text({
+		message: 'Enter a unique ID for this Google Meet integration (e.g. "my-meet"):',
+		placeholder: 'my-meet',
+		validate(value) {
+			if (!value || !value.trim()) return 'ID is required';
+			if (existingIds.includes(value.trim())) {
+				return `A video chat with ID "${value.trim()}" already exists.`;
+			}
+		}
+	});
+	if (isCancel(videoChatId)) return null;
+	return videoChatId.trim();
+}
+
+async function verifyGoogleMeetAccess(
+	clientId: string,
+	clientSecret: string,
+	refreshToken: string
+): Promise<void> {
+	const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+		body: new URLSearchParams({
+			client_id: clientId,
+			client_secret: clientSecret,
+			refresh_token: refreshToken,
+			grant_type: 'refresh_token'
+		})
+	});
+
+	if (!tokenResponse.ok) {
+		const text = await tokenResponse.text();
+		throw new Error(`Google connection verification failed: ${tokenResponse.status} ${text}`);
+	}
+}
+
+interface WriteGoogleMeetConfigOpts {
+	configPath: string;
+	id: string;
+	serviceId: string;
+	clientId: string;
+	clientSecret: string;
+	refreshToken: string;
+	isNew: boolean;
+	envClientSecret: string;
+	envRefreshToken: string;
+}
+
+function writeGoogleMeetConfig({
+	configPath,
+	id,
+	serviceId,
+	clientId,
+	isNew,
+	envClientSecret,
+	envRefreshToken
+}: WriteGoogleMeetConfigOpts): void {
+	const editor = new ConfigEditor(configPath);
+	const servicesList = (editor.get('services') as Service[]) ?? [];
+	const videoChatsList = (editor.get('video_chats') as VideoChat[]) ?? [];
+
+	if (isNew) {
+		const serviceToWrite = {
+			id: serviceId,
+			type: 'google',
+			client_id: clientId,
+			client_secret: `\${${envClientSecret}}`,
+			refresh_token: `\${${envRefreshToken}}`
+		};
+		editor.set(`services.${servicesList.length}`, serviceToWrite);
+	}
+
+	editor.set(`video_chats.${videoChatsList.length}`, {
+		id,
+		type: 'google-meet',
+		service_id: serviceId
+	});
+}
+
+function getCompletionMessage(
+	id: string,
+	serviceId: string,
+	clientSecret: string,
+	refreshToken: string,
+	isNew: boolean,
+	envClientSecret: string,
+	envRefreshToken: string
+): string {
+	let message = `Successfully verified and added video chat "${id}" to config.yaml!\n`;
+	if (isNew) {
+		message +=
+			`\n⚠️  Please define the following environment variables (e.g. in your .env or Docker config):\n\n` +
+			`${envClientSecret}="${clientSecret}"\n` +
+			`${envRefreshToken}="${refreshToken}"`;
+	} else {
+		message += `\nReused existing service configuration "${serviceId}".`;
+	}
+	return message;
+}
 
 export const googleMeetAddCommand = define({
 	name: 'google-meet',
@@ -26,19 +126,8 @@ export const googleMeetAddCommand = define({
 		}
 
 		const existingVideoChatIds = getExistingIds(configPath, 'video_chats');
-
-		const videoChatId = await text({
-			message: 'Enter a unique ID for this Google Meet integration (e.g. "my-meet"):',
-			placeholder: 'my-meet',
-			validate(value) {
-				if (!value || !value.trim()) return 'ID is required';
-				if (existingVideoChatIds.includes(value.trim())) {
-					return `A video chat with ID "${value.trim()}" already exists.`;
-				}
-			}
-		});
-		if (isCancel(videoChatId)) return;
-		const id = videoChatId.trim();
+		const id = await promptGoogleMeetId(existingVideoChatIds);
+		if (!id) return;
 
 		const serviceResult = await getOrCreateGoogleService(configPath, id);
 		if (!serviceResult) return;
@@ -57,57 +146,33 @@ export const googleMeetAddCommand = define({
 		s.start('Verifying Google API access...');
 
 		try {
-			const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-				body: new URLSearchParams({
-					client_id: clientId,
-					client_secret: clientSecret,
-					refresh_token: refreshToken,
-					grant_type: 'refresh_token'
-				})
-			});
-
-			if (!tokenResponse.ok) {
-				const text = await tokenResponse.text();
-				throw new Error(`Google connection verification failed: ${tokenResponse.status} ${text}`);
-			}
+			await verifyGoogleMeetAccess(clientId, clientSecret, refreshToken);
 
 			s.message('Writing Google Meet configuration...');
 
-			const editor = new ConfigEditor(configPath);
-			const servicesList = (editor.get('services') as Service[]) ?? [];
-			const videoChatsList = (editor.get('video_chats') as VideoChat[]) ?? [];
-
-			if (isNew) {
-				const serviceToWrite = {
-					id: serviceId,
-					type: 'google',
-					client_id: clientId,
-					client_secret: `\${${envClientSecret}}`,
-					refresh_token: `\${${envRefreshToken}}`
-				};
-				editor.set(`services.${servicesList.length}`, serviceToWrite);
-			}
-
-			editor.set(`video_chats.${videoChatsList.length}`, {
+			writeGoogleMeetConfig({
+				configPath,
 				id,
-				type: 'google-meet',
-				service_id: serviceId
+				serviceId,
+				clientId,
+				clientSecret,
+				refreshToken,
+				isNew,
+				envClientSecret,
+				envRefreshToken
 			});
 
 			s.stop('Setup completed successfully!');
 
-			let completionMsg = `Successfully verified and added video chat "${id}" to config.yaml!\n`;
-			if (isNew) {
-				completionMsg +=
-					`\n⚠️  Please define the following environment variables (e.g. in your .env or Docker config):\n\n` +
-					`${envClientSecret}="${clientSecret}"\n` +
-					`${envRefreshToken}="${refreshToken}"`;
-			} else {
-				completionMsg += `\nReused existing service configuration "${serviceId}".`;
-			}
-
+			const completionMsg = getCompletionMessage(
+				id,
+				serviceId,
+				clientSecret,
+				refreshToken,
+				isNew,
+				envClientSecret,
+				envRefreshToken
+			);
 			note(completionMsg, 'Setup Complete');
 		} catch (err) {
 			s.stop('Failed!');
