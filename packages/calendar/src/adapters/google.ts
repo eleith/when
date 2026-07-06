@@ -40,9 +40,7 @@ interface GoogleEventsResponse {
 
 const tokenCache = new Map<string, { token: string; expiresAt: number }>();
 
-export async function getGoogleAccessToken(
-	cfg: GoogleConfig
-): Promise<string> {
+export async function getGoogleAccessToken(cfg: GoogleConfig): Promise<string> {
 	const cacheKey = cfg.refresh_token;
 	const cached = tokenCache.get(cacheKey);
 	if (cached && Date.now() < cached.expiresAt) {
@@ -239,10 +237,7 @@ export async function putGoogleEvent(
 /**
  * Delete an event from Google Calendar.
  */
-export async function deleteGoogleEvent(
-	cfg: GoogleConfig,
-	externalEventId: string
-): Promise<void> {
+export async function deleteGoogleEvent(cfg: GoogleConfig, externalEventId: string): Promise<void> {
 	const token = await getGoogleAccessToken(cfg);
 	const calId = encodeURIComponent(cfg.google_calendar_id);
 	const url = `https://www.googleapis.com/calendar/v3/calendars/${calId}/events/${externalEventId}`;
@@ -280,10 +275,7 @@ export class GoogleAdapter implements CalendarAdapter {
 	}
 
 	async fetchBusy(window: ExpandWindow) {
-		return fetchGoogleBusy(
-			this.googleCfg,
-			{ start: window.start, end: window.end }
-		);
+		return fetchGoogleBusy(this.googleCfg, { start: window.start, end: window.end });
 	}
 
 	async pushAppointment(
@@ -305,9 +297,7 @@ export class GoogleAdapter implements CalendarAdapter {
 		};
 	}
 
-	async deleteAppointment(
-		externalEventId: string
-	): Promise<DeleteResult> {
+	async deleteAppointment(externalEventId: string): Promise<DeleteResult> {
 		await deleteGoogleEvent(this.googleCfg, externalEventId);
 		return { ok: true };
 	}

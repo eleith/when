@@ -96,9 +96,7 @@ test('putCalDavEvent throws on non-2xx', async () => {
 	vi.spyOn(globalThis, 'fetch').mockResolvedValue(
 		new Response('forbidden', { status: 403, statusText: 'Forbidden' })
 	);
-	await expect(
-		putCalDavEvent(caldavCfg, 'appt-xyz', 'x')
-	).rejects.toThrow(/403/);
+	await expect(putCalDavEvent(caldavCfg, 'appt-xyz', 'x')).rejects.toThrow(/403/);
 });
 
 test('deleteCalDavEvent treats 404 as success', async () => {
@@ -110,9 +108,7 @@ test('deleteCalDavEvent throws on 5xx', async () => {
 	vi.spyOn(globalThis, 'fetch').mockResolvedValue(
 		new Response('boom', { status: 500, statusText: 'Internal Server Error' })
 	);
-	await expect(deleteCalDavEvent(caldavCfg, 'appt-xyz')).rejects.toThrow(
-		/500/
-	);
+	await expect(deleteCalDavEvent(caldavCfg, 'appt-xyz')).rejects.toThrow(/500/);
 });
 
 test('pushAppointment routes to CalDAV PUT and returns external ids', async () => {

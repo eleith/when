@@ -1,10 +1,6 @@
 import { describe, expect, test, vi, beforeEach } from 'vitest';
 import type { GoogleCalendar, Service } from '@when/config';
-import {
-	googleAddCommand,
-	verifyGoogleConnection,
-	fetchCalendarList
-} from './google.ts';
+import { googleAddCommand, verifyGoogleConnection, fetchCalendarList } from './google.ts';
 import { exchangeCodeForTokens } from '../../../services/google.ts';
 
 describe('google add command helpers', () => {
@@ -22,7 +18,6 @@ describe('google add command helpers', () => {
 		client_secret: 'client-secret-456',
 		refresh_token: 'refresh-token-789'
 	};
-
 
 	beforeEach(() => {
 		vi.restoreAllMocks();
@@ -123,24 +118,30 @@ describe('google add command helpers', () => {
 	});
 
 	test('verifyGoogleConnection resolves successfully when fetch busy times resolves', async () => {
-		vi.spyOn(globalThis, 'fetch').mockImplementation(async (url: any) => {
+		vi.spyOn(globalThis, 'fetch').mockImplementation(async (url: RequestInfo | URL) => {
 			if (String(url).includes('oauth2.googleapis.com/token')) {
-				return new Response(JSON.stringify({
-					access_token: 'access-token-123',
-					expires_in: 3600
-				}), { status: 200 });
+				return new Response(
+					JSON.stringify({
+						access_token: 'access-token-123',
+						expires_in: 3600
+					}),
+					{ status: 200 }
+				);
 			}
 			if (String(url).includes('googleapis.com/calendar/v3/calendars')) {
-				return new Response(JSON.stringify({
-					items: [
-						{
-							id: 'event-1',
-							status: 'confirmed',
-							start: { dateTime: '2026-07-01T09:00:00Z' },
-							end: { dateTime: '2026-07-01T10:00:00Z' }
-						}
-					]
-				}), { status: 200 });
+				return new Response(
+					JSON.stringify({
+						items: [
+							{
+								id: 'event-1',
+								status: 'confirmed',
+								start: { dateTime: '2026-07-01T09:00:00Z' },
+								end: { dateTime: '2026-07-01T10:00:00Z' }
+							}
+						]
+					}),
+					{ status: 200 }
+				);
 			}
 			return new Response(null, { status: 404 });
 		});
@@ -149,7 +150,7 @@ describe('google add command helpers', () => {
 	});
 
 	test('verifyGoogleConnection throws error when token endpoint fails', async () => {
-		vi.spyOn(globalThis, 'fetch').mockImplementation(async (url: any) => {
+		vi.spyOn(globalThis, 'fetch').mockImplementation(async (url: RequestInfo | URL) => {
 			if (String(url).includes('oauth2.googleapis.com/token')) {
 				return new Response('invalid_grant', { status: 400, statusText: 'Bad Request' });
 			}

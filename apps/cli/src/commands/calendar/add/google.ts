@@ -4,13 +4,10 @@ import { getCalendarAdapter, type ExpandWindow } from '@when/calendar';
 import { ConfigEditor } from '@when/config';
 import type { GoogleCalendar, Service } from '@when/config';
 import { getValidatedConfigPath, validateConfigExists } from '../../../utils/config-path.ts';
-import { getOrCreateGoogleService, type GoogleTokens } from '../../../services/google.ts';
+import { getOrCreateGoogleService } from '../../../services/google.ts';
 import { getExistingIds } from '../../../utils/config.ts';
 
-export async function verifyGoogleConnection(
-	cal: GoogleCalendar,
-	service: Service
-): Promise<void> {
+export async function verifyGoogleConnection(cal: GoogleCalendar, service: Service): Promise<void> {
 	const adapter = getCalendarAdapter(cal, [service]);
 	const now = Temporal.Now.instant();
 	const window: ExpandWindow = { start: now, end: now.add({ hours: 1 }) };
@@ -23,9 +20,7 @@ export interface GoogleCalendarItem {
 	primary?: boolean;
 }
 
-export async function fetchCalendarList(
-	accessToken: string
-): Promise<GoogleCalendarItem[]> {
+export async function fetchCalendarList(accessToken: string): Promise<GoogleCalendarItem[]> {
 	const response = await fetch('https://www.googleapis.com/calendar/v3/users/me/calendarList', {
 		headers: {
 			Authorization: `Bearer ${accessToken}`

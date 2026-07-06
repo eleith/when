@@ -7,18 +7,6 @@ import { validConfig } from '$lib/server/__fixtures__/valid-config';
 vi.mock('../workflow', () => ({ enqueueAppointmentReconciliation: vi.fn() }));
 import { enqueueAppointmentReconciliation } from '../workflow';
 
-const baseRow = {
-	event_type_id: '30-min-chat',
-	start_time: '2099-01-01T15:00:00Z',
-	end_time: '2099-01-01T15:30:00Z',
-	guest_name: 'Booker',
-	guest_email: 'booker@example.com',
-	guest_answers: null,
-	location: null,
-	external_event_id: null,
-	external_calendar_id: null
-};
-
 async function makeDb() {
 	const db = openDb(':memory:');
 	await runMigrations(db);

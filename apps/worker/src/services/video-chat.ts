@@ -41,7 +41,7 @@ export async function createStandaloneVideoChat(
 			throw new Error(`Failed to create Nextcloud Talk room: ${result.reason}`);
 		}
 
-		row = await db
+		await db
 			.updateTable('appointments')
 			.set({
 				video_chat: result.url,
@@ -49,8 +49,7 @@ export async function createStandaloneVideoChat(
 				updated_at: now
 			})
 			.where('id', '=', appointmentId)
-			.returningAll()
-			.executeTakeFirstOrThrow();
+			.execute();
 
 		await appendJobLog(db, appointmentId, 'video_chat', 'done', now);
 	}
@@ -94,7 +93,9 @@ export async function deleteStandaloneVideoChat(
 			console.warn(`Failed to delete video chat room: ${deleteResult.reason}`);
 		}
 	} catch (err) {
-		console.warn(`Error deleting video chat room: ${err instanceof Error ? err.message : String(err)}`);
+		console.warn(
+			`Error deleting video chat room: ${err instanceof Error ? err.message : String(err)}`
+		);
 	}
 
 	const now = Temporal.Now.instant().toString();

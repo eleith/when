@@ -6,10 +6,7 @@ import { appendJobLog, markCalendarFailing } from '../services/job-log.js';
 import { calendarSyncDuration } from '../services/metrics.js';
 import { deleteStandaloneVideoChat } from '../services/video-chat.js';
 
-export async function reconcileAppointment(
-	ctx: WorkerContext,
-	row: Appointment
-): Promise<void> {
+export async function reconcileAppointment(ctx: WorkerContext, row: Appointment): Promise<void> {
 	const eventType = ctx.config.event_types.find((e) => e.id === row.event_type_id);
 	const targetId = row.external_calendar_id ?? eventType?.destination_calendar ?? null;
 	const calendarConfig = ctx.config.calendars.find((c) => c.id === targetId);
@@ -41,7 +38,13 @@ export async function reconcileAppointment(
 				});
 				await appendJobLog(ctx.db, row.id, 'calendar', 'done', Temporal.Now.instant().toString());
 				if (pushed.videoChatUrl) {
-					await appendJobLog(ctx.db, row.id, 'video_chat', 'done', Temporal.Now.instant().toString());
+					await appendJobLog(
+						ctx.db,
+						row.id,
+						'video_chat',
+						'done',
+						Temporal.Now.instant().toString()
+					);
 				}
 			} else {
 				await markCalendarFailing(ctx.db, row, Temporal.Now.instant().toString());

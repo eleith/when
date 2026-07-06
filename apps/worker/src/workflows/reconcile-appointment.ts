@@ -34,9 +34,7 @@ export async function runReconcileAppointment(
 	);
 
 	// 2. Sync Calendar (which also handles Google Meet generation)
-	await step.run({ name: 'sync-calendar' }, () =>
-		syncCalendarForAppointment(ctx, resolvedRow)
-	);
+	await step.run({ name: 'sync-calendar' }, () => syncCalendarForAppointment(ctx, resolvedRow));
 
 	// 3. Send email if requested
 	if (input.emailKind) {

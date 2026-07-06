@@ -46,10 +46,7 @@ function build(i: AppointmentEmailInput, kind: AppointmentEmailKind): EmailMessa
 	}
 }
 
-export async function dispatch(
-	input: DispatchInput,
-	cfg: WhenConfiguration
-): Promise<Envelope[]> {
+export async function dispatch(input: DispatchInput, cfg: WhenConfiguration): Promise<Envelope[]> {
 	const eventType = cfg.event_types.find((e) => e.id === input.appointment.event_type_id);
 	const logo = await fetchBrandLogo(cfg);
 

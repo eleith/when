@@ -160,10 +160,7 @@ export class CalDavAdapter implements CalendarAdapter {
 	}
 
 	async fetchBusy(window: ExpandWindow) {
-		return fetchCalDavBusy(
-			this.adapterCfg,
-			{ start: window.start, end: window.end }
-		);
+		return fetchCalDavBusy(this.adapterCfg, { start: window.start, end: window.end });
 	}
 
 	async pushAppointment(
@@ -187,9 +184,7 @@ export class CalDavAdapter implements CalendarAdapter {
 		return { ok: true, externalEventId: uid, externalCalendarId: this.cal.id };
 	}
 
-	async deleteAppointment(
-		externalEventId: string
-	): Promise<DeleteResult> {
+	async deleteAppointment(externalEventId: string): Promise<DeleteResult> {
 		await deleteCalDavEvent(this.adapterCfg, externalEventId);
 		return { ok: true };
 	}

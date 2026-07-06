@@ -1,5 +1,4 @@
 import { defineWorkflowSpec, type Workflow } from 'openworkflow';
-import type { Appointment } from '@when/db';
 
 /**
  * openworkflow exports `Workflow` but not the bare `WorkflowSpec` type, so the

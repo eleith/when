@@ -44,10 +44,12 @@ function makeStep() {
 
 function recordingFetch(status = 204) {
 	const calls: { method: string; url: string }[] = [];
-	vi.spyOn(globalThis, 'fetch').mockImplementation(async (url: any, init?: RequestInit) => {
-		calls.push({ method: (init?.method as string) ?? 'GET', url: String(url) });
-		return new Response(null, { status });
-	});
+	vi.spyOn(globalThis, 'fetch').mockImplementation(
+		async (url: RequestInfo | URL, init?: RequestInit) => {
+			calls.push({ method: (init?.method as string) ?? 'GET', url: String(url) });
+			return new Response(null, { status });
+		}
+	);
 	return { calls };
 }
 

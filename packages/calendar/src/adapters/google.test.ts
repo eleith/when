@@ -43,14 +43,18 @@ beforeEach(() => {
 async function push(appointment: Appointment) {
 	const captured: { url?: string; payload?: Record<string, unknown> } = {};
 
-	vi.spyOn(globalThis, 'fetch').mockImplementation(async (url: any, init?: RequestInit) => {
-		if (String(url).includes('oauth2.googleapis.com/token')) {
-			return new Response(JSON.stringify({ access_token: 't', expires_in: 3600 }), { status: 200 });
+	vi.spyOn(globalThis, 'fetch').mockImplementation(
+		async (url: RequestInfo | URL, init?: RequestInit) => {
+			if (String(url).includes('oauth2.googleapis.com/token')) {
+				return new Response(JSON.stringify({ access_token: 't', expires_in: 3600 }), {
+					status: 200
+				});
+			}
+			captured.url = String(url);
+			captured.payload = JSON.parse(String(init?.body));
+			return new Response(JSON.stringify({ id: 'evt-1' }), { status: 200 });
 		}
-		captured.url = String(url);
-		captured.payload = JSON.parse(String(init?.body));
-		return new Response(JSON.stringify({ id: 'evt-1' }), { status: 200 });
-	});
+	);
 
 	await putGoogleEvent(cfg, appointment, {
 		cancelUrl: 'https://when.example.com/appointment/appt-1?token=tok',

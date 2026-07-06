@@ -34,7 +34,11 @@ export async function declineAppointment(
 	);
 	if (!result.ok) return { ok: false, reason: 'conflict' };
 
-	const appointment = await enqueueAppointmentReconciliation(ctx.db, input.appointment.id, 'declined');
+	const appointment = await enqueueAppointmentReconciliation(
+		ctx.db,
+		input.appointment.id,
+		'declined'
+	);
 
 	return { ok: true, appointment };
 }

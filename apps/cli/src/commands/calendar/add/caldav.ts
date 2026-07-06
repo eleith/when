@@ -6,10 +6,7 @@ import { getValidatedConfigPath, validateConfigExists } from '../../../utils/con
 import { getOrCreateCalDavService } from '../../../services/caldav.ts';
 import { getExistingIds } from '../../../utils/config.ts';
 
-export async function verifyCalDavConnection(
-	cal: CalDavCalendar,
-	service: Service
-): Promise<void> {
+export async function verifyCalDavConnection(cal: CalDavCalendar, service: Service): Promise<void> {
 	const adapter = getCalendarAdapter(cal, [service]);
 	const now = Temporal.Now.instant();
 	const window: ExpandWindow = { start: now, end: now.add({ hours: 1 }) };

@@ -74,7 +74,5 @@ test('propagates a provider failure to the caller', async () => {
 	vi.spyOn(globalThis, 'fetch').mockResolvedValue(
 		new Response('boom', { status: 500, statusText: 'Internal Server Error' })
 	);
-	await expect(
-		fetchBusyIntervals(workCal, window, { config: fakeConfig })
-	).rejects.toThrow(/500/);
+	await expect(fetchBusyIntervals(workCal, window, { config: fakeConfig })).rejects.toThrow(/500/);
 });

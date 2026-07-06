@@ -20,9 +20,7 @@ const testConfig = {
 	...sampleInput.cfg,
 	calendars: [],
 	services: [],
-	event_types: [
-		{ id: '30-min', name: '30 Min Chat', destination_calendar: null }
-	]
+	event_types: [{ id: '30-min', name: '30 Min Chat', destination_calendar: null }]
 } as unknown as WhenConfiguration;
 
 function makeStep() {
@@ -44,10 +42,12 @@ function makeMailer() {
 
 function recordingFetch(status = 204) {
 	const calls: { method: string; url: string }[] = [];
-	vi.spyOn(globalThis, 'fetch').mockImplementation(async (url: any, init?: RequestInit) => {
-		calls.push({ method: (init?.method as string) ?? 'GET', url: String(url) });
-		return new Response(null, { status });
-	});
+	vi.spyOn(globalThis, 'fetch').mockImplementation(
+		async (url: RequestInfo | URL, init?: RequestInit) => {
+			calls.push({ method: (init?.method as string) ?? 'GET', url: String(url) });
+			return new Response(null, { status });
+		}
+	);
 	return { calls };
 }
 

@@ -54,11 +54,6 @@ function getCalendarAdapter(cal: Calendar, services?: Service[]): CalendarAdapte
 	throw new Error(`Unsupported calendar type: ${type}`);
 }
 
-export type {
-	PushOptions,
-	PushResult,
-	DeleteResult,
-	CalendarAdapter
-};
+export type { PushOptions, PushResult, DeleteResult, CalendarAdapter };
 
 export { getCalendarAdapter };
