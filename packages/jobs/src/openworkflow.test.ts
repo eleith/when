@@ -1,41 +1,13 @@
 import { describe, expect, test } from 'vitest';
 import { DatabaseSync } from 'node:sqlite';
-import type { Appointment } from '@when/db';
 import {
 	initOpenWorkflow,
 	getOpenWorkflow,
 	getWorkflowRun,
 	getStepAttempts
 } from './openworkflow.js';
-import { sendAppointmentEmail } from './specs.js';
-import type { SendAppointmentEmailInput } from './specs.js';
-
-const appointment: Appointment = {
-	id: 'appt-1',
-	event_type_id: '30-min',
-	start_time: '2026-01-01T10:00:00Z',
-	end_time: '2026-01-01T10:30:00Z',
-	guest_name: 'Jane',
-	guest_email: 'jane@example.com',
-	guest_answers: null,
-	location: null,
-	note: null,
-	video_chat: null,
-	status: 'confirmed',
-	origin_id: 'appt-1',
-	cancel_token: 'tok-1',
-	action_log: null,
-	external_event_id: null,
-	external_calendar_id: null,
-	calendar_revision: 0,
-	calendar_synced_revision: null,
-	has_possible_conflict: 0,
-	ics_sequence: 0,
-	event_type_snapshot: null,
-	created_at: '2026-01-01T09:00:00Z',
-	updated_at: '2026-01-01T09:00:00Z',
-	guest_timezone: 'America/New_York'
-};
+import { reconcileAppointment } from './specs.js';
+import type { ReconcileAppointmentInput } from './specs.js';
 
 describe('client singleton', () => {
 	test('getOpenWorkflow throws before initialization', () => {
@@ -52,12 +24,12 @@ describe('client singleton', () => {
 	});
 
 	test('the client can enqueue a run (producer-only path)', async () => {
-		const input: SendAppointmentEmailInput = {
-			kind: 'confirmed',
-			appointment
+		const input: ReconcileAppointmentInput = {
+			appointmentId: 'appt-1',
+			emailKind: 'confirmed'
 		};
 
-		const handle = await getOpenWorkflow().runWorkflow(sendAppointmentEmail, input);
+		const handle = await getOpenWorkflow().runWorkflow(reconcileAppointment, input);
 
 		expect(handle.workflowRun.id).toBeTruthy();
 		expect(handle.workflowRun.status).toBe('pending');
@@ -94,11 +66,11 @@ describe('read helpers', () => {
 			 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
 		).run(
 			'run-1',
-			'send-appointment-email',
+			'reconcile-appointment',
 			'completed',
 			null,
 			'{}',
-			'"sent"',
+			'"reconciled"',
 			null,
 			'2026-01-01T10:00:00Z'
 		);
@@ -135,7 +107,7 @@ describe('read helpers', () => {
 		const db = seedQueueDb();
 		const run = getWorkflowRun(db, 'run-1');
 		expect(run).not.toBeNull();
-		expect(run!.workflow_name).toBe('send-appointment-email');
+		expect(run!.workflow_name).toBe('reconcile-appointment');
 		expect(run!.status).toBe('completed');
 		expect(getWorkflowRun(db, 'missing')).toBeNull();
 	});

@@ -4,8 +4,8 @@ import { systemClock } from '$lib/server/clock';
 import { openDb, runMigrations, type ActionLogEntry } from '@when/db';
 import { validConfig } from '$lib/server/__fixtures__/valid-config';
 
-vi.mock('../workflow', () => ({ enqueueAppointmentEmail: vi.fn(), enqueueCalendarSync: vi.fn() }));
-import { enqueueAppointmentEmail, enqueueCalendarSync } from '../workflow';
+vi.mock('../workflow', () => ({ enqueueAppointmentReconciliation: vi.fn() }));
+import { enqueueAppointmentReconciliation } from '../workflow';
 
 const baseRow = {
 	event_type_id: '30-min-chat',
@@ -38,14 +38,13 @@ async function fetchRow(db: Awaited<ReturnType<typeof makeDb>>, id: string) {
 
 describe('cancelAppointment', () => {
 	beforeEach(() => {
-		vi.mocked(enqueueAppointmentEmail).mockReset();
-		vi.mocked(enqueueAppointmentEmail).mockImplementation((db, id) =>
+		vi.mocked(enqueueAppointmentReconciliation).mockReset();
+		vi.mocked(enqueueAppointmentReconciliation).mockImplementation(async (db, id) =>
 			db.selectFrom('appointments').selectAll().where('id', '=', id).executeTakeFirstOrThrow()
 		);
-		vi.mocked(enqueueCalendarSync).mockReset();
 	});
 
-	test('happy path: a published appointment is cancelled, queued for deletion, and wakes the worker', async () => {
+	test('happy path: a published appointment is cancelled, queued for reconciliation', async () => {
 		const db = await makeDb();
 		try {
 			await insert(db, {
@@ -72,8 +71,7 @@ describe('cancelAppointment', () => {
 			expect(persisted.status).toBe('cancelled');
 			expect(persisted.ics_sequence).toBe(1);
 			expect(persisted.calendar_revision).toBe(1);
-			expect(enqueueCalendarSync).toHaveBeenCalledTimes(1);
-			expect(enqueueAppointmentEmail).toHaveBeenCalledWith(
+			expect(enqueueAppointmentReconciliation).toHaveBeenCalledWith(
 				expect.anything(),
 				expect.any(String),
 				'cancelled-by-guest'
@@ -116,9 +114,6 @@ describe('cancelAppointment', () => {
 				.where('id', '=', 'a3')
 				.execute();
 
-			// The original caller still has the pre-conflict row in hand.
-			// Gate would say "ok" because we haven't refetched, but transitionStatus
-			// owns the CAS and reports the conflict.
 			const result = await cancelAppointment(
 				{ db, cfg: validConfig, clock: systemClock },
 				{ appointment: row, initiator: 'guest' }

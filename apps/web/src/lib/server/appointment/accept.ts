@@ -1,5 +1,5 @@
 import { resolveAppointmentActions } from './actions';
-import { enqueueAppointmentEmail, enqueueCalendarSync } from '../workflow';
+import { enqueueAppointmentReconciliation } from '../workflow';
 import type { AppointmentContext } from './context';
 import { confirmAppointment } from './transitions';
 import type { Appointment } from '@when/db';
@@ -33,8 +33,7 @@ export async function acceptAppointment(
 	);
 	if (!result.ok) return { ok: false, reason: 'conflict' };
 
-	const appointment = await enqueueAppointmentEmail(ctx.db, input.appointment.id, 'confirmed');
-	await enqueueCalendarSync();
+	const appointment = await enqueueAppointmentReconciliation(ctx.db, input.appointment.id, 'confirmed');
 
 	return { ok: true, appointment };
 }

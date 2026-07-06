@@ -1,4 +1,4 @@
-import { registerSendAppointmentEmailWorkflow } from './send-appointment-email.js';
+import { registerReconcileAppointmentWorkflow } from './reconcile-appointment.js';
 import { registerPurgeAppointmentWorkflow } from './purge-appointment.js';
 
 /**
@@ -6,6 +6,6 @@ import { registerPurgeAppointmentWorkflow } from './purge-appointment.js';
  * once at boot, after `initOpenWorkflow`.
  */
 export function registerWorkflows(): void {
-	registerSendAppointmentEmailWorkflow();
+	registerReconcileAppointmentWorkflow();
 	registerPurgeAppointmentWorkflow();
 }

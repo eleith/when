@@ -1,5 +1,5 @@
 import type { WhenConfiguration } from '@when/config';
-import type { SendAppointmentEmailInput } from '@when/jobs';
+import type { AppointmentEmailKind } from '@when/jobs';
 import { parseActionLog } from '@when/db';
 import { appointmentCancelledByGuest } from './builders/appointment-cancelled-by-guest.js';
 import { appointmentCancelledByHost } from './builders/appointment-cancelled-by-host.js';
@@ -14,8 +14,14 @@ import { renderMessage } from './render.js';
 import { appointmentLinks } from '../links.js';
 import { fetchBrandLogo } from './logo.js';
 import type { AppointmentEmailInput } from './types.js';
+import type { Appointment } from '@when/db';
 
-function build(i: AppointmentEmailInput, kind: SendAppointmentEmailInput['kind']): EmailMessage[] {
+export interface DispatchInput {
+	kind: AppointmentEmailKind;
+	appointment: Appointment;
+}
+
+function build(i: AppointmentEmailInput, kind: AppointmentEmailKind): EmailMessage[] {
 	switch (kind) {
 		case 'confirmed':
 			return appointmentConfirmed(i);
@@ -41,7 +47,7 @@ function build(i: AppointmentEmailInput, kind: SendAppointmentEmailInput['kind']
 }
 
 export async function dispatch(
-	input: SendAppointmentEmailInput,
+	input: DispatchInput,
 	cfg: WhenConfiguration
 ): Promise<Envelope[]> {
 	const eventType = cfg.event_types.find((e) => e.id === input.appointment.event_type_id);

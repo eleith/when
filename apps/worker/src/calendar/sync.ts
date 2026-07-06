@@ -5,7 +5,7 @@ import type { WorkerContext } from '../services/context.js';
 import { appointmentLinks } from '../links.js';
 import { appendJobLog, markCalendarFailing } from '../services/job-log.js';
 import { calendarSyncDuration } from '../services/metrics.js';
-import { cleanupVideoChatLink } from '../services/video-chat.js';
+import { deleteStandaloneVideoChat } from '../services/video-chat.js';
 
 export async function reconcileAppointment(
 	ctx: WorkerContext,
@@ -37,9 +37,13 @@ export async function reconcileAppointment(
 			if (pushed.ok) {
 				await markSynced(ctx.db, row.id, revision, {
 					external_event_id: pushed.externalEventId,
-					external_calendar_id: pushed.externalCalendarId
+					external_calendar_id: pushed.externalCalendarId,
+					video_chat: pushed.videoChatUrl ?? row.video_chat
 				});
 				await appendJobLog(ctx.db, row.id, 'calendar', 'done', Temporal.Now.instant().toString());
+				if (pushed.videoChatUrl) {
+					await appendJobLog(ctx.db, row.id, 'video_chat', 'done', Temporal.Now.instant().toString());
+				}
 			} else {
 				await markCalendarFailing(ctx.db, row, Temporal.Now.instant().toString());
 				ctx.logger.error(
@@ -57,7 +61,7 @@ export async function reconcileAppointment(
 		const shouldRemove =
 			row.status === 'cancelled' || row.status === 'declined' || row.status === 'expired';
 		if (shouldRemove) {
-			await cleanupVideoChatLink(ctx.db, row.id, ctx.config);
+			await deleteStandaloneVideoChat(ctx.db, row.id, ctx.config);
 		}
 		if (shouldRemove && row.external_event_id && row.external_calendar_id) {
 			const deleted = await deleteAppointmentFromCalendar(

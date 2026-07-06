@@ -5,8 +5,8 @@ import { openDb, runMigrations, type Appointment } from '@when/db';
 import type { WhenConfiguration } from '@when/config';
 import { validConfig } from '$lib/server/__fixtures__/valid-config';
 
-vi.mock('../workflow', () => ({ enqueueAppointmentEmail: vi.fn(), enqueueCalendarSync: vi.fn() }));
-import { enqueueAppointmentEmail, enqueueCalendarSync } from '../workflow';
+vi.mock('../workflow', () => ({ enqueueAppointmentReconciliation: vi.fn() }));
+import { enqueueAppointmentReconciliation } from '../workflow';
 
 const now = new Date('2026-05-01T13:00:00Z');
 
@@ -219,11 +219,10 @@ async function fetchRow(db: Awaited<ReturnType<typeof makeDb>>, id: string) {
 
 describe('rescheduleAppointment', () => {
 	beforeEach(() => {
-		vi.mocked(enqueueAppointmentEmail).mockReset();
-		vi.mocked(enqueueAppointmentEmail).mockImplementation((db, id) =>
+		vi.mocked(enqueueAppointmentReconciliation).mockReset();
+		vi.mocked(enqueueAppointmentReconciliation).mockImplementation(async (db, id) =>
 			db.selectFrom('appointments').selectAll().where('id', '=', id).executeTakeFirstOrThrow()
 		);
-		vi.mocked(enqueueCalendarSync).mockReset();
 	});
 
 	test('happy path: creates a linked new row, ends the old one, queues a calendar sync', async () => {
@@ -259,8 +258,7 @@ describe('rescheduleAppointment', () => {
 				const old = await fetchRow(db, 'r1');
 				expect(old.status).toBe('rescheduled');
 
-				expect(enqueueCalendarSync).toHaveBeenCalledTimes(1);
-				expect(enqueueAppointmentEmail).toHaveBeenCalledWith(
+				expect(enqueueAppointmentReconciliation).toHaveBeenCalledWith(
 					expect.anything(),
 					next.id,
 					'rescheduled-by-guest'
@@ -382,7 +380,7 @@ describe('rescheduleAppointment', () => {
 				expect(result.appointment.origin_id).toBe('r5');
 				expect(result.appointment.external_event_id).toBe('r5');
 				expect(result.appointment.external_calendar_id).toBe('work');
-				expect(enqueueAppointmentEmail).toHaveBeenCalledWith(
+				expect(enqueueAppointmentReconciliation).toHaveBeenCalledWith(
 					expect.anything(),
 					result.appointment.id,
 					'rescheduled-by-host'

@@ -4,8 +4,8 @@ import { systemClock } from '$lib/server/clock';
 import { openDb, runMigrations } from '@when/db';
 import { validConfig } from '$lib/server/__fixtures__/valid-config';
 
-vi.mock('../workflow', () => ({ enqueueAppointmentEmail: vi.fn(), enqueueCalendarSync: vi.fn() }));
-import { enqueueAppointmentEmail, enqueueCalendarSync } from '../workflow';
+vi.mock('../workflow', () => ({ enqueueAppointmentReconciliation: vi.fn() }));
+import { enqueueAppointmentReconciliation } from '../workflow';
 
 const baseRow = {
 	event_type_id: '30-min-chat',
@@ -31,14 +31,13 @@ async function fetchRow(db: Awaited<ReturnType<typeof makeDb>>, id: string) {
 
 describe('acceptAppointment', () => {
 	beforeEach(() => {
-		vi.mocked(enqueueAppointmentEmail).mockReset();
-		vi.mocked(enqueueAppointmentEmail).mockImplementation((db, id) =>
+		vi.mocked(enqueueAppointmentReconciliation).mockReset();
+		vi.mocked(enqueueAppointmentReconciliation).mockImplementation(async (db, id) =>
 			db.selectFrom('appointments').selectAll().where('id', '=', id).executeTakeFirstOrThrow()
 		);
-		vi.mocked(enqueueCalendarSync).mockReset();
 	});
 
-	test('happy path: pending → confirmed; bumps revision, queues a calendar sync, wakes the worker', async () => {
+	test('happy path: pending → confirmed; bumps revision, queues reconciliation', async () => {
 		const db = await makeDb();
 		try {
 			await db
@@ -58,8 +57,7 @@ describe('acceptAppointment', () => {
 				const persisted = await fetchRow(db, 'a1');
 				expect(persisted.status).toBe('confirmed');
 				expect(persisted.calendar_revision).toBe(1);
-				expect(enqueueCalendarSync).toHaveBeenCalledTimes(1);
-				expect(enqueueAppointmentEmail).toHaveBeenCalledWith(
+				expect(enqueueAppointmentReconciliation).toHaveBeenCalledWith(
 					expect.anything(),
 					expect.any(String),
 					'confirmed'

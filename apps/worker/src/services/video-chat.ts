@@ -1,12 +1,10 @@
 import { getVideoChatAdapter } from '@when/video-chat';
-import { pushAppointment } from '@when/calendar';
 import type { Kysely } from 'kysely';
 import type { Database, Appointment } from '@when/db';
 import type { WhenConfiguration } from '@when/config';
-import { appointmentLinks } from '../links.js';
 import { appendJobLog } from './job-log.js';
 
-export async function ensureVideoChatLink(
+export async function createStandaloneVideoChat(
 	db: Kysely<Database>,
 	appointmentId: string,
 	config: WhenConfiguration
@@ -31,9 +29,10 @@ export async function ensureVideoChatLink(
 		throw new Error(`Video chat configuration "${videoChatId}" not found`);
 	}
 
-	const now = Temporal.Now.instant().toString();
-
+	// We ONLY handle standalone video chat providers here (like Nextcloud Talk).
+	// Google Meet is calendar-integrated, so its creation is handled by the Calendar Sync step.
 	if (vcConfig.type === 'nextcloud-talk') {
+		const now = Temporal.Now.instant().toString();
 		const adapter = getVideoChatAdapter(vcConfig, config);
 		const roomName = `Meeting: ${row.guest_name}`;
 		const result = await adapter.createRoom(roomName);
@@ -54,47 +53,6 @@ export async function ensureVideoChatLink(
 			.executeTakeFirstOrThrow();
 
 		await appendJobLog(db, appointmentId, 'video_chat', 'done', now);
-	} else if (vcConfig.type === 'google-meet') {
-		const eventType = config.event_types.find((e) => e.id === row.event_type_id);
-		const targetCalendarId = row.external_calendar_id ?? eventType?.destination_calendar ?? null;
-		if (!targetCalendarId) {
-			throw new Error(
-				`Google Meet requires a destination calendar for appointment "${appointmentId}"`
-			);
-		}
-
-		const cancelUrl = appointmentLinks({
-			baseUrl: config.url.app,
-			appointment: row
-		}).booked;
-
-		const pushed = await pushAppointment(config, row, targetCalendarId, {
-			cancelUrl
-		});
-
-		if (!pushed.ok) {
-			throw new Error(`Google Calendar push for Google Meet failed: ${pushed.reason}`);
-		}
-
-		if (!pushed.videoChatUrl) {
-			throw new Error(`Google Calendar push did not return a Google Meet URL`);
-		}
-
-		row = await db
-			.updateTable('appointments')
-			.set({
-				video_chat: pushed.videoChatUrl,
-				external_event_id: pushed.externalEventId,
-				external_calendar_id: pushed.externalCalendarId,
-				calendar_synced_revision: row.calendar_revision,
-				updated_at: now
-			})
-			.where('id', '=', appointmentId)
-			.returningAll()
-			.executeTakeFirstOrThrow();
-
-		await appendJobLog(db, appointmentId, 'video_chat', 'done', now);
-		await appendJobLog(db, appointmentId, 'calendar', 'done', now);
 	}
 
 	return (await db
@@ -104,7 +62,7 @@ export async function ensureVideoChatLink(
 		.executeTakeFirstOrThrow()) as Appointment;
 }
 
-export async function cleanupVideoChatLink(
+export async function deleteStandaloneVideoChat(
 	db: Kysely<Database>,
 	appointmentId: string,
 	config: WhenConfiguration

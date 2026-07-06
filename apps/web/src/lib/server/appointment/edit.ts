@@ -1,6 +1,6 @@
 import { sql } from 'kysely';
 import { isTerminalStatus } from './actions';
-import { enqueueAppointmentEmail, enqueueCalendarSync } from '../workflow';
+import { enqueueAppointmentReconciliation } from '../workflow';
 import type { AppointmentContext } from './context';
 import { appendActionLogSql, type Appointment } from '@when/db';
 
@@ -114,8 +114,7 @@ export async function editAppointment(
 		return { ok: false, reason: 'conflict' };
 	}
 
-	await enqueueAppointmentEmail(ctx.db, updated.id, 'edited-by-host');
-	await enqueueCalendarSync();
+	await enqueueAppointmentReconciliation(ctx.db, updated.id, 'edited-by-host');
 
 	return { ok: true, appointment: updated };
 }

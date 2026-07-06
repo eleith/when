@@ -4,8 +4,20 @@ import { systemClock } from '$lib/server/clock';
 import { openDb, runMigrations } from '@when/db';
 import { validConfig } from '$lib/server/__fixtures__/valid-config';
 
-vi.mock('../workflow', () => ({ enqueueAppointmentEmail: vi.fn(), enqueueCalendarSync: vi.fn() }));
-import { enqueueAppointmentEmail, enqueueCalendarSync } from '../workflow';
+vi.mock('../workflow', () => ({ enqueueAppointmentReconciliation: vi.fn() }));
+import { enqueueAppointmentReconciliation } from '../workflow';
+
+const baseRow = {
+	event_type_id: '30-min-chat',
+	start_time: '2099-01-01T15:00:00Z',
+	end_time: '2099-01-01T15:30:00Z',
+	guest_name: 'Booker',
+	guest_email: 'booker@example.com',
+	guest_answers: null,
+	location: null,
+	external_event_id: null,
+	external_calendar_id: null
+};
 
 async function makeDb() {
 	const db = openDb(':memory:');
@@ -29,14 +41,13 @@ const input = {
 
 describe('createAppointment', () => {
 	beforeEach(() => {
-		vi.mocked(enqueueAppointmentEmail).mockReset();
-		vi.mocked(enqueueAppointmentEmail).mockImplementation((db, id) =>
+		vi.mocked(enqueueAppointmentReconciliation).mockReset();
+		vi.mocked(enqueueAppointmentReconciliation).mockImplementation(async (db, id) =>
 			db.selectFrom('appointments').selectAll().where('id', '=', id).executeTakeFirstOrThrow()
 		);
-		vi.mocked(enqueueCalendarSync).mockReset();
 	});
 
-	test('auto flow inserts a confirmed appointment, queued for sync, and wakes the worker', async () => {
+	test('auto flow inserts a confirmed appointment, queued for reconciliation', async () => {
 		const db = await makeDb();
 		try {
 			const result = await createAppointment(
@@ -53,9 +64,8 @@ describe('createAppointment', () => {
 					.where('id', '=', result.appointment.id)
 					.executeTakeFirstOrThrow();
 				expect(persisted.status).toBe('confirmed');
-				expect(enqueueCalendarSync).toHaveBeenCalledTimes(1);
-				expect(enqueueAppointmentEmail).toHaveBeenCalledTimes(1);
-				expect(vi.mocked(enqueueAppointmentEmail).mock.calls[0][2]).toBe('confirmed');
+				expect(enqueueAppointmentReconciliation).toHaveBeenCalledTimes(1);
+				expect(vi.mocked(enqueueAppointmentReconciliation).mock.calls[0][2]).toBe('confirmed');
 			}
 		} finally {
 			await db.destroy();
@@ -78,12 +88,11 @@ describe('createAppointment', () => {
 			expect(result.ok).toBe(true);
 			if (result.ok) {
 				expect(result.appointment.status).toBe('pending');
-				expect(enqueueAppointmentEmail).toHaveBeenCalledWith(
+				expect(enqueueAppointmentReconciliation).toHaveBeenCalledWith(
 					expect.anything(),
 					expect.any(String),
 					'pending'
 				);
-				expect(enqueueCalendarSync).not.toHaveBeenCalled();
 			}
 		} finally {
 			await db.destroy();
@@ -106,12 +115,11 @@ describe('createAppointment', () => {
 			expect(result.ok).toBe(true);
 			if (result.ok) {
 				expect(result.appointment.status).toBe('confirmed');
-				expect(enqueueAppointmentEmail).toHaveBeenCalledWith(
+				expect(enqueueAppointmentReconciliation).toHaveBeenCalledWith(
 					expect.anything(),
 					expect.any(String),
 					'confirmed'
 				);
-				expect(enqueueCalendarSync).toHaveBeenCalled();
 			}
 		} finally {
 			await db.destroy();
@@ -144,7 +152,7 @@ describe('createAppointment', () => {
 				{ ...input, eventType }
 			);
 			expect(result).toEqual({ ok: false, reason: 'slot_taken' });
-			expect(enqueueAppointmentEmail).not.toHaveBeenCalled();
+			expect(enqueueAppointmentReconciliation).not.toHaveBeenCalled();
 		} finally {
 			await db.destroy();
 		}

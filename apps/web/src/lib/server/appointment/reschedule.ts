@@ -1,6 +1,6 @@
 import { resolveAppointmentActions, isTerminalStatus, type Viewer } from './actions';
 import { isRescheduleAllowed, isViewable } from './access';
-import { enqueueAppointmentEmail, enqueueCalendarSync } from '../workflow';
+import { enqueueAppointmentReconciliation } from '../workflow';
 import type { AppointmentContext } from './context';
 import { rescheduleAppointmentTransition, type RescheduleResult } from './transitions';
 import type { ParsedAppointment } from './form.server';
@@ -105,8 +105,7 @@ export async function rescheduleAppointment(
 	if (!result.ok) return { ok: false, reason: 'conflict' };
 
 	const kind = input.initiator === 'host' ? 'rescheduled-by-host' : 'rescheduled-by-guest';
-	const appointment = await enqueueAppointmentEmail(ctx.db, result.appointment.id, kind);
-	await enqueueCalendarSync();
+	const appointment = await enqueueAppointmentReconciliation(ctx.db, result.appointment.id, kind);
 
 	return { ok: true, appointment };
 }

@@ -137,6 +137,7 @@ export async function listOutOfSyncAppointments(db: Kysely<Database>): Promise<A
 export interface MarkSyncedFields {
 	external_event_id?: string | null;
 	external_calendar_id?: string | null;
+	video_chat?: string | null;
 }
 
 export async function markSynced(

@@ -5,11 +5,11 @@ const runWorkflow = vi.fn();
 
 vi.mock('@when/jobs', () => ({
 	getOpenWorkflow: () => ({ runWorkflow }),
-	sendAppointmentEmail: { spec: { name: 'send-appointment-email' } }
+	reconcileAppointment: { spec: { name: 'reconcile-appointment' } }
 }));
 
-import { enqueueAppointmentEmail } from './index';
-import { sendAppointmentEmail } from '@when/jobs';
+import { enqueueAppointmentReconciliation } from './index';
+import { reconcileAppointment } from '@when/jobs';
 
 async function seed() {
 	const db = openDb(':memory:');
@@ -32,19 +32,19 @@ async function seed() {
 	return db;
 }
 
-describe('enqueueAppointmentEmail', () => {
+describe('enqueueAppointmentReconciliation', () => {
 	beforeEach(() => runWorkflow.mockReset());
 
 	test('snapshots the appointment and runs the workflow', async () => {
 		const db = await seed();
 
-		const result = await enqueueAppointmentEmail(db, 'appt-1', 'confirmed');
+		const result = await enqueueAppointmentReconciliation(db, 'appt-1', 'confirmed');
 
 		expect(runWorkflow).toHaveBeenCalledWith(
-			sendAppointmentEmail,
+			reconcileAppointment,
 			{
-				kind: 'confirmed',
-				appointment: expect.objectContaining({ id: 'appt-1' })
+				appointmentId: 'appt-1',
+				emailKind: 'confirmed'
 			},
 			{ idempotencyKey: 'appt-1:confirmed:0' }
 		);
@@ -61,9 +61,9 @@ describe('enqueueAppointmentEmail', () => {
 			.where('id', '=', 'appt-1')
 			.execute();
 
-		await enqueueAppointmentEmail(db, 'appt-1', 'rescheduled-by-guest');
+		await enqueueAppointmentReconciliation(db, 'appt-1', 'rescheduled-by-guest');
 
-		expect(runWorkflow).toHaveBeenCalledWith(sendAppointmentEmail, expect.anything(), {
+		expect(runWorkflow).toHaveBeenCalledWith(reconcileAppointment, expect.anything(), {
 			idempotencyKey: 'appt-1:rescheduled-by-guest:2'
 		});
 

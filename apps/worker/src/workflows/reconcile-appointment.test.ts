@@ -1,18 +1,29 @@
-import { describe, expect, test, vi } from 'vitest';
+import { describe, expect, test, vi, beforeEach } from 'vitest';
 import { openDb, runMigrations, parseActionLog } from '@when/db';
 import type { Database } from '@when/db';
 import type { Kysely } from 'kysely';
-import type { SendAppointmentEmailInput } from '@when/jobs';
+import type { ReconcileAppointmentInput } from '@when/jobs';
 import { setWorkerContext } from '../services/context.js';
 import { createLogger } from '../services/logger.js';
 import type { Mailer } from '../email/smtp.js';
 import { sampleInput } from '../email/__fixtures__/appointment.js';
-import { runSendAppointmentEmail } from './send-appointment-email.js';
+import { runReconcileAppointment } from './reconcile-appointment.js';
 
-const input: SendAppointmentEmailInput = {
-	kind: 'confirmed',
-	appointment: sampleInput.appointment
+import type { WhenConfiguration } from '@when/config';
+
+const input: ReconcileAppointmentInput = {
+	appointmentId: 'appt-1',
+	emailKind: 'confirmed'
 };
+
+const testConfig = {
+	...sampleInput.cfg,
+	calendars: [],
+	services: [],
+	event_types: [
+		{ id: '30-min', name: '30 Min Chat', destination_calendar: null }
+	]
+} as unknown as WhenConfiguration;
 
 function makeStep() {
 	const names: string[] = [];
@@ -30,6 +41,19 @@ function makeMailer() {
 	const mailer: Mailer = { send };
 	return { mailer, send };
 }
+
+function recordingFetch(status = 204) {
+	const calls: { method: string; url: string }[] = [];
+	vi.spyOn(globalThis, 'fetch').mockImplementation(async (url: any, init?: RequestInit) => {
+		calls.push({ method: (init?.method as string) ?? 'GET', url: String(url) });
+		return new Response(null, { status });
+	});
+	return { calls };
+}
+
+beforeEach(() => {
+	vi.restoreAllMocks();
+});
 
 async function seedDb(): Promise<Kysely<Database>> {
 	const db = openDb(':memory:');
@@ -64,20 +88,23 @@ async function readEmailJobStates(db: Kysely<Database>) {
 		.map((e) => e.payload?.metadata?.state);
 }
 
-describe('runSendAppointmentEmail', () => {
-	test('sends every envelope and records email:ok', async () => {
+describe('runReconcileAppointment', () => {
+	test('resolves video chat, syncs calendar, and sends email successfully', async () => {
 		const db = await seedDb();
 		const { mailer, send } = makeMailer();
 		send.mockResolvedValue({ ok: true });
-		setWorkerContext({ config: sampleInput.cfg, db, logger: createLogger(), mailer });
+		recordingFetch(201); // Mock external CalDAV/Google calendar calls
+
+		setWorkerContext({ config: testConfig, db, logger: createLogger(), mailer });
 
 		const { step, names } = makeStep();
-		const result = await runSendAppointmentEmail(input, step);
+		const result = await runReconcileAppointment(input, step);
 
-		expect(result).toBe('sent');
+		expect(result).toBe('reconciled');
 		expect(send).toHaveBeenCalledTimes(2); // guest + host
 		expect(names).toEqual([
-			'ensure-video-chat',
+			'resolve-video-chat',
+			'sync-calendar',
 			'smtp:jane@example.com',
 			'smtp:owner@acme.test',
 			'log:result'
@@ -90,12 +117,14 @@ describe('runSendAppointmentEmail', () => {
 		const db = await seedDb();
 		const { mailer, send } = makeMailer();
 		send.mockResolvedValue({ ok: false, reason: 'smtp down' });
-		setWorkerContext({ config: sampleInput.cfg, db, logger: createLogger(), mailer });
+		recordingFetch(201);
+
+		setWorkerContext({ config: testConfig, db, logger: createLogger(), mailer });
 
 		const { step } = makeStep();
-		const result = await runSendAppointmentEmail(input, step);
+		const result = await runReconcileAppointment(input, step);
 
-		expect(result).toBe('failed');
+		expect(result).toBe('reconciled');
 		expect(await readEmailJobStates(db)).toEqual(['failed']);
 		await db.destroy();
 	});

@@ -4,7 +4,7 @@ import { purgeAppointment } from '@when/jobs/specs';
 import type { PurgeAppointmentInput, PurgeAppointmentResult } from '@when/jobs';
 import { getWorkerContext } from '../services/context.js';
 import { implementObservedWorkflow } from '../services/metrics.js';
-import { cleanupVideoChatLink } from '../services/video-chat.js';
+import { deleteStandaloneVideoChat } from '../services/video-chat.js';
 
 // ~24h of bounded effort before we give up and orphan the remote event.
 const CALENDAR_RETRY: Partial<RetryPolicy> = {
@@ -53,7 +53,7 @@ export async function runPurgeAppointment(
 			}
 		}
 		await step.run({ name: `video-chat-cleanup:${row.id}` }, async () => {
-			await cleanupVideoChatLink(db, row.id, config);
+			await deleteStandaloneVideoChat(db, row.id, config);
 		});
 		await step.run({ name: `delete:${row.id}` }, async () => {
 			await db.deleteFrom('appointments').where('id', '=', row.id).execute();

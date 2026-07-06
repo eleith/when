@@ -4,8 +4,8 @@ import { systemClock } from '$lib/server/clock';
 import { openDb, runMigrations, parseActionLog } from '@when/db';
 import { validConfig } from '$lib/server/__fixtures__/valid-config';
 
-vi.mock('../workflow', () => ({ enqueueAppointmentEmail: vi.fn(), enqueueCalendarSync: vi.fn() }));
-import { enqueueAppointmentEmail, enqueueCalendarSync } from '../workflow';
+vi.mock('../workflow', () => ({ enqueueAppointmentReconciliation: vi.fn() }));
+import { enqueueAppointmentReconciliation } from '../workflow';
 
 const baseRow = {
 	event_type_id: '30-min-chat',
@@ -33,11 +33,10 @@ async function fetchRow(db: Awaited<ReturnType<typeof makeDb>>, id: string) {
 
 describe('editAppointment', () => {
 	beforeEach(() => {
-		vi.mocked(enqueueAppointmentEmail).mockReset();
-		vi.mocked(enqueueAppointmentEmail).mockImplementation((db, id) =>
+		vi.mocked(enqueueAppointmentReconciliation).mockReset();
+		vi.mocked(enqueueAppointmentReconciliation).mockImplementation(async (db, id) =>
 			db.selectFrom('appointments').selectAll().where('id', '=', id).executeTakeFirstOrThrow()
 		);
-		vi.mocked(enqueueCalendarSync).mockReset();
 	});
 
 	test('happy path: add note, edit note, remove note', async () => {
@@ -101,8 +100,7 @@ describe('editAppointment', () => {
 				expect(log[2].payload?.metadata?.changes).toEqual(['note_removed']);
 			}
 
-			expect(enqueueCalendarSync).toHaveBeenCalledTimes(3);
-			expect(enqueueAppointmentEmail).toHaveBeenCalledTimes(3);
+			expect(enqueueAppointmentReconciliation).toHaveBeenCalledTimes(3);
 		} finally {
 			await db.destroy();
 		}
@@ -169,8 +167,7 @@ describe('editAppointment', () => {
 				expect(log[2].payload?.metadata?.changes).toEqual(['video_chat_removed']);
 			}
 
-			expect(enqueueCalendarSync).toHaveBeenCalledTimes(3);
-			expect(enqueueAppointmentEmail).toHaveBeenCalledTimes(3);
+			expect(enqueueAppointmentReconciliation).toHaveBeenCalledTimes(3);
 		} finally {
 			await db.destroy();
 		}
@@ -309,8 +306,7 @@ describe('editAppointment', () => {
 				expect(log[2].payload?.metadata?.changes).toEqual(['location_removed']);
 			}
 
-			expect(enqueueCalendarSync).toHaveBeenCalledTimes(3);
-			expect(enqueueAppointmentEmail).toHaveBeenCalledTimes(3);
+			expect(enqueueAppointmentReconciliation).toHaveBeenCalledTimes(3);
 		} finally {
 			await db.destroy();
 		}

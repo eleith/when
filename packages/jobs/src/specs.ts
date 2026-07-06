@@ -21,30 +21,27 @@ export type AppointmentEmailKind =
 	| 'edited-by-host';
 
 /**
- * Self-contained input for a send-appointment-email run. Carries the appointment
- * snapshot; the worker supplies `cfg` from its own loaded config and derives the
- * event type + action links from it.
+ * Self-contained input for a reconcile-appointment run.
  */
-export interface SendAppointmentEmailInput {
-	kind: AppointmentEmailKind;
-	appointment: Appointment;
+export interface ReconcileAppointmentInput {
+	appointmentId: string;
+	emailKind?: AppointmentEmailKind;
 }
 
-// 'sent' = delivered; 'failed' = attempted and gave up after retries.
-export type SendAppointmentEmailResult = 'sent' | 'failed';
+// 'reconciled' = completed successfully; 'failed' = failed after retries.
+export type ReconcileAppointmentResult = 'reconciled' | 'failed';
 
 /**
- * Producer-side contract for the send-appointment-email workflow. Web triggers runs
- * from this spec (`runWorkflow(sendAppointmentEmail, input)`); the worker provides
+ * Producer-side contract for the reconcile-appointment workflow. Web triggers runs
+ * from this spec (`runWorkflow(reconcileAppointment, input)`); the worker provides
  * the implementation in `@when/worker`.
  */
-export const sendAppointmentEmail: WorkflowSpec<
-	SendAppointmentEmailInput,
-	SendAppointmentEmailResult
-> = defineWorkflowSpec<SendAppointmentEmailInput, SendAppointmentEmailResult>({
-	name: 'send-appointment-email',
-	// Workflow-level backstop for unexpected errors. SMTP send retries are set
-	// per-step in the worker (the expected failure path is recorded, not thrown).
+export const reconcileAppointment: WorkflowSpec<
+	ReconcileAppointmentInput,
+	ReconcileAppointmentResult
+> = defineWorkflowSpec<ReconcileAppointmentInput, ReconcileAppointmentResult>({
+	name: 'reconcile-appointment',
+	// Workflow-level backstop for unexpected errors.
 	retryPolicy: {
 		maximumAttempts: 3,
 		initialInterval: '1m',

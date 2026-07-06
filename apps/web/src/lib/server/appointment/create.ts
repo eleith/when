@@ -1,4 +1,4 @@
-import { enqueueAppointmentEmail, enqueueCalendarSync } from '../workflow';
+import { enqueueAppointmentReconciliation } from '../workflow';
 import { newAppointmentId, newCancelToken } from './ids';
 import type { AppointmentContext } from './context';
 import type { GuestAnswer, EventType } from '@when/config';
@@ -76,8 +76,7 @@ export async function createAppointment(
 	}
 
 	const kind: AppointmentEmailKind = status === 'confirmed' ? 'confirmed' : 'pending';
-	appointment = await enqueueAppointmentEmail(ctx.db, appointment.id, kind);
-	if (status === 'confirmed') await enqueueCalendarSync();
+	appointment = await enqueueAppointmentReconciliation(ctx.db, appointment.id, kind);
 
 	return { ok: true, appointment };
 }

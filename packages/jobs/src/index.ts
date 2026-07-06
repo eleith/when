@@ -1,8 +1,8 @@
-export { sendAppointmentEmail, syncCalendars, purgeAppointment } from './specs.js';
+export { reconcileAppointment, syncCalendars, purgeAppointment } from './specs.js';
 export type {
 	AppointmentEmailKind,
-	SendAppointmentEmailInput,
-	SendAppointmentEmailResult,
+	ReconcileAppointmentInput,
+	ReconcileAppointmentResult,
 	SyncCalendarsInput,
 	SyncCalendarsResult,
 	PurgeAppointmentRow,
