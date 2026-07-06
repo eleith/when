@@ -75,7 +75,7 @@ export const nextcloudTalkAddCommand = define({
 				}
 			],
 			video_chats: [videoChatConfig]
-		} as unknown as WhenConfiguration;
+		} as WhenConfiguration;
 
 		const s = spinner();
 		s.start('Verifying Nextcloud Talk room creation capabilities...');

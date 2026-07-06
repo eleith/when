@@ -26,7 +26,7 @@ describe('google add command helpers', () => {
 	const testConfig = {
 		services: [testService],
 		calendars: [cal]
-	} as unknown as WhenConfiguration;
+	} as WhenConfiguration;
 
 	beforeEach(() => {
 		vi.restoreAllMocks();
@@ -168,7 +168,7 @@ describe('google add command helpers', () => {
 				}
 			],
 			calendars: [cal]
-		} as unknown as WhenConfiguration;
+		} as WhenConfiguration;
 		await expect(verifyGoogleConnection(cal, failedConfig)).rejects.toThrow(
 			'Google token refresh failed: 400 Bad Request'
 		);

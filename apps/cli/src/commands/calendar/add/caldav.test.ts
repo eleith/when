@@ -21,7 +21,7 @@ describe('caldav add command', () => {
 			}
 		],
 		calendars: [cal]
-	} as unknown as WhenConfiguration;
+	} as WhenConfiguration;
 
 	beforeEach(() => {
 		vi.restoreAllMocks();

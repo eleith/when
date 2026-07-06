@@ -196,7 +196,7 @@ export const googleAddCommand = define({
 				}
 			],
 			calendars: [cal]
-		} as unknown as WhenConfiguration;
+		} as WhenConfiguration;
 
 		const s = spinner();
 		s.start('Verifying calendar connection...');
