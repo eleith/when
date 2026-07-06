@@ -1,12 +1,10 @@
-import { existsSync } from 'node:fs';
 import { define } from 'gunshi';
 import { text, spinner, note, isCancel, select } from '@clack/prompts';
 import { getCalendarAdapter, type ExpandWindow } from '@when/calendar';
 import { ConfigEditor } from '@when/config';
-import type { GoogleCalendar, WhenConfiguration, Service } from '@when/config';
-
+import type { GoogleCalendar, Service } from '@when/config';
 import { getValidatedConfigPath, validateConfigExists } from '../../../utils/config-path.ts';
-import { getOrCreateGoogleService, exchangeCodeForTokens, type GoogleTokens } from '../../../services/google.ts';
+import { getOrCreateGoogleService, type GoogleTokens } from '../../../services/google.ts';
 import { getExistingIds } from '../../../utils/config.ts';
 
 export async function verifyGoogleConnection(
@@ -43,6 +41,21 @@ export async function fetchCalendarList(
 	return data.items || [];
 }
 
+async function promptGoogleCalendarId(existingIds: string[]): Promise<string | null> {
+	const calendarId = await text({
+		message: 'Enter a unique ID for this calendar (e.g., "personal"):',
+		placeholder: 'personal',
+		validate(value) {
+			if (!value || !value.trim()) return 'Calendar ID is required';
+			if (existingIds.includes(value.trim())) {
+				return `A calendar with ID "${value.trim()}" already exists in config.yaml.`;
+			}
+		}
+	});
+	if (isCancel(calendarId)) return null;
+	return calendarId.trim();
+}
+
 async function promptCalendarSelection(calendars: GoogleCalendarItem[]): Promise<string | null> {
 	if (calendars.length === 0) {
 		note('No calendars found in your Google account.', 'No Calendars Found');
@@ -60,6 +73,89 @@ async function promptCalendarSelection(calendars: GoogleCalendarItem[]): Promise
 	if (isCancel(selectedCalendarId)) return null;
 
 	return selectedCalendarId as string;
+}
+
+async function verifyGoogleRefreshToken(
+	clientId: string,
+	clientSecret: string,
+	refreshToken: string
+): Promise<string> {
+	const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+		body: new URLSearchParams({
+			client_id: clientId,
+			client_secret: clientSecret,
+			refresh_token: refreshToken,
+			grant_type: 'refresh_token'
+		})
+	});
+
+	if (!tokenResponse.ok) {
+		const text = await tokenResponse.text();
+		throw new Error(`Failed to authenticate with Google: ${text}`);
+	}
+
+	const data = (await tokenResponse.json()) as { access_token: string };
+	return data.access_token;
+}
+
+interface WriteGoogleCalendarConfigOpts {
+	configPath: string;
+	cal: GoogleCalendar;
+	serviceId: string;
+	clientId: string;
+	envClientSecret: string;
+	envRefreshToken: string;
+	isNew: boolean;
+}
+
+function writeGoogleCalendarConfig({
+	configPath,
+	cal,
+	serviceId,
+	clientId,
+	envClientSecret,
+	envRefreshToken,
+	isNew
+}: WriteGoogleCalendarConfigOpts): void {
+	const editor = new ConfigEditor(configPath);
+	const servicesList = (editor.get('services') as Service[]) ?? [];
+	const calendarsList = (editor.get('calendars') as GoogleCalendar[]) ?? [];
+
+	if (isNew) {
+		const serviceToWrite = {
+			id: serviceId,
+			type: 'google',
+			client_id: clientId,
+			client_secret: `\${${envClientSecret}}`,
+			refresh_token: `\${${envRefreshToken}}`
+		};
+		editor.set(`services.${servicesList.length}`, serviceToWrite);
+	}
+
+	editor.set(`calendars.${calendarsList.length}`, cal);
+}
+
+function getCompletionMessage(
+	id: string,
+	serviceId: string,
+	clientSecret: string,
+	refreshToken: string,
+	envClientSecret: string,
+	envRefreshToken: string,
+	isNew: boolean
+): string {
+	let message = `Successfully verified and added calendar "${id}" to config.yaml!\n`;
+	if (isNew) {
+		message +=
+			`\n⚠️  Please define the following environment variables (e.g. in your .env or Docker config):\n\n` +
+			`${envClientSecret}="${clientSecret}"\n` +
+			`${envRefreshToken}="${refreshToken}"`;
+	} else {
+		message += `\nReused existing service configuration "${serviceId}".`;
+	}
+	return message;
 }
 
 export const googleAddCommand = define({
@@ -81,18 +177,8 @@ export const googleAddCommand = define({
 		}
 
 		const existingCalendarIds = getExistingIds(configPath, 'calendars');
-
-		const calendarId = await text({
-			message: 'Enter a unique ID for this calendar (e.g., "personal"):',
-			placeholder: 'personal',
-			validate(value) {
-				if (!value || !value.trim()) return 'Calendar ID is required';
-				if (existingCalendarIds.includes(value.trim()))
-					return `A calendar with ID "${value.trim()}" already exists in config.yaml.`;
-			}
-		});
-		if (isCancel(calendarId)) return;
-		const id = calendarId.trim();
+		const id = await promptGoogleCalendarId(existingCalendarIds);
+		if (!id) return;
 
 		const serviceResult = await getOrCreateGoogleService(configPath, id);
 		if (!serviceResult) return;
@@ -107,26 +193,17 @@ export const googleAddCommand = define({
 			envRefreshToken
 		} = serviceResult;
 
-		const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-			body: new URLSearchParams({
-				client_id: clientId,
-				client_secret: clientSecret,
-				refresh_token: refreshToken,
-				grant_type: 'refresh_token'
-			})
-		});
-
-		if (!tokenResponse.ok) {
-			const text = await tokenResponse.text();
-			note(`Failed to authenticate with Google: ${text}`, 'Verification Failed');
+		let accessToken: string;
+		try {
+			accessToken = await verifyGoogleRefreshToken(clientId, clientSecret, refreshToken);
+		} catch (err) {
+			const text = err instanceof Error ? err.message : String(err);
+			note(text, 'Verification Failed');
 			process.exitCode = 1;
 			return;
 		}
 
-		const { access_token } = (await tokenResponse.json()) as { access_token: string };
-		const calendars = await fetchCalendarList(access_token);
+		const calendars = await fetchCalendarList(accessToken);
 		const selectedCalendarId = await promptCalendarSelection(calendars);
 		if (!selectedCalendarId) {
 			return;
@@ -154,34 +231,27 @@ export const googleAddCommand = define({
 			await verifyGoogleConnection(cal, service);
 			s.message('Writing calendar and service to configuration...');
 
-			const editor = new ConfigEditor(configPath);
-			const servicesList = (editor.get('services') as Service[]) ?? [];
-			const calendarsList = (editor.get('calendars') as GoogleCalendar[]) ?? [];
+			writeGoogleCalendarConfig({
+				configPath,
+				cal,
+				serviceId,
+				clientId,
+				envClientSecret,
+				envRefreshToken,
+				isNew
+			});
 
-			if (isNew) {
-				const serviceToWrite = {
-					id: serviceId,
-					type: 'google',
-					client_id: clientId,
-					client_secret: `\${${envClientSecret}}`,
-					refresh_token: `\${${envRefreshToken}}`
-				};
-				editor.set(`services.${servicesList.length}`, serviceToWrite);
-			}
-
-			editor.set(`calendars.${calendarsList.length}`, cal);
 			s.stop('Setup completed successfully!');
 
-			let completionMsg = `Successfully verified and added calendar "${id}" to config.yaml!\n`;
-			if (isNew) {
-				completionMsg +=
-					`\n⚠️  Please define the following environment variables (e.g. in your .env or Docker config):\n\n` +
-					`${envClientSecret}="${clientSecret}"\n` +
-					`${envRefreshToken}="${refreshToken}"`;
-			} else {
-				completionMsg += `\nReused existing service configuration "${serviceId}".`;
-			}
-
+			const completionMsg = getCompletionMessage(
+				id,
+				serviceId,
+				clientSecret,
+				refreshToken,
+				envClientSecret,
+				envRefreshToken,
+				isNew
+			);
 			note(completionMsg, 'Setup Complete');
 		} catch (err) {
 			s.stop('Failed!');
