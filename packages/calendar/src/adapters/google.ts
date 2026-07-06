@@ -167,7 +167,26 @@ export async function putGoogleEvent(
 	const method = isUpdate ? 'PUT' : 'POST';
 
 	const guest = guestContact(appointment);
-	const shouldCreateMeet = appointment.video_chat === 'google-meet';
+	let conferenceData = undefined;
+	if (appointment.video_chat === 'google-meet') {
+		conferenceData = {
+			createRequest: {
+				requestId: appointment.id,
+				conferenceSolutionKey: {
+					type: 'hangoutsMeet'
+				}
+			}
+		};
+	} else if (appointment.video_chat && appointment.video_chat.startsWith('http')) {
+		conferenceData = {
+			entryPoints: [
+				{
+					entryPointType: 'video',
+					uri: appointment.video_chat
+				}
+			]
+		};
+	}
 
 	const payload = {
 		summary: `${opts.eventTypeName} with ${appointment.guest_name}`,
@@ -176,25 +195,7 @@ export async function putGoogleEvent(
 		start: { dateTime: appointment.start_time },
 		end: { dateTime: appointment.end_time },
 		attendees: guest ? [{ email: guest.email, displayName: guest.name }] : [],
-		conferenceData: shouldCreateMeet
-			? {
-					createRequest: {
-						requestId: appointment.id,
-						conferenceSolutionKey: {
-							type: 'hangoutsMeet'
-						}
-					}
-				}
-			: appointment.video_chat && appointment.video_chat.startsWith('http')
-				? {
-						entryPoints: [
-							{
-								entryPointType: 'video',
-								uri: appointment.video_chat
-							}
-						]
-					}
-				: undefined
+		conferenceData
 	};
 
 	const res = await fetch(url, {
