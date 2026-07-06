@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs';
 import { define } from 'gunshi';
 import { text, spinner, note, isCancel, select } from '@clack/prompts';
-import { getCalendarAdapter } from '@when/calendar';
+import { getCalendarAdapter, type ExpandWindow } from '@when/calendar';
 import { ConfigEditor } from '@when/config';
 import type { GoogleCalendar, WhenConfiguration, Service } from '@when/config';
 
@@ -15,8 +15,8 @@ export async function verifyGoogleConnection(
 ): Promise<void> {
 	const adapter = getCalendarAdapter(cal, config);
 	const now = Temporal.Now.instant();
-	const window = { start: now, end: now.add({ hours: 1 }) };
-	await adapter.fetchBusy(window as unknown as import('@when/calendar').ExpandWindow);
+	const window: ExpandWindow = { start: now, end: now.add({ hours: 1 }) };
+	await adapter.fetchBusy(window);
 }
 
 export interface GoogleTokens {
