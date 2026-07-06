@@ -3,9 +3,9 @@ import type { GoogleCalendar, Service } from '@when/config';
 import {
 	googleAddCommand,
 	verifyGoogleConnection,
-	exchangeCodeForTokens,
 	fetchCalendarList
 } from './google.ts';
+import { exchangeCodeForTokens } from '../../../services/google.ts';
 
 describe('google add command helpers', () => {
 	const cal: GoogleCalendar = {

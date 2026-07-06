@@ -6,7 +6,7 @@ import { ConfigEditor } from '@when/config';
 import type { GoogleCalendar, WhenConfiguration, Service } from '@when/config';
 
 import { getValidatedConfigPath, validateConfigExists } from '../../../utils/config-path.ts';
-import { getOrCreateGoogleService } from '../../../services/google.ts';
+import { getOrCreateGoogleService, exchangeCodeForTokens, type GoogleTokens } from '../../../services/google.ts';
 import { getExistingIds } from '../../../utils/config.ts';
 
 export async function verifyGoogleConnection(
@@ -17,40 +17,6 @@ export async function verifyGoogleConnection(
 	const now = Temporal.Now.instant();
 	const window: ExpandWindow = { start: now, end: now.add({ hours: 1 }) };
 	await adapter.fetchBusy(window);
-}
-
-export interface GoogleTokens {
-	access_token: string;
-	refresh_token: string;
-	expires_in: number;
-}
-
-export async function exchangeCodeForTokens(
-	clientId: string,
-	clientSecret: string,
-	code: string,
-	redirectUri: string
-): Promise<GoogleTokens> {
-	const response = await fetch('https://oauth2.googleapis.com/token', {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/x-www-form-urlencoded'
-		},
-		body: new URLSearchParams({
-			client_id: clientId,
-			client_secret: clientSecret,
-			code,
-			grant_type: 'authorization_code',
-			redirect_uri: redirectUri
-		})
-	});
-
-	if (!response.ok) {
-		const text = await response.text();
-		throw new Error(`Failed to exchange authorization code: ${response.status} ${text}`);
-	}
-
-	return (await response.json()) as GoogleTokens;
 }
 
 export interface GoogleCalendarItem {
