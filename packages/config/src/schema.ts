@@ -211,6 +211,7 @@ export const EventTypeSchema = Type.Object({
 	conflict_calendars: Type.Optional(Type.Array(Type.String({ minLength: 1 }), { default: [], description: 'Calendar IDs to check for conflicts (busy times) to block slots.' })),
 	destination_calendar: Type.String({ minLength: 1, description: 'Calendar ID where confirmed bookings will be written.' }),
 	availability: Type.String({ minLength: 1, description: 'ID of the availability profile to use for scheduling.' }),
+	booking_style: Type.Optional(Type.Union([Type.Literal('insert'), Type.Literal('select')], { default: 'insert', description: 'The booking UI interaction style.' })),
 	location: Type.Optional(Ref(LocationSchema, { description: 'Static location of the meeting.' })),
 	note: Type.Optional(Type.String({ minLength: 1, description: 'A note shown to guests after booking.' })),
 	video_chat: Type.Optional(Type.String({ minLength: 1, description: 'ID of the video chat provider to generate dynamic links.' })),

@@ -264,3 +264,28 @@ test('unknown availability reference in event_type flagged', () => {
 		)
 	).toBe(true);
 });
+
+test('select booking style with slot_granularity less than duration is flagged', () => {
+	const bad = clone(validConfig);
+	bad.event_types[0].booking_style = 'select';
+	// validConfig duration is 30, slot_granularity overrides/defaults:
+	// Let's set slot_granularity = 15 on event_type (or let it default to 15 on profile)
+	bad.event_types[0].slot_granularity = 15;
+	bad.event_types[0].duration = 30;
+	const issues = issuesFor(bad);
+	expect(
+		issues.some(
+			(i) =>
+				i.path === '/event_types/0/slot_granularity' &&
+				i.message.includes('must be greater than or equal')
+		)
+	).toBe(true);
+});
+
+test('select booking style with slot_granularity equal or greater than duration passes', () => {
+	const good = clone(validConfig);
+	good.event_types[0].booking_style = 'select';
+	good.event_types[0].slot_granularity = 30;
+	good.event_types[0].duration = 30;
+	expect(() => validateConfig(good)).not.toThrow();
+});

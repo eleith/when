@@ -59,6 +59,11 @@ describe('toPublicEventType', () => {
 		expect(res.buffer_after).toBe(10);
 		expect(res.minimum_notice).toBe(60);
 	});
+
+	test('maps booking_style', () => {
+		const res = toPublicEventType({ ...baseEventType, booking_style: 'select' }, false);
+		expect(res.booking_style).toBe('select');
+	});
 });
 
 describe('toPublicAppointment', () => {

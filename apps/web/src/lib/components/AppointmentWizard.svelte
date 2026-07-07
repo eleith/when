@@ -39,6 +39,7 @@
 			buffer_before?: number;
 			buffer_after?: number;
 			minimum_notice?: number;
+			booking_style?: 'insert' | 'select';
 		};
 		formFields: readonly FormField[];
 		slotsByDate: Record<string, string[]>;
@@ -381,6 +382,7 @@
 								workingWindows={data.workingWindows}
 								busyBlocks={data.busyBlocks}
 								eventType={data.eventType}
+								bookingStyle={data.eventType.booking_style}
 								originalSlot={data.rescheduleAppt?.start_time ?? null}
 								onEditDate={flow.goBack}
 							/>

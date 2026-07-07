@@ -458,6 +458,20 @@
 					"description": "ID of the availability profile to use for scheduling.",
 					"type": "string"
 				},
+				"booking_style": {
+					"default": "insert",
+					"description": "The booking UI interaction style.",
+					"anyOf": [
+						{
+							"const": "insert",
+							"type": "string"
+						},
+						{
+							"const": "select",
+							"type": "string"
+						}
+					]
+				},
 				"location": {
 					"description": "Static location of the meeting.",
 					"$ref": "#/$defs/Location"

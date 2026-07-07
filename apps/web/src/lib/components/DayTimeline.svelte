@@ -11,6 +11,7 @@
 		workingWindows: { start: string; end: string }[];
 		busyBlocks: { start: string; end: string }[];
 		eventType: TimelineEventType;
+		bookingStyle?: 'insert' | 'select';
 		originalSlot?: string | null;
 		onEditDate?: (() => void) | null;
 	}
@@ -20,6 +21,7 @@
 		workingWindows,
 		busyBlocks,
 		eventType,
+		bookingStyle = 'insert',
 		originalSlot = null,
 		onEditDate = null
 	}: Props = $props();
@@ -96,6 +98,7 @@
 	}
 
 	function handleTrackPointerDown(e: PointerEvent) {
+		if (bookingStyle === 'select') return;
 		if (!trackEl) return;
 		const percent = pointToPercent(e.clientY);
 		const current = timeline?.slots.find((s) => s.iso === selectedSlot);
@@ -219,7 +222,22 @@
 						</div>
 					{/each}
 
-					{#if selectedSlot}
+					{#if bookingStyle === 'select'}
+						{#each timeline.slots as s (s.iso)}
+							{#if !s.isOriginal}
+								<button
+									type="button"
+									class="slot-btn"
+									class:selected={s.iso === selectedSlot}
+									style:top="{s.top}%"
+									style:height="{s.height}%"
+									onclick={() => selectSlot(s.iso)}
+								>
+									<span class="slot-text">{s.time} ({eventType.duration} min)</span>
+								</button>
+							{/if}
+						{/each}
+					{:else if selectedSlot}
 						{@const s = timeline.slots.find((s) => s.iso === selectedSlot)}
 						{#if s}
 							{@const preview =
@@ -237,7 +255,9 @@
 								style:top="{dragTop}%"
 								style:height="{s.height}%"
 							>
-								<span class="slot-text">{preview ? preview.time : s.time}</span>
+								<span class="slot-text">
+									{preview ? preview.time : s.time} ({eventType.duration} min)
+								</span>
 							</div>
 						{/if}
 					{/if}
@@ -488,7 +508,8 @@
 		border: 1px solid var(--primary-border);
 		border-radius: var(--radius-sm);
 		display: flex;
-		align-items: flex-start;
+		justify-content: center;
+		align-items: center;
 		padding: var(--space-1) var(--space-2);
 		font-size: var(--font-size-sm);
 		color: var(--primary);
@@ -527,5 +548,47 @@
 		text-align: center;
 		color: var(--text-muted);
 		padding: var(--space-9) var(--space-7);
+	}
+
+	.slot-btn {
+		position: absolute;
+		left: var(--space-4);
+		right: var(--space-4);
+		background: var(--surface);
+		border: 1px dashed var(--border-strong);
+		border-radius: var(--radius-sm);
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		padding: var(--space-1) var(--space-2);
+		font-size: var(--font-size-sm);
+		font-weight: 600;
+		color: var(--text-secondary);
+		z-index: 5;
+		cursor: pointer;
+		text-align: center;
+		transition:
+			background-color var(--transition),
+			border-color var(--transition),
+			color var(--transition),
+			transform var(--transition);
+	}
+
+	.slot-btn:hover {
+		background: var(--primary-muted);
+		border: 1px solid var(--primary-border);
+		color: var(--primary);
+		transform: scale(0.99);
+	}
+
+	.slot-btn.selected {
+		background: var(--primary-muted);
+		border: 1px solid var(--primary-border);
+		color: var(--primary);
+	}
+
+	.slot-btn.selected:hover {
+		background: var(--primary-muted);
+		opacity: 0.9;
 	}
 </style>

@@ -97,6 +97,15 @@ export function checkCrossRefs(cfg: WhenConfiguration): ConfigIssue[] {
 				path: `/event_types/${i}/availability`,
 				message: `references unknown availability id "${et.availability}"`
 			});
+		} else if (et.booking_style === 'select') {
+			const profile = cfg.availabilities.find((p) => p.id === et.availability);
+			const slot_granularity = et.slot_granularity ?? profile?.slot_granularity ?? 15;
+			if (slot_granularity < et.duration) {
+				issues.push({
+					path: `/event_types/${i}/slot_granularity`,
+					message: `in "select" booking style, slot_granularity (${slot_granularity}) must be greater than or equal to the event duration (${et.duration}) to prevent overlapping slot buttons`
+				});
+			}
 		}
 
 		(et.conflict_calendars ?? []).forEach((cid, j) => {

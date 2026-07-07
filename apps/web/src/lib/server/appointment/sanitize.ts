@@ -10,6 +10,7 @@ export interface PublicEventType {
 	visibility: 'public' | 'private';
 	appointment_flow: 'auto' | 'requires_confirmation';
 	location: Location | null;
+	booking_style?: 'insert' | 'select';
 	buffer_before?: number;
 	buffer_after?: number;
 	minimum_notice?: number;
@@ -43,6 +44,7 @@ export function toPublicEventType(
 		visibility: eventType.visibility ?? 'public',
 		appointment_flow: eventType.appointment_flow,
 		location: isAdmin ? (eventType.location ?? null) : null,
+		booking_style: eventType.booking_style,
 		...(settings
 			? {
 					buffer_before: settings.buffer_before,
