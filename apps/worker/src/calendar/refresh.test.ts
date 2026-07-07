@@ -52,9 +52,12 @@ const defaultTestConfig = {
 		}
 	],
 	calendars: [workCal],
-	availability: {
-		weekly: []
-	},
+	availabilities: [
+		{
+			id: 'standard',
+			weekly: {}
+		}
+	],
 	event_types: []
 };
 
@@ -160,11 +163,11 @@ test('conflictCalendarIds unions and dedupes across event types', () => {
 test('refreshWindow uses the max lookahead among event types using the calendar', () => {
 	const now = inst('2026-04-15T00:00:00Z');
 	const config = {
-		availability: { maximum_lookahead: 60 },
+		availabilities: [{ id: 'standard', maximum_lookahead: 60 }],
 		event_types: [
-			{ conflict_calendars: ['work'], maximum_lookahead: 30 },
-			{ conflict_calendars: ['work'], maximum_lookahead: 90 },
-			{ conflict_calendars: ['other'], maximum_lookahead: 120 }
+			{ conflict_calendars: ['work'], maximum_lookahead: 30, availability: 'standard' },
+			{ conflict_calendars: ['work'], maximum_lookahead: 90, availability: 'standard' },
+			{ conflict_calendars: ['other'], maximum_lookahead: 120, availability: 'standard' }
 		]
 	} as unknown as WhenConfiguration;
 	const w = refreshWindow(config, 'work', now);
@@ -174,8 +177,8 @@ test('refreshWindow uses the max lookahead among event types using the calendar'
 test('refreshWindow falls back to the default lookahead when unset', () => {
 	const now = inst('2026-04-15T00:00:00Z');
 	const config = {
-		availability: {},
-		event_types: [{ conflict_calendars: ['work'] }]
+		availabilities: [{ id: 'standard' }],
+		event_types: [{ conflict_calendars: ['work'], availability: 'standard' }]
 	} as unknown as WhenConfiguration;
 	const w = refreshWindow(config, 'work', now);
 	expect(w.end.toString()).toBe(now.add({ hours: 24 * 60 }).toString());
@@ -186,10 +189,10 @@ test('refreshCalendars refreshes known conflict calendars and skips unknown ids'
 	await runMigrations(db);
 	const ctx: WorkerContext = {
 		config: {
-			availability: {},
+			availabilities: [{ id: 'standard' }],
 			services: defaultTestConfig.services,
 			calendars: [workCal],
-			event_types: [{ conflict_calendars: ['work', 'ghost'] }]
+			event_types: [{ conflict_calendars: ['work', 'ghost'], availability: 'standard' }]
 		} as unknown as WhenConfiguration,
 		logger: silent,
 		db,
@@ -220,10 +223,10 @@ test('refreshCalendars skips a calendar refreshed within its interval, refreshes
 	await runMigrations(db);
 	const ctx: WorkerContext = {
 		config: {
-			availability: {},
+			availabilities: [{ id: 'standard' }],
 			services: defaultTestConfig.services,
 			calendars: [{ ...workCal, sync: { refresh_interval: 30 } }],
-			event_types: [{ conflict_calendars: ['work'] }]
+			event_types: [{ conflict_calendars: ['work'], availability: 'standard' }]
 		} as unknown as WhenConfiguration,
 		logger: silent,
 		db,

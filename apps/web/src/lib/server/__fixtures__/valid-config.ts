@@ -50,15 +50,18 @@ export const validConfig: WhenConfiguration = {
 			google_calendar_id: 'gc-calid'
 		}
 	],
-	availability: {
-		default: {
-			monday: ['09:00-17:00'],
-			tuesday: ['09:00-17:00'],
-			wednesday: ['09:00-17:00'],
-			thursday: ['09:00-17:00'],
-			friday: ['09:00-17:00']
+	availabilities: [
+		{
+			id: 'standard',
+			weekly: {
+				monday: ['09:00-17:00'],
+				tuesday: ['09:00-17:00'],
+				wednesday: ['09:00-17:00'],
+				thursday: ['09:00-17:00'],
+				friday: ['09:00-17:00']
+			}
 		}
-	},
+	],
 	event_types: [
 		{
 			id: '30-min-chat',
@@ -66,7 +69,8 @@ export const validConfig: WhenConfiguration = {
 			duration: 30,
 			slug: '30-min',
 			appointment_flow: 'auto',
-			destination_calendar: 'my-google-cal'
+			destination_calendar: 'my-google-cal',
+			availability: 'standard'
 		}
 	],
 	database: {

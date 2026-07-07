@@ -247,7 +247,9 @@ test('duplicate availability profile id flagged', () => {
 	bad.availabilities.push({ ...bad.availabilities[0] });
 	const issues = issuesFor(bad);
 	expect(
-		issues.some((i) => i.path === '/availabilities/1/id' && i.message.includes('duplicate availability id'))
+		issues.some(
+			(i) => i.path === '/availabilities/1/id' && i.message.includes('duplicate availability id')
+		)
 	).toBe(true);
 });
 
@@ -256,6 +258,9 @@ test('unknown availability reference in event_type flagged', () => {
 	bad.event_types[0].availability = 'non-existent';
 	const issues = issuesFor(bad);
 	expect(
-		issues.some((i) => i.path === '/event_types/0/availability' && i.message.includes('unknown availability id'))
+		issues.some(
+			(i) =>
+				i.path === '/event_types/0/availability' && i.message.includes('unknown availability id')
+		)
 	).toBe(true);
 });

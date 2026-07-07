@@ -8,7 +8,8 @@ const baseEvent: EventType = {
 	duration: 30,
 	slug: 'chat',
 	appointment_flow: 'auto',
-	destination_calendar: 'cal'
+	destination_calendar: 'cal',
+	availability: 'standard'
 };
 
 function eventWith(form_fields: FormField[], location?: EventType['location']): EventType {

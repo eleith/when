@@ -10,7 +10,8 @@ const baseEventType: EventType = {
 	slug: 'chat',
 	appointment_flow: 'auto',
 	destination_calendar: 'main',
-	location: 'https://meet.example.com/jane'
+	location: 'https://meet.example.com/jane',
+	availability: 'standard'
 };
 
 const baseRow: Appointment = {

@@ -34,8 +34,9 @@ export function refreshWindow(
 	let days = 0;
 	for (const et of config.event_types) {
 		if (!(et.conflict_calendars ?? []).includes(calendarId)) continue;
+		const profile = config.availabilities.find((p) => p.id === et.availability);
 		const lookahead =
-			et.maximum_lookahead ?? config.availability.maximum_lookahead ?? DEFAULT_MAX_LOOKAHEAD_DAYS;
+			et.maximum_lookahead ?? profile?.maximum_lookahead ?? DEFAULT_MAX_LOOKAHEAD_DAYS;
 		days = Math.max(days, lookahead);
 	}
 	if (days === 0) days = DEFAULT_MAX_LOOKAHEAD_DAYS;

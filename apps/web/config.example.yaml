@@ -40,13 +40,14 @@ calendars:
     service_id: 'caldav-service'
     url: 'https://caldav.example.com/dav/you/cal/'
 
-availability:
-  default:
-    monday: ['09:00-17:00']
-    tuesday: ['09:00-17:00']
-    wednesday: ['09:00-17:00']
-    thursday: ['09:00-17:00']
-    friday: ['09:00-17:00']
+availabilities:
+  - id: 'standard'
+    weekly:
+      monday: ['09:00-17:00']
+      tuesday: ['09:00-17:00']
+      wednesday: ['09:00-17:00']
+      thursday: ['09:00-17:00']
+      friday: ['09:00-17:00']
 
 event_types:
   - id: 'chat'
@@ -55,5 +56,6 @@ event_types:
     slug: 'chat'
     appointment_flow: 'auto'
     destination_calendar: 'main'
+    availability: 'standard'
     image_url: '/public/chat-icon.png'
     description: 'A quick catch-up or intro call.'

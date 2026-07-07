@@ -14,7 +14,8 @@ export function resolveAvailabilitySettings(
 	cfg: WhenConfiguration,
 	et: EventType
 ): AvailabilitySettings {
-	const a = cfg.availability;
+	const a = cfg.availabilities.find((p) => p.id === et.availability);
+	if (!a) throw new Error(`unknown availability profile id: ${et.availability}`);
 	return {
 		duration: et.duration,
 		slot_granularity: et.slot_granularity ?? a.slot_granularity ?? 15,
@@ -23,6 +24,6 @@ export function resolveAvailabilitySettings(
 		buffer_before: et.buffer_before ?? a.buffer_before ?? 0,
 		buffer_after: et.buffer_after ?? a.buffer_after ?? 0,
 		max_appointments_per_day: et.max_appointments_per_day ?? a.max_appointments_per_day ?? null,
-		weekly: a.default
+		weekly: a.weekly
 	};
 }

@@ -39,9 +39,10 @@ calendars:
     type: "caldav"
     service_id: "work-dav"
     url: "https://example.com"
-availability:
-  default:
-    monday: ["09:00-17:00"]
+availabilities:
+  - id: "standard"
+    weekly:
+      monday: ["09:00-17:00"]
 event_types:
   - id: "chat"
     name: "Chat"
@@ -49,6 +50,7 @@ event_types:
     slug: "chat"
     appointment_flow: "auto"
     destination_calendar: "work"
+    availability: "standard"
 database:
   app: "./data/when.sqlite"
   queue: "./data/openworkflow.sqlite"
@@ -89,9 +91,10 @@ calendars:
     type: "caldav"
     service_id: "work-dav"
     url: "https://example.com"
-availability:
-  default:
-    monday: ["09:00-17:00"]
+availabilities:
+  - id: "standard"
+    weekly:
+      monday: ["09:00-17:00"]
 event_types:
   - id: "chat"
     name: "Chat"
@@ -99,6 +102,7 @@ event_types:
     slug: "chat"
     appointment_flow: "auto"
     destination_calendar: "work"
+    availability: "standard"
 database:
   app: "./data/when.sqlite"
   queue: "./data/openworkflow.sqlite"
