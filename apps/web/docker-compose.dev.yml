@@ -50,6 +50,8 @@ services:
       - ../../packages/calendar/src:/m/packages/calendar/src
 
   when-cli:
+    profiles:
+      - tools
     build:
       context: ../..
       dockerfile: apps/cli/Dockerfile

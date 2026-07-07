@@ -4,7 +4,6 @@ services:
       context: ../..
       dockerfile: apps/web/Dockerfile
       target: prod
-    platform: linux/amd64
     ports:
       - '3000:3000'
     volumes:
@@ -18,7 +17,6 @@ services:
       context: ../..
       dockerfile: apps/worker/Dockerfile
       target: prod
-    platform: linux/amd64
     volumes:
       - ./config.yaml:/app/config.yaml
       - ./data:/app/data
@@ -29,7 +27,8 @@ services:
       context: ../..
       dockerfile: apps/cli/Dockerfile
       target: prod
-    platform: linux/amd64
+    profiles:
+      - tools
     stdin_open: true
     tty: true
     volumes:
