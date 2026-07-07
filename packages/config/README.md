@@ -2,18 +2,9 @@
 
 Shared configuration loading and schema for the `when` workspace.
 
-Owns the canonical `config.yaml` schema (`src/config.schema.json`), the
-generated TypeScript types (`src/schema.d.ts`, via `json2ts`), and the loader
-that parses, interpolates `${ENV}` references, validates against the schema, and
-cross-checks references.
+Owns the canonical config schema [schema.ts](file:///home/eleith/dev/when/packages/config/src/schema.ts) defined using TypeBox. The loader parses, interpolates `${ENV}` references, validates using AJV, and performs cross-reference validation.
 
-The canonical schema keeps every defaulted field `required`, so the generated
-types are strict (non-optional) and ajv fills the defaults at load. A generated
-relaxed copy — `src/config.external.schema.json`, served at `GET
-/schema/config.json` — drops those fields from `required` so an editor pointed at
-it (`# yaml-language-server: $schema=…`) doesn't flag defaulted-but-omitted
-fields as missing. Point a `config.yaml` at the relaxed copy, never the canonical
-one.
+The source schema keeps every defaulted field strict (non-optional) so TypeScript types are strong. The generated JSON Schema ([config.schema.json](file:///home/eleith/dev/when/packages/config/src/config.schema.json)) is programmatically relaxed (omitted-but-defaulted fields are removed from `required` rules) so an editor pointed at it via `# yaml-language-server: $schema=...` doesn't flag them as missing. Point a `config.yaml` to this generated schema.
 
 Consumed by `@when/web` (producer) and `@when/worker`. App-specific boot glue
 (SvelteKit `$env`, metrics) stays in the consuming app.
@@ -24,13 +15,11 @@ Consumed by `@when/web` (producer) and `@when/worker`. App-specific boot glue
 - `validateConfig(raw)` — validate an already-parsed object.
 - `interpolate(node, env?)` — expand `${ENV_VAR}` references.
 - `ConfigError`, `MissingEnvVarsError` — typed failures.
-- `schema` — the canonical (strict) JSON Schema object.
-- `externalSchema` — the relaxed, editor-facing copy.
-- Types: `WhenConfiguration`, `EventType`, and the rest of the schema types.
+- `schema` / `externalSchema` — the generated relaxed JSON Schema.
+- Types: `WhenConfiguration`, `EventType`, and all other statically generated TypeBox types.
 
 ## Scripts
 
-- `pnpm generate:types` — regenerate `src/schema.d.ts` from the JSON schema.
-- `pnpm generate:external-schema` — regenerate `src/config.external.schema.json`.
-- `pnpm build` — generate types + the external schema, `tsc`, then copy both schema JSONs into `dist`.
+- `pnpm generate:schema` — regenerate `src/config.schema.json` from `src/schema.ts`.
+- `pnpm build` — run `generate:schema`, compile TS files via `tsc`, and build assets.
 - `pnpm test` / `pnpm lint`.

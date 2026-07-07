@@ -76,13 +76,10 @@ fake `Mailer` for email, a fake workflow `step` for jobs. End-to-end tests live 
 
 ### Changing the config schema
 
-`packages/config/src/config.schema.json` is the source of truth. After editing it,
-regenerate the derived artifacts:
+[schema.ts](file:///home/eleith/dev/when/packages/config/src/schema.ts) (TypeBox) is the source of truth. After editing it, regenerate the relaxed JSON Schema:
 
 ```sh
-pnpm --filter @when/config generate:types            # strict TypeScript types
-pnpm --filter @when/config generate:external-schema  # relaxed editor schema
+pnpm --filter @when/config generate:schema
 ```
 
-(Both run as part of `pnpm --filter @when/config build`.) Update
-`apps/web/config.example.yaml` and the fixtures if you add or change a field.
+(This runs as part of `pnpm --filter @when/config build`.) Update [config.example.yaml](file:///home/eleith/dev/when/apps/web/config.example.yaml) and the fixtures if you add or change a field.

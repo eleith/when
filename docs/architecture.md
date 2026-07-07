@@ -17,15 +17,16 @@ zoned time math uses `@js-temporal/polyfill`; calendar iCal in and out goes thro
 A pnpm workspace (`apps/*`, `packages/*`). Tests are co-located as `*.test.ts` next to
 the code they cover — there is no top-level `tests/` directory.
 
-| Path                | Role                                                                                          |
-| ------------------- | --------------------------------------------------------------------------------------------- |
-| `apps/web`          | SvelteKit app: appointment page, admin UI, API routes. Also holds `e2e/` (Playwright).        |
-| `apps/worker`       | Long-running background service: calendar sync + email delivery. See its README.              |
-| `apps/cli`          | Helper command-line tool (`when-cli`) for config validation and calendar setups.              |
-| `packages/config`   | Canonical `config.yaml` schema, generated types, loader/validator. See its README.            |
-| `packages/db`       | SQLite data layer: `node:sqlite` + Kysely dialect, schema types, migrations. See its README.  |
-| `packages/jobs`     | The job/workflow contract shared by web (producer) and worker (consumer). See its README.     |
-| `packages/calendar` | External-calendar I/O: provider adapters, busy-time fetch, push/delete, ICS. See its README.  |
+| Path                  | Role                                                                                         |
+| --------------------- | -------------------------------------------------------------------------------------------- |
+| `apps/web`            | SvelteKit app: appointment page, admin UI, API routes. Also holds `e2e/` (Playwright).       |
+| `apps/worker`         | Long-running background service: calendar sync + email delivery. See its README.             |
+| `apps/cli`            | Helper command-line tool (`when-cli`) for config validation and calendar setups.             |
+| `packages/config`     | Canonical `config.yaml` schema, generated types, loader/validator. See its README.           |
+| `packages/db`         | SQLite data layer: `node:sqlite` + Kysely dialect, schema types, migrations. See its README. |
+| `packages/jobs`       | The job/workflow contract shared by web (producer) and worker (consumer). See its README.    |
+| `packages/calendar`   | External-calendar I/O: provider adapters, busy-time fetch, push/delete, ICS. See its README. |
+| `packages/video-chat` | Video conferencing I/O: provider adapters (Google Meet, Nextcloud Talk) and dynamic links.   |
 
 Each package's `README.md` is the detailed reference for that package; this document is
 the system-level overview that ties them together.
@@ -75,7 +76,7 @@ endpoint, `setLogger`); tree-shaking keeps the adapter code out of the web bundl
 Lives in `apps/worker/src/email`. The flow separates assembly from rendering from
 delivery:
 
-- **Builders** (\`builders/*.ts\`) are pure functions: from an appointment they produce
+- **Builders** (\`builders/\*.ts\`) are pure functions: from an appointment they produce
   `EmailMessage` values (an addressed `EmailContent` model + optional ICS attachment).
   They do no I/O and no rendering.
 - **`renderMessage`** (`render.ts`) turns one `EmailMessage` into a send-ready envelope

@@ -3,8 +3,7 @@
 `config.yaml` is the heart of "When" — it drives authentication, branding,
 availability, calendars, email, and the meetings people can book, without an admin
 database for settings. This is the complete reference; the canonical source of truth is
-the JSON Schema in `packages/config/src/config.schema.json`, also served live at
-`GET /schema/config.json`.
+defined in [schema.ts](file:///home/eleith/dev/when/packages/config/src/schema.ts) (TypeBox), and the generated JSON Schema is served live at `GET /schema/config.json`.
 
 Point your editor at that schema for inline autocomplete and validation:
 
@@ -12,8 +11,7 @@ Point your editor at that schema for inline autocomplete and validation:
 # yaml-language-server: $schema=./config.schema.json
 ```
 
-All eight top-level keys are **required**: `auth`, `user`, `smtp`, `calendars`,
-`availability`, `event_types`, `database`, `url`.
+The required top-level keys are: `auth`, `user`, `smtp`, `calendars`, `availability`, `event_types`. Optional top-level keys include `services`, `video_chats`, `database`, `url`, and `prometheus`.
 
 ## Environment variable interpolation
 
@@ -58,16 +56,16 @@ user:
   branding:
     page_title: 'Schedule a time with me'
     description: 'A little bit about me.'
-    primary_color: '#ff5500' # see below
+    color:
+      primary:
+        light: '#ff5500'
+        dark: '#ffaa66'
     logo_url: '/public/logo.png'
     avatar_url: '/public/my-avatar.jpg'
     favicon_url: '/public/favicon.ico'
 ```
 
-`branding` and all of its fields are optional. `primary_color` is either a single hex
-string used in both light and dark modes, or an object with `light` and `dark` hex
-values; a muted tonal scale is derived from it. Place custom assets in `./data/public/`,
-which is served at `/public/`.
+`branding` and all of its fields are optional. `color.primary.light` and `color.primary.dark` specify hex primary colors used in light and dark modes, respectively; a muted tonal scale is derived from them. Place custom assets in `./data/public/`, which is served at `/public/`.
 
 ## `smtp`
 
@@ -82,30 +80,66 @@ smtp:
   pass: '${SMTP_PASS}'
 ```
 
+## `services`
+
+External APIs and auth credentials. Calendars and video chat integrations reference these services by `id`.
+
+Three `type`s are supported: `google`, `caldav`, and `nextcloud`.
+
+```yaml
+services:
+  - id: 'my-google-service'
+    type: 'google'
+    client_id: '${GOOGLE_CLIENT_ID}'
+    client_secret: '${GOOGLE_CLIENT_SECRET}'
+    refresh_token: '${GOOGLE_REFRESH_TOKEN}'
+  - id: 'my-caldav-service'
+    type: 'caldav'
+    url: 'https://cloud.example.com/remote.php/dav/'
+    username: 'jane'
+    password: '${CALDAV_PASSWORD}'
+  - id: 'my-nextcloud-service'
+    type: 'nextcloud'
+    url: 'https://nextcloud.example.com/'
+    username: 'jane'
+    password: '${NEXTCLOUD_PASSWORD}'
+```
+
+## `video_chats`
+
+Video conferencing providers for meetings. Two `type`s are supported: `google-meet` and `nextcloud-talk`.
+
+```yaml
+video_chats:
+  - id: 'meet'
+    type: 'google-meet'
+    service_id: 'my-google-service'
+  - id: 'talk'
+    type: 'nextcloud-talk'
+    service_id: 'my-nextcloud-service'
+```
+
 ## `calendars`
 
-One or more external calendars, used as conflict sources (busy times) and/or appointment
-destinations. Two `type`s are supported.
+One or more external calendars, used as conflict sources (busy times) and/or appointment destinations.
 
 ```yaml
 calendars:
   - id: 'work' # referenced by event types
     type: 'caldav'
+    service_id: 'my-caldav-service'
     url: 'https://cloud.example.com/remote.php/dav/calendars/jane/work/'
-    username: 'jane'
-    password: '${CALDAV_PASSWORD}'
-  - id: 'personal'
-    type: 'google'
-    client_id: '${GOOGLE_CLIENT_ID}'
-    client_secret: '${GOOGLE_CLIENT_SECRET}'
-    refresh_token: '${GOOGLE_REFRESH_TOKEN}'
-    google_calendar_id: 'primary'
     sync:
       refresh_interval: 10 # minutes between busy-time refreshes (default 10)
+  - id: 'personal'
+    type: 'google'
+    service_id: 'my-google-service'
+    google_calendar_id: 'primary'
+    sync:
+      refresh_interval: 10
 ```
 
-`sync.refresh_interval` is optional on either type. For Google, run `pnpm setup-google`
-to generate this block automatically.
+`sync.refresh_interval` is optional on either type. For Google, run `pnpm cli calendar add google` to generate this block automatically.
 
 ## `availability`
 
@@ -146,9 +180,27 @@ event_types:
     conflict_calendars: ['work', 'personal'] # busy-time sources (default [])
     destination_calendar: 'work' # where the appointment is written
     image_url: '/public/chat.png'
-    location:
-      mode: 'fixed'
-      fixed: 'https://meet.google.com/abc-defg-hij'
+    location: 'Office Room 101' # a static URL, address, or phone number (optional)
+    video_chat: 'meet' # references a video_chats id to generate dynamic meeting links (optional)
+    note: 'Please review materials prior to the call.' # a host note shown to guests (optional)
+    form_fields: # custom booking questions (optional, guest_name is required)
+      - id: 'name'
+        type: 'guest_name'
+        label: 'Your Name'
+        required: true
+      - id: 'email'
+        type: 'guest_email'
+        label: 'Your Email'
+        required: true
+      - id: 'loc'
+        type: 'event_location'
+        label: 'Preferred Location'
+        required: true
+      - id: 'goals'
+        type: 'paragraph'
+        label: 'What would you like to discuss?'
+        required: false
+
     # any availability knob may be overridden here; omit to inherit the global value:
     slot_granularity: 30
     minimum_notice: 240
@@ -158,13 +210,13 @@ event_types:
     max_appointments_per_day: 4
 ```
 
-### Location modes
+### Custom Form Fields and Video Chats
 
-```yaml
-location: { mode: 'fixed', fixed: 'https://…' } # a static URL, address, or phone number
-location: { mode: 'choice', choices: ['Zoom', 'Phone'] } # guest picks from a list
-location: { mode: 'guest_proposes' } # guest enters a location when scheduling
-```
+Rather than rigid location structures, meetings are customized using:
+
+- **Fixed Location**: A static string configured via `location`.
+- **Dynamic Video Chat**: Setup under `video_chats` and linked to an event type using `video_chat: <id>`. Dynamic links are generated automatically.
+- **Custom Questions**: Configured via `form_fields`. Every form **must** include exactly one `guest_name` field (with `required: true`). Optional special field types include `guest_email` and `event_location`. General text fields, numbers, paragraphs, and choices are also supported.
 
 ## `database`
 
@@ -179,13 +231,21 @@ database:
 
 ## `url`
 
-Public URLs the app builds links from.
+Public URLs and internal network endpoints for service-to-service communication.
 
 ```yaml
 url:
   app: 'https://book.example.com' # public base URL (with scheme); used in emails + calendar events
-  internal:
-    'http://when-app:3000' # base URL the worker uses to reach the app on the internal
-    # network, to fetch relative branding images for emails. Defaults to ${WHEN_URL_INTERNAL};
-    # empty falls back to `app`.
+  internal: 'http://when-app:3000' # base URL the worker uses to reach the web app internally (defaults to ${WHEN_URL_INTERNAL}; falls back to `app`)
+  worker: 'http://when-worker:9000' # base URL the web app uses to reach the worker internally for telemetry and metrics (default 'http://when-worker:9000')
+```
+
+## `prometheus`
+
+Configuration for Prometheus metrics collection.
+
+```yaml
+prometheus:
+  enabled: false # Whether metrics collection and endpoint are active (default: false)
+  secret: '${METRICS_TOKEN:-}' # Bearer token for scraping metrics (default: ${METRICS_TOKEN})
 ```

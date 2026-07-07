@@ -27,12 +27,18 @@ smtp:
   user: 'you@example.com'
   pass: '${SMTP_PASSWORD}'
 
-calendars:
-  - id: 'main'
+services:
+  - id: 'caldav-service'
     type: 'caldav'
     url: 'https://caldav.example.com/dav/you/cal/'
     username: 'you'
     password: '${CALDAV_PASSWORD}'
+
+calendars:
+  - id: 'main'
+    type: 'caldav'
+    service_id: 'caldav-service'
+    url: 'https://caldav.example.com/dav/you/cal/'
 
 availability:
   default:

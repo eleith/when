@@ -32,8 +32,8 @@ page on their own infrastructure. It is not, and will not become, a multi-tenant
 ## Why some of the bigger decisions went the way they did
 
 - **A worker process, separate from the web app.** Calendar I/O and email are slow and
-can fail; running them inside a request would make appointment scheduling feel fragile and slow.
-Instead the web app does the minimum on the request path (write the appointment, enqueue
+  can fail; running them inside a request would make appointment scheduling feel fragile and slow.
+  Instead the web app does the minimum on the request path (write the appointment, enqueue
   a job) and a background worker does the rest — sending emails, pushing to calendars,
   refreshing busy times — with durable retries. The request stays fast and the
   side-effects become observable and replayable.
