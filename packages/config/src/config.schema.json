@@ -8,16 +8,20 @@
 	"required": ["auth", "user", "smtp", "calendars", "availability", "event_types"],
 	"properties": {
 		"auth": {
+			"description": "Admin authentication configuration.",
 			"$ref": "#/$defs/Auth"
 		},
 		"user": {
+			"description": "Details about the schedule owner.",
 			"$ref": "#/$defs/User"
 		},
 		"smtp": {
+			"description": "SMTP email server settings.",
 			"$ref": "#/$defs/Smtp"
 		},
 		"services": {
 			"default": [],
+			"description": "Credentials for third-party services.",
 			"type": "array",
 			"items": {
 				"$ref": "#/$defs/Service"
@@ -25,22 +29,26 @@
 		},
 		"video_chats": {
 			"default": [],
+			"description": "Video conferencing provider settings.",
 			"type": "array",
 			"items": {
 				"$ref": "#/$defs/VideoChat"
 			}
 		},
 		"calendars": {
+			"description": "Connected conflict/destination calendars.",
 			"type": "array",
 			"items": {
 				"$ref": "#/$defs/Calendar"
 			}
 		},
 		"availability": {
+			"description": "Global scheduling rules and weekly hours.",
 			"$ref": "#/$defs/Availability"
 		},
 		"event_types": {
 			"minItems": 1,
+			"description": "Bookable meeting types.",
 			"type": "array",
 			"items": {
 				"$ref": "#/$defs/EventType"
@@ -48,21 +56,24 @@
 		},
 		"database": {
 			"default": {},
+			"description": "Local SQLite database file paths.",
 			"$ref": "#/$defs/DatabaseConfig"
 		},
 		"url": {
 			"default": {},
+			"description": "Server and client URL configuration.",
 			"$ref": "#/$defs/Url"
 		},
 		"prometheus": {
 			"default": {},
+			"description": "Prometheus metrics settings.",
 			"$ref": "#/$defs/PrometheusConfig"
 		}
 	},
 	"$defs": {
 		"Auth": {
 			"title": "Auth",
-			"description": "Admin auth strategy. Exactly one of `oidc` or `credentials` must be declared.",
+			"description": "Admin authentication strategy. Exactly one of `oidc` or `credentials` must be declared.",
 			"anyOf": [
 				{
 					"additionalProperties": false,
@@ -70,9 +81,11 @@
 					"required": ["oidc"],
 					"properties": {
 						"oidc": {
+							"description": "OIDC authentication provider configuration.",
 							"$ref": "#/$defs/OidcAuth"
 						},
 						"credentials": {
+							"description": "Disabled when OIDC is active.",
 							"type": "null"
 						}
 					}
@@ -83,9 +96,11 @@
 					"required": ["credentials"],
 					"properties": {
 						"credentials": {
+							"description": "Credentials authentication configuration.",
 							"$ref": "#/$defs/CredentialsAuth"
 						},
 						"oidc": {
+							"description": "Disabled when Credentials auth is active.",
 							"type": "null"
 						}
 					}
@@ -102,30 +117,36 @@
 				"slot_granularity": {
 					"minimum": 1,
 					"default": 15,
+					"description": "Time step in minutes; booking slots will snap to this boundary (default: 15).",
 					"type": "integer"
 				},
 				"minimum_notice": {
 					"minimum": 0,
 					"default": 120,
+					"description": "Minimum lead time required for bookings in minutes (default: 120).",
 					"type": "integer"
 				},
 				"maximum_lookahead": {
 					"minimum": 1,
 					"default": 60,
+					"description": "Maximum number of days in the future that are open for booking (default: 60).",
 					"type": "integer"
 				},
 				"buffer_before": {
 					"minimum": 0,
 					"default": 0,
+					"description": "Minutes of buffer time required before each appointment (default: 0).",
 					"type": "integer"
 				},
 				"buffer_after": {
 					"minimum": 0,
 					"default": 0,
+					"description": "Minutes of buffer time required after each appointment (default: 0).",
 					"type": "integer"
 				},
 				"max_appointments_per_day": {
 					"default": null,
+					"description": "Maximum number of appointments allowed in a single day. null means unlimited (default: null).",
 					"anyOf": [
 						{
 							"minimum": 1,
@@ -137,6 +158,7 @@
 					]
 				},
 				"default": {
+					"description": "Default weekly working hours.",
 					"$ref": "#/$defs/WeeklySchedule"
 				}
 			}
@@ -144,28 +166,34 @@
 		"Branding": {
 			"additionalProperties": false,
 			"title": "Branding",
+			"description": "Branding options for the booking page and emails. Place custom assets in ./data/public/ to serve them at /public/.",
 			"type": "object",
 			"properties": {
 				"logo_url": {
 					"minLength": 1,
+					"description": "URL of the logo image. Can be relative (e.g. /public/logo.png).",
 					"type": "string"
 				},
 				"color": {
 					"additionalProperties": false,
 					"default": {},
+					"description": "Color theme configuration for the booking page.",
 					"type": "object",
 					"properties": {
 						"primary": {
 							"additionalProperties": false,
 							"default": {},
+							"description": "Primary brand colors for light and dark modes.",
 							"type": "object",
 							"properties": {
 								"light": {
 									"default": "#4f46e5",
+									"description": "Primary brand color for light mode.",
 									"$ref": "#/$defs/HexColor"
 								},
 								"dark": {
 									"default": "#818cf8",
+									"description": "Primary brand color for dark mode.",
 									"$ref": "#/$defs/HexColor"
 								}
 							}
@@ -174,18 +202,22 @@
 				},
 				"avatar_url": {
 					"minLength": 1,
+					"description": "URL of the avatar image. Can be relative (e.g. /public/avatar.png).",
 					"type": "string"
 				},
 				"favicon_url": {
 					"minLength": 1,
+					"description": "URL of the favicon image. Can be relative (e.g. /public/favicon.ico).",
 					"type": "string"
 				},
 				"page_title": {
 					"minLength": 1,
+					"description": "Title of the booking page (e.g. \"Schedule a time with me\").",
 					"type": "string"
 				},
 				"description": {
 					"minLength": 1,
+					"description": "Subtext or introduction shown on the booking page.",
 					"type": "string"
 				}
 			}
@@ -193,26 +225,32 @@
 		"CalDavCalendar": {
 			"additionalProperties": false,
 			"title": "CalDavCalendar",
+			"description": "CalDAV Calendar integration configuration.",
 			"type": "object",
 			"required": ["id", "type", "service_id", "url"],
 			"properties": {
 				"id": {
 					"minLength": 1,
+					"description": "Unique identifier for this calendar, referenced by event types.",
 					"type": "string"
 				},
 				"type": {
+					"description": "Calendar type: must be caldav.",
 					"const": "caldav",
 					"type": "string"
 				},
 				"service_id": {
 					"minLength": 1,
+					"description": "ID of the caldav or nextcloud service to connect with.",
 					"type": "string"
 				},
 				"url": {
 					"format": "uri",
+					"description": "Full calendar URL endpoint (e.g. https://cloud.example.com/remote.php/dav/calendars/jane/work/).",
 					"type": "string"
 				},
 				"sync": {
+					"description": "Sync settings for this calendar.",
 					"$ref": "#/$defs/CalendarSync"
 				}
 			}
@@ -220,33 +258,40 @@
 		"CalDavService": {
 			"additionalProperties": false,
 			"title": "CalDavService",
+			"description": "CalDAV service credentials for generic calendar sync.",
 			"type": "object",
 			"required": ["id", "type", "url", "username", "password"],
 			"properties": {
 				"id": {
 					"minLength": 1,
+					"description": "Unique identifier for the service, referenced by calendars.",
 					"type": "string"
 				},
 				"type": {
+					"description": "Service type: must be caldav.",
 					"const": "caldav",
 					"type": "string"
 				},
 				"url": {
 					"format": "uri",
+					"description": "Base URL of your CalDAV endpoint (e.g. https://cloud.example.com/remote.php/dav/).",
 					"type": "string"
 				},
 				"username": {
 					"minLength": 1,
+					"description": "CalDAV username.",
 					"type": "string"
 				},
 				"password": {
 					"minLength": 1,
+					"description": "CalDAV password.",
 					"type": "string"
 				}
 			}
 		},
 		"Calendar": {
 			"title": "Calendar",
+			"description": "External calendar configuration.",
 			"anyOf": [
 				{
 					"$ref": "#/$defs/GoogleCalendar"
@@ -273,17 +318,19 @@
 		"CredentialsAuth": {
 			"additionalProperties": false,
 			"title": "CredentialsAuth",
-			"description": "Local username/password.",
+			"description": "Local username/password authentication.",
 			"type": "object",
 			"required": ["username"],
 			"properties": {
 				"username": {
 					"minLength": 1,
+					"description": "Admin username.",
 					"type": "string"
 				},
 				"password": {
 					"minLength": 1,
 					"default": "${WHEN_ADMIN_PASSWORD}",
+					"description": "Admin password. Defaults to the WHEN_ADMIN_PASSWORD environment variable.",
 					"type": "string"
 				}
 			}
@@ -320,30 +367,37 @@
 		"EventType": {
 			"additionalProperties": false,
 			"title": "EventType",
+			"description": "Definition of a bookable event type.",
 			"type": "object",
 			"required": ["id", "name", "duration", "slug", "appointment_flow", "destination_calendar"],
 			"properties": {
 				"id": {
 					"minLength": 1,
+					"description": "Unique identifier for the event type.",
 					"type": "string"
 				},
 				"name": {
 					"minLength": 1,
+					"description": "The name of the event type (e.g. 30-minute chat).",
 					"type": "string"
 				},
 				"duration": {
 					"minimum": 1,
+					"description": "Duration of the meeting in minutes.",
 					"type": "integer"
 				},
 				"description": {
+					"description": "Brief description of the meeting.",
 					"type": "string"
 				},
 				"slug": {
 					"pattern": "^[a-z0-9][a-z0-9-]*$",
+					"description": "URL slug for the booking page (e.g. \"chat\" for /schedule/chat).",
 					"type": "string"
 				},
 				"visibility": {
 					"default": "public",
+					"description": "Visibility on the homepage. \"public\" shows it; \"private\" hides it.",
 					"anyOf": [
 						{
 							"const": "public",
@@ -356,6 +410,7 @@
 					]
 				},
 				"appointment_flow": {
+					"description": "The approval flow. \"auto\" confirms instantly; \"requires_confirmation\" requires host approval.",
 					"anyOf": [
 						{
 							"const": "auto",
@@ -369,6 +424,7 @@
 				},
 				"conflict_calendars": {
 					"default": [],
+					"description": "Calendar IDs to check for conflicts (busy times) to block slots.",
 					"type": "array",
 					"items": {
 						"minLength": 1,
@@ -377,40 +433,50 @@
 				},
 				"destination_calendar": {
 					"minLength": 1,
+					"description": "Calendar ID where confirmed bookings will be written.",
 					"type": "string"
 				},
 				"location": {
+					"description": "Static location of the meeting.",
 					"$ref": "#/$defs/Location"
 				},
 				"note": {
 					"minLength": 1,
+					"description": "A note shown to guests after booking.",
 					"type": "string"
 				},
 				"video_chat": {
 					"minLength": 1,
+					"description": "ID of the video chat provider to generate dynamic links.",
 					"type": "string"
 				},
 				"slot_granularity": {
 					"minimum": 1,
+					"description": "Override for slot granularity in minutes.",
 					"type": "integer"
 				},
 				"minimum_notice": {
 					"minimum": 0,
+					"description": "Override for minimum notice required in minutes.",
 					"type": "integer"
 				},
 				"maximum_lookahead": {
 					"minimum": 1,
+					"description": "Override for maximum lookahead in days.",
 					"type": "integer"
 				},
 				"buffer_before": {
 					"minimum": 0,
+					"description": "Override for buffer before the meeting in minutes.",
 					"type": "integer"
 				},
 				"buffer_after": {
 					"minimum": 0,
+					"description": "Override for buffer after the meeting in minutes.",
 					"type": "integer"
 				},
 				"max_appointments_per_day": {
+					"description": "Override for maximum appointments per day.",
 					"anyOf": [
 						{
 							"minimum": 1,
@@ -423,9 +489,11 @@
 				},
 				"image_url": {
 					"minLength": 1,
+					"description": "URL of an image representing the event type.",
 					"type": "string"
 				},
 				"form_fields": {
+					"description": "Custom form fields for the booking process.",
 					"type": "array",
 					"items": {
 						"$ref": "#/$defs/FormField"
@@ -436,14 +504,17 @@
 		"FormField": {
 			"additionalProperties": false,
 			"title": "FormField",
+			"description": "Custom question form fields for bookings.",
 			"type": "object",
 			"required": ["id", "type", "label"],
 			"properties": {
 				"id": {
 					"minLength": 1,
+					"description": "Unique identifier for the form field.",
 					"type": "string"
 				},
 				"type": {
+					"description": "Type of form field (e.g. guest_name, guest_email, event_location, text, number, paragraph, choice).",
 					"anyOf": [
 						{
 							"const": "guest_name",
@@ -477,13 +548,16 @@
 				},
 				"label": {
 					"minLength": 1,
+					"description": "The question prompt or label shown to the user.",
 					"type": "string"
 				},
 				"required": {
 					"default": false,
+					"description": "Whether the field must be filled in (default: false).",
 					"type": "boolean"
 				},
 				"choices": {
+					"description": "List of options for the choice field type.",
 					"type": "array",
 					"items": {
 						"minLength": 1,
@@ -495,26 +569,32 @@
 		"GoogleCalendar": {
 			"additionalProperties": false,
 			"title": "GoogleCalendar",
+			"description": "Google Calendar integration configuration.",
 			"type": "object",
 			"required": ["id", "type", "service_id", "google_calendar_id"],
 			"properties": {
 				"id": {
 					"minLength": 1,
+					"description": "Unique identifier for this calendar, referenced by event types.",
 					"type": "string"
 				},
 				"type": {
+					"description": "Calendar type: must be google.",
 					"const": "google",
 					"type": "string"
 				},
 				"service_id": {
 					"minLength": 1,
+					"description": "ID of the google service to connect with.",
 					"type": "string"
 				},
 				"google_calendar_id": {
 					"minLength": 1,
+					"description": "The specific Google calendar ID (e.g. primary or an email address).",
 					"type": "string"
 				},
 				"sync": {
+					"description": "Sync settings for this calendar.",
 					"$ref": "#/$defs/CalendarSync"
 				}
 			}
@@ -522,19 +602,23 @@
 		"GoogleMeetVideoChat": {
 			"additionalProperties": false,
 			"title": "GoogleMeetVideoChat",
+			"description": "Google Meet video conferencing integration.",
 			"type": "object",
 			"required": ["id", "type", "service_id"],
 			"properties": {
 				"id": {
 					"minLength": 1,
+					"description": "Unique identifier for this video chat provider.",
 					"type": "string"
 				},
 				"type": {
+					"description": "Video chat provider type: must be google-meet.",
 					"const": "google-meet",
 					"type": "string"
 				},
 				"service_id": {
 					"minLength": 1,
+					"description": "ID of the google service to use for video chat creation.",
 					"type": "string"
 				}
 			}
@@ -542,64 +626,78 @@
 		"GoogleService": {
 			"additionalProperties": false,
 			"title": "GoogleService",
+			"description": "Google API service credentials for calendar and meet integrations.",
 			"type": "object",
 			"required": ["id", "type", "client_id", "client_secret", "refresh_token"],
 			"properties": {
 				"id": {
 					"minLength": 1,
+					"description": "Unique identifier for the service, referenced by calendars and video chat integrations.",
 					"type": "string"
 				},
 				"type": {
+					"description": "Service type: must be google.",
 					"const": "google",
 					"type": "string"
 				},
 				"client_id": {
 					"minLength": 1,
+					"description": "Google OAuth client ID.",
 					"type": "string"
 				},
 				"client_secret": {
 					"minLength": 1,
+					"description": "Google OAuth client secret.",
 					"type": "string"
 				},
 				"refresh_token": {
 					"minLength": 1,
+					"description": "Google OAuth refresh token.",
 					"type": "string"
 				}
 			}
 		},
 		"HexColor": {
 			"pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$",
+			"description": "Hex color code (e.g. #4f46e5 or #fff).",
 			"type": "string"
 		},
 		"Location": {
 			"title": "Location",
 			"minLength": 1,
+			"description": "A static location description for a meeting (e.g. an address, a phone number, or a static meeting link).",
 			"type": "string"
 		},
 		"NextcloudService": {
 			"additionalProperties": false,
 			"title": "NextcloudService",
+			"description": "Nextcloud service credentials for CalDAV calendar and Talk video chat integrations.",
 			"type": "object",
 			"required": ["id", "type", "url", "username", "password"],
 			"properties": {
 				"id": {
 					"minLength": 1,
+					"description": "Unique identifier for the service, referenced by calendars and video chat integrations.",
 					"type": "string"
 				},
 				"type": {
+					"description": "Service type: must be nextcloud.",
 					"const": "nextcloud",
 					"type": "string"
 				},
 				"url": {
 					"format": "uri",
+					"description": "Base URL of your Nextcloud instance (e.g. https://nextcloud.example.com/).",
 					"type": "string"
 				},
 				"username": {
 					"minLength": 1,
+					"description": "Nextcloud username or app username.",
 					"type": "string"
 				},
 				"password": {
 					"minLength": 1,
+					"description": "Nextcloud password or app-specific password.",
 					"type": "string"
 				}
 			}
@@ -607,19 +705,23 @@
 		"NextcloudTalkVideoChat": {
 			"additionalProperties": false,
 			"title": "NextcloudTalkVideoChat",
+			"description": "Nextcloud Talk video conferencing integration.",
 			"type": "object",
 			"required": ["id", "type", "service_id"],
 			"properties": {
 				"id": {
 					"minLength": 1,
+					"description": "Unique identifier for this video chat provider.",
 					"type": "string"
 				},
 				"type": {
+					"description": "Video chat provider type: must be nextcloud-talk.",
 					"const": "nextcloud-talk",
 					"type": "string"
 				},
 				"service_id": {
 					"minLength": 1,
+					"description": "ID of the nextcloud service to use for video chat creation.",
 					"type": "string"
 				}
 			}
@@ -627,19 +729,23 @@
 		"OidcAuth": {
 			"additionalProperties": false,
 			"title": "OidcAuth",
+			"description": "OIDC single sign-on authentication configuration.",
 			"type": "object",
 			"required": ["issuer", "client_id", "client_secret"],
 			"properties": {
 				"issuer": {
 					"format": "uri",
+					"description": "OIDC provider issuer URI.",
 					"type": "string"
 				},
 				"client_id": {
 					"minLength": 1,
+					"description": "OIDC client ID.",
 					"type": "string"
 				},
 				"client_secret": {
 					"minLength": 1,
+					"description": "OIDC client secret.",
 					"type": "string"
 				}
 			}
@@ -664,6 +770,7 @@
 		},
 		"Service": {
 			"title": "Service",
+			"description": "External API service configuration.",
 			"anyOf": [
 				{
 					"$ref": "#/$defs/GoogleService"
@@ -685,19 +792,23 @@
 			"properties": {
 				"host": {
 					"minLength": 1,
+					"description": "SMTP server host name.",
 					"type": "string"
 				},
 				"port": {
 					"minimum": 1,
 					"maximum": 65535,
+					"description": "SMTP server port number (e.g. 587 or 465).",
 					"type": "integer"
 				},
 				"user": {
 					"minLength": 1,
+					"description": "SMTP username.",
 					"type": "string"
 				},
 				"pass": {
 					"minLength": 1,
+					"description": "SMTP password.",
 					"type": "string"
 				},
 				"from": {
@@ -734,11 +845,13 @@
 		"User": {
 			"additionalProperties": false,
 			"title": "User",
+			"description": "The schedule owner details.",
 			"type": "object",
 			"required": ["name", "timezone", "email"],
 			"properties": {
 				"name": {
 					"minLength": 1,
+					"description": "The display name of the schedule owner.",
 					"type": "string"
 				},
 				"timezone": {
@@ -748,16 +861,19 @@
 				},
 				"email": {
 					"format": "email",
+					"description": "Email address of the schedule owner.",
 					"type": "string"
 				},
 				"branding": {
 					"default": {},
+					"description": "Branding overrides for the schedule owner.",
 					"$ref": "#/$defs/Branding"
 				}
 			}
 		},
 		"VideoChat": {
 			"title": "VideoChat",
+			"description": "Video conferencing provider configurations.",
 			"anyOf": [
 				{
 					"$ref": "#/$defs/NextcloudTalkVideoChat"
@@ -770,27 +886,35 @@
 		"WeeklySchedule": {
 			"additionalProperties": false,
 			"title": "WeeklySchedule",
+			"description": "Weekly schedule specifying available time windows for each day.",
 			"type": "object",
 			"properties": {
 				"monday": {
+					"description": "Availability on Mondays.",
 					"$ref": "#/$defs/DaySchedule"
 				},
 				"tuesday": {
+					"description": "Availability on Tuesdays.",
 					"$ref": "#/$defs/DaySchedule"
 				},
 				"wednesday": {
+					"description": "Availability on Wednesdays.",
 					"$ref": "#/$defs/DaySchedule"
 				},
 				"thursday": {
+					"description": "Availability on Thursdays.",
 					"$ref": "#/$defs/DaySchedule"
 				},
 				"friday": {
+					"description": "Availability on Fridays.",
 					"$ref": "#/$defs/DaySchedule"
 				},
 				"saturday": {
+					"description": "Availability on Saturdays.",
 					"$ref": "#/$defs/DaySchedule"
 				},
 				"sunday": {
+					"description": "Availability on Sundays.",
 					"$ref": "#/$defs/DaySchedule"
 				}
 			}

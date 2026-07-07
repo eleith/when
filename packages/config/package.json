@@ -34,7 +34,6 @@
 		"eslint": "catalog:",
 		"eslint-config-prettier": "catalog:",
 		"globals": "catalog:",
-		"json-schema-to-typescript": "15.0.4",
 		"prettier": "catalog:",
 		"typescript": "catalog:",
 		"typescript-eslint": "catalog:",
