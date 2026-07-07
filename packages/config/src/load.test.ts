@@ -55,7 +55,7 @@ test('invalid email format fails', () => {
 
 test('invalid time range fails pattern', () => {
 	const bad = clone(validConfig);
-	bad.availability.default.monday = ['25:00-30:00'];
+	bad.availabilities[0].weekly.monday = ['25:00-30:00'];
 	expect(() => validateConfig(bad)).toThrow(ConfigError);
 });
 

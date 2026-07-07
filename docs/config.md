@@ -141,32 +141,31 @@ calendars:
 
 `sync.refresh_interval` is optional on either type. For Google, run `pnpm cli calendar add google` to generate this block automatically.
 
-## `availability`
+## `availabilities`
 
-Global scheduling rules. Every knob except `default` has a default and can be overridden
-per event type.
+A list of availability profiles. Each profile contains scheduling rules and weekly working hours.
 
 ```yaml
-availability:
-  slot_granularity: 15 # minutes; slots snap to this boundary (default 15)
-  minimum_notice: 120 # minutes of lead time required (default 120)
-  maximum_lookahead: 60 # days bookable into the future (default 60)
-  buffer_before: 0 # minutes padded before a meeting (default 0)
-  buffer_after: 0 # minutes padded after a meeting (default 0)
-  max_appointments_per_day: null # cap on meetings per day; null = unlimited (default null)
-  default: # required: weekly working hours
-    monday: ['09:00-17:00']
-    tuesday: ['09:00-17:00']
-    wednesday: ['09:00-17:00']
-    thursday: ['09:00-17:00']
-    friday: ['09:00-13:00', '14:00-17:00'] # multiple blocks allowed
-    # days omitted = no availability
+availabilities:
+  - id: 'standard' # unique identifier referenced by event types
+    slot_granularity: 15 # minutes; slots snap to this boundary (default 15)
+    minimum_notice: 120 # minutes of lead time required (default 120)
+    maximum_lookahead: 60 # days bookable into the future (default 60)
+    buffer_before: 0 # minutes padded before a meeting (default 0)
+    buffer_after: 0 # minutes padded after a meeting (default 0)
+    max_appointments_per_day: null # cap on meetings per day; null = unlimited (default null)
+    weekly: # required: weekly working hours
+      monday: ['09:00-17:00']
+      tuesday: ['09:00-17:00']
+      wednesday: ['09:00-17:00']
+      thursday: ['09:00-17:00']
+      friday: ['09:00-13:00', '14:00-17:00'] # multiple blocks allowed
+      # days omitted = no availability
 ```
 
 ## `event_types`
 
-The meetings people can book. `id`, `name`, `duration`, `slug`, `appointment_flow`, and
-`destination_calendar` are required; everything else is optional.
+The meetings people can book. `id`, `name`, `duration`, `slug`, `appointment_flow`, `destination_calendar`, and `availability` are required; everything else is optional.
 
 ```yaml
 event_types:
@@ -179,6 +178,7 @@ event_types:
     appointment_flow: 'auto' # 'auto' or 'requires_confirmation'
     conflict_calendars: ['work', 'personal'] # busy-time sources (default [])
     destination_calendar: 'work' # where the appointment is written
+    availability: 'standard' # references an availabilities profile id
     image_url: '/public/chat.png'
     location: 'Office Room 101' # a static URL, address, or phone number (optional)
     video_chat: 'meet' # references a video_chats id to generate dynamic meeting links (optional)
@@ -201,7 +201,7 @@ event_types:
         label: 'What would you like to discuss?'
         required: false
 
-    # any availability knob may be overridden here; omit to inherit the global value:
+    # any availability knob may be overridden here; omit to inherit the profile value:
     slot_granularity: 30
     minimum_notice: 240
     maximum_lookahead: 30

@@ -5,7 +5,7 @@
 	"title": "When configuration",
 	"description": "Canonical schema for the When self-hosted scheduling app's config.yaml.",
 	"type": "object",
-	"required": ["auth", "user", "smtp", "calendars", "availability", "event_types"],
+	"required": ["auth", "user", "smtp", "calendars", "availabilities", "event_types"],
 	"properties": {
 		"auth": {
 			"description": "Admin authentication configuration.",
@@ -42,9 +42,13 @@
 				"$ref": "#/$defs/Calendar"
 			}
 		},
-		"availability": {
-			"description": "Global scheduling rules and weekly hours.",
-			"$ref": "#/$defs/Availability"
+		"availabilities": {
+			"minItems": 1,
+			"description": "List of availability profiles for scheduling.",
+			"type": "array",
+			"items": {
+				"$ref": "#/$defs/AvailabilityProfile"
+			}
 		},
 		"event_types": {
 			"minItems": 1,
@@ -107,13 +111,18 @@
 				}
 			]
 		},
-		"Availability": {
+		"AvailabilityProfile": {
 			"additionalProperties": false,
-			"title": "Availability",
-			"description": "Global availability defaults. Each knob is overridable per event type.",
+			"title": "AvailabilityProfile",
+			"description": "Availability profile for scheduling rules and weekly hours.",
 			"type": "object",
-			"required": ["default"],
+			"required": ["id", "weekly"],
 			"properties": {
+				"id": {
+					"minLength": 1,
+					"description": "Unique identifier for the availability profile.",
+					"type": "string"
+				},
 				"slot_granularity": {
 					"minimum": 1,
 					"default": 15,
@@ -157,8 +166,8 @@
 						}
 					]
 				},
-				"default": {
-					"description": "Default weekly working hours.",
+				"weekly": {
+					"description": "Weekly working hours.",
 					"$ref": "#/$defs/WeeklySchedule"
 				}
 			}
@@ -369,7 +378,15 @@
 			"title": "EventType",
 			"description": "Definition of a bookable event type.",
 			"type": "object",
-			"required": ["id", "name", "duration", "slug", "appointment_flow", "destination_calendar"],
+			"required": [
+				"id",
+				"name",
+				"duration",
+				"slug",
+				"appointment_flow",
+				"destination_calendar",
+				"availability"
+			],
 			"properties": {
 				"id": {
 					"minLength": 1,
@@ -434,6 +451,11 @@
 				"destination_calendar": {
 					"minLength": 1,
 					"description": "Calendar ID where confirmed bookings will be written.",
+					"type": "string"
+				},
+				"availability": {
+					"minLength": 1,
+					"description": "ID of the availability profile to use for scheduling.",
 					"type": "string"
 				},
 				"location": {

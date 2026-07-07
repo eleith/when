@@ -166,15 +166,16 @@ export const WeeklyScheduleSchema = Type.Object({
 	sunday: Type.Optional(Ref(DayScheduleSchema, { description: 'Availability on Sundays.' }))
 }, { $id: 'WeeklySchedule', additionalProperties: false, title: 'WeeklySchedule', description: 'Weekly schedule specifying available time windows for each day.' });
 
-export const AvailabilitySchema = Type.Object({
+export const AvailabilityProfileSchema = Type.Object({
+	id: Type.String({ minLength: 1, description: 'Unique identifier for the availability profile.' }),
 	slot_granularity: Type.Optional(Type.Integer({ minimum: 1, default: 15, description: 'Time step in minutes; booking slots will snap to this boundary (default: 15).' })),
 	minimum_notice: Type.Optional(Type.Integer({ minimum: 0, default: 120, description: 'Minimum lead time required for bookings in minutes (default: 120).' })),
 	maximum_lookahead: Type.Optional(Type.Integer({ minimum: 1, default: 60, description: 'Maximum number of days in the future that are open for booking (default: 60).' })),
 	buffer_before: Type.Optional(Type.Integer({ minimum: 0, default: 0, description: 'Minutes of buffer time required before each appointment (default: 0).' })),
 	buffer_after: Type.Optional(Type.Integer({ minimum: 0, default: 0, description: 'Minutes of buffer time required after each appointment (default: 0).' })),
 	max_appointments_per_day: Type.Optional(Type.Union([Type.Integer({ minimum: 1 }), Type.Null()], { default: null, description: 'Maximum number of appointments allowed in a single day. null means unlimited (default: null).' })),
-	default: Ref(WeeklyScheduleSchema, { description: 'Default weekly working hours.' })
-}, { $id: 'Availability', additionalProperties: false, title: 'Availability', description: 'Global availability defaults. Each knob is overridable per event type.' });
+	weekly: Ref(WeeklyScheduleSchema, { description: 'Weekly working hours.' })
+}, { $id: 'AvailabilityProfile', additionalProperties: false, title: 'AvailabilityProfile', description: 'Availability profile for scheduling rules and weekly hours.' });
 
 export const LocationSchema = Type.String({
 	$id: 'Location',
@@ -209,6 +210,7 @@ export const EventTypeSchema = Type.Object({
 	appointment_flow: Type.Union([Type.Literal('auto'), Type.Literal('requires_confirmation')], { description: 'The approval flow. "auto" confirms instantly; "requires_confirmation" requires host approval.' }),
 	conflict_calendars: Type.Optional(Type.Array(Type.String({ minLength: 1 }), { default: [], description: 'Calendar IDs to check for conflicts (busy times) to block slots.' })),
 	destination_calendar: Type.String({ minLength: 1, description: 'Calendar ID where confirmed bookings will be written.' }),
+	availability: Type.String({ minLength: 1, description: 'ID of the availability profile to use for scheduling.' }),
 	location: Type.Optional(Ref(LocationSchema, { description: 'Static location of the meeting.' })),
 	note: Type.Optional(Type.String({ minLength: 1, description: 'A note shown to guests after booking.' })),
 	video_chat: Type.Optional(Type.String({ minLength: 1, description: 'ID of the video chat provider to generate dynamic links.' })),
@@ -263,7 +265,7 @@ export const WhenConfigurationSchema = Type.Object({
 	services: Type.Optional(Type.Array(Ref(ServiceSchema), { default: [], description: 'Credentials for third-party services.' })),
 	video_chats: Type.Optional(Type.Array(Ref(VideoChatSchema), { default: [], description: 'Video conferencing provider settings.' })),
 	calendars: Type.Array(Ref(CalendarSchema), { description: 'Connected conflict/destination calendars.' }),
-	availability: Ref(AvailabilitySchema, { description: 'Global scheduling rules and weekly hours.' }),
+	availabilities: Type.Array(Ref(AvailabilityProfileSchema), { minItems: 1, description: 'List of availability profiles for scheduling.' }),
 	event_types: Type.Array(Ref(EventTypeSchema), { minItems: 1, description: 'Bookable meeting types.' }),
 	database: Ref(DatabaseConfigSchema, { default: {}, description: 'Local SQLite database file paths.' }),
 	url: Ref(UrlSchema, { default: {}, description: 'Server and client URL configuration.' }),
@@ -290,7 +292,7 @@ export type Calendar = Static<typeof CalendarSchema>;
 export type GoogleCalendar = Static<typeof GoogleCalendarSchema>;
 export type CalendarSync = Static<typeof CalendarSyncSchema>;
 export type CalDavCalendar = Static<typeof CalDavCalendarSchema>;
-export type Availability = Static<typeof AvailabilitySchema>;
+export type AvailabilityProfile = Static<typeof AvailabilityProfileSchema>;
 export type WeeklySchedule = Static<typeof WeeklyScheduleSchema>;
 export type DaySchedule = Static<typeof DayScheduleSchema>;
 export type EventType = Static<typeof EventTypeSchema>;

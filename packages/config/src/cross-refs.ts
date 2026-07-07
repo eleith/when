@@ -54,6 +54,17 @@ export function checkCrossRefs(cfg: WhenConfiguration): ConfigIssue[] {
 		}
 	});
 
+	const availabilityIds = new Set<string>();
+	cfg.availabilities.forEach((av, i) => {
+		if (availabilityIds.has(av.id)) {
+			issues.push({
+				path: `/availabilities/${i}/id`,
+				message: `duplicate availability id "${av.id}"`
+			});
+		}
+		availabilityIds.add(av.id);
+	});
+
 	const seenEventIds = new Set<string>();
 	const seenSlugs = new Set<string>();
 
@@ -78,6 +89,13 @@ export function checkCrossRefs(cfg: WhenConfiguration): ConfigIssue[] {
 			issues.push({
 				path: `/event_types/${i}/destination_calendar`,
 				message: `references unknown calendar id "${et.destination_calendar}"`
+			});
+		}
+
+		if (!availabilityIds.has(et.availability)) {
+			issues.push({
+				path: `/event_types/${i}/availability`,
+				message: `references unknown availability id "${et.availability}"`
 			});
 		}
 

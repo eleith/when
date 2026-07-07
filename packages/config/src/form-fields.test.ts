@@ -8,7 +8,8 @@ const baseEventType: EventType = {
 	duration: 30,
 	slug: 'chat',
 	appointment_flow: 'auto',
-	destination_calendar: 'cal'
+	destination_calendar: 'cal',
+	availability: 'standard'
 };
 
 test('resolveFormFields falls back to the default form when unset', () => {
