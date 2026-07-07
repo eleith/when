@@ -1,10 +1,11 @@
+import type { GoogleService } from '@when/config';
 import type { VideoChatAdapter, VideoChatResult, VideoChatDeleteResult } from '../adapter.js';
 
 export class GoogleMeetAdapter implements VideoChatAdapter {
 	static readonly type = 'google-meet';
 	static readonly expectedServiceType = 'google';
 
-	constructor() {}
+	constructor(private readonly _service: GoogleService) {}
 
 	async createRoom(): Promise<VideoChatResult> {
 		return { ok: false, reason: 'Google Meet is managed natively via Google Calendar' };

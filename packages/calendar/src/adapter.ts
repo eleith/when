@@ -44,11 +44,11 @@ interface CalendarAdapter {
 function getCalendarAdapter(cal: Calendar, services?: Service[]): CalendarAdapter {
 	const type = cal.type;
 	if (type === 'caldav') {
-		const service = services?.find((s) => s.id === (cal as CalDavCalendar).service_id);
+		const service = services?.find((s) => s.name === (cal as CalDavCalendar).service);
 		return new CalDavAdapter(cal as CalDavCalendar, service as CalDavService | undefined);
 	}
 	if (type === 'google') {
-		const service = services?.find((s) => s.id === (cal as GoogleCalendar).service_id);
+		const service = services?.find((s) => s.name === (cal as GoogleCalendar).service);
 		return new GoogleAdapter(cal as GoogleCalendar, service as GoogleService | undefined);
 	}
 	throw new Error(`Unsupported calendar type: ${type}`);

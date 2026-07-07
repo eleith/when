@@ -6,61 +6,52 @@ describe('getVideoChatAdapter', () => {
 	const mockConfig: WhenConfiguration = {
 		services: [
 			{
-				id: 'nc-service',
+				name: 'nc-service',
 				type: 'nextcloud',
 				url: 'https://cloud.example.com',
 				username: 'user',
 				password: 'pwd'
 			},
 			{
-				id: 'google-service',
+				name: 'google-service',
 				type: 'google',
 				client_id: 'gc-id',
 				client_secret: 'gc-secret',
 				refresh_token: 'gc-token'
 			}
 		],
-		video_chats: [
-			{
-				id: 'my-talk',
-				type: 'nextcloud-talk',
-				service_id: 'nc-service'
-			},
-			{
-				id: 'my-meet',
-				type: 'google-meet',
-				service_id: 'google-service'
-			}
-		],
 		calendars: [],
-		availability: { default: {} },
-		event_types: [],
+		schedules: [],
+		meetings: [],
 		auth: { credentials: { username: 'admin', password: 'pwd' } },
 		user: { name: 'J', timezone: 'UTC', email: 'j@example.com' },
 		smtp: { host: 'smtp', port: 25, user: 'u', pass: 'p' }
 	} as unknown as WhenConfiguration;
 
-	test('returns NextcloudTalkAdapter for nextcloud-talk', () => {
-		const vc = mockConfig.video_chats![0];
-		const adapter = getVideoChatAdapter(vc, mockConfig.services);
+	test('returns NextcloudTalkAdapter for nextcloud service', () => {
+		const srv = mockConfig.services![0];
+		const adapter = getVideoChatAdapter(srv);
 		expect(adapter).toBeDefined();
 		expect(adapter.constructor.name).toBe('NextcloudTalkAdapter');
 	});
 
-	test('returns native meet adapter for google-meet', () => {
-		const vc = mockConfig.video_chats![1];
-		const adapter = getVideoChatAdapter(vc, mockConfig.services);
+	test('returns native meet adapter for google service', () => {
+		const srv = mockConfig.services![1];
+		const adapter = getVideoChatAdapter(srv);
 		expect(adapter).toBeDefined();
+		expect(adapter.constructor.name).toBe('GoogleMeetAdapter');
 	});
 
-	test('throws for unknown service referenced', () => {
-		const vc = {
-			id: 'broken-talk',
-			type: 'nextcloud-talk' as const,
-			service_id: 'missing-service'
+	test('throws for unsupported service type', () => {
+		const srv = {
+			name: 'broken-service',
+			type: 'caldav' as const,
+			url: 'https://cal.example.com',
+			username: 'u',
+			password: 'p'
 		};
-		expect(() => getVideoChatAdapter(vc, mockConfig.services)).toThrow(
-			'Service "missing-service" not found'
+		expect(() => getVideoChatAdapter(srv)).toThrow(
+			'Unsupported video chat service type: caldav'
 		);
 	});
 });

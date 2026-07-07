@@ -28,7 +28,7 @@ const baseAppointment: Appointment = {
 	calendar_synced_revision: null,
 	has_possible_conflict: 0,
 	ics_sequence: 0,
-	event_type_snapshot: null,
+	meeting_snapshot: null,
 	created_at: '',
 	updated_at: '',
 	guest_timezone: 'America/New_York'
@@ -38,18 +38,18 @@ const cfgWithCalDav: WhenConfiguration = {
 	...validConfig,
 	services: [
 		{
-			id: 'work-dav-service',
+			name: 'work-dav-service',
 			type: 'caldav',
 			url: caldavCfg.url,
 			username: 'jane',
 			password: 'secret'
 		}
 	],
-	calendars: [{ id: 'work', type: 'caldav', service_id: 'work-dav-service', url: caldavCfg.url }],
-	event_types: [
+	calendars: [{ name: 'work', type: 'caldav', service: 'work-dav-service', url: caldavCfg.url }],
+	meetings: [
 		{
-			...validConfig.event_types[0],
-			destination_calendar: 'work'
+			...validConfig.meetings[0],
+			booking_calendar: 'work'
 		}
 	]
 };
@@ -135,7 +135,7 @@ test('pushAppointment succeeds on Google calendar', async () => {
 		...validConfig,
 		services: [
 			{
-				id: 'google-service-2',
+				name: 'google-service-2',
 				type: 'google',
 				client_id: 'gid',
 				client_secret: 'gsec',
@@ -144,13 +144,13 @@ test('pushAppointment succeeds on Google calendar', async () => {
 		],
 		calendars: [
 			{
-				id: 'g',
+				name: 'g',
 				type: 'google',
-				service_id: 'google-service-2',
+				service: 'google-service-2',
 				google_calendar_id: 'gcal'
 			}
 		],
-		event_types: [{ ...validConfig.event_types[0], destination_calendar: 'g' }]
+		meetings: [{ ...validConfig.meetings[0], booking_calendar: 'g' }]
 	};
 
 	let reqCount = 0;

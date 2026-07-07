@@ -1,4 +1,4 @@
-import type { VideoChat, Service } from '@when/config';
+import type { Service } from '@when/config';
 import { NextcloudTalkAdapter } from './adapters/nextcloud-talk.js';
 import { GoogleMeetAdapter } from './adapters/google-meet.js';
 
@@ -19,34 +19,17 @@ interface VideoChatAdapter {
 interface VideoChatAdapterClass {
 	readonly type: string;
 	readonly expectedServiceType: string;
-	new (vc: VideoChat, service: Service): VideoChatAdapter;
+	new (service: any): VideoChatAdapter;
 }
 
 const ADAPTERS: VideoChatAdapterClass[] = [NextcloudTalkAdapter, GoogleMeetAdapter];
 
-function getVideoChatAdapter(vc: VideoChat, services?: Service[]): VideoChatAdapter {
-	const AdapterClass = ADAPTERS.find((a) => a.type === vc.type);
+function getVideoChatAdapter(service: Service): VideoChatAdapter {
+	const AdapterClass = ADAPTERS.find((a) => a.expectedServiceType === service.type);
 	if (!AdapterClass) {
-		throw new Error('Unsupported video chat type: ' + vc.type);
+		throw new Error('Unsupported video chat service type: ' + service.type);
 	}
-
-	const service = (services ?? []).find((s) => s.id === vc.service_id);
-	if (!service) {
-		throw new Error('Service "' + vc.service_id + '" not found');
-	}
-	if (service.type !== AdapterClass.expectedServiceType) {
-		throw new Error(
-			'Service "' +
-				vc.service_id +
-				'" is of type "' +
-				service.type +
-				'", expected "' +
-				AdapterClass.expectedServiceType +
-				'"'
-		);
-	}
-
-	return new AdapterClass(vc, service);
+	return new AdapterClass(service);
 }
 
 export type { CreateRoomResult, VideoChatResult, VideoChatDeleteResult, VideoChatAdapter };

@@ -1,16 +1,10 @@
 import { describe, expect, test, vi, beforeEach } from 'vitest';
 import { NextcloudTalkAdapter } from './nextcloud-talk.js';
-import type { VideoChat, NextcloudService } from '@when/config';
+import type { NextcloudService } from '@when/config';
 
 describe('NextcloudTalkAdapter', () => {
-	const mockVc: VideoChat = {
-		id: 'my-talk',
-		type: 'nextcloud-talk',
-		service_id: 'my-nextcloud'
-	};
-
 	const mockService: NextcloudService = {
-		id: 'my-nextcloud',
+		name: 'my-nextcloud',
 		type: 'nextcloud',
 		url: 'https://cloud.example.com/',
 		username: 'user',
@@ -22,7 +16,7 @@ describe('NextcloudTalkAdapter', () => {
 	});
 
 	test('createRoom success returns meeting URL', async () => {
-		const adapter = new NextcloudTalkAdapter(mockVc, mockService);
+		const adapter = new NextcloudTalkAdapter(mockService);
 
 		const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
 			ok: true,
@@ -61,7 +55,7 @@ describe('NextcloudTalkAdapter', () => {
 	});
 
 	test('createRoom failure returns error reason', async () => {
-		const adapter = new NextcloudTalkAdapter(mockVc, mockService);
+		const adapter = new NextcloudTalkAdapter(mockService);
 
 		vi.spyOn(globalThis, 'fetch').mockResolvedValue({
 			ok: false,
@@ -79,7 +73,7 @@ describe('NextcloudTalkAdapter', () => {
 	});
 
 	test('deleteRoom success returns ok', async () => {
-		const adapter = new NextcloudTalkAdapter(mockVc, mockService);
+		const adapter = new NextcloudTalkAdapter(mockService);
 
 		const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
 			ok: true
@@ -104,7 +98,7 @@ describe('NextcloudTalkAdapter', () => {
 	});
 
 	test('deleteRoom failure returns error reason', async () => {
-		const adapter = new NextcloudTalkAdapter(mockVc, mockService);
+		const adapter = new NextcloudTalkAdapter(mockService);
 
 		vi.spyOn(globalThis, 'fetch').mockResolvedValue({
 			ok: false,
@@ -122,7 +116,7 @@ describe('NextcloudTalkAdapter', () => {
 	});
 
 	test('deleteRoom with invalid URL returns error', async () => {
-		const adapter = new NextcloudTalkAdapter(mockVc, mockService);
+		const adapter = new NextcloudTalkAdapter(mockService);
 		const result = await adapter.deleteRoom('https://cloud.example.com/invalid-path');
 		expect(result.ok).toBe(false);
 		if (!result.ok) {

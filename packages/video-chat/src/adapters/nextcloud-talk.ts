@@ -1,4 +1,4 @@
-import type { VideoChat, NextcloudService, Service } from '@when/config';
+import type { NextcloudService } from '@when/config';
 import type { VideoChatAdapter, VideoChatResult, VideoChatDeleteResult } from '../adapter.js';
 import { Buffer } from 'node:buffer';
 
@@ -6,14 +6,7 @@ export class NextcloudTalkAdapter implements VideoChatAdapter {
 	static readonly type = 'nextcloud-talk';
 	static readonly expectedServiceType = 'nextcloud';
 
-	private readonly service: NextcloudService;
-
-	constructor(
-		private readonly vc: VideoChat,
-		service: Service
-	) {
-		this.service = service as NextcloudService;
-	}
+	constructor(private readonly service: NextcloudService) {}
 
 	async createRoom(roomName: string): Promise<VideoChatResult> {
 		const baseUrl = this.service.url.replace(/\/$/, '');

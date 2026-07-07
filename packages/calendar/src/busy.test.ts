@@ -6,16 +6,16 @@ const inst = (s: string): Temporal.Instant => Temporal.Instant.from(s);
 const window = { start: inst('2026-04-01T00:00:00Z'), end: inst('2026-05-01T00:00:00Z') };
 
 const workCal: Calendar = {
-	id: 'work',
+	name: 'work',
 	type: 'caldav',
-	service_id: 'work-dav',
+	service: 'work-dav',
 	url: 'https://cal.example.com/work/'
 };
 
 const fakeConfig = {
 	services: [
 		{
-			id: 'work-dav',
+			name: 'work-dav',
 			type: 'caldav',
 			url: 'https://cal.example.com/work/',
 			username: 'jane',

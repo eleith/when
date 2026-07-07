@@ -2,7 +2,7 @@ import { logger } from '../logger.js';
 import { parseBusyEvents } from '../parse.js';
 import type { BusyEvent } from '../types.js';
 import type { CalendarAdapter, PushOptions, PushResult, DeleteResult } from '../adapter.js';
-import type { WhenConfiguration, CalDavCalendar, CalDavService } from '@when/config';
+import type { WhenConfiguration, CalDavCalendar, CalDavService, NextcloudService } from '@when/config';
 import { originId, type Appointment } from '@when/db';
 import type { ExpandWindow } from '../expand.js';
 import { buildIcs } from '../ics.js';
@@ -143,17 +143,30 @@ function decodeXmlEntities(s: string): string {
 export class CalDavAdapter implements CalendarAdapter {
 	constructor(
 		private cal: CalDavCalendar,
-		private service?: CalDavService
+		private service?: CalDavService | NextcloudService
 	) {}
 
 	private get adapterCfg(): CalDavConfig {
 		if (!this.service) {
 			throw new Error(
-				`Credentials service "${this.cal.service_id}" was not provided to CalDavAdapter`
+				`Credentials service "${this.cal.service}" was not provided to CalDavAdapter`
 			);
 		}
+		let calUrl = '';
+		if ('url' in this.cal && this.cal.url) {
+			calUrl = this.cal.url;
+		} else if ('path' in this.cal && this.cal.path) {
+			let baseUrl = this.service.url.replace(/\/$/, '');
+			if (this.service.type === 'nextcloud') {
+				baseUrl = baseUrl + '/remote.php/dav';
+			}
+			const relativePath = this.cal.path.replace(/^\//, '');
+			calUrl = `${baseUrl}/${relativePath}`;
+		} else {
+			throw new Error(`CalDAV calendar "${this.cal.name}" has neither path nor url defined.`);
+		}
 		return {
-			url: this.cal.url,
+			url: calUrl,
 			username: this.service.username,
 			password: this.service.password
 		};
@@ -181,7 +194,7 @@ export class CalDavAdapter implements CalendarAdapter {
 
 		const uid = originId(appointment);
 		await putCalDavEvent(this.adapterCfg, uid, ics);
-		return { ok: true, externalEventId: uid, externalCalendarId: this.cal.id };
+		return { ok: true, externalEventId: uid, externalCalendarId: this.cal.name };
 	}
 
 	async deleteAppointment(externalEventId: string): Promise<DeleteResult> {

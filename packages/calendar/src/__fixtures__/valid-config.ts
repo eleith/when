@@ -28,31 +28,24 @@ export const validConfig: WhenConfiguration = {
 	},
 	services: [
 		{
-			id: 'google-service',
+			name: 'google-service',
 			type: 'google',
 			client_id: 'gc-id',
 			client_secret: 'gc-secret',
 			refresh_token: 'gc-token'
 		}
 	],
-	video_chats: [
-		{
-			id: 'my-google-meet',
-			type: 'google-meet',
-			service_id: 'google-service'
-		}
-	],
 	calendars: [
 		{
-			id: 'my-google-cal',
+			name: 'my-google-cal',
 			type: 'google',
-			service_id: 'google-service',
+			service: 'google-service',
 			google_calendar_id: 'gc-calid'
 		}
 	],
-	availabilities: [
+	schedules: [
 		{
-			id: 'standard',
+			name: 'standard',
 			weekly: {
 				monday: ['09:00-17:00'],
 				tuesday: ['09:00-17:00'],
@@ -62,15 +55,14 @@ export const validConfig: WhenConfiguration = {
 			}
 		}
 	],
-	event_types: [
+	meetings: [
 		{
-			id: '30-min-chat',
-			name: '30 Minute Chat',
-			duration: 30,
+			name: '30-min-chat',
+			duration_minutes: 30,
 			slug: '30-min',
-			appointment_flow: 'auto',
-			destination_calendar: 'my-google-cal',
-			availability: 'standard'
+			booking_approval: 'instant',
+			booking_calendar: 'my-google-cal',
+			schedule: 'standard'
 		}
 	],
 	database: {

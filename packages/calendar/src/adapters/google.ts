@@ -263,7 +263,7 @@ export class GoogleAdapter implements CalendarAdapter {
 	private get googleCfg(): GoogleConfig {
 		if (!this.service) {
 			throw new Error(
-				`Credentials service "${this.cal.service_id}" was not provided to GoogleAdapter`
+				`Credentials service "${this.cal.service}" was not provided to GoogleAdapter`
 			);
 		}
 		return {
@@ -292,7 +292,7 @@ export class GoogleAdapter implements CalendarAdapter {
 		return {
 			ok: true,
 			externalEventId: result.externalEventId,
-			externalCalendarId: this.cal.id,
+			externalCalendarId: this.cal.name,
 			videoChatUrl: result.videoChatUrl
 		};
 	}

@@ -23,7 +23,7 @@ const baseAppointment: Appointment = {
 	calendar_synced_revision: null,
 	has_possible_conflict: 0,
 	ics_sequence: 0,
-	event_type_snapshot: null,
+	meeting_snapshot: null,
 	created_at: '2026-04-25T10:00:00Z',
 	updated_at: '2026-04-25T10:00:00Z',
 	guest_timezone: 'America/New_York'
