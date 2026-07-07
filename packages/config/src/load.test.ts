@@ -10,7 +10,7 @@ function clone<T>(v: T): T {
 test('valid config passes schema validation', () => {
 	const cfg = validateConfig(clone(validConfig));
 	expect(cfg.user.name).toBe('Jane Doe');
-	expect(cfg.event_types[0].id).toBe('30-min-chat');
+	expect(cfg.meetings[0].name).toBe('30-min-chat');
 });
 
 test('missing required top-level field fails', () => {
@@ -55,7 +55,7 @@ test('invalid email format fails', () => {
 
 test('invalid time range fails pattern', () => {
 	const bad = clone(validConfig);
-	bad.availabilities[0].weekly.monday = ['25:00-30:00'];
+	bad.schedules[0].weekly.monday = ['25:00-30:00'];
 	expect(() => validateConfig(bad)).toThrow(ConfigError);
 });
 
@@ -65,39 +65,35 @@ test('unknown top-level field fails', () => {
 	expect(() => validateConfig(bad)).toThrow(ConfigError);
 });
 
-test('empty event_types array fails', () => {
+test('empty meetings array fails', () => {
 	const bad = clone(validConfig);
-	bad.event_types = [] as never;
+	bad.meetings = [] as never;
 	expect(() => validateConfig(bad)).toThrow(ConfigError);
 });
 
 test('location accepts string value', () => {
 	const good = clone(validConfig);
-	good.event_types[0].location = 'Meeting Room A';
+	good.meetings[0].location = 'Meeting Room A';
 	const cfg = validateConfig(good);
-	expect(cfg.event_types[0].location).toBe('Meeting Room A');
+	expect(cfg.meetings[0].location).toBe('Meeting Room A');
 });
 
 test('location rejects non-string value', () => {
 	const bad = clone(validConfig);
-	bad.event_types[0].location = 123 as never;
+	bad.meetings[0].location = 123 as never;
 	expect(() => validateConfig(bad)).toThrow(ConfigError);
 });
 
-test('video_chat accepts valid string', () => {
+test('video_chat_service accepts valid service name', () => {
 	const good = clone(validConfig);
-	good.event_types[0].video_chat = 'google-service'; // must be a valid reference in fixture to pass cross-refs
-	// Wait, validConfig has services[0].id === 'google-service' but not video_chats.
-	// In cross-refs, if it's not a URL, it checks if it exists in video_chats.
-	// Let's use a URL (e.g. 'https://meet.google.com/abc') so it doesn't fail cross-refs.
-	good.event_types[0].video_chat = 'https://meet.google.com/abc';
+	good.meetings[0].video_chat_service = 'google-service';
 	const cfg = validateConfig(good);
-	expect(cfg.event_types[0].video_chat).toBe('https://meet.google.com/abc');
+	expect(cfg.meetings[0].video_chat_service).toBe('google-service');
 });
 
-test('video_chat rejects non-string value', () => {
+test('video_chat_service rejects non-string value', () => {
 	const bad = clone(validConfig);
-	bad.event_types[0].video_chat = 123 as never;
+	bad.meetings[0].video_chat_service = 123 as never;
 	expect(() => validateConfig(bad)).toThrow(ConfigError);
 });
 
@@ -134,15 +130,15 @@ test('password defaults to WHEN_ADMIN_PASSWORD if omitted', () => {
 	}
 });
 
-test('event_type note accepts valid string note', () => {
+test('meeting note accepts valid string note', () => {
 	const good = clone(validConfig);
-	good.event_types[0].note = 'Please read the notes before scheduling.';
+	good.meetings[0].note = 'Please read the notes before scheduling.';
 	const cfg = validateConfig(good);
-	expect(cfg.event_types[0].note).toBe('Please read the notes before scheduling.');
+	expect(cfg.meetings[0].note).toBe('Please read the notes before scheduling.');
 });
 
-test('event_type note with empty string fails validation', () => {
+test('meeting note with empty string fails validation', () => {
 	const bad = clone(validConfig);
-	bad.event_types[0].note = '' as never;
+	bad.meetings[0].note = '' as never;
 	expect(() => validateConfig(bad)).toThrow(ConfigError);
 });

@@ -1,17 +1,17 @@
-import type { EventType, FormField } from './schema.js';
+import type { Meeting, FormField } from './schema.js';
 
 export const DEFAULT_FORM_FIELDS: readonly FormField[] = [
-	{ id: 'name', type: 'guest_name', label: 'What is your name?', required: true },
-	{ id: 'email', type: 'guest_email', label: 'What is your email?', required: true },
-	{ id: 'notes', type: 'paragraph', label: 'Anything else?', required: false }
+	{ name: 'name', type: 'guest_name', label: 'What is your name?', required: true },
+	{ name: 'email', type: 'guest_email', label: 'What is your email?', required: true },
+	{ name: 'notes', type: 'paragraph', label: 'Anything else?', required: false }
 ];
 
-export function resolveFormFields(eventType: EventType): readonly FormField[] {
-	return eventType.form_fields ?? DEFAULT_FORM_FIELDS;
+export function resolveFormFields(meeting: Meeting): readonly FormField[] {
+	return meeting.form_fields ?? DEFAULT_FORM_FIELDS;
 }
 
 export interface GuestAnswer {
-	id: string;
+	name: string;
 	label: string;
 	type: FormField['type'];
 	value: string;

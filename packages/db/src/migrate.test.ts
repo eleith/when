@@ -317,14 +317,14 @@ test('0018 renames attendee columns to guest and rewrites action_log actors', as
 
 		const row = await db
 			.selectFrom('appointments')
-			.select(['guest_name', 'guest_answers', 'action_log', 'event_type_snapshot'])
+			.select(['guest_name', 'guest_answers', 'action_log', 'event_type_snapshot' as any])
 			.where('id', '=', 'a')
 			.executeTakeFirstOrThrow();
 		expect(row.guest_name).toBe('A');
 		const actors = (JSON.parse(row.action_log!) as { actor: string }[]).map((e) => e.actor);
 		expect(actors).toEqual(['guest', 'host']);
 		expect(JSON.parse(row.guest_answers!)[0].type).toBe('guest_name');
-		expect(JSON.parse(row.event_type_snapshot!).form_fields[0].type).toBe('guest_name');
+		expect(JSON.parse((row as any).event_type_snapshot!).form_fields[0].type).toBe('guest_name');
 	} finally {
 		await db.destroy();
 	}
@@ -350,6 +350,40 @@ test('0020 and 0022 migration: conference column is renamed to video_chat', asyn
 		const colNames = cols.rows.map((r) => r.name);
 		expect(colNames).not.toContain('conference');
 		expect(colNames).toContain('video_chat');
+	} finally {
+		await db.destroy();
+	}
+});
+
+test('0023 migration: event_type_snapshot column is renamed to meeting_snapshot', async () => {
+	const db = openDb(':memory:');
+	try {
+		const migrator = new Migrator({
+			db,
+			provider: { getMigrations: async () => migrations }
+		});
+		await migrator.migrateTo('0022_rename_conference_to_video_chat');
+
+		await sql`INSERT INTO appointments
+			(id, event_type_id, start_time, end_time, guest_name, guest_email, guest_answers, status, cancel_token, action_log, event_type_snapshot)
+			VALUES ('a', 'chat', '2026-05-01T10:00:00Z', '2026-05-01T10:30:00Z', 'A', 'a@example.com', '[]', 'confirmed', 'tok', '[]', '{"name":"chat"}')`.execute(
+			db
+		);
+
+		const result = await migrator.migrateTo('0023_rename_event_type_snapshot_to_meeting_snapshot');
+		expect(result.error).toBeUndefined();
+
+		const cols = await sql<{ name: string }>`PRAGMA table_info(appointments)`.execute(db);
+		const colNames = cols.rows.map((r) => r.name);
+		expect(colNames).toContain('meeting_snapshot');
+		expect(colNames).not.toContain('event_type_snapshot');
+
+		const row = await db
+			.selectFrom('appointments')
+			.select(['meeting_snapshot'])
+			.where('id', '=', 'a')
+			.executeTakeFirstOrThrow();
+		expect(row.meeting_snapshot).toBe('{"name":"chat"}');
 	} finally {
 		await db.destroy();
 	}

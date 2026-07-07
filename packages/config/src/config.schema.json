@@ -5,7 +5,7 @@
 	"title": "When configuration",
 	"description": "Canonical schema for the When self-hosted scheduling app's config.yaml.",
 	"type": "object",
-	"required": ["auth", "user", "smtp", "calendars", "availabilities", "event_types"],
+	"required": ["auth", "user", "smtp", "calendars", "schedules", "meetings"],
 	"properties": {
 		"auth": {
 			"description": "Admin authentication configuration.",
@@ -27,14 +27,6 @@
 				"$ref": "#/$defs/Service"
 			}
 		},
-		"video_chats": {
-			"default": [],
-			"description": "Video conferencing provider settings.",
-			"type": "array",
-			"items": {
-				"$ref": "#/$defs/VideoChat"
-			}
-		},
 		"calendars": {
 			"description": "Connected conflict/destination calendars.",
 			"type": "array",
@@ -42,20 +34,20 @@
 				"$ref": "#/$defs/Calendar"
 			}
 		},
-		"availabilities": {
+		"schedules": {
 			"minItems": 1,
-			"description": "List of availability profiles for scheduling.",
+			"description": "List of schedules for availability.",
 			"type": "array",
 			"items": {
-				"$ref": "#/$defs/AvailabilityProfile"
+				"$ref": "#/$defs/Schedule"
 			}
 		},
-		"event_types": {
+		"meetings": {
 			"minItems": 1,
 			"description": "Bookable meeting types.",
 			"type": "array",
 			"items": {
-				"$ref": "#/$defs/EventType"
+				"$ref": "#/$defs/Meeting"
 			}
 		},
 		"database": {
@@ -110,67 +102,6 @@
 					}
 				}
 			]
-		},
-		"AvailabilityProfile": {
-			"additionalProperties": false,
-			"title": "AvailabilityProfile",
-			"description": "Availability profile for scheduling rules and weekly hours.",
-			"type": "object",
-			"required": ["id", "weekly"],
-			"properties": {
-				"id": {
-					"minLength": 1,
-					"description": "Unique identifier for the availability profile.",
-					"type": "string"
-				},
-				"slot_granularity": {
-					"minimum": 1,
-					"default": 15,
-					"description": "Time step in minutes; booking slots will snap to this boundary (default: 15).",
-					"type": "integer"
-				},
-				"minimum_notice": {
-					"minimum": 0,
-					"default": 120,
-					"description": "Minimum lead time required for bookings in minutes (default: 120).",
-					"type": "integer"
-				},
-				"maximum_lookahead": {
-					"minimum": 1,
-					"default": 60,
-					"description": "Maximum number of days in the future that are open for booking (default: 60).",
-					"type": "integer"
-				},
-				"buffer_before": {
-					"minimum": 0,
-					"default": 0,
-					"description": "Minutes of buffer time required before each appointment (default: 0).",
-					"type": "integer"
-				},
-				"buffer_after": {
-					"minimum": 0,
-					"default": 0,
-					"description": "Minutes of buffer time required after each appointment (default: 0).",
-					"type": "integer"
-				},
-				"max_appointments_per_day": {
-					"default": null,
-					"description": "Maximum number of appointments allowed in a single day. null means unlimited (default: null).",
-					"anyOf": [
-						{
-							"minimum": 1,
-							"type": "integer"
-						},
-						{
-							"type": "null"
-						}
-					]
-				},
-				"weekly": {
-					"description": "Weekly working hours.",
-					"$ref": "#/$defs/WeeklySchedule"
-				}
-			}
 		},
 		"Branding": {
 			"additionalProperties": false,
@@ -232,48 +163,83 @@
 			}
 		},
 		"CalDavCalendar": {
-			"additionalProperties": false,
 			"title": "CalDavCalendar",
 			"description": "CalDAV Calendar integration configuration.",
-			"type": "object",
-			"required": ["id", "type", "service_id", "url"],
-			"properties": {
-				"id": {
-					"minLength": 1,
-					"description": "Unique identifier for this calendar, referenced by event types.",
-					"type": "string"
+			"anyOf": [
+				{
+					"additionalProperties": false,
+					"type": "object",
+					"required": ["name", "type", "service", "path"],
+					"properties": {
+						"name": {
+							"minLength": 1,
+							"description": "Unique name for this calendar, referenced by meetings.",
+							"type": "string"
+						},
+						"type": {
+							"description": "Calendar type: must be caldav.",
+							"const": "caldav",
+							"type": "string"
+						},
+						"service": {
+							"minLength": 1,
+							"description": "Name of the caldav or nextcloud service to connect with.",
+							"type": "string"
+						},
+						"path": {
+							"minLength": 1,
+							"description": "Relative path joined to the service base URL.",
+							"type": "string"
+						},
+						"sync": {
+							"description": "Sync settings for this calendar.",
+							"$ref": "#/$defs/CalendarSync"
+						}
+					}
 				},
-				"type": {
-					"description": "Calendar type: must be caldav.",
-					"const": "caldav",
-					"type": "string"
-				},
-				"service_id": {
-					"minLength": 1,
-					"description": "ID of the caldav or nextcloud service to connect with.",
-					"type": "string"
-				},
-				"url": {
-					"format": "uri",
-					"description": "Full calendar URL endpoint (e.g. https://cloud.example.com/remote.php/dav/calendars/jane/work/).",
-					"type": "string"
-				},
-				"sync": {
-					"description": "Sync settings for this calendar.",
-					"$ref": "#/$defs/CalendarSync"
+				{
+					"additionalProperties": false,
+					"type": "object",
+					"required": ["name", "type", "service", "url"],
+					"properties": {
+						"name": {
+							"minLength": 1,
+							"description": "Unique name for this calendar, referenced by meetings.",
+							"type": "string"
+						},
+						"type": {
+							"description": "Calendar type: must be caldav.",
+							"const": "caldav",
+							"type": "string"
+						},
+						"service": {
+							"minLength": 1,
+							"description": "Name of the caldav or nextcloud service to connect with.",
+							"type": "string"
+						},
+						"url": {
+							"format": "uri",
+							"description": "Full calendar URL endpoint overriding the service base URL.",
+							"type": "string"
+						},
+						"sync": {
+							"description": "Sync settings for this calendar.",
+							"$ref": "#/$defs/CalendarSync"
+						}
+					}
 				}
-			}
+			]
 		},
 		"CalDavService": {
 			"additionalProperties": false,
 			"title": "CalDavService",
 			"description": "CalDAV service credentials for generic calendar sync.",
 			"type": "object",
-			"required": ["id", "type", "url", "username", "password"],
+			"required": ["name", "type", "url", "username", "password"],
 			"properties": {
-				"id": {
+				"name": {
 					"minLength": 1,
-					"description": "Unique identifier for the service, referenced by calendars.",
+					"description": "Unique name for the service, referenced by calendars.",
 					"type": "string"
 				},
 				"type": {
@@ -316,7 +282,7 @@
 			"description": "Per-calendar sync cadence.",
 			"type": "object",
 			"properties": {
-				"refresh_interval": {
+				"refresh_every_minutes": {
 					"description": "Minutes between the worker's busy-time refreshes for this calendar.",
 					"minimum": 1,
 					"default": 10,
@@ -373,180 +339,16 @@
 				"type": "string"
 			}
 		},
-		"EventType": {
-			"additionalProperties": false,
-			"title": "EventType",
-			"description": "Definition of a bookable event type.",
-			"type": "object",
-			"required": [
-				"id",
-				"name",
-				"duration",
-				"slug",
-				"appointment_flow",
-				"destination_calendar",
-				"availability"
-			],
-			"properties": {
-				"id": {
-					"minLength": 1,
-					"description": "Unique identifier for the event type.",
-					"type": "string"
-				},
-				"name": {
-					"minLength": 1,
-					"description": "The name of the event type (e.g. 30-minute chat).",
-					"type": "string"
-				},
-				"duration": {
-					"minimum": 1,
-					"description": "Duration of the meeting in minutes.",
-					"type": "integer"
-				},
-				"description": {
-					"description": "Brief description of the meeting.",
-					"type": "string"
-				},
-				"slug": {
-					"pattern": "^[a-z0-9][a-z0-9-]*$",
-					"description": "URL slug for the booking page (e.g. \"chat\" for /schedule/chat).",
-					"type": "string"
-				},
-				"visibility": {
-					"default": "public",
-					"description": "Visibility on the homepage. \"public\" shows it; \"private\" hides it.",
-					"anyOf": [
-						{
-							"const": "public",
-							"type": "string"
-						},
-						{
-							"const": "private",
-							"type": "string"
-						}
-					]
-				},
-				"appointment_flow": {
-					"description": "The approval flow. \"auto\" confirms instantly; \"requires_confirmation\" requires host approval.",
-					"anyOf": [
-						{
-							"const": "auto",
-							"type": "string"
-						},
-						{
-							"const": "requires_confirmation",
-							"type": "string"
-						}
-					]
-				},
-				"conflict_calendars": {
-					"default": [],
-					"description": "Calendar IDs to check for conflicts (busy times) to block slots.",
-					"type": "array",
-					"items": {
-						"minLength": 1,
-						"type": "string"
-					}
-				},
-				"destination_calendar": {
-					"minLength": 1,
-					"description": "Calendar ID where confirmed bookings will be written.",
-					"type": "string"
-				},
-				"availability": {
-					"minLength": 1,
-					"description": "ID of the availability profile to use for scheduling.",
-					"type": "string"
-				},
-				"booking_style": {
-					"default": "insert",
-					"description": "The booking UI interaction style.",
-					"anyOf": [
-						{
-							"const": "insert",
-							"type": "string"
-						},
-						{
-							"const": "select",
-							"type": "string"
-						}
-					]
-				},
-				"location": {
-					"description": "Static location of the meeting.",
-					"$ref": "#/$defs/Location"
-				},
-				"note": {
-					"minLength": 1,
-					"description": "A note shown to guests after booking.",
-					"type": "string"
-				},
-				"video_chat": {
-					"minLength": 1,
-					"description": "ID of the video chat provider to generate dynamic links.",
-					"type": "string"
-				},
-				"slot_granularity": {
-					"minimum": 1,
-					"description": "Override for slot granularity in minutes.",
-					"type": "integer"
-				},
-				"minimum_notice": {
-					"minimum": 0,
-					"description": "Override for minimum notice required in minutes.",
-					"type": "integer"
-				},
-				"maximum_lookahead": {
-					"minimum": 1,
-					"description": "Override for maximum lookahead in days.",
-					"type": "integer"
-				},
-				"buffer_before": {
-					"minimum": 0,
-					"description": "Override for buffer before the meeting in minutes.",
-					"type": "integer"
-				},
-				"buffer_after": {
-					"minimum": 0,
-					"description": "Override for buffer after the meeting in minutes.",
-					"type": "integer"
-				},
-				"max_appointments_per_day": {
-					"description": "Override for maximum appointments per day.",
-					"anyOf": [
-						{
-							"minimum": 1,
-							"type": "integer"
-						},
-						{
-							"type": "null"
-						}
-					]
-				},
-				"image_url": {
-					"minLength": 1,
-					"description": "URL of an image representing the event type.",
-					"type": "string"
-				},
-				"form_fields": {
-					"description": "Custom form fields for the booking process.",
-					"type": "array",
-					"items": {
-						"$ref": "#/$defs/FormField"
-					}
-				}
-			}
-		},
 		"FormField": {
 			"additionalProperties": false,
 			"title": "FormField",
 			"description": "Custom question form fields for bookings.",
 			"type": "object",
-			"required": ["id", "type", "label"],
+			"required": ["name", "type", "label"],
 			"properties": {
-				"id": {
+				"name": {
 					"minLength": 1,
-					"description": "Unique identifier for the form field.",
+					"description": "Unique name for the form field.",
 					"type": "string"
 				},
 				"type": {
@@ -607,11 +409,11 @@
 			"title": "GoogleCalendar",
 			"description": "Google Calendar integration configuration.",
 			"type": "object",
-			"required": ["id", "type", "service_id", "google_calendar_id"],
+			"required": ["name", "type", "service", "google_calendar_id"],
 			"properties": {
-				"id": {
+				"name": {
 					"minLength": 1,
-					"description": "Unique identifier for this calendar, referenced by event types.",
+					"description": "Unique name for this calendar, referenced by meetings.",
 					"type": "string"
 				},
 				"type": {
@@ -619,9 +421,9 @@
 					"const": "google",
 					"type": "string"
 				},
-				"service_id": {
+				"service": {
 					"minLength": 1,
-					"description": "ID of the google service to connect with.",
+					"description": "Name of the google service to connect with.",
 					"type": "string"
 				},
 				"google_calendar_id": {
@@ -635,40 +437,16 @@
 				}
 			}
 		},
-		"GoogleMeetVideoChat": {
-			"additionalProperties": false,
-			"title": "GoogleMeetVideoChat",
-			"description": "Google Meet video conferencing integration.",
-			"type": "object",
-			"required": ["id", "type", "service_id"],
-			"properties": {
-				"id": {
-					"minLength": 1,
-					"description": "Unique identifier for this video chat provider.",
-					"type": "string"
-				},
-				"type": {
-					"description": "Video chat provider type: must be google-meet.",
-					"const": "google-meet",
-					"type": "string"
-				},
-				"service_id": {
-					"minLength": 1,
-					"description": "ID of the google service to use for video chat creation.",
-					"type": "string"
-				}
-			}
-		},
 		"GoogleService": {
 			"additionalProperties": false,
 			"title": "GoogleService",
 			"description": "Google API service credentials for calendar and meet integrations.",
 			"type": "object",
-			"required": ["id", "type", "client_id", "client_secret", "refresh_token"],
+			"required": ["name", "type", "client_id", "client_secret", "refresh_token"],
 			"properties": {
-				"id": {
+				"name": {
 					"minLength": 1,
-					"description": "Unique identifier for the service, referenced by calendars and video chat integrations.",
+					"description": "Unique name for the service, referenced by calendars.",
 					"type": "string"
 				},
 				"type": {
@@ -704,16 +482,179 @@
 			"description": "A static location description for a meeting (e.g. an address, a phone number, or a static meeting link).",
 			"type": "string"
 		},
+		"Meeting": {
+			"additionalProperties": false,
+			"title": "Meeting",
+			"description": "Definition of a bookable meeting.",
+			"type": "object",
+			"required": [
+				"name",
+				"duration_minutes",
+				"slug",
+				"booking_approval",
+				"booking_calendar",
+				"schedule"
+			],
+			"properties": {
+				"name": {
+					"minLength": 1,
+					"description": "Unique name of the meeting (e.g. 30-minute chat).",
+					"type": "string"
+				},
+				"duration_minutes": {
+					"minimum": 1,
+					"description": "Duration of the meeting in minutes.",
+					"type": "integer"
+				},
+				"description": {
+					"description": "Brief description of the meeting.",
+					"type": "string"
+				},
+				"slug": {
+					"pattern": "^[a-z0-9][a-z0-9-]*$",
+					"description": "URL slug for the booking page (e.g. \"chat\" for /schedule/chat).",
+					"type": "string"
+				},
+				"visibility": {
+					"default": "public",
+					"description": "Visibility on the homepage. \"public\" shows it; \"private\" hides it.",
+					"anyOf": [
+						{
+							"const": "public",
+							"type": "string"
+						},
+						{
+							"const": "private",
+							"type": "string"
+						}
+					]
+				},
+				"booking_approval": {
+					"description": "The approval flow. \"instant\" confirms instantly; \"request\" requires host approval.",
+					"anyOf": [
+						{
+							"const": "instant",
+							"type": "string"
+						},
+						{
+							"const": "request",
+							"type": "string"
+						}
+					]
+				},
+				"busy_calendars": {
+					"default": [],
+					"description": "Calendar names to check for conflicts (busy times) to block slots.",
+					"type": "array",
+					"items": {
+						"minLength": 1,
+						"type": "string"
+					}
+				},
+				"booking_calendar": {
+					"minLength": 1,
+					"description": "Calendar name where confirmed bookings will be written.",
+					"type": "string"
+				},
+				"schedule": {
+					"minLength": 1,
+					"description": "Name of the schedule to use for availability.",
+					"type": "string"
+				},
+				"booking_style": {
+					"default": "insert",
+					"description": "The booking UI interaction style.",
+					"anyOf": [
+						{
+							"const": "insert",
+							"type": "string"
+						},
+						{
+							"const": "select",
+							"type": "string"
+						}
+					]
+				},
+				"location": {
+					"description": "Static location of the meeting.",
+					"$ref": "#/$defs/Location"
+				},
+				"note": {
+					"minLength": 1,
+					"description": "A note shown to guests after booking.",
+					"type": "string"
+				},
+				"video_chat_service": {
+					"minLength": 1,
+					"description": "Name of the service to generate dynamic links.",
+					"type": "string"
+				},
+				"start_times_every_minutes": {
+					"minimum": 1,
+					"description": "Time step in minutes; booking slots will snap to this boundary. Defaults to the meeting's duration_minutes.",
+					"type": "integer"
+				},
+				"notice_minutes": {
+					"minimum": 0,
+					"default": 120,
+					"description": "Minimum lead time required for bookings in minutes (default: 120).",
+					"type": "integer"
+				},
+				"booking_window_days": {
+					"minimum": 1,
+					"default": 60,
+					"description": "Maximum number of days in the future that are open for booking (default: 60).",
+					"type": "integer"
+				},
+				"padding_before_minutes": {
+					"minimum": 0,
+					"default": 0,
+					"description": "Minutes of padding time required before each appointment (default: 0).",
+					"type": "integer"
+				},
+				"padding_after_minutes": {
+					"minimum": 0,
+					"default": 0,
+					"description": "Minutes of padding time required after each appointment (default: 0).",
+					"type": "integer"
+				},
+				"daily_booking_limit": {
+					"default": null,
+					"description": "Maximum number of appointments allowed in a single day. null means unlimited (default: null).",
+					"anyOf": [
+						{
+							"minimum": 1,
+							"type": "integer"
+						},
+						{
+							"type": "null"
+						}
+					]
+				},
+				"image_url": {
+					"minLength": 1,
+					"description": "URL of an image representing the meeting.",
+					"type": "string"
+				},
+				"form_fields": {
+					"description": "Custom form fields for the booking process.",
+					"type": "array",
+					"items": {
+						"$ref": "#/$defs/FormField"
+					}
+				}
+			}
+		},
 		"NextcloudService": {
 			"additionalProperties": false,
 			"title": "NextcloudService",
 			"description": "Nextcloud service credentials for CalDAV calendar and Talk video chat integrations.",
 			"type": "object",
-			"required": ["id", "type", "url", "username", "password"],
+			"required": ["name", "type", "url", "username", "password"],
 			"properties": {
-				"id": {
+				"name": {
 					"minLength": 1,
-					"description": "Unique identifier for the service, referenced by calendars and video chat integrations.",
+					"description": "Unique name for the service, referenced by calendars.",
 					"type": "string"
 				},
 				"type": {
@@ -734,30 +675,6 @@
 				"password": {
 					"minLength": 1,
 					"description": "Nextcloud password or app-specific password.",
-					"type": "string"
-				}
-			}
-		},
-		"NextcloudTalkVideoChat": {
-			"additionalProperties": false,
-			"title": "NextcloudTalkVideoChat",
-			"description": "Nextcloud Talk video conferencing integration.",
-			"type": "object",
-			"required": ["id", "type", "service_id"],
-			"properties": {
-				"id": {
-					"minLength": 1,
-					"description": "Unique identifier for this video chat provider.",
-					"type": "string"
-				},
-				"type": {
-					"description": "Video chat provider type: must be nextcloud-talk.",
-					"const": "nextcloud-talk",
-					"type": "string"
-				},
-				"service_id": {
-					"minLength": 1,
-					"description": "ID of the nextcloud service to use for video chat creation.",
 					"type": "string"
 				}
 			}
@@ -801,6 +718,24 @@
 					"description": "Bearer token for scraping metrics. Defaults to METRICS_TOKEN env var.",
 					"default": "${METRICS_TOKEN:-}",
 					"type": "string"
+				}
+			}
+		},
+		"Schedule": {
+			"additionalProperties": false,
+			"title": "Schedule",
+			"description": "Schedule defining weekly working hours.",
+			"type": "object",
+			"required": ["name", "weekly"],
+			"properties": {
+				"name": {
+					"minLength": 1,
+					"description": "Unique name for the schedule, referenced by meetings.",
+					"type": "string"
+				},
+				"weekly": {
+					"description": "Weekly working hours.",
+					"$ref": "#/$defs/WeeklySchedule"
 				}
 			}
 		},
@@ -906,18 +841,6 @@
 					"$ref": "#/$defs/Branding"
 				}
 			}
-		},
-		"VideoChat": {
-			"title": "VideoChat",
-			"description": "Video conferencing provider configurations.",
-			"anyOf": [
-				{
-					"$ref": "#/$defs/NextcloudTalkVideoChat"
-				},
-				{
-					"$ref": "#/$defs/GoogleMeetVideoChat"
-				}
-			]
 		},
 		"WeeklySchedule": {
 			"additionalProperties": false,

@@ -8,14 +8,14 @@ function clone<T>(v: T): T {
 }
 
 const validForm: FormField[] = [
-	{ id: 'name', type: 'guest_name', label: 'Name', required: true },
-	{ id: 'email', type: 'guest_email', label: 'Email', required: false },
-	{ id: 'notes', type: 'paragraph', label: 'Notes', required: false }
+	{ name: 'name', type: 'guest_name', label: 'Name', required: true },
+	{ name: 'email', type: 'guest_email', label: 'Email', required: false },
+	{ name: 'notes', type: 'paragraph', label: 'Notes', required: false }
 ];
 
 function withForm(fields: FormField[]) {
 	const cfg = clone(validConfig);
-	cfg.event_types[0].form_fields = fields;
+	cfg.meetings[0].form_fields = fields;
 	return cfg;
 }
 
@@ -33,33 +33,33 @@ test('valid cross-refs pass', () => {
 	expect(() => validateConfig(clone(validConfig))).not.toThrow();
 });
 
-test('unknown destination_calendar flagged', () => {
+test('unknown booking_calendar flagged', () => {
 	const bad = clone(validConfig);
-	bad.event_types[0].destination_calendar = 'does-not-exist';
+	bad.meetings[0].booking_calendar = 'does-not-exist';
 	try {
 		validateConfig(bad);
 		throw new Error('expected ConfigError');
 	} catch (err) {
 		expect(err).toBeInstanceOf(ConfigError);
 		const issues = (err as ConfigError).issues;
-		expect(issues[0].path).toBe('/event_types/0/destination_calendar');
+		expect(issues[0].path).toBe('/meetings/0/booking_calendar');
 		expect(issues[0].message).toContain('does-not-exist');
 	}
 });
 
-test('unknown conflict_calendars entry flagged with index', () => {
+test('unknown busy_calendars entry flagged with index', () => {
 	const bad = clone(validConfig);
-	bad.event_types[0].conflict_calendars = ['my-google-cal', 'missing-cal'];
+	bad.meetings[0].busy_calendars = ['my-google-cal', 'missing-cal'];
 	try {
 		validateConfig(bad);
 		throw new Error('expected ConfigError');
 	} catch (err) {
 		const issues = (err as ConfigError).issues;
-		expect(issues.some((i) => i.path === '/event_types/0/conflict_calendars/1')).toBe(true);
+		expect(issues.some((i) => i.path === '/meetings/0/busy_calendars/1')).toBe(true);
 	}
 });
 
-test('duplicate calendar id flagged', () => {
+test('duplicate calendar name flagged', () => {
 	const bad = clone(validConfig);
 	bad.calendars.push({ ...bad.calendars[0] });
 	try {
@@ -67,38 +67,38 @@ test('duplicate calendar id flagged', () => {
 		throw new Error('expected ConfigError');
 	} catch (err) {
 		const issues = (err as ConfigError).issues;
-		expect(issues.some((i) => i.message.includes('duplicate calendar id'))).toBe(true);
+		expect(issues.some((i) => i.message.includes('duplicate calendar name'))).toBe(true);
 	}
 });
 
-test('duplicate event_type id flagged', () => {
+test('duplicate meeting name flagged', () => {
 	const bad = clone(validConfig);
-	bad.event_types.push({ ...bad.event_types[0], slug: 'other-slug' });
+	bad.meetings.push({ ...bad.meetings[0], slug: 'other-slug' });
 	try {
 		validateConfig(bad);
 		throw new Error('expected ConfigError');
 	} catch (err) {
 		const issues = (err as ConfigError).issues;
-		expect(issues.some((i) => i.message.includes('duplicate event_type id'))).toBe(true);
+		expect(issues.some((i) => i.message.includes('duplicate meeting name'))).toBe(true);
 	}
 });
 
 test('duplicate slug flagged', () => {
 	const bad = clone(validConfig);
-	bad.event_types.push({ ...bad.event_types[0], id: 'other-id' });
+	bad.meetings.push({ ...bad.meetings[0], name: 'other-name' });
 	try {
 		validateConfig(bad);
 		throw new Error('expected ConfigError');
 	} catch (err) {
 		const issues = (err as ConfigError).issues;
-		expect(issues.some((i) => i.message.includes('duplicate event_type slug'))).toBe(true);
+		expect(issues.some((i) => i.message.includes('duplicate meeting slug'))).toBe(true);
 	}
 });
 
 test('valid form_fields pass', () => {
 	const cfg = withForm([
 		...validForm,
-		{ id: 'how', type: 'choice', label: 'How?', required: true, choices: ['phone', 'video'] }
+		{ name: 'how', type: 'choice', label: 'How?', required: true, choices: ['phone', 'video'] }
 	]);
 	expect(() => validateConfig(cfg)).not.toThrow();
 });
@@ -114,7 +114,7 @@ test('empty form_fields flagged', () => {
 
 test('too many form fields flagged', () => {
 	const extras: FormField[] = Array.from({ length: 8 }, (_, n) => ({
-		id: `extra-${n}`,
+		name: `extra-${n}`,
 		type: 'text',
 		label: `Extra ${n}`,
 		required: false
@@ -123,37 +123,37 @@ test('too many form fields flagged', () => {
 	expect(issues.some((i) => i.message.includes('exceeds the max'))).toBe(true);
 });
 
-test('duplicate form field id flagged with index', () => {
+test('duplicate form field name flagged with index', () => {
 	const issues = issuesFor(
-		withForm([...validForm, { id: 'notes', type: 'text', label: 'Dup', required: false }])
+		withForm([...validForm, { name: 'notes', type: 'text', label: 'Dup', required: false }])
 	);
-	expect(issues.some((i) => i.path === '/event_types/0/form_fields/3/id')).toBe(true);
+	expect(issues.some((i) => i.path === '/meetings/0/form_fields/3/name')).toBe(true);
 });
 
 test('missing guest_name flagged', () => {
 	const issues = issuesFor(
-		withForm([{ id: 'email', type: 'guest_email', label: 'Email', required: false }])
+		withForm([{ name: 'email', type: 'guest_email', label: 'Email', required: false }])
 	);
 	expect(issues.some((i) => i.message.includes('must include a guest_name'))).toBe(true);
 });
 
 test('guest_name not required flagged', () => {
 	const issues = issuesFor(
-		withForm([{ id: 'name', type: 'guest_name', label: 'Name', required: false }])
+		withForm([{ name: 'name', type: 'guest_name', label: 'Name', required: false }])
 	);
 	expect(issues.some((i) => i.message.includes('guest_name must be required'))).toBe(true);
 });
 
 test('guest_name appearing twice flagged', () => {
 	const issues = issuesFor(
-		withForm([...validForm, { id: 'name2', type: 'guest_name', label: 'Name', required: true }])
+		withForm([...validForm, { name: 'name2', type: 'guest_name', label: 'Name', required: true }])
 	);
 	expect(issues.some((i) => i.message.includes('exactly once'))).toBe(true);
 });
 
 test('guest_email appearing twice flagged', () => {
 	const issues = issuesFor(
-		withForm([...validForm, { id: 'email2', type: 'guest_email', label: 'Email', required: false }])
+		withForm([...validForm, { name: 'email2', type: 'guest_email', label: 'Email', required: false }])
 	);
 	expect(issues.some((i) => i.message.includes('guest_email may appear at most once'))).toBe(true);
 });
@@ -162,8 +162,8 @@ test('event_location appearing twice flagged', () => {
 	const issues = issuesFor(
 		withForm([
 			...validForm,
-			{ id: 'loc1', type: 'event_location', label: 'Where', required: false },
-			{ id: 'loc2', type: 'event_location', label: 'Where', required: false }
+			{ name: 'loc1', type: 'event_location', label: 'Where', required: false },
+			{ name: 'loc2', type: 'event_location', label: 'Where', required: false }
 		])
 	);
 	expect(issues.some((i) => i.message.includes('event_location may appear at most once'))).toBe(
@@ -173,119 +173,112 @@ test('event_location appearing twice flagged', () => {
 
 test('choice field without choices flagged', () => {
 	const issues = issuesFor(
-		withForm([...validForm, { id: 'how', type: 'choice', label: 'How?', required: true }])
+		withForm([...validForm, { name: 'how', type: 'choice', label: 'How?', required: true }])
 	);
-	expect(issues.some((i) => i.path === '/event_types/0/form_fields/3/choices')).toBe(true);
+	expect(issues.some((i) => i.path === '/meetings/0/form_fields/3/choices')).toBe(true);
 });
 
-test('unknown service_id in calendar flagged', () => {
+test('unknown service in calendar flagged', () => {
 	const bad = clone(validConfig);
-	bad.calendars[0].service_id = 'non-existent';
+	bad.calendars[0].service = 'non-existent';
 	const issues = issuesFor(bad);
 	expect(
 		issues.some(
-			(i) => i.path === '/calendars/0/service_id' && i.message.includes('unknown service')
+			(i) => i.path === '/calendars/0/service' && i.message.includes('unknown service')
 		)
 	).toBe(true);
 });
 
-test('duplicate service id flagged', () => {
+test('duplicate service name flagged', () => {
 	const bad = clone(validConfig);
 	bad.services!.push({ ...bad.services![0] });
 	const issues = issuesFor(bad);
 	expect(
-		issues.some((i) => i.path === '/services/1/id' && i.message.includes('duplicate service'))
+		issues.some((i) => i.path === '/services/1/name' && i.message.includes('duplicate service'))
 	).toBe(true);
 });
 
-test('unknown video_chat reference in event_type flagged', () => {
+test('unknown video_chat_service reference in meeting flagged', () => {
 	const bad = clone(validConfig);
-	bad.event_types[0].video_chat = 'non-existent';
+	bad.meetings[0].video_chat_service = 'non-existent';
 	const issues = issuesFor(bad);
 	expect(
 		issues.some(
-			(i) => i.path === '/event_types/0/video_chat' && i.message.includes('unknown video_chat id')
+			(i) => i.path === '/meetings/0/video_chat_service' && i.message.includes('unknown service')
 		)
 	).toBe(true);
 });
 
-test('Google Meet video_chat with CalDAV destination calendar flagged', () => {
+test('Google Meet video_chat_service with CalDAV booking calendar flagged', () => {
 	const bad = clone(validConfig);
 	bad.services!.push({
-		id: 'nextcloud-service',
+		name: 'nextcloud-service',
 		type: 'nextcloud',
 		url: 'https://cloud.example.com',
 		username: 'jane',
 		password: 'pwd'
 	});
 	bad.calendars.push({
-		id: 'caldav-cal',
+		name: 'caldav-cal',
 		type: 'caldav',
-		service_id: 'nextcloud-service',
+		service: 'nextcloud-service',
 		url: 'https://cloud.example.com/cal/'
 	});
-	bad.video_chats!.push({
-		id: 'my-meet',
-		type: 'google-meet',
-		service_id: 'google-service'
-	});
-	bad.event_types[0].destination_calendar = 'caldav-cal';
-	bad.event_types[0].video_chat = 'my-meet';
+	bad.meetings[0].booking_calendar = 'caldav-cal';
+	bad.meetings[0].video_chat_service = 'google-service'; // google-service is of type google
 
 	const issues = issuesFor(bad);
 	expect(
 		issues.some(
 			(i) =>
-				i.path === '/event_types/0/video_chat' &&
+				i.path === '/meetings/0/video_chat_service' &&
 				i.message.includes('Google Meet dynamic video chat is only supported')
 		)
 	).toBe(true);
 });
 
-test('duplicate availability profile id flagged', () => {
+test('duplicate schedule name flagged', () => {
 	const bad = clone(validConfig);
-	bad.availabilities.push({ ...bad.availabilities[0] });
+	bad.schedules.push({ ...bad.schedules[0] });
 	const issues = issuesFor(bad);
 	expect(
 		issues.some(
-			(i) => i.path === '/availabilities/1/id' && i.message.includes('duplicate availability id')
+			(i) => i.path === '/schedules/1/name' && i.message.includes('duplicate schedule name')
 		)
 	).toBe(true);
 });
 
-test('unknown availability reference in event_type flagged', () => {
+test('unknown schedule reference in meeting flagged', () => {
 	const bad = clone(validConfig);
-	bad.event_types[0].availability = 'non-existent';
+	bad.meetings[0].schedule = 'non-existent';
 	const issues = issuesFor(bad);
 	expect(
 		issues.some(
 			(i) =>
-				i.path === '/event_types/0/availability' && i.message.includes('unknown availability id')
+				i.path === '/meetings/0/schedule' && i.message.includes('unknown schedule name')
 		)
 	).toBe(true);
 });
 
-test('select booking style with slot_granularity less than duration is flagged', () => {
+test('select booking style with start_times_every_minutes less than duration_minutes is flagged', () => {
 	const bad = clone(validConfig);
-	bad.event_types[0].booking_style = 'select';
-	// validConfig duration is 30, slot_granularity overrides/defaults:
-	// Let's set slot_granularity = 15 on event_type (or let it default to 15 on profile)
-	bad.event_types[0].slot_granularity = 15;
-	bad.event_types[0].duration = 30;
+	bad.meetings[0].booking_style = 'select';
+	bad.meetings[0].start_times_every_minutes = 15;
+	bad.meetings[0].duration_minutes = 30;
 	const issues = issuesFor(bad);
 	expect(
 		issues.some(
 			(i) =>
-				i.path === '/event_types/0/slot_granularity' &&
+				i.path === '/meetings/0/start_times_every_minutes' &&
 				i.message.includes('must be greater than or equal')
 		)
 	).toBe(true);
 });
 
-test('select booking style with slot_granularity equal or greater than duration passes', () => {
+test('select booking style with start_times_every_minutes equal or greater than duration_minutes passes', () => {
 	const good = clone(validConfig);
-	good.event_types[0].booking_style = 'select';
-	good.event_types[0].slot_granularity = 30;
-	good.event_types[0].duration = 30;
+	good.meetings[0].booking_style = 'select';
+	good.meetings[0].start_times_every_minutes = 30;
+	good.meetings[0].duration_minutes = 30;
 	expect(() => validateConfig(good)).not.toThrow();
 });

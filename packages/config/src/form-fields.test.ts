@@ -1,24 +1,23 @@
 import { expect, test } from 'vitest';
 import { DEFAULT_FORM_FIELDS, parseGuestAnswers, resolveFormFields } from './form-fields.js';
-import type { EventType } from './schema.js';
+import type { Meeting } from './schema.js';
 
-const baseEventType: EventType = {
-	id: 'et',
-	name: 'Chat',
-	duration: 30,
+const baseMeeting: Meeting = {
+	name: 'et',
+	duration_minutes: 30,
 	slug: 'chat',
-	appointment_flow: 'auto',
-	destination_calendar: 'cal',
-	availability: 'standard'
+	booking_approval: 'instant',
+	booking_calendar: 'cal',
+	schedule: 'standard'
 };
 
 test('resolveFormFields falls back to the default form when unset', () => {
-	expect(resolveFormFields(baseEventType)).toBe(DEFAULT_FORM_FIELDS);
+	expect(resolveFormFields(baseMeeting)).toBe(DEFAULT_FORM_FIELDS);
 });
 
 test('resolveFormFields returns the configured fields when present', () => {
-	const form = [{ id: 'name', type: 'guest_name' as const, label: 'Name', required: true }];
-	expect(resolveFormFields({ ...baseEventType, form_fields: form })).toBe(form);
+	const form = [{ name: 'name', type: 'guest_name' as const, label: 'Name', required: true }];
+	expect(resolveFormFields({ ...baseMeeting, form_fields: form })).toBe(form);
 });
 
 test('the default form is valid against its own rules', () => {
@@ -28,9 +27,9 @@ test('the default form is valid against its own rules', () => {
 });
 
 test('parseGuestAnswers parses a stored array', () => {
-	const json = JSON.stringify([{ id: 'phone', label: 'Phone', type: 'text', value: '+1' }]);
+	const json = JSON.stringify([{ name: 'phone', label: 'Phone', type: 'text', value: '+1' }]);
 	expect(parseGuestAnswers(json)).toEqual([
-		{ id: 'phone', label: 'Phone', type: 'text', value: '+1' }
+		{ name: 'phone', label: 'Phone', type: 'text', value: '+1' }
 	]);
 });
 

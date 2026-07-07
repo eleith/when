@@ -33,7 +33,7 @@ export interface AppointmentsTable {
 	calendar_synced_revision: ColumnType<number | null, number | null | undefined, number | null>;
 	has_possible_conflict: ColumnType<number, number | undefined, number>;
 	ics_sequence: ColumnType<number, number | undefined, number>;
-	event_type_snapshot: NullableText;
+	meeting_snapshot: NullableText;
 	created_at: ColumnType<string, string | undefined, string>;
 	updated_at: ColumnType<string, string | undefined, string>;
 }
