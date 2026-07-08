@@ -2,7 +2,7 @@
 #
 # Minimal starter config for When. Fill in the ${ENV_VAR} references
 # before running the app, or replace them with literal values.
-# Full reference: https://when.app/schema/config.json
+# Reference: https://when.app/schema/config.json
 
 auth:
   credentials:
@@ -13,12 +13,15 @@ user:
   name: 'Your Name'
   timezone: 'UTC'
   email: 'you@example.com'
-  branding:
-    page_title: 'Welcome to my scheduling page'
+  appearance:
+    title: 'Welcome to my scheduling page'
     description: 'A little bit about me and **why** I want to schedule a meeting.'
     logo_url: '/public/logo.png'
     avatar_url: '/public/avatar.jpg'
     favicon_url: '/public/favicon.ico'
+    font_name: 'Outfit'
+    primary_light_color: '#166534'
+    primary_dark_color: '#34d399'
 
 # Required — appointment emails are sent over this SMTP server.
 smtp:
@@ -28,20 +31,20 @@ smtp:
   pass: '${SMTP_PASSWORD}'
 
 services:
-  - id: 'caldav-service'
+  - name: 'caldav-service'
     type: 'caldav'
     url: 'https://caldav.example.com/dav/you/cal/'
     username: 'you'
     password: '${CALDAV_PASSWORD}'
 
 calendars:
-  - id: 'main'
+  - name: 'main'
     type: 'caldav'
-    service_id: 'caldav-service'
+    service: 'caldav-service'
     url: 'https://caldav.example.com/dav/you/cal/'
 
-availabilities:
-  - id: 'standard'
+schedules:
+  - name: 'standard'
     weekly:
       monday: ['09:00-17:00']
       tuesday: ['09:00-17:00']
@@ -49,13 +52,12 @@ availabilities:
       thursday: ['09:00-17:00']
       friday: ['09:00-17:00']
 
-event_types:
-  - id: 'chat'
-    name: '30-minute chat'
-    duration: 30
+meetings:
+  - name: '30-minute chat'
+    duration_minutes: 30
     slug: 'chat'
-    appointment_flow: 'auto'
-    destination_calendar: 'main'
-    availability: 'standard'
+    booking_approval: 'instant'
+    booking_calendar: 'main'
+    schedule: 'standard'
     image_url: '/public/chat-icon.png'
     description: 'A quick catch-up or intro call.'

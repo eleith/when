@@ -40,19 +40,21 @@ export const AuthSchema = Type.Union([
 	description: 'Admin authentication strategy. Exactly one of `oidc` or `credentials` must be declared.'
 });
 
-export const BrandingSchema = Type.Object({
+export const AppearanceSchema = Type.Object({
+	title: Type.Optional(Type.String({ minLength: 1, description: 'Title of the booking page (e.g. "Schedule a time with me").' })),
+	description: Type.Optional(Type.String({ minLength: 1, description: 'Subtext or introduction shown on the booking page.' })),
 	logo_url: Type.Optional(Type.String({ minLength: 1, description: 'URL of the logo image. Can be relative (e.g. /public/logo.png).' })),
-	color: Type.Object({
-		primary: Type.Object({
-			light: Ref(HexColorSchema, { default: '#4f46e5', description: 'Primary brand color for light mode.' }),
-			dark: Ref(HexColorSchema, { default: '#818cf8', description: 'Primary brand color for dark mode.' })
-		}, { additionalProperties: false, default: {}, description: 'Primary brand colors for light and dark modes.' })
-	}, { additionalProperties: false, default: {}, required: ['primary'], description: 'Color theme configuration for the booking page.' }),
 	avatar_url: Type.Optional(Type.String({ minLength: 1, description: 'URL of the avatar image. Can be relative (e.g. /public/avatar.png).' })),
 	favicon_url: Type.Optional(Type.String({ minLength: 1, description: 'URL of the favicon image. Can be relative (e.g. /public/favicon.ico).' })),
-	page_title: Type.Optional(Type.String({ minLength: 1, description: 'Title of the booking page (e.g. "Schedule a time with me").' })),
-	description: Type.Optional(Type.String({ minLength: 1, description: 'Subtext or introduction shown on the booking page.' }))
-}, { $id: 'Branding', additionalProperties: false, title: 'Branding', description: 'Branding options for the booking page and emails. Place custom assets in ./data/public/ to serve them at /public/.' });
+	font_name: Type.Optional(Type.String({ minLength: 1, description: 'Custom CSS font family name (e.g. Outfit, sans-serif).' })),
+	font_url: Type.Optional(Type.String({ format: 'uri', description: 'URL of the custom font stylesheet (e.g. Google Fonts URL).' })),
+	primary_light_color: Ref(HexColorSchema, { default: '#166534', description: 'Primary brand color for light mode.' }),
+	primary_dark_color: Ref(HexColorSchema, { default: '#34d399', description: 'Primary brand color for dark mode.' }),
+	background_light_color: Ref(HexColorSchema, { default: '#f5f5f5', description: 'Background color for light mode.' }),
+	background_dark_color: Ref(HexColorSchema, { default: '#0a0a0a', description: 'Background color for dark mode.' }),
+	text_light_color: Ref(HexColorSchema, { default: '#171717', description: 'Text color for light mode.' }),
+	text_dark_color: Ref(HexColorSchema, { default: '#ededed', description: 'Text color for dark mode.' })
+}, { $id: 'Appearance', additionalProperties: false, title: 'Appearance', description: 'Appearance and theme options for the booking page and emails. Place custom assets in ./data/public/ to serve them at /public/.' });
 
 export const UserSchema = Type.Object({
 	name: Type.String({ minLength: 1, description: 'The display name of the schedule owner.' }),
@@ -61,7 +63,7 @@ export const UserSchema = Type.Object({
 		minLength: 1
 	}),
 	email: Type.String({ format: 'email', description: 'Email address of the schedule owner.' }),
-	branding: Ref(BrandingSchema, { default: {}, description: 'Branding overrides for the schedule owner.' })
+	appearance: Ref(AppearanceSchema, { default: {}, description: 'Appearance overrides for the schedule owner.' })
 }, { $id: 'User', additionalProperties: false, title: 'User', description: 'The schedule owner details.' });
 
 export const SmtpSchema = Type.Object({
@@ -264,7 +266,7 @@ export const WhenConfigurationSchema = Type.Object({
 export type WhenConfiguration = Static<typeof WhenConfigurationSchema>;
 export type Auth = Static<typeof AuthSchema>;
 export type User = Static<typeof UserSchema>;
-export type Branding = Static<typeof BrandingSchema>;
+export type Appearance = Static<typeof AppearanceSchema>;
 export type Smtp = Static<typeof SmtpSchema>;
 export type Service = Static<typeof ServiceSchema>;
 export type GoogleService = Static<typeof GoogleServiceSchema>;

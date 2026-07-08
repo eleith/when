@@ -80,28 +80,27 @@ smtp:
   user: "smtp_user"
   pass: "smtp_pass"
 services:
-  - id: "work-dav"
+  - name: "work-dav"
     type: "caldav"
     url: "https://example.com"
     username: "u"
     password: "p"
 calendars:
-  - id: "work"
+  - name: "work"
     type: "caldav"
-    service_id: "work-dav"
+    service: "work-dav"
     url: "https://example.com"
-availabilities:
-  - id: "standard"
+schedules:
+  - name: "standard"
     weekly:
       monday: ["09:00-17:00"]
-event_types:
-  - id: "chat"
-    name: "Chat"
-    duration: 30
+meetings:
+  - name: "chat"
+    duration_minutes: 30
     slug: "chat"
-    appointment_flow: "auto"
-    destination_calendar: "work"
-    availability: "standard"
+    booking_approval: "instant"
+    booking_calendar: "work"
+    schedule: "standard"
 database:
   app: "./data/when.sqlite"
   queue: "./data/openworkflow.sqlite"
