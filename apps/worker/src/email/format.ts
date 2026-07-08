@@ -74,11 +74,11 @@ function onColor(hex: string): string {
 }
 
 export function deriveBrand(cfg: WhenConfiguration, logoCid?: string): Brand {
-	const branding = cfg.user.branding;
-	const primaryColor = branding.color.primary.light;
+	const appearance = cfg.user.appearance;
+	const primaryColor = appearance.primary_light_color;
 	return {
 		name: cfg.user.name,
-		pageTitle: branding.page_title ?? cfg.user.name,
+		pageTitle: appearance.title ?? cfg.user.name,
 		logoUrl: logoCid ? `cid:${logoCid}` : undefined,
 		primaryColor,
 		onPrimary: onColor(primaryColor)

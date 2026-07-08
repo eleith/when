@@ -33,13 +33,9 @@ describe('format', () => {
 			...sampleConfig,
 			user: {
 				...sampleConfig.user,
-				branding: {
-					color: {
-						primary: {
-							light: '#fde047',
-							dark: '#fde047'
-						}
-					}
+				appearance: {
+					...sampleConfig.user.appearance,
+					primary_light_color: '#fde047'
 				}
 			}
 		} as typeof sampleConfig;

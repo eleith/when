@@ -38,13 +38,13 @@ export const sampleConfig = {
 		name: 'Acme Scheduling',
 		email: 'owner@acme.test',
 		timezone: 'America/New_York',
-		branding: {
-			color: {
-				primary: {
-					light: '#2563eb',
-					dark: '#3b82f6'
-				}
-			}
+		appearance: {
+			primary_light_color: '#2563eb',
+			primary_dark_color: '#3b82f6',
+			background_light_color: '#f5f5f5',
+			background_dark_color: '#0a0a0a',
+			text_light_color: '#171717',
+			text_dark_color: '#ededed'
 		}
 	},
 	smtp: { host: 'smtp.test', port: 587, user: 'mailer', pass: 'secret' },

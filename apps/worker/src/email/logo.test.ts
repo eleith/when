@@ -2,9 +2,9 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import type { WhenConfiguration } from '@when/config';
 import { fetchBrandLogo, clearLogoCache, BRAND_LOGO_CID } from './logo.js';
 
-function cfg(branding: Record<string, unknown> | undefined, internal?: string): WhenConfiguration {
+function cfg(appearance: Record<string, unknown> | undefined, internal?: string): WhenConfiguration {
 	return {
-		user: { name: 'Acme', email: 'o@acme.test', timezone: 'UTC', branding },
+		user: { name: 'Acme', email: 'o@acme.test', timezone: 'UTC', appearance },
 		url: { app: 'https://book.acme.test', internal }
 	} as unknown as WhenConfiguration;
 }
@@ -20,7 +20,7 @@ describe('fetchBrandLogo', () => {
 	test('returns null and never fetches when no image is configured', async () => {
 		const fetchSpy = vi.spyOn(globalThis, 'fetch');
 		expect(
-			await fetchBrandLogo(cfg({ color: { primary: { light: '#fff', dark: '#fff' } } }))
+			await fetchBrandLogo(cfg({ primary_light_color: '#fff', primary_dark_color: '#fff' }))
 		).toBeNull();
 		expect(fetchSpy).not.toHaveBeenCalled();
 	});

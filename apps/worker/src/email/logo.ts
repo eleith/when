@@ -9,8 +9,8 @@ const FETCH_TIMEOUT_MS = 5000;
 const cache = new Map<string, Attachment | null>();
 
 function resolveImageUrl(cfg: WhenConfiguration): string | undefined {
-	const branding = cfg.user.branding;
-	const src = branding?.logo_url ?? branding?.avatar_url;
+	const appearance = cfg.user.appearance;
+	const src = appearance?.logo_url ?? appearance?.avatar_url;
 	if (!src) return undefined;
 	const base = cfg.url.internal || cfg.url.app;
 	try {
