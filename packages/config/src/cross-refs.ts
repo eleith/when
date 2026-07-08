@@ -215,11 +215,7 @@ function checkMeetingScheduleReference(
 	}
 }
 
-function checkMeetingBookingStyle(
-	meeting: Meeting,
-	i: number,
-	issues: ConfigIssue[]
-): void {
+function checkMeetingBookingStyle(meeting: Meeting, i: number, issues: ConfigIssue[]): void {
 	if (meeting.booking_style === 'select') {
 		validateSelectBookingStyle(meeting, i, issues);
 	}
@@ -237,11 +233,7 @@ function checkMeetingVideoChatService(
 	}
 }
 
-function validateSelectBookingStyle(
-	meeting: Meeting,
-	i: number,
-	issues: ConfigIssue[]
-): void {
+function validateSelectBookingStyle(meeting: Meeting, i: number, issues: ConfigIssue[]): void {
 	const start_times_every_minutes = meeting.start_times_every_minutes ?? meeting.duration_minutes;
 	if (start_times_every_minutes < meeting.duration_minutes) {
 		issues.push({
@@ -282,11 +274,7 @@ function validateVideoChatService(
 
 const MAX_FORM_FIELDS = 10;
 
-function checkFormFields(
-	meeting: Meeting,
-	i: number,
-	issues: ConfigIssue[]
-): void {
+function checkFormFields(meeting: Meeting, i: number, issues: ConfigIssue[]): void {
 	const fields = meeting.form_fields;
 	if (!fields) return;
 
