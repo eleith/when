@@ -5,6 +5,7 @@
 	import '$lib/styles/calendar.css';
 	import '$lib/styles/fonts/outfit.css';
 	import '$lib/styles/fonts/inter.css';
+	import '$lib/styles/fonts/lato.css';
 	import defaultFavicon from '$lib/assets/favicon.svg';
 	import { createPreferredTimezone } from '$lib/preferredTimezone.svelte';
 

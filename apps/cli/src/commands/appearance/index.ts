@@ -38,7 +38,7 @@ async function promptPrimaryColor(mode: 'light' | 'dark', current?: string): Pro
 
 async function promptFontName(current?: string): Promise<string | null> {
 	const val = await text({
-		message: 'What is the font family name (e.g. Outfit, Inter)? Leave blank for system default.',
+		message: 'What is the font family name (e.g. Outfit, Inter, Lato)? Leave blank for system default.',
 		placeholder: current ?? '',
 		defaultValue: current ?? ''
 	});
