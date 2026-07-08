@@ -21,7 +21,10 @@ async function promptDescription(current?: string): Promise<string | null> {
 	return isCancel(val) ? null : val.trim();
 }
 
-async function promptPrimaryColor(mode: 'light' | 'dark', current?: string): Promise<string | null> {
+async function promptPrimaryColor(
+	mode: 'light' | 'dark',
+	current?: string
+): Promise<string | null> {
 	const defaultHex = mode === 'light' ? '#166534' : '#34d399';
 	const val = await text({
 		message: `What is the primary brand color for ${mode} mode (hex)?`,
@@ -38,7 +41,8 @@ async function promptPrimaryColor(mode: 'light' | 'dark', current?: string): Pro
 
 async function promptFontName(current?: string): Promise<string | null> {
 	const val = await text({
-		message: 'What is the font family name (e.g. Outfit, Inter, Lato)? Leave blank for system default.',
+		message:
+			'What is the font family name (e.g. Outfit, Inter, Lato)? Leave blank for system default.',
 		placeholder: current ?? '',
 		defaultValue: current ?? ''
 	});

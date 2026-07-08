@@ -42,9 +42,9 @@ describe('schedules add command', () => {
 				values: { config: 'nonexistent-config.yaml' },
 				positionals: [],
 				commandPath: []
-			} as unknown as Parameters<NonNullable<typeof availabilityAddCommand.run>>[0];
+			} as unknown as Parameters<NonNullable<typeof schedulesAddCommand.run>>[0];
 
-			await availabilityAddCommand.run!(ctx);
+			await schedulesAddCommand.run!(ctx);
 
 			expect(process.exitCode).toBe(1);
 			expect(errorSpy).toHaveBeenCalledWith(
@@ -84,8 +84,7 @@ schedules:
 
 		const editor = new ConfigEditor(tempConfigPath);
 		const profiles =
-			(editor.get('schedules') as Array<{ name: string; weekly: Record<string, string[]> }>) ??
-			[];
+			(editor.get('schedules') as Array<{ name: string; weekly: Record<string, string[]> }>) ?? [];
 		expect(profiles).toHaveLength(2);
 		expect(profiles[1]).toEqual({
 			name: 'custom-profile',
