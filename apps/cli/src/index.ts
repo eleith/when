@@ -1,8 +1,8 @@
 import { cli, define } from 'gunshi';
 import { intro, outro } from '@clack/prompts';
 import { configCommand } from './commands/config/index.ts';
-import { calendarCommand } from './commands/calendar/index.ts';
-import { availabilityCommand } from './commands/availability/index.ts';
+import { calendarsCommand } from './commands/calendars/index.ts';
+import { schedulesCommand } from './commands/schedules/index.ts';
 import { appearanceCommand } from './commands/appearance/index.ts';
 
 const rootCommand = define({
@@ -19,8 +19,8 @@ try {
 		name: 'when-cli',
 		subCommands: {
 			config: configCommand,
-			calendar: calendarCommand,
-			availability: availabilityCommand,
+			calendars: calendarsCommand,
+			schedules: schedulesCommand,
 			appearance: appearanceCommand
 		}
 	});

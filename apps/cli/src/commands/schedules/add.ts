@@ -70,7 +70,7 @@ function writeScheduleConfig(
 	editor.set(`schedules.${existingCount}`, schedule);
 }
 
-export const availabilityAddCommand = define({
+export const schedulesAddCommand = define({
 	name: 'add',
 	description: 'Wizard to add a schedule profile',
 	args: {

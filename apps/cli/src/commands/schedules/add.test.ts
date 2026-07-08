@@ -4,7 +4,7 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { text, multiselect } from '@clack/prompts';
 import { ConfigEditor } from '@when/config';
-import { availabilityAddCommand } from './add.ts';
+import { schedulesAddCommand } from './add.ts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -22,7 +22,7 @@ vi.mock('@clack/prompts', () => {
 	};
 });
 
-describe('availability add command', () => {
+describe('schedules add command', () => {
 	const tempConfigPath = resolve(__dirname, 'config.test.yaml');
 
 	beforeEach(() => {
@@ -78,9 +78,9 @@ schedules:
 			values: { config: tempConfigPath },
 			positionals: [],
 			commandPath: []
-		} as unknown as Parameters<NonNullable<typeof availabilityAddCommand.run>>[0];
+		} as unknown as Parameters<NonNullable<typeof schedulesAddCommand.run>>[0];
 
-		await availabilityAddCommand.run!(ctx);
+		await schedulesAddCommand.run!(ctx);
 
 		const editor = new ConfigEditor(tempConfigPath);
 		const profiles =
