@@ -65,9 +65,10 @@ services:
       NODE_ENV: development
 
     volumes:
-      - ../cli/src:/m/apps/cli/src
       - ./config.yaml:/m/apps/cli/config.yaml
       - ./data:/m/apps/cli/data
+      - ./data/public:/m/apps/web/static/public
+      - ../cli/src:/m/apps/cli/src
       - ../../packages/config/src:/m/packages/config/src
       - ../../packages/db/src:/m/packages/db/src
       - ../../packages/jobs/src:/m/packages/jobs/src
