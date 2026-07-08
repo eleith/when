@@ -1,9 +1,6 @@
 import { ConfigEditor } from '@when/config';
 
-export function getExistingNames(
-	configPath: string,
-	key: 'calendars' | 'services'
-): string[] {
+export function getExistingNames(configPath: string, key: 'calendars' | 'services'): string[] {
 	try {
 		const editor = new ConfigEditor(configPath);
 		const items = (editor.get(key) as { name: string }[]) ?? [];

@@ -125,7 +125,9 @@
 	// svelte-ignore state_referenced_locally
 	let paragraphValues = $state<Record<string, string>>(
 		Object.fromEntries(
-			data.formFields.filter((f) => f.type === 'paragraph').map((f) => [f.name, initialFieldValue(f)])
+			data.formFields
+				.filter((f) => f.type === 'paragraph')
+				.map((f) => [f.name, initialFieldValue(f)])
 		)
 	);
 
