@@ -18,14 +18,14 @@
 		formatTzAbbrev
 	} from '$lib/datetime';
 	import { getPreferredTimezone } from '$lib/preferredTimezone.svelte';
-	import type { GuestAnswer, Branding, FormField, Location } from '@when/config';
+	import type { GuestAnswer, Appearance, FormField, Location } from '@when/config';
 
 	// Shared shape served by both the new-appointment route and the reschedule route.
 	export interface AppointmentWizardData {
 		user: {
 			name: string;
 			timezone: string;
-			branding: (Branding & { descriptionHtml: string | Promise<string> | null }) | null;
+			appearance: Appearance | null;
 		};
 		eventType: {
 			id: string;
@@ -230,18 +230,17 @@
 
 <header class="page-banner">
 	<a href="/" class="banner-link">
-		{#if data.user.branding?.avatar_url || data.user.branding?.logo_url}
+		{#if data.user.appearance?.avatar_url || data.user.appearance?.logo_url}
 			<img
-				src={data.user.branding?.avatar_url || data.user.branding?.logo_url}
+				src={data.user.appearance?.avatar_url || data.user.appearance?.logo_url}
 				alt={data.user.name}
 				class="banner-avatar"
 			/>
 		{/if}
 		<div class="banner-text">
-			<span class="banner-title">{data.user.branding?.page_title || data.user.name}</span>
-			{#if data.user.branding?.descriptionHtml}
-				<!-- eslint-disable-next-line svelte/no-at-html-tags -->
-				<div class="banner-desc">{@html data.user.branding.descriptionHtml}</div>
+			<span class="banner-title">{data.user.appearance?.title || data.user.name}</span>
+			{#if data.user.appearance?.description}
+				<div class="banner-desc">{data.user.appearance.description}</div>
 			{/if}
 		</div>
 	</a>
@@ -309,23 +308,21 @@
 			<aside class="card-context">
 				<section class="context-section">
 					<a href="/" class="context-provider">
-						{#if data.user.branding?.avatar_url || data.user.branding?.logo_url}
+						{#if data.user.appearance?.avatar_url || data.user.appearance?.logo_url}
 							<img
-								src={data.user.branding?.avatar_url || data.user.branding?.logo_url}
+								src={data.user.appearance?.avatar_url || data.user.appearance?.logo_url}
 								alt={data.user.name}
 								class="context-provider-avatar"
 							/>
 						{/if}
 						<div class="context-provider-text">
 							<span class="context-provider-name"
-								>{data.user.branding?.page_title || data.user.name}</span
+								>{data.user.appearance?.title || data.user.name}</span
 							>
-							{#if data.user.branding?.descriptionHtml}
-								<!-- eslint-disable svelte/no-at-html-tags -->
+							{#if data.user.appearance?.description}
 								<div class="context-provider-desc">
-									{@html data.user.branding.descriptionHtml}
+									{data.user.appearance.description}
 								</div>
-								<!-- eslint-enable svelte/no-at-html-tags -->
 							{/if}
 						</div>
 					</a>

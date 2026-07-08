@@ -9,18 +9,17 @@
 </svelte:head>
 
 <main class="landing">
-	{#if data.user.branding?.avatar_url || data.user.branding?.logo_url}
+	{#if data.user.appearance?.avatar_url || data.user.appearance?.logo_url}
 		<img
-			src={data.user.branding?.avatar_url || data.user.branding?.logo_url}
+			src={data.user.appearance?.avatar_url || data.user.appearance?.logo_url}
 			alt={data.user.name}
 			class="avatar"
 		/>
 	{/if}
-	<h1>{data.user.branding?.page_title || data.user.name}</h1>
-	{#if data.user.branding?.descriptionHtml}
-		<!-- eslint-disable-next-line svelte/no-at-html-tags -->
-		<div class="subtitle">{@html data.user.branding.descriptionHtml}</div>
-	{:else if !data.user.branding?.page_title}
+	<h1>{data.user.appearance?.title || data.user.name}</h1>
+	{#if data.user.appearance?.description}
+		<p class="subtitle">{data.user.appearance.description}</p>
+	{:else if !data.user.appearance?.title}
 		<p class="subtitle">Welcome to my scheduling page</p>
 	{/if}
 

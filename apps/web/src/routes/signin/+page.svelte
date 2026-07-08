@@ -27,8 +27,8 @@
 <div class="signin-container">
 	<div class="signin-card">
 		<header class="signin-header">
-			{#if data.branding?.logo_url}
-				<img src={data.branding.logo_url} alt="Logo" class="signin-logo" />
+			{#if data.appearance?.logo_url}
+				<img src={data.appearance.logo_url} alt="Logo" class="signin-logo" />
 			{:else}
 				<div class="signin-icon-wrapper">
 					<IconCalendarBlank aria-hidden="true" />
