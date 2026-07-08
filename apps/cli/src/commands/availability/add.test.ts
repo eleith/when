@@ -61,15 +61,15 @@ describe('availability add command', () => {
 		writeFileSync(
 			tempConfigPath,
 			`
-availabilities:
-  - id: standard
+schedules:
+  - name: standard
     weekly:
       monday: ["09:00-17:00"]
 `
 		);
 
 		vi.mocked(text)
-			.mockResolvedValueOnce('custom-profile') // profile ID
+			.mockResolvedValueOnce('custom-profile') // schedule name
 			.mockResolvedValueOnce('10:00-16:00'); // hours
 
 		vi.mocked(multiselect).mockResolvedValueOnce(['monday', 'wednesday', 'friday']); // working days
@@ -84,11 +84,11 @@ availabilities:
 
 		const editor = new ConfigEditor(tempConfigPath);
 		const profiles =
-			(editor.get('availabilities') as Array<{ id: string; weekly: Record<string, string[]> }>) ??
+			(editor.get('schedules') as Array<{ name: string; weekly: Record<string, string[]> }>) ??
 			[];
 		expect(profiles).toHaveLength(2);
 		expect(profiles[1]).toEqual({
-			id: 'custom-profile',
+			name: 'custom-profile',
 			weekly: {
 				monday: ['10:00-16:00'],
 				wednesday: ['10:00-16:00'],

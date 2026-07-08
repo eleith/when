@@ -3,26 +3,26 @@ import { text, isCancel, multiselect, spinner } from '@clack/prompts';
 import { ConfigEditor } from '@when/config';
 import { getValidatedConfigPath, validateConfigExists } from '../../utils/config-path.ts';
 
-interface AvailabilityProfile {
-	id: string;
+interface ScheduleProfile {
+	name: string;
 	weekly: Record<string, string[]>;
 }
 
-async function promptAvailabilityProfileId(existingIds: string[]): Promise<string | null> {
-	const profileId = await text({
-		message: 'What is the profile ID?',
+async function promptScheduleName(existingNames: string[]): Promise<string | null> {
+	const scheduleName = await text({
+		message: 'What is the schedule name?',
 		placeholder: 'standard',
 		defaultValue: 'standard',
 		validate(value) {
 			const val = (value || '').trim() || 'standard';
-			if (existingIds.includes(val)) {
-				return `An availability profile with ID "${val}" already exists in config.yaml.`;
+			if (existingNames.includes(val)) {
+				return `A schedule with name "${val}" already exists in config.yaml.`;
 			}
 		}
 	});
 
-	if (isCancel(profileId)) return null;
-	return (profileId as string).trim() || 'standard';
+	if (isCancel(scheduleName)) return null;
+	return (scheduleName as string).trim() || 'standard';
 }
 
 async function promptWorkingDays(): Promise<string[] | null> {
@@ -61,18 +61,18 @@ async function promptWorkingHours(): Promise<string | null> {
 	return (hours as string).trim() || '09:00-17:00';
 }
 
-function writeAvailabilityProfileConfig(
+function writeScheduleConfig(
 	configPath: string,
-	profile: AvailabilityProfile,
+	schedule: ScheduleProfile,
 	existingCount: number
 ): void {
 	const editor = new ConfigEditor(configPath);
-	editor.set(`availabilities.${existingCount}`, profile);
+	editor.set(`schedules.${existingCount}`, schedule);
 }
 
 export const availabilityAddCommand = define({
 	name: 'add',
-	description: 'Wizard to add an availability profile',
+	description: 'Wizard to add a schedule profile',
 	args: {
 		config: {
 			type: 'string',
@@ -89,11 +89,11 @@ export const availabilityAddCommand = define({
 		}
 
 		const editor = new ConfigEditor(configPath);
-		const existingAvailabilities = (editor.get('availabilities') as AvailabilityProfile[]) ?? [];
-		const existingIds = existingAvailabilities.map((a) => a.id);
+		const existingSchedules = (editor.get('schedules') as ScheduleProfile[]) ?? [];
+		const existingNames = existingSchedules.map((a) => a.name);
 
-		const id = await promptAvailabilityProfileId(existingIds);
-		if (!id) return;
+		const name = await promptScheduleName(existingNames);
+		if (!name) return;
 
 		const selectedDays = await promptWorkingDays();
 		if (!selectedDays || selectedDays.length === 0) {
@@ -107,7 +107,7 @@ export const availabilityAddCommand = define({
 		if (!selectedHours) return;
 
 		const s = spinner();
-		s.start('Saving availability profile...');
+		s.start('Saving schedule profile...');
 
 		try {
 			const weekly: Record<string, string[]> = {};
@@ -115,13 +115,13 @@ export const availabilityAddCommand = define({
 				weekly[day] = [selectedHours];
 			}
 
-			const newProfile: AvailabilityProfile = {
-				id,
+			const newProfile: ScheduleProfile = {
+				name,
 				weekly
 			};
 
-			writeAvailabilityProfileConfig(configPath, newProfile, existingAvailabilities.length);
-			s.stop(`Successfully added availability profile "${id}" to config.yaml!`);
+			writeScheduleConfig(configPath, newProfile, existingSchedules.length);
+			s.stop(`Successfully added schedule "${name}" to config.yaml!`);
 		} catch (err) {
 			s.stop('Failed to save!');
 			console.error(err);
