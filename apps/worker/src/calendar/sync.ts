@@ -7,9 +7,9 @@ import { calendarSyncDuration } from '../services/metrics.js';
 import { deleteStandaloneVideoChat } from '../services/video-chat.js';
 
 export async function reconcileAppointment(ctx: WorkerContext, row: Appointment): Promise<void> {
-	const eventType = ctx.config.event_types.find((e) => e.id === row.event_type_id);
-	const targetId = row.external_calendar_id ?? eventType?.destination_calendar ?? null;
-	const calendarConfig = ctx.config.calendars.find((c) => c.id === targetId);
+	const meeting = ctx.config.meetings.find((e) => e.name === row.event_type_id);
+	const targetId = row.external_calendar_id ?? meeting?.booking_calendar ?? null;
+	const calendarConfig = ctx.config.calendars.find((c) => c.name === targetId);
 	const providerType = calendarConfig?.type ?? 'unknown';
 	const timer = calendarSyncDuration.startTimer({ provider_type: providerType });
 
@@ -18,7 +18,7 @@ export async function reconcileAppointment(ctx: WorkerContext, row: Appointment)
 		const shouldExist = row.status === 'confirmed';
 
 		if (shouldExist) {
-			const target = row.external_calendar_id ?? eventType?.destination_calendar ?? null;
+			const target = row.external_calendar_id ?? meeting?.booking_calendar ?? null;
 			if (!target) {
 				await markSynced(ctx.db, row.id, revision);
 				return;

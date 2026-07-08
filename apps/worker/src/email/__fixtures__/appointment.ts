@@ -11,7 +11,7 @@ export const sampleAppointment: Appointment = {
 	guest_name: 'Jane Doe',
 	guest_email: 'jane@example.com',
 	guest_answers: JSON.stringify([
-		{ id: 'notes', label: 'Anything else?', type: 'paragraph', value: 'Looking forward to it' }
+		{ name: 'notes', label: 'Anything else?', type: 'paragraph', value: 'Looking forward to it' }
 	]),
 	guest_timezone: 'America/Los_Angeles',
 	location: 'Zoom',
@@ -26,7 +26,7 @@ export const sampleAppointment: Appointment = {
 	calendar_synced_revision: null,
 	has_possible_conflict: 0,
 	ics_sequence: 0,
-	event_type_snapshot: null,
+	meeting_snapshot: null,
 	created_at: '2026-01-01T09:00:00Z',
 	updated_at: '2026-01-01T09:00:00Z',
 	origin_id: null
@@ -49,7 +49,7 @@ export const sampleConfig = {
 	},
 	smtp: { host: 'smtp.test', port: 587, user: 'mailer', pass: 'secret' },
 	url: { app: 'https://when.example.com' },
-	event_types: []
+	meetings: []
 } as unknown as WhenConfiguration;
 
 export const sampleLinks: AppointmentLinks = {

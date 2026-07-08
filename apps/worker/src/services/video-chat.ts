@@ -23,17 +23,21 @@ export async function createStandaloneVideoChat(
 		return row as Appointment;
 	}
 
-	const videoChatId = row.video_chat;
-	const vcConfig = (config.video_chats ?? []).find((vc) => vc.id === videoChatId);
-	if (!vcConfig) {
-		throw new Error(`Video chat configuration "${videoChatId}" not found`);
+	const meeting = config.meetings.find((m) => m.name === row.event_type_id);
+	if (!meeting || !meeting.video_chat_service) {
+		return row as Appointment;
+	}
+
+	const service = (config.services ?? []).find((s) => s.name === meeting.video_chat_service);
+	if (!service) {
+		throw new Error(`Video chat service "${meeting.video_chat_service}" not found`);
 	}
 
 	// We ONLY handle standalone video chat providers here (like Nextcloud Talk).
 	// Google Meet is calendar-integrated, so its creation is handled by the Calendar Sync step.
-	if (vcConfig.type === 'nextcloud-talk') {
+	if (service.type === 'nextcloud' && row.video_chat === 'nextcloud-talk') {
 		const now = Temporal.Now.instant().toString();
-		const adapter = getVideoChatAdapter(vcConfig, config.services);
+		const adapter = getVideoChatAdapter(service);
 		const roomName = `Meeting: ${row.guest_name}`;
 		const result = await adapter.createRoom(roomName);
 
@@ -76,18 +80,18 @@ export async function deleteStandaloneVideoChat(
 		return;
 	}
 
-	const eventType = config.event_types.find((e) => e.id === row.event_type_id);
-	if (!eventType || !eventType.video_chat) {
+	const meeting = config.meetings.find((e) => e.name === row.event_type_id);
+	if (!meeting || !meeting.video_chat_service) {
 		return;
 	}
 
-	const vcConfig = (config.video_chats ?? []).find((vc) => vc.id === eventType.video_chat);
-	if (!vcConfig) {
+	const service = (config.services ?? []).find((s) => s.name === meeting.video_chat_service);
+	if (!service || service.type !== 'nextcloud') {
 		return;
 	}
 
 	try {
-		const adapter = getVideoChatAdapter(vcConfig, config.services);
+		const adapter = getVideoChatAdapter(service);
 		const deleteResult = await adapter.deleteRoom(row.video_chat);
 		if (!deleteResult.ok) {
 			console.warn(`Failed to delete video chat room: ${deleteResult.reason}`);

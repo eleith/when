@@ -20,7 +20,7 @@ const testConfig = {
 	...sampleInput.cfg,
 	calendars: [],
 	services: [],
-	event_types: [{ id: '30-min', name: '30 Min Chat', destination_calendar: null }]
+	meetings: [{ name: '30-min', duration_minutes: 30, slug: '30-min', booking_approval: 'instant', booking_calendar: 'cal', schedule: 'standard' }]
 } as unknown as WhenConfiguration;
 
 function makeStep() {
@@ -67,11 +67,19 @@ async function seedDb(): Promise<Kysely<Database>> {
 			end_time: '2026-01-05T15:30:00Z',
 			guest_name: 'Jane Doe',
 			guest_email: 'jane@example.com',
+			guest_timezone: 'UTC',
 			location: null,
 			external_event_id: null,
 			external_calendar_id: null,
 			status: 'confirmed',
-			cancel_token: 'tok-1'
+			cancel_token: 'tok-1',
+			calendar_revision: 0,
+			ics_sequence: 0,
+			has_possible_conflict: 0,
+			meeting_snapshot: null,
+			guest_answers: null,
+			created_at: '',
+			updated_at: ''
 		})
 		.execute();
 	return db;

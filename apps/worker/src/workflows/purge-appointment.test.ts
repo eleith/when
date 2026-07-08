@@ -13,7 +13,7 @@ const config = {
 	url: { app: 'https://when.example.com' },
 	services: [
 		{
-			id: 'work-dav',
+			name: 'work-dav',
 			type: 'caldav',
 			url: 'https://cal.example.com/work/',
 			username: 'u',
@@ -22,13 +22,13 @@ const config = {
 	],
 	calendars: [
 		{
-			id: 'work',
+			name: 'work',
 			type: 'caldav',
-			service_id: 'work-dav',
+			service: 'work-dav',
 			url: 'https://cal.example.com/work/'
 		}
 	],
-	event_types: []
+	meetings: []
 } as unknown as WhenConfiguration;
 
 function makeStep() {
@@ -64,11 +64,19 @@ const appt = (over: Record<string, unknown>) => ({
 	end_time: '2026-05-01T10:30:00Z',
 	guest_name: 'A',
 	guest_email: 'a@example.com',
+	guest_timezone: 'UTC',
 	location: null,
 	status: 'purged' as const,
 	cancel_token: 't',
 	external_event_id: null,
 	external_calendar_id: null,
+	calendar_revision: 0,
+	ics_sequence: 0,
+	has_possible_conflict: 0,
+	meeting_snapshot: null,
+	guest_answers: null,
+	created_at: '',
+	updated_at: '',
 	...over
 });
 

@@ -15,9 +15,9 @@ export async function flagConflicts(
 	const flagged: string[] = [];
 	const cleared: string[] = [];
 	for (const appt of appointments) {
-		const eventType = ctx.config.event_types.find((e) => e.id === appt.event_type_id);
-		const conflictCalendars = eventType?.conflict_calendars ?? [];
-		const busy = await getBusyIntervals(ctx.db, conflictCalendars, {
+		const meeting = ctx.config.meetings.find((e) => e.name === appt.event_type_id);
+		const busyCalendars = meeting?.busy_calendars ?? [];
+		const busy = await getBusyIntervals(ctx.db, busyCalendars, {
 			start: appt.start_time,
 			end: appt.end_time
 		});

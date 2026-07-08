@@ -21,6 +21,14 @@ const appt = (over: Record<string, unknown>) => ({
 	cancel_token: 't',
 	external_event_id: null,
 	external_calendar_id: null,
+	calendar_revision: 0,
+	ics_sequence: 0,
+	has_possible_conflict: 0,
+	meeting_snapshot: null,
+	guest_answers: null,
+	guest_timezone: 'UTC',
+	created_at: '',
+	updated_at: '',
 	...over
 });
 
@@ -37,9 +45,9 @@ async function ctxWith(config: Partial<WhenConfiguration>): Promise<WorkerContex
 
 test('flags confirmed + pending appointments overlapping the mirror, clears the rest', async () => {
 	const ctx = await ctxWith({
-		event_types: [
-			{ id: 'chat', conflict_calendars: ['work'] }
-		] as unknown as WhenConfiguration['event_types']
+		meetings: [
+			{ name: 'chat', busy_calendars: ['work'] }
+		] as unknown as WhenConfiguration['meetings']
 	});
 	try {
 		await replaceCalendarBusy(ctx.db, 'work', [
@@ -91,9 +99,9 @@ test('flags confirmed + pending appointments overlapping the mirror, clears the 
 
 test('clears a previously-flagged appointment once the overlap is gone', async () => {
 	const ctx = await ctxWith({
-		event_types: [
-			{ id: 'chat', conflict_calendars: ['work'] }
-		] as unknown as WhenConfiguration['event_types']
+		meetings: [
+			{ name: 'chat', busy_calendars: ['work'] }
+		] as unknown as WhenConfiguration['meetings']
 	});
 	try {
 		await ctx.db
@@ -123,9 +131,9 @@ test('clears a previously-flagged appointment once the overlap is gone', async (
 
 test('an event type with no conflict calendars is never flagged', async () => {
 	const ctx = await ctxWith({
-		event_types: [
-			{ id: 'chat', conflict_calendars: [] }
-		] as unknown as WhenConfiguration['event_types']
+		meetings: [
+			{ name: 'chat', busy_calendars: [] }
+		] as unknown as WhenConfiguration['meetings']
 	});
 	try {
 		await replaceCalendarBusy(ctx.db, 'work', [

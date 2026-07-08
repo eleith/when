@@ -1,10 +1,10 @@
-import { parseGuestAnswers, type EventType, type WhenConfiguration } from '@when/config';
+import { parseGuestAnswers, type Meeting, type WhenConfiguration } from '@when/config';
 import type { Appointment } from '@when/db';
 import type { DetailRow } from './content.js';
 import type { AppointmentEmailInput } from './types.js';
 
 export function eventTypeName(
-	eventType: EventType | undefined,
+	eventType: Meeting | undefined,
 	appointment: Pick<Appointment, 'event_type_id'>
 ): string {
 	return eventType?.name ?? appointment.event_type_id;

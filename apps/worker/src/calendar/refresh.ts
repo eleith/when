@@ -20,8 +20,8 @@ export interface RefreshOptions {
 
 export function conflictCalendarIds(config: WhenConfiguration): string[] {
 	const ids = new Set<string>();
-	for (const et of config.event_types) {
-		for (const id of et.conflict_calendars ?? []) ids.add(id);
+	for (const et of config.meetings) {
+		for (const name of et.busy_calendars ?? []) ids.add(name);
 	}
 	return [...ids];
 }
@@ -32,11 +32,9 @@ export function refreshWindow(
 	now: Temporal.Instant
 ): ExpandWindow {
 	let days = 0;
-	for (const et of config.event_types) {
-		if (!(et.conflict_calendars ?? []).includes(calendarId)) continue;
-		const profile = config.availabilities.find((p) => p.id === et.availability);
-		const lookahead =
-			et.maximum_lookahead ?? profile?.maximum_lookahead ?? DEFAULT_MAX_LOOKAHEAD_DAYS;
+	for (const et of config.meetings) {
+		if (!(et.busy_calendars ?? []).includes(calendarId)) continue;
+		const lookahead = et.booking_window_days ?? DEFAULT_MAX_LOOKAHEAD_DAYS;
 		days = Math.max(days, lookahead);
 	}
 	if (days === 0) days = DEFAULT_MAX_LOOKAHEAD_DAYS;
@@ -51,19 +49,19 @@ export async function refreshCalendar(
 ): Promise<void> {
 	const at = (opts.now ?? window.start).toString();
 	try {
-		const excludeUids = new Set(await listOwnEventIds(ctx.db, cal.id));
+		const excludeUids = new Set(await listOwnEventIds(ctx.db, cal.name));
 		const intervals = await fetchBusyIntervals(cal, window, {
 			excludeUids,
 			config: ctx.config
 		});
 		await replaceCalendarBusy(
 			ctx.db,
-			cal.id,
+			cal.name,
 			intervals.map((i) => ({ start: i.start.toString(), end: i.end.toString() }))
 		);
-		await recordRefreshResult(ctx.db, cal.id, { at });
+		await recordRefreshResult(ctx.db, cal.name, { at });
 		calendarRefreshTotal.inc({
-			calendar_id: cal.id,
+			calendar_id: cal.name,
 			provider_type: cal.type,
 			status: 'success'
 		});
@@ -71,14 +69,14 @@ export async function refreshCalendar(
 		const error = err instanceof Error ? err.message : String(err);
 		ctx.logger.error(
 			{
-				calendarId: cal.id,
+				calendarId: cal.name,
 				error
 			},
 			'calendar refresh failed; keeping stale busy times'
 		);
-		await recordRefreshResult(ctx.db, cal.id, { at, error });
+		await recordRefreshResult(ctx.db, cal.name, { at, error });
 		calendarRefreshTotal.inc({
-			calendar_id: cal.id,
+			calendar_id: cal.name,
 			provider_type: cal.type,
 			status: 'failure'
 		});
@@ -93,7 +91,7 @@ export async function refreshCalendars(
 	const statuses = await listCalendarSyncStatus(ctx.db);
 	const lastSuccess = new Map(statuses.map((s) => [s.calendar_id, s.last_successful_refresh_at]));
 	for (const id of conflictCalendarIds(ctx.config)) {
-		const cal = ctx.config.calendars.find((c) => c.id === id);
+		const cal = ctx.config.calendars.find((c) => c.name === id);
 		if (!cal) {
 			ctx.logger.warn({ calendarId: id }, 'conflict_calendar id not found in calendars; skipping');
 			continue;
@@ -107,7 +105,7 @@ export async function refreshCalendars(
 
 function isDue(lastSuccess: string | null, cal: Calendar, now: Temporal.Instant): boolean {
 	if (!lastSuccess) return true;
-	const interval = cal.sync?.refresh_interval ?? DEFAULT_REFRESH_INTERVAL_MINUTES;
+	const interval = cal.sync?.refresh_every_minutes ?? DEFAULT_REFRESH_INTERVAL_MINUTES;
 	const nextDue = Temporal.Instant.from(lastSuccess).add({ minutes: interval });
 	return Temporal.Instant.compare(now, nextDue) >= 0;
 }

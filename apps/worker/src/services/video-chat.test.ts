@@ -16,25 +16,19 @@ const mockConfig = {
 	url: { app: 'https://when.example.com' },
 	services: [
 		{
-			id: 'nc-service',
+			name: 'nc-service',
 			type: 'nextcloud',
 			url: 'https://cloud.example.com',
 			username: 'user',
 			password: 'pwd'
 		}
 	],
-	video_chats: [
-		{
-			id: 'my-talk',
-			type: 'nextcloud-talk',
-			service_id: 'nc-service'
-		}
-	],
 	calendars: [],
-	event_types: [
+	meetings: [
 		{
-			id: 'chat',
-			name: 'Chat'
+			name: 'chat',
+			slug: 'chat',
+			video_chat_service: 'nc-service'
 		}
 	]
 } as unknown as WhenConfiguration;
@@ -58,12 +52,19 @@ describe('createStandaloneVideoChat', () => {
 					end_time: '2026-05-01T15:30:00Z',
 					guest_name: 'Booker',
 					guest_email: 'booker@example.com',
+					guest_timezone: 'UTC',
 					location: null,
 					video_chat: null,
 					status: 'confirmed',
 					cancel_token: 'tok',
 					origin_id: 'a1',
-					calendar_revision: 1
+					calendar_revision: 1,
+					ics_sequence: 0,
+					has_possible_conflict: 0,
+					meeting_snapshot: null,
+					guest_answers: null,
+					created_at: '',
+					updated_at: ''
 				})
 				.execute();
 
@@ -87,12 +88,19 @@ describe('createStandaloneVideoChat', () => {
 					end_time: '2026-05-01T15:30:00Z',
 					guest_name: 'Booker',
 					guest_email: 'booker@example.com',
+					guest_timezone: 'UTC',
 					location: null,
 					video_chat: 'https://zoom.us/j/123',
 					status: 'confirmed',
 					cancel_token: 'tok',
 					origin_id: 'a2',
-					calendar_revision: 1
+					calendar_revision: 1,
+					ics_sequence: 0,
+					has_possible_conflict: 0,
+					meeting_snapshot: null,
+					guest_answers: null,
+					created_at: '',
+					updated_at: ''
 				})
 				.execute();
 
@@ -116,12 +124,19 @@ describe('createStandaloneVideoChat', () => {
 					end_time: '2026-05-01T15:30:00Z',
 					guest_name: 'Booker',
 					guest_email: 'booker@example.com',
+					guest_timezone: 'UTC',
 					location: null,
-					video_chat: 'my-talk',
+					video_chat: 'nextcloud-talk',
 					status: 'confirmed',
 					cancel_token: 'tok',
 					origin_id: 'a3',
-					calendar_revision: 1
+					calendar_revision: 1,
+					ics_sequence: 0,
+					has_possible_conflict: 0,
+					meeting_snapshot: null,
+					guest_answers: null,
+					created_at: '',
+					updated_at: ''
 				})
 				.execute();
 
@@ -162,12 +177,19 @@ describe('deleteStandaloneVideoChat', () => {
 					end_time: '2026-05-01T15:30:00Z',
 					guest_name: 'Booker',
 					guest_email: 'booker@example.com',
+					guest_timezone: 'UTC',
 					location: null,
-					video_chat: 'my-talk',
+					video_chat: 'nextcloud-talk',
 					status: 'cancelled',
 					cancel_token: 'tok',
 					origin_id: 'c1',
-					calendar_revision: 1
+					calendar_revision: 1,
+					ics_sequence: 0,
+					has_possible_conflict: 0,
+					meeting_snapshot: null,
+					guest_answers: null,
+					created_at: '',
+					updated_at: ''
 				})
 				.execute();
 
@@ -178,7 +200,7 @@ describe('deleteStandaloneVideoChat', () => {
 				.selectAll()
 				.where('id', '=', 'c1')
 				.executeTakeFirstOrThrow();
-			expect(row.video_chat).toBe('my-talk');
+			expect(row.video_chat).toBe('nextcloud-talk');
 			expect(getVideoChatAdapter).not.toHaveBeenCalled();
 		} finally {
 			await db.destroy();
@@ -190,12 +212,12 @@ describe('deleteStandaloneVideoChat', () => {
 		try {
 			const configWithVc = {
 				...mockConfig,
-				event_types: [
+				meetings: [
 					{
-						id: 'chat',
-						name: 'Chat',
-						destination_calendar: 'g-cal',
-						video_chat: 'my-talk'
+						name: 'chat',
+						slug: 'chat',
+						booking_calendar: 'g-cal',
+						video_chat_service: 'nc-service'
 					}
 				]
 			} as unknown as WhenConfiguration;
@@ -209,12 +231,19 @@ describe('deleteStandaloneVideoChat', () => {
 					end_time: '2026-05-01T15:30:00Z',
 					guest_name: 'Booker',
 					guest_email: 'booker@example.com',
+					guest_timezone: 'UTC',
 					location: null,
 					video_chat: 'https://cloud.example.com/call/room-abc',
 					status: 'cancelled',
 					cancel_token: 'tok',
 					origin_id: 'c2',
-					calendar_revision: 1
+					calendar_revision: 1,
+					ics_sequence: 0,
+					has_possible_conflict: 0,
+					meeting_snapshot: null,
+					guest_answers: null,
+					created_at: '',
+					updated_at: ''
 				})
 				.execute();
 
@@ -227,8 +256,7 @@ describe('deleteStandaloneVideoChat', () => {
 			await deleteStandaloneVideoChat(db, 'c2', configWithVc);
 
 			expect(getVideoChatAdapter).toHaveBeenCalledWith(
-				mockConfig.video_chats![0],
-				configWithVc.services
+				mockConfig.services[0]
 			);
 			expect(mockAdapter.deleteRoom).toHaveBeenCalledWith(
 				'https://cloud.example.com/call/room-abc'

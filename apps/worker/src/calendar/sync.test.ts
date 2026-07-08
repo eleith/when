@@ -13,7 +13,7 @@ const config = {
 	url: { app: 'https://when.example.com' },
 	services: [
 		{
-			id: 'work-dav',
+			name: 'work-dav',
 			type: 'caldav',
 			url: 'https://cal.example.com/work/',
 			username: 'u',
@@ -22,14 +22,14 @@ const config = {
 	],
 	calendars: [
 		{
-			id: 'work',
+			name: 'work',
 			type: 'caldav',
-			service_id: 'work-dav',
+			service: 'work-dav',
 			url: 'https://cal.example.com/work/'
 		}
 	],
-	event_types: [
-		{ id: 'chat', name: 'Chat', slug: 'chat', destination_calendar: 'work', duration: 30 }
+	meetings: [
+		{ name: 'chat', slug: 'chat', booking_calendar: 'work', duration_minutes: 30 }
 	]
 } as unknown as WhenConfiguration;
 
@@ -45,6 +45,14 @@ const appt = (over: Record<string, unknown>) => ({
 	cancel_token: 't',
 	external_event_id: null,
 	external_calendar_id: null,
+	calendar_revision: 0,
+	ics_sequence: 0,
+	has_possible_conflict: 0,
+	meeting_snapshot: null,
+	guest_answers: null,
+	guest_timezone: 'UTC',
+	created_at: '',
+	updated_at: '',
 	...over
 });
 
