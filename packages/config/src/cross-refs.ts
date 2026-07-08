@@ -1,140 +1,293 @@
-import type { WhenConfiguration } from './schema.js';
+import type { WhenConfiguration, Service, Calendar, Schedule, Meeting } from './schema.js';
 import type { ConfigIssue } from './load.js';
+
+interface ServiceRegistry {
+	names: Set<string>;
+	types: Map<string, string>;
+}
+
+interface CalendarRegistry {
+	names: Set<string>;
+	types: Map<string, string>;
+}
 
 export function checkCrossRefs(cfg: WhenConfiguration): ConfigIssue[] {
 	const issues: ConfigIssue[] = [];
-	const serviceNames = new Set<string>();
 
-	(cfg.services ?? []).forEach((srv, i) => {
-		if (serviceNames.has(srv.name)) {
-			issues.push({
-				path: `/services/${i}/name`,
-				message: `duplicate service name "${srv.name}"`
-			});
-		}
+	const serviceRegistry = validateServices(cfg.services, issues);
+	const calendarRegistry = validateCalendars(cfg.calendars, serviceRegistry.names, issues);
+	const scheduleNames = validateSchedules(cfg.schedules, issues);
+
+	validateMeetings(cfg, serviceRegistry, calendarRegistry, scheduleNames, issues);
+
+	return issues;
+}
+
+function validateServices(
+	services: WhenConfiguration['services'],
+	issues: ConfigIssue[]
+): ServiceRegistry {
+	const serviceNames = new Set<string>();
+	const serviceTypes = new Map<string, string>();
+
+	(services ?? []).forEach((srv, i) => {
+		checkServiceDuplicateName(srv, i, serviceNames, issues);
 		serviceNames.add(srv.name);
+		serviceTypes.set(srv.name, srv.type);
 	});
 
+	return { names: serviceNames, types: serviceTypes };
+}
+
+function checkServiceDuplicateName(
+	srv: Service,
+	i: number,
+	serviceNames: Set<string>,
+	issues: ConfigIssue[]
+): void {
+	if (serviceNames.has(srv.name)) {
+		issues.push({
+			path: `/services/${i}/name`,
+			message: `duplicate service name "${srv.name}"`
+		});
+	}
+}
+
+function validateCalendars(
+	calendars: WhenConfiguration['calendars'],
+	serviceNames: Set<string>,
+	issues: ConfigIssue[]
+): CalendarRegistry {
 	const calendarNames = new Set<string>();
 	const calendarTypes = new Map<string, string>();
 
-	cfg.calendars.forEach((cal, i) => {
-		if (calendarNames.has(cal.name)) {
-			issues.push({
-				path: `/calendars/${i}/name`,
-				message: `duplicate calendar name "${cal.name}"`
-			});
-		}
+	calendars.forEach((cal, i) => {
+		checkCalendarDuplicateName(cal, i, calendarNames, issues);
+		checkCalendarServiceReference(cal, i, serviceNames, issues);
+
 		calendarNames.add(cal.name);
 		calendarTypes.set(cal.name, cal.type);
-
-		if (!serviceNames.has(cal.service)) {
-			issues.push({
-				path: `/calendars/${i}/service`,
-				message: `references unknown service "${cal.service}"`
-			});
-		}
 	});
 
+	return { names: calendarNames, types: calendarTypes };
+}
+
+function checkCalendarDuplicateName(
+	cal: Calendar,
+	i: number,
+	calendarNames: Set<string>,
+	issues: ConfigIssue[]
+): void {
+	if (calendarNames.has(cal.name)) {
+		issues.push({
+			path: `/calendars/${i}/name`,
+			message: `duplicate calendar name "${cal.name}"`
+		});
+	}
+}
+
+function checkCalendarServiceReference(
+	cal: Calendar,
+	i: number,
+	serviceNames: Set<string>,
+	issues: ConfigIssue[]
+): void {
+	if (!serviceNames.has(cal.service)) {
+		issues.push({
+			path: `/calendars/${i}/service`,
+			message: `references unknown service "${cal.service}"`
+		});
+	}
+}
+
+function validateSchedules(
+	schedules: WhenConfiguration['schedules'],
+	issues: ConfigIssue[]
+): Set<string> {
 	const scheduleNames = new Set<string>();
-	cfg.schedules.forEach((sch, i) => {
-		if (scheduleNames.has(sch.name)) {
-			issues.push({
-				path: `/schedules/${i}/name`,
-				message: `duplicate schedule name "${sch.name}"`
-			});
-		}
+	schedules.forEach((sch, i) => {
+		checkScheduleDuplicateName(sch, i, scheduleNames, issues);
 		scheduleNames.add(sch.name);
 	});
+	return scheduleNames;
+}
 
+function checkScheduleDuplicateName(
+	sch: Schedule,
+	i: number,
+	scheduleNames: Set<string>,
+	issues: ConfigIssue[]
+): void {
+	if (scheduleNames.has(sch.name)) {
+		issues.push({
+			path: `/schedules/${i}/name`,
+			message: `duplicate schedule name "${sch.name}"`
+		});
+	}
+}
+
+function validateMeetings(
+	cfg: WhenConfiguration,
+	serviceRegistry: ServiceRegistry,
+	calendarRegistry: CalendarRegistry,
+	scheduleNames: Set<string>,
+	issues: ConfigIssue[]
+): void {
 	const seenMeetingNames = new Set<string>();
 	const seenSlugs = new Set<string>();
 
-	cfg.meetings.forEach((et, i) => {
-		if (seenMeetingNames.has(et.name)) {
-			issues.push({
-				path: `/meetings/${i}/name`,
-				message: `duplicate meeting name "${et.name}"`
-			});
-		}
-		seenMeetingNames.add(et.name);
+	cfg.meetings.forEach((meeting, i) => {
+		checkMeetingDuplicateName(meeting, i, seenMeetingNames, issues);
+		checkMeetingDuplicateSlug(meeting, i, seenSlugs, issues);
+		checkMeetingCalendarReferences(meeting, i, calendarRegistry, issues);
+		checkMeetingScheduleReference(meeting, i, scheduleNames, issues);
+		checkMeetingBookingStyle(meeting, i, issues);
+		checkMeetingVideoChatService(meeting, i, serviceRegistry, calendarRegistry.types, issues);
+		checkFormFields(meeting, i, issues);
 
-		if (seenSlugs.has(et.slug)) {
-			issues.push({
-				path: `/meetings/${i}/slug`,
-				message: `duplicate meeting slug "${et.slug}"`
-			});
-		}
-		seenSlugs.add(et.slug);
-
-		if (!calendarNames.has(et.booking_calendar)) {
-			issues.push({
-				path: `/meetings/${i}/booking_calendar`,
-				message: `references unknown calendar name "${et.booking_calendar}"`
-			});
-		}
-
-		if (!scheduleNames.has(et.schedule)) {
-			issues.push({
-				path: `/meetings/${i}/schedule`,
-				message: `references unknown schedule name "${et.schedule}"`
-			});
-		} else if (et.booking_style === 'select') {
-			const start_times_every_minutes = et.start_times_every_minutes ?? et.duration_minutes;
-			if (start_times_every_minutes < et.duration_minutes) {
-				issues.push({
-					path: `/meetings/${i}/start_times_every_minutes`,
-					message: `in "select" booking style, start_times_every_minutes (${start_times_every_minutes}) must be greater than or equal to the meeting duration_minutes (${et.duration_minutes}) to prevent overlapping slot buttons`
-				});
-			}
-		}
-
-		(et.busy_calendars ?? []).forEach((cid, j) => {
-			if (!calendarNames.has(cid)) {
-				issues.push({
-					path: `/meetings/${i}/busy_calendars/${j}`,
-					message: `references unknown calendar name "${cid}"`
-				});
-			}
-		});
-
-		if (et.video_chat_service) {
-			const srv = (cfg.services ?? []).find((s) => s.name === et.video_chat_service);
-			if (!srv) {
-				issues.push({
-					path: `/meetings/${i}/video_chat_service`,
-					message: `references unknown service "${et.video_chat_service}"`
-				});
-			} else if (srv.type !== 'google' && srv.type !== 'nextcloud') {
-				issues.push({
-					path: `/meetings/${i}/video_chat_service`,
-					message: `service "${et.video_chat_service}" has type "${srv.type}", but video chat is only supported for "google" and "nextcloud" services`
-				});
-			} else if (srv.type === 'google') {
-				const destCalType = calendarTypes.get(et.booking_calendar);
-				if (destCalType && destCalType !== 'google') {
-					issues.push({
-						path: `/meetings/${i}/video_chat_service`,
-						message: `Google Meet dynamic video chat is only supported when the booking calendar is a Google Calendar (calendar "${et.booking_calendar}" is of type "${destCalType}")`
-					});
-				}
-			}
-		}
-
-		checkFormFields(et, i, issues);
+		seenMeetingNames.add(meeting.name);
+		seenSlugs.add(meeting.slug);
 	});
+}
 
-	return issues;
+function checkMeetingDuplicateName(
+	meeting: Meeting,
+	i: number,
+	seenMeetingNames: Set<string>,
+	issues: ConfigIssue[]
+): void {
+	if (seenMeetingNames.has(meeting.name)) {
+		issues.push({
+			path: `/meetings/${i}/name`,
+			message: `duplicate meeting name "${meeting.name}"`
+		});
+	}
+}
+
+function checkMeetingDuplicateSlug(
+	meeting: Meeting,
+	i: number,
+	seenSlugs: Set<string>,
+	issues: ConfigIssue[]
+): void {
+	if (seenSlugs.has(meeting.slug)) {
+		issues.push({
+			path: `/meetings/${i}/slug`,
+			message: `duplicate meeting slug "${meeting.slug}"`
+		});
+	}
+}
+
+function checkMeetingCalendarReferences(
+	meeting: Meeting,
+	i: number,
+	calendarRegistry: CalendarRegistry,
+	issues: ConfigIssue[]
+): void {
+	if (!calendarRegistry.names.has(meeting.booking_calendar)) {
+		issues.push({
+			path: `/meetings/${i}/booking_calendar`,
+			message: `references unknown calendar name "${meeting.booking_calendar}"`
+		});
+	}
+
+	(meeting.busy_calendars ?? []).forEach((cid, j) => {
+		if (!calendarRegistry.names.has(cid)) {
+			issues.push({
+				path: `/meetings/${i}/busy_calendars/${j}`,
+				message: `references unknown calendar name "${cid}"`
+			});
+		}
+	});
+}
+
+function checkMeetingScheduleReference(
+	meeting: Meeting,
+	i: number,
+	scheduleNames: Set<string>,
+	issues: ConfigIssue[]
+): void {
+	if (!scheduleNames.has(meeting.schedule)) {
+		issues.push({
+			path: `/meetings/${i}/schedule`,
+			message: `references unknown schedule name "${meeting.schedule}"`
+		});
+	}
+}
+
+function checkMeetingBookingStyle(
+	meeting: Meeting,
+	i: number,
+	issues: ConfigIssue[]
+): void {
+	if (meeting.booking_style === 'select') {
+		validateSelectBookingStyle(meeting, i, issues);
+	}
+}
+
+function checkMeetingVideoChatService(
+	meeting: Meeting,
+	i: number,
+	serviceRegistry: ServiceRegistry,
+	calendarTypes: Map<string, string>,
+	issues: ConfigIssue[]
+): void {
+	if (meeting.video_chat_service) {
+		validateVideoChatService(meeting, i, serviceRegistry, calendarTypes, issues);
+	}
+}
+
+function validateSelectBookingStyle(
+	meeting: Meeting,
+	i: number,
+	issues: ConfigIssue[]
+): void {
+	const start_times_every_minutes = meeting.start_times_every_minutes ?? meeting.duration_minutes;
+	if (start_times_every_minutes < meeting.duration_minutes) {
+		issues.push({
+			path: `/meetings/${i}/start_times_every_minutes`,
+			message: `in "select" booking style, start_times_every_minutes (${start_times_every_minutes}) must be greater than or equal to the meeting duration_minutes (${meeting.duration_minutes}) to prevent overlapping slot buttons`
+		});
+	}
+}
+
+function validateVideoChatService(
+	meeting: Meeting,
+	i: number,
+	serviceRegistry: ServiceRegistry,
+	calendarTypes: Map<string, string>,
+	issues: ConfigIssue[]
+): void {
+	const serviceType = serviceRegistry.types.get(meeting.video_chat_service!);
+	if (!serviceType) {
+		issues.push({
+			path: `/meetings/${i}/video_chat_service`,
+			message: `references unknown service "${meeting.video_chat_service}"`
+		});
+	} else if (serviceType !== 'google' && serviceType !== 'nextcloud') {
+		issues.push({
+			path: `/meetings/${i}/video_chat_service`,
+			message: `service "${meeting.video_chat_service}" has type "${serviceType}", but video chat is only supported for "google" and "nextcloud" services`
+		});
+	} else if (serviceType === 'google') {
+		const destCalType = calendarTypes.get(meeting.booking_calendar);
+		if (destCalType && destCalType !== 'google') {
+			issues.push({
+				path: `/meetings/${i}/video_chat_service`,
+				message: `Google Meet dynamic video chat is only supported when the booking calendar is a Google Calendar (calendar "${meeting.booking_calendar}" is of type "${destCalType}")`
+			});
+		}
+	}
 }
 
 const MAX_FORM_FIELDS = 10;
 
 function checkFormFields(
-	et: WhenConfiguration['meetings'][number],
+	meeting: Meeting,
 	i: number,
 	issues: ConfigIssue[]
 ): void {
-	const fields = et.form_fields;
+	const fields = meeting.form_fields;
 	if (!fields) return;
 
 	const base = `/meetings/${i}/form_fields`;
