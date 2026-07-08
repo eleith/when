@@ -3,9 +3,7 @@ import { join } from 'node:path';
 import { writeFileSync, existsSync, unlinkSync } from 'node:fs';
 import { text } from '@clack/prompts';
 import { ConfigEditor } from '@when/config';
-import { configCommand } from './index.ts';
-
-const appearanceCommand = configCommand.subCommands!.appearance;
+import { appearanceCommand } from './index.ts';
 
 vi.mock('@clack/prompts', () => {
 	return {
@@ -51,9 +49,9 @@ describe('appearance CLI command', () => {
 			values: { config: tempConfigPath },
 			positionals: [],
 			commandPath: []
-		} as unknown as Parameters<NonNullable<typeof appearanceCommand.run>>[0];
+		} as unknown as Parameters<typeof appearanceCommand.run>[0];
 
-		await appearanceCommand.run!(ctx);
+		await appearanceCommand.run(ctx);
 
 		const editor = new ConfigEditor(tempConfigPath);
 		expect(editor.get('user.appearance.title')).toBe('My Scheduling Page');

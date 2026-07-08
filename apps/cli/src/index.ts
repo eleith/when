@@ -3,6 +3,7 @@ import { intro, outro } from '@clack/prompts';
 import { configCommand } from './commands/config/index.ts';
 import { calendarCommand } from './commands/calendar/index.ts';
 import { availabilityCommand } from './commands/availability/index.ts';
+import { appearanceCommand } from './commands/appearance/index.ts';
 
 const rootCommand = define({
 	name: 'when-cli',
@@ -19,7 +20,8 @@ try {
 		subCommands: {
 			config: configCommand,
 			calendar: calendarCommand,
-			availability: availabilityCommand
+			availability: availabilityCommand,
+			appearance: appearanceCommand
 		}
 	});
 } catch (err) {
