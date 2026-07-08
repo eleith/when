@@ -28,7 +28,7 @@ export function toAppointmentView(row: Appointment, cfg: WhenConfiguration, now:
 	return {
 		...row,
 		event_type_name:
-			cfg.event_types.find((e) => e.id === row.event_type_id)?.name ?? row.event_type_id,
+			cfg.meetings.find((e) => e.name === row.event_type_id)?.name ?? row.event_type_id,
 		display_status: deriveDisplayStatus(row, now),
 		is_past: nowMs >= Date.parse(row.end_time),
 		possible_conflict: row.has_possible_conflict === 1

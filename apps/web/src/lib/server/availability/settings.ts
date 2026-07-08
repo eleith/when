@@ -1,29 +1,29 @@
-import type { EventType, WhenConfiguration } from '@when/config';
+import type { Meeting, WhenConfiguration } from '@when/config';
 import type { AvailabilitySettings } from './types';
 
 export function resolveAvailabilitySettingsById(
 	cfg: WhenConfiguration,
-	eventTypeId: string
+	meetingName: string
 ): AvailabilitySettings {
-	const et = cfg.event_types.find((e) => e.id === eventTypeId);
-	if (!et) throw new Error(`unknown event_type id: ${eventTypeId}`);
+	const et = cfg.meetings.find((e) => e.name === meetingName);
+	if (!et) throw new Error(`unknown meeting name: ${meetingName}`);
 	return resolveAvailabilitySettings(cfg, et);
 }
 
 export function resolveAvailabilitySettings(
 	cfg: WhenConfiguration,
-	et: EventType
+	et: Meeting
 ): AvailabilitySettings {
-	const a = cfg.availabilities.find((p) => p.id === et.availability);
-	if (!a) throw new Error(`unknown availability profile id: ${et.availability}`);
+	const a = cfg.schedules.find((p) => p.name === et.schedule);
+	if (!a) throw new Error(`unknown schedule name: ${et.schedule}`);
 	return {
-		duration: et.duration,
-		slot_granularity: et.slot_granularity ?? a.slot_granularity ?? 15,
-		minimum_notice: et.minimum_notice ?? a.minimum_notice ?? 120,
-		maximum_lookahead: et.maximum_lookahead ?? a.maximum_lookahead ?? 60,
-		buffer_before: et.buffer_before ?? a.buffer_before ?? 0,
-		buffer_after: et.buffer_after ?? a.buffer_after ?? 0,
-		max_appointments_per_day: et.max_appointments_per_day ?? a.max_appointments_per_day ?? null,
+		duration: et.duration_minutes,
+		slot_granularity: et.start_times_every_minutes ?? et.duration_minutes,
+		minimum_notice: et.notice_minutes ?? 120,
+		maximum_lookahead: et.booking_window_days ?? 60,
+		buffer_before: et.padding_before_minutes ?? 0,
+		buffer_after: et.padding_after_minutes ?? 0,
+		max_appointments_per_day: et.daily_booking_limit ?? null,
 		weekly: a.weekly
 	};
 }

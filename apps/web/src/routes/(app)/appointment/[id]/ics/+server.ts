@@ -26,7 +26,7 @@ export const GET: RequestHandler = async ({ params, url }) => {
 		}
 
 		const cfg = getConfig();
-		const eventType = cfg.event_types.find((e) => e.id === row.event_type_id);
+		const eventType = cfg.meetings.find((e) => e.name === row.event_type_id);
 		if (!eventType) {
 			icsDownloadsTotal.inc({ status: 'not_found' });
 			error(404);

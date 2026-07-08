@@ -23,8 +23,8 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 	const session = await locals.auth();
 	const isAdmin = !!session;
 	const cfg = getConfig();
-	const eventType = cfg.event_types.find((e) => e.slug === params.slug);
-	if (!eventType) error(404, `No event type with slug "${params.slug}"`);
+	const eventType = cfg.meetings.find((e) => e.slug === params.slug);
+	if (!eventType) error(404, `No meeting with slug "${params.slug}"`);
 
 	// Strip malformed/unknown deep-link params up front by redirecting to the canonical URL.
 	const clean = normalizeDeepLinkParams(url.searchParams);
@@ -64,20 +64,20 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 export const actions: Actions = {
 	book: async ({ request, params, cookies }) => {
 		const cfg = getConfig();
-		const eventType = cfg.event_types.find((e) => e.slug === params.slug);
+		const eventType = cfg.meetings.find((e) => e.slug === params.slug);
 		if (!eventType) error(404);
 
 		const form = await request.formData();
 		const slotStr = String(form.get('slot') ?? '');
 
 		if (!slotStr) {
-			bookingAttemptsTotal.inc({ event_type_id: eventType.id, status: 'invalid_input' });
+			bookingAttemptsTotal.inc({ event_type_id: eventType.name, status: 'invalid_input' });
 			return fail(400, { error: 'Please pick a time slot.' });
 		}
 
 		const parsed = parseAndValidateAppointmentForm(eventType, form);
 		if (!parsed.ok) {
-			bookingAttemptsTotal.inc({ event_type_id: eventType.id, status: 'invalid_input' });
+			bookingAttemptsTotal.inc({ event_type_id: eventType.name, status: 'invalid_input' });
 			return fail(400, { fieldErrors: parsed.errors });
 		}
 		const { name, email, answers, location: resolvedLocation } = parsed.data;
@@ -88,10 +88,10 @@ export const actions: Actions = {
 		const nowInstant = Temporal.Instant.fromEpochMilliseconds(systemClock.nowMs());
 		const rangeEnd = nowInstant.add({ hours: 24 * settings.maximum_lookahead });
 
-		const blocks = await loadAppointmentBlocks(getDb(), eventType.id, nowInstant, rangeEnd, userTz);
+		const blocks = await loadAppointmentBlocks(getDb(), eventType.name, nowInstant, rangeEnd, userTz);
 		const remoteBusy = await slotDayBusy(
 			getDb(),
-			eventType.conflict_calendars ?? [],
+			eventType.busy_calendars ?? [],
 			slotStr,
 			userTz
 		);
@@ -106,12 +106,12 @@ export const actions: Actions = {
 			perDayCount: blocks.perDayCount
 		});
 		if (!slots.some((s) => s.toString() === slotStr)) {
-			bookingAttemptsTotal.inc({ event_type_id: eventType.id, status: 'slot_taken' });
+			bookingAttemptsTotal.inc({ event_type_id: eventType.name, status: 'slot_taken' });
 			return fail(409, { error: 'That time is no longer available. Please pick another.' });
 		}
 
 		const start = Temporal.Instant.from(slotStr);
-		const end = start.add({ minutes: eventType.duration });
+		const end = start.add({ minutes: eventType.duration_minutes });
 
 		let created;
 		try {
@@ -129,19 +129,19 @@ export const actions: Actions = {
 				initiator: 'guest'
 			});
 		} catch (err) {
-			bookingAttemptsTotal.inc({ event_type_id: eventType.id, status: 'database_error' });
+			bookingAttemptsTotal.inc({ event_type_id: eventType.name, status: 'database_error' });
 			logger.error(
-				{ err, eventTypeId: eventType.id, slot: slotStr },
+				{ err, eventTypeId: eventType.name, slot: slotStr },
 				'failed to insert appointment'
 			);
 			return fail(500, { error: 'Could not save the appointment. Please try again.' });
 		}
 		if (!created.ok) {
-			bookingAttemptsTotal.inc({ event_type_id: eventType.id, status: 'slot_taken' });
+			bookingAttemptsTotal.inc({ event_type_id: eventType.name, status: 'slot_taken' });
 			return fail(409, { error: 'That time was just taken. Please pick another.' });
 		}
 
-		bookingAttemptsTotal.inc({ event_type_id: eventType.id, status: 'success' });
+		bookingAttemptsTotal.inc({ event_type_id: eventType.name, status: 'success' });
 
 		cookies.set('submitted', 'request', {
 			path: '/',

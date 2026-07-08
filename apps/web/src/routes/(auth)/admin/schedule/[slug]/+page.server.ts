@@ -16,7 +16,7 @@ import type { Actions } from './$types';
 export const actions: Actions = {
 	book: async ({ request, params }) => {
 		const cfg = getConfig();
-		const eventType = cfg.event_types.find((e) => e.slug === params.slug);
+		const eventType = cfg.meetings.find((e) => e.slug === params.slug);
 		if (!eventType) error(404);
 
 		const form = await request.formData();
@@ -38,10 +38,10 @@ export const actions: Actions = {
 		const nowInstant = Temporal.Instant.fromEpochMilliseconds(systemClock.nowMs());
 		const rangeEnd = nowInstant.add({ hours: 24 * settings.maximum_lookahead });
 
-		const blocks = await loadAppointmentBlocks(getDb(), eventType.id, nowInstant, rangeEnd, userTz);
+		const blocks = await loadAppointmentBlocks(getDb(), eventType.name, nowInstant, rangeEnd, userTz);
 		const remoteBusy = await slotDayBusy(
 			getDb(),
-			eventType.conflict_calendars ?? [],
+			eventType.busy_calendars ?? [],
 			slotStr,
 			userTz
 		);
@@ -60,7 +60,7 @@ export const actions: Actions = {
 		}
 
 		const start = Temporal.Instant.from(slotStr);
-		const end = start.add({ minutes: eventType.duration });
+		const end = start.add({ minutes: eventType.duration_minutes });
 
 		const result = await createAppointment(appointmentContext(), {
 			eventType,

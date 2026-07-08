@@ -22,11 +22,11 @@ export async function bootConfig(path: string = resolveConfigPath()): Promise<Wh
 			{
 				path,
 				auth: 'oidc' in cfg.auth ? 'oidc' : 'credentials',
-				calendars: cfg.calendars.map((c) => ({ id: c.id, type: c.type })),
-				event_types: cfg.event_types.map((e) => ({
-					id: e.id,
+				calendars: cfg.calendars.map((c) => ({ name: c.name, type: c.type })),
+				meetings: cfg.meetings.map((e) => ({
+					name: e.name,
 					slug: e.slug,
-					flow: e.appointment_flow
+					flow: e.booking_approval
 				}))
 			},
 			'config loaded'

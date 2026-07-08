@@ -6,8 +6,8 @@ import { evaluateCalendarStatuses } from './health.js';
 const START = Temporal.Instant.from('2026-05-01T00:00:00Z');
 
 const config = {
-	calendars: [{ id: 'work' }],
-	event_types: [{ id: 'chat', destination_calendar: 'work' }]
+	calendars: [{ name: 'work' }],
+	meetings: [{ name: 'chat', booking_calendar: 'work' }]
 } as unknown as WhenConfiguration;
 
 const calendarFailedLog = (at: string) =>

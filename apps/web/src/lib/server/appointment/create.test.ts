@@ -13,7 +13,7 @@ async function makeDb() {
 	return db;
 }
 
-const eventType = validConfig.event_types[0];
+const eventType = validConfig.meetings[0];
 
 const input = {
 	start: '2099-01-01T15:00:00Z',
@@ -63,11 +63,11 @@ describe('createAppointment', () => {
 	test('requires_confirmation flow inserts a pending appointment', async () => {
 		const db = await makeDb();
 		try {
-			const reqType = { ...eventType, appointment_flow: 'requires_confirmation' as const };
+			const reqType = { ...eventType, booking_approval: 'request' as const };
 			const result = await createAppointment(
 				{
 					db,
-					cfg: { ...validConfig, event_types: [reqType] as typeof validConfig.event_types },
+					cfg: { ...validConfig, meetings: [reqType] as typeof validConfig.meetings },
 					clock: systemClock
 				},
 				{ ...input, eventType: reqType }
@@ -90,11 +90,11 @@ describe('createAppointment', () => {
 	test('requires_confirmation flow inserts a confirmed appointment if created by host', async () => {
 		const db = await makeDb();
 		try {
-			const reqType = { ...eventType, appointment_flow: 'requires_confirmation' as const };
+			const reqType = { ...eventType, booking_approval: 'request' as const };
 			const result = await createAppointment(
 				{
 					db,
-					cfg: { ...validConfig, event_types: [reqType] as typeof validConfig.event_types },
+					cfg: { ...validConfig, meetings: [reqType] as typeof validConfig.meetings },
 					clock: systemClock
 				},
 				{ ...input, eventType: reqType, initiator: 'host' }
@@ -121,17 +121,24 @@ describe('createAppointment', () => {
 				.insertInto('appointments')
 				.values({
 					id: 'existing',
-					event_type_id: eventType.id,
+					event_type_id: eventType.name,
 					start_time: input.start,
 					end_time: input.end,
 					guest_name: 'Other',
 					guest_email: 'other@example.com',
+					guest_timezone: 'UTC',
 					guest_answers: null,
 					location: null,
 					status: 'confirmed',
 					cancel_token: 'tok-existing',
 					external_event_id: null,
-					external_calendar_id: null
+					external_calendar_id: null,
+					calendar_revision: 0,
+					ics_sequence: 0,
+					has_possible_conflict: 0,
+					meeting_snapshot: null,
+					created_at: '',
+					updated_at: ''
 				})
 				.execute();
 

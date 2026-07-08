@@ -136,7 +136,7 @@ export async function rescheduleAppointmentTransition(
 				action_log: updatedLogJson,
 				external_event_id: old.external_event_id,
 				external_calendar_id: old.external_calendar_id,
-				event_type_snapshot: when.eventTypeSnapshot,
+				meeting_snapshot: when.eventTypeSnapshot,
 				ics_sequence: old.ics_sequence + 1
 			})
 			.returningAll()

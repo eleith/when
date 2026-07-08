@@ -32,12 +32,12 @@ const existing: Appointment = {
 	calendar_synced_revision: null,
 	has_possible_conflict: 0,
 	ics_sequence: 0,
-	event_type_snapshot: null,
+	meeting_snapshot: null,
 	created_at: '',
 	updated_at: ''
 };
 
-const eventType = { id: 'chat', minimum_notice: 60 };
+const eventType = { name: 'chat', minimum_notice: 60 };
 
 describe('classifyReschedule', () => {
 	test('fresh when no rescheduleId', () => {
@@ -183,7 +183,7 @@ describe('classifyReschedule', () => {
 				rescheduleId: 'appt-1',
 				token: 'tok-good',
 				existing,
-				eventType: { id: 'chat' },
+				eventType: { name: 'chat' },
 				now: justBeforeStart
 			})
 		).toEqual({
@@ -204,7 +204,14 @@ const opBaseRow = {
 	note: null,
 	video_chat: null,
 	external_event_id: null,
-	external_calendar_id: null
+	external_calendar_id: null,
+	calendar_revision: 0,
+	calendar_synced_revision: null,
+	has_possible_conflict: 0,
+	ics_sequence: 0,
+	meeting_snapshot: null,
+	created_at: '',
+	updated_at: ''
 };
 
 async function makeDb() {
@@ -393,12 +400,12 @@ describe('rescheduleAppointment', () => {
 
 	const reapprovalCfg: WhenConfiguration = {
 		...validConfig,
-		event_types: [
+		meetings: [
 			{
-				...validConfig.event_types[0],
-				id: 'confirm-me',
+				...validConfig.meetings[0],
+				name: 'confirm-me',
 				slug: 'confirm-me',
-				appointment_flow: 'requires_confirmation'
+				booking_approval: 'request'
 			}
 		]
 	};

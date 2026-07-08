@@ -1,12 +1,13 @@
 import { enqueueAppointmentReconciliation } from '../workflow';
 import { newAppointmentId, newCancelToken } from './ids';
 import type { AppointmentContext } from './context';
-import type { GuestAnswer, EventType } from '@when/config';
+import type { GuestAnswer, Meeting } from '@when/config';
 import { createActionLog, type Appointment } from '@when/db';
 import type { AppointmentEmailKind } from '@when/jobs';
+import { resolveAppointmentVideoChat } from './video-chat';
 
 export interface CreateAppointmentInput {
-	eventType: EventType;
+	eventType: Meeting;
 	start: string;
 	end: string;
 	guest: { name: string; email: string | null; answers: GuestAnswer[]; timezone: string };
@@ -32,7 +33,7 @@ export async function createAppointment(
 	const cancelToken = newCancelToken();
 	const eventType = input.eventType;
 	const status =
-		eventType.appointment_flow === 'requires_confirmation' && input.initiator !== 'host'
+		eventType.booking_approval === 'request' && input.initiator !== 'host'
 			? 'pending'
 			: 'confirmed';
 	const now = ctx.clock.now().toISOString();
@@ -44,13 +45,15 @@ export async function createAppointment(
 		}
 	]);
 
+	const dbVideoChat = resolveAppointmentVideoChat(eventType, ctx.cfg);
+
 	let appointment: Appointment;
 	try {
 		appointment = await ctx.db
 			.insertInto('appointments')
 			.values({
 				id,
-				event_type_id: eventType.id,
+				event_type_id: eventType.name,
 				start_time: input.start,
 				end_time: input.end,
 				guest_name: input.guest.name,
@@ -59,14 +62,19 @@ export async function createAppointment(
 				guest_timezone: input.guest.timezone,
 				location: input.location,
 				note: eventType.note ?? null,
-				video_chat: eventType.video_chat ?? null,
+				video_chat: dbVideoChat,
 				status,
 				origin_id: id,
 				cancel_token: cancelToken,
 				action_log: initialLog,
 				external_event_id: null,
 				external_calendar_id: null,
-				event_type_snapshot: JSON.stringify(eventType)
+				meeting_snapshot: JSON.stringify({
+					name: eventType.name,
+					duration_minutes: eventType.duration_minutes,
+					description: eventType.description,
+					slug: eventType.slug
+				})
 			})
 			.returningAll()
 			.executeTakeFirstOrThrow();

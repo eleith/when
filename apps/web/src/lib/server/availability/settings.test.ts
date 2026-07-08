@@ -3,32 +3,31 @@ import { resolveAvailabilitySettingsById } from './settings';
 import { validConfig } from '$lib/server/__fixtures__/valid-config';
 import type { WhenConfiguration } from '@when/config';
 
-test('per-event override wins over global default', () => {
+test('per-event settings flow through', () => {
 	const cfg: WhenConfiguration = JSON.parse(JSON.stringify(validConfig));
-	cfg.availabilities[0].slot_granularity = 30;
-	cfg.event_types[0].slot_granularity = 15;
+	cfg.meetings[0].start_times_every_minutes = 15;
 	expect(resolveAvailabilitySettingsById(cfg, '30-min-chat').slot_granularity).toBe(15);
 });
 
-test('global default flows through when event has no override', () => {
+test('per-event setting defaults to duration_minutes if unset', () => {
 	const cfg: WhenConfiguration = JSON.parse(JSON.stringify(validConfig));
-	cfg.availabilities[0].minimum_notice = 60;
-	expect(resolveAvailabilitySettingsById(cfg, '30-min-chat').minimum_notice).toBe(60);
+	delete cfg.meetings[0].start_times_every_minutes;
+	cfg.meetings[0].duration_minutes = 45;
+	expect(resolveAvailabilitySettingsById(cfg, '30-min-chat').slot_granularity).toBe(45);
 });
 
-test('hardcoded fallback when neither global nor event sets it', () => {
+test('notice_minutes defaults to 120 if unset', () => {
 	const cfg: WhenConfiguration = JSON.parse(JSON.stringify(validConfig));
-	delete cfg.availabilities[0].slot_granularity;
-	delete cfg.event_types[0].slot_granularity;
-	expect(resolveAvailabilitySettingsById(cfg, '30-min-chat').slot_granularity).toBe(15);
+	delete cfg.meetings[0].notice_minutes;
+	expect(resolveAvailabilitySettingsById(cfg, '30-min-chat').minimum_notice).toBe(120);
 });
 
-test('throws on unknown event type id', () => {
-	expect(() => resolveAvailabilitySettingsById(validConfig, 'nope')).toThrow(/unknown event_type/);
+test('throws on unknown meeting name', () => {
+	expect(() => resolveAvailabilitySettingsById(validConfig, 'nope')).toThrow(/unknown meeting/);
 });
 
-test('weekly schedule comes from global default', () => {
+test('weekly schedule comes from schedule definition', () => {
 	expect(resolveAvailabilitySettingsById(validConfig, '30-min-chat').weekly).toEqual(
-		validConfig.availabilities[0].weekly
+		validConfig.schedules[0].weekly
 	);
 });

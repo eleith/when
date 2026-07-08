@@ -54,12 +54,12 @@ export const load: PageServerLoad = async ({ params, url, locals, cookies }) => 
 	}
 
 	const cfg = getConfig();
-	const eventType = cfg.event_types.find((e) => e.id === row.event_type_id);
+	const eventType = cfg.meetings.find((e) => e.name === row.event_type_id);
 
 	let resolvedEventType = eventType;
-	if (!resolvedEventType && isAdmin && row.event_type_snapshot) {
+	if (!resolvedEventType && isAdmin && row.meeting_snapshot) {
 		try {
-			resolvedEventType = JSON.parse(row.event_type_snapshot);
+			resolvedEventType = JSON.parse(row.meeting_snapshot);
 		} catch {
 			// fallback
 		}

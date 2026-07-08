@@ -36,7 +36,7 @@ export function evaluateCalendarStatuses(
 		if (failedAt !== null && failedAt < cutoff) {
 			const target =
 				a.external_calendar_id ??
-				config.event_types.find((e) => e.id === a.event_type_id)?.destination_calendar ??
+				config.meetings.find((e) => e.name === a.event_type_id)?.booking_calendar ??
 				null;
 			if (target) {
 				failingCalendarIds.set(target, { failedAt });
@@ -46,7 +46,7 @@ export function evaluateCalendarStatuses(
 
 	return syncStatus.map((s) => {
 		const intervalMinutes =
-			config.calendars.find((c) => c.id === s.calendar_id)?.sync?.refresh_interval ?? 10;
+			config.calendars.find((c) => c.name === s.calendar_id)?.sync?.refresh_interval ?? 10;
 
 		let health: 'good' | 'bad' | 'unknown' = 'unknown';
 		let reason: string | null = null;

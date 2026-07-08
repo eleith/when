@@ -25,8 +25,8 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 	const row = requireViewableAppointment(await findAppointment(getDb(), params.id), token, now);
 
 	const cfg = getConfig();
-	const eventType = cfg.event_types.find((e) => e.id === row.event_type_id);
-	if (!eventType) error(404, 'This event type no longer exists.');
+	const eventType = cfg.meetings.find((e) => e.name === row.event_type_id);
+	if (!eventType) error(404, 'This meeting type no longer exists.');
 
 	const ctx = classifyReschedule({ rescheduleId: row.id, token, existing: row, eventType, now });
 	const rescheduleError = ctx.kind === 'error' ? ctx.code : null;
@@ -67,8 +67,8 @@ export const actions: Actions = {
 		}
 
 		const cfg = getConfig();
-		const eventType = cfg.event_types.find((e) => e.id === found.event_type_id);
-		if (!eventType) return fail(409, { error: 'This event type no longer exists.' });
+		const eventType = cfg.meetings.find((e) => e.name === found.event_type_id);
+		if (!eventType) return fail(409, { error: 'This meeting type no longer exists.' });
 
 		const parsed = parseAndValidateAppointmentForm(eventType, form);
 		if (!parsed.ok) return fail(400, { fieldErrors: parsed.errors });
@@ -85,7 +85,7 @@ export const actions: Actions = {
 		}
 
 		const start = Temporal.Instant.from(slotStr);
-		const end = start.add({ minutes: eventType.duration });
+		const end = start.add({ minutes: eventType.duration_minutes });
 		const result = await rescheduleAppointment(appointmentContext(), {
 			appointment: found,
 			initiator: 'guest',

@@ -16,7 +16,7 @@ export async function acceptAppointment(
 	ctx: AppointmentContext,
 	input: AcceptAppointmentInput
 ): Promise<AcceptAppointmentResult> {
-	const eventType = ctx.cfg.event_types.find((e) => e.id === input.appointment.event_type_id);
+	const eventType = ctx.cfg.meetings.find((e) => e.name === input.appointment.event_type_id);
 
 	const gate = resolveAppointmentActions({
 		row: input.appointment,

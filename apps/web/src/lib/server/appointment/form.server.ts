@@ -1,4 +1,4 @@
-import { resolveFormFields, type GuestAnswer, type EventType } from '@when/config';
+import { resolveFormFields, type GuestAnswer, type Meeting } from '@when/config';
 
 const LIMIT_SHORT = 200;
 const LIMIT_LONG = 1000;
@@ -29,7 +29,7 @@ export function resolveTimezone(raw: FormDataEntryValue | null, fallback: string
 }
 
 export function parseAndValidateAppointmentForm(
-	eventType: EventType,
+	eventType: Meeting,
 	formData: FormData
 ): ParseAppointmentResult {
 	const fields = resolveFormFields(eventType);
@@ -41,24 +41,24 @@ export function parseAndValidateAppointmentForm(
 	let location: string | null = eventType.location ?? null;
 
 	for (const field of fields) {
-		const raw = formData.get(field.id);
+		const raw = formData.get(field.name);
 		const value = typeof raw === 'string' ? raw.trim() : '';
 
 		switch (field.type) {
 			case 'guest_name': {
-				if (!value) errors[field.id] = 'Please enter your name.';
+				if (!value) errors[field.name] = 'Please enter your name.';
 				else if (value.length > LIMIT_SHORT)
-					errors[field.id] = `Please keep this under ${LIMIT_SHORT} characters.`;
+					errors[field.name] = `Please keep this under ${LIMIT_SHORT} characters.`;
 				else name = value;
 				break;
 			}
 			case 'guest_email': {
 				if (!value) {
-					if (field.required) errors[field.id] = 'Please enter your email.';
+					if (field.required) errors[field.name] = 'Please enter your email.';
 				} else if (value.length > LIMIT_EMAIL) {
-					errors[field.id] = `Please keep this under ${LIMIT_EMAIL} characters.`;
+					errors[field.name] = `Please keep this under ${LIMIT_EMAIL} characters.`;
 				} else if (!EMAIL_RE.test(value)) {
-					errors[field.id] = 'That email address looks invalid.';
+					errors[field.name] = 'That email address looks invalid.';
 				} else {
 					email = value;
 				}
@@ -66,11 +66,11 @@ export function parseAndValidateAppointmentForm(
 			}
 			case 'event_location': {
 				if (!value) {
-					if (field.required) errors[field.id] = 'Please choose a location.';
+					if (field.required) errors[field.name] = 'Please choose a location.';
 				} else if (value.length > LIMIT_SHORT) {
-					errors[field.id] = `Please keep this under ${LIMIT_SHORT} characters.`;
+					errors[field.name] = `Please keep this under ${LIMIT_SHORT} characters.`;
 				} else if (field.choices && !field.choices.includes(value)) {
-					errors[field.id] = 'Pick a valid location option.';
+					errors[field.name] = 'Pick a valid location option.';
 				} else {
 					location = value;
 				}
@@ -78,18 +78,18 @@ export function parseAndValidateAppointmentForm(
 			}
 			default: {
 				if (!value) {
-					if (field.required) errors[field.id] = 'This field is required.';
+					if (field.required) errors[field.name] = 'This field is required.';
 					break;
 				}
 				const limit = field.type === 'paragraph' ? LIMIT_LONG : LIMIT_SHORT;
 				if (value.length > limit) {
-					errors[field.id] = `Please keep this under ${limit} characters.`;
+					errors[field.name] = `Please keep this under ${limit} characters.`;
 				} else if (field.type === 'number' && Number.isNaN(Number(value))) {
-					errors[field.id] = 'Please enter a number.';
+					errors[field.name] = 'Please enter a number.';
 				} else if (field.type === 'choice' && !field.choices?.includes(value)) {
-					errors[field.id] = 'Pick a valid option.';
+					errors[field.name] = 'Pick a valid option.';
 				} else {
-					answers.push({ id: field.id, label: field.label, type: field.type, value });
+					answers.push({ name: field.name, label: field.label, type: field.type, value });
 				}
 			}
 		}

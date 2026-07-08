@@ -53,7 +53,7 @@ export async function rescheduleAppointment(
 	ctx: AppointmentContext,
 	input: RescheduleAppointmentInput
 ): Promise<RescheduleAppointmentResult> {
-	const eventType = ctx.cfg.event_types.find((e) => e.id === input.appointment.event_type_id);
+	const eventType = ctx.cfg.meetings.find((e) => e.name === input.appointment.event_type_id);
 
 	const gate = resolveAppointmentActions({
 		row: input.appointment,
@@ -69,7 +69,7 @@ export async function rescheduleAppointment(
 		input.initiator === 'host'
 			? 'confirmed'
 			: input.initiator === 'guest' &&
-				  eventType?.appointment_flow === 'requires_confirmation' &&
+				  eventType?.booking_approval === 'request' &&
 				  input.appointment.status === 'confirmed'
 				? 'pending'
 				: input.appointment.status;
@@ -85,7 +85,14 @@ export async function rescheduleAppointment(
 				newStart: input.newStart,
 				newEnd: input.newEnd,
 				newStatus,
-				eventTypeSnapshot: JSON.stringify(eventType),
+				eventTypeSnapshot: eventType
+					? JSON.stringify({
+							name: eventType.name,
+							duration_minutes: eventType.duration_minutes,
+							description: eventType.description,
+							slug: eventType.slug
+						})
+					: '{}',
 				reason: input.reason,
 				guest: input.guest
 					? {
@@ -122,7 +129,7 @@ export function classifyReschedule({
 	if (!token || !existing || existing.cancel_token !== token) {
 		return { kind: 'error', code: 'token' };
 	}
-	if (existing.event_type_id !== eventType.id) {
+	if (existing.event_type_id !== eventType.name) {
 		return { kind: 'error', code: 'event_type' };
 	}
 	if (!isViewable(existing, now)) {

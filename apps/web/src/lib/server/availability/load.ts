@@ -1,5 +1,5 @@
 import { getBusyIntervals } from '@when/db';
-import type { EventType, WhenConfiguration } from '@when/config';
+import type { Meeting, WhenConfiguration } from '@when/config';
 import { systemClock } from '$lib/server/clock';
 import { getDb } from '$lib/server/state';
 import { computeSlots } from './calc';
@@ -18,7 +18,7 @@ export interface Availability {
 
 export async function loadAvailability(
 	cfg: WhenConfiguration,
-	eventType: EventType,
+	eventType: Meeting,
 	excludeStart: string | null = null
 ): Promise<Availability> {
 	const settings = resolveAvailabilitySettings(cfg, eventType);
@@ -26,7 +26,7 @@ export async function loadAvailability(
 	const nowInstant = Temporal.Instant.fromEpochMilliseconds(systemClock.nowMs());
 	const rangeEnd = nowInstant.add({ hours: 24 * settings.maximum_lookahead });
 
-	let blocks = await loadAppointmentBlocks(getDb(), eventType.id, nowInstant, rangeEnd, userTz);
+	let blocks = await loadAppointmentBlocks(getDb(), eventType.name, nowInstant, rangeEnd, userTz);
 	if (excludeStart) {
 		blocks = {
 			appointments: blocks.appointments.filter((a) => a.start.toString() !== excludeStart),
@@ -35,7 +35,7 @@ export async function loadAvailability(
 	}
 
 	const remoteBusy = (
-		await getBusyIntervals(getDb(), eventType.conflict_calendars ?? [], {
+		await getBusyIntervals(getDb(), eventType.busy_calendars ?? [], {
 			start: nowInstant.toString(),
 			end: rangeEnd.toString()
 		})
@@ -78,7 +78,7 @@ export async function loadAvailability(
 // appointment's own current slot so a reschedule can land on its existing time window.
 export async function isSlotBookable(
 	cfg: WhenConfiguration,
-	eventType: EventType,
+	eventType: Meeting,
 	slot: string,
 	excludeStart: string | null = null
 ): Promise<boolean> {

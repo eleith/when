@@ -22,8 +22,8 @@ export const actions: Actions = {
 		}
 
 		const cfg = getConfig();
-		const eventType = cfg.event_types.find((e) => e.id === found.event_type_id);
-		if (!eventType) return fail(409, { error: 'This event type no longer exists.' });
+		const eventType = cfg.meetings.find((e) => e.name === found.event_type_id);
+		if (!eventType) return fail(409, { error: 'This meeting type no longer exists.' });
 
 		const reasonResult = validateReason(form, 'rescheduling');
 		if (!reasonResult.ok) return fail(400, { error: reasonResult.error });
@@ -35,7 +35,7 @@ export const actions: Actions = {
 		}
 
 		const start = Temporal.Instant.from(slotStr);
-		const end = start.add({ minutes: eventType.duration });
+		const end = start.add({ minutes: eventType.duration_minutes });
 		const result = await rescheduleAppointment(appointmentContext(), {
 			appointment: found,
 			initiator: 'host', // Admin is always the host

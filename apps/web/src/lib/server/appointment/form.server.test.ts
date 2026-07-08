@@ -1,18 +1,17 @@
 import { describe, expect, test } from 'vitest';
-import type { EventType, FormField } from '@when/config';
+import type { Meeting, FormField } from '@when/config';
 import { parseAndValidateAppointmentForm, resolveTimezone, validateReason } from './form.server';
 
-const baseEvent: EventType = {
-	id: 'et',
+const baseEvent: Meeting = {
 	name: 'Chat',
-	duration: 30,
+	duration_minutes: 30,
 	slug: 'chat',
-	appointment_flow: 'auto',
-	destination_calendar: 'cal',
-	availability: 'standard'
+	booking_approval: 'instant',
+	booking_calendar: 'cal',
+	schedule: 'standard'
 };
 
-function eventWith(form_fields: FormField[], location?: EventType['location']): EventType {
+function eventWith(form_fields: FormField[], location?: Meeting['location']): Meeting {
 	return { ...baseEvent, form_fields, location };
 }
 
@@ -40,7 +39,7 @@ describe('parseAndValidateAppointmentForm', () => {
 			fd({ name: 'Jane', email: 'jane@example.com', notes: 'Hi there' })
 		);
 		expect(r.ok && r.data.answers).toEqual([
-			{ id: 'notes', label: 'Anything else?', type: 'paragraph', value: 'Hi there' }
+			{ name: 'notes', label: 'Anything else?', type: 'paragraph', value: 'Hi there' }
 		]);
 	});
 
@@ -57,8 +56,8 @@ describe('parseAndValidateAppointmentForm', () => {
 
 	test('email may be omitted when the field is optional', () => {
 		const event = eventWith([
-			{ id: 'name', type: 'guest_name', label: 'Name', required: true },
-			{ id: 'email', type: 'guest_email', label: 'Email', required: false }
+			{ name: 'name', type: 'guest_name', label: 'Name', required: true },
+			{ name: 'email', type: 'guest_email', label: 'Email', required: false }
 		]);
 		const r = parseAndValidateAppointmentForm(event, fd({ name: 'Jane' }));
 		expect(r.ok && r.data.email).toBeNull();
@@ -66,8 +65,8 @@ describe('parseAndValidateAppointmentForm', () => {
 
 	test('number must parse as a number', () => {
 		const event = eventWith([
-			{ id: 'name', type: 'guest_name', label: 'Name', required: true },
-			{ id: 'age', type: 'number', label: 'Age', required: true }
+			{ name: 'name', type: 'guest_name', label: 'Name', required: true },
+			{ name: 'age', type: 'number', label: 'Age', required: true }
 		]);
 		expect(parseAndValidateAppointmentForm(event, fd({ name: 'Jane', age: 'abc' })).ok).toBe(false);
 		expect(parseAndValidateAppointmentForm(event, fd({ name: 'Jane', age: '42' })).ok).toBe(true);
@@ -75,8 +74,8 @@ describe('parseAndValidateAppointmentForm', () => {
 
 	test('choice must be one of the configured options', () => {
 		const event = eventWith([
-			{ id: 'name', type: 'guest_name', label: 'Name', required: true },
-			{ id: 'how', type: 'choice', label: 'How?', required: true, choices: ['phone', 'video'] }
+			{ name: 'name', type: 'guest_name', label: 'Name', required: true },
+			{ name: 'how', type: 'choice', label: 'How?', required: true, choices: ['phone', 'video'] }
 		]);
 		expect(parseAndValidateAppointmentForm(event, fd({ name: 'Jane', how: 'fax' })).ok).toBe(false);
 		const ok = parseAndValidateAppointmentForm(event, fd({ name: 'Jane', how: 'video' }));
@@ -94,8 +93,8 @@ describe('parseAndValidateAppointmentForm', () => {
 	test('event_location overrides a fixed config when filled', () => {
 		const event = eventWith(
 			[
-				{ id: 'name', type: 'guest_name', label: 'Name', required: true },
-				{ id: 'loc', type: 'event_location', label: 'Where', required: false }
+				{ name: 'name', type: 'guest_name', label: 'Name', required: true },
+				{ name: 'loc', type: 'event_location', label: 'Where', required: false }
 			],
 			'Room A'
 		);
@@ -107,9 +106,9 @@ describe('parseAndValidateAppointmentForm', () => {
 
 	test('event_location with choices validates membership', () => {
 		const event = eventWith([
-			{ id: 'name', type: 'guest_name', label: 'Name', required: true },
+			{ name: 'name', type: 'guest_name', label: 'Name', required: true },
 			{
-				id: 'loc',
+				name: 'loc',
 				type: 'event_location',
 				label: 'Where',
 				required: true,

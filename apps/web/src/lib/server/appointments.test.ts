@@ -45,7 +45,7 @@ test('toAppointmentView enriches appointment rows correctly', () => {
 	const now = new Date('2026-06-15T12:00:00Z');
 	const mockRow: Appointment = {
 		id: 'a1',
-		event_type_id: 'chat-30',
+		event_type_id: '30 Minute Chat',
 		start_time: '2026-06-15T13:00:00Z',
 		end_time: '2026-06-15T13:30:00Z',
 		guest_name: 'Jane Doe',
@@ -65,13 +65,13 @@ test('toAppointmentView enriches appointment rows correctly', () => {
 		calendar_synced_revision: null,
 		has_possible_conflict: 1,
 		ics_sequence: 0,
-		event_type_snapshot: null,
+		meeting_snapshot: null,
 		created_at: '',
 		updated_at: ''
 	};
 
 	const mockCfg = {
-		event_types: [{ id: 'chat-30', name: '30 Minute Chat', duration: 30, slug: 'chat-30' }]
+		meetings: [{ name: '30 Minute Chat', duration_minutes: 30, slug: 'chat-30' }]
 	} as unknown as WhenConfiguration;
 
 	const view = toAppointmentView(mockRow, mockCfg, now);

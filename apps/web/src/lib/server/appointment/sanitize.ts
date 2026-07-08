@@ -1,4 +1,4 @@
-import { parseGuestAnswers, type EventType, type Location } from '@when/config';
+import { parseGuestAnswers, type Meeting, type Location } from '@when/config';
 import { parseActionLog, type ActionLogEntry, type Appointment } from '@when/db';
 
 export interface PublicEventType {
@@ -31,18 +31,18 @@ export interface PublicAppointment {
 }
 
 export function toPublicEventType(
-	eventType: EventType,
+	eventType: Meeting,
 	isAdmin: boolean,
 	settings?: { buffer_before: number; buffer_after: number; minimum_notice: number }
 ): PublicEventType {
 	return {
-		id: eventType.id,
+		id: eventType.name,
 		name: eventType.name,
 		slug: eventType.slug,
-		duration: eventType.duration,
+		duration: eventType.duration_minutes,
 		description: eventType.description ?? null,
 		visibility: eventType.visibility ?? 'public',
-		appointment_flow: eventType.appointment_flow,
+		appointment_flow: eventType.booking_approval === 'instant' ? 'auto' : 'requires_confirmation',
 		location: isAdmin ? (eventType.location ?? null) : null,
 		booking_style: eventType.booking_style,
 		...(settings
