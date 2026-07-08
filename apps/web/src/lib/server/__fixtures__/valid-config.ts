@@ -12,6 +12,8 @@ export const validConfig: WhenConfiguration = {
 		timezone: 'America/New_York',
 		email: 'jane@example.com',
 		appearance: {
+			title: 'if not now, when?',
+			description: 'find some time and we can meet',
 			primary_light_color: '#4f46e5',
 			primary_dark_color: '#818cf8',
 			background_light_color: '#f5f5f5',

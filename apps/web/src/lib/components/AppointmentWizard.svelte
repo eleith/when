@@ -238,10 +238,8 @@
 			/>
 		{/if}
 		<div class="banner-text">
-			<span class="banner-title">{data.user.appearance?.title || data.user.name}</span>
-			{#if data.user.appearance?.description}
-				<div class="banner-desc">{data.user.appearance.description}</div>
-			{/if}
+			<span class="banner-title">{data.user.appearance.title}</span>
+			<div class="banner-desc">{data.user.appearance.description}</div>
 		</div>
 	</a>
 	<div class="banner-event">
@@ -316,14 +314,10 @@
 							/>
 						{/if}
 						<div class="context-provider-text">
-							<span class="context-provider-name"
-								>{data.user.appearance?.title || data.user.name}</span
-							>
-							{#if data.user.appearance?.description}
-								<div class="context-provider-desc">
-									{data.user.appearance.description}
-								</div>
-							{/if}
+							<span class="context-provider-name">{data.user.appearance.title}</span>
+							<div class="context-provider-desc">
+								{data.user.appearance.description}
+							</div>
 						</div>
 					</a>
 				</section>

@@ -78,7 +78,7 @@ export function deriveBrand(cfg: WhenConfiguration, logoCid?: string): Brand {
 	const primaryColor = appearance.primary_light_color;
 	return {
 		name: cfg.user.name,
-		pageTitle: appearance.title ?? cfg.user.name,
+		pageTitle: appearance.title,
 		logoUrl: logoCid ? `cid:${logoCid}` : undefined,
 		primaryColor,
 		onPrimary: onColor(primaryColor)

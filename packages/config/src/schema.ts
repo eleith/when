@@ -41,8 +41,8 @@ export const AuthSchema = Type.Union([
 });
 
 export const AppearanceSchema = Type.Object({
-	title: Type.Optional(Type.String({ minLength: 1, description: 'Title of the booking page (e.g. "Schedule a time with me").' })),
-	description: Type.Optional(Type.String({ minLength: 1, description: 'Subtext or introduction shown on the booking page.' })),
+	title: Type.String({ default: 'if not now, when?', description: 'Title of the booking page.' }),
+	description: Type.String({ default: 'find some time and we can meet', description: 'Subtext or introduction shown on the booking page.' }),
 	logo_url: Type.Optional(Type.String({ minLength: 1, description: 'URL of the logo image. Can be relative (e.g. /public/logo.png).' })),
 	avatar_url: Type.Optional(Type.String({ minLength: 1, description: 'URL of the avatar image. Can be relative (e.g. /public/avatar.png).' })),
 	favicon_url: Type.Optional(Type.String({ minLength: 1, description: 'URL of the favicon image. Can be relative (e.g. /public/favicon.ico).' })),

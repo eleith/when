@@ -74,12 +74,12 @@
 			"type": "object",
 			"properties": {
 				"title": {
-					"minLength": 1,
-					"description": "Title of the booking page (e.g. \"Schedule a time with me\").",
+					"default": "if not now, when?",
+					"description": "Title of the booking page.",
 					"type": "string"
 				},
 				"description": {
-					"minLength": 1,
+					"default": "find some time and we can meet",
 					"description": "Subtext or introduction shown on the booking page.",
 					"type": "string"
 				},

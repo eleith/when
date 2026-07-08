@@ -16,12 +16,8 @@
 			class="avatar"
 		/>
 	{/if}
-	<h1>{data.user.appearance?.title || data.user.name}</h1>
-	{#if data.user.appearance?.description}
-		<p class="subtitle">{data.user.appearance.description}</p>
-	{:else if !data.user.appearance?.title}
-		<p class="subtitle">Welcome to my scheduling page</p>
-	{/if}
+	<h1>{data.user.appearance.title}</h1>
+	<p class="subtitle">{data.user.appearance.description}</p>
 
 	{#if data.eventTypes.length === 0}
 		<p class="empty">No meeting types are currently available.</p>

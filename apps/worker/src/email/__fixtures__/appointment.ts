@@ -39,6 +39,8 @@ export const sampleConfig = {
 		email: 'owner@acme.test',
 		timezone: 'America/New_York',
 		appearance: {
+			title: 'if not now, when?',
+			description: 'find some time and we can meet',
 			primary_light_color: '#2563eb',
 			primary_dark_color: '#3b82f6',
 			background_light_color: '#f5f5f5',
