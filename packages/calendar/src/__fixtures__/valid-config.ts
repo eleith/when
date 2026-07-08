@@ -11,13 +11,15 @@ export const validConfig: WhenConfiguration = {
 		name: 'Jane Doe',
 		timezone: 'America/New_York',
 		email: 'jane@example.com',
-		branding: {
-			color: {
-				primary: {
-					light: '#4f46e5',
-					dark: '#818cf8'
-				}
-			}
+		appearance: {
+			title: 'if not now, when?',
+			description: 'find some time and we can meet',
+			primary_light_color: '#4f46e5',
+			primary_dark_color: '#818cf8',
+			background_light_color: '#f5f5f5',
+			background_dark_color: '#0a0a0a',
+			text_light_color: '#171717',
+			text_dark_color: '#ededed'
 		}
 	},
 	smtp: {
