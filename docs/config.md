@@ -11,7 +11,7 @@ Point your editor at that schema for inline autocomplete and validation:
 # yaml-language-server: $schema=./config.schema.json
 ```
 
-The required top-level keys are: `auth`, `user`, `smtp`, `calendars`, `availability`, `event_types`. Optional top-level keys include `services`, `video_chats`, `database`, `url`, and `prometheus`.
+The required top-level keys are: `auth`, `user`, `smtp`, `calendars`, `schedules`, `meetings`. Optional top-level keys include `services`, `database`, `url`, and `prometheus`.
 
 ## Environment variable interpolation
 
@@ -82,41 +82,27 @@ smtp:
 
 ## `services`
 
-External APIs and auth credentials. Calendars and video chat integrations reference these services by `id`.
+External APIs and auth credentials. Calendars reference these services by `name`.
 
 Three `type`s are supported: `google`, `caldav`, and `nextcloud`.
 
 ```yaml
 services:
-  - id: 'my-google-service'
+  - name: 'my-google-service'
     type: 'google'
     client_id: '${GOOGLE_CLIENT_ID}'
     client_secret: '${GOOGLE_CLIENT_SECRET}'
     refresh_token: '${GOOGLE_REFRESH_TOKEN}'
-  - id: 'my-caldav-service'
+  - name: 'my-caldav-service'
     type: 'caldav'
     url: 'https://cloud.example.com/remote.php/dav/'
     username: 'jane'
     password: '${CALDAV_PASSWORD}'
-  - id: 'my-nextcloud-service'
+  - name: 'my-nextcloud-service'
     type: 'nextcloud'
     url: 'https://nextcloud.example.com/'
     username: 'jane'
     password: '${NEXTCLOUD_PASSWORD}'
-```
-
-## `video_chats`
-
-Video conferencing providers for meetings. Two `type`s are supported: `google-meet` and `nextcloud-talk`.
-
-```yaml
-video_chats:
-  - id: 'meet'
-    type: 'google-meet'
-    service_id: 'my-google-service'
-  - id: 'talk'
-    type: 'nextcloud-talk'
-    service_id: 'my-nextcloud-service'
 ```
 
 ## `calendars`
@@ -125,15 +111,15 @@ One or more external calendars, used as conflict sources (busy times) and/or app
 
 ```yaml
 calendars:
-  - id: 'work' # referenced by event types
+  - name: 'work' # referenced by meetings
     type: 'caldav'
-    service_id: 'my-caldav-service'
+    service: 'my-caldav-service'
     url: 'https://cloud.example.com/remote.php/dav/calendars/jane/work/'
     sync:
       refresh_interval: 10 # minutes between busy-time refreshes (default 10)
-  - id: 'personal'
+  - name: 'personal'
     type: 'google'
-    service_id: 'my-google-service'
+    service: 'my-google-service'
     google_calendar_id: 'primary'
     sync:
       refresh_interval: 10
@@ -141,19 +127,13 @@ calendars:
 
 `sync.refresh_interval` is optional on either type. For Google, run `pnpm cli calendar add google` to generate this block automatically.
 
-## `availabilities`
+## `schedules`
 
-A list of availability profiles. Each profile contains scheduling rules and weekly working hours.
+A list of weekly schedules defining availability slots.
 
 ```yaml
-availabilities:
-  - id: 'standard' # unique identifier referenced by event types
-    slot_granularity: 15 # minutes; slots snap to this boundary (default 15)
-    minimum_notice: 120 # minutes of lead time required (default 120)
-    maximum_lookahead: 60 # days bookable into the future (default 60)
-    buffer_before: 0 # minutes padded before a meeting (default 0)
-    buffer_after: 0 # minutes padded after a meeting (default 0)
-    max_appointments_per_day: null # cap on meetings per day; null = unlimited (default null)
+schedules:
+  - name: 'standard' # unique name referenced by meetings
     weekly: # required: weekly working hours
       monday: ['09:00-17:00']
       tuesday: ['09:00-17:00']
@@ -163,51 +143,50 @@ availabilities:
       # days omitted = no availability
 ```
 
-## `event_types`
+## `meetings`
 
-The meetings people can book. `id`, `name`, `duration`, `slug`, `appointment_flow`, `destination_calendar`, and `availability` are required; everything else is optional.
+The meetings people can book. `name`, `duration_minutes`, `slug`, `booking_approval`, `booking_calendar`, and `schedule` are required; everything else is optional.
 
 ```yaml
-event_types:
-  - id: 'chat'
-    name: '30-minute chat'
-    duration: 30 # minutes
+meetings:
+  - name: '30-minute chat'
+    duration_minutes: 30 # minutes
     slug: 'chat' # URL slug: /schedule/chat
     description: 'A quick intro call.'
     visibility: 'public' # 'public' (default) or 'private' (hidden from the homepage)
-    appointment_flow: 'auto' # 'auto' or 'requires_confirmation'
-    conflict_calendars: ['work', 'personal'] # busy-time sources (default [])
-    destination_calendar: 'work' # where the appointment is written
-    availability: 'standard' # references an availabilities profile id
+    booking_approval: 'instant' # 'instant' or 'request' (requires host approval)
+    busy_calendars: ['work', 'personal'] # busy-time calendar names to check for conflicts (default [])
+    booking_calendar: 'work' # where the appointment is written
+    schedule: 'standard' # references a schedules name
     image_url: '/public/chat.png'
     location: 'Office Room 101' # a static URL, address, or phone number (optional)
-    video_chat: 'meet' # references a video_chats id to generate dynamic meeting links (optional)
+    video_chat_service: 'my-nextcloud-service' # references a nextcloud or google service name to generate dynamic meeting links (optional)
     note: 'Please review materials prior to the call.' # a host note shown to guests (optional)
-    form_fields: # custom booking questions (optional, guest_name is required)
-      - id: 'name'
+    form_fields: # custom booking questions (optional)
+      - name: 'name'
         type: 'guest_name'
         label: 'Your Name'
         required: true
-      - id: 'email'
+      - name: 'email'
         type: 'guest_email'
         label: 'Your Email'
         required: true
-      - id: 'loc'
+      - name: 'loc'
         type: 'event_location'
         label: 'Preferred Location'
         required: true
-      - id: 'goals'
+      - name: 'goals'
         type: 'paragraph'
         label: 'What would you like to discuss?'
         required: false
 
-    # any availability knob may be overridden here; omit to inherit the profile value:
-    slot_granularity: 30
-    minimum_notice: 240
-    maximum_lookahead: 30
-    buffer_before: 5
-    buffer_after: 5
-    max_appointments_per_day: 4
+    # Scheduling rules:
+    start_times_every_minutes: 30 # slots snap to this boundary (defaults to duration_minutes)
+    notice_minutes: 120 # minutes of lead time required (default 120)
+    booking_window_days: 60 # days bookable into the future (default 60)
+    padding_before_minutes: 0 # minutes padded before a meeting (default 0)
+    padding_after_minutes: 0 # minutes padded after a meeting (default 0)
+    daily_booking_limit: null # cap on meetings per day; null = unlimited (default null)
 ```
 
 ### Custom Form Fields and Video Chats
@@ -215,7 +194,7 @@ event_types:
 Rather than rigid location structures, meetings are customized using:
 
 - **Fixed Location**: A static string configured via `location`.
-- **Dynamic Video Chat**: Setup under `video_chats` and linked to an event type using `video_chat: <id>`. Dynamic links are generated automatically.
+- **Dynamic Video Chat**: Setup under `video_chat_service` referencing the service name (e.g. `my-nextcloud-service` or `my-google-service`). Dynamic links (like Nextcloud Talk rooms or Google Meet URLs) are generated automatically.
 - **Custom Questions**: Configured via `form_fields`. Every form **must** include exactly one `guest_name` field (with `required: true`). Optional special field types include `guest_email` and `event_location`. General text fields, numbers, paragraphs, and choices are also supported.
 
 ## `database`
