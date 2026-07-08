@@ -4,7 +4,7 @@ import { enqueueAppointmentReconciliation } from '../workflow';
 import type { AppointmentContext } from './context';
 import { rescheduleAppointmentTransition, type RescheduleResult } from './transitions';
 import type { ParsedAppointment } from './form.server';
-import type { EventType } from '@when/config';
+import type { Meeting } from '@when/config';
 import type { Appointment } from '@when/db';
 
 export type RescheduleErrorCode =
@@ -23,7 +23,7 @@ export interface ClassifyRescheduleInput {
 	rescheduleId: string | null;
 	token: string | null;
 	existing: Appointment | undefined;
-	eventType: Pick<EventType, 'id' | 'minimum_notice'>;
+	eventType: Pick<Meeting, 'name' | 'notice_minutes'>;
 	now: Date;
 }
 
@@ -138,7 +138,7 @@ export function classifyReschedule({
 	if (isTerminalStatus(existing.status)) {
 		return { kind: 'error', code: 'terminal' };
 	}
-	if (!isRescheduleAllowed(existing, now, eventType.minimum_notice ?? 0)) {
+	if (!isRescheduleAllowed(existing, now, eventType.notice_minutes ?? 0)) {
 		return { kind: 'error', code: 'minimum_notice' };
 	}
 	return { kind: 'reschedule' };

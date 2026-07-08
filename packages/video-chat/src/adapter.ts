@@ -19,6 +19,7 @@ interface VideoChatAdapter {
 interface VideoChatAdapterClass {
 	readonly type: string;
 	readonly expectedServiceType: string;
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	new (service: any): VideoChatAdapter;
 }
 

@@ -25,7 +25,7 @@
 
 	<div class="questions-body">
 		<ol class="questions-list">
-			{#each answers as answer (answer.id)}
+			{#each answers as answer (answer.name)}
 				<li class="questions-item">
 					<div class="questions-label">{answer.label}</div>
 					<div class="questions-value notes">{answer.value}</div>

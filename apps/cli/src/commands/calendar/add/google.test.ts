@@ -5,14 +5,14 @@ import { exchangeCodeForTokens } from '../../../services/google.ts';
 
 describe('google add command helpers', () => {
 	const cal: GoogleCalendar = {
-		id: 'personal',
+		name: 'personal',
 		type: 'google',
-		service_id: 'google-service',
+		service: 'google-service',
 		google_calendar_id: 'primary'
 	};
 
 	const testService = {
-		id: 'google-service',
+		name: 'google-service',
 		type: 'google' as const,
 		client_id: 'client-id-123',
 		client_secret: 'client-secret-456',

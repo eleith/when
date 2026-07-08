@@ -20,7 +20,16 @@ const testConfig = {
 	...sampleInput.cfg,
 	calendars: [],
 	services: [],
-	meetings: [{ name: '30-min', duration_minutes: 30, slug: '30-min', booking_approval: 'instant', booking_calendar: 'cal', schedule: 'standard' }]
+	meetings: [
+		{
+			name: '30-min',
+			duration_minutes: 30,
+			slug: '30-min',
+			booking_approval: 'instant',
+			booking_calendar: 'cal',
+			schedule: 'standard'
+		}
+	]
 } as unknown as WhenConfiguration;
 
 function makeStep() {

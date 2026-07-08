@@ -131,9 +131,7 @@ test('clears a previously-flagged appointment once the overlap is gone', async (
 
 test('an event type with no conflict calendars is never flagged', async () => {
 	const ctx = await ctxWith({
-		meetings: [
-			{ name: 'chat', busy_calendars: [] }
-		] as unknown as WhenConfiguration['meetings']
+		meetings: [{ name: 'chat', busy_calendars: [] }] as unknown as WhenConfiguration['meetings']
 	});
 	try {
 		await replaceCalendarBusy(ctx.db, 'work', [

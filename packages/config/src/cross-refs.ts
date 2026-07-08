@@ -156,7 +156,10 @@ function checkFormFields(
 
 	fields.forEach((field, j) => {
 		if (seenNames.has(field.name)) {
-			issues.push({ path: `${base}/${j}/name`, message: `duplicate form field name "${field.name}"` });
+			issues.push({
+				path: `${base}/${j}/name`,
+				message: `duplicate form field name "${field.name}"`
+			});
 		}
 		seenNames.add(field.name);
 		typeCounts.set(field.type, (typeCounts.get(field.type) ?? 0) + 1);

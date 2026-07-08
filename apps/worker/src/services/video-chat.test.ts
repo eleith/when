@@ -255,9 +255,7 @@ describe('deleteStandaloneVideoChat', () => {
 
 			await deleteStandaloneVideoChat(db, 'c2', configWithVc);
 
-			expect(getVideoChatAdapter).toHaveBeenCalledWith(
-				mockConfig.services[0]
-			);
+			expect(getVideoChatAdapter).toHaveBeenCalledWith(mockConfig.services![0]);
 			expect(mockAdapter.deleteRoom).toHaveBeenCalledWith(
 				'https://cloud.example.com/call/room-abc'
 			);

@@ -33,7 +33,7 @@ export async function getOrCreateCalDavService(
 		const choice = await select({
 			message: 'Select a CalDAV service or create a new one:',
 			options: [
-				...davServices.map((s) => ({ value: s.id, label: `${s.id} (${s.username}@${s.url})` })),
+				...davServices.map((s) => ({ value: s.name, label: `${s.name} (${s.username}@${s.url})` })),
 				{ value: 'new', label: 'Create new CalDAV service configuration' }
 			]
 		});
@@ -41,7 +41,7 @@ export async function getOrCreateCalDavService(
 
 		if (choice !== 'new') {
 			serviceId = choice as string;
-			const existing = davServices.find((s) => s.id === serviceId)!;
+			const existing = davServices.find((s) => s.name === serviceId)!;
 			url = existing.url;
 			username = existing.username;
 			const rawPass = existing.password || '';

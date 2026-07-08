@@ -33,7 +33,7 @@ export async function getOrCreateNextcloudService(
 		const choice = await select({
 			message: 'Select a Nextcloud service or create a new one:',
 			options: [
-				...ncServices.map((s) => ({ value: s.id, label: `${s.id} (${s.url})` })),
+				...ncServices.map((s) => ({ value: s.name, label: `${s.name} (${s.url})` })),
 				{ value: 'new', label: 'Create new Nextcloud service configuration' }
 			]
 		});
@@ -41,7 +41,7 @@ export async function getOrCreateNextcloudService(
 
 		if (choice !== 'new') {
 			serviceId = choice as string;
-			const existing = ncServices.find((s) => s.id === serviceId)!;
+			const existing = ncServices.find((s) => s.name === serviceId)!;
 			url = existing.url;
 			username = existing.username;
 			const rawPass = existing.password || '';

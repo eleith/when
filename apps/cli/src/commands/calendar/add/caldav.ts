@@ -4,7 +4,7 @@ import { ConfigEditor, type CalDavCalendar, type Service } from '@when/config';
 import { getCalendarAdapter, type ExpandWindow } from '@when/calendar';
 import { getValidatedConfigPath, validateConfigExists } from '../../../utils/config-path.ts';
 import { getOrCreateCalDavService } from '../../../services/caldav.ts';
-import { getExistingIds } from '../../../utils/config.ts';
+import { getExistingNames } from '../../../utils/config.ts';
 
 export async function verifyCalDavConnection(cal: CalDavCalendar, service: Service): Promise<void> {
 	const adapter = getCalendarAdapter(cal, [service]);
@@ -13,19 +13,19 @@ export async function verifyCalDavConnection(cal: CalDavCalendar, service: Servi
 	await adapter.fetchBusy(window);
 }
 
-async function promptCalDavCalendarId(existingIds: string[]): Promise<string | null> {
-	const calendarId = await text({
-		message: 'Enter a unique ID for this calendar (e.g., "work"):',
+async function promptCalDavCalendarName(existingNames: string[]): Promise<string | null> {
+	const calendarName = await text({
+		message: 'Enter a unique name for this calendar (e.g., "work"):',
 		placeholder: 'work',
 		validate(value) {
-			if (!value || !value.trim()) return 'Calendar ID is required';
-			if (existingIds.includes(value.trim())) {
-				return `A calendar with ID "${value.trim()}" already exists in config.yaml.`;
+			if (!value || !value.trim()) return 'Calendar name is required';
+			if (existingNames.includes(value.trim())) {
+				return `A calendar with name "${value.trim()}" already exists in config.yaml.`;
 			}
 		}
 	});
-	if (isCancel(calendarId)) return null;
-	return calendarId.trim();
+	if (isCancel(calendarName)) return null;
+	return calendarName.trim();
 }
 
 interface WriteCalDavConfigOpts {
@@ -53,7 +53,7 @@ function writeCalDavConfig({
 
 	if (isNew) {
 		const serviceToWrite = {
-			id: serviceId,
+			name: serviceId,
 			type: 'caldav',
 			url,
 			username,
@@ -100,24 +100,24 @@ export const caldavAddCommand = define({
 			return;
 		}
 
-		const existingCalendarIds = getExistingIds(configPath, 'calendars');
-		const id = await promptCalDavCalendarId(existingCalendarIds);
-		if (!id) return;
+		const existingCalendarNames = getExistingNames(configPath, 'calendars');
+		const name = await promptCalDavCalendarName(existingCalendarNames);
+		if (!name) return;
 
-		const serviceResult = await getOrCreateCalDavService(configPath, id);
+		const serviceResult = await getOrCreateCalDavService(configPath, name);
 		if (!serviceResult) return;
 
 		const { serviceId, url, username, passwordPlain, isNew, envVarName } = serviceResult;
 
 		const cal: CalDavCalendar = {
-			id,
+			name,
 			type: 'caldav',
-			service_id: serviceId,
+			service: serviceId,
 			url
 		};
 
 		const service: Service = {
-			id: serviceId,
+			name: serviceId,
 			type: 'caldav',
 			url,
 			username,
@@ -143,7 +143,7 @@ export const caldavAddCommand = define({
 
 			s.stop('Setup completed successfully!');
 
-			const completionMsg = getCompletionMessage(id, serviceId, envVarName, isNew);
+			const completionMsg = getCompletionMessage(name, serviceId, envVarName, isNew);
 			note(completionMsg, 'Setup Complete');
 		} catch (err) {
 			s.stop('Failed!');

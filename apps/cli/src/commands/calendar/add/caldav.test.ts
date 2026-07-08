@@ -4,14 +4,14 @@ import { caldavAddCommand, verifyCalDavConnection } from './caldav.ts';
 
 describe('caldav add command', () => {
 	const cal: CalDavCalendar = {
-		id: 'work',
+		name: 'work',
 		type: 'caldav',
-		service_id: 'work-service',
+		service: 'work-service',
 		url: 'https://example.com/caldav/'
 	};
 
 	const testService: Service = {
-		id: 'work-service',
+		name: 'work-service',
 		type: 'caldav',
 		url: 'https://example.com/caldav/',
 		username: 'user',

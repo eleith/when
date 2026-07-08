@@ -50,8 +50,6 @@ describe('getVideoChatAdapter', () => {
 			username: 'u',
 			password: 'p'
 		};
-		expect(() => getVideoChatAdapter(srv)).toThrow(
-			'Unsupported video chat service type: caldav'
-		);
+		expect(() => getVideoChatAdapter(srv)).toThrow('Unsupported video chat service type: caldav');
 	});
 });

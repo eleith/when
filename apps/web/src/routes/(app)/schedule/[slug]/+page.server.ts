@@ -88,13 +88,14 @@ export const actions: Actions = {
 		const nowInstant = Temporal.Instant.fromEpochMilliseconds(systemClock.nowMs());
 		const rangeEnd = nowInstant.add({ hours: 24 * settings.maximum_lookahead });
 
-		const blocks = await loadAppointmentBlocks(getDb(), eventType.name, nowInstant, rangeEnd, userTz);
-		const remoteBusy = await slotDayBusy(
+		const blocks = await loadAppointmentBlocks(
 			getDb(),
-			eventType.busy_calendars ?? [],
-			slotStr,
+			eventType.name,
+			nowInstant,
+			rangeEnd,
 			userTz
 		);
+		const remoteBusy = await slotDayBusy(getDb(), eventType.busy_calendars ?? [], slotStr, userTz);
 		const slots = computeSlots({
 			settings,
 			rangeStart: nowInstant,

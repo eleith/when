@@ -5,7 +5,7 @@ import { ConfigEditor } from '@when/config';
 import type { GoogleCalendar, Service } from '@when/config';
 import { getValidatedConfigPath, validateConfigExists } from '../../../utils/config-path.ts';
 import { getOrCreateGoogleService } from '../../../services/google.ts';
-import { getExistingIds } from '../../../utils/config.ts';
+import { getExistingNames } from '../../../utils/config.ts';
 
 export async function verifyGoogleConnection(cal: GoogleCalendar, service: Service): Promise<void> {
 	const adapter = getCalendarAdapter(cal, [service]);
@@ -36,19 +36,19 @@ export async function fetchCalendarList(accessToken: string): Promise<GoogleCale
 	return data.items || [];
 }
 
-async function promptGoogleCalendarId(existingIds: string[]): Promise<string | null> {
-	const calendarId = await text({
-		message: 'Enter a unique ID for this calendar (e.g., "personal"):',
+async function promptGoogleCalendarName(existingNames: string[]): Promise<string | null> {
+	const calendarName = await text({
+		message: 'Enter a unique name for this calendar (e.g., "personal"):',
 		placeholder: 'personal',
 		validate(value) {
-			if (!value || !value.trim()) return 'Calendar ID is required';
-			if (existingIds.includes(value.trim())) {
-				return `A calendar with ID "${value.trim()}" already exists in config.yaml.`;
+			if (!value || !value.trim()) return 'Calendar name is required';
+			if (existingNames.includes(value.trim())) {
+				return `A calendar with name "${value.trim()}" already exists in config.yaml.`;
 			}
 		}
 	});
-	if (isCancel(calendarId)) return null;
-	return calendarId.trim();
+	if (isCancel(calendarName)) return null;
+	return calendarName.trim();
 }
 
 async function promptCalendarSelection(calendars: GoogleCalendarItem[]): Promise<string | null> {
@@ -120,7 +120,7 @@ function writeGoogleCalendarConfig({
 
 	if (isNew) {
 		const serviceToWrite = {
-			id: serviceId,
+			name: serviceId,
 			type: 'google',
 			client_id: clientId,
 			client_secret: `\${${envClientSecret}}`,
@@ -171,11 +171,11 @@ export const googleAddCommand = define({
 			return;
 		}
 
-		const existingCalendarIds = getExistingIds(configPath, 'calendars');
-		const id = await promptGoogleCalendarId(existingCalendarIds);
-		if (!id) return;
+		const existingCalendarNames = getExistingNames(configPath, 'calendars');
+		const name = await promptGoogleCalendarName(existingCalendarNames);
+		if (!name) return;
 
-		const serviceResult = await getOrCreateGoogleService(configPath, id);
+		const serviceResult = await getOrCreateGoogleService(configPath, name);
 		if (!serviceResult) return;
 
 		const {
@@ -205,14 +205,14 @@ export const googleAddCommand = define({
 		}
 
 		const cal: GoogleCalendar = {
-			id,
+			name,
 			type: 'google',
-			service_id: serviceId,
+			service: serviceId,
 			google_calendar_id: selectedCalendarId
 		};
 
 		const service: Service = {
-			id: serviceId,
+			name: serviceId,
 			type: 'google',
 			client_id: clientId,
 			client_secret: clientSecret,
@@ -239,7 +239,7 @@ export const googleAddCommand = define({
 			s.stop('Setup completed successfully!');
 
 			const completionMsg = getCompletionMessage(
-				id,
+				name,
 				serviceId,
 				clientSecret,
 				refreshToken,

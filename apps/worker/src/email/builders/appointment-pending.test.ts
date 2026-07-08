@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import type { EventType } from '@when/config';
+import type { Meeting } from '@when/config';
 import { appointmentPending } from './appointment-pending.js';
 import { sampleInput } from '../__fixtures__/appointment.js';
 
@@ -7,7 +7,7 @@ describe('appointmentPending', () => {
 	test('guest (request received) + host (review request), no ics', () => {
 		const withType = {
 			...sampleInput,
-			eventType: { name: '30 Minute Chat', duration: 30 } as EventType
+			eventType: { name: '30 Minute Chat', duration_minutes: 30 } as Meeting
 		};
 		const [guest, host] = appointmentPending(withType);
 

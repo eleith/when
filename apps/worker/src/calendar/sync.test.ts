@@ -28,9 +28,7 @@ const config = {
 			url: 'https://cal.example.com/work/'
 		}
 	],
-	meetings: [
-		{ name: 'chat', slug: 'chat', booking_calendar: 'work', duration_minutes: 30 }
-	]
+	meetings: [{ name: 'chat', slug: 'chat', booking_calendar: 'work', duration_minutes: 30 }]
 } as unknown as WhenConfiguration;
 
 const appt = (over: Record<string, unknown>) => ({

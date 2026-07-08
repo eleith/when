@@ -46,7 +46,7 @@ export function evaluateCalendarStatuses(
 
 	return syncStatus.map((s) => {
 		const intervalMinutes =
-			config.calendars.find((c) => c.name === s.calendar_id)?.sync?.refresh_interval ?? 10;
+			config.calendars.find((c) => c.name === s.calendar_id)?.sync?.refresh_every_minutes ?? 10;
 
 		let health: 'good' | 'bad' | 'unknown' = 'unknown';
 		let reason: string | null = null;

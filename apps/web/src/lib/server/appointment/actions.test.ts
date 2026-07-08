@@ -12,8 +12,8 @@ function row(status: AppointmentStatus) {
 	return { status, start_time: startTime };
 }
 
-const eventTypeNoNotice = { minimum_notice: 0 };
-const eventType30 = { minimum_notice: 30 };
+const eventTypeNoNotice = { notice_minutes: 0 };
+const eventType30 = { notice_minutes: 30 };
 
 describe('cancel', () => {
 	test('allowed for confirmed before start', () => {

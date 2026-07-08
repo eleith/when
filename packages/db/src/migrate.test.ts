@@ -317,14 +317,22 @@ test('0018 renames attendee columns to guest and rewrites action_log actors', as
 
 		const row = await db
 			.selectFrom('appointments')
-			.select(['guest_name', 'guest_answers', 'action_log', 'event_type_snapshot' as any])
+			.select([
+				'guest_name',
+				'guest_answers',
+				'action_log',
+				'event_type_snapshot' as unknown as 'meeting_snapshot'
+			])
 			.where('id', '=', 'a')
 			.executeTakeFirstOrThrow();
 		expect(row.guest_name).toBe('A');
 		const actors = (JSON.parse(row.action_log!) as { actor: string }[]).map((e) => e.actor);
 		expect(actors).toEqual(['guest', 'host']);
 		expect(JSON.parse(row.guest_answers!)[0].type).toBe('guest_name');
-		expect(JSON.parse((row as any).event_type_snapshot!).form_fields[0].type).toBe('guest_name');
+		expect(
+			JSON.parse((row as unknown as Record<string, string>).event_type_snapshot!).form_fields[0]
+				.type
+		).toBe('guest_name');
 	} finally {
 		await db.destroy();
 	}

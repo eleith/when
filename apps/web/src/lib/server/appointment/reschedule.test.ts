@@ -37,7 +37,7 @@ const existing: Appointment = {
 	updated_at: ''
 };
 
-const eventType = { name: 'chat', minimum_notice: 60 };
+const eventType = { name: 'chat', notice_minutes: 60 };
 
 describe('classifyReschedule', () => {
 	test('fresh when no rescheduleId', () => {
@@ -107,7 +107,7 @@ describe('classifyReschedule', () => {
 				rescheduleId: 'appt-1',
 				token: 'tok-good',
 				existing,
-				eventType: { id: 'other', minimum_notice: 60 },
+				eventType: { name: 'other', notice_minutes: 60 },
 				now
 			})
 		).toEqual({ kind: 'error', code: 'event_type' });
@@ -296,7 +296,7 @@ describe('rescheduleAppointment', () => {
 						name: 'Booker Renamed',
 						email: null,
 						location: 'Room B',
-						answers: [{ id: 'why', label: 'Why move?', type: 'text', value: 'conflict' }]
+						answers: [{ name: 'why', label: 'Why move?', type: 'text', value: 'conflict' }]
 					},
 					timezone: 'Europe/London'
 				}
@@ -310,7 +310,7 @@ describe('rescheduleAppointment', () => {
 				expect(next.location).toBe('Room B');
 				expect(next.guest_timezone).toBe('Europe/London');
 				expect(next.guest_answers).toBe(
-					JSON.stringify([{ id: 'why', label: 'Why move?', type: 'text', value: 'conflict' }])
+					JSON.stringify([{ name: 'why', label: 'Why move?', type: 'text', value: 'conflict' }])
 				);
 			}
 		} finally {

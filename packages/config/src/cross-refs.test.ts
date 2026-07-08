@@ -153,7 +153,10 @@ test('guest_name appearing twice flagged', () => {
 
 test('guest_email appearing twice flagged', () => {
 	const issues = issuesFor(
-		withForm([...validForm, { name: 'email2', type: 'guest_email', label: 'Email', required: false }])
+		withForm([
+			...validForm,
+			{ name: 'email2', type: 'guest_email', label: 'Email', required: false }
+		])
 	);
 	expect(issues.some((i) => i.message.includes('guest_email may appear at most once'))).toBe(true);
 });
@@ -183,9 +186,7 @@ test('unknown service in calendar flagged', () => {
 	bad.calendars[0].service = 'non-existent';
 	const issues = issuesFor(bad);
 	expect(
-		issues.some(
-			(i) => i.path === '/calendars/0/service' && i.message.includes('unknown service')
-		)
+		issues.some((i) => i.path === '/calendars/0/service' && i.message.includes('unknown service'))
 	).toBe(true);
 });
 
@@ -254,8 +255,7 @@ test('unknown schedule reference in meeting flagged', () => {
 	const issues = issuesFor(bad);
 	expect(
 		issues.some(
-			(i) =>
-				i.path === '/meetings/0/schedule' && i.message.includes('unknown schedule name')
+			(i) => i.path === '/meetings/0/schedule' && i.message.includes('unknown schedule name')
 		)
 	).toBe(true);
 });

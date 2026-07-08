@@ -119,13 +119,13 @@
 		if (field.type === 'guest_name') return r.guest_name ?? '';
 		if (field.type === 'guest_email') return r.guest_email ?? '';
 		if (field.type === 'event_location') return r.location ?? '';
-		return priorAnswers.find((a) => a.id === field.id)?.value ?? '';
+		return priorAnswers.find((a) => a.name === field.name)?.value ?? '';
 	}
 
 	// svelte-ignore state_referenced_locally
 	let paragraphValues = $state<Record<string, string>>(
 		Object.fromEntries(
-			data.formFields.filter((f) => f.type === 'paragraph').map((f) => [f.id, initialFieldValue(f)])
+			data.formFields.filter((f) => f.type === 'paragraph').map((f) => [f.name, initialFieldValue(f)])
 		)
 	);
 
@@ -438,9 +438,9 @@
 									<input type="hidden" name="token" value={data.rescheduleToken} />
 								{/if}
 
-								{#each data.formFields as field (field.id)}
+								{#each data.formFields as field (field.name)}
 									<div class="field">
-										<label for={field.id}>
+										<label for={field.name}>
 											{field.label}{#if field.required && !fieldsDisabled}<span
 													class="field-req"
 													aria-hidden="true">*</span
@@ -448,8 +448,8 @@
 										</label>
 										{#if field.type === 'guest_name'}
 											<input
-												id={field.id}
-												name={field.id}
+												id={field.name}
+												name={field.name}
 												type="text"
 												required={!fieldsDisabled}
 												disabled={fieldsDisabled}
@@ -460,8 +460,8 @@
 											/>
 										{:else if field.type === 'guest_email'}
 											<input
-												id={field.id}
-												name={field.id}
+												id={field.name}
+												name={field.name}
 												type="email"
 												required={field.required && !fieldsDisabled}
 												disabled={fieldsDisabled}
@@ -471,8 +471,8 @@
 											/>
 										{:else if field.type === 'number'}
 											<input
-												id={field.id}
-												name={field.id}
+												id={field.name}
+												name={field.name}
 												type="number"
 												required={field.required && !fieldsDisabled}
 												disabled={fieldsDisabled}
@@ -480,23 +480,23 @@
 											/>
 										{:else if field.type === 'paragraph'}
 											<textarea
-												id={field.id}
-												name={field.id}
+												id={field.name}
+												name={field.name}
 												rows="3"
 												required={field.required && !fieldsDisabled}
 												disabled={fieldsDisabled}
 												maxlength="1000"
-												bind:value={paragraphValues[field.id]}
+												bind:value={paragraphValues[field.name]}
 											></textarea>
 											{#if !fieldsDisabled}
 												<span class="field-count"
-													>{(paragraphValues[field.id] ?? '').length}/1000</span
+													>{(paragraphValues[field.name] ?? '').length}/1000</span
 												>
 											{/if}
 										{:else if field.type === 'choice' || (field.type === 'event_location' && field.choices)}
 											<select
-												id={field.id}
-												name={field.id}
+												id={field.name}
+												name={field.name}
 												required={field.required && !fieldsDisabled}
 												disabled={fieldsDisabled}
 											>
@@ -509,8 +509,8 @@
 											</select>
 										{:else}
 											<input
-												id={field.id}
-												name={field.id}
+												id={field.name}
+												name={field.name}
 												type="text"
 												required={field.required && !fieldsDisabled}
 												disabled={fieldsDisabled}
@@ -518,8 +518,8 @@
 												value={initialFieldValue(field)}
 											/>
 										{/if}
-										{#if form?.fieldErrors?.[field.id]}
-											<p class="field-error" role="alert">{form.fieldErrors[field.id]}</p>
+										{#if form?.fieldErrors?.[field.name]}
+											<p class="field-error" role="alert">{form.fieldErrors[field.name]}</p>
 										{/if}
 									</div>
 								{/each}

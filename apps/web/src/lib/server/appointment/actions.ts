@@ -1,4 +1,4 @@
-import type { EventType } from '@when/config';
+import type { Meeting } from '@when/config';
 import type { Appointment, AppointmentStatus } from '@when/db';
 import { isCancelAllowed, isRescheduleAllowed } from './access';
 
@@ -19,7 +19,7 @@ export interface ResolveAppointmentActionsInput {
 	row: Pick<Appointment, 'status' | 'start_time'>;
 	viewer: Viewer;
 	now: Date;
-	eventType: Pick<EventType, 'minimum_notice'> | undefined;
+	eventType: Pick<Meeting, 'notice_minutes'> | undefined;
 }
 
 const ALLOWED: ActionGate = { allowed: true };
@@ -66,7 +66,7 @@ export function resolveAppointmentActions({
 	now,
 	eventType
 }: ResolveAppointmentActionsInput): AppointmentActions {
-	const minimumNotice = eventType?.minimum_notice ?? 0;
+	const minimumNotice = eventType?.notice_minutes ?? 0;
 	const decision = resolveHostDecision(row, viewer, now);
 	return {
 		cancel: resolveCancel(row, now),

@@ -30,7 +30,7 @@ const baseRow: Appointment = {
 	calendar_synced_revision: null,
 	has_possible_conflict: 0,
 	ics_sequence: 0,
-	event_type_snapshot: null,
+	meeting_snapshot: null,
 	created_at: '',
 	updated_at: ''
 };

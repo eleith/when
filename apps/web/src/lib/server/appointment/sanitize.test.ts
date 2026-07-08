@@ -1,17 +1,16 @@
 import { describe, expect, test } from 'vitest';
 import { toPublicEventType, toPublicAppointment } from './sanitize';
-import type { EventType } from '@when/config';
+import type { Meeting } from '@when/config';
 import type { Appointment } from '@when/db';
 
-const baseEventType: EventType = {
-	id: '30-min-chat',
-	name: '30-minute chat',
-	duration: 30,
+const baseEventType: Meeting = {
+	name: '30-min-chat',
+	duration_minutes: 30,
 	slug: 'chat',
-	appointment_flow: 'auto',
-	destination_calendar: 'main',
+	booking_approval: 'instant',
+	booking_calendar: 'main',
 	location: 'https://meet.example.com/jane',
-	availability: 'standard'
+	schedule: 'standard'
 };
 
 const baseRow: Appointment = {
@@ -36,7 +35,7 @@ const baseRow: Appointment = {
 	calendar_synced_revision: null,
 	has_possible_conflict: 0,
 	ics_sequence: 0,
-	event_type_snapshot: null,
+	meeting_snapshot: null,
 	created_at: '',
 	updated_at: ''
 };

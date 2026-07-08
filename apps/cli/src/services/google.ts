@@ -40,7 +40,7 @@ export async function getOrCreateGoogleService(
 		const choice = await select({
 			message: 'Select a Google service or create a new one:',
 			options: [
-				...googleServices.map((s) => ({ value: s.id, label: s.id })),
+				...googleServices.map((s) => ({ value: s.name, label: s.name })),
 				{ value: 'new', label: 'Create new Google service configuration' }
 			]
 		});
@@ -48,7 +48,7 @@ export async function getOrCreateGoogleService(
 
 		if (choice !== 'new') {
 			serviceId = choice as string;
-			const existing = googleServices.find((s) => s.id === serviceId)!;
+			const existing = googleServices.find((s) => s.name === serviceId)!;
 			clientId = existing.client_id;
 			const rawSec = existing.client_secret || '';
 			const matchSec = rawSec.match(/\$\{([^}]+)\}/);

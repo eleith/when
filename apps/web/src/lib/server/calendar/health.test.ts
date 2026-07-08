@@ -128,7 +128,7 @@ test('evaluateCalendarStatuses: bad status when write failure is open past thres
 			calendar_synced_revision: 1,
 			has_possible_conflict: 0,
 			ics_sequence: 1,
-			event_type_snapshot: null,
+			meeting_snapshot: null,
 			created_at: START.toString(),
 			updated_at: START.toString()
 		}
