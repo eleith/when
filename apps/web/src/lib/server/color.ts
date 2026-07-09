@@ -17,11 +17,25 @@ function getLuminance(hex: string): number {
 	return a[0] * 0.2126 + a[1] * 0.7152 + a[2] * 0.0722;
 }
 
-export function getContrastText(bgHex: string): string {
-	const l1 = getLuminance(bgHex);
-	const lWhite = 1.0;
-	const lDark = getLuminance('#171717');
-	const ratioWhite = (lWhite + 0.05) / (l1 + 0.05);
-	const ratioDark = (l1 + 0.05) / (lDark + 0.05);
-	return ratioWhite > ratioDark ? '#ffffff' : '#171717';
+function contrastRatio(foreground: string, background: string): number {
+	const fl = getLuminance(foreground);
+	const bl = getLuminance(background);
+	const lighter = Math.max(fl, bl);
+	const darker = Math.min(fl, bl);
+	return (lighter + 0.05) / (darker + 0.05);
+}
+
+const MIN_CONTRAST = 4.5;
+
+export function getContrastText(primaryColor: string, textColor: string): string {
+	const textRatio = contrastRatio(textColor, primaryColor);
+	const whiteRatio = contrastRatio('#ffffff', primaryColor);
+
+	if (textRatio >= MIN_CONTRAST) {
+		return textColor;
+	}
+	if (whiteRatio >= MIN_CONTRAST) {
+		return '#ffffff';
+	}
+	return '#000000';
 }

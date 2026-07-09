@@ -8,8 +8,14 @@ export function getHeadInjections(appearance: Appearance): string {
 		headInjections += `<link rel="stylesheet" href="${appearance.font_url}">\n\t\t`;
 	}
 
-	const textOnPrimaryLight = getContrastText(appearance.primary_light_color);
-	const textOnPrimaryDark = getContrastText(appearance.primary_dark_color);
+	const textOnPrimaryLight = getContrastText(
+		appearance.primary_light_color,
+		appearance.text_light_color
+	);
+	const textOnPrimaryDark = getContrastText(
+		appearance.primary_dark_color,
+		appearance.text_dark_color
+	);
 
 	const fontDecl = appearance.font_name ? `--font-family: ${appearance.font_name};` : '';
 

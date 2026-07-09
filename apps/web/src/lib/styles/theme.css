@@ -16,7 +16,6 @@
 	--text-secondary: color-mix(in srgb, var(--text) 85%, var(--surface-page));
 	--text-muted: color-mix(in srgb, var(--text) 78%, var(--surface-page));
 	--text-disabled: color-mix(in srgb, var(--text) 35%, var(--surface-page));
-	--text-on-primary: #ffffff;
 
 	--success: #059669;
 	--success-strong: #047857;

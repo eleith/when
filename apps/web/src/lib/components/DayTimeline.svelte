@@ -182,6 +182,7 @@
 				<span class="slots-tz-text">{formatTzShort(userTz)}</span>
 			</button>
 		</div>
+		<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 		<div class="timeline-scroll" tabindex="0">
 			<div class="timeline" style:height="{(timeline.totalMs / 3600000) * 96}px">
 				{#each timeline.labels as { label, top } (label)}
