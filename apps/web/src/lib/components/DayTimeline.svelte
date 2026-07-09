@@ -182,7 +182,7 @@
 				<span class="slots-tz-text">{formatTzShort(userTz)}</span>
 			</button>
 		</div>
-		<div class="timeline-scroll">
+		<div class="timeline-scroll" tabindex="0">
 			<div class="timeline" style:height="{(timeline.totalMs / 3600000) * 96}px">
 				{#each timeline.labels as { label, top } (label)}
 					<div class="timeline-label" style:top="{top}%">{label}</div>

@@ -40,7 +40,7 @@
 	}
 </script>
 
-<div class="calendar-panel">
+<section class="calendar-panel">
 	<Calendar.Root
 		type="single"
 		fixedWeeks
@@ -86,7 +86,7 @@
 			</Calendar.Grid>
 		{/snippet}
 	</Calendar.Root>
-</div>
+</section>
 
 <style>
 	.calendar-panel {

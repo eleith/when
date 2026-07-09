@@ -251,7 +251,7 @@
 	</div>
 </header>
 
-<div class="appointment">
+<main class="appointment">
 	{#if data.rescheduleError}
 		<div class="card reschedule-error-card">
 			<h1 class="error-title">Can't reschedule this appointment</h1>
@@ -323,7 +323,7 @@
 				</section>
 
 				<section class="context-section context-section-about">
-					<h2 class="context-event-name">{data.eventType.name}</h2>
+					<h1 class="context-event-name">{data.eventType.name}</h1>
 					<p class="context-event-meta">{data.eventType.duration} min</p>
 					{#if data.eventType.description}
 						<p class="context-event-description">{data.eventType.description}</p>
@@ -589,7 +589,7 @@
 			</div>
 		</div>
 	{/if}
-</div>
+</main>
 
 <style>
 	.appointment {
