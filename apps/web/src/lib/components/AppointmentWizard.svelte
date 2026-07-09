@@ -25,7 +25,7 @@
 		user: {
 			name: string;
 			timezone: string;
-			appearance: Appearance | null;
+			appearance: Appearance;
 		};
 		eventType: {
 			id: string;
@@ -230,9 +230,9 @@
 
 <header class="page-banner">
 	<a href="/" class="banner-link">
-		{#if data.user.appearance?.avatar_url || data.user.appearance?.logo_url}
+		{#if data.user.appearance.avatar_url || data.user.appearance.logo_url}
 			<img
-				src={data.user.appearance?.avatar_url || data.user.appearance?.logo_url}
+				src={data.user.appearance.avatar_url || data.user.appearance.logo_url}
 				alt={data.user.name}
 				class="banner-avatar"
 			/>
