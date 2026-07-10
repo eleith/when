@@ -254,7 +254,6 @@
 		</section>
 
 		<section class="card-section card-state state-{stateTone}">
-			<span class="state-dot" aria-hidden="true"></span>
 			<div class="state-info-group">
 				<span class="state-text">
 					{#if status === 'confirmed'}
@@ -826,15 +825,6 @@
 		padding: var(--space-4) var(--space-7);
 		font-size: var(--font-size-lg);
 		font-weight: 600;
-	}
-
-	.state-dot {
-		width: 8px;
-		height: 8px;
-		border-radius: var(--radius-pill);
-		background: currentColor;
-		flex-shrink: 0;
-		margin-top: 8px;
 	}
 
 	.state-meta {
