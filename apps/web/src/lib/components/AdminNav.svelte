@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import IconCalendarBlank from 'virtual:icons/ph/calendar-blank';
-	import IconCaretRight from 'virtual:icons/ph/caret-right';
 	import IconSignOut from 'virtual:icons/ph/sign-out';
 
 	let currentPath = $derived(page.url.pathname + page.url.search);
@@ -28,32 +27,37 @@
 
 <header class="admin-nav">
 	<div class="nav-container">
-		<nav class="breadcrumb" aria-label="Breadcrumb">
-			{#if homeHref}
-				<a href={homeHref} class="nav-link" aria-label="Admin dashboard">
-					<IconCalendarBlank aria-hidden="true" />
-					<span class="nav-label">Admin</span>
-				</a>
-			{:else}
-				<span class="nav-icon">
-					<IconCalendarBlank aria-hidden="true" />
-					<span class="nav-label">Admin</span>
-				</span>
-			{/if}
-			{#if currentCrumb}
-				<span class="separator"><IconCaretRight aria-hidden="true" /></span>
-				<span class="crumb-current">{currentCrumb}</span>
-			{/if}
+		<nav aria-label="Admin breadcrumb">
+			<ol class="breadcrumb">
+				<li class="crumb-item">
+					{#if homeHref}
+						<a href={homeHref} class="crumb-link" aria-label="Admin dashboard">
+							<IconCalendarBlank aria-hidden="true" />
+							<span class="crumb-label">Admin</span>
+						</a>
+					{:else}
+						<span class="crumb-root">
+							<IconCalendarBlank aria-hidden="true" />
+							<span class="crumb-label">Admin</span>
+						</span>
+					{/if}
+				</li>
+				{#if currentCrumb}
+					<li class="crumb-item">
+						<span aria-current="page">{currentCrumb}</span>
+					</li>
+				{/if}
+			</ol>
 		</nav>
-		<form method="POST" action="/admin?/signout" class="signout-form">
+		<form method="POST" action="/admin?/signout" class="signout-form" aria-label="Sign out">
 			<input
 				type="hidden"
 				name="redirectTo"
 				value="/signin?callbackUrl={encodeURIComponent(currentPath)}"
 			/>
-			<button type="submit" class="logout-btn" aria-label="Log out">
+			<button type="submit" class="logout-btn">
 				<IconSignOut aria-hidden="true" />
-				<span class="nav-label">Logout</span>
+				<span class="crumb-label">Logout</span>
 			</button>
 		</form>
 	</div>
@@ -79,9 +83,30 @@
 		display: flex;
 		align-items: center;
 		gap: var(--space-2);
+		list-style: none;
+		padding: 0;
+		margin: 0;
 	}
 
-	.nav-link {
+	.crumb-item {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-2);
+	}
+
+	.crumb-item + .crumb-item::before {
+		content: '';
+		display: inline-block;
+		width: 1em;
+		height: 1em;
+		background-color: var(--text-disabled);
+		mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'%3E%3Cpath fill='currentColor' d='m181.66 133.66l-80 80a8 8 0 0 1-11.32-11.32L164.69 128L90.34 53.66a8 8 0 0 1 11.32-11.32l80 80a8 8 0 0 1 0 11.32Z'/%3E%3C/svg%3E")
+			center / contain no-repeat;
+		font-size: var(--font-size-md);
+		flex-shrink: 0;
+	}
+
+	.crumb-link {
 		color: var(--text-secondary);
 		text-decoration: none;
 		display: inline-flex;
@@ -89,22 +114,19 @@
 		gap: var(--space-2);
 		transition: color var(--transition);
 		font-size: var(--font-size-xl);
+		border-radius: var(--radius-sm);
 	}
 
-	.nav-link:hover {
+	.crumb-link:hover {
 		color: var(--text);
 	}
 
-	.nav-link:hover .nav-label {
-		color: var(--text);
+	.crumb-link:focus-visible {
+		outline: 2px solid var(--primary);
+		outline-offset: 2px;
 	}
 
-	.nav-label {
-		font-size: var(--font-size-md);
-		font-weight: 500;
-	}
-
-	.nav-icon {
+	.crumb-root {
 		color: var(--text-muted);
 		display: inline-flex;
 		align-items: center;
@@ -112,21 +134,12 @@
 		font-size: var(--font-size-xl);
 	}
 
-	.nav-icon .nav-label {
+	.crumb-label {
 		font-size: var(--font-size-md);
 		font-weight: 500;
-		color: var(--text-muted);
 	}
 
-	.separator {
-		color: var(--text-disabled);
-		font-size: var(--font-size-md);
-		display: inline-flex;
-		align-items: center;
-		flex-shrink: 0;
-	}
-
-	.crumb-current {
+	.crumb-item [aria-current='page'] {
 		font-size: var(--font-size-md);
 		color: var(--text-secondary);
 	}
@@ -148,14 +161,16 @@
 		gap: var(--space-2);
 		transition: color var(--transition);
 		font-size: var(--font-size-xl);
+		border-radius: var(--radius-sm);
 	}
 
 	.logout-btn:hover {
 		color: var(--text);
 	}
 
-	.logout-btn:hover .nav-label {
-		color: var(--text);
+	.logout-btn:focus-visible {
+		outline: 2px solid var(--primary);
+		outline-offset: 2px;
 	}
 
 	@media (max-width: 768px) {
