@@ -230,7 +230,7 @@
 	<article class="card">
 		<section class="card-section card-section-header">
 			<div class="event-heading">
-				<h1 class="event-name">{data.eventType.name} ({data.eventType.duration_minutes} min)</h1>
+				<h1 class="event-name">{data.eventType.name}</h1>
 				{#if data.eventType.description}
 					<p class="event-meta">{data.eventType.description}</p>
 				{/if}
