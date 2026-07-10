@@ -54,7 +54,7 @@ jobs:
         run: pnpm run check
 
       - name: Test
-        run: pnpm run test
+        run: pnpm run test:coverage
 
   build-push:
     needs: check

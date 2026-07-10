@@ -50,7 +50,7 @@ steps:
     commands:
       - npm install --global corepack@latest
       - corepack enable
-      - pnpm --filter @when/db test
+      - pnpm --filter @when/db test:coverage
 
   notify-success:
     image: deblan/woodpecker-email:3.2.0

@@ -46,7 +46,7 @@ steps:
     commands:
       - npm install --global corepack@latest
       - corepack enable
-      - pnpm --filter @when/cli test
+      - pnpm --filter @when/cli test:coverage
 
   build:
     image: node:26

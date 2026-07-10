@@ -41,4 +41,4 @@ jobs:
         run: pnpm --filter @when/jobs lint
 
       - name: Test
-        run: pnpm --filter @when/jobs test
+        run: pnpm --filter @when/jobs test:coverage

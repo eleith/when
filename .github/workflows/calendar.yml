@@ -41,4 +41,4 @@ jobs:
         run: pnpm --filter @when/calendar lint
 
       - name: Test
-        run: pnpm --filter @when/calendar test
+        run: pnpm --filter @when/calendar test:coverage

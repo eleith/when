@@ -39,4 +39,4 @@ jobs:
         run: pnpm --filter @when/config lint
 
       - name: Test
-        run: pnpm --filter @when/config test
+        run: pnpm --filter @when/config test:coverage

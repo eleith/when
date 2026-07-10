@@ -50,7 +50,7 @@ steps:
       - cd apps/web
       - npm install --global corepack@latest
       - corepack enable
-      - pnpm run test
+      - pnpm run test:coverage
 
   check-version:
     image: node:26

@@ -40,4 +40,4 @@ jobs:
         run: pnpm --filter @when/db lint
 
       - name: Test
-        run: pnpm --filter @when/db test
+        run: pnpm --filter @when/db test:coverage

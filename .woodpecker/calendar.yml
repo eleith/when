@@ -51,7 +51,7 @@ steps:
     commands:
       - npm install --global corepack@latest
       - corepack enable
-      - pnpm --filter @when/calendar test
+      - pnpm --filter @when/calendar test:coverage
 
   notify-success:
     image: deblan/woodpecker-email:3.2.0
