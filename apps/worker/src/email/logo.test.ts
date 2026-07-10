@@ -2,7 +2,10 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import type { WhenConfiguration } from '@when/config';
 import { fetchBrandLogo, clearLogoCache, BRAND_LOGO_CID } from './logo.js';
 
-function cfg(appearance: Record<string, unknown> | undefined, internal?: string): WhenConfiguration {
+function cfg(
+	appearance: Record<string, unknown> | undefined,
+	internal?: string
+): WhenConfiguration {
 	return {
 		user: { name: 'Acme', email: 'o@acme.test', timezone: 'UTC', appearance },
 		url: { app: 'https://book.acme.test', internal }
