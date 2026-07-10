@@ -234,7 +234,7 @@
 									style:height="{s.height}%"
 									onclick={() => selectSlot(s.iso)}
 								>
-									<span class="slot-text">{s.time} ({eventType.duration} min)</span>
+									<span class="slot-text">{s.time} ({eventType.duration_minutes} min)</span>
 								</button>
 							{/if}
 						{/each}
@@ -257,7 +257,7 @@
 								style:height="{s.height}%"
 							>
 								<span class="slot-text">
-									{preview ? preview.time : s.time} ({eventType.duration} min)
+									{preview ? preview.time : s.time} ({eventType.duration_minutes} min)
 								</span>
 							</div>
 						{/if}

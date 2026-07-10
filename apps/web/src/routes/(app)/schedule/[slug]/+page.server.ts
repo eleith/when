@@ -43,13 +43,10 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 		redirect(307, query ? `${url.pathname}?${query}` : url.pathname);
 	}
 
-	const { settings, slotsByDate, workingWindows, busyBlocks } = await loadAvailability(
-		cfg,
-		eventType
-	);
+	const { slotsByDate, workingWindows, busyBlocks } = await loadAvailability(cfg, eventType);
 
 	return {
-		eventType: toPublicEventType(eventType, isAdmin, settings),
+		eventType: toPublicEventType(eventType, isAdmin),
 		formFields: resolveFormFields(eventType),
 		slotsByDate,
 		workingWindows,

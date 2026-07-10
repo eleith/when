@@ -74,7 +74,7 @@ describe('/appointment/[id] server load', () => {
 		} as unknown as Parameters<typeof load>[0])) as Exclude<Awaited<ReturnType<typeof load>>, void>;
 
 		expect(result.appointment.id).toBe('appt-1');
-		expect(result.eventType.id).toBe('30-min-chat');
+		expect(result.eventType.name).toBe('30-min-chat');
 		expect(result.actions.cancel.allowed).toBe(true);
 	});
 
@@ -119,7 +119,7 @@ describe('/appointment/[id] server load', () => {
 
 		expect(result.appointment.id).toBe('appt-deleted');
 		// Should parse and return details from mockAppt.event_type_snapshot
-		expect(result.eventType.id).toBe('30-min-chat');
+		expect(result.eventType.name).toBe('30-min-chat');
 		// Actions must be locked down to disabled
 		expect(result.actions.cancel.allowed).toBe(false);
 		expect(result.actions.reschedule.allowed).toBe(false);

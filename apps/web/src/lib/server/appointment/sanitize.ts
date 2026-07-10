@@ -1,20 +1,24 @@
-import { parseGuestAnswers, type Meeting, type Location } from '@when/config';
+import { parseGuestAnswers, type Meeting } from '@when/config';
 import { parseActionLog, type ActionLogEntry, type Appointment } from '@when/db';
 
-export interface PublicEventType {
-	id: string;
-	name: string;
-	slug: string;
-	duration: number;
-	description: string | null;
-	visibility: 'public' | 'private';
-	appointment_flow: 'auto' | 'requires_confirmation';
-	location: Location | null;
-	booking_style?: 'insert' | 'select';
-	buffer_before?: number;
-	buffer_after?: number;
-	minimum_notice?: number;
-}
+type Resolved<T> = { [K in keyof T]-?: NonNullable<T[K]> };
+
+export interface PublicEventType
+	extends
+		Resolved<
+			Pick<
+				Meeting,
+				| 'visibility'
+				| 'booking_style'
+				| 'padding_before_minutes'
+				| 'padding_after_minutes'
+				| 'notice_minutes'
+			>
+		>,
+		Pick<
+			Meeting,
+			'name' | 'slug' | 'duration_minutes' | 'booking_approval' | 'description' | 'location'
+		> {}
 
 export interface PublicAppointment {
 	id: string;
@@ -30,28 +34,19 @@ export interface PublicAppointment {
 	action_log: ActionLogEntry[];
 }
 
-export function toPublicEventType(
-	eventType: Meeting,
-	isAdmin: boolean,
-	settings?: { buffer_before: number; buffer_after: number; minimum_notice: number }
-): PublicEventType {
+export function toPublicEventType(eventType: Meeting, isAdmin: boolean): PublicEventType {
 	return {
-		id: eventType.name,
 		name: eventType.name,
 		slug: eventType.slug,
-		duration: eventType.duration_minutes,
-		description: eventType.description ?? null,
+		duration_minutes: eventType.duration_minutes,
+		description: eventType.description,
 		visibility: eventType.visibility ?? 'public',
-		appointment_flow: eventType.booking_approval === 'instant' ? 'auto' : 'requires_confirmation',
-		location: isAdmin ? (eventType.location ?? null) : null,
-		booking_style: eventType.booking_style,
-		...(settings
-			? {
-					buffer_before: settings.buffer_before,
-					buffer_after: settings.buffer_after,
-					minimum_notice: settings.minimum_notice
-				}
-			: {})
+		booking_approval: eventType.booking_approval,
+		location: isAdmin ? eventType.location : undefined,
+		booking_style: eventType.booking_style ?? 'insert',
+		padding_before_minutes: eventType.padding_before_minutes ?? 0,
+		padding_after_minutes: eventType.padding_after_minutes ?? 0,
+		notice_minutes: eventType.notice_minutes ?? 120
 	};
 }
 

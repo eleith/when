@@ -43,7 +43,7 @@ const baseRow: Appointment = {
 describe('toPublicEventType', () => {
 	test('hides location for non-admins', () => {
 		const res = toPublicEventType(baseEventType, false);
-		expect(res.location).toBeNull();
+		expect(res.location).toBeUndefined();
 	});
 
 	test('shows location for admins', () => {
@@ -51,17 +51,36 @@ describe('toPublicEventType', () => {
 		expect(res.location).toBe('https://meet.example.com/jane');
 	});
 
-	test('maps settings when provided', () => {
-		const settings = { buffer_before: 15, buffer_after: 10, minimum_notice: 60 };
-		const res = toPublicEventType(baseEventType, false, settings);
-		expect(res.buffer_before).toBe(15);
-		expect(res.buffer_after).toBe(10);
-		expect(res.minimum_notice).toBe(60);
+	test('applies default padding and notice values', () => {
+		const res = toPublicEventType(baseEventType, false);
+		expect(res.padding_before_minutes).toBe(0);
+		expect(res.padding_after_minutes).toBe(0);
+		expect(res.notice_minutes).toBe(120);
+	});
+
+	test('passes through explicit padding and notice values', () => {
+		const res = toPublicEventType(
+			{
+				...baseEventType,
+				padding_before_minutes: 15,
+				padding_after_minutes: 10,
+				notice_minutes: 60
+			},
+			false
+		);
+		expect(res.padding_before_minutes).toBe(15);
+		expect(res.padding_after_minutes).toBe(10);
+		expect(res.notice_minutes).toBe(60);
 	});
 
 	test('maps booking_style', () => {
 		const res = toPublicEventType({ ...baseEventType, booking_style: 'select' }, false);
 		expect(res.booking_style).toBe('select');
+	});
+
+	test('passes through booking_approval', () => {
+		const res = toPublicEventType(baseEventType, false);
+		expect(res.booking_approval).toBe('instant');
 	});
 });
 

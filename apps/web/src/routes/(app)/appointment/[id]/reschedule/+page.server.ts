@@ -31,14 +31,14 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 	const ctx = classifyReschedule({ rescheduleId: row.id, token, existing: row, eventType, now });
 	const rescheduleError = ctx.kind === 'error' ? ctx.code : null;
 
-	const { settings, slotsByDate, workingWindows, busyBlocks } = await loadAvailability(
+	const { slotsByDate, workingWindows, busyBlocks } = await loadAvailability(
 		cfg,
 		eventType,
 		row.start_time
 	);
 
 	return {
-		eventType: toPublicEventType(eventType, isAdmin, settings),
+		eventType: toPublicEventType(eventType, isAdmin),
 		formFields: resolveFormFields(eventType),
 		slotsByDate,
 		workingWindows,

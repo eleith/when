@@ -123,10 +123,10 @@ export function normalizeDeepLinkParams(params: URLSearchParams): { date?: strin
 }
 
 export interface TimelineEventType {
-	duration: number;
-	buffer_before?: number | null;
-	buffer_after?: number | null;
-	minimum_notice?: number | null;
+	duration_minutes: number;
+	padding_before_minutes?: number | null;
+	padding_after_minutes?: number | null;
+	notice_minutes?: number | null;
 }
 
 /** A vertical band on the timeline, positioned as percentages of the day view. */
@@ -249,9 +249,12 @@ export function buildDayTimeline({
 		.map((b) => {
 			const start = InstantFns.subtractMinutes(
 				InstantFns.fromString(b.start),
-				eventType.buffer_before ?? 0
+				eventType.padding_before_minutes ?? 0
 			);
-			const end = InstantFns.addMinutes(InstantFns.fromString(b.end), eventType.buffer_after ?? 0);
+			const end = InstantFns.addMinutes(
+				InstantFns.fromString(b.end),
+				eventType.padding_after_minutes ?? 0
+			);
 			return { start, end };
 		})
 		.filter(
@@ -269,7 +272,7 @@ export function buildDayTimeline({
 
 	const slots = daySlots.map((iso) => {
 		const start = InstantFns.fromString(iso);
-		const end = InstantFns.addMinutes(start, eventType.duration);
+		const end = InstantFns.addMinutes(start, eventType.duration_minutes);
 		return {
 			iso,
 			time: formatTime(iso, tz),
@@ -303,7 +306,7 @@ export function buildDayTimeline({
 	let past: TimelineBlock | null = null;
 	const noticeInst = InstantFns.addMinutes(
 		nowInst,
-		(eventType.minimum_notice ?? 0) + (eventType.buffer_before ?? 0)
+		(eventType.notice_minutes ?? 0) + (eventType.padding_before_minutes ?? 0)
 	);
 
 	if (InstantFns.compare(noticeInst, viewStart) > 0) {

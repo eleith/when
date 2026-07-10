@@ -18,7 +18,8 @@
 		formatTzAbbrev
 	} from '$lib/datetime';
 	import { getPreferredTimezone } from '$lib/preferredTimezone.svelte';
-	import type { GuestAnswer, Appearance, FormField, Location } from '@when/config';
+	import type { GuestAnswer, Appearance, FormField } from '@when/config';
+	import type { PublicEventType } from '$lib/server/appointment/sanitize';
 
 	// Shared shape served by both the new-appointment route and the reschedule route.
 	export interface AppointmentWizardData {
@@ -27,20 +28,7 @@
 			timezone: string;
 			appearance: Appearance;
 		};
-		eventType: {
-			id: string;
-			name: string;
-			slug: string;
-			duration: number;
-			description: string | null;
-			visibility: 'public' | 'private';
-			appointment_flow: 'auto' | 'requires_confirmation';
-			location: Location | null;
-			buffer_before?: number;
-			buffer_after?: number;
-			minimum_notice?: number;
-			booking_style?: 'insert' | 'select';
-		};
+		eventType: PublicEventType;
 		formFields: readonly FormField[];
 		slotsByDate: Record<string, string[]>;
 		workingWindows: { start: string; end: string }[];
@@ -245,7 +233,7 @@
 	<div class="banner-event">
 		<h1 class="banner-event-name">{data.eventType.name}</h1>
 		<p class="banner-event-meta">
-			{data.eventType.duration} min{#if data.eventType.description}
+			{data.eventType.duration_minutes} min{#if data.eventType.description}
 				&middot; {data.eventType.description}{/if}
 		</p>
 	</div>
@@ -324,7 +312,7 @@
 
 				<section class="context-section context-section-about">
 					<h1 class="context-event-name">{data.eventType.name}</h1>
-					<p class="context-event-meta">{data.eventType.duration} min</p>
+					<p class="context-event-meta">{data.eventType.duration_minutes} min</p>
 					{#if data.eventType.description}
 						<p class="context-event-description">{data.eventType.description}</p>
 					{/if}
@@ -538,7 +526,7 @@
 								{/if}
 
 								<button type="submit" class="submit-btn">
-									{#if data.rescheduleAppt}Confirm Reschedule{:else if data.eventType.appointment_flow === 'requires_confirmation'}Request{:else}Schedule{/if}
+									{#if data.rescheduleAppt}Confirm Reschedule{:else if data.eventType.booking_approval === 'request'}Request{:else}Schedule{/if}
 								</button>
 							</form>
 						</div>
@@ -582,7 +570,7 @@
 							Back
 						</button>
 						<button type="submit" form="appointment-form" class="cta-btn" disabled={!selectedSlot}>
-							{#if data.rescheduleAppt}Confirm Reschedule{:else if data.eventType.appointment_flow === 'requires_confirmation'}Request{:else}Schedule{/if}
+							{#if data.rescheduleAppt}Confirm Reschedule{:else if data.eventType.booking_approval === 'request'}Request{:else}Schedule{/if}
 						</button>
 					{/if}
 				</div>

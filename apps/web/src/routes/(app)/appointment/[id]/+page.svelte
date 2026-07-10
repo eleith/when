@@ -232,7 +232,7 @@
 			<div class="event-heading">
 				<h1 class="event-name">{data.eventType.name}</h1>
 				<p class="event-meta">
-					{data.eventType.duration} min{#if data.eventType.description}
+					{data.eventType.duration_minutes} min{#if data.eventType.description}
 						&middot; {data.eventType.description}{/if}
 				</p>
 			</div>

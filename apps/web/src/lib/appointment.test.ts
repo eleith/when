@@ -198,7 +198,7 @@ describe('buildDayTimeline', () => {
 		viewDate: '2025-06-15',
 		workingWindows: [{ start: '2025-06-15T09:00:00Z', end: '2025-06-15T17:00:00Z' }],
 		busyBlocks: [{ start: '2025-06-15T12:00:00Z', end: '2025-06-15T13:00:00Z' }],
-		eventType: { duration: 30 },
+		eventType: { duration_minutes: 30 },
 		daySlots: ['2025-06-15T09:00:00Z', '2025-06-15T09:30:00Z'],
 		tz: 'UTC',
 		originalSlot: null,
@@ -229,7 +229,7 @@ describe('buildDayTimeline', () => {
 	test('grows buffers by the configured buffer minutes', () => {
 		const t = buildDayTimeline({
 			...base,
-			eventType: { duration: 30, buffer_before: 30, buffer_after: 30 }
+			eventType: { duration_minutes: 30, padding_before_minutes: 30, padding_after_minutes: 30 }
 		})!;
 		// 11:30–13:30 → 35%, two hours tall (height is float math, hence closeTo)
 		expect(t.buffers).toHaveLength(1);
