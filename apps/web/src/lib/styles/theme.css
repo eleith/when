@@ -18,7 +18,7 @@
 	--text-disabled: color-mix(in srgb, var(--text) 35%, var(--surface-page));
 
 	--success: #059669;
-	--success-strong: #047857;
+	--success-strong: #005530;
 	--success-border: #a7f3d0;
 	--success-bg: #ecfdf5;
 
@@ -28,17 +28,17 @@
 	--danger-bg: #fef2f2;
 
 	--warning: #d97706;
-	--warning-strong: #b45309;
+	--warning-strong: #8a3c00;
 	--warning-border: #fcd34d;
 	--warning-bg: #fffbeb;
 
 	--info: #2563eb;
-	--info-strong: #1d4ed8;
+	--info-strong: #0a3ccc;
 	--info-border: #93c5fd;
 	--info-bg: #eff6ff;
 
 	--quiet: #737373;
-	--quiet-strong: #525252;
+	--quiet-strong: #3d3d3d;
 	--quiet-border: #d4d4d4;
 	--quiet-bg: #d4d4d4;
 
@@ -100,12 +100,12 @@
 		--warning-border: #78350f;
 		--warning-bg: #451a03;
 
-		--info: #60a5fa;
+		--info: #80bdfc;
 		--info-strong: #3b82f6;
 		--info-border: #1e3a8a;
 		--info-bg: #172554;
 
-		--quiet: #737373;
+		--quiet: #c8c8c8;
 		--quiet-strong: #a3a3a3;
 		--quiet-border: #404040;
 		--quiet-bg: #333333;

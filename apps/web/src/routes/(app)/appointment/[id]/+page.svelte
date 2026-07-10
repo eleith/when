@@ -879,6 +879,24 @@
 		color: var(--quiet-strong);
 	}
 
+	@media (prefers-color-scheme: dark) {
+		.state-info {
+			color: var(--info);
+		}
+		.state-active {
+			color: var(--success);
+		}
+		.state-warning {
+			color: var(--warning);
+		}
+		.state-danger {
+			color: var(--danger);
+		}
+		.state-quiet {
+			color: var(--quiet);
+		}
+	}
+
 	.event-name {
 		font-size: var(--font-size-2xl);
 		font-weight: 700;
@@ -1369,6 +1387,5 @@
 
 	.state-note-line {
 		color: inherit;
-		opacity: 0.85;
 	}
 </style>
