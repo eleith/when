@@ -3,6 +3,7 @@
 	import '$lib/styles/reset.css';
 	import '$lib/styles/theme.css';
 	import '$lib/styles/calendar.css';
+	import '$lib/styles/utility.css';
 	import '$lib/styles/fonts/outfit.css';
 	import '$lib/styles/fonts/inter.css';
 	import '$lib/styles/fonts/lato.css';
