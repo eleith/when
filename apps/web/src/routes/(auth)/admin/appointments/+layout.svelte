@@ -40,6 +40,7 @@
 	{/if}
 
 	<div class="card appointments-card">
+		<h1 class="sr-only">When Admin</h1>
 		<div class="card-header">
 			<div class="tabs-strip">
 				<a
@@ -118,6 +119,18 @@
 </div>
 
 <style>
+	.sr-only {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		padding: 0;
+		margin: -1px;
+		overflow: hidden;
+		clip: rect(0, 0, 0, 0);
+		white-space: nowrap;
+		border: 0;
+	}
+
 	.appointments-layout {
 		display: flex;
 		flex-direction: column;
