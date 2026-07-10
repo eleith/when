@@ -712,7 +712,7 @@
 
 	/* rows styling for past events */
 	tr.past td {
-		color: var(--text-disabled);
+		color: var(--text-muted);
 	}
 
 	tr.past .row-link {
@@ -722,7 +722,7 @@
 
 	tr.past .event-tag {
 		background: var(--surface-muted);
-		color: var(--text-disabled);
+		color: var(--text-muted);
 	}
 
 	/* cell specifics */
@@ -749,7 +749,6 @@
 
 	.guest-email.no-email {
 		font-style: italic;
-		opacity: 0.7;
 	}
 
 	.event-tag {
@@ -790,11 +789,10 @@
 		display: inline-flex;
 		align-items: center;
 		font-size: var(--font-size-sm);
-		font-weight: 700;
+		font-weight: 600;
 		text-transform: capitalize;
-		padding: var(--space-1) var(--space-2_5, 8px);
-		border-radius: var(--radius-pill);
-		line-height: 1;
+		padding: var(--space-1) var(--space-3);
+		border-radius: var(--radius-sm);
 	}
 
 	.status-confirmed {
@@ -823,6 +821,14 @@
 	.status-expired {
 		background: var(--danger-bg);
 		color: var(--danger-strong);
+	}
+
+	@media (prefers-color-scheme: dark) {
+		.status-declined,
+		.status-cancelled,
+		.status-expired {
+			color: var(--danger);
+		}
 	}
 
 	/* ---- responsive overrides ---- */

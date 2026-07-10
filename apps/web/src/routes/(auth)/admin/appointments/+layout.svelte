@@ -99,7 +99,7 @@
 							<IconCaretLeft aria-hidden="true" />
 						</a>
 					{:else}
-						<span class="pagination-link disabled" aria-label="Previous page">
+						<span class="pagination-link disabled">
 							<IconCaretLeft aria-hidden="true" />
 						</span>
 					{/if}
@@ -108,7 +108,7 @@
 							<IconCaretRight aria-hidden="true" />
 						</a>
 					{:else}
-						<span class="pagination-link disabled" aria-label="Next page">
+						<span class="pagination-link disabled">
 							<IconCaretRight aria-hidden="true" />
 						</span>
 					{/if}

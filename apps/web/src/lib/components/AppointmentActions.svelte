@@ -293,6 +293,13 @@
 		color: var(--danger-strong);
 	}
 
+	@media (prefers-color-scheme: dark) {
+		.action-item-danger:hover,
+		.action-item-danger:focus-visible {
+			color: var(--danger);
+		}
+	}
+
 	.action-item-info {
 		color: var(--info);
 	}
