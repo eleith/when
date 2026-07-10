@@ -359,8 +359,9 @@
 		display: inline-flex;
 		align-items: center;
 		gap: var(--space-2);
-		padding: var(--space-2) var(--space-4);
-		font-size: var(--font-size-sm);
+		padding: var(--space-3) var(--space-5);
+		font-size: var(--font-size-base);
+		font-weight: 500;
 		color: var(--text-secondary);
 		text-decoration: none;
 		border: 1px solid var(--border);
