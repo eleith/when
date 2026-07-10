@@ -2,3 +2,4 @@
 .svelte-kit/
 build/
 static/
+coverage/
