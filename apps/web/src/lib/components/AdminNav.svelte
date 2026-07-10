@@ -6,7 +6,7 @@
 	let currentPath = $derived(page.url.pathname + page.url.search);
 	let pathname = $derived(page.url.pathname);
 
-	let isHome = $derived(pathname === '/admin/appointments/upcoming');
+	let isHome = $derived(pathname === '/admin' || pathname === '/admin/');
 
 	const TAB_LABELS: Record<string, string> = {
 		upcoming: 'Upcoming',
@@ -22,7 +22,7 @@
 		return null;
 	});
 
-	let homeHref = $derived(isHome ? null : '/admin/appointments/upcoming');
+	let homeHref = $derived(isHome ? null : '/admin');
 </script>
 
 <header class="admin-nav">

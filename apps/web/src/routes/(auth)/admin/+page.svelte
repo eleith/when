@@ -20,17 +20,18 @@
 	}
 
 	function fmtHours(minutes: number): string {
-		if (minutes < 60) return `${minutes}m`;
+		if (minutes === 0) return '0 min';
+		if (minutes < 60) return `${minutes} min`;
 		const h = Math.floor(minutes / 60);
 		const m = minutes % 60;
 		if (h < 24) {
-			if (m === 0) return `${h}h`;
-			return `${h}h ${m}m`;
+			if (m === 0) return `${h} hr`;
+			return `${h} hr ${m} min`;
 		}
 		const d = Math.floor(h / 24);
 		const rh = h % 24;
-		if (rh === 0) return `${d}d`;
-		return `${d}d ${rh}h`;
+		if (rh === 0) return `${d} day`;
+		return `${d} day ${rh} hr`;
 	}
 </script>
 
@@ -59,32 +60,47 @@
 		</section>
 	{/if}
 
-	<section class="stats">
-		<div class="stat-card">
-			<span class="stat-value">{data.upcomingCount}</span>
-			<span class="stat-label">upcoming</span>
+	<div class="stats-group">
+		<h2 class="section-label">Right now</h2>
+		<div class="stats-row">
+			<div class="stat-card">
+				<span class="stat-value">{data.upcomingCount}</span>
+				<span class="stat-label">upcoming</span>
+			</div>
+			<div class="stat-card">
+				<span class="stat-value pending-value">{data.pendingCount}</span>
+				<span class="stat-label">pending approval</span>
+			</div>
 		</div>
-		<div class="stat-card">
-			<span class="stat-value pending-value">{data.pendingCount}</span>
-			<span class="stat-label">pending</span>
+	</div>
+
+	<div class="stats-group">
+		<h2 class="section-label">This week</h2>
+		<div class="stats-row">
+			<div class="stat-card">
+				<span class="stat-value">{fmtHours(data.confirmedMinutesThisWeek)}</span>
+				<span class="stat-label">scheduled</span>
+			</div>
+			<div class="stat-card">
+				<span class="stat-value">{data.totalThisMonth}</span>
+				<span class="stat-label">total this month</span>
+			</div>
 		</div>
-		<div class="stat-card">
-			<span class="stat-value">{fmtHours(data.confirmedMinutesThisWeek)}</span>
-			<span class="stat-label">scheduled this week</span>
+	</div>
+
+	<div class="stats-group">
+		<h2 class="section-label">Lifetime</h2>
+		<div class="stats-row">
+			<div class="stat-card">
+				<span class="stat-value">{data.lifetimeMeetings}</span>
+				<span class="stat-label">total meetings</span>
+			</div>
+			<div class="stat-card">
+				<span class="stat-value">{fmtHours(data.lifetimeMinutes)}</span>
+				<span class="stat-label">total meeting time</span>
+			</div>
 		</div>
-		<div class="stat-card">
-			<span class="stat-value">{data.totalThisMonth}</span>
-			<span class="stat-label">total this month</span>
-		</div>
-		<div class="stat-card">
-			<span class="stat-value">{data.lifetimeMeetings}</span>
-			<span class="stat-label">lifetime meetings</span>
-		</div>
-		<div class="stat-card">
-			<span class="stat-value">{fmtHours(data.lifetimeMinutes)}</span>
-			<span class="stat-label">lifetime meeting time</span>
-		</div>
-	</section>
+	</div>
 
 	<div class="previews">
 		{#if data.upcoming.length > 0}
@@ -193,9 +209,24 @@
 	}
 
 	/* ---- stats ---- */
-	.stats {
+	.stats-group {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-3);
+	}
+
+	.section-label {
+		font-size: var(--font-size-xs);
+		font-weight: 600;
+		color: var(--text-muted);
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		margin: 0;
+	}
+
+	.stats-row {
 		display: grid;
-		grid-template-columns: repeat(3, 1fr);
+		grid-template-columns: repeat(2, 1fr);
 		gap: var(--space-3);
 	}
 
@@ -348,10 +379,6 @@
 	@media (max-width: 768px) {
 		.dashboard {
 			gap: var(--space-4);
-		}
-
-		.stats {
-			grid-template-columns: repeat(2, 1fr);
 		}
 
 		.previews {
