@@ -20,11 +20,17 @@
 	}
 
 	function fmtHours(minutes: number): string {
+		if (minutes < 60) return `${minutes}m`;
 		const h = Math.floor(minutes / 60);
 		const m = minutes % 60;
-		if (h === 0) return `${m}m`;
-		if (m === 0) return `${h}h`;
-		return `${h}h ${m}m`;
+		if (h < 24) {
+			if (m === 0) return `${h}h`;
+			return `${h}h ${m}m`;
+		}
+		const d = Math.floor(h / 24);
+		const rh = h % 24;
+		if (rh === 0) return `${d}d`;
+		return `${d}d ${rh}h`;
 	}
 </script>
 
@@ -70,25 +76,31 @@
 			<span class="stat-value">{data.totalThisMonth}</span>
 			<span class="stat-label">total this month</span>
 		</div>
+		<div class="stat-card">
+			<span class="stat-value">{data.lifetimeMeetings}</span>
+			<span class="stat-label">lifetime meetings</span>
+		</div>
+		<div class="stat-card">
+			<span class="stat-value">{fmtHours(data.lifetimeMinutes)}</span>
+			<span class="stat-label">lifetime meeting time</span>
+		</div>
 	</section>
 
 	<div class="previews">
-		<section class="card preview-card">
-			<div class="card-header">
-				<h2 class="card-title">
-					<IconCalendarBlank aria-hidden="true" />
-					Upcoming
-				</h2>
-				{#if data.upcomingCount > 0}
-					<a href="/admin/appointments/upcoming" class="header-link">
-						view all <IconArrowRight aria-hidden="true" />
-					</a>
-				{/if}
-			</div>
-			<div class="card-body">
-				{#if data.upcoming.length === 0}
-					<p class="empty">No upcoming appointments.</p>
-				{:else}
+		{#if data.upcoming.length > 0}
+			<section class="card preview-card">
+				<div class="card-header">
+					<h2 class="card-title">
+						<IconCalendarBlank aria-hidden="true" />
+						Upcoming
+					</h2>
+					{#if data.upcomingCount > 0}
+						<a href="/admin/appointments/upcoming" class="header-link">
+							view all <IconArrowRight aria-hidden="true" />
+						</a>
+					{/if}
+				</div>
+				<div class="card-body">
 					<ul class="preview-list">
 						{#each data.upcoming as a (a.id)}
 							<li>
@@ -100,26 +112,24 @@
 							</li>
 						{/each}
 					</ul>
-				{/if}
-			</div>
-		</section>
+				</div>
+			</section>
+		{/if}
 
-		<section class="card preview-card">
-			<div class="card-header">
-				<h2 class="card-title">
-					<IconClock aria-hidden="true" />
-					Pending review
-				</h2>
-				{#if data.pendingCount > 0}
-					<a href="/admin/appointments/pending" class="header-link">
-						review all <IconArrowRight aria-hidden="true" />
-					</a>
-				{/if}
-			</div>
-			<div class="card-body">
-				{#if data.pending.length === 0}
-					<p class="empty">No pending approvals.</p>
-				{:else}
+		{#if data.pending.length > 0}
+			<section class="card preview-card">
+				<div class="card-header">
+					<h2 class="card-title">
+						<IconClock aria-hidden="true" />
+						Pending review
+					</h2>
+					{#if data.pendingCount > 0}
+						<a href="/admin/appointments/pending" class="header-link">
+							review all <IconArrowRight aria-hidden="true" />
+						</a>
+					{/if}
+				</div>
+				<div class="card-body">
 					<ul class="preview-list">
 						{#each data.pending as a (a.id)}
 							<li>
@@ -131,9 +141,9 @@
 							</li>
 						{/each}
 					</ul>
-				{/if}
-			</div>
-		</section>
+				</div>
+			</section>
+		{/if}
 	</div>
 
 	<div class="quick-link">
@@ -185,7 +195,7 @@
 	/* ---- stats ---- */
 	.stats {
 		display: grid;
-		grid-template-columns: repeat(4, 1fr);
+		grid-template-columns: repeat(3, 1fr);
 		gap: var(--space-3);
 	}
 
@@ -265,14 +275,6 @@
 
 	.card-body {
 		padding: 0;
-	}
-
-	.empty {
-		padding: var(--space-6) var(--space-4);
-		text-align: center;
-		color: var(--text-muted);
-		font-size: var(--font-size-sm);
-		margin: 0;
 	}
 
 	.preview-list {

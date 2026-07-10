@@ -36,7 +36,9 @@ export const load: PageServerLoad = async () => {
 		outOfSyncAppts,
 		conflictResult,
 		confirmedWeekRes,
-		totalMonthRes
+		totalMonthRes,
+		lifetimeRes,
+		lifetimeMinRes
 	] = await Promise.all([
 		countAppointments(db, { bucket: 'pending', now }),
 		countAppointments(db, { bucket: 'upcoming', now }),
@@ -78,12 +80,28 @@ export const load: PageServerLoad = async () => {
 				'expired',
 				'rescheduled'
 			])
+			.executeTakeFirst(),
+		db
+			.selectFrom('appointments')
+			.select(sql<number>`count(*)`.as('cnt'))
+			.where('status', 'not in', ['purged'])
+			.executeTakeFirst(),
+		db
+			.selectFrom('appointments')
+			.select(
+				sql<number>`sum(cast((julianday(end_time) - julianday(start_time)) * 24 * 60 as integer))`.as(
+					'minutes'
+				)
+			)
+			.where('status', '=', 'confirmed')
 			.executeTakeFirst()
 	]);
 
 	const conflictCount = Number(conflictResult?.cnt ?? 0);
 	const confirmedMinutesThisWeek = Number(confirmedWeekRes?.minutes ?? 0);
 	const totalThisMonth = Number(totalMonthRes?.cnt ?? 0);
+	const lifetimeMeetings = Number(lifetimeRes?.cnt ?? 0);
+	const lifetimeMinutes = Number(lifetimeMinRes?.minutes ?? 0);
 
 	const calendars = evaluateCalendarStatuses(
 		syncStatus,
@@ -100,7 +118,9 @@ export const load: PageServerLoad = async () => {
 		upcoming: upcomingToday.map((r) => toAppointmentView(r, cfg, now)),
 		pending: pendingPreview.map((r) => toAppointmentView(r, cfg, now)),
 		confirmedMinutesThisWeek,
-		totalThisMonth
+		totalThisMonth,
+		lifetimeMeetings,
+		lifetimeMinutes
 	};
 };
 
