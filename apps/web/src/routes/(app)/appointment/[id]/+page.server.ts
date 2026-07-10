@@ -59,7 +59,11 @@ export const load: PageServerLoad = async ({ params, url, locals, cookies }) => 
 	let resolvedEventType = eventType;
 	if (!resolvedEventType && isAdmin && row.meeting_snapshot) {
 		try {
-			resolvedEventType = JSON.parse(row.meeting_snapshot);
+			const parsed = JSON.parse(row.meeting_snapshot);
+			resolvedEventType = {
+				...parsed,
+				duration_minutes: parsed.duration_minutes ?? parsed.duration ?? 30
+			};
 		} catch {
 			// fallback
 		}
