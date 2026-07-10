@@ -25,7 +25,7 @@
 </svelte:head>
 
 <div class="signin-container">
-	<div class="signin-card">
+	<main class="signin-card">
 		<header class="signin-header">
 			{#if data.appearance?.logo_url}
 				<img src={data.appearance.logo_url} alt="Logo" class="signin-logo" />
@@ -101,7 +101,7 @@
 				</button>
 			</form>
 		{/if}
-	</div>
+	</main>
 </div>
 
 <style>
