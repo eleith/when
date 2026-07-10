@@ -40,6 +40,8 @@
 </svelte:head>
 
 <div class="dashboard">
+	<h1 class="sr-only">Dashboard</h1>
+
 	{#if data.conflictCount > 0 || badCalendars.length > 0}
 		<section class="alerts">
 			{#if data.conflictCount > 0}
@@ -172,6 +174,18 @@
 </div>
 
 <style>
+	.sr-only {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		padding: 0;
+		margin: -1px;
+		overflow: hidden;
+		clip: rect(0, 0, 0, 0);
+		white-space: nowrap;
+		border: 0;
+	}
+
 	.dashboard {
 		display: flex;
 		flex-direction: column;
