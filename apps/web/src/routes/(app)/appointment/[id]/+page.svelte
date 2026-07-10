@@ -143,7 +143,7 @@
 	<AdminNav />
 {/if}
 
-<div class="page" class:has-cta={!!data.calendarLinks || showDecideCta}>
+<main class="page" class:has-cta={!!data.calendarLinks || showDecideCta}>
 	{#if form?.error}
 		<aside class="banner banner-danger" role="alert">
 			<span class="banner-icon"><IconWarningCircle aria-hidden="true" /></span>
@@ -495,7 +495,7 @@
 			</a>
 		</section>
 	{/if}
-</div>
+</main>
 
 <Dialog.Root bind:open={cancelDialogOpen}>
 	<Dialog.Portal>
