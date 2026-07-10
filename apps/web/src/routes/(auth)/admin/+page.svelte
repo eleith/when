@@ -1,8 +1,8 @@
 <script lang="ts">
+	import IconAddressBook from 'virtual:icons/ph/address-book';
 	import IconArrowRight from 'virtual:icons/ph/arrow-right';
 	import IconCalendarBlank from 'virtual:icons/ph/calendar-blank';
 	import IconClock from 'virtual:icons/ph/clock';
-	import IconTimer from 'virtual:icons/ph/timer';
 	import IconWarning from 'virtual:icons/ph/warning';
 
 	let { data } = $props();
@@ -41,6 +41,14 @@
 
 <div class="dashboard">
 	<h1 class="visibility-hidden">Dashboard</h1>
+
+	<div class="quick-link">
+		<a href="/admin/appointments/upcoming" class="manage-link">
+			<IconAddressBook aria-hidden="true" />
+			Manage appointments
+			<IconArrowRight aria-hidden="true" />
+		</a>
+	</div>
 
 	{#if data.conflictCount > 0 || badCalendars.length > 0}
 		<section class="alerts">
@@ -162,14 +170,6 @@
 				</div>
 			</section>
 		{/if}
-	</div>
-
-	<div class="quick-link">
-		<a href="/admin/appointments/upcoming" class="manage-link">
-			<IconTimer aria-hidden="true" />
-			Manage appointments
-			<IconArrowRight aria-hidden="true" />
-		</a>
 	</div>
 </div>
 
