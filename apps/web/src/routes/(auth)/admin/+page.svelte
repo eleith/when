@@ -65,11 +65,11 @@
 		<div class="stats-row">
 			<div class="stat-card">
 				<span class="stat-value">{data.upcomingCount}</span>
-				<span class="stat-label">upcoming</span>
+				<span class="stat-label">upcoming meetings</span>
 			</div>
 			<div class="stat-card">
 				<span class="stat-value pending-value">{data.pendingCount}</span>
-				<span class="stat-label">pending approval</span>
+				<span class="stat-label">pending meetings</span>
 			</div>
 		</div>
 	</div>
