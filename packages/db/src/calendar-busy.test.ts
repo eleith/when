@@ -9,7 +9,8 @@ import {
 	listUpcomingActiveAppointments,
 	setPossibleConflicts,
 	listOutOfSyncAppointments,
-	markSynced
+	markSynced,
+	listCalendarSyncStatus
 } from './calendar-busy.js';
 
 async function freshDb() {
@@ -376,6 +377,19 @@ test('markSynced sets the synced revision and any provided fields, leaving other
 			.executeTakeFirstOrThrow();
 		expect(row.calendar_synced_revision).toBe(3);
 		expect(row.external_event_id).toBe('ext');
+	} finally {
+		await db.destroy();
+	}
+});
+
+test('listCalendarSyncStatus returns all rows', async () => {
+	const db = await freshDb();
+	try {
+		await recordRefreshResult(db, 'work', { at: 't1' });
+		await recordRefreshResult(db, 'home', { at: 't2', error: 'down' });
+		const rows = await listCalendarSyncStatus(db);
+		expect(rows).toHaveLength(2);
+		expect(rows.map((r) => r.calendar_id).sort()).toEqual(['home', 'work']);
 	} finally {
 		await db.destroy();
 	}

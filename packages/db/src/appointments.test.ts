@@ -9,7 +9,9 @@ import {
 	countAppointments,
 	isChainTerminal,
 	appendJobLogSql,
-	parseActionLog
+	parseActionLog,
+	createActionLog,
+	originId
 } from './appointments.js';
 import type { AppointmentStatus } from './types.js';
 
@@ -320,4 +322,26 @@ test('isChainTerminal validation rules', async () => {
 	} finally {
 		await db.destroy();
 	}
+});
+
+test('parseActionLog returns empty array for null', () => {
+	expect(parseActionLog(null)).toEqual([]);
+});
+
+test('parseActionLog returns empty array for invalid JSON', () => {
+	expect(parseActionLog('{bad}')).toEqual([]);
+});
+
+test('createActionLog stringifies entries', () => {
+	const result = createActionLog([
+		{ action: 'confirm', actor: 'host', at: '2026-01-01T00:00:00Z' }
+	]);
+	expect(JSON.parse(result)).toEqual([
+		{ action: 'confirm', actor: 'host', at: '2026-01-01T00:00:00Z' }
+	]);
+});
+
+test('originId returns origin_id when set, else id', () => {
+	expect(originId({ id: 'a1', origin_id: 'o1' })).toBe('o1');
+	expect(originId({ id: 'a1', origin_id: null })).toBe('a1');
 });
