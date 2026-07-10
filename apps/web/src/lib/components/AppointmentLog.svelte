@@ -139,7 +139,7 @@
 <style>
 	/* Sits as the last section of the appointment card; provides its own top divider. */
 	.log-section {
-		border-top: 1px solid var(--border);
+		border-top: 1px solid var(--border-strong);
 	}
 
 	.log-summary {
@@ -147,7 +147,6 @@
 		align-items: flex-start;
 		gap: var(--space-4);
 		padding: var(--space-6) var(--space-7);
-		border-bottom: 1px solid var(--border);
 		cursor: pointer;
 		list-style: none;
 		user-select: none;
@@ -202,7 +201,7 @@
 
 	.log-body {
 		padding: var(--space-5) var(--space-7) var(--space-6);
-		border-bottom: 1px solid var(--border);
+		border-bottom: 1px solid var(--border-strong);
 	}
 
 	.log-empty {

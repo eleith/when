@@ -38,7 +38,7 @@
 <style>
 	/* Mirrors AppointmentLog: a collapsible section with its own top divider. */
 	.questions-section {
-		border-top: 1px solid var(--border);
+		border-top: 1px solid var(--border-strong);
 	}
 
 	.questions-summary {
@@ -46,7 +46,6 @@
 		align-items: flex-start;
 		gap: var(--space-4);
 		padding: var(--space-6) var(--space-7);
-		border-bottom: 1px solid var(--border);
 		cursor: pointer;
 		list-style: none;
 		user-select: none;
@@ -101,7 +100,7 @@
 
 	.questions-body {
 		padding: var(--space-5) var(--space-7) var(--space-6);
-		border-bottom: 1px solid var(--border);
+		border-bottom: 1px solid var(--border-strong);
 	}
 
 	/* Indented with a guide rail so answers read as nested under the summary. */

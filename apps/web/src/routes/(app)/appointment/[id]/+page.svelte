@@ -1387,4 +1387,8 @@
 	.state-note-line {
 		color: inherit;
 	}
+
+	:global(.questions-section[open] + .log-section) {
+		border-top: none;
+	}
 </style>
