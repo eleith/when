@@ -63,7 +63,6 @@ Web app:
 
 - `GET /healthz` — `200 OK` once the app is up.
 - `GET /metrics` — Prometheus metrics (`prom-client`).
-- `GET /schema/config.json` — the editor-facing config schema (`yaml-language-server: $schema=...`).
 
 Worker:
 

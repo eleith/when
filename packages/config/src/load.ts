@@ -3,7 +3,6 @@ import { dirname, resolve } from 'node:path';
 import { parse as parseYaml } from 'yaml';
 import { FormatRegistry, type TSchema } from '@sinclair/typebox';
 import { Value, type ValueError } from '@sinclair/typebox/value';
-import schema from './config.schema.json' with { type: 'json' };
 import * as schemas from './schema.js';
 import { interpolate } from './interpolate.js';
 import { checkCrossRefs } from './cross-refs.js';
@@ -11,10 +10,6 @@ import { resolveConfigPath } from './paths.js';
 
 const { WhenConfigurationSchema } = schemas;
 type WhenConfiguration = schemas.WhenConfiguration;
-
-// `schema` is our single relaxed schema file, served for validation and autocomplete.
-const externalSchema = schema;
-export { schema, externalSchema };
 
 // Register formats for runtime validation using TypeBox
 FormatRegistry.Set('email', (value) => {

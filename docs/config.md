@@ -3,7 +3,7 @@
 `config.yaml` is the heart of "When" — it drives authentication, branding,
 availability, calendars, email, and the meetings people can book, without an admin
 database for settings. This is the complete reference; the canonical source of truth is
-defined in [schema.ts](file:///home/eleith/dev/when/packages/config/src/schema.ts) (TypeBox), and the generated JSON Schema is served live at `GET /schema/config.json`.
+defined in [schema.ts](file:///home/eleith/dev/when/packages/config/src/schema.ts) (TypeBox), which generates `config.schema.json` for editors to point at.
 
 Point your editor at that schema for inline autocomplete and validation:
 

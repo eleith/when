@@ -101,10 +101,10 @@ openworkflow queue database.
 
 - **Strict TypeScript types** via `json2ts`, so defaulted fields are non-optional in code
   (ajv fills the default at load).
-- **A relaxed editor schema** (`config.external.schema.json`, served at
-  `GET /schema/config.json`) that drops defaulted fields from `required`, so an editor
-  pointed at it via `# yaml-language-server: $schema=…` doesn't flag omitted-but-defaulted
-  fields. Point a `config.yaml` at this relaxed copy, never the canonical one.
+- **A relaxed editor schema** (`config.external.schema.json`) that drops defaulted fields
+  from `required`, so an editor pointed at it via `# yaml-language-server: $schema=…`
+  doesn't flag omitted-but-defaulted fields. Point a `config.yaml` at this relaxed copy,
+  never the canonical one.
 
 `${ENV_VAR}` references in any string are interpolated **before** validation, so secrets
 stay in the environment, not on disk. Validation is **ajv** against the canonical schema

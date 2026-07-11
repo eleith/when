@@ -2,7 +2,6 @@
 #
 # Minimal starter config for When. Fill in the ${ENV_VAR} references
 # before running the app, or replace them with literal values.
-# Reference: https://when.app/schema/config.json
 
 auth:
   credentials:
