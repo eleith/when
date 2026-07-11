@@ -1,24 +1,30 @@
+# syntax=docker/dockerfile:1
 FROM node:26-alpine AS base
 WORKDIR /m
 
 # pnpm keeps its store, cache and config under $HOME. In dev the container runs
 # as the host uid (compose `user:`), not root, so $HOME=/root would be
 # unwritable and pnpm fails with EACCES. Point everything at one world-writable
-# dir baked into the image so the same image works for any uid.
+# dir baked into the image so the same image works for any uid. store-dir is
+# pinned so the BuildKit cache mount on fetch/install lands on a stable path
+# (pnpm's same-drive heuristic would otherwise move it off the mount).
 ENV HOME=/home/app \
     PNPM_HOME=/home/app/.pnpm \
     XDG_DATA_HOME=/home/app/.local/share \
     XDG_CACHE_HOME=/home/app/.cache \
     XDG_CONFIG_HOME=/home/app/.config
-RUN npm install -g pnpm@11.9.0 && mkdir -p /home/app && chmod -R 777 /home/app
+RUN npm install -g pnpm@11.9.0 \
+    && mkdir -p /home/app/store /home/app/.config/pnpm \
+    && printf 'store-dir=/home/app/store\n' > /home/app/.config/pnpm/rc \
+    && chmod -R 777 /home/app
 
 FROM base AS dev
 
 ENV CI=true
 COPY pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
-RUN pnpm fetch
+RUN --mount=type=cache,id=pnpm-store,target=/home/app/store pnpm fetch
 COPY . .
-RUN pnpm install --frozen-lockfile --offline
+RUN --mount=type=cache,id=pnpm-store,target=/home/app/store pnpm install --frozen-lockfile
 # Boot (re)builds into these dirs as the host uid: shared packages -> dist,
 # svelte-kit -> .svelte-kit, vite -> node_modules/.vite. Only those parents need
 # to be writable — recursing node_modules is slow and pointless. Drop the
@@ -34,9 +40,9 @@ CMD ["sh", "-c", "pnpm -C /m build:packages && pnpm run dev --host 0.0.0.0"]
 FROM base AS builder
 
 COPY pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
-RUN pnpm fetch
+RUN --mount=type=cache,id=pnpm-store,target=/home/app/store pnpm fetch
 COPY . .
-RUN pnpm install --frozen-lockfile --offline
+RUN --mount=type=cache,id=pnpm-store,target=/home/app/store pnpm install --frozen-lockfile
 RUN pnpm --filter "@when/web..." build
 
 FROM builder AS pruner
