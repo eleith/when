@@ -255,10 +255,13 @@ export async function deleteGoogleEvent(cfg: GoogleConfig, externalEventId: stri
 }
 
 export class GoogleAdapter implements CalendarAdapter {
-	constructor(
-		private cal: GoogleCalendar,
-		private service?: GoogleService
-	) {}
+	private cal: GoogleCalendar;
+	private service?: GoogleService;
+
+	constructor(cal: GoogleCalendar, service?: GoogleService) {
+		this.cal = cal;
+		this.service = service;
+	}
 
 	private get googleCfg(): GoogleConfig {
 		if (!this.service) {

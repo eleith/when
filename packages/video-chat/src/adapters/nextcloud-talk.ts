@@ -6,7 +6,11 @@ export class NextcloudTalkAdapter implements VideoChatAdapter {
 	static readonly type = 'nextcloud-talk';
 	static readonly expectedServiceType = 'nextcloud';
 
-	constructor(private readonly service: NextcloudService) {}
+	private readonly service: NextcloudService;
+
+	constructor(service: NextcloudService) {
+		this.service = service;
+	}
 
 	async createRoom(roomName: string): Promise<VideoChatResult> {
 		const baseUrl = this.service.url.replace(/\/$/, '');

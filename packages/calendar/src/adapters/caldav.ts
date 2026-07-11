@@ -146,10 +146,13 @@ function decodeXmlEntities(s: string): string {
 }
 
 export class CalDavAdapter implements CalendarAdapter {
-	constructor(
-		private cal: CalDavCalendar,
-		private service?: CalDavService | NextcloudService
-	) {}
+	private cal: CalDavCalendar;
+	private service?: CalDavService | NextcloudService;
+
+	constructor(cal: CalDavCalendar, service?: CalDavService | NextcloudService) {
+		this.cal = cal;
+		this.service = service;
+	}
 
 	private get adapterCfg(): CalDavConfig {
 		if (!this.service) {

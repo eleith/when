@@ -3,8 +3,10 @@ import YAML from 'yaml';
 
 export class ConfigEditor {
 	private doc: YAML.Document;
+	private configPath: string;
 
-	constructor(private configPath: string) {
+	constructor(configPath: string) {
+		this.configPath = configPath;
 		const content = existsSync(configPath) ? readFileSync(configPath, 'utf8') : '';
 		this.doc = YAML.parseDocument(content);
 	}

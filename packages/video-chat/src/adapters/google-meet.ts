@@ -5,7 +5,11 @@ export class GoogleMeetAdapter implements VideoChatAdapter {
 	static readonly type = 'google-meet';
 	static readonly expectedServiceType = 'google';
 
-	constructor(private readonly _service: GoogleService) {}
+	private readonly _service: GoogleService;
+
+	constructor(_service: GoogleService) {
+		this._service = _service;
+	}
 
 	async createRoom(): Promise<VideoChatResult> {
 		return { ok: false, reason: 'Google Meet is managed natively via Google Calendar' };
