@@ -2,9 +2,11 @@
 .gitignore
 .github
 
-node_modules
-.svelte-kit
-build
+**/node_modules
+.pnpm-store
+**/.svelte-kit
+**/build
+**/dist
 test-results
 playwright-report
 blob-report
@@ -16,6 +18,7 @@ tests
 
 .vscode
 .npmrc
+!.npmrc
 .env
 .env.*
 !.env.example

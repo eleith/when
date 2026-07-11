@@ -3,6 +3,8 @@
 	"compilerOptions": {
 		"noEmit": false,
 		"declaration": false,
+		"incremental": true,
+		"tsBuildInfoFile": "node_modules/.cache/tsc/worker.tsbuildinfo",
 		"outDir": "dist",
 		"rootDir": "."
 	},

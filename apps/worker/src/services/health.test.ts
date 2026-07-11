@@ -25,8 +25,8 @@ beforeEach(async () => {
 
 afterEach(() => new Promise<void>((resolve) => server.close(() => resolve())));
 
-test('GET /health returns 200 with ok status', async () => {
-	const res = await fetch(`${base}/health`);
+test('GET /healthz returns 200 with ok status', async () => {
+	const res = await fetch(`${base}/healthz`);
 	expect(res.status).toBe(200);
 	expect(await res.json()).toEqual({ status: 'ok' });
 });

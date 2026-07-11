@@ -27,6 +27,15 @@ services:
     environment:
       NODE_ENV: development
       AUTH_SECRET: ${AUTH_SECRET:-development-only-secret-please-change-it-32chars}
+    depends_on:
+      when-worker:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'node', '-e', "require('http').get('http://localhost:5173/healthz',r=>process.exit(r.statusCode===200?0:1))"]
+      interval: 30s
+      timeout: 3s
+      start_period: 10s
+      retries: 3
 
   when-worker:
     build:
@@ -40,6 +49,12 @@ services:
       - ./.env
     environment:
       NODE_ENV: development
+    healthcheck:
+      test: ['CMD', 'node', '-e', "require('http').get('http://localhost:9000/healthz',r=>process.exit(r.statusCode===200?0:1))"]
+      interval: 30s
+      timeout: 3s
+      start_period: 10s
+      retries: 3
     volumes:
       - ../worker/src:/m/apps/worker/src
       - ./config.yaml:/m/apps/worker/config.yaml

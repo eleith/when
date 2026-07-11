@@ -11,6 +11,15 @@ services:
       - ./data:/app/data
       - ./data/public:/app/build/client/public
     restart: unless-stopped
+    depends_on:
+      when-worker:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'node', '-e', "require('http').get('http://localhost:3000/healthz',r=>process.exit(r.statusCode===200?0:1))"]
+      interval: 30s
+      timeout: 3s
+      start_period: 5s
+      retries: 3
 
   when-worker:
     build:
@@ -21,6 +30,12 @@ services:
       - ./config.yaml:/app/config.yaml
       - ./data:/app/data
     restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'node', '-e', "require('http').get('http://localhost:9000/healthz',r=>process.exit(r.statusCode===200?0:1))"]
+      interval: 30s
+      timeout: 3s
+      start_period: 5s
+      retries: 3
 
   when-cli:
     build:

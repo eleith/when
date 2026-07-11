@@ -10,7 +10,7 @@ appointment is created, confirmed, cancelled, rescheduled, or declined, and the
 worker renders the email(s), sends them over SMTP, and records the per-channel
 outcome on the appointment (`email_notification_status`). On boot it loads
 config, migrates the app DB, connects the queue, registers its workflows, starts
-polling, and serves `/health`.
+polling, and serves `/healthz`.
 
 ## Run it
 
@@ -24,7 +24,7 @@ pnpm --filter @when/worker build && pnpm --filter @when/worker start
 CONFIG_PATH=apps/web/config.yaml pnpm --filter @when/worker dev
 ```
 
-`GET http://localhost:9000/health` → `{"status":"ok"}`.
+`GET http://localhost:9000/healthz` → `{"status":"ok"}`.
 
 ## Configuration
 

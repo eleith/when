@@ -2,10 +2,10 @@ import { createServer, type IncomingMessage, type ServerResponse, type Server } 
 import type { WhenConfiguration } from '@when/config';
 import { register } from './metrics.js';
 
-/** A tiny HTTP server exposing GET /health for container liveness checks and GET /metrics for scraping. */
+/** A tiny HTTP server exposing GET /healthz for container liveness checks and GET /metrics for scraping. */
 export function createHealthServer(config: WhenConfiguration): Server {
 	return createServer(async (req: IncomingMessage, res: ServerResponse) => {
-		if (req.method === 'GET' && req.url === '/health') {
+		if (req.method === 'GET' && req.url === '/healthz') {
 			res.statusCode = 200;
 			res.setHeader('content-type', 'application/json');
 			res.end(JSON.stringify({ status: 'ok' }));
