@@ -18,7 +18,6 @@ tests
 
 .vscode
 .npmrc
-!.npmrc
 .env
 .env.*
 !.env.example

@@ -2,6 +2,9 @@
 FROM node:26-alpine AS base
 WORKDIR /m
 
+# Keep pnpm installs/builds non-interactive in every build stage (dev + builder).
+ENV CI=true
+
 # pnpm keeps its store, cache and config under $HOME. In dev the container runs
 # as the host uid (compose `user:`), not root, so $HOME=/root would be
 # unwritable and pnpm fails with EACCES. Point everything at one world-writable
@@ -14,14 +17,13 @@ ENV HOME=/home/app \
     XDG_CACHE_HOME=/home/app/.cache \
     XDG_CONFIG_HOME=/home/app/.config
 RUN npm install -g pnpm@11.9.0 \
-    && mkdir -p /home/app/store /home/app/.config/pnpm \
-    && printf 'store-dir=/home/app/store\n' > /home/app/.config/pnpm/rc \
+    && mkdir -p /home/app/store \
+    && printf 'store-dir=/home/app/store\n' > /home/app/.npmrc \
     && chmod -R 777 /home/app
 
 FROM base AS dev
 
-ENV CI=true
-COPY pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+COPY pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN --mount=type=cache,id=pnpm-store,target=/home/app/store pnpm fetch
 COPY . .
 RUN --mount=type=cache,id=pnpm-store,target=/home/app/store pnpm install --frozen-lockfile
@@ -33,7 +35,7 @@ ENTRYPOINT ["sh", "-c", "pnpm -C /m build:packages && node /m/apps/cli/src/index
 
 FROM base AS builder
 
-COPY pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+COPY pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN --mount=type=cache,id=pnpm-store,target=/home/app/store pnpm fetch
 COPY . .
 RUN --mount=type=cache,id=pnpm-store,target=/home/app/store pnpm install --frozen-lockfile
