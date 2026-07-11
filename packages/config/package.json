@@ -16,7 +16,7 @@
 	"scripts": {
 		"generate:schema": "node scripts/generate-json-schemas.js && prettier --write src/config.schema.json",
 		"build:assets": "cp src/config.schema.json dist/src/",
-		"build": "pnpm generate:schema && tsc -p tsconfig.json && tsc -p tsconfig.build.json && pnpm build:assets",
+		"build": "tsc -p tsconfig.json && tsc -p tsconfig.build.json && pnpm build:assets",
 		"check": "tsc --noEmit",
 		"lint": "prettier --check . && eslint .",
 		"format": "prettier --write .",
