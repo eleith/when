@@ -27,6 +27,8 @@ services:
     environment:
       NODE_ENV: development
       AUTH_SECRET: ${AUTH_SECRET:-development-only-secret-please-change-it-32chars}
+      # localhost is auto-allowed; add the docker service name the worker calls web by.
+      WHEN_ALLOWED_HOSTS: when-app
     depends_on:
       when-worker:
         condition: service_healthy

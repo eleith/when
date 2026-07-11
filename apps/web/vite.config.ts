@@ -1,29 +1,16 @@
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vitest/config';
 import Icons from 'unplugin-icons/vite';
-import { loadConfigFile } from '@when/config';
 
-function hostFrom(value: string): string | null {
-	try {
-		return new URL(value.includes('://') ? value : `http://${value}`).hostname;
-	} catch {
-		return null;
-	}
-}
+// Dev-server host allowlist (Vite dev/preview only — prod runs adapter-node).
+// localhost and IPs are always allowed by Vite; the dev environment declares any
+// extra hosts (e.g. the docker service name the worker uses to reach web).
+const allowedHosts = (process.env.WHEN_ALLOWED_HOSTS ?? '')
+	.split(',')
+	.map((host) => host.trim())
+	.filter(Boolean);
 
-async function allowedHosts(): Promise<string[]> {
-	try {
-		const cfg = await loadConfigFile();
-		const hosts = [cfg.url.app, cfg.url.internal]
-			.map((value) => hostFrom(value))
-			.filter((host): host is string => host !== null);
-		return [...new Set(hosts)];
-	} catch {
-		return [];
-	}
-}
-
-export default defineConfig(async () => ({
+export default defineConfig({
 	plugins: [
 		sveltekit(),
 		Icons({
@@ -31,7 +18,7 @@ export default defineConfig(async () => ({
 		})
 	],
 	server: {
-		allowedHosts: await allowedHosts()
+		allowedHosts
 	},
 	test: {
 		include: ['src/**/*.test.ts'],
@@ -45,4 +32,4 @@ export default defineConfig(async () => ({
 			}
 		}
 	}
-}));
+});
