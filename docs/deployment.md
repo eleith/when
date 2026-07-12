@@ -66,7 +66,7 @@ Web app:
 
 Worker:
 
-- `GET /health` on its `PORT` (default `9000`) — `{"status":"ok"}`.
+- `GET /healthz` on its `PORT` (default `9000`) — `{"status":"ok"}`.
 
 ## Helper CLI (`when-cli`)
 

@@ -46,26 +46,25 @@ auth:
 
 ## `user`
 
-The schedule owner and the appointment page's branding.
+The schedule owner and the appointment page's appearance.
 
 ```yaml
 user:
   name: 'Your Name'
   email: 'you@example.com' # required, must be a valid email
   timezone: 'America/New_York' # required, IANA timezone identifier
-  branding:
-    page_title: 'Schedule a time with me'
+  appearance:
+    title: 'Schedule a time with me'
     description: 'A little bit about me.'
-    color:
-      primary:
-        light: '#ff5500'
-        dark: '#ffaa66'
     logo_url: '/public/logo.png'
     avatar_url: '/public/my-avatar.jpg'
     favicon_url: '/public/favicon.ico'
+    font_name: 'Outfit' # custom CSS font family
+    primary_light_color: '#166534' # brand hue, light mode
+    primary_dark_color: '#34d399' # brand hue, dark mode
 ```
 
-`branding` and all of its fields are optional. `color.primary.light` and `color.primary.dark` specify hex primary colors used in light and dark modes, respectively; a muted tonal scale is derived from them. Place custom assets in `./data/public/`, which is served at `/public/`.
+`appearance` and all of its fields are optional; defaults are applied when omitted. `primary_light_color` and `primary_dark_color` set the brand hue for light and dark modes, and a muted tonal scale is derived from each; the `background_*_color` and `text_*_color` fields likewise override the light/dark surface and text colors. Place custom assets in `./data/public/`, which is served at `/public/`.
 
 ## `smtp`
 

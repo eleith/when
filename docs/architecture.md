@@ -158,7 +158,7 @@ for headless, accessible component primitives.
   `var(--border)`); there is one brand hue (`--primary`) with a derived tonal scale —
   don't introduce a second.
 - **Branding + dark mode.** `--primary` is injected at the root layout from the user's
-  `config.yaml` branding; the tonal scale derives from it. Dark mode is handled by media
+  `config.yaml` appearance; the tonal scale derives from it. Dark mode is handled by media
   queries in `theme.css`, so components need no explicit dark-mode overrides.
 - **Copy lives in the markup.** Per-component user-facing strings (titles, labels, button
   text) belong in the template via `{#if}` chains, not in a `<script>`-side mapper
