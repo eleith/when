@@ -10,10 +10,10 @@ export function getValidatedConfigPath(pathArg?: string): string {
 	}
 
 	// Try default paths relative to invocation directory
-	const localPath = resolve(baseDir, 'config.yaml');
+	const localPath = resolve(baseDir, 'config/when.yaml');
 	if (existsSync(localPath)) return localPath;
 
-	const appsWebPath = resolve(baseDir, 'apps/web/config.yaml');
+	const appsWebPath = resolve(baseDir, 'apps/web/config/when.yaml');
 	if (existsSync(appsWebPath)) return appsWebPath;
 
 	// Fallback
@@ -24,7 +24,7 @@ export function validateConfigExists(configPath: string): boolean {
 	if (!existsSync(configPath)) {
 		console.error(`FAIL  No configuration file found at: ${configPath}`);
 		console.error(
-			`      Please specify the path to your config.yaml using --config (e.g., "--config apps/web/config.yaml").`
+			`      Please specify the path to your when.yaml using --config (e.g., "--config apps/web/config/when.yaml").`
 		);
 		process.exitCode = 1;
 		return false;

@@ -35,7 +35,7 @@ steps:
       COREPACK_HOME: /workspace/src/.corepack
     commands:
       - cd apps/web
-      - touch config.yaml
+      - mkdir -p config && touch config/when.yaml
       - touch .env
       - npm install --global corepack@latest
       - corepack enable

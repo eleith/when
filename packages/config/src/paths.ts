@@ -2,12 +2,13 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 
 export function resolveConfigPath(): string {
-	if (process.env.NODE_ENV === 'production') return '/app/config.yaml';
+	if (process.env.CONFIG_PATH) return process.env.CONFIG_PATH;
+	if (process.env.NODE_ENV === 'production') return '/app/config/when.yaml';
 
-	const local = join(process.cwd(), 'config.yaml');
+	const local = join(process.cwd(), 'config', 'when.yaml');
 	if (existsSync(local)) return local;
 
-	const root = join(process.cwd(), '..', '..', 'config.yaml');
+	const root = join(process.cwd(), '..', '..', 'config', 'when.yaml');
 	if (existsSync(root)) return root;
 
 	return local;

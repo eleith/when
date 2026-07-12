@@ -45,7 +45,7 @@ jobs:
         run: pnpm build:packages
 
       - name: mock config
-        run: touch config.yaml
+        run: mkdir -p config && touch config/when.yaml
 
       - name: mock .env
         run: touch .env
