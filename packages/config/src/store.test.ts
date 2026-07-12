@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, rm, utimes, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { stringify } from 'yaml';
@@ -20,8 +20,12 @@ function renamed(name: string): typeof validConfig {
 	return { ...validConfig, user: { ...validConfig.user, name } };
 }
 
-async function write(config: unknown): Promise<void> {
+async function write(config: unknown, bumpMtime = false): Promise<void> {
 	await writeFile(path, stringify(config));
+	if (bumpMtime) {
+		const future = new Date(Date.now() + 2000);
+		await utimes(path, future, future);
+	}
 }
 
 beforeEach(async () => {
@@ -66,7 +70,7 @@ test('watchConfig invokes the callback with a reload result on change', async ()
 	await loadConfig(path);
 	const results: ReloadResult[] = [];
 	stops.push(watchConfig((r) => results.push(r)));
-	await write(renamed('Watched'));
+	await write(renamed('Watched'), true);
 	await vi.waitFor(() => expect(results.length).toBeGreaterThan(0), {
 		timeout: 5000,
 		interval: 200
