@@ -21,14 +21,14 @@ pnpm --filter @when/worker build && pnpm --filter @when/worker start
 # or watch mode in dev, pointed at the shared config. The app + queue DB paths
 # come from that config's `database` section, resolved relative to it — so this
 # opens apps/web/data/{when.sqlite,openworkflow.sqlite}, same as web.
-CONFIG_PATH=apps/web/config.yaml pnpm --filter @when/worker dev
+CONFIG_PATH=apps/web/config/when.yaml pnpm --filter @when/worker dev
 ```
 
 `GET http://localhost:9000/healthz` → `{"status":"ok"}`.
 
 ## Configuration
 
-Database locations live in `config.yaml` (the source of truth), not env vars:
+Database locations live in `when.yaml` (the source of truth), not env vars:
 
 ```yaml
 database:
@@ -37,12 +37,12 @@ database:
 ```
 
 Relative paths resolve against the config file's directory, so web and worker
-(sharing one `config.yaml`) open the same files.
+(sharing one `when.yaml`) open the same files.
 
 ## Environment
 
-- `CONFIG_PATH` — path to `config.yaml` (default `/app/config.yaml` in prod,
-  `<cwd>/config.yaml` otherwise).
+- `CONFIG_PATH` — path to `when.yaml` (default `/app/config/when.yaml` in prod,
+  `<cwd>/config/when.yaml` otherwise).
 - `DATABASE_PATH` / `QUEUE_DB_PATH` — optional escape hatches that override the
   config's `database.app` / `database.queue`.
 - `PORT` — health server port (default `9000`).

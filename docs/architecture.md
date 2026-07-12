@@ -22,7 +22,7 @@ the code they cover — there is no top-level `tests/` directory.
 | `apps/web`            | SvelteKit app: appointment page, admin UI, API routes. Also holds `e2e/` (Playwright).       |
 | `apps/worker`         | Long-running background service: calendar sync + email delivery. See its README.             |
 | `apps/cli`            | Helper command-line tool (`when-cli`) for config validation and calendar setups.             |
-| `packages/config`     | Canonical `config.yaml` schema, generated types, loader/validator. See its README.           |
+| `packages/config`     | Canonical `when.yaml` schema, generated types, loader/validator. See its README.             |
 | `packages/db`         | SQLite data layer: `node:sqlite` + Kysely dialect, schema types, migrations. See its README. |
 | `packages/jobs`       | The job/workflow contract shared by web (producer) and worker (consumer). See its README.    |
 | `packages/calendar`   | External-calendar I/O: provider adapters, busy-time fetch, push/delete, ICS. See its README. |
@@ -33,7 +33,7 @@ the system-level overview that ties them together.
 
 ## Two-process model
 
-The web app and the worker are separate processes that share **one `config.yaml`** and
+The web app and the worker are separate processes that share **one `when.yaml`** and
 **one data directory**. The web app stays on the request path only long enough to do the
 durable, fast work — validate, write the appointment row, enqueue a job — and returns. The
 worker does everything slow or failure-prone: sending emails, pushing to external
@@ -103,14 +103,14 @@ openworkflow queue database.
   (ajv fills the default at load).
 - **A relaxed editor schema** (`config.external.schema.json`) that drops defaulted fields
   from `required`, so an editor pointed at it via `# yaml-language-server: $schema=…`
-  doesn't flag omitted-but-defaulted fields. Point a `config.yaml` at this relaxed copy,
+  doesn't flag omitted-but-defaulted fields. Point a `when.yaml` at this relaxed copy,
   never the canonical one.
 
 `${ENV_VAR}` references in any string are interpolated **before** validation, so secrets
 stay in the environment, not on disk. Validation is **ajv** against the canonical schema
 plus a cross-reference pass (`cross-refs.ts`) for things JSON Schema can't express (e.g.
 an event type's `destination_calendar` must name a declared calendar). This project does
-not use Zod — the JSON Schema is the one validator. The full `config.yaml` reference is
+not use Zod — the JSON Schema is the one validator. The full `when.yaml` reference is
 [`config.md`](config.md).
 
 ## Cross-cutting concerns
@@ -140,7 +140,7 @@ moment, not a zone.
 ### Security
 
 - Credentials auth compares plain passwords resolved from environment variables/config.
-- Secrets are injected via `${ENV_VAR}` interpolation in `config.yaml`, never committed.
+- Secrets are injected via `${ENV_VAR}` interpolation in `when.yaml`, never committed.
 - Secrets persisted to SQLite (OAuth refresh tokens) are encrypted at the column level
   with AES-256-GCM using the `ENCRYPTION_KEY` env var.
 - Never log raw request bodies, session tokens, `cancel_token` values, or decrypted
@@ -158,7 +158,7 @@ for headless, accessible component primitives.
   `var(--border)`); there is one brand hue (`--primary`) with a derived tonal scale —
   don't introduce a second.
 - **Branding + dark mode.** `--primary` is injected at the root layout from the user's
-  `config.yaml` appearance; the tonal scale derives from it. Dark mode is handled by media
+  `when.yaml` appearance; the tonal scale derives from it. Dark mode is handled by media
   queries in `theme.css`, so components need no explicit dark-mode overrides.
 - **Copy lives in the markup.** Per-component user-facing strings (titles, labels, button
   text) belong in the template via `{#if}` chains, not in a `<script>`-side mapper

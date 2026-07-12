@@ -1,6 +1,6 @@
 # Configuration
 
-`config.yaml` is the heart of "When" — it drives authentication, branding,
+`when.yaml` is the heart of "When" — it drives authentication, branding,
 availability, calendars, email, and the meetings people can book, without an admin
 database for settings. This is the complete reference; the canonical source of truth is
 defined in [schema.ts](file:///home/eleith/dev/when/packages/config/src/schema.ts) (TypeBox), which generates `config.schema.json` for editors to point at.
@@ -199,7 +199,7 @@ Rather than rigid location structures, meetings are customized using:
 ## `database`
 
 On-disk SQLite paths. Relative paths resolve against this config file's directory, so the
-web and worker (loading the same `config.yaml`) open the same files.
+web and worker (loading the same `when.yaml`) open the same files.
 
 ```yaml
 database:

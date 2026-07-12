@@ -1,7 +1,7 @@
 # Deployment
 
 Running "When" in production. The bundled `apps/web/docker-compose.yml` runs both
-services (web + worker) against one `config.yaml` and data directory. See
+services (web + worker) against one `when.yaml` and data directory. See
 [`README.md`](../README.md) for the quick start and [`config.md`](config.md) for the
 config reference.
 
@@ -14,7 +14,7 @@ A few variables are read **directly** by the app from the environment:
 | `AUTH_SECRET`    | always     | Auth.js JWT signing secret. 32+ random bytes, base64-encoded (`openssl rand -base64 32`).                                                              |
 | `ENCRYPTION_KEY` | production | Base64 of 32 random bytes. Encrypts OAuth refresh tokens at the column level (AES-256-GCM). In dev an ephemeral key is generated and a warning logged. |
 
-Everything else is a **secret referenced from `config.yaml`** via `${ENV_VAR}`
+Everything else is a **secret referenced from `when.yaml`** via `${ENV_VAR}`
 interpolation — the variable _names_ are whatever your config uses. These are the names
 in `config.example.yaml`:
 
@@ -30,7 +30,7 @@ The worker also honors a few operational variables:
 
 | Variable                          | Notes                                                                                                                |
 | --------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| `CONFIG_PATH`                     | Path to `config.yaml` (default `/app/config.yaml` in prod, `<cwd>/config.yaml` otherwise).                           |
+| `CONFIG_PATH`                     | Path to `when.yaml` (default `/app/config/when.yaml` in prod, `<cwd>/config/when.yaml` otherwise).                   |
 | `DATABASE_PATH` / `QUEUE_DB_PATH` | Optional overrides for the config's `database.app` / `database.queue`.                                               |
 | `PORT`                            | Worker health-server port (default `9000`).                                                                          |
 | `WHEN_URL_INTERNAL`               | Default for `url.internal` (how the worker reaches the web app internally). Baked into the Docker images per target. |
@@ -55,7 +55,7 @@ compose file mounts (`./data` → `/app/data`):
 - `public/` — branding assets you reference (`/public/...`), served statically.
 
 Back up the data directory to preserve appointments and settings across restarts. Paths are
-configurable under `database` in `config.yaml`.
+configurable under `database` in `when.yaml`.
 
 ## Operating endpoints
 
@@ -75,7 +75,7 @@ A command-line helper tool is available to manage integrations and validate conf
 - **Validate configuration**:
 
   ```sh
-  pnpm cli config validate [path/to/config.yaml]
+  pnpm cli config validate [path/to/when.yaml]
   ```
 
   Parses and validates the configuration file; exits non-zero on schema or cross-reference validation errors.
@@ -86,7 +86,7 @@ A command-line helper tool is available to manage integrations and validate conf
   pnpm cli calendar add google
   ```
 
-  Interactive wizard that authenticates with Google (requires a Google Cloud OAuth 2.0 Client ID of type "Desktop app") and updates `config.yaml`.
+  Interactive wizard that authenticates with Google (requires a Google Cloud OAuth 2.0 Client ID of type "Desktop app") and updates `when.yaml`.
 
 - **Add CalDAV Calendar**:
 

@@ -18,7 +18,7 @@ page on their own infrastructure. It is not, and will not become, a multi-tenant
 - **Radical simplicity.** Reject multi-tenancy, team routing, round-robin assignment,
   and enterprise workflow. Keep the surface area small enough to hold in your head and
   to test exhaustively.
-- **Configuration over UI.** The owner's setup lives in `config.yaml`, not in a
+- **Configuration over UI.** The owner's setup lives in `when.yaml`, not in a
   database edited through admin screens. The app reads config; it does not manage it.
   This keeps state declarative, reviewable in version control, and free of migration
   churn for settings.
@@ -37,7 +37,7 @@ page on their own infrastructure. It is not, and will not become, a multi-tenant
   a job) and a background worker does the rest — sending emails, pushing to calendars,
   refreshing busy times — with durable retries. The request stays fast and the
   side-effects become observable and replayable.
-- **State in `config.yaml` + SQLite, nothing else.** Settings are config; appointments are
+- **State in `when.yaml` + SQLite, nothing else.** Settings are config; appointments are
   rows. There is no third place state can hide. SQLite (via Node's built-in
   `node:sqlite`) means zero external services to run and a single file to back up.
 - **One JSON Schema as the source of truth for config.** Rather than hand-writing

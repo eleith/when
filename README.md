@@ -4,14 +4,14 @@ Single-user appointment scheduling. A public appointment page, an admin UI, cale
 integration (Google + CalDAV), and email notifications — all configured through one
 YAML file.
 
-"When" runs as two services that share a single `config.yaml` and data directory:
+"When" runs as two services that share a single `when.yaml` and data directory:
 the **web** app (appointment page + admin) and a background **worker** that handles
 calendar sync and sends appointment emails off the request path. The bundled
 `apps/web/docker-compose.yml` runs both.
 
 ## Quick start (Docker)
 
-1. Copy `apps/web/config.example.yaml` to `apps/web/config.yaml` and fill it in. Point
+1. Copy `apps/web/config.example.yaml` to `apps/web/config/when.yaml` and fill it in. Point
    your editor at the bundled schema for autocomplete and validation — the example's
    first line already does this:
 
@@ -49,6 +49,6 @@ calendar sync and sends appointment emails off the request path. The bundled
 
 - [Philosophy](docs/philosophy.md) — what "When" is, and the principles behind it.
 - [Architecture](docs/architecture.md) — how the system is built.
-- [Configuration](docs/config.md) — the full `config.yaml` reference.
+- [Configuration](docs/config.md) — the full `when.yaml` reference.
 - [Deployment](docs/deployment.md) — environment variables, Docker, persistence, and operating endpoints.
 - [Development](docs/development.md) — running it locally, the scripts, testing, and coding conventions.

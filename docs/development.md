@@ -22,7 +22,7 @@ pnpm dev
 run the worker against the same config in a second terminal:
 
 ```sh
-CONFIG_PATH=apps/web/config.yaml pnpm --filter @when/worker dev
+CONFIG_PATH=apps/web/config/when.yaml pnpm --filter @when/worker dev
 ```
 
 See [`apps/worker/README.md`](../apps/worker/README.md) for worker specifics. For a
