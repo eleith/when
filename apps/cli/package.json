@@ -12,7 +12,7 @@
 	},
 	"scripts": {
 		"build": "esbuild src/index.ts --bundle --platform=neutral --format=esm --outfile=dist/index.js --banner:js='#!/usr/bin/env node' --main-fields=module,main --conditions=import --external:fs --external:path --external:os --external:crypto --external:process --external:readline --external:events --external:module --external:node:*",
-		"start": "node src/index.ts",
+		"start": "node --conditions=development --import ../../tools/register.mjs src/index.ts",
 		"check": "tsc --noEmit",
 		"lint": "prettier --check . && eslint .",
 		"format": "prettier --write .",

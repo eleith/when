@@ -27,11 +27,11 @@ COPY pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN --mount=type=cache,id=pnpm-store,target=/home/app/store pnpm fetch
 COPY . .
 RUN --mount=type=cache,id=pnpm-store,target=/home/app/store pnpm install --frozen-lockfile
-# Boot rebuilds the shared packages -> dist as the host uid; the cli itself runs
-# straight from source (node src/index.ts). Only the package dirs need writing.
-RUN mkdir -p /m/apps/cli/data && chmod 777 /m/packages/*/
-
-ENTRYPOINT ["sh", "-c", "pnpm -C /m build:packages && node /m/apps/cli/src/index.ts \"$@\"", "--"]
+# Dev runs the cli straight from TypeScript source — no build:packages. The
+# `development` export condition resolves @when/* to src, tools/register.mjs
+# remaps the '.js' specifiers to '.ts', and Node 26 strips the types. Config and
+# data are bind-mounted, so nothing root-owned in the image is written.
+ENTRYPOINT ["sh", "-c", "node --conditions=development --import /m/tools/register.mjs /m/apps/cli/src/index.ts \"$@\"", "--"]
 
 FROM base AS builder
 
