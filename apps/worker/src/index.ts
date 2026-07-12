@@ -1,8 +1,9 @@
-import { loadConfigFile } from '@when/config';
+import { loadConfig, watchConfig } from '@when/config';
 import { expireStalePending, openDb, runMigrations } from '@when/db';
 import { initOpenWorkflow } from '@when/jobs';
 import { setLogger } from '@when/calendar';
 import { createMailer } from './email/smtp.js';
+import { applyConfig } from './services/config-reload.js';
 import { setWorkerContext, type WorkerContext } from './services/context.js';
 import { createHealthServer } from './services/health.js';
 import { logger } from './services/logger.js';
@@ -20,7 +21,7 @@ const REFRESH_TICK_MINUTES = 5;
 const EXPIRE_TICK_MINUTES = 60;
 
 async function main(): Promise<void> {
-	const config = await loadConfigFile();
+	const config = await loadConfig();
 	logger.info({ user: config.user.email }, 'config loaded');
 
 	const db = openDb(config.database.app);
@@ -80,8 +81,11 @@ async function main(): Promise<void> {
 	const server = createHealthServer(() => ctx.config);
 	server.listen(port, () => logger.info({ port }, 'health server listening'));
 
+	let stopWatch: () => void = () => {};
+
 	const shutdown = async (signal: string): Promise<void> => {
 		logger.info({ signal }, 'worker shutting down');
+		stopWatch();
 		refresh.stop();
 		expireSweep.stop();
 		calendarSync.stop();
@@ -89,6 +93,11 @@ async function main(): Promise<void> {
 		await worker.stop();
 		process.exit(0);
 	};
+
+	stopWatch = watchConfig((result) =>
+		applyConfig(result, ctx, () => void shutdown('config-change'))
+	);
+
 	process.on('SIGTERM', () => void shutdown('SIGTERM'));
 	process.on('SIGINT', () => void shutdown('SIGINT'));
 }
