@@ -82,7 +82,7 @@ export async function loadConfigFile(
 /**
  * Resolve the database paths to absolute, in place. Relative paths are taken
  * against the config file's directory so web and worker (sharing one
- * config.yaml) open the same files; `WHEN_DATABASE_PATH` / `WHEN_QUEUE_DB_PATH` override.
+ * when.yaml) open the same files; `WHEN_DATABASE_PATH` / `WHEN_QUEUE_DB_PATH` override.
  */
 function resolveDatabasePaths(config: WhenConfiguration, configPath: string): void {
 	const dir = dirname(configPath);

@@ -56,7 +56,7 @@ export const appearanceCommand = define({
 		config: {
 			type: 'string',
 			short: 'c',
-			description: 'Path to config.yaml file'
+			description: 'Path to when.yaml file'
 		}
 	},
 	async run(ctx) {
@@ -94,7 +94,7 @@ export const appearanceCommand = define({
 			editor.set('user.appearance.primary_light_color', primaryLight);
 			editor.set('user.appearance.primary_dark_color', primaryDark);
 			editor.set('user.appearance.font_name', fontName || null);
-			s.stop('Successfully saved appearance settings to config.yaml!');
+			s.stop('Successfully saved appearance settings to when.yaml!');
 		} catch (err) {
 			s.stop('Failed to save!');
 			console.error(err);

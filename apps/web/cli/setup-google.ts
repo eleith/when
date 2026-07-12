@@ -181,7 +181,7 @@ async function main() {
 	const selectedCalendar = calendars[selectedIndex];
 
 	console.log(
-		'\n✅ Setup Complete! Add the following block to your config.yaml under "calendars":\n'
+		'\n✅ Setup Complete! Add the following block to your when.yaml under "calendars":\n'
 	);
 	console.log('--------------------------------------------------');
 	console.log(`  - id: "my-google-cal"`);
@@ -192,9 +192,7 @@ async function main() {
 	console.log(`    refresh_token: "${refreshToken}"`);
 	console.log('--------------------------------------------------\n');
 	console.log('⚠️  Store your client_id, client_secret, and refresh_token securely.');
-	console.log(
-		'   You can use ${ENV_VAR} syntax in config.yaml to load them from the environment.\n'
-	);
+	console.log('   You can use ${ENV_VAR} syntax in when.yaml to load them from the environment.\n');
 
 	process.exit(0);
 }

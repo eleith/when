@@ -20,7 +20,7 @@ async function promptCalDavCalendarName(existingNames: string[]): Promise<string
 		validate(value) {
 			if (!value || !value.trim()) return 'Calendar name is required';
 			if (existingNames.includes(value.trim())) {
-				return `A calendar with name "${value.trim()}" already exists in config.yaml.`;
+				return `A calendar with name "${value.trim()}" already exists in when.yaml.`;
 			}
 		}
 	});
@@ -71,7 +71,7 @@ function getCompletionMessage(
 	envVarName: string,
 	isNew: boolean
 ): string {
-	let message = `Successfully verified and added calendar "${id}" to config.yaml!\n`;
+	let message = `Successfully verified and added calendar "${id}" to when.yaml!\n`;
 	if (isNew) {
 		message +=
 			`\n⚠️  Please define the following environment variable (e.g. in your .env or Docker config):\n\n` +
@@ -89,7 +89,7 @@ export const caldavAddCommand = define({
 		config: {
 			type: 'string',
 			short: 'c',
-			description: 'Path to config.yaml file'
+			description: 'Path to when.yaml file'
 		}
 	},
 	async run(ctx) {

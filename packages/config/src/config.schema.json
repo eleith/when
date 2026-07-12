@@ -3,7 +3,7 @@
 	"$id": "https://when.app/schema/config.json",
 	"additionalProperties": false,
 	"title": "When configuration",
-	"description": "Canonical schema for the When self-hosted scheduling app's config.yaml.",
+	"description": "Canonical schema for the When self-hosted scheduling app's when.yaml.",
 	"type": "object",
 	"required": ["auth", "user", "smtp", "calendars", "schedules", "meetings"],
 	"properties": {
@@ -327,7 +327,7 @@
 		"DatabaseConfig": {
 			"additionalProperties": false,
 			"title": "DatabaseConfig",
-			"description": "On-disk SQLite paths. Relative paths resolve against this config file's directory, so web and worker (which load the same config.yaml) open the same files.",
+			"description": "On-disk SQLite paths. Relative paths resolve against this config file's directory, so web and worker (which load the same when.yaml) open the same files.",
 			"type": "object",
 			"properties": {
 				"app": {

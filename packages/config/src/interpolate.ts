@@ -3,7 +3,7 @@ const ENV_REF = /\$\$|\$\{([A-Z_][A-Z0-9_]*)(?::-([^}]*))?\}/g;
 export class MissingEnvVarsError extends Error {
 	readonly missing: readonly string[];
 	constructor(missing: string[]) {
-		super(`config.yaml references unset environment variables: ${missing.join(', ')}`);
+		super(`when.yaml references unset environment variables: ${missing.join(', ')}`);
 		this.name = 'MissingEnvVarsError';
 		this.missing = [...missing];
 	}

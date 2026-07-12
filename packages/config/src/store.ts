@@ -30,7 +30,7 @@ export async function reloadConfig(): Promise<ReloadResult> {
 	}
 }
 
-// Polls (stat) rather than inotify: editors save config.yaml via atomic rename,
+// Polls (stat) rather than inotify: editors save when.yaml via atomic rename,
 // which swaps the inode so a file-level fs.watch misses every edit after the
 // first. Polling watches the path, not the inode, so it survives the swap.
 export function watchConfig(onReload: (result: ReloadResult) => void): () => void {

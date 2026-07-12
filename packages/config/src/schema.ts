@@ -223,7 +223,7 @@ export const DatabaseConfigSchema = Type.Object({
 		minLength: 1,
 		default: './data/openworkflow.sqlite'
 	})
-}, { $id: 'DatabaseConfig', additionalProperties: false, title: 'DatabaseConfig', description: 'On-disk SQLite paths. Relative paths resolve against this config file\'s directory, so web and worker (which load the same config.yaml) open the same files.' });
+}, { $id: 'DatabaseConfig', additionalProperties: false, title: 'DatabaseConfig', description: 'On-disk SQLite paths. Relative paths resolve against this config file\'s directory, so web and worker (which load the same when.yaml) open the same files.' });
 
 export const UrlSchema = Type.Object({
 	app: Type.String({
@@ -260,7 +260,7 @@ export const WhenConfigurationSchema = Type.Object({
 }, {
 	additionalProperties: false,
 	title: 'When configuration',
-	description: 'Canonical schema for the When self-hosted scheduling app\'s config.yaml.'
+	description: 'Canonical schema for the When self-hosted scheduling app\'s when.yaml.'
 });
 
 export type WhenConfiguration = Static<typeof WhenConfigurationSchema>;

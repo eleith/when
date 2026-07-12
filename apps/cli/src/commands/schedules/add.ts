@@ -16,7 +16,7 @@ async function promptScheduleName(existingNames: string[]): Promise<string | nul
 		validate(value) {
 			const val = (value || '').trim() || 'standard';
 			if (existingNames.includes(val)) {
-				return `A schedule with name "${val}" already exists in config.yaml.`;
+				return `A schedule with name "${val}" already exists in when.yaml.`;
 			}
 		}
 	});
@@ -77,7 +77,7 @@ export const schedulesAddCommand = define({
 		config: {
 			type: 'string',
 			short: 'c',
-			description: 'Path to config.yaml file'
+			description: 'Path to when.yaml file'
 		}
 	},
 	async run(ctx) {
@@ -121,7 +121,7 @@ export const schedulesAddCommand = define({
 			};
 
 			writeScheduleConfig(configPath, newProfile, existingSchedules.length);
-			s.stop(`Successfully added schedule "${name}" to config.yaml!`);
+			s.stop(`Successfully added schedule "${name}" to when.yaml!`);
 		} catch (err) {
 			s.stop('Failed to save!');
 			console.error(err);

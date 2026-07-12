@@ -5,7 +5,7 @@ import { getValidatedConfigPath } from '../../utils/config-path.ts';
 
 export const validateCommand = define({
 	name: 'validate',
-	description: 'Validate the config.yaml file',
+	description: 'Validate the when.yaml file',
 	async run(ctx) {
 		const pathArg = ctx.positionals[ctx.commandPath.length];
 		const path = getValidatedConfigPath(pathArg);
@@ -16,7 +16,7 @@ export const validateCommand = define({
 			} else {
 				console.error(`FAIL  No configuration file found at default paths.`);
 				console.error(
-					`      Please specify the path to your config.yaml (e.g., "when-cli config validate apps/web/config.yaml").`
+					`      Please specify the path to your when.yaml (e.g., "when-cli config validate apps/web/config/when.yaml").`
 				);
 			}
 			process.exitCode = 1;
