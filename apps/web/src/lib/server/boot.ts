@@ -1,11 +1,13 @@
 import { makeAuth } from './auth';
 import { requireAuthSecret } from './auth/secret';
-import { setState } from './state';
+import { getState, setState } from './state';
 import { bootConfig } from './config/boot';
+import { applyConfig } from './config/reload';
 import { loadEncryptionKey } from './crypto';
 import { openDb, runMigrations } from '@when/db';
 import { initOpenWorkflow } from '@when/jobs';
 import { setLogger } from '@when/calendar';
+import { watchConfig } from '@when/config';
 import { logger } from './logger';
 import { env } from '$env/dynamic/private';
 
@@ -22,4 +24,12 @@ export async function bootApp(): Promise<void> {
 	initOpenWorkflow({ dbPath: config.database.queue });
 	makeAuth(config);
 	setState({ config, db });
+
+	watchConfig((result) =>
+		applyConfig(result, {
+			current: () => getState().config,
+			swap: (next) => setState({ config: next, db }),
+			restart: () => process.exit(0)
+		})
+	);
 }
