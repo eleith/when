@@ -28,13 +28,13 @@ COPY pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN --mount=type=cache,id=pnpm-store,target=/home/app/store pnpm fetch
 COPY . .
 RUN --mount=type=cache,id=pnpm-store,target=/home/app/store pnpm install --frozen-lockfile
-# Boot (re)builds into these dirs as the host uid: shared packages + worker ->
-# dist. Only those parents need to be writable — recursing node_modules is slow
-# and pointless.
-RUN mkdir -p /m/apps/worker/data \
-    && chmod 777 /m/apps/worker /m/apps/worker/node_modules /m/packages/*/
 EXPOSE 9000
-CMD ["sh", "-c", "pnpm build:packages && pnpm --filter @when/worker dev"]
+# Dev runs the worker straight from TypeScript source — no build:packages. The
+# `development` export condition resolves @when/* to src, tools/register.mjs
+# remaps the '.js' specifiers to '.ts', and Node 26 strips the types; --watch
+# restarts on any source change. Data is a bind-mounted volume, so nothing
+# root-owned in the image is written at runtime and no chmod is needed.
+CMD ["pnpm", "--filter", "@when/worker", "dev"]
 
 FROM base AS builder
 

@@ -8,7 +8,7 @@
 		"package.json"
 	],
 	"scripts": {
-		"dev": "pnpm build && (tsc -p tsconfig.build.json --watch --preserveWatchOutput & node --watch dist/src/index.js)",
+		"dev": "node --conditions=development --watch --import ../../tools/register.mjs src/index.ts",
 		"build": "tsc -p tsconfig.build.json && pnpm build:assets",
 		"build:assets": "mkdir -p dist/src/email/templates && cp -r src/email/templates/. dist/src/email/templates/",
 		"start": "node dist/src/index.js",
