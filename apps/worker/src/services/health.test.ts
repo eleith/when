@@ -16,8 +16,7 @@ beforeEach(async () => {
 		}
 	} as unknown as WhenConfiguration;
 
-	// Instantiate server with mock configuration
-	server = createHealthServer(mockConfig);
+	server = createHealthServer(() => mockConfig);
 	await new Promise<void>((resolve) => server.listen(0, resolve));
 	const { port } = server.address() as AddressInfo;
 	base = `http://127.0.0.1:${port}`;

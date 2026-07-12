@@ -3,7 +3,7 @@ import type { WhenConfiguration } from '@when/config';
 import { register } from './metrics.js';
 
 /** A tiny HTTP server exposing GET /healthz for container liveness checks and GET /metrics for scraping. */
-export function createHealthServer(config: WhenConfiguration): Server {
+export function createHealthServer(getConfig: () => WhenConfiguration): Server {
 	return createServer(async (req: IncomingMessage, res: ServerResponse) => {
 		if (req.method === 'GET' && req.url === '/healthz') {
 			res.statusCode = 200;
@@ -13,13 +13,14 @@ export function createHealthServer(config: WhenConfiguration): Server {
 		}
 
 		if (req.method === 'GET' && req.url === '/metrics') {
-			if (!config.prometheus.enabled) {
+			const { prometheus } = getConfig();
+			if (!prometheus.enabled) {
 				res.statusCode = 404;
 				res.end();
 				return;
 			}
 
-			const token = config.prometheus.secret;
+			const token = prometheus.secret;
 			if (!token) {
 				res.statusCode = 500;
 				res.end('METRICS_TOKEN not configured');
