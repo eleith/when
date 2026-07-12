@@ -1,5 +1,7 @@
 export { loadConfigFile, validateConfig, ConfigError } from './load.js';
 export type { ConfigIssue } from './load.js';
+export { loadConfig, reloadConfig, watchConfig, configChanged } from './store.js';
+export type { ReloadResult } from './store.js';
 export { interpolate, MissingEnvVarsError } from './interpolate.js';
 export { checkCrossRefs } from './cross-refs.js';
 export { resolveConfigPath } from './paths.js';
