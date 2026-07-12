@@ -27,17 +27,17 @@ COPY pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN --mount=type=cache,id=pnpm-store,target=/home/app/store pnpm fetch
 COPY . .
 RUN --mount=type=cache,id=pnpm-store,target=/home/app/store pnpm install --frozen-lockfile
-# Boot (re)builds into these dirs as the host uid: shared packages -> dist,
-# svelte-kit -> .svelte-kit, vite -> node_modules/.vite. Only those parents need
-# to be writable — recursing node_modules is slow and pointless. Drop the
-# root-owned .svelte-kit left by the install-time `prepare` (svelte-kit sync) so
-# `vite dev` regenerates it as the host uid.
+# `vite dev` writes .svelte-kit and node_modules/.vite as the host uid; only
+# those parents need to be writable (recursing node_modules is slow and
+# pointless). Drop the root-owned .svelte-kit left by the install-time `prepare`
+# (svelte-kit sync) so `vite dev` regenerates it. No build:packages — @when/* run
+# from source via the dev vite.config (development condition + noExternal).
 RUN mkdir -p /m/apps/web/data \
     && rm -rf /m/apps/web/.svelte-kit \
-    && chmod 777 /m/apps/web /m/apps/web/node_modules /m/packages/*/
+    && chmod 777 /m/apps/web /m/apps/web/node_modules
 WORKDIR /m/apps/web
 EXPOSE 5173
-CMD ["sh", "-c", "pnpm -C /m build:packages && pnpm run dev --host 0.0.0.0"]
+CMD ["pnpm", "run", "dev", "--host", "0.0.0.0"]
 
 FROM base AS builder
 

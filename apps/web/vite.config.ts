@@ -10,26 +10,33 @@ const allowedHosts = (process.env.WHEN_ALLOWED_HOSTS ?? '')
 	.map((host) => host.trim())
 	.filter(Boolean);
 
-export default defineConfig({
-	plugins: [
-		sveltekit(),
-		Icons({
-			compiler: 'svelte'
-		})
-	],
-	server: {
-		allowedHosts
-	},
-	test: {
-		include: ['src/**/*.test.ts'],
-		environment: 'node',
-		coverage: {
-			thresholds: {
-				statements: 80,
-				branches: 80,
-				functions: 80,
-				lines: 80
+export default defineConfig(({ command }) => {
+	// Dev server only (not `vite build`, not vitest): run @when/* from source.
+	const sourceFirst = command === 'serve' && !process.env.VITEST;
+
+	return {
+		plugins: [
+			sveltekit(),
+			Icons({
+				compiler: 'svelte'
+			})
+		],
+		server: {
+			allowedHosts
+		},
+		// noExternal makes Vite transform the packages' TS rather than hand it to Node.
+		ssr: sourceFirst ? { noExternal: [/^@when\//] } : {},
+		test: {
+			include: ['src/**/*.test.ts'],
+			environment: 'node',
+			coverage: {
+				thresholds: {
+					statements: 80,
+					branches: 80,
+					functions: 80,
+					lines: 80
+				}
 			}
 		}
-	}
+	};
 });
