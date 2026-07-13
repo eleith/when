@@ -229,8 +229,10 @@
 	<div class="banner-event">
 		<h1 class="banner-event-name">{data.eventType.name}</h1>
 		<p class="banner-event-meta">
-			{data.eventType.duration_minutes} min{#if data.eventType.description}
-				&middot; {data.eventType.description}{/if}
+			{data.eventType.duration_minutes} min{#if data.eventType.description}<span
+					class="context-event-sep"
+					aria-hidden="true">|</span
+				>{data.eventType.description}{/if}
 		</p>
 	</div>
 </header>
@@ -297,21 +299,17 @@
 								class="context-provider-avatar"
 							/>
 						{/if}
-						<div class="context-provider-text">
-							<span class="context-provider-name">{data.user.appearance.title}</span>
-							<div class="context-provider-desc">
-								{data.user.appearance.description}
-							</div>
-						</div>
 					</a>
 				</section>
 
 				<section class="context-section context-section-about">
 					<h1 class="context-event-name">{data.eventType.name}</h1>
-					<p class="context-event-meta">{data.eventType.duration_minutes} min</p>
-					{#if data.eventType.description}
-						<p class="context-event-description">{data.eventType.description}</p>
-					{/if}
+					<p class="context-event-meta">
+						{data.eventType.duration_minutes} min{#if data.eventType.description}<span
+								class="context-event-sep"
+								aria-hidden="true">|</span
+							>{data.eventType.description}{/if}
+					</p>
 				</section>
 
 				<section class="context-step">
@@ -615,51 +613,24 @@
 		gap: var(--space-3);
 	}
 
-	.context-section-about {
-		padding: var(--space-6) 0 0;
-		border-top: 1px solid var(--border-strong);
-	}
-
 	.context-provider {
-		display: flex;
-		align-items: center;
-		gap: var(--space-4);
+		display: inline-flex;
 		text-decoration: none;
 		color: inherit;
-		min-width: 0;
 	}
 
-	.context-provider:hover .context-provider-name {
+	.context-provider:hover .context-provider-avatar {
 		opacity: 0.8;
 	}
 
 	.context-provider-avatar {
 		flex-shrink: 0;
-		width: 40px;
-		height: 40px;
+		width: 48px;
+		height: 48px;
 		border-radius: 50%;
 		object-fit: cover;
 		border: solid 2px var(--text);
-	}
-
-	.context-provider-text {
-		min-width: 0;
-	}
-
-	.context-provider-name {
-		font-size: var(--font-size-md);
-		font-weight: 700;
 		transition: opacity var(--transition);
-	}
-
-	.context-provider-desc {
-		color: var(--text-muted);
-		font-size: var(--font-size-sm);
-		margin-top: var(--space-1);
-	}
-
-	.context-provider-desc :global(p) {
-		margin: 0;
 	}
 
 	.context-event-name {
@@ -670,16 +641,15 @@
 	}
 
 	.context-event-meta {
-		color: var(--text-muted);
-		font-size: var(--font-size-sm);
-		margin: 0 0 var(--space-3);
-	}
-
-	.context-event-description {
 		color: var(--text-secondary);
 		font-size: var(--font-size-sm);
 		margin: 0;
 		line-height: 1.5;
+	}
+
+	.context-event-sep {
+		color: var(--text-muted);
+		margin: 0 var(--space-2);
 	}
 
 	.card-stage {
