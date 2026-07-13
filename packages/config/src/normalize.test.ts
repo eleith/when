@@ -34,6 +34,26 @@ test('leaves schedule and booking_calendar unset when more than one exists', () 
 	expect(out.meetings[0].booking_calendar).toBeUndefined();
 });
 
+test('defaults an omitted weekly to Monday-Friday business hours', () => {
+	const out = withDerivedDefaults({ schedules: [{ name: 'standard' }] }) as {
+		schedules: { weekly: Record<string, string[]> }[];
+	};
+	expect(out.schedules[0].weekly).toEqual({
+		monday: ['09:00-17:00'],
+		tuesday: ['09:00-17:00'],
+		wednesday: ['09:00-17:00'],
+		thursday: ['09:00-17:00'],
+		friday: ['09:00-17:00']
+	});
+});
+
+test('leaves a partially-specified weekly untouched', () => {
+	const out = withDerivedDefaults({
+		schedules: [{ name: 'mondays', weekly: { monday: ['09:00-12:00'] } }]
+	}) as { schedules: { weekly: Record<string, string[]> }[] };
+	expect(out.schedules[0].weekly).toEqual({ monday: ['09:00-12:00'] });
+});
+
 test('does not mutate its input', () => {
 	const input = { schedules: [{ name: 'standard' }], meetings: [{ name: 'chat' }] };
 	withDerivedDefaults(input);

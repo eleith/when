@@ -164,7 +164,7 @@ export const WeeklyScheduleSchema = Type.Object({
 
 export const ScheduleSchema = Type.Object({
 	name: Type.String({ minLength: 1, description: 'Unique name for the schedule, referenced by meetings.' }),
-	weekly: Ref(WeeklyScheduleSchema, { description: 'Weekly working hours.' })
+	weekly: Ref(WeeklyScheduleSchema, { description: 'Weekly working hours. Defaults to Monday-Friday 09:00-17:00 when omitted.' })
 }, { $id: 'Schedule', additionalProperties: false, title: 'Schedule', description: 'Schedule defining weekly working hours.' });
 
 export const LocationSchema = Type.String({

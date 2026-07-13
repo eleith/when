@@ -107,9 +107,20 @@ function validateSchedules(
 	const scheduleNames = new Set<string>();
 	schedules.forEach((sch, i) => {
 		checkScheduleDuplicateName(sch, i, scheduleNames, issues);
+		checkScheduleHasWindows(sch, i, issues);
 		scheduleNames.add(sch.name);
 	});
 	return scheduleNames;
+}
+
+function checkScheduleHasWindows(sch: Schedule, i: number, issues: ConfigIssue[]): void {
+	const windows = Object.values(sch.weekly).reduce((sum, day) => sum + (day?.length ?? 0), 0);
+	if (windows === 0) {
+		issues.push({
+			path: `/schedules/${i}/weekly`,
+			message: `schedule "${sch.name}" has no available time windows`
+		});
+	}
 }
 
 function checkScheduleDuplicateName(

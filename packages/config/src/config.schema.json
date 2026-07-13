@@ -743,7 +743,7 @@
 					"type": "string"
 				},
 				"weekly": {
-					"description": "Weekly working hours.",
+					"description": "Weekly working hours. Defaults to Monday-Friday 09:00-17:00 when omitted.",
 					"$ref": "#/$defs/WeeklySchedule"
 				}
 			}

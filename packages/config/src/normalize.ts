@@ -1,17 +1,33 @@
 // Fields whose default depends on sibling values, so they can't be static schema
 // defaults. Filled before schema validation, keeping the fields `required`.
 export function withDerivedDefaults(config: unknown): unknown {
-	if (!isRecord(config) || !Array.isArray(config.meetings)) return config;
+	if (!isRecord(config)) return config;
 
-	const schedule = soleName(config.schedules);
-	const calendar = soleName(config.calendars);
-
-	return {
-		...config,
-		meetings: config.meetings.map((meeting) =>
+	const result = { ...config };
+	if (Array.isArray(config.schedules)) {
+		result.schedules = config.schedules.map((schedule) =>
+			isRecord(schedule) ? deriveScheduleDefaults(schedule) : schedule
+		);
+	}
+	if (Array.isArray(config.meetings)) {
+		const schedule = soleName(config.schedules);
+		const calendar = soleName(config.calendars);
+		result.meetings = config.meetings.map((meeting) =>
 			isRecord(meeting) ? deriveMeetingDefaults(meeting, schedule, calendar) : meeting
-		)
-	};
+		);
+	}
+	return result;
+}
+
+// Fill an entirely-omitted week (never a partial one, so single-day schedules stay as written).
+function deriveScheduleDefaults(schedule: Record<string, unknown>): Record<string, unknown> {
+	if (schedule.weekly !== undefined) return schedule;
+	return { ...schedule, weekly: businessWeek() };
+}
+
+function businessWeek(): Record<string, string[]> {
+	const day = (): string[] => ['09:00-17:00'];
+	return { monday: day(), tuesday: day(), wednesday: day(), thursday: day(), friday: day() };
 }
 
 function deriveMeetingDefaults(

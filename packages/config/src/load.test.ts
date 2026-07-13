@@ -202,6 +202,32 @@ test('omitted schedule with multiple schedules fails validation', () => {
 	expect(() => validateConfig(raw)).toThrow(ConfigError);
 });
 
+test('schedule weekly defaults to Monday-Friday business hours when omitted', () => {
+	const raw = clone(validConfig) as unknown as { schedules: { weekly?: unknown }[] };
+	delete raw.schedules[0].weekly;
+	expect(validateConfig(raw).schedules[0].weekly).toEqual({
+		monday: ['09:00-17:00'],
+		tuesday: ['09:00-17:00'],
+		wednesday: ['09:00-17:00'],
+		thursday: ['09:00-17:00'],
+		friday: ['09:00-17:00']
+	});
+});
+
+test('schedule with no time windows fails validation', () => {
+	const bad = clone(validConfig);
+	bad.schedules[0].weekly = {};
+	try {
+		validateConfig(bad);
+		throw new Error('expected ConfigError');
+	} catch (err) {
+		expect(err).toBeInstanceOf(ConfigError);
+		expect((err as ConfigError).issues.some((issue) => issue.path === '/schedules/0/weekly')).toBe(
+			true
+		);
+	}
+});
+
 test('meeting note accepts valid string note', () => {
 	const good = clone(validConfig);
 	good.meetings[0].note = 'Please read the notes before scheduling.';
