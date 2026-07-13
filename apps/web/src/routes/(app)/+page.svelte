@@ -21,18 +21,14 @@
 		<div class="event-list">
 			{#each data.eventTypes as et (et.id)}
 				<a href="/schedule/{et.slug}" class="event-card">
-					{#if et.image_url}
-						<img src={et.image_url} alt="" class="event-image" />
-					{:else}
-						<span class="event-dot"></span>
-					{/if}
 					<div class="event-info">
 						<h2>{et.name}</h2>
-						<p class="event-meta">{et.duration} min</p>
-						{#if et.descriptionHtml}
-							<!-- eslint-disable-next-line svelte/no-at-html-tags -->
-							<div class="event-desc">{@html et.descriptionHtml}</div>
-						{/if}
+						<p class="event-meta">
+							{et.duration} min{#if et.description}<span
+									class="event-sep"
+									aria-hidden="true">|</span
+								>{et.description}{/if}
+						</p>
 					</div>
 					<span class="arrow"><IconArrowRight aria-hidden="true" /></span>
 				</a>
@@ -103,22 +99,6 @@
 		color: var(--primary);
 	}
 
-	.event-dot {
-		flex-shrink: 0;
-		width: 10px;
-		height: 10px;
-		border-radius: 50%;
-		background: var(--primary);
-	}
-
-	.event-image {
-		flex-shrink: 0;
-		width: 48px;
-		height: 48px;
-		border-radius: var(--radius);
-		object-fit: cover;
-	}
-
 	.event-info {
 		flex: 1;
 		min-width: 0;
@@ -131,16 +111,15 @@
 	}
 
 	.event-meta {
-		color: var(--text-muted);
+		color: var(--text-secondary);
 		font-size: var(--font-size-base);
 		margin: var(--space-1) 0 0;
+		line-height: 1.4;
 	}
 
-	.event-desc {
+	.event-sep {
 		color: var(--text-muted);
-		font-size: var(--font-size-base);
-		margin: var(--space-2) 0 0;
-		line-height: 1.4;
+		margin: 0 var(--space-2);
 	}
 
 	.arrow {
