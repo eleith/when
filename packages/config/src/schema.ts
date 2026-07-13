@@ -43,9 +43,9 @@ export const AuthSchema = Type.Union([
 export const AppearanceSchema = Type.Object({
 	title: Type.String({ default: 'if not now, when?', description: 'Title of the booking page.' }),
 	description: Type.String({ default: 'find some time and we can meet', description: 'Subtext or introduction shown on the booking page.' }),
-	logo_url: Type.Optional(Type.String({ minLength: 1, description: 'URL of the logo image. Can be relative (e.g. /public/logo.png).' })),
+	logo_url: Type.String({ minLength: 1, default: '/logo.svg', description: 'URL of the logo image (default: the bundled /logo.svg). Can be relative (e.g. /public/logo.png).' }),
 	avatar_url: Type.Optional(Type.String({ minLength: 1, description: 'URL of the avatar image. Can be relative (e.g. /public/avatar.png).' })),
-	favicon_url: Type.Optional(Type.String({ minLength: 1, description: 'URL of the favicon image. Can be relative (e.g. /public/favicon.ico).' })),
+	favicon_url: Type.String({ minLength: 1, default: '/favicon.svg', description: 'URL of the favicon image (default: the bundled /favicon.svg). Can be relative (e.g. /public/favicon.ico).' }),
 	font_name: Type.Optional(Type.String({ minLength: 1, description: 'Custom CSS font family name (e.g. Outfit, sans-serif).' })),
 	font_url: Type.Optional(Type.String({ format: 'uri', description: 'URL of the custom font stylesheet (e.g. Google Fonts URL).' })),
 	primary_light_color: Ref(HexColorSchema, { default: '#166534', description: 'Primary brand color for light mode.' }),

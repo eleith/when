@@ -85,7 +85,8 @@
 				},
 				"logo_url": {
 					"minLength": 1,
-					"description": "URL of the logo image. Can be relative (e.g. /public/logo.png).",
+					"default": "/logo.svg",
+					"description": "URL of the logo image (default: the bundled /logo.svg). Can be relative (e.g. /public/logo.png).",
 					"type": "string"
 				},
 				"avatar_url": {
@@ -95,7 +96,8 @@
 				},
 				"favicon_url": {
 					"minLength": 1,
-					"description": "URL of the favicon image. Can be relative (e.g. /public/favicon.ico).",
+					"default": "/favicon.svg",
+					"description": "URL of the favicon image (default: the bundled /favicon.svg). Can be relative (e.g. /public/favicon.ico).",
 					"type": "string"
 				},
 				"font_name": {

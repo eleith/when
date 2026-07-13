@@ -1,5 +1,4 @@
 <script lang="ts">
-	import IconCalendarBlank from 'virtual:icons/ph/calendar-blank';
 	import IconWarningCircle from 'virtual:icons/ph/warning-circle';
 	import IconLock from 'virtual:icons/ph/lock';
 	import IconSignIn from 'virtual:icons/ph/sign-in';
@@ -27,13 +26,7 @@
 <div class="signin-container">
 	<main class="signin-card">
 		<header class="signin-header">
-			{#if data.appearance?.logo_url}
-				<img src={data.appearance.logo_url} alt="Logo" class="signin-logo" />
-			{:else}
-				<div class="signin-icon-wrapper">
-					<IconCalendarBlank aria-hidden="true" />
-				</div>
-			{/if}
+			<img src={data.appearance.logo_url} alt="Logo" class="signin-logo" />
 			<h1 class="signin-title">Sign in to When</h1>
 			<p class="signin-subtitle">Appointment Scheduling Portal</p>
 		</header>
@@ -139,20 +132,6 @@
 		height: 48px;
 		object-fit: contain;
 		margin-bottom: var(--space-4);
-	}
-
-	.signin-icon-wrapper {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		width: 48px;
-		height: 48px;
-		background: var(--primary-muted);
-		border: 1px solid var(--primary-border);
-		border-radius: var(--radius-md);
-		margin-bottom: var(--space-4);
-		color: var(--primary);
-		font-size: var(--font-size-2xl);
 	}
 
 	.signin-title {

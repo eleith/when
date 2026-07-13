@@ -7,8 +7,8 @@ export const load: LayoutServerLoad = ({ cookies }) => {
 		appearance: {
 			primary_light_color: cfg.user.appearance.primary_light_color,
 			primary_dark_color: cfg.user.appearance.primary_dark_color,
-			logo_url: cfg.user.appearance.logo_url ?? null,
-			favicon_url: cfg.user.appearance.favicon_url ?? null
+			logo_url: cfg.user.appearance.logo_url,
+			favicon_url: cfg.user.appearance.favicon_url
 		},
 		preferredTimezone: cookies.get('tz') ?? null
 	};

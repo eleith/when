@@ -7,12 +7,11 @@
 	import '$lib/styles/fonts/outfit.css';
 	import '$lib/styles/fonts/inter.css';
 	import '$lib/styles/fonts/lato.css';
-	import defaultFavicon from '$lib/assets/favicon.svg';
 	import { createPreferredTimezone } from '$lib/preferredTimezone.svelte';
 
 	let { data, children } = $props();
 
-	let favicon = $derived(data?.appearance?.favicon_url ?? defaultFavicon);
+	let favicon = $derived(data.appearance.favicon_url);
 
 	// Seed once; after init the context is the source of truth (cookie is request-stable).
 	// svelte-ignore state_referenced_locally
