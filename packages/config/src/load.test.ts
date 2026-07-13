@@ -130,6 +130,50 @@ test('password defaults to WHEN_ADMIN_PASSWORD if omitted', () => {
 	}
 });
 
+test('smtp.port defaults to 587 when omitted', () => {
+	const raw = clone(validConfig) as unknown as { smtp: { port?: number } };
+	delete raw.smtp.port;
+	expect(validateConfig(raw).smtp.port).toBe(587);
+});
+
+test('meeting duration_minutes defaults to 30 when omitted', () => {
+	const raw = clone(validConfig) as unknown as { meetings: { duration_minutes?: number }[] };
+	delete raw.meetings[0].duration_minutes;
+	expect(validateConfig(raw).meetings[0].duration_minutes).toBe(30);
+});
+
+test('meeting booking_approval defaults to request when omitted', () => {
+	const raw = clone(validConfig) as unknown as { meetings: { booking_approval?: string }[] };
+	delete raw.meetings[0].booking_approval;
+	expect(validateConfig(raw).meetings[0].booking_approval).toBe('request');
+});
+
+test('user timezone defaults to the TZ env var when omitted', () => {
+	const raw = clone(validConfig) as unknown as { user: { timezone?: string } };
+	delete raw.user.timezone;
+	const prev = process.env.TZ;
+	process.env.TZ = 'America/Chicago';
+	try {
+		expect(validateConfig(raw).user.timezone).toBe('America/Chicago');
+	} finally {
+		if (prev === undefined) delete process.env.TZ;
+		else process.env.TZ = prev;
+	}
+});
+
+test('user timezone defaults to UTC when omitted and TZ is unset', () => {
+	const raw = clone(validConfig) as unknown as { user: { timezone?: string } };
+	delete raw.user.timezone;
+	const prev = process.env.TZ;
+	delete process.env.TZ;
+	try {
+		expect(validateConfig(raw).user.timezone).toBe('UTC');
+	} finally {
+		if (prev === undefined) delete process.env.TZ;
+		else process.env.TZ = prev;
+	}
+});
+
 test('meeting note accepts valid string note', () => {
 	const good = clone(validConfig);
 	good.meetings[0].note = 'Please read the notes before scheduling.';

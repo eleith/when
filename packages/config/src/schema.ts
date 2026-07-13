@@ -59,8 +59,10 @@ export const AppearanceSchema = Type.Object({
 export const UserSchema = Type.Object({
 	name: Type.String({ minLength: 1, description: 'The display name of the schedule owner.' }),
 	timezone: Type.String({
-		description: 'IANA timezone identifier (e.g. America/New_York).',
-		minLength: 1
+		description:
+			'IANA timezone identifier (e.g. America/New_York). Defaults to the TZ environment variable, or UTC when unset.',
+		minLength: 1,
+		default: '${TZ:-UTC}'
 	}),
 	email: Type.String({ format: 'email', description: 'Email address of the schedule owner.' }),
 	appearance: Ref(AppearanceSchema, { default: {}, description: 'Appearance overrides for the schedule owner.' })
@@ -68,7 +70,7 @@ export const UserSchema = Type.Object({
 
 export const SmtpSchema = Type.Object({
 	host: Type.String({ minLength: 1, description: 'SMTP server host name.' }),
-	port: Type.Integer({ minimum: 1, maximum: 65535, description: 'SMTP server port number (e.g. 587 or 465).' }),
+	port: Type.Integer({ minimum: 1, maximum: 65535, default: 587, description: 'SMTP server port number (default: 587; e.g. 587 or 465).' }),
 	user: Type.String({ minLength: 1, description: 'SMTP username.' }),
 	pass: Type.String({ minLength: 1, description: 'SMTP password.' }),
 	from: Type.Optional(Type.String({
@@ -190,11 +192,11 @@ export const FormFieldSchema = Type.Object({
 
 export const MeetingSchema = Type.Object({
 	name: Type.String({ minLength: 1, description: 'Unique name of the meeting (e.g. 30-minute chat).' }),
-	duration_minutes: Type.Integer({ minimum: 1, description: 'Duration of the meeting in minutes.' }),
+	duration_minutes: Type.Integer({ minimum: 1, default: 30, description: 'Duration of the meeting in minutes (default: 30).' }),
 	description: Type.Optional(Type.String({ description: 'Brief description of the meeting.' })),
 	slug: Type.String({ pattern: '^[a-z0-9][a-z0-9-]*$', description: 'URL slug for the booking page (e.g. "chat" for /schedule/chat).' }),
 	visibility: Type.Optional(Type.Union([Type.Literal('public'), Type.Literal('private')], { default: 'public', description: 'Visibility on the homepage. "public" shows it; "private" hides it.' })),
-	booking_approval: Type.Union([Type.Literal('instant'), Type.Literal('request')], { description: 'The approval flow. "instant" confirms instantly; "request" requires host approval.' }),
+	booking_approval: Type.Union([Type.Literal('instant'), Type.Literal('request')], { default: 'request', description: 'The approval flow (default: "request"). "instant" confirms instantly; "request" requires host approval.' }),
 	busy_calendars: Type.Optional(Type.Array(Type.String({ minLength: 1 }), { default: [], description: 'Calendar names to check for conflicts (busy times) to block slots.' })),
 	booking_calendar: Type.String({ minLength: 1, description: 'Calendar name where confirmed bookings will be written.' }),
 	schedule: Type.String({ minLength: 1, description: 'Name of the schedule to use for availability.' }),

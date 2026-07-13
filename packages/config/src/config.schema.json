@@ -501,14 +501,7 @@
 			"title": "Meeting",
 			"description": "Definition of a bookable meeting.",
 			"type": "object",
-			"required": [
-				"name",
-				"duration_minutes",
-				"slug",
-				"booking_approval",
-				"booking_calendar",
-				"schedule"
-			],
+			"required": ["name", "slug", "booking_calendar", "schedule"],
 			"properties": {
 				"name": {
 					"minLength": 1,
@@ -517,7 +510,8 @@
 				},
 				"duration_minutes": {
 					"minimum": 1,
-					"description": "Duration of the meeting in minutes.",
+					"default": 30,
+					"description": "Duration of the meeting in minutes (default: 30).",
 					"type": "integer"
 				},
 				"description": {
@@ -544,7 +538,8 @@
 					]
 				},
 				"booking_approval": {
-					"description": "The approval flow. \"instant\" confirms instantly; \"request\" requires host approval.",
+					"default": "request",
+					"description": "The approval flow (default: \"request\"). \"instant\" confirms instantly; \"request\" requires host approval.",
 					"anyOf": [
 						{
 							"const": "instant",
@@ -773,7 +768,7 @@
 			"title": "Smtp",
 			"description": "SMTP server used to send appointment emails. Required — the appointment system relies on it.",
 			"type": "object",
-			"required": ["host", "port", "user", "pass"],
+			"required": ["host", "user", "pass"],
 			"properties": {
 				"host": {
 					"minLength": 1,
@@ -783,7 +778,8 @@
 				"port": {
 					"minimum": 1,
 					"maximum": 65535,
-					"description": "SMTP server port number (e.g. 587 or 465).",
+					"default": 587,
+					"description": "SMTP server port number (default: 587; e.g. 587 or 465).",
 					"type": "integer"
 				},
 				"user": {
@@ -832,7 +828,7 @@
 			"title": "User",
 			"description": "The schedule owner details.",
 			"type": "object",
-			"required": ["name", "timezone", "email"],
+			"required": ["name", "email"],
 			"properties": {
 				"name": {
 					"minLength": 1,
@@ -840,8 +836,9 @@
 					"type": "string"
 				},
 				"timezone": {
-					"description": "IANA timezone identifier (e.g. America/New_York).",
+					"description": "IANA timezone identifier (e.g. America/New_York). Defaults to the TZ environment variable, or UTC when unset.",
 					"minLength": 1,
+					"default": "${TZ:-UTC}",
 					"type": "string"
 				},
 				"email": {
