@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, test } from 'vitest';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { stringify } from 'yaml';
@@ -29,8 +29,10 @@ afterEach(async () => {
 	await rm(dir, { recursive: true, force: true });
 });
 
-test('loadConfigFile resolves relative db paths against the config dir', async () => {
-	const path = join(dir, 'config.yaml');
+test('loadConfigFile resolves relative db paths against the deployment root (config dir parent)', async () => {
+	const configDir = join(dir, 'config');
+	await mkdir(configDir);
+	const path = join(configDir, 'when.yaml');
 	await writeFile(path, stringify(validConfig));
 	const config = await loadConfigFile(path);
 	expect(config.database.app).toBe(join(dir, 'data', 'when.sqlite'));

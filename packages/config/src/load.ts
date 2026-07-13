@@ -82,14 +82,16 @@ export async function loadConfigFile(
 }
 
 /**
- * Resolve the database paths to absolute, in place. Relative paths are taken
- * against the config file's directory so web and worker (sharing one
- * when.yaml) open the same files; `WHEN_DATABASE_PATH` / `WHEN_QUEUE_DB_PATH` override.
+ * Resolve the database paths to absolute, in place. when.yaml lives in
+ * `<root>/config/`, and the databases default to the sibling `<root>/data/`
+ * (both mounted as siblings in the compose files), so relative paths resolve
+ * against the config directory's parent — the deployment root shared by web and
+ * worker — not `config/` itself. `WHEN_DATABASE_PATH` / `WHEN_QUEUE_DB_PATH` override.
  */
 function resolveDatabasePaths(config: WhenConfiguration, configPath: string): void {
-	const dir = dirname(configPath);
-	config.database.app = process.env.WHEN_DATABASE_PATH ?? resolve(dir, config.database.app);
-	config.database.queue = process.env.WHEN_QUEUE_DB_PATH ?? resolve(dir, config.database.queue);
+	const root = dirname(dirname(configPath));
+	config.database.app = process.env.WHEN_DATABASE_PATH ?? resolve(root, config.database.app);
+	config.database.queue = process.env.WHEN_QUEUE_DB_PATH ?? resolve(root, config.database.queue);
 }
 
 function toIssue(err: ValueError): ConfigIssue {

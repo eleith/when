@@ -198,8 +198,9 @@ Rather than rigid location structures, meetings are customized using:
 
 ## `database`
 
-On-disk SQLite paths. Relative paths resolve against this config file's directory, so the
-web and worker (loading the same `when.yaml`) open the same files.
+On-disk SQLite paths. Relative paths resolve against the config directory's parent — the
+deployment root that holds `config/` and `data/` as siblings — so the web and worker
+(loading the same `when.yaml`) open the same files.
 
 ```yaml
 database:

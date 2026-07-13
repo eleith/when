@@ -224,7 +224,7 @@ export const DatabaseConfigSchema = Type.Object({
 		minLength: 1,
 		default: './data/openworkflow.sqlite'
 	})
-}, { $id: 'DatabaseConfig', additionalProperties: false, title: 'DatabaseConfig', description: 'On-disk SQLite paths. Relative paths resolve against this config file\'s directory, so web and worker (which load the same when.yaml) open the same files.' });
+}, { $id: 'DatabaseConfig', additionalProperties: false, title: 'DatabaseConfig', description: 'On-disk SQLite paths. Relative paths resolve against the config directory\'s parent (the deployment root that holds config/ and data/ as siblings), so web and worker (which load the same when.yaml) open the same files.' });
 
 export const UrlSchema = Type.Object({
 	app: Type.String({
