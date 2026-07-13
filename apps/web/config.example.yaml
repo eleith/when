@@ -42,6 +42,6 @@ schedules:
 
 meetings:
   - name: '30-minute chat'
-    # With one schedule and one calendar, `schedule` and `booking_calendar` are
-    # inferred. `slug` defaults to "30-minute-chat", `duration_minutes` to 30,
-    # and `booking_approval` to "request".
+    # `schedule` and `booking_calendar` default to the first declared above.
+    # `slug` defaults to "30-minute-chat", `duration_minutes` to 30, and
+    # `booking_approval` to "request".

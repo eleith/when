@@ -1,5 +1,12 @@
 // Fields whose default depends on sibling values, so they can't be static schema
-// defaults. Filled before schema validation, keeping the fields `required`.
+// defaults. Filled before schema validation (the fields stay `required` in the
+// source schema for strict types); the generated editor schema relaxes them, so
+// the definition + field names are listed here as the single source of truth.
+export const DERIVED_OPTIONAL: Record<string, string[]> = {
+	Meeting: ['slug', 'schedule', 'booking_calendar'],
+	Schedule: ['weekly']
+};
+
 export function withDerivedDefaults(config: unknown): unknown {
 	if (!isRecord(config)) return config;
 
@@ -10,8 +17,8 @@ export function withDerivedDefaults(config: unknown): unknown {
 		);
 	}
 	if (Array.isArray(config.meetings)) {
-		const schedule = soleName(config.schedules);
-		const calendar = soleName(config.calendars);
+		const schedule = firstName(config.schedules);
+		const calendar = firstName(config.calendars);
 		result.meetings = config.meetings.map((meeting) =>
 			isRecord(meeting) ? deriveMeetingDefaults(meeting, schedule, calendar) : meeting
 		);
@@ -48,11 +55,11 @@ function deriveMeetingDefaults(
 	return { ...meeting, ...derived };
 }
 
-// The one entry's name, or undefined unless the list holds exactly one.
-function soleName(list: unknown): string | undefined {
-	if (!Array.isArray(list) || list.length !== 1) return undefined;
-	const only = list[0];
-	return isRecord(only) && typeof only.name === 'string' ? only.name : undefined;
+// The first entry's name, used as the default schedule/calendar for a meeting.
+function firstName(list: unknown): string | undefined {
+	if (!Array.isArray(list) || list.length === 0) return undefined;
+	const first = list[0];
+	return isRecord(first) && typeof first.name === 'string' ? first.name : undefined;
 }
 
 function slugify(name: string): string {

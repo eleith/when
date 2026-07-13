@@ -181,7 +181,7 @@ test('meeting slug is derived from the name when omitted', () => {
 	expect(validateConfig(raw).meetings[0].slug).toBe('quick-intro-call');
 });
 
-test('meeting schedule and booking_calendar default to the sole entry when omitted', () => {
+test('meeting schedule and booking_calendar default to the first when omitted', () => {
 	const raw = clone(validConfig) as unknown as {
 		meetings: { schedule?: string; booking_calendar?: string }[];
 	};
@@ -192,14 +192,14 @@ test('meeting schedule and booking_calendar default to the sole entry when omitt
 	expect(cfg.meetings[0].booking_calendar).toBe('my-google-cal');
 });
 
-test('omitted schedule with multiple schedules fails validation', () => {
+test('omitted schedule with multiple schedules defaults to the first', () => {
 	const raw = clone(validConfig) as unknown as {
 		schedules: { name: string; weekly: unknown }[];
 		meetings: { schedule?: string }[];
 	};
 	raw.schedules.push({ name: 'weekend', weekly: { saturday: ['10:00-14:00'] } });
 	delete raw.meetings[0].schedule;
-	expect(() => validateConfig(raw)).toThrow(ConfigError);
+	expect(validateConfig(raw).meetings[0].schedule).toBe('standard');
 });
 
 test('schedule weekly defaults to Monday-Friday business hours when omitted', () => {

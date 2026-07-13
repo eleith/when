@@ -15,7 +15,7 @@ test('preserves an explicit slug', () => {
 	expect(out.meetings[0].slug).toBe('sync');
 });
 
-test('fills schedule and booking_calendar when exactly one exists', () => {
+test('fills schedule and booking_calendar from the sole entry', () => {
 	const out = withDerivedDefaults({
 		schedules: [{ name: 'standard' }],
 		calendars: [{ name: 'work' }],
@@ -24,14 +24,13 @@ test('fills schedule and booking_calendar when exactly one exists', () => {
 	expect(out.meetings[0]).toMatchObject({ schedule: 'standard', booking_calendar: 'work' });
 });
 
-test('leaves schedule and booking_calendar unset when more than one exists', () => {
+test('defaults schedule and booking_calendar to the first when multiple exist', () => {
 	const out = withDerivedDefaults({
 		schedules: [{ name: 'a' }, { name: 'b' }],
 		calendars: [{ name: 'x' }, { name: 'y' }],
 		meetings: [{ name: 'chat' }]
 	}) as { meetings: Record<string, unknown>[] };
-	expect(out.meetings[0].schedule).toBeUndefined();
-	expect(out.meetings[0].booking_calendar).toBeUndefined();
+	expect(out.meetings[0]).toMatchObject({ schedule: 'a', booking_calendar: 'x' });
 });
 
 test('defaults an omitted weekly to Monday-Friday business hours', () => {

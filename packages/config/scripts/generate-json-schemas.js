@@ -2,6 +2,7 @@ import { writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as schemas from '../src/schema.ts';
+import { DERIVED_OPTIONAL } from '../src/normalize.ts';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const srcDir = join(__dirname, '..', 'src');
@@ -53,6 +54,16 @@ function relax(node) {
 }
 
 relax(schema);
+
+// Relax fields filled by the loader's normalize pass (no static `default`, so
+// `relax` above leaves them required). The definition + field names come from
+// @when/config's DERIVED_OPTIONAL so the two can't drift.
+for (const [defName, fields] of Object.entries(DERIVED_OPTIONAL)) {
+	const def = schema.$defs?.[defName];
+	if (!Array.isArray(def?.required)) continue;
+	def.required = def.required.filter((key) => !fields.includes(key));
+	if (def.required.length === 0) delete def.required;
+}
 
 // Write to config.schema.json
 writeFileSync(join(srcDir, 'config.schema.json'), JSON.stringify(schema, null, '\t') + '\n');

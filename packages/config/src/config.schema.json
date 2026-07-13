@@ -504,7 +504,7 @@
 			"title": "Meeting",
 			"description": "Definition of a bookable meeting.",
 			"type": "object",
-			"required": ["name", "slug", "booking_calendar", "schedule"],
+			"required": ["name"],
 			"properties": {
 				"name": {
 					"minLength": 1,
@@ -523,7 +523,7 @@
 				},
 				"slug": {
 					"pattern": "^[a-z0-9][a-z0-9-]*$",
-					"description": "URL slug for the booking page (e.g. \"chat\" for /schedule/chat).",
+					"description": "URL slug for the booking page (e.g. \"chat\" for /schedule/chat). Defaults to a slug derived from the meeting name.",
 					"type": "string"
 				},
 				"visibility": {
@@ -565,12 +565,12 @@
 				},
 				"booking_calendar": {
 					"minLength": 1,
-					"description": "Calendar name where confirmed bookings will be written.",
+					"description": "Calendar name where confirmed bookings will be written. Defaults to the first calendar.",
 					"type": "string"
 				},
 				"schedule": {
 					"minLength": 1,
-					"description": "Name of the schedule to use for availability.",
+					"description": "Name of the schedule to use for availability. Defaults to the first schedule.",
 					"type": "string"
 				},
 				"booking_style": {
@@ -738,7 +738,7 @@
 			"title": "Schedule",
 			"description": "Schedule defining weekly working hours.",
 			"type": "object",
-			"required": ["name", "weekly"],
+			"required": ["name"],
 			"properties": {
 				"name": {
 					"minLength": 1,
