@@ -639,6 +639,7 @@
 		height: 40px;
 		border-radius: 50%;
 		object-fit: cover;
+		border: solid 2px var(--text);
 	}
 
 	.context-provider-text {

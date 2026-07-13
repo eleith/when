@@ -54,6 +54,7 @@
 		height: 72px;
 		border-radius: 50%;
 		object-fit: cover;
+		border: 3px solid var(--text);
 		margin-bottom: var(--space-5);
 	}
 

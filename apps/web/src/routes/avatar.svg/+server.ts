@@ -15,7 +15,7 @@ export const GET: RequestHandler = () => {
 	return new Response(svg, {
 		headers: {
 			'content-type': 'image/svg+xml',
-			'cache-control': 'no-cache'
+			'cache-control': 'public, max-age=3600'
 		}
 	});
 };
