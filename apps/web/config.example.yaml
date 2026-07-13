@@ -1,33 +1,27 @@
 # yaml-language-server: $schema=./config.schema.json
 #
-# Minimal starter config for When. Fill in the ${ENV_VAR} references
-# before running the app, or replace them with literal values.
+# Minimal starter config for When. Only the essentials are shown here — every
+# field omitted below has a sensible default (autocomplete against the schema
+# above to discover them). Fill in the ${ENV_VAR} references, or replace them
+# with literal values.
 
 auth:
   credentials:
     username: admin
-    password: '${WHEN_ADMIN_PASSWORD}' # defaults to WHEN_ADMIN_PASSWORD env var if omitted
+    # password defaults to the WHEN_ADMIN_PASSWORD env var
 
 user:
   name: 'Your Name'
-  timezone: 'UTC'
   email: 'you@example.com'
-  appearance:
-    title: 'Welcome to my scheduling page'
-    description: 'A little bit about me and **why** I want to schedule a meeting.'
-    logo_url: '/public/logo.png'
-    avatar_url: '/public/avatar.jpg'
-    favicon_url: '/public/favicon.ico'
-    font_name: 'Outfit'
-    primary_light_color: '#166534'
-    primary_dark_color: '#34d399'
+  # timezone defaults to the TZ env var, or UTC
+  # appearance is optional — title, colors, logo, favicon and avatar all default
 
-# Required — appointment emails are sent over this SMTP server.
+# Appointment emails are sent over this SMTP server.
 smtp:
   host: 'smtp.example.com'
-  port: 587
   user: 'you@example.com'
   pass: '${SMTP_PASSWORD}'
+  # port defaults to 587
 
 services:
   - name: 'caldav-service'
@@ -44,19 +38,10 @@ calendars:
 
 schedules:
   - name: 'standard'
-    weekly:
-      monday: ['09:00-17:00']
-      tuesday: ['09:00-17:00']
-      wednesday: ['09:00-17:00']
-      thursday: ['09:00-17:00']
-      friday: ['09:00-17:00']
+    # weekly defaults to Monday–Friday 09:00–17:00 when omitted
 
 meetings:
   - name: '30-minute chat'
-    duration_minutes: 30
-    slug: 'chat'
-    booking_approval: 'instant'
-    booking_calendar: 'main'
-    schedule: 'standard'
-    image_url: '/public/chat-icon.png'
-    description: 'A quick catch-up or intro call.'
+    # With one schedule and one calendar, `schedule` and `booking_calendar` are
+    # inferred. `slug` defaults to "30-minute-chat", `duration_minutes` to 30,
+    # and `booking_approval` to "request".

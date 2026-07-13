@@ -52,7 +52,7 @@ The schedule owner and the appointment page's appearance.
 user:
   name: 'Your Name'
   email: 'you@example.com' # required, must be a valid email
-  timezone: 'America/New_York' # required, IANA timezone identifier
+  timezone: 'America/New_York' # IANA timezone; defaults to the TZ env var, or UTC
   appearance:
     title: 'Schedule a time with me'
     description: 'A little bit about me.'
@@ -64,7 +64,7 @@ user:
     primary_dark_color: '#34d399' # brand hue, dark mode
 ```
 
-`appearance` and all of its fields are optional; defaults are applied when omitted. `primary_light_color` and `primary_dark_color` set the brand hue for light and dark modes, and a muted tonal scale is derived from each; the `background_*_color` and `text_*_color` fields likewise override the light/dark surface and text colors. Place custom assets in `./data/public/`, which is served at `/public/`.
+`appearance` and all of its fields are optional; defaults are applied when omitted. `logo_url` and `favicon_url` default to a bundled spiral-calendar mark, and `avatar_url` defaults to `/avatar.svg` — a placeholder avatar generated from `user.name`. `primary_light_color` and `primary_dark_color` set the brand hue for light and dark modes, and a muted tonal scale is derived from each; the `background_*_color` and `text_*_color` fields likewise override the light/dark surface and text colors. Place custom assets in `./data/public/`, which is served at `/public/`.
 
 ## `smtp`
 
@@ -74,7 +74,7 @@ relies on it.
 ```yaml
 smtp:
   host: 'smtp.example.com'
-  port: 587
+  port: 587 # defaults to 587
   user: '${SMTP_USER}'
   pass: '${SMTP_PASS}'
 ```
@@ -133,30 +133,30 @@ A list of weekly schedules defining availability slots.
 ```yaml
 schedules:
   - name: 'standard' # unique name referenced by meetings
-    weekly: # required: weekly working hours
+    weekly: # optional; defaults to Monday–Friday 09:00–17:00 when omitted
       monday: ['09:00-17:00']
       tuesday: ['09:00-17:00']
       wednesday: ['09:00-17:00']
       thursday: ['09:00-17:00']
       friday: ['09:00-13:00', '14:00-17:00'] # multiple blocks allowed
-      # days omitted = no availability
+      # omitted days have no availability; a schedule needs at least one window
 ```
 
 ## `meetings`
 
-The meetings people can book. `name`, `duration_minutes`, `slug`, `booking_approval`, `booking_calendar`, and `schedule` are required; everything else is optional.
+The meetings people can book. Only `name` is required: `duration_minutes` (30), `booking_approval` (`request`), and `slug` (a slug of `name`) default, and `schedule`/`booking_calendar` are inferred when exactly one schedule/calendar exists — otherwise name them explicitly. Everything else is optional.
 
 ```yaml
 meetings:
   - name: '30-minute chat'
-    duration_minutes: 30 # minutes
-    slug: 'chat' # URL slug: /schedule/chat
+    duration_minutes: 30 # minutes (default 30)
+    slug: 'chat' # URL slug: /schedule/chat (defaults to a slug of the name)
     description: 'A quick intro call.'
     visibility: 'public' # 'public' (default) or 'private' (hidden from the homepage)
-    booking_approval: 'instant' # 'instant' or 'request' (requires host approval)
+    booking_approval: 'request' # 'request' (default, requires host approval) or 'instant'
     busy_calendars: ['work', 'personal'] # busy-time calendar names to check for conflicts (default [])
-    booking_calendar: 'work' # where the appointment is written
-    schedule: 'standard' # references a schedules name
+    booking_calendar: 'work' # where the appointment is written (defaults to the sole calendar)
+    schedule: 'standard' # references a schedules name (defaults to the sole schedule)
     image_url: '/public/chat.png'
     location: 'Office Room 101' # a static URL, address, or phone number (optional)
     video_chat_service: 'my-nextcloud-service' # references a nextcloud or google service name to generate dynamic meeting links (optional)
