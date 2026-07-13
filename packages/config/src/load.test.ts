@@ -174,6 +174,34 @@ test('user timezone defaults to UTC when omitted and TZ is unset', () => {
 	}
 });
 
+test('meeting slug is derived from the name when omitted', () => {
+	const raw = clone(validConfig) as unknown as { meetings: { name: string; slug?: string }[] };
+	raw.meetings[0].name = 'Quick Intro Call';
+	delete raw.meetings[0].slug;
+	expect(validateConfig(raw).meetings[0].slug).toBe('quick-intro-call');
+});
+
+test('meeting schedule and booking_calendar default to the sole entry when omitted', () => {
+	const raw = clone(validConfig) as unknown as {
+		meetings: { schedule?: string; booking_calendar?: string }[];
+	};
+	delete raw.meetings[0].schedule;
+	delete raw.meetings[0].booking_calendar;
+	const cfg = validateConfig(raw);
+	expect(cfg.meetings[0].schedule).toBe('standard');
+	expect(cfg.meetings[0].booking_calendar).toBe('my-google-cal');
+});
+
+test('omitted schedule with multiple schedules fails validation', () => {
+	const raw = clone(validConfig) as unknown as {
+		schedules: { name: string; weekly: unknown }[];
+		meetings: { schedule?: string }[];
+	};
+	raw.schedules.push({ name: 'weekend', weekly: { saturday: ['10:00-14:00'] } });
+	delete raw.meetings[0].schedule;
+	expect(() => validateConfig(raw)).toThrow(ConfigError);
+});
+
 test('meeting note accepts valid string note', () => {
 	const good = clone(validConfig);
 	good.meetings[0].note = 'Please read the notes before scheduling.';

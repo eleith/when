@@ -5,6 +5,7 @@ import { FormatRegistry, type TSchema } from '@sinclair/typebox';
 import { Value, type ValueError } from '@sinclair/typebox/value';
 import * as schemas from './schema.js';
 import { interpolate } from './interpolate.js';
+import { withDerivedDefaults } from './normalize.js';
 import { checkCrossRefs } from './cross-refs.js';
 import { resolveConfigPath } from './paths.js';
 
@@ -48,18 +49,19 @@ export function validateConfig(raw: unknown): WhenConfiguration {
 	const withDefaults = structuredClone(raw) ?? {};
 	Value.Default(WhenConfigurationSchema, subschemas, withDefaults);
 
-	const interpolated = interpolate(withDefaults) as WhenConfiguration;
-	const errors = [...Value.Errors(WhenConfigurationSchema, subschemas, interpolated)];
+	const interpolated = interpolate(withDefaults);
+	const normalized = withDerivedDefaults(interpolated) as WhenConfiguration;
+	const errors = [...Value.Errors(WhenConfigurationSchema, subschemas, normalized)];
 
 	if (errors.length > 0) {
 		const issues = errors.map(toIssue);
 		throw new ConfigError(`config failed schema validation`, issues);
 	}
-	const crossRefIssues = checkCrossRefs(interpolated);
+	const crossRefIssues = checkCrossRefs(normalized);
 	if (crossRefIssues.length > 0) {
 		throw new ConfigError(`config failed cross-reference validation`, crossRefIssues);
 	}
-	return interpolated;
+	return normalized;
 }
 
 export async function loadConfigFile(
