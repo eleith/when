@@ -24,9 +24,8 @@
 					<div class="event-info">
 						<h2>{et.name}</h2>
 						<p class="event-meta">
-							{et.duration} min{#if et.description}<span
-									class="event-sep"
-									aria-hidden="true">|</span
+							{et.duration} min{#if et.description}<span class="event-sep" aria-hidden="true"
+									>|</span
 								>{et.description}{/if}
 						</p>
 					</div>
