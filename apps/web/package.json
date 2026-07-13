@@ -60,7 +60,6 @@
 		"@when/jobs": "workspace:*",
 		"bits-ui": "2.18.1",
 		"kysely": "0.28.17",
-		"marked": "18.0.4",
 		"openworkflow": "0.9.0",
 		"pino": "10.3.1",
 		"prom-client": "15.1.3",

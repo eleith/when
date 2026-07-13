@@ -643,11 +643,6 @@
 						}
 					]
 				},
-				"image_url": {
-					"minLength": 1,
-					"description": "URL of an image representing the meeting.",
-					"type": "string"
-				},
 				"form_fields": {
 					"description": "Custom form fields for the booking process.",
 					"type": "array",

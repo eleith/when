@@ -210,7 +210,6 @@ export const MeetingSchema = Type.Object({
 	padding_before_minutes: Type.Optional(Type.Integer({ minimum: 0, default: 0, description: 'Minutes of padding time required before each appointment (default: 0).' })),
 	padding_after_minutes: Type.Optional(Type.Integer({ minimum: 0, default: 0, description: 'Minutes of padding time required after each appointment (default: 0).' })),
 	daily_booking_limit: Type.Optional(Type.Union([Type.Integer({ minimum: 1 }), Type.Null()], { default: null, description: 'Maximum number of appointments allowed in a single day. null means unlimited (default: null).' })),
-	image_url: Type.Optional(Type.String({ minLength: 1, description: 'URL of an image representing the meeting.' })),
 	form_fields: Type.Optional(Type.Array(Ref(FormFieldSchema), { description: 'Custom form fields for the booking process.' }))
 }, { $id: 'Meeting', additionalProperties: false, title: 'Meeting', description: 'Definition of a bookable meeting.' });
 
