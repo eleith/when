@@ -53,6 +53,7 @@
 	"dependencies": {
 		"@auth/sveltekit": "1.11.2",
 		"@internationalized/date": "3.12.2",
+		"@when/avatar": "workspace:*",
 		"@when/calendar": "workspace:*",
 		"@when/config": "workspace:*",
 		"@when/db": "workspace:*",

@@ -91,7 +91,8 @@
 				},
 				"avatar_url": {
 					"minLength": 1,
-					"description": "URL of the avatar image. Can be relative (e.g. /public/avatar.png).",
+					"default": "/avatar.svg",
+					"description": "URL of the avatar image (default: /avatar.svg, generated from the owner's name). Can be relative (e.g. /public/avatar.png).",
 					"type": "string"
 				},
 				"favicon_url": {
