@@ -4,7 +4,7 @@
 	font-style: normal;
 	font-display: swap;
 	font-weight: 400;
-	src: url('/fonts/lato/lato-latin-400-normal.woff2') format('woff2');
+	src: url('/assets/fonts/lato/lato-latin-400-normal.woff2') format('woff2');
 }
 /* lato-latin-700-normal */
 @font-face {
@@ -12,5 +12,5 @@
 	font-style: normal;
 	font-display: swap;
 	font-weight: 700;
-	src: url('/fonts/lato/lato-latin-700-normal.woff2') format('woff2');
+	src: url('/assets/fonts/lato/lato-latin-700-normal.woff2') format('woff2');
 }

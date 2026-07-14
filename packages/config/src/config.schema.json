@@ -70,7 +70,7 @@
 		"Appearance": {
 			"additionalProperties": false,
 			"title": "Appearance",
-			"description": "Appearance and theme options for the booking page and emails. Place custom assets in ./data/public/ to serve them at /public/.",
+			"description": "Appearance and theme options for the booking page and emails. Place custom assets in ./public/ to serve them at /public/.",
 			"type": "object",
 			"properties": {
 				"title": {
@@ -85,20 +85,20 @@
 				},
 				"logo_url": {
 					"minLength": 1,
-					"default": "/logo.svg",
-					"description": "URL of the logo image (default: the bundled /logo.svg). Can be relative (e.g. /public/logo.png).",
+					"default": "/assets/images/logo.svg",
+					"description": "URL of the logo image (default: the bundled /assets/images/logo.svg). Can be relative (e.g. /public/logo.png).",
 					"type": "string"
 				},
 				"avatar_url": {
 					"minLength": 1,
-					"default": "/avatar.svg",
-					"description": "URL of the avatar image (default: /avatar.svg, generated from the owner's name). Can be relative (e.g. /public/avatar.png).",
+					"default": "/assets/images/avatar.svg",
+					"description": "URL of the avatar image (default: /assets/images/avatar.svg, generated from the owner's name). Can be relative (e.g. /public/avatar.png).",
 					"type": "string"
 				},
 				"favicon_url": {
 					"minLength": 1,
-					"default": "/favicon.svg",
-					"description": "URL of the favicon image (default: the bundled /favicon.svg). Can be relative (e.g. /public/favicon.ico).",
+					"default": "/assets/images/favicon.svg",
+					"description": "URL of the favicon image (default: the bundled /assets/images/favicon.svg). Can be relative (e.g. /public/favicon.ico).",
 					"type": "string"
 				},
 				"font_name": {

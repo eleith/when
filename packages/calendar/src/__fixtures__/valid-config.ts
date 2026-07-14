@@ -14,9 +14,9 @@ export const validConfig: WhenConfiguration = {
 		appearance: {
 			title: 'if not now, when?',
 			description: 'find some time and we can meet',
-			logo_url: '/logo.svg',
-			avatar_url: '/avatar.svg',
-			favicon_url: '/favicon.svg',
+			logo_url: '/assets/images/logo.svg',
+			avatar_url: '/assets/images/avatar.svg',
+			favicon_url: '/assets/images/favicon.svg',
 			primary_light_color: '#4f46e5',
 			primary_dark_color: '#818cf8',
 			background_light_color: '#f5f5f5',
