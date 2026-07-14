@@ -6,11 +6,19 @@ export const BRAND_LOGO_CID = 'brand-logo';
 
 const FETCH_TIMEOUT_MS = 5000;
 
-const cache = new Map<string, Attachment | null>();
+// Brand logos rarely change; cache the result (including negatives, so a broken
+// URL isn't refetched on every email) for this long before revalidating.
+const CACHE_TTL_MS = 60 * 60 * 1000;
+
+interface CacheEntry {
+	value: Attachment | null;
+	fetchedAt: number;
+}
+
+const cache = new Map<string, CacheEntry>();
 
 function resolveImageUrl(cfg: WhenConfiguration): string | undefined {
-	const appearance = cfg.user.appearance;
-	const src = appearance?.logo_url ?? appearance?.avatar_url;
+	const src = cfg.user.appearance.logo_url;
 	if (!src) return undefined;
 	const base = cfg.url.internal || cfg.url.app;
 	try {
@@ -65,14 +73,16 @@ async function load(url: string): Promise<Attachment | null> {
 export async function fetchBrandLogo(cfg: WhenConfiguration): Promise<Attachment | null> {
 	const url = resolveImageUrl(cfg);
 	if (!url) {
-		logger.debug('no brand image configured for email header (logo_url/avatar_url)');
+		logger.debug('no brand image configured for email header (logo_url)');
 		return null;
 	}
 	const cached = cache.get(url);
-	if (cached) return cached;
-	const result = await load(url);
-	if (result) cache.set(url, result);
-	return result;
+	if (cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS) {
+		return cached.value;
+	}
+	const value = await load(url);
+	cache.set(url, { value, fetchedAt: Date.now() });
+	return value;
 }
 
 export function clearLogoCache(): void {

@@ -50,14 +50,14 @@ describe('fetchBrandLogo', () => {
 
 	test('falls back to url.app for relative paths when url.internal is unset', async () => {
 		const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(imageResponse());
-		await fetchBrandLogo(cfg({ avatar_url: '/me.png' }));
+		await fetchBrandLogo(cfg({ logo_url: '/me.png' }));
 		expect(fetchSpy).toHaveBeenCalledWith('https://book.acme.test/me.png', expect.anything());
 	});
 
-	test('prefers logo_url over avatar_url', async () => {
+	test('uses only logo_url; avatar_url is ignored', async () => {
 		const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(imageResponse());
-		await fetchBrandLogo(cfg({ logo_url: 'https://cdn/l.png', avatar_url: 'https://cdn/a.png' }));
-		expect(fetchSpy).toHaveBeenCalledWith('https://cdn/l.png', expect.anything());
+		expect(await fetchBrandLogo(cfg({ avatar_url: 'https://cdn/a.png' }))).toBeNull();
+		expect(fetchSpy).not.toHaveBeenCalled();
 	});
 
 	test('returns null on a non-200 response', async () => {
@@ -82,6 +82,33 @@ describe('fetchBrandLogo', () => {
 		const c = cfg({ logo_url: 'https://cdn/x.png' });
 		await fetchBrandLogo(c);
 		await fetchBrandLogo(c);
+		expect(fetchSpy).toHaveBeenCalledTimes(1);
+	});
+
+	test('refetches after the cache TTL expires', async () => {
+		vi.useFakeTimers();
+		try {
+			const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(imageResponse());
+			const c = cfg({ logo_url: 'https://cdn/x.png' });
+			await fetchBrandLogo(c);
+			await vi.advanceTimersByTimeAsync(59 * 60 * 1000);
+			await fetchBrandLogo(c);
+			expect(fetchSpy).toHaveBeenCalledTimes(1);
+			await vi.advanceTimersByTimeAsync(2 * 60 * 1000);
+			await fetchBrandLogo(c);
+			expect(fetchSpy).toHaveBeenCalledTimes(2);
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	test('caches a negative result: a broken URL is not refetched within the TTL', async () => {
+		const fetchSpy = vi
+			.spyOn(globalThis, 'fetch')
+			.mockResolvedValue(new Response('', { status: 404 }));
+		const c = cfg({ logo_url: 'https://cdn/missing.png' });
+		expect(await fetchBrandLogo(c)).toBeNull();
+		expect(await fetchBrandLogo(c)).toBeNull();
 		expect(fetchSpy).toHaveBeenCalledTimes(1);
 	});
 });
