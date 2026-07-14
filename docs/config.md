@@ -64,7 +64,7 @@ user:
     primary_dark_color: '#34d399' # brand hue, dark mode
 ```
 
-`appearance` and all of its fields are optional; defaults are applied when omitted. `logo_url` and `favicon_url` default to a bundled spiral-calendar mark, and `avatar_url` defaults to `/avatar.svg` — a placeholder avatar generated from `user.name`. `primary_light_color` and `primary_dark_color` set the brand hue for light and dark modes, and a muted tonal scale is derived from each; the `background_*_color` and `text_*_color` fields likewise override the light/dark surface and text colors. Place custom assets in `./data/public/`, which is served at `/public/`.
+`appearance` and all of its fields are optional; defaults are applied when omitted. `logo_url` and `favicon_url` default to a bundled spiral-calendar mark (`/assets/images/logo.svg`, `/assets/images/favicon.svg`), and `avatar_url` defaults to `/assets/images/avatar.svg` — a placeholder avatar generated from `user.name`. `primary_light_color` and `primary_dark_color` set the brand hue for light and dark modes, and a muted tonal scale is derived from each; the `background_*_color` and `text_*_color` fields likewise override the light/dark surface and text colors. To override any of them, place custom assets in `./public/` (a sibling of `config/` and `data/`, overridable with `WHEN_PUBLIC_DIR`) and reference them as `/public/...`.
 
 ## `smtp`
 
@@ -157,7 +157,6 @@ meetings:
     busy_calendars: ['work', 'personal'] # busy-time calendar names to check for conflicts (default [])
     booking_calendar: 'work' # where the appointment is written (defaults to the first calendar)
     schedule: 'standard' # references a schedules name (defaults to the first schedule)
-    image_url: '/public/chat.png'
     location: 'Office Room 101' # a static URL, address, or phone number (optional)
     video_chat_service: 'my-nextcloud-service' # references a nextcloud or google service name to generate dynamic meeting links (optional)
     note: 'Please review materials prior to the call.' # a host note shown to guests (optional)

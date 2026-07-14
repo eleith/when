@@ -28,12 +28,13 @@ in `config.example.yaml`:
 
 The worker also honors a few operational variables:
 
-| Variable                          | Notes                                                                                                                |
-| --------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| `CONFIG_PATH`                     | Path to `when.yaml` (default `/app/config/when.yaml` in prod, `<cwd>/config/when.yaml` otherwise).                   |
-| `DATABASE_PATH` / `QUEUE_DB_PATH` | Optional overrides for the config's `database.app` / `database.queue`.                                               |
-| `PORT`                            | Worker health-server port (default `9000`).                                                                          |
-| `WHEN_URL_INTERNAL`               | Default for `url.internal` (how the worker reaches the web app internally). Baked into the Docker images per target. |
+| Variable                                    | Notes                                                                                                                |
+| ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `CONFIG_PATH`                               | Path to `when.yaml` (default `/app/config/when.yaml` in prod, `<cwd>/config/when.yaml` otherwise).                   |
+| `WHEN_DATABASE_PATH` / `WHEN_QUEUE_DB_PATH` | Optional overrides for the config's `database.app` / `database.queue`.                                               |
+| `WHEN_PUBLIC_DIR`                           | Override the branding-overrides dir (default `<root>/public`, i.e. `/app/public` in the container).                  |
+| `PORT`                                      | Worker health-server port (default `9000`).                                                                          |
+| `WHEN_URL_INTERNAL`                         | Default for `url.internal` (how the worker reaches the web app internally). Baked into the Docker images per target. |
 
 ## Docker
 
@@ -47,15 +48,19 @@ boot.
 
 ## Persistence
 
-State is two SQLite files plus your static assets, all under the data directory the
-compose file mounts (`./data` → `/app/data`):
+State is two SQLite files under the data directory the compose file mounts
+(`./data` → `/app/data`):
 
 - `when.sqlite` — appointments and OAuth tokens (shared by web + worker).
 - `openworkflow.sqlite` — the background job queue (owned by the worker).
-- `public/` — branding assets you reference (`/public/...`), served statically.
 
-Back up the data directory to preserve appointments and settings across restarts. Paths are
-configurable under `database` in `when.yaml`.
+Branding overrides live in a separate `public/` directory mounted alongside
+(`./public` → `/app/public`, overridable with `WHEN_PUBLIC_DIR`); the web app serves
+them at `/public/...`. The bundled defaults under `/assets/*` are baked into the image
+and need no mount.
+
+Back up the data directory (and `public/`, if you use it) to preserve appointments and
+settings across restarts. Database paths are configurable under `database` in `when.yaml`.
 
 ## Operating endpoints
 
