@@ -2,7 +2,7 @@ import { afterEach, beforeEach, expect, test } from 'vitest';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { resolveConfigPath } from './paths.js';
+import { resolveConfigPath, resolveDeploymentRoot, resolvePublicDir } from './paths.js';
 
 const savedEnv = { ...process.env };
 const savedCwd = process.cwd();
@@ -49,4 +49,18 @@ test('dev falls back to the monorepo root config/when.yaml', async () => {
 
 test('dev falls back to cwd config/when.yaml when nothing exists', () => {
 	expect(resolveConfigPath()).toBe(join(dir, 'config', 'when.yaml'));
+});
+
+test('resolveDeploymentRoot is the config directory parent', () => {
+	expect(resolveDeploymentRoot('/srv/when/config/when.yaml')).toBe('/srv/when');
+});
+
+test('resolvePublicDir defaults to the sibling public dir under the deployment root', () => {
+	delete process.env.WHEN_PUBLIC_DIR;
+	expect(resolvePublicDir('/srv/when/config/when.yaml')).toBe(join('/srv/when', 'public'));
+});
+
+test('WHEN_PUBLIC_DIR overrides the resolved public dir', () => {
+	process.env.WHEN_PUBLIC_DIR = '/var/lib/when/public';
+	expect(resolvePublicDir('/srv/when/config/when.yaml')).toBe('/var/lib/when/public');
 });

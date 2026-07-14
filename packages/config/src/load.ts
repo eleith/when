@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises';
-import { dirname, resolve } from 'node:path';
+import { resolve } from 'node:path';
 import { parse as parseYaml } from 'yaml';
 import { FormatRegistry, type TSchema } from '@sinclair/typebox';
 import { Value, type ValueError } from '@sinclair/typebox/value';
@@ -7,7 +7,7 @@ import * as schemas from './schema.js';
 import { interpolate } from './interpolate.js';
 import { withDerivedDefaults } from './normalize.js';
 import { checkCrossRefs } from './cross-refs.js';
-import { resolveConfigPath } from './paths.js';
+import { resolveConfigPath, resolveDeploymentRoot } from './paths.js';
 
 const { WhenConfigurationSchema } = schemas;
 type WhenConfiguration = schemas.WhenConfiguration;
@@ -81,15 +81,9 @@ export async function loadConfigFile(
 	return config;
 }
 
-/**
- * Resolve the database paths to absolute, in place. when.yaml lives in
- * `<root>/config/`, and the databases default to the sibling `<root>/data/`
- * (both mounted as siblings in the compose files), so relative paths resolve
- * against the config directory's parent — the deployment root shared by web and
- * worker — not `config/` itself. `WHEN_DATABASE_PATH` / `WHEN_QUEUE_DB_PATH` override.
- */
+// Resolve relative db paths against the deployment root, in place; env vars override.
 function resolveDatabasePaths(config: WhenConfiguration, configPath: string): void {
-	const root = dirname(dirname(configPath));
+	const root = resolveDeploymentRoot(configPath);
 	config.database.app = process.env.WHEN_DATABASE_PATH ?? resolve(root, config.database.app);
 	config.database.queue = process.env.WHEN_QUEUE_DB_PATH ?? resolve(root, config.database.queue);
 }
