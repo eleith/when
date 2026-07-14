@@ -18,7 +18,7 @@ services:
       - ./tsconfig.json:/m/apps/web/tsconfig.json
       - ./eslint.config.js:/m/apps/web/eslint.config.js
       - ./data:/m/apps/web/data
-      - ./data/public:/m/apps/web/static/public
+      - ./public:/m/apps/web/public
       - ../../packages/config/src:/m/packages/config/src
       - ../../packages/db/src:/m/packages/db/src
       - ../../packages/jobs/src:/m/packages/jobs/src
@@ -101,7 +101,6 @@ services:
     volumes:
       - ./config:/m/config
       - ./data:/m/apps/cli/data
-      - ./data/public:/m/apps/web/static/public
       - ../cli/src:/m/apps/cli/src
       - ../../packages/config/src:/m/packages/config/src
       - ../../packages/db/src:/m/packages/db/src
