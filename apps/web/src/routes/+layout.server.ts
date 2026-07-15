@@ -8,8 +8,11 @@ export const load: LayoutServerLoad = ({ cookies }) => {
 			primary_light_color: cfg.user.appearance.primary_light_color,
 			primary_dark_color: cfg.user.appearance.primary_dark_color,
 			logo_url: cfg.user.appearance.logo_url,
-			favicon_url: cfg.user.appearance.favicon_url
+			favicon_url: cfg.user.appearance.favicon_url,
+			title: cfg.user.appearance.title,
+			description: cfg.user.appearance.description
 		},
+		appUrl: cfg.url.app,
 		preferredTimezone: cookies.get('tz') ?? null
 	};
 };
