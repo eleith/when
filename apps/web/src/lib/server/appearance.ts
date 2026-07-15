@@ -1,11 +1,18 @@
 import type { Appearance } from '@when/config';
 import { getContrastText } from './color.js';
+import { fontStack } from './fonts.js';
 
 export function getHeadInjections(appearance: Appearance): string {
 	let headInjections = '';
 
 	if (appearance.font_url) {
-		headInjections += `<link rel="stylesheet" href="${appearance.font_url}">\n\t\t`;
+		headInjections += `<style>
+		@font-face {
+			font-family: '${appearance.font_name}';
+			src: url('${appearance.font_url}') format('woff2');
+			font-display: swap;
+		}
+	</style>\n\t\t`;
 	}
 
 	const textOnPrimaryLight = getContrastText(
@@ -17,7 +24,7 @@ export function getHeadInjections(appearance: Appearance): string {
 		appearance.text_dark_color
 	);
 
-	const fontDecl = appearance.font_name ? `--font-family: ${appearance.font_name};` : '';
+	const fontDecl = `--font-family: ${fontStack(appearance.font_name)};`;
 
 	const styleTag = `<style>
 		:root {
