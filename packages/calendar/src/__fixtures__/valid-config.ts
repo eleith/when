@@ -21,6 +21,7 @@ export const validConfig: WhenConfiguration = {
 			primary_dark_color: '#818cf8',
 			background_light_color: '#f5f5f5',
 			background_dark_color: '#0a0a0a',
+			font_name: 'Noto Sans',
 			text_light_color: '#171717',
 			text_dark_color: '#ededed'
 		}
