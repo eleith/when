@@ -95,8 +95,8 @@ export async function renderOpengraph(
 	const primary = appearance.primary_light_color;
 	const text = appearance.text_light_color;
 
-	const [logo, avatar, renderer] = await Promise.all([
-		loadImage(fetchFn, appearance.logo_url),
+	const [appIcon, avatar, renderer] = await Promise.all([
+		loadImage(fetchFn, appearance.app_icon_url),
 		loadImage(fetchFn, appearance.avatar_url),
 		getRenderer(fetchFn, appearance)
 	]);
@@ -107,7 +107,7 @@ export async function renderOpengraph(
 			description: appearance.description,
 			fontFamily: fontStack(appearance.font_name),
 			url: formatDisplayUrl(appUrl),
-			logoSrc: logo?.src,
+			appIconSrc: appIcon?.src,
 			avatarSrc: avatar?.src,
 			primary,
 			primaryTint: hexToRgba(primary, 0.45),
@@ -122,7 +122,7 @@ export async function renderOpengraph(
 		height: HEIGHT,
 		format: 'png',
 		renderer,
-		images: [logo, avatar].filter((image) => image !== null),
+		images: [appIcon, avatar].filter((image) => image !== null),
 		headers: { 'cache-control': CACHE_CONTROL }
 	});
 }

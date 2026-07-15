@@ -30,7 +30,7 @@ describe('fetchBrandLogo', () => {
 
 	test('embeds a fetched image as a base64 CID attachment', async () => {
 		vi.spyOn(globalThis, 'fetch').mockResolvedValue(imageResponse(Buffer.from('PNG'), 'image/png'));
-		const logo = await fetchBrandLogo(cfg({ logo_url: 'https://cdn.acme.test/logo.png' }));
+		const logo = await fetchBrandLogo(cfg({ app_icon_url: 'https://cdn.acme.test/logo.png' }));
 		expect(logo).toEqual({
 			filename: 'logo.png',
 			content: Buffer.from('PNG').toString('base64'),
@@ -44,17 +44,17 @@ describe('fetchBrandLogo', () => {
 		const fetchSpy = vi
 			.spyOn(globalThis, 'fetch')
 			.mockResolvedValue(imageResponse(Buffer.from('x'), 'image/jpeg'));
-		await fetchBrandLogo(cfg({ logo_url: '/brand/logo.png' }, 'http://when-app:3000'));
+		await fetchBrandLogo(cfg({ app_icon_url: '/brand/logo.png' }, 'http://when-app:3000'));
 		expect(fetchSpy).toHaveBeenCalledWith('http://when-app:3000/brand/logo.png', expect.anything());
 	});
 
 	test('falls back to url.app for relative paths when url.internal is unset', async () => {
 		const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(imageResponse());
-		await fetchBrandLogo(cfg({ logo_url: '/me.png' }));
+		await fetchBrandLogo(cfg({ app_icon_url: '/me.png' }));
 		expect(fetchSpy).toHaveBeenCalledWith('https://book.acme.test/me.png', expect.anything());
 	});
 
-	test('uses only logo_url; avatar_url is ignored', async () => {
+	test('uses only app_icon_url; avatar_url is ignored', async () => {
 		const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(imageResponse());
 		expect(await fetchBrandLogo(cfg({ avatar_url: 'https://cdn/a.png' }))).toBeNull();
 		expect(fetchSpy).not.toHaveBeenCalled();
@@ -62,24 +62,24 @@ describe('fetchBrandLogo', () => {
 
 	test('returns null on a non-200 response', async () => {
 		vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('', { status: 404 }));
-		expect(await fetchBrandLogo(cfg({ logo_url: 'https://cdn/x.png' }))).toBeNull();
+		expect(await fetchBrandLogo(cfg({ app_icon_url: 'https://cdn/x.png' }))).toBeNull();
 	});
 
 	test('returns null when the response is not an image', async () => {
 		vi.spyOn(globalThis, 'fetch').mockResolvedValue(
 			new Response('<html>', { status: 200, headers: { 'content-type': 'text/html' } })
 		);
-		expect(await fetchBrandLogo(cfg({ logo_url: 'https://cdn/x.png' }))).toBeNull();
+		expect(await fetchBrandLogo(cfg({ app_icon_url: 'https://cdn/x.png' }))).toBeNull();
 	});
 
 	test('returns null when the fetch throws', async () => {
 		vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('network down'));
-		expect(await fetchBrandLogo(cfg({ logo_url: 'https://cdn/x.png' }))).toBeNull();
+		expect(await fetchBrandLogo(cfg({ app_icon_url: 'https://cdn/x.png' }))).toBeNull();
 	});
 
 	test('caches by URL: a second call does not refetch', async () => {
 		const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(imageResponse());
-		const c = cfg({ logo_url: 'https://cdn/x.png' });
+		const c = cfg({ app_icon_url: 'https://cdn/x.png' });
 		await fetchBrandLogo(c);
 		await fetchBrandLogo(c);
 		expect(fetchSpy).toHaveBeenCalledTimes(1);
@@ -89,7 +89,7 @@ describe('fetchBrandLogo', () => {
 		vi.useFakeTimers();
 		try {
 			const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(imageResponse());
-			const c = cfg({ logo_url: 'https://cdn/x.png' });
+			const c = cfg({ app_icon_url: 'https://cdn/x.png' });
 			await fetchBrandLogo(c);
 			await vi.advanceTimersByTimeAsync(59 * 60 * 1000);
 			await fetchBrandLogo(c);
@@ -106,7 +106,7 @@ describe('fetchBrandLogo', () => {
 		const fetchSpy = vi
 			.spyOn(globalThis, 'fetch')
 			.mockResolvedValue(new Response('', { status: 404 }));
-		const c = cfg({ logo_url: 'https://cdn/missing.png' });
+		const c = cfg({ app_icon_url: 'https://cdn/missing.png' });
 		expect(await fetchBrandLogo(c)).toBeNull();
 		expect(await fetchBrandLogo(c)).toBeNull();
 		expect(fetchSpy).toHaveBeenCalledTimes(1);

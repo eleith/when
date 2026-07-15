@@ -83,10 +83,10 @@
 					"description": "Subtext or introduction shown on the booking page.",
 					"type": "string"
 				},
-				"logo_url": {
+				"app_icon_url": {
 					"minLength": 1,
-					"default": "/assets/images/logo.svg",
-					"description": "URL of the logo image (default: the bundled /assets/images/logo.svg). Can be relative (e.g. /public/logo.png).",
+					"default": "/assets/images/app-icon.svg",
+					"description": "URL of the app icon (default: the bundled /assets/images/app-icon.svg, a calendar). Can be relative (e.g. /public/icon.png).",
 					"type": "string"
 				},
 				"avatar_url": {

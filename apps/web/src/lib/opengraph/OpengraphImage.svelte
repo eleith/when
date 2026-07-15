@@ -6,7 +6,7 @@
 		description: string;
 		fontFamily: string;
 		url: string;
-		logoSrc?: string;
+		appIconSrc?: string;
 		avatarSrc?: string;
 		primary: string;
 		primaryTint: string;
@@ -20,7 +20,7 @@
 		description,
 		fontFamily,
 		url,
-		logoSrc,
+		appIconSrc,
 		avatarSrc,
 		primary,
 		primaryTint,
@@ -42,8 +42,8 @@
 	<div class="divider"></div>
 	<div class="bottom">
 		<div class="lockup">
-			{#if logoSrc}
-				<img src={logoSrc} alt="" />
+			{#if appIconSrc}
+				<img src={appIconSrc} alt="" />
 			{/if}
 			<span class="url">{url}</span>
 		</div>

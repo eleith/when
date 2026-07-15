@@ -18,7 +18,7 @@ interface CacheEntry {
 const cache = new Map<string, CacheEntry>();
 
 function resolveImageUrl(cfg: WhenConfiguration): string | undefined {
-	const src = cfg.user.appearance.logo_url;
+	const src = cfg.user.appearance.app_icon_url;
 	if (!src) return undefined;
 	const base = cfg.url.internal || cfg.url.app;
 	try {
@@ -73,7 +73,7 @@ async function load(url: string): Promise<Attachment | null> {
 export async function fetchBrandLogo(cfg: WhenConfiguration): Promise<Attachment | null> {
 	const url = resolveImageUrl(cfg);
 	if (!url) {
-		logger.debug('no brand image configured for email header (logo_url)');
+		logger.debug('no brand image configured for email header (app_icon_url)');
 		return null;
 	}
 	const cached = cache.get(url);

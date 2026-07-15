@@ -26,7 +26,7 @@
 <div class="signin-container">
 	<main class="signin-card">
 		<header class="signin-header">
-			<img src={data.appearance.logo_url} alt="Logo" class="signin-logo" />
+			<img src={data.appearance.app_icon_url} alt="" class="signin-icon" />
 			<h1 class="signin-title">Sign in to When</h1>
 			<p class="signin-subtitle">Appointment Scheduling Portal</p>
 		</header>
@@ -127,7 +127,7 @@
 		text-align: center;
 	}
 
-	.signin-logo {
+	.signin-icon {
 		width: 48px;
 		height: 48px;
 		object-fit: contain;

@@ -43,7 +43,7 @@ export const AuthSchema = Type.Union([
 export const AppearanceSchema = Type.Object({
 	title: Type.String({ default: 'if not now, when?', description: 'Title of the booking page.' }),
 	description: Type.String({ default: 'find some time and we can meet', description: 'Subtext or introduction shown on the booking page.' }),
-	logo_url: Type.String({ minLength: 1, default: '/assets/images/logo.svg', description: 'URL of the logo image (default: the bundled /assets/images/logo.svg). Can be relative (e.g. /public/logo.png).' }),
+	app_icon_url: Type.String({ minLength: 1, default: '/assets/images/app-icon.svg', description: 'URL of the app icon (default: the bundled /assets/images/app-icon.svg, a calendar). Can be relative (e.g. /public/icon.png).' }),
 	avatar_url: Type.String({ minLength: 1, default: '/assets/images/avatar.svg', description: 'URL of the avatar image (default: /assets/images/avatar.svg, generated from the owner\'s name). Can be relative (e.g. /public/avatar.png).' }),
 	favicon_url: Type.String({ minLength: 1, default: '/assets/images/favicon.svg', description: 'URL of the favicon image (default: the bundled /assets/images/favicon.svg). Can be relative (e.g. /public/favicon.ico).' }),
 	font_name: Type.String({ minLength: 1, default: 'Noto Sans', description: 'Font family for the booking page and share card: one of the bundled families (Noto Sans, Lato, Outfit, Inter) or the family name of a custom `font_url` font.' }),
