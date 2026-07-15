@@ -101,6 +101,12 @@
 					"description": "URL of the favicon image (default: the bundled /assets/images/favicon.svg). Can be relative (e.g. /public/favicon.ico).",
 					"type": "string"
 				},
+				"opengraph_url": {
+					"minLength": 1,
+					"default": "/assets/images/opengraph.png",
+					"description": "URL of the share (opengraph) image (default: /assets/images/opengraph.png, generated from the appearance). Can be relative (e.g. /public/opengraph.png).",
+					"type": "string"
+				},
 				"font_name": {
 					"minLength": 1,
 					"default": "Noto Sans",

@@ -17,6 +17,7 @@ export const validConfig: WhenConfiguration = {
 			app_icon_url: '/assets/images/app-icon.svg',
 			avatar_url: '/assets/images/avatar.svg',
 			favicon_url: '/assets/images/favicon.svg',
+			opengraph_url: '/assets/images/opengraph.png',
 			primary_light_color: '#4f46e5',
 			primary_dark_color: '#818cf8',
 			background_light_color: '#f5f5f5',

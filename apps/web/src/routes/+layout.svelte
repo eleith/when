@@ -13,7 +13,7 @@
 	let { data, children } = $props();
 
 	let favicon = $derived(data.appearance.favicon_url);
-	let ogImage = $derived(`${data.appUrl}/assets/images/opengraph.png`);
+	let ogImage = $derived(data.ogImage);
 
 	// Seed once; after init the context is the source of truth (cookie is request-stable).
 	// svelte-ignore state_referenced_locally

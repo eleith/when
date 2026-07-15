@@ -46,6 +46,7 @@ export const AppearanceSchema = Type.Object({
 	app_icon_url: Type.String({ minLength: 1, default: '/assets/images/app-icon.svg', description: 'URL of the app icon (default: the bundled /assets/images/app-icon.svg, a calendar). Can be relative (e.g. /public/icon.png).' }),
 	avatar_url: Type.String({ minLength: 1, default: '/assets/images/avatar.svg', description: 'URL of the avatar image (default: /assets/images/avatar.svg, generated from the owner\'s name). Can be relative (e.g. /public/avatar.png).' }),
 	favicon_url: Type.String({ minLength: 1, default: '/assets/images/favicon.svg', description: 'URL of the favicon image (default: the bundled /assets/images/favicon.svg). Can be relative (e.g. /public/favicon.ico).' }),
+	opengraph_url: Type.String({ minLength: 1, default: '/assets/images/opengraph.png', description: 'URL of the share (opengraph) image (default: /assets/images/opengraph.png, generated from the appearance). Can be relative (e.g. /public/opengraph.png).' }),
 	font_name: Type.String({ minLength: 1, default: 'Noto Sans', description: 'Font family for the booking page and share card: one of the bundled families (Noto Sans, Lato, Outfit, Inter) or the family name of a custom `font_url` font.' }),
 	font_url: Type.Optional(Type.String({ minLength: 1, description: 'URL of the custom font file (woff2), registered as `font_name`. Can be relative (e.g. /public/font.woff2).' })),
 	primary_light_color: Ref(HexColorSchema, { default: '#166534', description: 'Primary brand color for light mode.' }),
