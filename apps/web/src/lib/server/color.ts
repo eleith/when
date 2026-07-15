@@ -8,6 +8,11 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } {
 	return { r, g, b };
 }
 
+export function hexToRgba(hex: string, alpha: number): string {
+	const { r, g, b } = hexToRgb(hex);
+	return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
 function getLuminance(hex: string): number {
 	const rgb = hexToRgb(hex);
 	const a = [rgb.r, rgb.g, rgb.b].map((v) => {
