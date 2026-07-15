@@ -46,6 +46,7 @@ export const sampleConfig = {
 			background_light_color: '#f5f5f5',
 			background_dark_color: '#0a0a0a',
 			text_light_color: '#171717',
+			font_name: 'Noto Sans',
 			text_dark_color: '#ededed'
 		}
 	},

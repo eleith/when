@@ -103,12 +103,13 @@
 				},
 				"font_name": {
 					"minLength": 1,
-					"description": "Custom CSS font family name (e.g. Outfit, sans-serif).",
+					"default": "Noto Sans",
+					"description": "Font family for the booking page and share card: one of the bundled families (Noto Sans, Lato, Outfit, Inter) or the family name of a custom `font_url` font.",
 					"type": "string"
 				},
 				"font_url": {
-					"format": "uri",
-					"description": "URL of the custom font stylesheet (e.g. Google Fonts URL).",
+					"minLength": 1,
+					"description": "URL of the custom font file (woff2), registered as `font_name`. Can be relative (e.g. /public/font.woff2).",
 					"type": "string"
 				},
 				"primary_light_color": {
