@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
-import { expect, test } from 'vitest';
+import { expect, test, vi } from 'vitest';
 import { renderOpengraph } from './opengraph';
 import { defaultAvatar } from './avatar';
 import { validConfig } from './__fixtures__/valid-config';
@@ -54,5 +54,46 @@ test('still renders when the logo and avatar cannot be loaded', async () => {
 	const response = await renderOpengraph(failingFetch, { appUrl: 'eleith.com', appearance });
 	const bytes = new Uint8Array(await response.arrayBuffer());
 	expect(Array.from(bytes.slice(0, 8))).toEqual([137, 80, 78, 71, 13, 10, 26, 10]);
+	expect(readUint32BE(bytes, 16)).toBe(1200);
+});
+
+// The renderer (and the fonts registered on it) is cached at module level, so
+// the custom-font paths need a freshly imported module.
+async function freshRenderOpengraph(): Promise<typeof renderOpengraph> {
+	vi.resetModules();
+	return (await import('./opengraph')).renderOpengraph;
+}
+
+test('registers a custom font_url font', async () => {
+	const render = await freshRenderOpengraph();
+	const appearance = {
+		...validConfig.user.appearance,
+		font_name: 'Custom',
+		font_url: '/public/custom.woff2'
+	};
+	const customFetch: typeof fetch = async (input) => {
+		const url = typeof input === 'string' ? input : (input as Request).url;
+		const path = new URL(url, 'http://localhost').pathname;
+		if (path === '/public/custom.woff2') {
+			return fakeFetch('/assets/fonts/outfit/outfit-latin-400-normal.woff2');
+		}
+		return fakeFetch(input);
+	};
+
+	const response = await render(customFetch, { appUrl: 'eleith.com', appearance });
+	const bytes = new Uint8Array(await response.arrayBuffer());
+	expect(readUint32BE(bytes, 16)).toBe(1200);
+});
+
+test('still renders when the custom font cannot be loaded', async () => {
+	const render = await freshRenderOpengraph();
+	const appearance = {
+		...validConfig.user.appearance,
+		font_name: 'Custom',
+		font_url: '/public/missing.woff2'
+	};
+
+	const response = await render(fakeFetch, { appUrl: 'eleith.com', appearance });
+	const bytes = new Uint8Array(await response.arrayBuffer());
 	expect(readUint32BE(bytes, 16)).toBe(1200);
 });
