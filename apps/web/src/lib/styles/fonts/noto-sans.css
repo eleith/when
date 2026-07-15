@@ -1,0 +1,24 @@
+/* noto-sans-latin-400-normal */
+@font-face {
+	font-family: 'Noto Sans';
+	font-style: normal;
+	font-display: swap;
+	font-weight: 400;
+	src: url('/assets/fonts/noto-sans/noto-sans-latin-400-normal.woff2') format('woff2');
+}
+/* noto-sans-latin-600-normal */
+@font-face {
+	font-family: 'Noto Sans';
+	font-style: normal;
+	font-display: swap;
+	font-weight: 600;
+	src: url('/assets/fonts/noto-sans/noto-sans-latin-600-normal.woff2') format('woff2');
+}
+/* noto-sans-latin-700-normal */
+@font-face {
+	font-family: 'Noto Sans';
+	font-style: normal;
+	font-display: swap;
+	font-weight: 700;
+	src: url('/assets/fonts/noto-sans/noto-sans-latin-700-normal.woff2') format('woff2');
+}
