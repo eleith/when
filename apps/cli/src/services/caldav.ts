@@ -7,11 +7,12 @@ export async function getOrCreateCalDavService(
 	baseId: string
 ): Promise<{
 	serviceId: string;
-	url: string;
+	baseUrl: string;
 	username: string;
 	passwordPlain: string;
 	isNew: boolean;
 	envVarName: string;
+	passwordMissing: boolean;
 } | null> {
 	let services: Service[] = [];
 	try {
@@ -24,10 +25,11 @@ export async function getOrCreateCalDavService(
 	const davServices = services.filter((s) => s.type === 'caldav');
 	let serviceId = '';
 	let isNew = false;
-	let url = '';
+	let baseUrl = '';
 	let username = '';
 	let passwordPlain = '';
 	let envVarName = '';
+	let passwordMissing = false;
 
 	if (davServices.length > 0) {
 		const choice = await select({
@@ -42,11 +44,17 @@ export async function getOrCreateCalDavService(
 		if (choice !== 'new') {
 			serviceId = choice as string;
 			const existing = davServices.find((s) => s.name === serviceId)!;
-			url = existing.url;
+			baseUrl = existing.url;
 			username = existing.username;
 			const rawPass = existing.password || '';
 			const match = rawPass.match(/\$\{([^}]+)\}/);
-			passwordPlain = match ? process.env[match[1]] || '' : rawPass;
+			if (match) {
+				envVarName = match[1];
+				passwordPlain = process.env[match[1]] || '';
+				passwordMissing = passwordPlain === '';
+			} else {
+				passwordPlain = rawPass;
+			}
 		}
 	}
 
@@ -55,8 +63,8 @@ export async function getOrCreateCalDavService(
 		serviceId = `${baseId}-service`;
 
 		const urlInput = await text({
-			message: 'Enter your CalDAV calendar URL:',
-			placeholder: 'https://example.com/remote.php/dav/calendars/username/work/',
+			message: 'Enter your CalDAV service base URL:',
+			placeholder: 'https://cloud.example.com/remote.php/dav/',
 			validate(value) {
 				if (!value || !value.trim()) return 'URL is required';
 				try {
@@ -67,7 +75,7 @@ export async function getOrCreateCalDavService(
 			}
 		});
 		if (isCancel(urlInput)) return null;
-		url = urlInput.trim();
+		baseUrl = urlInput.trim();
 
 		const usernameInput = await text({
 			message: 'Enter your CalDAV username:',
@@ -89,5 +97,5 @@ export async function getOrCreateCalDavService(
 		envVarName = `WHEN_SERVICE_CALDAV_${baseId.toUpperCase().replace(/[^A-Z0-9]/g, '_')}_PASSWORD`;
 	}
 
-	return { serviceId, url, username, passwordPlain, isNew, envVarName };
+	return { serviceId, baseUrl, username, passwordPlain, isNew, envVarName, passwordMissing };
 }

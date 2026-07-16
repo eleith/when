@@ -28,11 +28,32 @@ async function promptCalDavCalendarName(existingNames: string[]): Promise<string
 	return calendarName.trim();
 }
 
+async function promptCalendarEndpoint(): Promise<string | null> {
+	const endpoint = await text({
+		message: "Enter this calendar's path (joined to the service base URL) or a full URL:",
+		placeholder: 'calendars/username/work/',
+		validate(value) {
+			if (!value || !value.trim()) return 'A path or URL is required';
+		}
+	});
+	if (isCancel(endpoint)) return null;
+	return endpoint.trim();
+}
+
+function buildCalDavCalendar(name: string, serviceId: string, endpoint: string): CalDavCalendar {
+	try {
+		new URL(endpoint);
+		return { name, type: 'caldav', service: serviceId, url: endpoint };
+	} catch {
+		return { name, type: 'caldav', service: serviceId, path: endpoint };
+	}
+}
+
 interface WriteCalDavConfigOpts {
 	configPath: string;
 	cal: CalDavCalendar;
 	serviceId: string;
-	url: string;
+	baseUrl: string;
 	username: string;
 	envVarName: string;
 	isNew: boolean;
@@ -42,7 +63,7 @@ function writeCalDavConfig({
 	configPath,
 	cal,
 	serviceId,
-	url,
+	baseUrl,
 	username,
 	envVarName,
 	isNew
@@ -55,7 +76,7 @@ function writeCalDavConfig({
 		const serviceToWrite = {
 			name: serviceId,
 			type: 'caldav',
-			url,
+			url: baseUrl,
 			username,
 			password: `\${${envVarName}}`
 		};
@@ -107,19 +128,29 @@ export const caldavAddCommand = define({
 		const serviceResult = await getOrCreateCalDavService(configPath, name);
 		if (!serviceResult) return;
 
-		const { serviceId, url, username, passwordPlain, isNew, envVarName } = serviceResult;
+		const { serviceId, baseUrl, username, passwordPlain, isNew, envVarName, passwordMissing } =
+			serviceResult;
 
-		const cal: CalDavCalendar = {
-			name,
-			type: 'caldav',
-			service: serviceId,
-			url
-		};
+		if (passwordMissing) {
+			note(
+				`The password for service "${serviceId}" comes from ${envVarName}, which is unset in this shell.\n` +
+					`Set it and re-run (docker loads it from .env automatically):\n\n` +
+					`${envVarName}="[your-password-here]"`,
+				'Missing password'
+			);
+			process.exitCode = 1;
+			return;
+		}
+
+		const endpoint = await promptCalendarEndpoint();
+		if (!endpoint) return;
+
+		const cal = buildCalDavCalendar(name, serviceId, endpoint);
 
 		const service: Service = {
 			name: serviceId,
 			type: 'caldav',
-			url,
+			url: baseUrl,
 			username,
 			password: passwordPlain
 		};
@@ -135,7 +166,7 @@ export const caldavAddCommand = define({
 				configPath,
 				cal,
 				serviceId,
-				url,
+				baseUrl,
 				username,
 				envVarName,
 				isNew
