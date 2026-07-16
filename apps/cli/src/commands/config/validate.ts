@@ -12,13 +12,18 @@ export const validateCommand = define({
 	name: 'validate',
 	description: 'Validate the when.yaml file',
 	args: {
+		config: {
+			type: 'string',
+			short: 'c',
+			description: 'Path to when.yaml file'
+		},
 		'check-env': {
 			type: 'boolean',
 			description: 'Also check that referenced environment variables are set (full boot check).'
 		}
 	},
 	async run(ctx) {
-		const pathArg = ctx.positionals[ctx.commandPath.length];
+		const pathArg = ctx.values?.config ?? ctx.positionals[ctx.commandPath.length];
 		const path = getValidatedConfigPath(pathArg);
 		const checkEnv = ctx.values?.['check-env'] === true;
 

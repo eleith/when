@@ -156,6 +156,19 @@ url:
 		expect(logSpy).not.toHaveBeenCalledWith(expect.stringContaining('auth:'));
 	});
 
+	test('accepts the path via the -c/--config flag', async () => {
+		const ctx = {
+			values: { config: tempValidPath },
+			positionals: ['config', 'validate'],
+			commandPath: ['config', 'validate']
+		} as unknown as Parameters<NonNullable<typeof validateCommand.run>>[0];
+
+		await validateCommand.run!(ctx);
+
+		expect(process.exitCode).toBeUndefined();
+		expect(logSpy).toHaveBeenCalledWith(expect.stringContaining(`OK  ${tempValidPath}`));
+	});
+
 	test('validates a valid configuration file using relative path relative to INIT_CWD', async () => {
 		const originalInitCwd = process.env.INIT_CWD;
 		process.env.INIT_CWD = process.cwd();
