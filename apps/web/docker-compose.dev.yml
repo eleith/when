@@ -100,7 +100,6 @@ services:
 
     volumes:
       - ./config:/m/config
-      - ./data:/m/apps/cli/data
       - ../cli/src:/m/apps/cli/src
       - ../../packages/config/src:/m/packages/config/src
       - ../../packages/db/src:/m/packages/db/src

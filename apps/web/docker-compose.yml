@@ -60,4 +60,3 @@ services:
     tty: true
     volumes:
       - ./config:/app/config
-      - ./data:/app/data
