@@ -1,0 +1,146 @@
+# yaml-language-server: $schema=../../../packages/config/src/config.schema.json
+#
+# Example When configuration. Copy this to `when.yaml` in the same directory and
+# edit. The uncommented blocks are a complete, valid starter config; commented
+# lines document every remaining field and its default, so you can uncomment
+# what you need. Secrets are `${ENV_VAR}` references — set those in your
+# environment (docker loads them from `.env`).
+
+# --- Admin sign-in: exactly one of `credentials` or `oidc` ---
+auth:
+  credentials:
+    username: admin
+    # password defaults to the ${WHEN_ADMIN_PASSWORD} env var
+  # Or single sign-on instead of credentials:
+  # oidc:
+  #   issuer: 'https://accounts.example.com'
+  #   client_id: 'when'
+  #   client_secret: '${OIDC_CLIENT_SECRET}'
+
+# --- The schedule owner ---
+user:
+  name: 'Your Name'
+  email: 'you@example.com'
+  # timezone defaults to the ${TZ} env var, or UTC
+  # timezone: 'America/New_York'
+  # appearance is optional — every field below shows its default:
+  # appearance:
+  #   title: 'if not now, when?'
+  #   description: 'find some time and we can meet'
+  #   app_icon_url: '/assets/images/app-icon.svg'
+  #   avatar_url: '/assets/images/avatar.svg'
+  #   favicon_url: '/assets/images/favicon.svg'
+  #   opengraph_url: '/assets/images/opengraph.png'
+  #   font_name: 'Noto Sans' # bundled: Noto Sans, Lato, Outfit, Inter
+  #   font_url: 'https://example.com/font.woff2' # for a non-bundled font_name
+  #   primary_light_color: '#166534'
+  #   primary_dark_color: '#34d399'
+  #   background_light_color: '#f5f5f5'
+  #   background_dark_color: '#0a0a0a'
+  #   text_light_color: '#171717'
+  #   text_dark_color: '#ededed'
+
+# --- SMTP, used to send appointment emails (required) ---
+smtp:
+  host: 'smtp.example.com'
+  user: 'you@example.com'
+  pass: '${SMTP_PASSWORD}'
+  # port defaults to 587
+  # port: 465
+  # from defaults to noreply@<your url.app domain>
+  # from: 'bookings@example.com'
+
+# --- Credentials for calendar/video services referenced by calendars below ---
+services:
+  - name: 'caldav-service'
+    type: 'caldav'
+    url: 'https://caldav.example.com/dav/' # DAV base URL
+    username: 'you'
+    password: '${CALDAV_PASSWORD}'
+  # Google (run `pnpm cli calendars add google` — it fetches the refresh_token):
+  # - name: 'google-service'
+  #   type: 'google'
+  #   client_id: '...apps.googleusercontent.com'
+  #   client_secret: '${GOOGLE_CLIENT_SECRET}'
+  #   refresh_token: '${GOOGLE_REFRESH_TOKEN}'
+  # Nextcloud (a CalDAV-compatible service, also usable for Talk video links):
+  # - name: 'nextcloud-service'
+  #   type: 'nextcloud'
+  #   url: 'https://cloud.example.com'
+  #   username: 'you'
+  #   password: '${NEXTCLOUD_PASSWORD}'
+
+# --- Calendars: conflict sources (busy times) and booking destinations ---
+calendars:
+  - name: 'main'
+    type: 'caldav'
+    service: 'caldav-service'
+    path: 'calendars/you/main/' # joined to the service's base url
+    # ...or point at a full endpoint instead of a path:
+    # url: 'https://caldav.example.com/dav/calendars/you/main/'
+    # sync:
+    #   refresh_every_minutes: 10 # busy-time refresh cadence (default 10)
+  # A Google calendar references a google service by name:
+  # - name: 'personal'
+  #   type: 'google'
+  #   service: 'google-service'
+  #   google_calendar_id: 'primary'
+
+# --- Weekly availability windows (times are in user.timezone) ---
+schedules:
+  - name: 'standard'
+    weekly:
+      monday: ['09:00-17:00']
+      tuesday: ['09:00-17:00']
+      wednesday: ['09:00-17:00']
+      thursday: ['09:00-17:00']
+      friday: ['09:00-17:00']
+      # saturday and sunday omitted = not available
+      # weekly may be omitted entirely = Monday–Friday 09:00–17:00
+
+# --- Bookable meeting types ---
+meetings:
+  - name: '30-minute chat'
+    duration_minutes: 30 # default 30
+    booking_approval: 'request' # 'request' (host approves) or 'instant'
+    # slug defaults to a slug of the name ("30-minute-chat")
+    # slug: 'chat'
+    # description: 'A quick introductory call.'
+    # visibility: 'public' # 'public' (listed) or 'private' (hidden)
+    # schedule defaults to the first schedule above
+    # schedule: 'standard'
+    # booking_calendar defaults to the first calendar above
+    # booking_calendar: 'main'
+    # busy_calendars: ['main'] # extra calendars to check for conflicts
+    # location: 'Suite 200, 123 Main St' # a static address, phone, or link
+    # video_chat_service: 'google-service' # generate a video link per booking
+    # note: 'Please add an agenda when you book.'
+    # notice_minutes: 120 # minimum lead time (default 120)
+    # booking_window_days: 60 # how far ahead bookings open (default 60)
+    # padding_before_minutes: 0
+    # padding_after_minutes: 0
+    # daily_booking_limit: null # null = unlimited
+    # booking_style: 'insert' # booking UI style: 'insert' or 'select'
+    # start_times_every_minutes: 15 # slot step (defaults to duration_minutes)
+    # form_fields: # extra questions asked at booking
+    #   - name: 'topic'
+    #     type: 'text' # guest_name | guest_email | event_location | text | number | paragraph | choice
+    #     label: 'What would you like to discuss?'
+    #     required: false
+    #     choices: ['Sales', 'Support'] # only for type: choice
+
+# --- On-disk SQLite paths (relative to the deployment root); defaults shown ---
+# database:
+#   app: './data/when.sqlite'
+#   queue: './data/openworkflow.sqlite'
+
+# --- Public and internal URLs ---
+url:
+  app: 'http://localhost:5173' # public base URL, used in emails and calendar events
+  # internal: 'http://when-app:3000' # worker → web (defaults to ${WHEN_URL_INTERNAL})
+  # worker: 'http://when-worker:9000' # web → worker
+
+# --- Prometheus metrics (off by default) ---
+# prometheus:
+#   enabled: false
+#   secret: '${METRICS_TOKEN}' # bearer token for scraping /metrics

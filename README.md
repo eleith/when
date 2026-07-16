@@ -11,7 +11,7 @@ calendar sync and sends appointment emails off the request path. The bundled
 
 ## Quick start (Docker)
 
-1. Copy `apps/web/config.example.yaml` to `apps/web/config/when.yaml` and fill it in. Point
+1. Copy `apps/web/config/when.example.yml` to `apps/web/config/when.yaml` and fill it in. Point
    your editor at the bundled schema for autocomplete and validation — the example's
    first line already does this:
 

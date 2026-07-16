@@ -12,7 +12,7 @@ export async function bootConfig(path: string = resolveConfigPath()): Promise<Wh
 	if (!exists) {
 		logger.fatal(
 			{ path },
-			'config not found; copy config.example.yaml from the repo to config/when.yaml as a starting point'
+			'config not found; copy config/when.example.yml to config/when.yaml as a starting point'
 		);
 		throw new Error(`config not found at ${path}`);
 	}

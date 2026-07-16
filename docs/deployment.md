@@ -15,7 +15,7 @@ A few variables are read **directly** by the app from the environment:
 | `ENCRYPTION_KEY` | production | Base64 of 32 random bytes. Encrypts OAuth refresh tokens at the column level (AES-256-GCM). In dev an ephemeral key is generated and a warning logged. |
 
 Everything else is a **secret referenced from `when.yaml`** via `${ENV_VAR}`
-interpolation — the variable _names_ are whatever your config uses (`config.example.yaml`
+interpolation — the variable _names_ are whatever your config uses (`config/when.example.yml`
 uses simple names like `${SMTP_PASSWORD}`). The table below lists the names the CLI
 wizards generate; `<NAME>` is the service's name upper-cased.
 

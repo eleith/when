@@ -82,4 +82,4 @@ fake `Mailer` for email, a fake workflow `step` for jobs. End-to-end tests live 
 pnpm --filter @when/config generate:schema
 ```
 
-(This runs as part of `pnpm --filter @when/config build`.) Update [config.example.yaml](file:///home/eleith/dev/when/apps/web/config.example.yaml) and the fixtures if you add or change a field.
+(This runs as part of `pnpm --filter @when/config build`.) Update [config/when.example.yml](file:///home/eleith/dev/when/apps/web/config/when.example.yml) and the fixtures if you add or change a field — the web app's `example.test.ts` fails until the example documents every schema field.
