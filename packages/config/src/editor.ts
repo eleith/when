@@ -35,4 +35,11 @@ export class ConfigEditor {
 		this.doc.setIn(keys, value);
 		writeFileSync(this.configPath, this.doc.toString());
 	}
+
+	delete(path: string): void {
+		const keys = this.parsePath(path);
+		if (this.doc.deleteIn(keys)) {
+			writeFileSync(this.configPath, this.doc.toString());
+		}
+	}
 }

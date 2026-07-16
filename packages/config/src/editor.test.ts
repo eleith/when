@@ -60,6 +60,25 @@ calendars:
 		expect(result).toContain('value: hello');
 	});
 
+	test('deletes a key and leaves siblings intact', () => {
+		const initialYaml = `
+user:
+  appearance:
+    font_name: "My Font"
+    font_url: "https://example.com/my-font.woff2"
+`;
+		writeFileSync(tempPath, initialYaml);
+
+		const editor = new ConfigEditor(tempPath);
+		editor.delete('user.appearance.font_url');
+
+		expect(editor.get('user.appearance.font_url')).toBeUndefined();
+		expect(editor.get('user.appearance.font_name')).toBe('My Font');
+
+		// deleting a missing key is a no-op, not an error
+		expect(() => editor.delete('user.appearance.missing')).not.toThrow();
+	});
+
 	test('preserves comments and formatting', () => {
 		const initialYaml = `
 # This is a root comment
