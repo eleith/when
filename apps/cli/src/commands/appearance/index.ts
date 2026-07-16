@@ -1,5 +1,5 @@
 import { define } from 'gunshi';
-import { text, select, isCancel, spinner } from '@clack/prompts';
+import { text, select, multiselect, isCancel, spinner } from '@clack/prompts';
 import { AppearanceSchema, ConfigEditor } from '@when/config';
 import { getValidatedConfigPath, validateConfigExists } from '../../utils/config-path.ts';
 import { schemaDefault } from '../../utils/schema-defaults.ts';
@@ -8,41 +8,60 @@ import { schemaDefault } from '../../utils/schema-defaults.ts';
 const BUNDLED_FONTS = ['Noto Sans', 'Lato', 'Outfit', 'Inter'];
 const CUSTOM_FONT = '__custom__';
 
-async function promptTitle(current?: string): Promise<string | null> {
-	const fallback = current ?? schemaDefault<string>(AppearanceSchema, 'title');
-	const val = await text({
-		message: 'What is the booking page title?',
-		placeholder: fallback,
-		defaultValue: fallback
-	});
-	return isCancel(val) ? null : val.trim();
-}
+const HEX = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
 
-async function promptDescription(current?: string): Promise<string | null> {
-	const fallback = current ?? schemaDefault<string>(AppearanceSchema, 'description');
-	const val = await text({
-		message: 'What is the booking page description?',
-		placeholder: fallback,
-		defaultValue: fallback
-	});
-	return isCancel(val) ? null : val.trim();
-}
+const TEXT_FIELDS: [string, string][] = [
+	['title', 'What is the booking page title?'],
+	['description', 'What is the booking page description?']
+];
 
-async function promptPrimaryColor(
-	mode: 'light' | 'dark',
-	current?: string
+const COLOR_FIELDS: [string, string][] = [
+	['primary_light_color', 'Primary color, light mode'],
+	['primary_dark_color', 'Primary color, dark mode'],
+	['background_light_color', 'Background color, light mode'],
+	['background_dark_color', 'Background color, dark mode'],
+	['text_light_color', 'Text color, light mode'],
+	['text_dark_color', 'Text color, dark mode']
+];
+
+const ASSET_FIELDS: [string, string][] = [
+	['app_icon_url', 'App icon URL'],
+	['avatar_url', 'Avatar image URL'],
+	['favicon_url', 'Favicon URL'],
+	['opengraph_url', 'Share (OpenGraph) image URL']
+];
+
+// Every appearance field, grouped for the wizard's section picker. The drift
+// test asserts this covers AppearanceSchema.properties exactly, so a new schema
+// field fails CLI tests until the wizard learns it.
+export const APPEARANCE_FIELD_GROUPS = {
+	text: TEXT_FIELDS.map(([key]) => key),
+	colors: COLOR_FIELDS.map(([key]) => key),
+	assets: ASSET_FIELDS.map(([key]) => key),
+	font: ['font_name', 'font_url']
+};
+
+type Current = Record<string, unknown>;
+
+async function promptString(
+	key: string,
+	message: string,
+	current: Current
 ): Promise<string | null> {
-	const key = mode === 'light' ? 'primary_light_color' : 'primary_dark_color';
+	const fallback = (current[key] as string) ?? schemaDefault<string>(AppearanceSchema, key);
+	const val = await text({ message, placeholder: fallback, defaultValue: fallback });
+	return isCancel(val) ? null : val.trim();
+}
+
+async function promptColor(key: string, label: string, current: Current): Promise<string | null> {
 	const schemaHex = schemaDefault<string>(AppearanceSchema, key);
-	const fallback = current ?? schemaHex;
+	const fallback = (current[key] as string) ?? schemaHex;
 	const val = await text({
-		message: `What is the primary brand color for ${mode} mode (hex)?`,
+		message: `${label} (hex)?`,
 		placeholder: fallback,
 		defaultValue: fallback,
 		validate(input) {
-			if (input && !/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(input)) {
-				return `Invalid hex color format (e.g. ${schemaHex})`;
-			}
+			if (input && !HEX.test(input)) return `Invalid hex color format (e.g. ${schemaHex})`;
 		}
 	});
 	return isCancel(val) ? null : val.trim();
@@ -111,36 +130,68 @@ export const appearanceCommand = define({
 		}
 
 		const editor = new ConfigEditor(configPath);
-		const current = (editor.get('user.appearance') as Record<string, unknown>) ?? {};
+		const current = (editor.get('user.appearance') as Current) ?? {};
 
-		const title = await promptTitle(current.title as string);
-		if (title == null) return;
+		const groups = await multiselect({
+			message: 'Which appearance groups do you want to configure?',
+			options: [
+				{ value: 'text', label: 'Text (title, description)' },
+				{ value: 'colors', label: 'Colors (primary, background, text)' },
+				{ value: 'assets', label: 'Assets (app icon, avatar, favicon, share image)' },
+				{ value: 'font', label: 'Font' }
+			],
+			initialValues: ['text', 'colors', 'assets', 'font'],
+			required: false
+		});
+		if (isCancel(groups)) return;
+		const selected = groups as string[];
 
-		const description = await promptDescription(current.description as string);
-		if (description == null) return;
+		const stringWrites: Record<string, string> = {};
 
-		const primaryLight = await promptPrimaryColor('light', current.primary_light_color as string);
-		if (primaryLight == null) return;
+		if (selected.includes('text')) {
+			for (const [key, message] of TEXT_FIELDS) {
+				const val = await promptString(key, message, current);
+				if (val == null) return;
+				stringWrites[key] = val;
+			}
+		}
 
-		const primaryDark = await promptPrimaryColor('dark', current.primary_dark_color as string);
-		if (primaryDark == null) return;
+		if (selected.includes('colors')) {
+			for (const [key, label] of COLOR_FIELDS) {
+				const val = await promptColor(key, label, current);
+				if (val == null) return;
+				stringWrites[key] = val;
+			}
+		}
 
-		const font = await promptFont(current.font_name as string, current.font_url as string);
-		if (font == null) return;
+		if (selected.includes('assets')) {
+			for (const [key, label] of ASSET_FIELDS) {
+				const val = await promptString(key, `${label}?`, current);
+				if (val == null) return;
+				stringWrites[key] = val;
+			}
+		}
+
+		let font: { font_name: string; font_url?: string } | null = null;
+		if (selected.includes('font')) {
+			font = await promptFont(current.font_name as string, current.font_url as string);
+			if (font == null) return;
+		}
 
 		const s = spinner();
 		s.start('Saving appearance configuration...');
 
 		try {
-			editor.set('user.appearance.title', title);
-			editor.set('user.appearance.description', description);
-			editor.set('user.appearance.primary_light_color', primaryLight);
-			editor.set('user.appearance.primary_dark_color', primaryDark);
-			editor.set('user.appearance.font_name', font.font_name);
-			if (font.font_url) {
-				editor.set('user.appearance.font_url', font.font_url);
-			} else {
-				editor.delete('user.appearance.font_url');
+			for (const [key, val] of Object.entries(stringWrites)) {
+				editor.set(`user.appearance.${key}`, val);
+			}
+			if (font) {
+				editor.set('user.appearance.font_name', font.font_name);
+				if (font.font_url) {
+					editor.set('user.appearance.font_url', font.font_url);
+				} else {
+					editor.delete('user.appearance.font_url');
+				}
 			}
 			s.stop('Successfully saved appearance settings to when.yaml!');
 		} catch (err) {
