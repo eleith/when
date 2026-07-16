@@ -189,8 +189,21 @@ url:
 		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining(`FAIL  ${tempInvalidPath}`));
 	});
 
-	test('fails validating with missing env variables', async () => {
+	test('passes a config with unset env refs by default (structural)', async () => {
 		const ctx = {
+			positionals: ['config', 'validate', tempMissingEnvPath],
+			commandPath: ['config', 'validate']
+		} as unknown as Parameters<NonNullable<typeof validateCommand.run>>[0];
+
+		await validateCommand.run!(ctx);
+
+		expect(process.exitCode).toBeUndefined();
+		expect(logSpy).toHaveBeenCalledWith(expect.stringContaining(`OK  ${tempMissingEnvPath}`));
+	});
+
+	test('fails with --check-env when env variables are missing', async () => {
+		const ctx = {
+			values: { 'check-env': true },
 			positionals: ['config', 'validate', tempMissingEnvPath],
 			commandPath: ['config', 'validate']
 		} as unknown as Parameters<NonNullable<typeof validateCommand.run>>[0];

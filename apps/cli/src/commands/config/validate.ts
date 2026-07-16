@@ -1,14 +1,26 @@
 import { existsSync } from 'node:fs';
 import { define } from 'gunshi';
-import { ConfigError, loadConfigFile, MissingEnvVarsError } from '@when/config';
+import {
+	ConfigError,
+	loadConfigFile,
+	loadConfigFileStructure,
+	MissingEnvVarsError
+} from '@when/config';
 import { getValidatedConfigPath } from '../../utils/config-path.ts';
 
 export const validateCommand = define({
 	name: 'validate',
 	description: 'Validate the when.yaml file',
+	args: {
+		'check-env': {
+			type: 'boolean',
+			description: 'Also check that referenced environment variables are set (full boot check).'
+		}
+	},
 	async run(ctx) {
 		const pathArg = ctx.positionals[ctx.commandPath.length];
 		const path = getValidatedConfigPath(pathArg);
+		const checkEnv = ctx.values?.['check-env'] === true;
 
 		if (!existsSync(path)) {
 			if (pathArg) {
@@ -24,7 +36,7 @@ export const validateCommand = define({
 		}
 
 		try {
-			await loadConfigFile(path);
+			await (checkEnv ? loadConfigFile(path) : loadConfigFileStructure(path));
 			console.log(`OK  ${path}`);
 		} catch (err) {
 			if (err instanceof ConfigError) {

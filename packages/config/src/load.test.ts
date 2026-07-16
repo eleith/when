@@ -1,5 +1,6 @@
 import { expect, test } from 'vitest';
-import { ConfigError, validateConfig } from './load.js';
+import { ConfigError, validateConfig, validateStructure } from './load.js';
+import { MissingEnvVarsError } from './interpolate.js';
 import { validConfig } from './__fixtures__/valid-config.js';
 import type { WhenConfiguration } from './schema.js';
 
@@ -11,6 +12,31 @@ test('valid config passes schema validation', () => {
 	const cfg = validateConfig(clone(validConfig));
 	expect(cfg.user.name).toBe('Jane Doe');
 	expect(cfg.meetings[0].name).toBe('30-min-chat');
+});
+
+test('validateStructure accepts unset secret env refs that validateConfig rejects', () => {
+	const raw = clone(validConfig) as WhenConfiguration;
+	raw.auth = { credentials: { username: 'admin', password: '${WHEN_UNSET_PW_TEST}' } };
+	const prev = process.env.WHEN_UNSET_PW_TEST;
+	delete process.env.WHEN_UNSET_PW_TEST;
+	try {
+		// full validation interpolates and fails on the missing var...
+		expect(() => validateConfig(clone(raw))).toThrow(MissingEnvVarsError);
+		// ...but structural validation leaves the ref intact and passes.
+		const cfg = validateStructure(clone(raw));
+		expect(cfg.auth).toEqual({
+			credentials: { username: 'admin', password: '${WHEN_UNSET_PW_TEST}' }
+		});
+	} finally {
+		if (prev === undefined) delete process.env.WHEN_UNSET_PW_TEST;
+		else process.env.WHEN_UNSET_PW_TEST = prev;
+	}
+});
+
+test('validateStructure still rejects a structurally invalid config', () => {
+	const bad = clone(validConfig);
+	bad.user.email = 'not-an-email';
+	expect(() => validateStructure(bad)).toThrow(ConfigError);
 });
 
 test('missing required top-level field fails', () => {

@@ -1,4 +1,10 @@
-export { loadConfigFile, validateConfig, ConfigError } from './load.js';
+export {
+	loadConfigFile,
+	loadConfigFileStructure,
+	validateConfig,
+	validateStructure,
+	ConfigError
+} from './load.js';
 export type { ConfigIssue } from './load.js';
 export { loadConfig, reloadConfig, watchConfig, configChanged } from './store.js';
 export type { ReloadResult } from './store.js';

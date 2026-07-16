@@ -51,11 +51,25 @@ export function validateConfig(raw: unknown): WhenConfiguration {
 
 	const interpolated = interpolate(withDefaults);
 	const normalized = withDerivedDefaults(interpolated) as WhenConfiguration;
-	const errors = [...Value.Errors(WhenConfigurationSchema, subschemas, normalized)];
+	return checkAgainstSchema(normalized);
+}
 
+// Validate shape and cross-references without interpolating `${VAR}` refs, so a
+// config whose secret env vars aren't set yet still validates (used by
+// `config init` and `config validate`). validateConfig answers "will it boot
+// with the current env?"; this answers "is it well-formed?".
+export function validateStructure(raw: unknown): WhenConfiguration {
+	const withDefaults = structuredClone(raw) ?? {};
+	Value.Default(WhenConfigurationSchema, subschemas, withDefaults);
+
+	const normalized = withDerivedDefaults(withDefaults) as WhenConfiguration;
+	return checkAgainstSchema(normalized);
+}
+
+function checkAgainstSchema(normalized: WhenConfiguration): WhenConfiguration {
+	const errors = [...Value.Errors(WhenConfigurationSchema, subschemas, normalized)];
 	if (errors.length > 0) {
-		const issues = errors.map(toIssue);
-		throw new ConfigError(`config failed schema validation`, issues);
+		throw new ConfigError(`config failed schema validation`, errors.map(toIssue));
 	}
 	const crossRefIssues = checkCrossRefs(normalized);
 	if (crossRefIssues.length > 0) {
@@ -64,21 +78,30 @@ export function validateConfig(raw: unknown): WhenConfiguration {
 	return normalized;
 }
 
-export async function loadConfigFile(
-	path: string = resolveConfigPath()
-): Promise<WhenConfiguration> {
+async function readAndParse(path: string): Promise<unknown> {
 	const source = await readFile(path, 'utf8');
-	let parsed: unknown;
 	try {
-		parsed = parseYaml(source);
+		return parseYaml(source);
 	} catch (err) {
 		throw new ConfigError(`${path} is not valid YAML`, [
 			{ path: '/', message: err instanceof Error ? err.message : String(err) }
 		]);
 	}
-	const config = validateConfig(parsed);
+}
+
+export async function loadConfigFile(
+	path: string = resolveConfigPath()
+): Promise<WhenConfiguration> {
+	const config = validateConfig(await readAndParse(path));
 	resolveDatabasePaths(config, path);
 	return config;
+}
+
+// Read and structurally validate a config file without interpolating env refs.
+export async function loadConfigFileStructure(
+	path: string = resolveConfigPath()
+): Promise<WhenConfiguration> {
+	return validateStructure(await readAndParse(path));
 }
 
 // Resolve relative db paths against the deployment root, in place; env vars override.
