@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, test, vi, beforeEach } from 'vitest';
 import { join } from 'node:path';
 import { writeFileSync, unlinkSync } from 'node:fs';
-import { text, select, note } from '@clack/prompts';
+import { text, select, password, note } from '@clack/prompts';
 import { ConfigEditor } from '@when/config';
-import { caldavAddCommand } from './caldav.ts';
+import { nextcloudAddCommand } from './nextcloud.ts';
 
 vi.mock('@clack/prompts', () => ({
 	text: vi.fn(),
@@ -14,19 +14,19 @@ vi.mock('@clack/prompts', () => ({
 	spinner: vi.fn().mockReturnValue({ start: vi.fn(), message: vi.fn(), stop: vi.fn() })
 }));
 
-const ENV_VAR = 'WHEN_SERVICE_CALDAV_WORK_PASSWORD';
+const ENV_VAR = 'WHEN_SERVICE_NEXTCLOUD_HOME_PASSWORD';
 
 const REUSE_CONFIG = `services:
-  - name: work-service
-    type: caldav
-    url: https://cloud.example.com/remote.php/dav/
-    username: user
+  - name: home-service
+    type: nextcloud
+    url: https://cloud.example.com
+    username: ncuser
     password: \${${ENV_VAR}}
 calendars:
-  - name: work
+  - name: home
     type: caldav
-    service: work-service
-    path: calendars/user/work/
+    service: home-service
+    path: calendars/ncuser/home/
 `;
 
 const okReport = () =>
@@ -40,8 +40,8 @@ const okReport = () =>
 		`
 	} as Response);
 
-describe('caldav add command', () => {
-	const tempConfigPath = join(process.cwd(), 'temp-caldav-config.yaml');
+describe('nextcloud add command', () => {
+	const tempConfigPath = join(process.cwd(), 'temp-nextcloud-config.yaml');
 
 	beforeEach(() => {
 		vi.restoreAllMocks();
@@ -62,48 +62,38 @@ describe('caldav add command', () => {
 			values: { config },
 			positionals: [],
 			commandPath: []
-		}) as unknown as Parameters<NonNullable<typeof caldavAddCommand.run>>[0];
+		}) as unknown as Parameters<NonNullable<typeof nextcloudAddCommand.run>>[0];
 
-	test('fails if the configuration file does not exist', async () => {
-		const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-		const originalExitCode = process.exitCode;
-		process.exitCode = undefined;
-
-		try {
-			await caldavAddCommand.run!(ctxFor('nonexistent-config.yaml'));
-
-			expect(process.exitCode).toBe(1);
-			expect(errorSpy).toHaveBeenCalledWith(
-				expect.stringContaining('FAIL  No configuration file found at:')
-			);
-		} finally {
-			errorSpy.mockRestore();
-			process.exitCode = originalExitCode;
-		}
-	});
-
-	test("reusing a service prompts for and writes the new calendar's own path", async () => {
-		writeFileSync(tempConfigPath, REUSE_CONFIG);
-		process.env[ENV_VAR] = 'secret';
+	test('a new service writes a nextcloud service and a caldav calendar bound to it', async () => {
+		writeFileSync(tempConfigPath, 'meetings: []\n');
 
 		vi.mocked(text)
 			.mockResolvedValueOnce('personal') // calendar name
-			.mockResolvedValueOnce('calendars/user/personal/'); // endpoint (relative → path)
-		vi.mocked(select).mockResolvedValueOnce('work-service'); // reuse existing service
+			.mockResolvedValueOnce('https://cloud.example.com') // instance base URL
+			.mockResolvedValueOnce('ncuser') // username
+			.mockResolvedValueOnce('calendars/ncuser/personal/'); // endpoint (relative → path)
+		vi.mocked(password).mockResolvedValueOnce('secret');
 		const fetchSpy = okReport();
 
-		await caldavAddCommand.run!(ctxFor(tempConfigPath));
+		await nextcloudAddCommand.run!(ctxFor(tempConfigPath));
 
 		const editor = new ConfigEditor(tempConfigPath);
-		expect((editor.get('services') as unknown[]).length).toBe(1); // reused, not appended
-		expect(editor.get('calendars.1')).toEqual({
+		expect(editor.get('services.0')).toEqual({
+			name: 'personal-service',
+			type: 'nextcloud',
+			url: 'https://cloud.example.com',
+			username: 'ncuser',
+			password: '${WHEN_SERVICE_NEXTCLOUD_PERSONAL_PASSWORD}'
+		});
+		expect(editor.get('calendars.0')).toEqual({
 			name: 'personal',
 			type: 'caldav',
-			service: 'work-service',
-			path: 'calendars/user/personal/'
+			service: 'personal-service',
+			path: 'calendars/ncuser/personal/'
 		});
+		// nextcloud base URL is resolved through /remote.php/dav for verification
 		expect(fetchSpy).toHaveBeenCalledWith(
-			'https://cloud.example.com/remote.php/dav/calendars/user/personal/',
+			'https://cloud.example.com/remote.php/dav/calendars/ncuser/personal/',
 			expect.objectContaining({ method: 'REPORT' })
 		);
 	});
@@ -113,14 +103,14 @@ describe('caldav add command', () => {
 		delete process.env[ENV_VAR];
 
 		vi.mocked(text).mockResolvedValueOnce('personal'); // calendar name
-		vi.mocked(select).mockResolvedValueOnce('work-service'); // reuse existing service
+		vi.mocked(select).mockResolvedValueOnce('home-service'); // reuse existing service
 		const fetchSpy = vi.spyOn(globalThis, 'fetch');
 
 		const originalExitCode = process.exitCode;
 		process.exitCode = undefined;
 
 		try {
-			await caldavAddCommand.run!(ctxFor(tempConfigPath));
+			await nextcloudAddCommand.run!(ctxFor(tempConfigPath));
 
 			expect(process.exitCode).toBe(1);
 			expect(fetchSpy).not.toHaveBeenCalled();

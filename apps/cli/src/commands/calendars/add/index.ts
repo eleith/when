@@ -1,15 +1,17 @@
 import { define } from 'gunshi';
 import { googleAddCommand } from './google.ts';
 import { caldavAddCommand } from './caldav.ts';
+import { nextcloudAddCommand } from './nextcloud.ts';
 
 export const addCommand = define({
 	name: 'add',
 	description: 'Add calendar integrations',
 	subCommands: {
 		google: googleAddCommand,
-		caldav: caldavAddCommand
+		caldav: caldavAddCommand,
+		nextcloud: nextcloudAddCommand
 	},
 	run() {
-		console.log('Use "when-cli calendar add google" or "when-cli calendar add caldav"');
+		console.log('Use "when-cli calendars add <google|caldav|nextcloud>"');
 	}
 });
