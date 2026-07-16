@@ -3,6 +3,7 @@ import { intro, outro } from '@clack/prompts';
 import { configCommand } from './commands/config/index.ts';
 import { calendarsCommand } from './commands/calendars/index.ts';
 import { schedulesCommand } from './commands/schedules/index.ts';
+import { meetingsCommand } from './commands/meetings/index.ts';
 import { appearanceCommand } from './commands/appearance/index.ts';
 
 const rootCommand = define({
@@ -21,6 +22,7 @@ try {
 			config: configCommand,
 			calendars: calendarsCommand,
 			schedules: schedulesCommand,
+			meetings: meetingsCommand,
 			appearance: appearanceCommand
 		}
 	});
