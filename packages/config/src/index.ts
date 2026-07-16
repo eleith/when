@@ -9,4 +9,4 @@ export { resolveFormFields, DEFAULT_FORM_FIELDS, parseGuestAnswers } from './for
 export type { GuestAnswer } from './form-fields.js';
 export { senderEmail } from './sender.js';
 export { ConfigEditor } from './editor.js';
-export type * from './schema.js';
+export * from './schema.js';

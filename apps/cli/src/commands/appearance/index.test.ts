@@ -61,6 +61,10 @@ describe('appearance CLI command', () => {
 		expect(editor.get('user.appearance.primary_dark_color')).toBe('#abcdef');
 		expect(editor.get('user.appearance.font_name')).toBe('Outfit');
 		expect(editor.get('user.appearance.font_url')).toBeUndefined();
+
+		// with no existing appearance, prompts default to the schema values
+		expect(vi.mocked(text).mock.calls[0][0]).toMatchObject({ defaultValue: 'if not now, when?' });
+		expect(vi.mocked(text).mock.calls[2][0]).toMatchObject({ defaultValue: '#166534' });
 	});
 
 	test('custom font writes both font_name and font_url', async () => {

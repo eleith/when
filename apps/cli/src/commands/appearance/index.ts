@@ -1,26 +1,29 @@
 import { define } from 'gunshi';
 import { text, select, isCancel, spinner } from '@clack/prompts';
-import { ConfigEditor } from '@when/config';
+import { AppearanceSchema, ConfigEditor } from '@when/config';
 import { getValidatedConfigPath, validateConfigExists } from '../../utils/config-path.ts';
+import { schemaDefault } from '../../utils/schema-defaults.ts';
 
 // Mirror of web's bundled families ($lib/server/fonts.ts).
 const BUNDLED_FONTS = ['Noto Sans', 'Lato', 'Outfit', 'Inter'];
 const CUSTOM_FONT = '__custom__';
 
 async function promptTitle(current?: string): Promise<string | null> {
+	const fallback = current ?? schemaDefault<string>(AppearanceSchema, 'title');
 	const val = await text({
 		message: 'What is the booking page title?',
-		placeholder: current ?? 'Schedule a time with me',
-		defaultValue: current ?? 'Schedule a time with me'
+		placeholder: fallback,
+		defaultValue: fallback
 	});
 	return isCancel(val) ? null : val.trim();
 }
 
 async function promptDescription(current?: string): Promise<string | null> {
+	const fallback = current ?? schemaDefault<string>(AppearanceSchema, 'description');
 	const val = await text({
 		message: 'What is the booking page description?',
-		placeholder: current ?? 'Welcome to my scheduling page',
-		defaultValue: current ?? 'Welcome to my scheduling page'
+		placeholder: fallback,
+		defaultValue: fallback
 	});
 	return isCancel(val) ? null : val.trim();
 }
@@ -29,14 +32,16 @@ async function promptPrimaryColor(
 	mode: 'light' | 'dark',
 	current?: string
 ): Promise<string | null> {
-	const defaultHex = mode === 'light' ? '#166534' : '#34d399';
+	const key = mode === 'light' ? 'primary_light_color' : 'primary_dark_color';
+	const schemaHex = schemaDefault<string>(AppearanceSchema, key);
+	const fallback = current ?? schemaHex;
 	const val = await text({
 		message: `What is the primary brand color for ${mode} mode (hex)?`,
-		placeholder: current ?? defaultHex,
-		defaultValue: current ?? defaultHex,
+		placeholder: fallback,
+		defaultValue: fallback,
 		validate(input) {
 			if (input && !/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(input)) {
-				return `Invalid hex color format (e.g. ${defaultHex})`;
+				return `Invalid hex color format (e.g. ${schemaHex})`;
 			}
 		}
 	});
