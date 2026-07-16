@@ -115,16 +115,16 @@ calendars:
     service: 'my-caldav-service'
     url: 'https://cloud.example.com/remote.php/dav/calendars/jane/work/'
     sync:
-      refresh_interval: 10 # minutes between busy-time refreshes (default 10)
+      refresh_every_minutes: 10 # minutes between busy-time refreshes (default 10)
   - name: 'personal'
     type: 'google'
     service: 'my-google-service'
     google_calendar_id: 'primary'
     sync:
-      refresh_interval: 10
+      refresh_every_minutes: 10
 ```
 
-`sync.refresh_interval` is optional on either type. For Google, run `pnpm cli calendar add google` to generate this block automatically.
+`sync.refresh_every_minutes` is optional on either type. For Google, run `pnpm cli calendars add google` to generate this block automatically.
 
 ## `schedules`
 
