@@ -1,5 +1,12 @@
 import { expect, test, vi, beforeEach } from 'vitest';
-import { buildReportBody, extractCalendarData, fetchCalDavBusy } from './caldav.js';
+import {
+	buildReportBody,
+	extractCalendarData,
+	fetchCalDavBusy,
+	verifyCalDavService,
+	discoverCalDavCalendars
+} from './caldav.js';
+import type { CalDavService, NextcloudService } from '@when/config';
 
 const inst = (s: string): Temporal.Instant => Temporal.Instant.from(s);
 
@@ -118,4 +125,69 @@ test('fetchCalDavBusy throws on non-2xx response', async () => {
 			{ start: inst('2026-04-01T00:00:00Z'), end: inst('2026-05-01T00:00:00Z') }
 		)
 	).rejects.toThrow(/403/);
+});
+
+const davService = {
+	name: 'dav',
+	type: 'caldav',
+	url: 'https://host/dav/',
+	username: 'u',
+	password: 'p'
+} as CalDavService;
+
+const calDavXml = (prefix: string) => ({
+	principal: `<d:multistatus xmlns:d="DAV:"><d:response><d:href>${prefix}/</d:href><d:propstat><d:prop><d:current-user-principal><d:href>${prefix}/principals/u/</d:href></d:current-user-principal></d:prop></d:propstat></d:response></d:multistatus>`,
+	home: `<d:multistatus xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav"><d:response><d:href>${prefix}/principals/u/</d:href><d:propstat><d:prop><c:calendar-home-set><d:href>${prefix}/calendars/u/</d:href></c:calendar-home-set></d:prop></d:propstat></d:response></d:multistatus>`,
+	calendars: `<d:multistatus xmlns:d="DAV:" xmlns:cal="urn:ietf:params:xml:ns:caldav">
+<d:response><d:href>${prefix}/calendars/u/</d:href><d:propstat><d:prop><d:resourcetype><d:collection/></d:resourcetype><d:displayname></d:displayname></d:prop></d:propstat></d:response>
+<d:response><d:href>${prefix}/calendars/u/work/</d:href><d:propstat><d:prop><d:resourcetype><d:collection/><cal:calendar/></d:resourcetype><d:displayname>Work</d:displayname></d:prop></d:propstat></d:response>
+<d:response><d:href>${prefix}/calendars/u/personal/</d:href><d:propstat><d:prop><d:resourcetype><d:collection/><cal:calendar/></d:resourcetype><d:displayname>Personal</d:displayname></d:prop></d:propstat></d:response>
+</d:multistatus>`
+});
+
+function mockPropfind(
+	xml: { principal: string; home: string; calendars: string },
+	urls?: string[]
+) {
+	vi.spyOn(globalThis, 'fetch').mockImplementation(async (url, init) => {
+		urls?.push(String(url));
+		const body = String(init?.body ?? '');
+		if (body.includes('current-user-principal'))
+			return new Response(xml.principal, { status: 207 });
+		if (body.includes('calendar-home-set')) return new Response(xml.home, { status: 207 });
+		return new Response(xml.calendars, { status: 207 });
+	});
+}
+
+test('verifyCalDavService resolves on a 207 PROPFIND', async () => {
+	vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 207 }));
+	await expect(verifyCalDavService(davService)).resolves.toBeUndefined();
+});
+
+test('verifyCalDavService throws bad credentials on 401', async () => {
+	vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 401 }));
+	await expect(verifyCalDavService(davService)).rejects.toThrow(/401/);
+});
+
+test('discoverCalDavCalendars returns calendar paths relative to the base', async () => {
+	mockPropfind(calDavXml('/dav'));
+	expect(await discoverCalDavCalendars(davService)).toEqual([
+		{ displayName: 'Work', path: 'calendars/u/work/' },
+		{ displayName: 'Personal', path: 'calendars/u/personal/' }
+	]);
+});
+
+test('discoverCalDavCalendars targets the Nextcloud dav base', async () => {
+	const urls: string[] = [];
+	mockPropfind(calDavXml('/remote.php/dav'), urls);
+	const nc = {
+		name: 'nc',
+		type: 'nextcloud',
+		url: 'https://cloud.example.com/',
+		username: 'u',
+		password: 'p'
+	} as NextcloudService;
+	const cals = await discoverCalDavCalendars(nc);
+	expect(urls[0]).toBe('https://cloud.example.com/remote.php/dav/');
+	expect(cals[0].path).toBe('calendars/u/work/');
 });

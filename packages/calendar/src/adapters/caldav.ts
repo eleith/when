@@ -23,6 +23,20 @@ export interface FetchBusyOptions {
 	end: Temporal.Instant;
 }
 
+function davFetch(
+	url: string,
+	auth: { username: string; password: string },
+	init: RequestInit
+): Promise<Response> {
+	return fetch(url, {
+		...init,
+		headers: {
+			...init.headers,
+			Authorization: `Basic ${btoa(`${auth.username}:${auth.password}`)}`
+		}
+	});
+}
+
 /**
  * Run a CalDAV REPORT calendar-query against the given calendar URL,
  * returning all VEVENTs that intersect [start, end). Recurring masters
@@ -33,14 +47,9 @@ export async function fetchCalDavBusy(
 	opts: FetchBusyOptions
 ): Promise<BusyEvent[]> {
 	const body = buildReportBody(opts.start, opts.end);
-	const auth = btoa(`${cfg.username}:${cfg.password}`);
-	const res = await fetch(cfg.url, {
+	const res = await davFetch(cfg.url, cfg, {
 		method: 'REPORT',
-		headers: {
-			Authorization: `Basic ${auth}`,
-			'Content-Type': 'application/xml; charset=utf-8',
-			Depth: '1'
-		},
+		headers: { 'Content-Type': 'application/xml; charset=utf-8', Depth: '1' },
 		body
 	});
 	if (!res.ok) {
@@ -67,14 +76,10 @@ export async function putCalDavEvent(
 	ics: string,
 	opts: { etag?: string | null } = {}
 ): Promise<{ url: string; etag: string | null }> {
-	const auth = btoa(`${cfg.username}:${cfg.password}`);
 	const url = joinPath(cfg.url, `${encodeURIComponent(uid)}.ics`);
-	const headers: Record<string, string> = {
-		Authorization: `Basic ${auth}`,
-		'Content-Type': 'text/calendar; charset=utf-8'
-	};
+	const headers: Record<string, string> = { 'Content-Type': 'text/calendar; charset=utf-8' };
 	if (opts.etag) headers['If-Match'] = opts.etag;
-	const res = await fetch(url, { method: 'PUT', headers, body: ics });
+	const res = await davFetch(url, cfg, { method: 'PUT', headers, body: ics });
 	if (!res.ok) {
 		throw new Error(`CalDAV PUT ${url} failed: ${res.status} ${res.statusText}`);
 	}
@@ -89,11 +94,10 @@ export async function deleteCalDavEvent(
 	uid: string,
 	opts: { etag?: string | null } = {}
 ): Promise<void> {
-	const auth = btoa(`${cfg.username}:${cfg.password}`);
 	const url = joinPath(cfg.url, `${encodeURIComponent(uid)}.ics`);
-	const headers: Record<string, string> = { Authorization: `Basic ${auth}` };
+	const headers: Record<string, string> = {};
 	if (opts.etag) headers['If-Match'] = opts.etag;
-	const res = await fetch(url, { method: 'DELETE', headers });
+	const res = await davFetch(url, cfg, { method: 'DELETE', headers });
 	// 404 means the event is already gone; treat as success.
 	if (!res.ok && res.status !== 404) {
 		throw new Error(`CalDAV DELETE ${url} failed: ${res.status} ${res.statusText}`);
@@ -209,4 +213,99 @@ export class CalDavAdapter implements CalendarAdapter {
 		await deleteCalDavEvent(this.adapterCfg, externalEventId);
 		return { ok: true };
 	}
+}
+
+export interface CalDavCalendarItem {
+	displayName: string;
+	path: string;
+}
+
+type CalDavServiceCreds = CalDavService | NextcloudService;
+
+const PRINCIPAL_BODY =
+	'<?xml version="1.0" encoding="utf-8"?><d:propfind xmlns:d="DAV:"><d:prop><d:current-user-principal/></d:prop></d:propfind>';
+const HOME_BODY =
+	'<?xml version="1.0" encoding="utf-8"?><d:propfind xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav"><d:prop><c:calendar-home-set/></d:prop></d:propfind>';
+const CALENDARS_BODY =
+	'<?xml version="1.0" encoding="utf-8"?><d:propfind xmlns:d="DAV:"><d:prop><d:resourcetype/><d:displayname/></d:prop></d:propfind>';
+
+export async function verifyCalDavService(service: CalDavServiceCreds): Promise<void> {
+	await davPropfind(davBaseUrl(service), service, PRINCIPAL_BODY, '0');
+}
+
+export async function discoverCalDavCalendars(
+	service: CalDavServiceCreds
+): Promise<CalDavCalendarItem[]> {
+	const base = davBaseUrl(service);
+	const principal = firstHref(
+		innerXml(await davPropfind(base, service, PRINCIPAL_BODY, '0'), 'current-user-principal')
+	);
+	const home = firstHref(
+		innerXml(
+			await davPropfind(new URL(principal ?? '', base).toString(), service, HOME_BODY, '0'),
+			'calendar-home-set'
+		)
+	);
+	const xml = await davPropfind(new URL(home ?? '', base).toString(), service, CALENDARS_BODY, '1');
+	return parseCalendars(xml, base);
+}
+
+function davBaseUrl(service: CalDavServiceCreds): string {
+	const base = service.url.replace(/\/$/, '');
+	const withDav = service.type === 'nextcloud' ? `${base}/remote.php/dav` : base;
+	return `${withDav}/`;
+}
+
+async function davPropfind(
+	url: string,
+	service: CalDavServiceCreds,
+	body: string,
+	depth: string
+): Promise<string> {
+	const res = await davFetch(url, service, {
+		method: 'PROPFIND',
+		headers: { Depth: depth, 'Content-Type': 'application/xml; charset=utf-8' },
+		body
+	});
+	if (res.status === 401) throw new Error('bad credentials (401)');
+	if (!res.ok) throw new Error(`CalDAV PROPFIND ${url} failed: ${res.status} ${res.statusText}`);
+	return res.text();
+}
+
+function parseCalendars(xml: string, baseUrl: string): CalDavCalendarItem[] {
+	const responses = [...xml.matchAll(/<[a-z0-9]*:?response[\s>][\s\S]*?<\/[a-z0-9]*:?response>/gi)];
+	const items: CalDavCalendarItem[] = [];
+	for (const [block] of responses) {
+		const resourcetype = innerXml(block, 'resourcetype') ?? '';
+		if (!/<[a-z0-9]*:?calendar[\s/>]/i.test(resourcetype)) continue;
+		const href = firstHref(block);
+		if (!href) continue;
+		const displayName =
+			decodeXmlEntities(innerXml(block, 'displayname') ?? '').trim() || '(unnamed)';
+		items.push({ displayName, path: relativePath(href, baseUrl) });
+	}
+	return items;
+}
+
+function innerXml(xml: string | null, localName: string): string | null {
+	if (!xml) return null;
+	const match = xml.match(
+		new RegExp(`<[a-z0-9]*:?${localName}[^>]*>([\\s\\S]*?)</[a-z0-9]*:?${localName}>`, 'i')
+	);
+	return match ? match[1] : null;
+}
+
+function firstHref(xml: string | null): string | null {
+	if (!xml) return null;
+	const match = xml.match(/<[a-z0-9]*:?href[^>]*>\s*([^<\s][\s\S]*?)\s*<\//i);
+	return match ? match[1] : null;
+}
+
+function relativePath(href: string, baseUrl: string): string {
+	const abs = new URL(href, baseUrl);
+	const base = new URL(baseUrl);
+	if (abs.origin === base.origin && abs.pathname.startsWith(base.pathname)) {
+		return abs.pathname.slice(base.pathname.length);
+	}
+	return abs.toString();
 }

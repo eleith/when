@@ -305,3 +305,65 @@ export class GoogleAdapter implements CalendarAdapter {
 		return { ok: true };
 	}
 }
+
+const OAUTH_SCOPES = [
+	'https://www.googleapis.com/auth/calendar.events',
+	'https://www.googleapis.com/auth/calendar.readonly'
+].join(' ');
+
+export interface GoogleTokens {
+	access_token: string;
+	refresh_token: string;
+	expires_in: number;
+}
+
+export interface GoogleCalendarItem {
+	id: string;
+	summary: string;
+	primary?: boolean;
+}
+
+export function buildGoogleAuthUrl(clientId: string, redirectUri: string): string {
+	const url = new URL('https://accounts.google.com/o/oauth2/v2/auth');
+	url.searchParams.set('client_id', clientId);
+	url.searchParams.set('redirect_uri', redirectUri);
+	url.searchParams.set('response_type', 'code');
+	url.searchParams.set('scope', OAUTH_SCOPES);
+	url.searchParams.set('access_type', 'offline');
+	url.searchParams.set('prompt', 'consent');
+	return url.toString();
+}
+
+export async function exchangeGoogleAuthCode(
+	clientId: string,
+	clientSecret: string,
+	code: string,
+	redirectUri: string
+): Promise<GoogleTokens> {
+	const res = await fetch('https://oauth2.googleapis.com/token', {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+		body: new URLSearchParams({
+			client_id: clientId,
+			client_secret: clientSecret,
+			code,
+			grant_type: 'authorization_code',
+			redirect_uri: redirectUri
+		})
+	});
+	if (!res.ok) {
+		throw new Error(`Google auth-code exchange failed: ${res.status} ${await res.text()}`);
+	}
+	return (await res.json()) as GoogleTokens;
+}
+
+export async function listGoogleCalendars(accessToken: string): Promise<GoogleCalendarItem[]> {
+	const res = await fetch('https://www.googleapis.com/calendar/v3/users/me/calendarList', {
+		headers: { Authorization: `Bearer ${accessToken}` }
+	});
+	if (!res.ok) {
+		throw new Error(`Google calendar list failed: ${res.status} ${await res.text()}`);
+	}
+	const data = (await res.json()) as { items?: GoogleCalendarItem[] };
+	return data.items ?? [];
+}

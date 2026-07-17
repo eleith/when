@@ -25,10 +25,18 @@ export type { CalendarAdapter } from './adapter.js';
 export type { BusyEvent, Interval } from './types.js';
 export type { ExpandWindow } from './expand.js';
 
-// Google OAuth token refresh — the CLI reuses this to authenticate a service
-// without going through a calendar-bound adapter.
-export { getGoogleAccessToken } from './adapters/google.js';
-export type { GoogleConfig } from './adapters/google.js';
+// Provider connect + discovery — used to authenticate a service, run the OAuth
+// consent flow, and list available calendars without a calendar-bound adapter
+// (the CLI today; a web connect/test UI could consume the same paths).
+export {
+	getGoogleAccessToken,
+	buildGoogleAuthUrl,
+	exchangeGoogleAuthCode,
+	listGoogleCalendars
+} from './adapters/google.js';
+export type { GoogleConfig, GoogleTokens, GoogleCalendarItem } from './adapters/google.js';
+export { verifyCalDavService, discoverCalDavCalendars } from './adapters/caldav.js';
+export type { CalDavCalendarItem } from './adapters/caldav.js';
 
 // Logger injection — the host installs its logger once at startup.
 export { setLogger } from './logger.js';

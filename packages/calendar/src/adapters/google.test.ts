@@ -1,5 +1,12 @@
 import { expect, test, vi, beforeEach } from 'vitest';
-import { getGoogleAccessToken, putGoogleEvent, type GoogleConfig } from './google.js';
+import {
+	getGoogleAccessToken,
+	buildGoogleAuthUrl,
+	exchangeGoogleAuthCode,
+	listGoogleCalendars,
+	putGoogleEvent,
+	type GoogleConfig
+} from './google.js';
 import type { Appointment } from '@when/db';
 
 const cfg: GoogleConfig = {
@@ -138,4 +145,44 @@ test('getGoogleAccessToken caches by refresh token and skips a second request', 
 	expect(first).toBe('access-cached');
 	expect(second).toBe('access-cached');
 	expect(fetchSpy).toHaveBeenCalledOnce();
+});
+
+test('buildGoogleAuthUrl includes client, scopes, and offline consent', () => {
+	const url = new URL(buildGoogleAuthUrl('client-123', 'http://localhost'));
+	expect(url.searchParams.get('client_id')).toBe('client-123');
+	expect(url.searchParams.get('redirect_uri')).toBe('http://localhost');
+	expect(url.searchParams.get('access_type')).toBe('offline');
+	expect(url.searchParams.get('prompt')).toBe('consent');
+	expect(url.searchParams.get('scope')).toContain('calendar.events');
+});
+
+test('exchangeGoogleAuthCode returns the token payload', async () => {
+	vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+		new Response(JSON.stringify({ access_token: 'a', refresh_token: 'RT', expires_in: 3600 }), {
+			status: 200
+		})
+	);
+	const tokens = await exchangeGoogleAuthCode('cid', 'secret', 'code', 'http://localhost');
+	expect(tokens.refresh_token).toBe('RT');
+});
+
+test('exchangeGoogleAuthCode throws on a non-ok response', async () => {
+	vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('bad', { status: 400 }));
+	await expect(exchangeGoogleAuthCode('cid', 'secret', 'code', 'http://localhost')).rejects.toThrow(
+		/exchange failed/
+	);
+});
+
+test('listGoogleCalendars returns items and throws on failure', async () => {
+	vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+		new Response(JSON.stringify({ items: [{ id: 'primary', summary: 'Me', primary: true }] }), {
+			status: 200
+		})
+	);
+	expect(await listGoogleCalendars('tok')).toEqual([
+		{ id: 'primary', summary: 'Me', primary: true }
+	]);
+
+	vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('no', { status: 401 }));
+	await expect(listGoogleCalendars('tok')).rejects.toThrow(/calendar list failed/);
 });
