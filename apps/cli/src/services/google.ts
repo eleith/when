@@ -198,3 +198,26 @@ export async function exchangeCodeForTokens(
 
 	return (await response.json()) as GoogleTokens;
 }
+
+export function buildGoogleAuthUrl(clientId: string, redirectUri: string): string {
+	const url = new URL('https://accounts.google.com/o/oauth2/v2/auth');
+	url.searchParams.set('client_id', clientId);
+	url.searchParams.set('redirect_uri', redirectUri);
+	url.searchParams.set('response_type', 'code');
+	url.searchParams.set('scope', SCOPES);
+	url.searchParams.set('access_type', 'offline');
+	url.searchParams.set('prompt', 'consent');
+	return url.toString();
+}
+
+export function extractAuthCode(input: string): string {
+	if (input.startsWith('http://') || input.startsWith('https://') || input.includes('code=')) {
+		try {
+			const code = new URL(input).searchParams.get('code');
+			if (code) return code;
+		} catch {
+			// input isn't a URL; fall through and treat it as the raw code
+		}
+	}
+	return input;
+}
