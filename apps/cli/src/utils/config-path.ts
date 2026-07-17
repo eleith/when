@@ -1,6 +1,16 @@
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { resolveConfigPath } from '@when/config';
+import { fail } from './report.ts';
+
+export function requireConfigPath(pathArg?: string): string | null {
+	const path = getValidatedConfigPath(pathArg);
+	if (!existsSync(path)) {
+		fail(`no config file found at ${path} — pass -c <path>`);
+		return null;
+	}
+	return path;
+}
 
 export function getValidatedConfigPath(pathArg?: string): string {
 	const baseDir = process.env.INIT_CWD ?? process.cwd();

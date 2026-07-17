@@ -152,7 +152,7 @@ url:
 		await validateCommand.run!(ctx);
 
 		expect(process.exitCode).toBeUndefined();
-		expect(logSpy).toHaveBeenCalledWith(expect.stringContaining(`OK  ${tempValidPath}`));
+		expect(logSpy).toHaveBeenCalledWith(expect.stringContaining(`✅ ${tempValidPath}`));
 		expect(logSpy).not.toHaveBeenCalledWith(expect.stringContaining('auth:'));
 	});
 
@@ -166,7 +166,7 @@ url:
 		await validateCommand.run!(ctx);
 
 		expect(process.exitCode).toBeUndefined();
-		expect(logSpy).toHaveBeenCalledWith(expect.stringContaining(`OK  ${tempValidPath}`));
+		expect(logSpy).toHaveBeenCalledWith(expect.stringContaining(`✅ ${tempValidPath}`));
 	});
 
 	test('validates a valid configuration file using relative path relative to INIT_CWD', async () => {
@@ -183,7 +183,7 @@ url:
 			await validateCommand.run!(ctx);
 			expect(process.exitCode).toBeUndefined();
 			expect(logSpy).toHaveBeenCalledWith(
-				expect.stringContaining(`OK  ${join(process.cwd(), relativePath)}`)
+				expect.stringContaining(`✅ ${join(process.cwd(), relativePath)}`)
 			);
 		} finally {
 			process.env.INIT_CWD = originalInitCwd;
@@ -199,7 +199,7 @@ url:
 		await validateCommand.run!(ctx);
 
 		expect(process.exitCode).toBe(1);
-		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining(`FAIL  ${tempInvalidPath}`));
+		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining(`❌ ${tempInvalidPath}`));
 	});
 
 	test('passes a config with unset env refs by default (structural)', async () => {
@@ -211,7 +211,7 @@ url:
 		await validateCommand.run!(ctx);
 
 		expect(process.exitCode).toBeUndefined();
-		expect(logSpy).toHaveBeenCalledWith(expect.stringContaining(`OK  ${tempMissingEnvPath}`));
+		expect(logSpy).toHaveBeenCalledWith(expect.stringContaining(`✅ ${tempMissingEnvPath}`));
 	});
 
 	test('fails with --check-env when env variables are missing', async () => {
@@ -224,7 +224,7 @@ url:
 		await validateCommand.run!(ctx);
 
 		expect(process.exitCode).toBe(1);
-		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining(`FAIL  ${tempMissingEnvPath}`));
+		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining(`❌ ${tempMissingEnvPath}`));
 		expect(errorSpy).toHaveBeenCalledWith(
 			expect.stringContaining('missing env vars: MISSING_TEST_ENV_VAR')
 		);
@@ -240,9 +240,7 @@ url:
 		await validateCommand.run!(ctx);
 
 		expect(process.exitCode).toBe(1);
-		expect(errorSpy).toHaveBeenCalledWith(
-			expect.stringContaining('FAIL  No configuration file found at specified path')
-		);
+		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('no config file found at'));
 	});
 
 	test('fails if default files do not exist and no path is passed', async () => {
@@ -260,7 +258,7 @@ url:
 
 			expect(process.exitCode).toBe(1);
 			expect(errorSpy).toHaveBeenCalledWith(
-				expect.stringContaining('FAIL  No configuration file found at default paths')
+				expect.stringContaining('no config file found at default paths')
 			);
 		} finally {
 			process.env.INIT_CWD = originalInitCwd;
