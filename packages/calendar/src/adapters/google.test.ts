@@ -1,5 +1,5 @@
 import { expect, test, vi, beforeEach } from 'vitest';
-import { putGoogleEvent, type GoogleConfig } from './google.js';
+import { getGoogleAccessToken, putGoogleEvent, type GoogleConfig } from './google.js';
 import type { Appointment } from '@when/db';
 
 const cfg: GoogleConfig = {
@@ -103,4 +103,39 @@ test('includes conferenceData and appends version query parameter when video_cha
 test('omits conferenceData when video_chat link is absent', async () => {
 	const { payload } = await push(baseAppointment);
 	expect(payload?.conferenceData).toBeUndefined();
+});
+
+// getGoogleAccessToken is re-exported for the CLI (service test/token/calendars).
+// The token cache keys on refresh_token, so each case uses a distinct one.
+test('getGoogleAccessToken refreshes and returns the access token', async () => {
+	const fetchSpy = vi
+		.spyOn(globalThis, 'fetch')
+		.mockResolvedValue(
+			new Response(JSON.stringify({ access_token: 'access-1', expires_in: 3600 }), { status: 200 })
+		);
+	const token = await getGoogleAccessToken({ ...cfg, refresh_token: 'refresh-ok' });
+	expect(token).toBe('access-1');
+	expect(fetchSpy).toHaveBeenCalledOnce();
+});
+
+test('getGoogleAccessToken throws when the refresh request fails', async () => {
+	vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+		new Response('nope', { status: 400, statusText: 'Bad Request' })
+	);
+	await expect(getGoogleAccessToken({ ...cfg, refresh_token: 'refresh-fail' })).rejects.toThrow(
+		/token refresh failed/
+	);
+});
+
+test('getGoogleAccessToken caches by refresh token and skips a second request', async () => {
+	const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+		new Response(JSON.stringify({ access_token: 'access-cached', expires_in: 3600 }), {
+			status: 200
+		})
+	);
+	const first = await getGoogleAccessToken({ ...cfg, refresh_token: 'refresh-cache' });
+	const second = await getGoogleAccessToken({ ...cfg, refresh_token: 'refresh-cache' });
+	expect(first).toBe('access-cached');
+	expect(second).toBe('access-cached');
+	expect(fetchSpy).toHaveBeenCalledOnce();
 });

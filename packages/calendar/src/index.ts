@@ -25,6 +25,11 @@ export type { CalendarAdapter } from './adapter.js';
 export type { BusyEvent, Interval } from './types.js';
 export type { ExpandWindow } from './expand.js';
 
+// Google OAuth token refresh — the CLI reuses this to authenticate a service
+// without going through a calendar-bound adapter.
+export { getGoogleAccessToken } from './adapters/google.js';
+export type { GoogleConfig } from './adapters/google.js';
+
 // Logger injection — the host installs its logger once at startup.
 export { setLogger } from './logger.js';
 export type { Logger } from './logger.js';
