@@ -1,7 +1,8 @@
 import { define } from 'gunshi';
-import { ConfigError, loadConfigFileStructure, type Service } from '@when/config';
+import type { Service } from '@when/config';
 import { requireConfigPath } from '../../utils/config-path.ts';
-import { fail, detail } from '../../utils/report.ts';
+import { loadConfigStructural } from '../../utils/load.ts';
+import { fail } from '../../utils/report.ts';
 import { runServiceList } from './list.ts';
 import { runServiceTest } from './test.ts';
 import { runServiceCalendars } from './calendars.ts';
@@ -28,8 +29,9 @@ export const serviceCommand = define({
 		const configPath = requireConfigPath(ctx.values?.config);
 		if (!configPath) return;
 
-		const services = await loadServices(configPath);
-		if (!services) return;
+		const config = await loadConfigStructural(configPath);
+		if (!config) return;
+		const services = config.services ?? [];
 
 		if (name === 'list') {
 			runServiceList(services);
@@ -39,20 +41,6 @@ export const serviceCommand = define({
 		await dispatchAction(services, name, action, ctx.values?.quiet === true);
 	}
 });
-
-async function loadServices(configPath: string): Promise<Service[] | null> {
-	try {
-		const config = await loadConfigFileStructure(configPath);
-		return config.services ?? [];
-	} catch (err) {
-		if (err instanceof ConfigError) {
-			fail('config is not valid — fix it first (when-cli config validate)');
-			for (const issue of err.issues) detail(`${issue.path}: ${issue.message}`);
-			return null;
-		}
-		throw err;
-	}
-}
 
 async function dispatchAction(
 	services: Service[],

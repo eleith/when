@@ -2,6 +2,7 @@ import { cli, define } from 'gunshi';
 import { intro, outro } from '@clack/prompts';
 import { configCommand } from './commands/config/index.ts';
 import { serviceCommand } from './commands/service/index.ts';
+import { calendarCommand } from './commands/calendar/index.ts';
 import { calendarsCommand } from './commands/calendars/index.ts';
 import { schedulesCommand } from './commands/schedules/index.ts';
 import { meetingsCommand } from './commands/meetings/index.ts';
@@ -22,6 +23,7 @@ try {
 		subCommands: {
 			config: configCommand,
 			service: serviceCommand,
+			calendar: calendarCommand,
 			calendars: calendarsCommand,
 			schedules: schedulesCommand,
 			meetings: meetingsCommand,
