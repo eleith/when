@@ -1,5 +1,6 @@
 import { registerReconcileAppointmentWorkflow } from './reconcile-appointment.js';
 import { registerPurgeAppointmentWorkflow } from './purge-appointment.js';
+import { registerTestEmailWorkflow } from './test-email.js';
 
 /**
  * Register every workflow implementation on the openworkflow singleton. Called
@@ -8,4 +9,5 @@ import { registerPurgeAppointmentWorkflow } from './purge-appointment.js';
 export function registerWorkflows(): void {
 	registerReconcileAppointmentWorkflow();
 	registerPurgeAppointmentWorkflow();
+	registerTestEmailWorkflow();
 }

@@ -72,6 +72,25 @@ export const purgeAppointment: WorkflowSpec<PurgeAppointmentInput, PurgeAppointm
 		}
 	});
 
+export interface TestEmailInput {
+	to: string;
+}
+export type TestEmailResult = 'sent';
+
+// CLI-triggered: render + send a test email through the real worker pipeline.
+export const testEmail: WorkflowSpec<TestEmailInput, TestEmailResult> = defineWorkflowSpec<
+	TestEmailInput,
+	TestEmailResult
+>({
+	name: 'test-email',
+	retryPolicy: {
+		maximumAttempts: 1,
+		initialInterval: '1s',
+		backoffCoefficient: 2,
+		maximumInterval: '1s'
+	}
+});
+
 export type SyncCalendarsInput = Record<string, never>;
 export type SyncCalendarsResult = 'requested';
 

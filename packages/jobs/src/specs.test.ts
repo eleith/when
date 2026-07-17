@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { reconcileAppointment, syncCalendars } from './specs.js';
+import { reconcileAppointment, syncCalendars, testEmail } from './specs.js';
 
 test('reconcileAppointment carries the shared workflow name', () => {
 	// The name is the contract between producer (web) and worker — both resolve
@@ -9,4 +9,8 @@ test('reconcileAppointment carries the shared workflow name', () => {
 
 test('syncCalendars carries the shared workflow name', () => {
 	expect(syncCalendars.name).toBe('sync-calendars');
+});
+
+test('testEmail carries the shared workflow name', () => {
+	expect(testEmail.name).toBe('test-email');
 });
