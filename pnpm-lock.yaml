@@ -68,6 +68,9 @@ importers:
       '@when/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@when/jobs':
+        specifier: workspace:*
+        version: link:../../packages/jobs
       gunshi:
         specifier: 0.35.1
         version: 0.35.1
