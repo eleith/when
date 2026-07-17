@@ -99,34 +99,3 @@ export async function getOrCreateCalDavService(
 
 	return { serviceId, baseUrl, username, passwordPlain, isNew, envVarName, passwordMissing };
 }
-
-export interface CalDavProbeResult {
-	ok: boolean;
-	reason?: string;
-}
-
-export async function probeCalDavAuth(
-	url: string,
-	username: string,
-	password: string
-): Promise<CalDavProbeResult> {
-	const body =
-		'<?xml version="1.0" encoding="utf-8"?>' +
-		'<d:propfind xmlns:d="DAV:"><d:prop><d:current-user-principal/></d:prop></d:propfind>';
-	try {
-		const res = await fetch(url, {
-			method: 'PROPFIND',
-			headers: {
-				Authorization: `Basic ${btoa(`${username}:${password}`)}`,
-				Depth: '0',
-				'Content-Type': 'application/xml; charset=utf-8'
-			},
-			body
-		});
-		if (res.status === 401) return { ok: false, reason: 'bad credentials (401)' };
-		if (res.ok) return { ok: true };
-		return { ok: false, reason: `${res.status} ${res.statusText}` };
-	} catch (err) {
-		return { ok: false, reason: err instanceof Error ? err.message : String(err) };
-	}
-}

@@ -1,41 +1,19 @@
-import { getGoogleAccessToken } from '@when/calendar';
-import {
-	interpolate,
-	MissingEnvVarsError,
-	type Service,
-	type GoogleService,
-	type CalDavService,
-	type NextcloudService
-} from '@when/config';
-import { probeCalDavAuth } from '../../services/caldav.ts';
+import { getGoogleAccessToken, verifyCalDavService } from '@when/calendar';
+import type { Service, GoogleService, CalDavService, NextcloudService } from '@when/config';
+import { requireService, resolveServiceEnv } from './shared.ts';
 import { pass, fail } from '../../utils/report.ts';
 
 export async function runServiceTest(services: Service[], name: string): Promise<void> {
-	const service = services.find((s) => s.name === name);
-	if (!service) {
-		fail(`no service named "${name}"`);
-		return;
-	}
+	const service = requireService(services, name);
+	if (!service) return;
 
-	const resolved = resolveEnv(service);
+	const resolved = resolveServiceEnv(service);
 	if (!resolved) return;
 
 	if (resolved.type === 'google') {
 		await testGoogle(name, resolved);
 	} else {
 		await testCalDav(name, resolved);
-	}
-}
-
-function resolveEnv(service: Service): Service | null {
-	try {
-		return interpolate(service);
-	} catch (err) {
-		if (err instanceof MissingEnvVarsError) {
-			fail(`${service.name} (${service.type}) — unset env var(s): ${err.missing.join(', ')}`);
-			return null;
-		}
-		throw err;
 	}
 }
 
@@ -54,10 +32,10 @@ async function testGoogle(name: string, service: GoogleService): Promise<void> {
 }
 
 async function testCalDav(name: string, service: CalDavService | NextcloudService): Promise<void> {
-	const result = await probeCalDavAuth(service.url, service.username, service.password);
-	if (result.ok) {
+	try {
+		await verifyCalDavService(service);
 		pass(`${name} (${service.type}) — authenticated`);
-	} else {
-		fail(`${name} (${service.type}) — ${result.reason}`);
+	} catch (err) {
+		fail(`${name} (${service.type}) — ${err instanceof Error ? err.message : String(err)}`);
 	}
 }

@@ -1,11 +1,8 @@
 import { text, isCancel } from '@clack/prompts';
-import { getGoogleAccessToken } from '@when/calendar';
+import { getGoogleAccessToken, buildGoogleAuthUrl, exchangeGoogleAuthCode } from '@when/calendar';
 import { interpolate, MissingEnvVarsError, type Service, type GoogleService } from '@when/config';
-import {
-	buildGoogleAuthUrl,
-	exchangeCodeForTokens,
-	extractAuthCode
-} from '../../services/google.ts';
+import { extractAuthCode } from '../../services/google.ts';
+import { requireService } from './shared.ts';
 import { pass, fail, detail } from '../../utils/report.ts';
 
 const REDIRECT_URI = 'http://localhost';
@@ -20,11 +17,8 @@ export async function runServiceToken(
 	name: string,
 	quiet: boolean
 ): Promise<void> {
-	const service = services.find((s) => s.name === name);
-	if (!service) {
-		fail(`no service named "${name}"`);
-		return;
-	}
+	const service = requireService(services, name);
+	if (!service) return;
 	if (service.type !== 'google') {
 		fail(`token is only for google services ("${name}" is ${service.type})`);
 		return;
@@ -73,7 +67,7 @@ async function promptAuthCode(clientId: string): Promise<string | null> {
 
 async function mintRefreshToken(creds: ClientCreds, code: string): Promise<string | null> {
 	try {
-		const { refresh_token } = await exchangeCodeForTokens(
+		const { refresh_token } = await exchangeGoogleAuthCode(
 			creds.clientId,
 			creds.clientSecret,
 			code,

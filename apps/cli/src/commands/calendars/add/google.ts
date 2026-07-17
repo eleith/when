@@ -1,6 +1,11 @@
 import { define } from 'gunshi';
 import { text, spinner, note, isCancel, select } from '@clack/prompts';
-import { getCalendarAdapter, type ExpandWindow } from '@when/calendar';
+import {
+	getCalendarAdapter,
+	listGoogleCalendars,
+	type ExpandWindow,
+	type GoogleCalendarItem
+} from '@when/calendar';
 import { ConfigEditor } from '@when/config';
 import type { GoogleCalendar, Service } from '@when/config';
 import { getValidatedConfigPath, validateConfigExists } from '../../../utils/config-path.ts';
@@ -12,28 +17,6 @@ export async function verifyGoogleConnection(cal: GoogleCalendar, service: Servi
 	const now = Temporal.Now.instant();
 	const window: ExpandWindow = { start: now, end: now.add({ hours: 1 }) };
 	await adapter.fetchBusy(window);
-}
-
-export interface GoogleCalendarItem {
-	id: string;
-	summary: string;
-	primary?: boolean;
-}
-
-export async function fetchCalendarList(accessToken: string): Promise<GoogleCalendarItem[]> {
-	const response = await fetch('https://www.googleapis.com/calendar/v3/users/me/calendarList', {
-		headers: {
-			Authorization: `Bearer ${accessToken}`
-		}
-	});
-
-	if (!response.ok) {
-		const text = await response.text();
-		throw new Error(`Failed to fetch calendar list: ${response.status} ${text}`);
-	}
-
-	const data = (await response.json()) as { items?: GoogleCalendarItem[] };
-	return data.items || [];
 }
 
 async function promptGoogleCalendarName(existingNames: string[]): Promise<string | null> {
@@ -198,7 +181,7 @@ export const googleAddCommand = define({
 			return;
 		}
 
-		const calendars = await fetchCalendarList(accessToken);
+		const calendars = await listGoogleCalendars(accessToken);
 		const selectedCalendarId = await promptCalendarSelection(calendars);
 		if (!selectedCalendarId) {
 			return;

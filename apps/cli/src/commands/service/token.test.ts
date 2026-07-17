@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { text, isCancel } from '@clack/prompts';
-import { getGoogleAccessToken } from '@when/calendar';
-import { exchangeCodeForTokens } from '../../services/google.ts';
+import { getGoogleAccessToken, exchangeGoogleAuthCode } from '@when/calendar';
 import { runServiceToken } from './token.ts';
 import type { Service } from '@when/config';
 
@@ -9,12 +8,12 @@ vi.mock('@clack/prompts', () => ({
 	text: vi.fn(),
 	isCancel: vi.fn().mockReturnValue(false)
 }));
-vi.mock('@when/calendar', () => ({ getGoogleAccessToken: vi.fn() }));
-vi.mock('../../services/google.ts', () => ({
+vi.mock('@when/calendar', () => ({
+	getGoogleAccessToken: vi.fn(),
 	buildGoogleAuthUrl: vi.fn(() => 'https://auth.example'),
-	extractAuthCode: vi.fn((v: string) => v),
-	exchangeCodeForTokens: vi.fn()
+	exchangeGoogleAuthCode: vi.fn()
 }));
+vi.mock('../../services/google.ts', () => ({ extractAuthCode: vi.fn((v: string) => v) }));
 
 function googleSvc(name: string, secret: string, tokenRef: string): Service {
 	return {
@@ -50,7 +49,7 @@ describe('service token action', () => {
 		vi.mocked(text).mockReset().mockResolvedValue('CODE');
 		vi.mocked(isCancel).mockReset().mockReturnValue(false);
 		vi.mocked(getGoogleAccessToken).mockReset().mockResolvedValue('access');
-		vi.mocked(exchangeCodeForTokens).mockReset();
+		vi.mocked(exchangeGoogleAuthCode).mockReset();
 		delete process.env.WHEN_SVC_UNSET;
 	});
 
@@ -64,7 +63,7 @@ describe('service token action', () => {
 		await runServiceToken(services, 'dav', false);
 		expect(process.exitCode).toBe(1);
 		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('token is only for google'));
-		expect(exchangeCodeForTokens).not.toHaveBeenCalled();
+		expect(exchangeGoogleAuthCode).not.toHaveBeenCalled();
 	});
 
 	test('rejects an unknown service name', async () => {
@@ -77,18 +76,18 @@ describe('service token action', () => {
 		await runServiceToken(services, 'gg-badenv', false);
 		expect(process.exitCode).toBe(1);
 		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('WHEN_SVC_UNSET'));
-		expect(exchangeCodeForTokens).not.toHaveBeenCalled();
+		expect(exchangeGoogleAuthCode).not.toHaveBeenCalled();
 	});
 
 	test('mints and prints the env var assignment on success', async () => {
-		vi.mocked(exchangeCodeForTokens).mockResolvedValue({
+		vi.mocked(exchangeGoogleAuthCode).mockResolvedValue({
 			access_token: 'a',
 			refresh_token: 'RT',
 			expires_in: 3600
 		});
 		await runServiceToken(services, 'gg', false);
 		expect(process.exitCode).toBeUndefined();
-		expect(exchangeCodeForTokens).toHaveBeenCalledWith(
+		expect(exchangeGoogleAuthCode).toHaveBeenCalledWith(
 			'cid',
 			'csecret',
 			'CODE',
@@ -99,7 +98,7 @@ describe('service token action', () => {
 	});
 
 	test('quiet prints only the raw token', async () => {
-		vi.mocked(exchangeCodeForTokens).mockResolvedValue({
+		vi.mocked(exchangeGoogleAuthCode).mockResolvedValue({
 			access_token: 'a',
 			refresh_token: 'RT',
 			expires_in: 3600
@@ -111,7 +110,7 @@ describe('service token action', () => {
 	});
 
 	test('fails when Google returns no refresh token', async () => {
-		vi.mocked(exchangeCodeForTokens).mockResolvedValue({
+		vi.mocked(exchangeGoogleAuthCode).mockResolvedValue({
 			access_token: 'a',
 			refresh_token: '',
 			expires_in: 3600
@@ -123,7 +122,7 @@ describe('service token action', () => {
 	});
 
 	test('fails when the token exchange throws', async () => {
-		vi.mocked(exchangeCodeForTokens).mockRejectedValue(new Error('bad code'));
+		vi.mocked(exchangeGoogleAuthCode).mockRejectedValue(new Error('bad code'));
 		await runServiceToken(services, 'gg', false);
 		expect(process.exitCode).toBe(1);
 		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('token exchange failed'));
@@ -133,6 +132,6 @@ describe('service token action', () => {
 		vi.mocked(isCancel).mockReturnValue(true);
 		await runServiceToken(services, 'gg', false);
 		expect(process.exitCode).toBeUndefined();
-		expect(exchangeCodeForTokens).not.toHaveBeenCalled();
+		expect(exchangeGoogleAuthCode).not.toHaveBeenCalled();
 	});
 });

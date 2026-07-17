@@ -1,10 +1,13 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { join } from 'node:path';
 import { writeFileSync, unlinkSync } from 'node:fs';
-import { getGoogleAccessToken } from '@when/calendar';
+import { getGoogleAccessToken, verifyCalDavService } from '@when/calendar';
 import { serviceCommand } from './index.ts';
 
-vi.mock('@when/calendar', () => ({ getGoogleAccessToken: vi.fn() }));
+vi.mock('@when/calendar', () => ({
+	getGoogleAccessToken: vi.fn(),
+	verifyCalDavService: vi.fn()
+}));
 
 const configYaml = `
 auth:
@@ -81,6 +84,7 @@ describe('service command', () => {
 		originalExitCode = process.exitCode as number | undefined;
 		process.exitCode = undefined;
 		vi.mocked(getGoogleAccessToken).mockReset();
+		vi.mocked(verifyCalDavService).mockReset();
 		delete process.env.WHEN_TEST_SVC_UNSET;
 		writeFileSync(path, configYaml);
 	});
@@ -129,15 +133,15 @@ describe('service command', () => {
 		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('❌ gcal (google)'));
 	});
 
-	test('caldav test passes on a 207 PROPFIND', async () => {
-		vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 207 }));
+	test('caldav test passes when verifyCalDavService resolves', async () => {
+		vi.mocked(verifyCalDavService).mockResolvedValue(undefined);
 		await serviceCommand.run!(ctxFor(['dav', 'test'], path));
 		expect(process.exitCode).toBeUndefined();
 		expect(logSpy).toHaveBeenCalledWith('✅ dav (caldav) — authenticated');
 	});
 
-	test('caldav test reports bad credentials on 401', async () => {
-		vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 401 }));
+	test('caldav test reports the failure reason', async () => {
+		vi.mocked(verifyCalDavService).mockRejectedValue(new Error('bad credentials (401)'));
 		await serviceCommand.run!(ctxFor(['dav', 'test'], path));
 		expect(process.exitCode).toBe(1);
 		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('bad credentials (401)'));

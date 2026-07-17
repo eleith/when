@@ -4,6 +4,7 @@ import { requireConfigPath } from '../../utils/config-path.ts';
 import { fail, detail } from '../../utils/report.ts';
 import { runServiceList } from './list.ts';
 import { runServiceTest } from './test.ts';
+import { runServiceCalendars } from './calendars.ts';
 import { runServiceToken } from './token.ts';
 
 export const serviceCommand = define({
@@ -18,7 +19,9 @@ export const serviceCommand = define({
 		const action = ctx.positionals[ctx.commandPath.length + 1];
 
 		if (!name) {
-			console.log('Usage:\n  when-cli service list\n  when-cli service <name> <test | token>');
+			console.log(
+				'Usage:\n  when-cli service list\n  when-cli service <name> <test | calendars | token>'
+			);
 			return;
 		}
 
@@ -58,17 +61,20 @@ async function dispatchAction(
 	quiet: boolean
 ): Promise<void> {
 	if (!action) {
-		fail(`specify an action for "${name}": test | token`);
+		fail(`specify an action for "${name}": test | calendars | token`);
 		return;
 	}
 	switch (action) {
 		case 'test':
 			await runServiceTest(services, name);
 			break;
+		case 'calendars':
+			await runServiceCalendars(services, name);
+			break;
 		case 'token':
 			await runServiceToken(services, name, quiet);
 			break;
 		default:
-			fail(`unknown action "${action}" — available: test | token`);
+			fail(`unknown action "${action}" — available: test | calendars | token`);
 	}
 }

@@ -1,11 +1,19 @@
 import { text, select, password, spinner, note, isCancel } from '@clack/prompts';
+import { buildGoogleAuthUrl, exchangeGoogleAuthCode } from '@when/calendar';
 import { ConfigEditor } from '@when/config';
 import type { Service } from '@when/config';
 
-const SCOPES = [
-	'https://www.googleapis.com/auth/calendar.events',
-	'https://www.googleapis.com/auth/calendar.readonly'
-].join(' ');
+export function extractAuthCode(input: string): string {
+	if (input.startsWith('http://') || input.startsWith('https://') || input.includes('code=')) {
+		try {
+			const code = new URL(input).searchParams.get('code');
+			if (code) return code;
+		} catch {
+			// input isn't a URL; fall through and treat it as the raw code
+		}
+	}
+	return input;
+}
 
 export async function getOrCreateGoogleService(
 	configPath: string,
@@ -83,22 +91,8 @@ export async function getOrCreateGoogleService(
 		clientSecret = secretInput.trim();
 
 		const redirectUri = 'http://localhost';
-		const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
-		authUrl.searchParams.set('client_id', clientId);
-		authUrl.searchParams.set('redirect_uri', redirectUri);
-		authUrl.searchParams.set('response_type', 'code');
-		authUrl.searchParams.set('scope', SCOPES);
-		authUrl.searchParams.set('access_type', 'offline');
-		authUrl.searchParams.set('prompt', 'consent');
-
-		const linkText = `\u001b]8;;${authUrl.toString()}\u001b\\[Click here to open Google Authorization]\u001b]8;;\u001b\\`;
-
-		console.log(
-			`\n1. Open this link in your browser to authorize Google access:\n\n   ${linkText}\n`
-		);
-		console.log(
-			`   If the link isn't clickable, copy and paste this URL:\n   ${authUrl.toString()}\n`
-		);
+		const authUrl = buildGoogleAuthUrl(clientId, redirectUri);
+		console.log(`\n1. Open this link to authorize Google access:\n\n   ${authUrl}\n`);
 
 		const rawInput = await text({
 			message: 'Enter the authorization code (or paste the redirect URL):',
@@ -107,30 +101,13 @@ export async function getOrCreateGoogleService(
 			}
 		});
 		if (isCancel(rawInput)) return null;
-
-		let code = rawInput.trim();
-		if (
-			code.startsWith('http://') ||
-			code.startsWith('https://') ||
-			code.includes('?code=') ||
-			code.includes('&code=')
-		) {
-			try {
-				const parsedUrl = new URL(code);
-				const codeParam = parsedUrl.searchParams.get('code');
-				if (codeParam) {
-					code = codeParam;
-				}
-			} catch {
-				// ignore
-			}
-		}
+		const code = extractAuthCode(rawInput.trim());
 
 		const sOauth = spinner();
 		sOauth.start('Exchanging authorization code for tokens...');
 
 		try {
-			const tokens = await exchangeCodeForTokens(clientId, clientSecret, code, redirectUri);
+			const tokens = await exchangeGoogleAuthCode(clientId, clientSecret, code, redirectUri);
 			refreshToken = tokens.refresh_token;
 
 			if (!refreshToken) {
@@ -163,61 +140,4 @@ export async function getOrCreateGoogleService(
 		envClientSecret,
 		envRefreshToken
 	};
-}
-
-export interface GoogleTokens {
-	access_token: string;
-	refresh_token: string;
-	expires_in: number;
-}
-
-export async function exchangeCodeForTokens(
-	clientId: string,
-	clientSecret: string,
-	code: string,
-	redirectUri: string
-): Promise<GoogleTokens> {
-	const response = await fetch('https://oauth2.googleapis.com/token', {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/x-www-form-urlencoded'
-		},
-		body: new URLSearchParams({
-			client_id: clientId,
-			client_secret: clientSecret,
-			code,
-			grant_type: 'authorization_code',
-			redirect_uri: redirectUri
-		})
-	});
-
-	if (!response.ok) {
-		const text = await response.text();
-		throw new Error(`Failed to exchange authorization code: ${response.status} ${text}`);
-	}
-
-	return (await response.json()) as GoogleTokens;
-}
-
-export function buildGoogleAuthUrl(clientId: string, redirectUri: string): string {
-	const url = new URL('https://accounts.google.com/o/oauth2/v2/auth');
-	url.searchParams.set('client_id', clientId);
-	url.searchParams.set('redirect_uri', redirectUri);
-	url.searchParams.set('response_type', 'code');
-	url.searchParams.set('scope', SCOPES);
-	url.searchParams.set('access_type', 'offline');
-	url.searchParams.set('prompt', 'consent');
-	return url.toString();
-}
-
-export function extractAuthCode(input: string): string {
-	if (input.startsWith('http://') || input.startsWith('https://') || input.includes('code=')) {
-		try {
-			const code = new URL(input).searchParams.get('code');
-			if (code) return code;
-		} catch {
-			// input isn't a URL; fall through and treat it as the raw code
-		}
-	}
-	return input;
 }
