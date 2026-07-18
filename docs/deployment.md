@@ -16,16 +16,17 @@ A few variables are read **directly** by the app from the environment:
 
 Everything else is a **secret referenced from `when.yaml`** via `${ENV_VAR}`
 interpolation — the variable _names_ are whatever your config uses (`config/when.example.yml`
-uses simple names like `${SMTP_PASSWORD}`). The table below lists the names the CLI
-wizards generate; `<NAME>` is the service's name upper-cased.
+uses simple names like `${SMTP_PASSWORD}`). The table below lists the names used by the
+skeleton `config init` writes; `<NAME>` is the service's name upper-cased. You set these
+values yourself (the Google refresh token is minted by `service <name> token`).
 
 | Variable                                                                                | Needed when            | Notes                                                                     |
 | --------------------------------------------------------------------------------------- | ---------------------- | ------------------------------------------------------------------------- |
 | `WHEN_ADMIN_PASSWORD`                                                                   | credentials auth       | Plain text password of the admin (defaults to this if omitted in config). |
-| `WHEN_OIDC_CLIENT_SECRET`                                                               | OIDC auth              | OIDC provider client secret (written by `config init`).                   |
-| `WHEN_SERVICE_CALDAV_<NAME>_PASSWORD` / `WHEN_SERVICE_NEXTCLOUD_<NAME>_PASSWORD`        | a CalDAV/Nextcloud cal | Written by `calendars add caldav` / `calendars add nextcloud`.            |
+| `WHEN_OIDC_CLIENT_SECRET`                                                               | OIDC auth              | OIDC provider client secret.                                              |
+| `WHEN_SERVICE_CALDAV_<NAME>_PASSWORD` / `WHEN_SERVICE_NEXTCLOUD_<NAME>_PASSWORD`        | a CalDAV/Nextcloud cal | CalDAV / Nextcloud service password.                                      |
 | `WHEN_SMTP_PASS`                                                                        | always                 | SMTP password — SMTP is required.                                         |
-| `WHEN_SERVICE_GOOGLE_<NAME>_CLIENT_SECRET` / `WHEN_SERVICE_GOOGLE_<NAME>_REFRESH_TOKEN` | a Google service       | Written by `calendars add google`.                                        |
+| `WHEN_SERVICE_GOOGLE_<NAME>_CLIENT_SECRET` / `WHEN_SERVICE_GOOGLE_<NAME>_REFRESH_TOKEN` | a Google service       | Client secret from Google Cloud; refresh token from `service <name> token`. |
 
 The worker also honors a few operational variables:
 
@@ -76,50 +77,54 @@ Worker:
 
 ## Helper CLI (`when-cli`)
 
-A command-line helper tool is available to bootstrap and manage `when.yaml`. Run it with `pnpm cli` on the host, or against a deployment with `docker compose -f apps/web/docker-compose.yml run --rm when-cli <args>`.
+You author `when.yaml` yourself — start from `config/when.example.yml`, which
+documents every option (and carries a `$schema` header for editor autocomplete).
+`when-cli` is an operator's toolkit for the parts a text editor can't do: it
+validates the file, reaches your services over the network, and mints the one
+credential you can't type by hand. Run it with `pnpm cli` on the host, or against
+a deployment with `docker compose -f apps/web/docker-compose.yml run --rm when-cli <args>`.
 
-- **Create a starter config**:
+Every command takes `-c/--config <path>` (defaults to the standard config location).
+
+- **Scaffold a starter config** — writes a minimal valid `when.yaml` (placeholders
+  + `${...}` env refs); refuses to overwrite. Edit it, then validate.
 
   ```sh
   pnpm cli config init
   ```
 
-  Interactive wizard that walks through auth, user, SMTP, one calendar, one schedule, and one meeting, writes a starter `when.yaml`, and prints the environment variables you still need to set. Refuses to overwrite an existing file.
-
-- **Validate configuration**:
+- **Validate** — shape + cross-references. `--check-env` also verifies every
+  referenced env var is set (the full boot check). Exits non-zero on failure.
 
   ```sh
   pnpm cli config validate [path/to/when.yaml]
+  pnpm cli config validate --check-env
   ```
 
-  Checks the file's shape and cross-references. Pass `--check-env` to also verify that every referenced environment variable is set (the full boot check). Exits non-zero on any failure.
-
-- **Add a calendar**:
+- **Services** — list configured services, authenticate one, list the calendars it
+  exposes (to fill `google_calendar_id` / a CalDAV `path`), or mint a Google refresh
+  token (google only — reads client_id/secret from the service, prints the env var to
+  set; writes nothing).
 
   ```sh
-  pnpm cli calendars add google
-  pnpm cli calendars add caldav
-  pnpm cli calendars add nextcloud
+  pnpm cli service list
+  pnpm cli service <name> test
+  pnpm cli service <name> calendars
+  pnpm cli service <name> token
   ```
 
-  Interactive wizards that add and verify a calendar (Google requires a Google Cloud OAuth 2.0 Client ID of type "Desktop app") and update `when.yaml`.
-
-- **Add a schedule**:
+- **Calendars** — list configured calendars, or fetch busy intervals from one to
+  confirm it's reachable.
 
   ```sh
-  pnpm cli schedules add
+  pnpm cli calendar list
+  pnpm cli calendar <name> test
   ```
 
-- **Add a meeting**:
+- **Email** — render and send a real test email through the worker (proves your
+  SMTP + branding + templates work). Requires the worker to be running; it's
+  triggered as a background job.
 
   ```sh
-  pnpm cli meetings add
+  pnpm cli email test you@example.com
   ```
-
-- **Configure appearance**:
-
-  ```sh
-  pnpm cli appearance
-  ```
-
-  Interactive wizard for the booking page's branding — text, colors, assets, and font.

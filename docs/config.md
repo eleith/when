@@ -124,7 +124,7 @@ calendars:
       refresh_every_minutes: 10
 ```
 
-`sync.refresh_every_minutes` is optional on either type. For Google, run `pnpm cli calendars add google` to generate this block automatically.
+`sync.refresh_every_minutes` is optional on either type. For a Google service, mint the refresh token with `pnpm cli service <name> token`, and use `pnpm cli service <name> calendars` to find each `google_calendar_id`.
 
 ## `schedules`
 
