@@ -1,8 +1,29 @@
+import { define } from 'gunshi';
 import { getCalendarAdapter, type ExpandWindow } from '@when/calendar';
 import { interpolate, MissingEnvVarsError, type WhenConfiguration } from '@when/config';
+import { loadConfigFromCtx } from '../../utils/command.ts';
 import { pass, fail } from '../../utils/report.ts';
 
 const WINDOW_DAYS = 14;
+
+export const testCommand = define({
+	name: 'test',
+	description: 'fetch busy intervals to confirm a calendar is reachable',
+	args: {
+		name: { type: 'positional', required: false, description: 'the calendar to test' },
+		config: { type: 'string', short: 'c', description: 'Path to when.yaml file' }
+	},
+	async run(ctx) {
+		const name = ctx.values?.name as string | undefined;
+		if (!name) {
+			fail('calendar test requires a calendar name');
+			return;
+		}
+		const config = await loadConfigFromCtx(ctx.values?.config);
+		if (!config) return;
+		await runCalendarTest(config, name);
+	}
+});
 
 export async function runCalendarTest(config: WhenConfiguration, name: string): Promise<void> {
 	const cal = config.calendars.find((c) => c.name === name);

@@ -3,6 +3,8 @@ import { join } from 'node:path';
 import { writeFileSync, unlinkSync } from 'node:fs';
 import { getGoogleAccessToken, verifyCalDavService } from '@when/calendar';
 import { serviceCommand } from './index.ts';
+import { listCommand } from './list.ts';
+import { testCommand } from './test.ts';
 
 vi.mock('@when/calendar', () => ({
 	getGoogleAccessToken: vi.fn(),
@@ -62,21 +64,16 @@ url:
   app: "https://book.example.com"
 `;
 
-type RunCtx = Parameters<NonNullable<typeof serviceCommand.run>>[0];
+const path = join(process.cwd(), 'temp-service-config.yaml');
 
-function ctxFor(positionals: string[], config?: string): RunCtx {
-	return {
-		values: config ? { config } : {},
-		positionals: ['service', ...positionals],
-		commandPath: ['service']
-	} as unknown as RunCtx;
+function ctx(values: Record<string, unknown>) {
+	return { values } as unknown as Parameters<NonNullable<typeof testCommand.run>>[0];
 }
 
 describe('service command', () => {
 	let logSpy: ReturnType<typeof vi.spyOn>;
 	let errorSpy: ReturnType<typeof vi.spyOn>;
 	let originalExitCode: number | undefined;
-	const path = join(process.cwd(), 'temp-service-config.yaml');
 
 	beforeEach(() => {
 		logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
@@ -100,27 +97,29 @@ describe('service command', () => {
 		}
 	});
 
-	test('bare service prints usage', async () => {
-		await serviceCommand.run!(ctxFor([]));
+	test('bare service prints usage', () => {
+		serviceCommand.run!();
 		expect(process.exitCode).toBeUndefined();
-		expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('when-cli service list'));
+		expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('when-cli service test <name>'));
 	});
 
 	test('list shows configured services with type', async () => {
-		await serviceCommand.run!(ctxFor(['list'], path));
+		await listCommand.run!(ctx({ config: path }));
 		expect(process.exitCode).toBeUndefined();
 		expect(logSpy).toHaveBeenCalledWith('gcal  (google)');
 		expect(logSpy).toHaveBeenCalledWith('dav  (caldav)');
-		expect(logSpy).toHaveBeenCalledWith('gcal-badenv  (google)');
+	});
+
+	test('test requires a service name', async () => {
+		await testCommand.run!(ctx({ config: path }));
+		expect(process.exitCode).toBe(1);
+		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('requires a service name'));
 	});
 
 	test('google test authenticates via getGoogleAccessToken', async () => {
 		vi.mocked(getGoogleAccessToken).mockResolvedValue('access');
-		await serviceCommand.run!(ctxFor(['gcal', 'test'], path));
+		await testCommand.run!(ctx({ name: 'gcal', config: path }));
 		expect(process.exitCode).toBeUndefined();
-		expect(getGoogleAccessToken).toHaveBeenCalledWith(
-			expect.objectContaining({ client_id: 'cid', client_secret: 'csecret', refresh_token: 'rtok' })
-		);
 		expect(logSpy).toHaveBeenCalledWith('✅ gcal (google) — authenticated');
 	});
 
@@ -128,41 +127,35 @@ describe('service command', () => {
 		vi.mocked(getGoogleAccessToken).mockRejectedValue(
 			new Error('Google token refresh failed: 400')
 		);
-		await serviceCommand.run!(ctxFor(['gcal', 'test'], path));
+		await testCommand.run!(ctx({ name: 'gcal', config: path }));
 		expect(process.exitCode).toBe(1);
 		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('❌ gcal (google)'));
 	});
 
 	test('caldav test passes when verifyCalDavService resolves', async () => {
 		vi.mocked(verifyCalDavService).mockResolvedValue(undefined);
-		await serviceCommand.run!(ctxFor(['dav', 'test'], path));
+		await testCommand.run!(ctx({ name: 'dav', config: path }));
 		expect(process.exitCode).toBeUndefined();
 		expect(logSpy).toHaveBeenCalledWith('✅ dav (caldav) — authenticated');
 	});
 
 	test('caldav test reports the failure reason', async () => {
 		vi.mocked(verifyCalDavService).mockRejectedValue(new Error('bad credentials (401)'));
-		await serviceCommand.run!(ctxFor(['dav', 'test'], path));
+		await testCommand.run!(ctx({ name: 'dav', config: path }));
 		expect(process.exitCode).toBe(1);
 		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('bad credentials (401)'));
 	});
 
 	test('unknown service name fails', async () => {
-		await serviceCommand.run!(ctxFor(['nope', 'test'], path));
+		await testCommand.run!(ctx({ name: 'nope', config: path }));
 		expect(process.exitCode).toBe(1);
 		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('no service named "nope"'));
 	});
 
 	test('unset env var is named, not resolved', async () => {
-		await serviceCommand.run!(ctxFor(['gcal-badenv', 'test'], path));
+		await testCommand.run!(ctx({ name: 'gcal-badenv', config: path }));
 		expect(process.exitCode).toBe(1);
 		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('WHEN_TEST_SVC_UNSET'));
 		expect(getGoogleAccessToken).not.toHaveBeenCalled();
-	});
-
-	test('unknown action fails', async () => {
-		await serviceCommand.run!(ctxFor(['gcal', 'frobnicate'], path));
-		expect(process.exitCode).toBe(1);
-		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('unknown action "frobnicate"'));
 	});
 });

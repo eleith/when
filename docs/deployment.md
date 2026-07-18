@@ -18,15 +18,15 @@ Everything else is a **secret referenced from `when.yaml`** via `${ENV_VAR}`
 interpolation — the variable _names_ are whatever your config uses (`config/when.example.yml`
 uses simple names like `${SMTP_PASSWORD}`). The table below lists the names used by the
 skeleton `config init` writes; `<NAME>` is the service's name upper-cased. You set these
-values yourself (the Google refresh token is minted by `service <name> token`).
+values yourself (the Google refresh token is minted by `service token <name>`).
 
-| Variable                                                                                | Needed when            | Notes                                                                     |
-| --------------------------------------------------------------------------------------- | ---------------------- | ------------------------------------------------------------------------- |
-| `WHEN_ADMIN_PASSWORD`                                                                   | credentials auth       | Plain text password of the admin (defaults to this if omitted in config). |
-| `WHEN_OIDC_CLIENT_SECRET`                                                               | OIDC auth              | OIDC provider client secret.                                              |
-| `WHEN_SERVICE_CALDAV_<NAME>_PASSWORD` / `WHEN_SERVICE_NEXTCLOUD_<NAME>_PASSWORD`        | a CalDAV/Nextcloud cal | CalDAV / Nextcloud service password.                                      |
-| `WHEN_SMTP_PASS`                                                                        | always                 | SMTP password — SMTP is required.                                         |
-| `WHEN_SERVICE_GOOGLE_<NAME>_CLIENT_SECRET` / `WHEN_SERVICE_GOOGLE_<NAME>_REFRESH_TOKEN` | a Google service       | Client secret from Google Cloud; refresh token from `service <name> token`. |
+| Variable                                                                                | Needed when            | Notes                                                                       |
+| --------------------------------------------------------------------------------------- | ---------------------- | --------------------------------------------------------------------------- |
+| `WHEN_ADMIN_PASSWORD`                                                                   | credentials auth       | Plain text password of the admin (defaults to this if omitted in config).   |
+| `WHEN_OIDC_CLIENT_SECRET`                                                               | OIDC auth              | OIDC provider client secret.                                                |
+| `WHEN_SERVICE_CALDAV_<NAME>_PASSWORD` / `WHEN_SERVICE_NEXTCLOUD_<NAME>_PASSWORD`        | a CalDAV/Nextcloud cal | CalDAV / Nextcloud service password.                                        |
+| `WHEN_SMTP_PASS`                                                                        | always                 | SMTP password — SMTP is required.                                           |
+| `WHEN_SERVICE_GOOGLE_<NAME>_CLIENT_SECRET` / `WHEN_SERVICE_GOOGLE_<NAME>_REFRESH_TOKEN` | a Google service       | Client secret from Google Cloud; refresh token from `service token <name>`. |
 
 The worker also honors a few operational variables:
 
@@ -87,7 +87,7 @@ a deployment with `docker compose -f apps/web/docker-compose.yml run --rm when-c
 Every command takes `-c/--config <path>` (defaults to the standard config location).
 
 - **Scaffold a starter config** — writes a minimal valid `when.yaml` (placeholders
-  + `${...}` env refs); refuses to overwrite. Edit it, then validate.
+  - `${...}` env refs); refuses to overwrite. Edit it, then validate.
 
   ```sh
   pnpm cli config init
@@ -108,9 +108,9 @@ Every command takes `-c/--config <path>` (defaults to the standard config locati
 
   ```sh
   pnpm cli service list
-  pnpm cli service <name> test
-  pnpm cli service <name> calendars
-  pnpm cli service <name> token
+  pnpm cli service test <name>
+  pnpm cli service calendars <name>
+  pnpm cli service token <name>
   ```
 
 - **Calendars** — list configured calendars, or fetch busy intervals from one to
@@ -118,7 +118,7 @@ Every command takes `-c/--config <path>` (defaults to the standard config locati
 
   ```sh
   pnpm cli calendar list
-  pnpm cli calendar <name> test
+  pnpm cli calendar test <name>
   ```
 
 - **Email** — render and send a real test email through the worker (proves your

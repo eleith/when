@@ -3,6 +3,8 @@ import { join } from 'node:path';
 import { writeFileSync, unlinkSync } from 'node:fs';
 import { getCalendarAdapter } from '@when/calendar';
 import { calendarCommand } from './index.ts';
+import { listCommand } from './list.ts';
+import { testCommand } from './test.ts';
 
 vi.mock('@when/calendar', () => ({ getCalendarAdapter: vi.fn() }));
 
@@ -58,14 +60,10 @@ url:
   app: "https://book.example.com"
 `;
 
-type RunCtx = Parameters<NonNullable<typeof calendarCommand.run>>[0];
+const path = join(process.cwd(), 'temp-calendar-config.yaml');
 
-function ctxFor(positionals: string[], config?: string): RunCtx {
-	return {
-		values: config ? { config } : {},
-		positionals: ['calendar', ...positionals],
-		commandPath: ['calendar']
-	} as unknown as RunCtx;
+function ctx(values: Record<string, unknown>) {
+	return { values } as unknown as Parameters<NonNullable<typeof testCommand.run>>[0];
 }
 
 function mockFetchBusy(impl: () => Promise<unknown[]>) {
@@ -78,7 +76,6 @@ describe('calendar command', () => {
 	let logSpy: ReturnType<typeof vi.spyOn>;
 	let errorSpy: ReturnType<typeof vi.spyOn>;
 	let originalExitCode: number | undefined;
-	const path = join(process.cwd(), 'temp-calendar-config.yaml');
 
 	beforeEach(() => {
 		logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
@@ -101,14 +98,14 @@ describe('calendar command', () => {
 		}
 	});
 
-	test('bare calendar prints usage', async () => {
-		await calendarCommand.run!(ctxFor([]));
+	test('bare calendar prints usage', () => {
+		calendarCommand.run!();
 		expect(process.exitCode).toBeUndefined();
 		expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('when-cli calendar list'));
 	});
 
 	test('list shows configured calendars', async () => {
-		await calendarCommand.run!(ctxFor(['list'], path));
+		await listCommand.run!(ctx({ config: path }));
 		expect(process.exitCode).toBeUndefined();
 		expect(logSpy).toHaveBeenCalledWith('work  (caldav)');
 		expect(logSpy).toHaveBeenCalledWith('broken  (caldav)');
@@ -116,7 +113,7 @@ describe('calendar command', () => {
 
 	test('test reports the busy interval count', async () => {
 		mockFetchBusy(async () => [{}, {}, {}]);
-		await calendarCommand.run!(ctxFor(['work', 'test'], path));
+		await testCommand.run!(ctx({ name: 'work', config: path }));
 		expect(process.exitCode).toBeUndefined();
 		expect(logSpy).toHaveBeenCalledWith(
 			expect.stringContaining('✅ work (caldav) — 3 busy interval')
@@ -127,25 +124,25 @@ describe('calendar command', () => {
 		mockFetchBusy(async () => {
 			throw new Error('REPORT failed: 500');
 		});
-		await calendarCommand.run!(ctxFor(['work', 'test'], path));
+		await testCommand.run!(ctx({ name: 'work', config: path }));
 		expect(process.exitCode).toBe(1);
 		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('❌ work (caldav)'));
 	});
 
+	test('test requires a calendar name', async () => {
+		await testCommand.run!(ctx({ config: path }));
+		expect(process.exitCode).toBe(1);
+		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('requires a calendar name'));
+	});
+
 	test('unknown calendar name fails', async () => {
-		await calendarCommand.run!(ctxFor(['nope', 'test'], path));
+		await testCommand.run!(ctx({ name: 'nope', config: path }));
 		expect(process.exitCode).toBe(1);
 		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('no calendar named "nope"'));
 	});
 
-	test('unknown action fails', async () => {
-		await calendarCommand.run!(ctxFor(['work', 'frob'], path));
-		expect(process.exitCode).toBe(1);
-		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('unknown action "frob"'));
-	});
-
 	test('unset service env var is named, not resolved', async () => {
-		await calendarCommand.run!(ctxFor(['broken', 'test'], path));
+		await testCommand.run!(ctx({ name: 'broken', config: path }));
 		expect(process.exitCode).toBe(1);
 		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('WHEN_CAL_UNSET'));
 		expect(getCalendarAdapter).not.toHaveBeenCalled();

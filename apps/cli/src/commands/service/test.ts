@@ -1,7 +1,21 @@
+import { define } from 'gunshi';
 import { getGoogleAccessToken, verifyCalDavService } from '@when/calendar';
 import type { Service, GoogleService, CalDavService, NextcloudService } from '@when/config';
-import { requireService, resolveServiceEnv } from './shared.ts';
+import { requireService, resolveServiceEnv, servicesAndName } from './shared.ts';
 import { pass, fail } from '../../utils/report.ts';
+
+export const testCommand = define({
+	name: 'test',
+	description: 'authenticate a service (Google token refresh / CalDAV PROPFIND)',
+	args: {
+		name: { type: 'positional', required: false, description: 'the service to test' },
+		config: { type: 'string', short: 'c', description: 'Path to when.yaml file' }
+	},
+	async run(ctx) {
+		const resolved = await servicesAndName(ctx.values?.name, ctx.values?.config, 'test');
+		if (resolved) await runServiceTest(resolved.services, resolved.name);
+	}
+});
 
 export async function runServiceTest(services: Service[], name: string): Promise<void> {
 	const service = requireService(services, name);

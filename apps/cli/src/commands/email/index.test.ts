@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { writeFileSync, unlinkSync } from 'node:fs';
 import { initOpenWorkflow } from '@when/jobs';
 import { emailCommand } from './index.ts';
+import { testCommand } from './test.ts';
 
 vi.mock('@when/jobs', () => ({
 	initOpenWorkflow: vi.fn(),
@@ -53,14 +54,10 @@ url:
   worker: "http://localhost:9099"
 `;
 
-type RunCtx = Parameters<NonNullable<typeof emailCommand.run>>[0];
+const path = join(process.cwd(), 'temp-email-config.yaml');
 
-function ctxFor(positionals: string[], config?: string): RunCtx {
-	return {
-		values: config ? { config } : {},
-		positionals: ['email', ...positionals],
-		commandPath: ['email']
-	} as unknown as RunCtx;
+function ctx(values: Record<string, unknown>) {
+	return { values } as unknown as Parameters<NonNullable<typeof testCommand.run>>[0];
 }
 
 function mockWorkflow(result: () => Promise<unknown>) {
@@ -75,7 +72,6 @@ describe('email command', () => {
 	let logSpy: ReturnType<typeof vi.spyOn>;
 	let errorSpy: ReturnType<typeof vi.spyOn>;
 	let originalExitCode: number | undefined;
-	const path = join(process.cwd(), 'temp-email-config.yaml');
 
 	beforeEach(() => {
 		logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
@@ -96,14 +92,14 @@ describe('email command', () => {
 		}
 	});
 
-	test('bare email prints usage', async () => {
-		await emailCommand.run!(ctxFor([]));
+	test('bare email prints usage', () => {
+		emailCommand.run!();
 		expect(process.exitCode).toBeUndefined();
 		expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('when-cli email test <address>'));
 	});
 
 	test('test without an address fails', async () => {
-		await emailCommand.run!(ctxFor(['test'], path));
+		await testCommand.run!(ctx({ config: path }));
 		expect(process.exitCode).toBe(1);
 		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('requires a recipient address'));
 	});
@@ -111,7 +107,7 @@ describe('email command', () => {
 	test('sends the test email when the worker is reachable and the job succeeds', async () => {
 		vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 200 }));
 		const runWorkflow = mockWorkflow(async () => 'sent');
-		await emailCommand.run!(ctxFor(['test', 'me@example.com'], path));
+		await testCommand.run!(ctx({ address: 'me@example.com', config: path }));
 		expect(process.exitCode).toBeUndefined();
 		expect(runWorkflow).toHaveBeenCalledWith(
 			expect.objectContaining({ name: 'test-email' }),
@@ -125,7 +121,7 @@ describe('email command', () => {
 
 	test('does not enqueue when the worker is unreachable', async () => {
 		vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('ECONNREFUSED'));
-		await emailCommand.run!(ctxFor(['test', 'me@example.com'], path));
+		await testCommand.run!(ctx({ address: 'me@example.com', config: path }));
 		expect(process.exitCode).toBe(1);
 		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('worker unreachable'));
 		expect(initOpenWorkflow).not.toHaveBeenCalled();
@@ -136,7 +132,7 @@ describe('email command', () => {
 		mockWorkflow(async () => {
 			throw new Error('SMTP 535');
 		});
-		await emailCommand.run!(ctxFor(['test', 'me@example.com'], path));
+		await testCommand.run!(ctx({ address: 'me@example.com', config: path }));
 		expect(process.exitCode).toBe(1);
 		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('test email failed'));
 	});

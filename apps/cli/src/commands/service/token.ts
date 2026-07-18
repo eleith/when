@@ -1,11 +1,27 @@
+import { define } from 'gunshi';
 import { text, isCancel } from '@clack/prompts';
 import { getGoogleAccessToken, buildGoogleAuthUrl, exchangeGoogleAuthCode } from '@when/calendar';
 import { interpolate, MissingEnvVarsError, type Service, type GoogleService } from '@when/config';
 import { extractAuthCode } from '../../services/google.ts';
-import { requireService } from './shared.ts';
+import { requireService, servicesAndName } from './shared.ts';
 import { pass, fail, detail } from '../../utils/report.ts';
 
 const REDIRECT_URI = 'http://localhost';
+
+export const tokenCommand = define({
+	name: 'token',
+	description: 'mint a Google refresh token (google services only)',
+	args: {
+		name: { type: 'positional', required: false, description: 'the google service' },
+		config: { type: 'string', short: 'c', description: 'Path to when.yaml file' },
+		quiet: { type: 'boolean', description: 'print only the raw token' }
+	},
+	async run(ctx) {
+		const resolved = await servicesAndName(ctx.values?.name, ctx.values?.config, 'token');
+		if (resolved)
+			await runServiceToken(resolved.services, resolved.name, ctx.values?.quiet === true);
+	}
+});
 
 interface ClientCreds {
 	clientId: string;

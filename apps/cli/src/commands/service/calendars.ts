@@ -1,7 +1,21 @@
+import { define } from 'gunshi';
 import { getGoogleAccessToken, listGoogleCalendars, discoverCalDavCalendars } from '@when/calendar';
 import type { Service, GoogleService, CalDavService, NextcloudService } from '@when/config';
-import { requireService, resolveServiceEnv } from './shared.ts';
+import { requireService, resolveServiceEnv, servicesAndName } from './shared.ts';
 import { pass, fail } from '../../utils/report.ts';
+
+export const calendarsCommand = define({
+	name: 'calendars',
+	description: 'list the calendars a service exposes',
+	args: {
+		name: { type: 'positional', required: false, description: 'the service to inspect' },
+		config: { type: 'string', short: 'c', description: 'Path to when.yaml file' }
+	},
+	async run(ctx) {
+		const resolved = await servicesAndName(ctx.values?.name, ctx.values?.config, 'calendars');
+		if (resolved) await runServiceCalendars(resolved.services, resolved.name);
+	}
+});
 
 export async function runServiceCalendars(services: Service[], name: string): Promise<void> {
 	const service = requireService(services, name);
