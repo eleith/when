@@ -1,23 +1,60 @@
-import { existsSync, mkdirSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { define } from 'gunshi';
-import { select, note, isCancel } from '@clack/prompts';
-import { ConfigEditor, ConfigError, loadConfigFileStructure } from '@when/config';
 import { getValidatedConfigPath } from '../../utils/config-path.ts';
-import { promptAuth } from '../../prompts/auth.ts';
-import { promptUser } from '../../prompts/user.ts';
-import { promptSmtp } from '../../prompts/smtp.ts';
-import { caldavAddCommand } from '../calendars/add/caldav.ts';
-import { nextcloudAddCommand } from '../calendars/add/nextcloud.ts';
-import { googleAddCommand } from '../calendars/add/google.ts';
-import { schedulesAddCommand } from '../schedules/add.ts';
-import { meetingsAddCommand } from '../meetings/add.ts';
+import { pass, fail } from '../../utils/report.ts';
 
-type SubCommandCtx = Parameters<NonNullable<typeof caldavAddCommand.run>>[0];
+const SKELETON = `# yaml-language-server: $schema=../../../packages/config/src/config.schema.json
+# Minimal starter config. Edit the placeholders, set the \${...} env vars, then
+# run: when-cli config validate. See config/when.example.yml for every option.
+auth:
+  credentials:
+    username: admin
+    password: \${WHEN_ADMIN_PASSWORD}
+user:
+  name: Your Name
+  email: you@example.com
+  timezone: UTC
+smtp:
+  host: smtp.example.com
+  port: 587
+  user: smtp-user
+  pass: \${WHEN_SMTP_PASS}
+services:
+  - name: my-caldav
+    type: caldav
+    url: https://dav.example.com/
+    username: dav-user
+    password: \${WHEN_SERVICE_MY_CALDAV_PASSWORD}
+calendars:
+  - name: primary
+    type: caldav
+    service: my-caldav
+    path: calendars/dav-user/primary/
+schedules:
+  - name: standard
+    weekly:
+      monday: ['09:00-17:00']
+      tuesday: ['09:00-17:00']
+      wednesday: ['09:00-17:00']
+      thursday: ['09:00-17:00']
+      friday: ['09:00-17:00']
+meetings:
+  - name: 30 minute meeting
+    slug: 30-min
+    duration_minutes: 30
+    booking_calendar: primary
+    schedule: standard
+database:
+  app: ./data/when.sqlite
+  queue: ./data/openworkflow.sqlite
+url:
+  app: https://book.example.com
+`;
 
 export const initCommand = define({
 	name: 'init',
-	description: 'Create a starter when.yaml by walking through each section',
+	description: 'Write a minimal starter when.yaml',
 	args: {
 		config: {
 			type: 'string',
@@ -25,78 +62,18 @@ export const initCommand = define({
 			description: 'Path to write when.yaml (defaults to the standard config location)'
 		}
 	},
-	async run(ctx) {
-		const path = getValidatedConfigPath(ctx.values.config);
+	run(ctx) {
+		const path = getValidatedConfigPath(ctx.values?.config);
 		if (existsSync(path)) {
-			console.error(
-				`FAIL  ${path} already exists. Move or remove it first, or pass a different --config path.`
-			);
-			process.exitCode = 1;
+			fail(`${path} already exists — move or remove it, or pass a different -c path`);
 			return;
 		}
-
-		const auth = await promptAuth();
-		if (!auth) return;
-		const user = await promptUser();
-		if (!user) return;
-		const smtp = await promptSmtp();
-		if (!smtp) return;
 
 		mkdirSync(dirname(path), { recursive: true });
-		const editor = new ConfigEditor(path);
-		editor.set('auth', auth.value);
-		editor.set('user', user.value);
-		editor.set('smtp', smtp.value);
+		writeFileSync(path, SKELETON);
 
-		const subCtx = {
-			values: { config: path },
-			positionals: [],
-			commandPath: []
-		} as unknown as SubCommandCtx;
-
-		const calType = await select({
-			message: 'Add your first calendar. Which type?',
-			options: [
-				{ value: 'caldav', label: 'CalDAV' },
-				{ value: 'nextcloud', label: 'Nextcloud' },
-				{ value: 'google', label: 'Google' }
-			],
-			initialValue: 'caldav'
-		});
-		if (isCancel(calType)) return;
-		if (calType === 'caldav') await caldavAddCommand.run!(subCtx);
-		else if (calType === 'nextcloud') await nextcloudAddCommand.run!(subCtx);
-		else await googleAddCommand.run!(subCtx);
-
-		await schedulesAddCommand.run!(subCtx);
-		await meetingsAddCommand.run!(subCtx);
-
-		try {
-			await loadConfigFileStructure(path);
-		} catch (err) {
-			if (err instanceof ConfigError) {
-				note(
-					`Wrote ${path}, but it isn't complete yet:\n` +
-						err.issues.map((i) => `  ${i.path}: ${i.message}`).join('\n') +
-						`\n\nFinish the missing sections by hand or re-run the add commands, then run:\n  when-cli config validate`,
-					'Almost there'
-				);
-			} else {
-				console.error(err);
-			}
-			process.exitCode = 1;
-			return;
-		}
-
-		const envVars = [...auth.envVars, ...smtp.envVars];
-		const parts = [`Wrote ${path}.`];
-		if (envVars.length) {
-			parts.push(
-				`Set these environment variables before starting:\n${envVars.map((v) => `  ${v}`).join('\n')}`
-			);
-		}
-		parts.push('Any calendar service password was shown during that step.');
-		parts.push('Re-check anytime with:\n  when-cli config validate');
-		note(parts.join('\n\n'), 'Setup complete');
+		pass(`wrote ${path}`);
+		console.log('  edit the placeholders, then run: when-cli config validate');
+		console.log('  see config/when.example.yml for every option');
 	}
 });
