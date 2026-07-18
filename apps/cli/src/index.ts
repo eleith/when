@@ -4,10 +4,6 @@ import { configCommand } from './commands/config/index.ts';
 import { serviceCommand } from './commands/service/index.ts';
 import { calendarCommand } from './commands/calendar/index.ts';
 import { emailCommand } from './commands/email/index.ts';
-import { calendarsCommand } from './commands/calendars/index.ts';
-import { schedulesCommand } from './commands/schedules/index.ts';
-import { meetingsCommand } from './commands/meetings/index.ts';
-import { appearanceCommand } from './commands/appearance/index.ts';
 
 const rootCommand = define({
 	name: 'when-cli',
@@ -25,11 +21,7 @@ try {
 			config: configCommand,
 			service: serviceCommand,
 			calendar: calendarCommand,
-			email: emailCommand,
-			calendars: calendarsCommand,
-			schedules: schedulesCommand,
-			meetings: meetingsCommand,
-			appearance: appearanceCommand
+			email: emailCommand
 		}
 	});
 } catch (err) {
