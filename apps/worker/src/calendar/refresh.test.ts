@@ -55,7 +55,7 @@ const defaultTestConfig = {
 	schedules: [
 		{
 			name: 'standard',
-			weekly: {}
+			weekly: [{ days: ['mon', 'tue', 'wed', 'thu', 'fri'], from: '09:00', to: '17:00' }]
 		}
 	],
 	meetings: []
