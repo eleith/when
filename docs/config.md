@@ -128,18 +128,25 @@ calendars:
 
 ## `schedules`
 
-A list of weekly schedules defining availability slots.
+A list of weekly schedules defining availability slots. `weekly` is a list of
+rules, each naming the `days` it applies to and a `from`/`to` window (24-hour
+`HH:MM`, in `user.timezone`). Availability is the union of all rules.
 
 ```yaml
 schedules:
   - name: 'standard' # unique name referenced by meetings
     weekly: # optional; defaults to Monday–Friday 09:00–17:00 when omitted
-      monday: ['09:00-17:00']
-      tuesday: ['09:00-17:00']
-      wednesday: ['09:00-17:00']
-      thursday: ['09:00-17:00']
-      friday: ['09:00-13:00', '14:00-17:00'] # multiple blocks allowed
-      # omitted days have no availability; a schedule needs at least one window
+      - days: [mon, tue, wed, thu]
+        from: '09:00'
+        to: '17:00'
+      # For multiple windows in a day (e.g. a lunch break), repeat the day:
+      - days: [fri]
+        from: '09:00'
+        to: '13:00'
+      - days: [fri]
+        from: '14:00'
+        to: '17:00'
+      # A day named by no rule has no availability (here: sat, sun).
 ```
 
 ## `meetings`

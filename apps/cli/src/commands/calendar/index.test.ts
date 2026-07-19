@@ -45,7 +45,9 @@ calendars:
 schedules:
   - name: "standard"
     weekly:
-      monday: ["09:00-17:00"]
+      - days: [mon]
+        from: "09:00"
+        to: "17:00"
 meetings:
   - name: "chat"
     duration_minutes: 30
