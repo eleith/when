@@ -107,20 +107,22 @@ function validateSchedules(
 	const scheduleNames = new Set<string>();
 	schedules.forEach((sch, i) => {
 		checkScheduleDuplicateName(sch, i, scheduleNames, issues);
-		checkScheduleHasWindows(sch, i, issues);
+		checkScheduleWindows(sch, i, issues);
 		scheduleNames.add(sch.name);
 	});
 	return scheduleNames;
 }
 
-function checkScheduleHasWindows(sch: Schedule, i: number, issues: ConfigIssue[]): void {
-	const windows = Object.values(sch.weekly).reduce((sum, day) => sum + (day?.length ?? 0), 0);
-	if (windows === 0) {
-		issues.push({
-			path: `/schedules/${i}/weekly`,
-			message: `schedule "${sch.name}" has no available time windows`
-		});
-	}
+// HH:MM strings are zero-padded, so lexical order matches chronological order.
+function checkScheduleWindows(sch: Schedule, i: number, issues: ConfigIssue[]): void {
+	sch.weekly.forEach((rule, j) => {
+		if (rule.from >= rule.to) {
+			issues.push({
+				path: `/schedules/${i}/weekly/${j}`,
+				message: `schedule "${sch.name}" has an empty window (${rule.from}-${rule.to}); "from" must be earlier than "to"`
+			});
+		}
+	});
 }
 
 function checkScheduleDuplicateName(

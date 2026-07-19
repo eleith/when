@@ -79,9 +79,9 @@ test('invalid email format fails', () => {
 	}
 });
 
-test('invalid time range fails pattern', () => {
+test('invalid time fails pattern', () => {
 	const bad = clone(validConfig);
-	bad.schedules[0].weekly.monday = ['25:00-30:00'];
+	bad.schedules[0].weekly[0].from = '25:00';
 	expect(() => validateConfig(bad)).toThrow(ConfigError);
 });
 
@@ -223,7 +223,7 @@ test('omitted schedule with multiple schedules defaults to the first', () => {
 		schedules: { name: string; weekly: unknown }[];
 		meetings: { schedule?: string }[];
 	};
-	raw.schedules.push({ name: 'weekend', weekly: { saturday: ['10:00-14:00'] } });
+	raw.schedules.push({ name: 'weekend', weekly: [{ days: ['sat'], from: '10:00', to: '14:00' }] });
 	delete raw.meetings[0].schedule;
 	expect(validateConfig(raw).meetings[0].schedule).toBe('standard');
 });
@@ -231,18 +231,14 @@ test('omitted schedule with multiple schedules defaults to the first', () => {
 test('schedule weekly defaults to Monday-Friday business hours when omitted', () => {
 	const raw = clone(validConfig) as unknown as { schedules: { weekly?: unknown }[] };
 	delete raw.schedules[0].weekly;
-	expect(validateConfig(raw).schedules[0].weekly).toEqual({
-		monday: ['09:00-17:00'],
-		tuesday: ['09:00-17:00'],
-		wednesday: ['09:00-17:00'],
-		thursday: ['09:00-17:00'],
-		friday: ['09:00-17:00']
-	});
+	expect(validateConfig(raw).schedules[0].weekly).toEqual([
+		{ days: ['mon', 'tue', 'wed', 'thu', 'fri'], from: '09:00', to: '17:00' }
+	]);
 });
 
 test('schedule with no time windows fails validation', () => {
 	const bad = clone(validConfig);
-	bad.schedules[0].weekly = {};
+	bad.schedules[0].weekly = [];
 	try {
 		validateConfig(bad);
 		throw new Error('expected ConfigError');

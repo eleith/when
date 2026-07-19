@@ -249,6 +249,15 @@ test('duplicate schedule name flagged', () => {
 	).toBe(true);
 });
 
+test('empty window (from >= to) flagged', () => {
+	const bad = clone(validConfig);
+	bad.schedules[0].weekly[0].to = bad.schedules[0].weekly[0].from;
+	const issues = issuesFor(bad);
+	expect(
+		issues.some((i) => i.path === '/schedules/0/weekly/0' && i.message.includes('empty window'))
+	).toBe(true);
+});
+
 test('unknown schedule reference in meeting flagged', () => {
 	const bad = clone(validConfig);
 	bad.meetings[0].schedule = 'non-existent';

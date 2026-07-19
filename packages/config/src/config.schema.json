@@ -186,6 +186,31 @@
 				}
 			]
 		},
+		"AvailabilityRule": {
+			"additionalProperties": false,
+			"title": "AvailabilityRule",
+			"description": "An available time window applied to one or more weekdays. Repeat with the same days for multiple windows.",
+			"type": "object",
+			"required": ["days", "from", "to"],
+			"properties": {
+				"days": {
+					"minItems": 1,
+					"description": "Weekdays this window applies to.",
+					"type": "array",
+					"items": {
+						"$ref": "#/$defs/Weekday"
+					}
+				},
+				"from": {
+					"description": "Start of the available window (HH:MM).",
+					"$ref": "#/$defs/Time"
+				},
+				"to": {
+					"description": "End of the available window (HH:MM).",
+					"$ref": "#/$defs/Time"
+				}
+			}
+		},
 		"CalDavCalendar": {
 			"title": "CalDavCalendar",
 			"description": "CalDAV Calendar integration configuration.",
@@ -352,15 +377,6 @@
 					"default": "./data/openworkflow.sqlite",
 					"type": "string"
 				}
-			}
-		},
-		"DaySchedule": {
-			"title": "DaySchedule",
-			"description": "Array of HH:MM-HH:MM time ranges in the user's timezone.",
-			"type": "array",
-			"items": {
-				"pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]-([01][0-9]|2[0-3]):[0-5][0-9]$",
-				"type": "string"
 			}
 		},
 		"FormField": {
@@ -748,8 +764,8 @@
 					"type": "string"
 				},
 				"weekly": {
-					"description": "Weekly working hours. Defaults to Monday-Friday 09:00-17:00 when omitted.",
-					"$ref": "#/$defs/WeeklySchedule"
+					"description": "Weekly working hours as availability rules. Defaults to Monday-Friday 09:00-17:00 when omitted.",
+					"$ref": "#/$defs/WeeklyAvailability"
 				}
 			}
 		},
@@ -803,6 +819,12 @@
 					"type": "string"
 				}
 			}
+		},
+		"Time": {
+			"pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$",
+			"title": "Time",
+			"description": "A wall-clock time as HH:MM (24-hour) in the user's timezone.",
+			"type": "string"
 		},
 		"Url": {
 			"additionalProperties": false,
@@ -858,40 +880,47 @@
 				}
 			}
 		},
-		"WeeklySchedule": {
-			"additionalProperties": false,
-			"title": "WeeklySchedule",
-			"description": "Weekly schedule specifying available time windows for each day.",
-			"type": "object",
-			"properties": {
-				"monday": {
-					"description": "Availability on Mondays.",
-					"$ref": "#/$defs/DaySchedule"
+		"Weekday": {
+			"title": "Weekday",
+			"description": "A day of the week (mon, tue, wed, thu, fri, sat, sun).",
+			"anyOf": [
+				{
+					"const": "mon",
+					"type": "string"
 				},
-				"tuesday": {
-					"description": "Availability on Tuesdays.",
-					"$ref": "#/$defs/DaySchedule"
+				{
+					"const": "tue",
+					"type": "string"
 				},
-				"wednesday": {
-					"description": "Availability on Wednesdays.",
-					"$ref": "#/$defs/DaySchedule"
+				{
+					"const": "wed",
+					"type": "string"
 				},
-				"thursday": {
-					"description": "Availability on Thursdays.",
-					"$ref": "#/$defs/DaySchedule"
+				{
+					"const": "thu",
+					"type": "string"
 				},
-				"friday": {
-					"description": "Availability on Fridays.",
-					"$ref": "#/$defs/DaySchedule"
+				{
+					"const": "fri",
+					"type": "string"
 				},
-				"saturday": {
-					"description": "Availability on Saturdays.",
-					"$ref": "#/$defs/DaySchedule"
+				{
+					"const": "sat",
+					"type": "string"
 				},
-				"sunday": {
-					"description": "Availability on Sundays.",
-					"$ref": "#/$defs/DaySchedule"
+				{
+					"const": "sun",
+					"type": "string"
 				}
+			]
+		},
+		"WeeklyAvailability": {
+			"minItems": 1,
+			"title": "WeeklyAvailability",
+			"description": "Weekly availability as a list of rules. Availability is the union of all rules; a weekday named by no rule is unavailable.",
+			"type": "array",
+			"items": {
+				"$ref": "#/$defs/AvailabilityRule"
 			}
 		}
 	}

@@ -35,22 +35,18 @@ test('defaults schedule and booking_calendar to the first when multiple exist', 
 
 test('defaults an omitted weekly to Monday-Friday business hours', () => {
 	const out = withDerivedDefaults({ schedules: [{ name: 'standard' }] }) as {
-		schedules: { weekly: Record<string, string[]> }[];
+		schedules: { weekly: unknown }[];
 	};
-	expect(out.schedules[0].weekly).toEqual({
-		monday: ['09:00-17:00'],
-		tuesday: ['09:00-17:00'],
-		wednesday: ['09:00-17:00'],
-		thursday: ['09:00-17:00'],
-		friday: ['09:00-17:00']
-	});
+	expect(out.schedules[0].weekly).toEqual([
+		{ days: ['mon', 'tue', 'wed', 'thu', 'fri'], from: '09:00', to: '17:00' }
+	]);
 });
 
-test('leaves a partially-specified weekly untouched', () => {
+test('leaves an explicit weekly untouched', () => {
 	const out = withDerivedDefaults({
-		schedules: [{ name: 'mondays', weekly: { monday: ['09:00-12:00'] } }]
-	}) as { schedules: { weekly: Record<string, string[]> }[] };
-	expect(out.schedules[0].weekly).toEqual({ monday: ['09:00-12:00'] });
+		schedules: [{ name: 'mondays', weekly: [{ days: ['mon'], from: '09:00', to: '12:00' }] }]
+	}) as { schedules: { weekly: unknown }[] };
+	expect(out.schedules[0].weekly).toEqual([{ days: ['mon'], from: '09:00', to: '12:00' }]);
 });
 
 test('does not mutate its input', () => {

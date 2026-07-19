@@ -26,15 +26,14 @@ export function withDerivedDefaults(config: unknown): unknown {
 	return result;
 }
 
-// Fill an entirely-omitted week (never a partial one, so single-day schedules stay as written).
+// Fill an omitted week with a Monday–Friday 09:00–17:00 rule.
 function deriveScheduleDefaults(schedule: Record<string, unknown>): Record<string, unknown> {
 	if (schedule.weekly !== undefined) return schedule;
 	return { ...schedule, weekly: businessWeek() };
 }
 
-function businessWeek(): Record<string, string[]> {
-	const day = (): string[] => ['09:00-17:00'];
-	return { monday: day(), tuesday: day(), wednesday: day(), thursday: day(), friday: day() };
+function businessWeek(): Array<Record<string, unknown>> {
+	return [{ days: ['mon', 'tue', 'wed', 'thu', 'fri'], from: '09:00', to: '17:00' }];
 }
 
 function deriveMeetingDefaults(

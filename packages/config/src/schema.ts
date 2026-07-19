@@ -148,24 +148,37 @@ export const CalendarSchema = Type.Union([
 	Ref(CalDavCalendarSchema)
 ], { $id: 'Calendar', title: 'Calendar', description: 'External calendar configuration.' });
 
-export const DayScheduleSchema = Type.Array(
-	Type.String({ pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]-([01][0-9]|2[0-3]):[0-5][0-9]$' }),
-	{ $id: 'DaySchedule', title: 'DaySchedule', description: 'Array of HH:MM-HH:MM time ranges in the user\'s timezone.' }
-);
+export const WeekdaySchema = Type.Union([
+	Type.Literal('mon'),
+	Type.Literal('tue'),
+	Type.Literal('wed'),
+	Type.Literal('thu'),
+	Type.Literal('fri'),
+	Type.Literal('sat'),
+	Type.Literal('sun')
+], { $id: 'Weekday', title: 'Weekday', description: 'A day of the week (mon, tue, wed, thu, fri, sat, sun).' });
 
-export const WeeklyScheduleSchema = Type.Object({
-	monday: Type.Optional(Ref(DayScheduleSchema, { description: 'Availability on Mondays.' })),
-	tuesday: Type.Optional(Ref(DayScheduleSchema, { description: 'Availability on Tuesdays.' })),
-	wednesday: Type.Optional(Ref(DayScheduleSchema, { description: 'Availability on Wednesdays.' })),
-	thursday: Type.Optional(Ref(DayScheduleSchema, { description: 'Availability on Thursdays.' })),
-	friday: Type.Optional(Ref(DayScheduleSchema, { description: 'Availability on Fridays.' })),
-	saturday: Type.Optional(Ref(DayScheduleSchema, { description: 'Availability on Saturdays.' })),
-	sunday: Type.Optional(Ref(DayScheduleSchema, { description: 'Availability on Sundays.' }))
-}, { $id: 'WeeklySchedule', additionalProperties: false, title: 'WeeklySchedule', description: 'Weekly schedule specifying available time windows for each day.' });
+export const TimeSchema = Type.String({
+	$id: 'Time',
+	pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$',
+	title: 'Time',
+	description: 'A wall-clock time as HH:MM (24-hour) in the user\'s timezone.'
+});
+
+export const AvailabilityRuleSchema = Type.Object({
+	days: Type.Array(Ref(WeekdaySchema), { minItems: 1, description: 'Weekdays this window applies to.' }),
+	from: Ref(TimeSchema, { description: 'Start of the available window (HH:MM).' }),
+	to: Ref(TimeSchema, { description: 'End of the available window (HH:MM).' })
+}, { $id: 'AvailabilityRule', additionalProperties: false, title: 'AvailabilityRule', description: 'An available time window applied to one or more weekdays. Repeat with the same days for multiple windows.' });
+
+export const WeeklyAvailabilitySchema = Type.Array(
+	Ref(AvailabilityRuleSchema),
+	{ $id: 'WeeklyAvailability', minItems: 1, title: 'WeeklyAvailability', description: 'Weekly availability as a list of rules. Availability is the union of all rules; a weekday named by no rule is unavailable.' }
+);
 
 export const ScheduleSchema = Type.Object({
 	name: Type.String({ minLength: 1, description: 'Unique name for the schedule, referenced by meetings.' }),
-	weekly: Ref(WeeklyScheduleSchema, { description: 'Weekly working hours. Defaults to Monday-Friday 09:00-17:00 when omitted.' })
+	weekly: Ref(WeeklyAvailabilitySchema, { description: 'Weekly working hours as availability rules. Defaults to Monday-Friday 09:00-17:00 when omitted.' })
 }, { $id: 'Schedule', additionalProperties: false, title: 'Schedule', description: 'Schedule defining weekly working hours.' });
 
 export const LocationSchema = Type.String({
@@ -279,8 +292,9 @@ export type GoogleCalendar = Static<typeof GoogleCalendarSchema>;
 export type CalendarSync = Static<typeof CalendarSyncSchema>;
 export type CalDavCalendar = Static<typeof CalDavCalendarSchema>;
 export type Schedule = Static<typeof ScheduleSchema>;
-export type WeeklySchedule = Static<typeof WeeklyScheduleSchema>;
-export type DaySchedule = Static<typeof DayScheduleSchema>;
+export type WeeklyAvailability = Static<typeof WeeklyAvailabilitySchema>;
+export type AvailabilityRule = Static<typeof AvailabilityRuleSchema>;
+export type Weekday = Static<typeof WeekdaySchema>;
 export type Meeting = Static<typeof MeetingSchema>;
 export type FormField = Static<typeof FormFieldSchema>;
 export type Location = Static<typeof LocationSchema>;
