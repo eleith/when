@@ -1,5 +1,6 @@
 import { resolveFormFields, type GuestAnswer, type Meeting } from '@when/config';
 import { PHONE_RE } from '$lib/forms/phone';
+import { evaluateVisibility } from '$lib/forms/conditional';
 
 const LIMIT_SHORT = 200;
 const LIMIT_LONG = 1000;
@@ -41,9 +42,16 @@ export function parseAndValidateAppointmentForm(
 	let email: string | null = null;
 	let location: string | null = eventType.location ?? null;
 
+	const readValue = (fieldName: string) => {
+		const raw = formData.get(fieldName);
+		return typeof raw === 'string' ? raw.trim() : '';
+	};
+	// A field hidden by show_when is never required, validated, or recorded.
+	const visible = evaluateVisibility(fields, readValue);
+
 	for (const field of fields) {
-		const raw = formData.get(field.name);
-		const value = typeof raw === 'string' ? raw.trim() : '';
+		if (!visible.get(field.name)) continue;
+		const value = readValue(field.name);
 
 		switch (field.type) {
 			case 'guest_name': {

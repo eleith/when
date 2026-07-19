@@ -111,6 +111,45 @@ describe('parseAndValidateAppointmentForm', () => {
 		expect(r.ok && r.data.answers).toEqual([]);
 	});
 
+	test('a hidden required field neither blocks submit nor is recorded', () => {
+		const event = eventWith([
+			{ name: 'name', type: 'guest_name', label: 'Name', required: true },
+			{ name: 'how', type: 'choice', label: 'How?', required: true, choices: ['phone', 'email'] },
+			{
+				name: 'tel',
+				type: 'phone',
+				label: 'Phone',
+				required: true,
+				show_when: [{ field: 'how', equals: 'phone' }]
+			}
+		]);
+		const r = parseAndValidateAppointmentForm(event, fd({ name: 'Jane', how: 'email', tel: '' }));
+		expect(r.ok).toBe(true);
+		expect(r.ok && r.data.answers.map((a) => a.name)).toEqual(['how']);
+	});
+
+	test('a visible required field is still enforced and recorded', () => {
+		const event = eventWith([
+			{ name: 'name', type: 'guest_name', label: 'Name', required: true },
+			{ name: 'how', type: 'choice', label: 'How?', required: true, choices: ['phone', 'email'] },
+			{
+				name: 'tel',
+				type: 'phone',
+				label: 'Phone',
+				required: true,
+				show_when: [{ field: 'how', equals: 'phone' }]
+			}
+		]);
+		expect(
+			parseAndValidateAppointmentForm(event, fd({ name: 'Jane', how: 'phone', tel: '' })).ok
+		).toBe(false);
+		const ok = parseAndValidateAppointmentForm(
+			event,
+			fd({ name: 'Jane', how: 'phone', tel: '555-123-4567' })
+		);
+		expect(ok.ok && ok.data.answers.find((a) => a.name === 'tel')?.value).toBe('555-123-4567');
+	});
+
 	test('paragraph over the long limit is rejected', () => {
 		const r = parseAndValidateAppointmentForm(
 			baseEvent,
