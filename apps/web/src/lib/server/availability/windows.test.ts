@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
 import { buildBaseWindows, candidateDates, localToInstant, weekdayOf } from './windows';
-import type { WeeklySchedule } from '$lib/server/availability/types';
+import type { TimeRange, WeeklySchedule } from '$lib/server/availability/types';
 
 const NYC = 'America/New_York';
 
@@ -12,9 +12,13 @@ function instant(s: string): Temporal.Instant {
 	return Temporal.Instant.from(s);
 }
 
+// Concise window builder: win('09:00-17:00', '13:00-17:00') → [{from,to}, ...]
+const win = (...ranges: string[]): TimeRange[] =>
+	ranges.map((r) => ({ from: r.split('-')[0], to: r.split('-')[1] }));
+
 test('weekdayOf returns the right weekday for a known date', () => {
-	expect(weekdayOf(plainDate('2026-04-24'))).toBe('friday');
-	expect(weekdayOf(plainDate('2026-04-26'))).toBe('sunday');
+	expect(weekdayOf(plainDate('2026-04-24'))).toBe('fri');
+	expect(weekdayOf(plainDate('2026-04-26'))).toBe('sun');
 });
 
 test('candidateDates expands an instant range into PlainDates in user_tz', () => {
@@ -38,11 +42,11 @@ test('candidateDates returns [] for an inverted range', () => {
 });
 
 const NINE_TO_FIVE: WeeklySchedule = {
-	monday: ['09:00-17:00'],
-	tuesday: ['09:00-17:00'],
-	wednesday: ['09:00-17:00'],
-	thursday: ['09:00-17:00'],
-	friday: ['09:00-17:00']
+	mon: win('09:00-17:00'),
+	tue: win('09:00-17:00'),
+	wed: win('09:00-17:00'),
+	thu: win('09:00-17:00'),
+	fri: win('09:00-17:00')
 };
 
 test('buildBaseWindows returns one UTC interval for a normal weekday', () => {
@@ -58,7 +62,7 @@ test('buildBaseWindows returns [] for a day with no entries', () => {
 
 test('buildBaseWindows supports multiple ranges per day', () => {
 	const split: WeeklySchedule = {
-		monday: ['09:00-12:00', '13:00-17:00']
+		mon: win('09:00-12:00', '13:00-17:00')
 	};
 	const intervals = buildBaseWindows(plainDate('2026-04-27'), split, NYC);
 	expect(intervals).toHaveLength(2);
@@ -71,7 +75,7 @@ test('buildBaseWindows supports multiple ranges per day', () => {
 test('buildBaseWindows drops a window crossing a DST spring-forward gap', () => {
 	// 2026-03-08 in NYC: 02:00 → 03:00 does not exist
 	const inGap: WeeklySchedule = {
-		sunday: ['02:00-04:00']
+		sun: win('02:00-04:00')
 	};
 	expect(buildBaseWindows(plainDate('2026-03-08'), inGap, NYC)).toEqual([]);
 });
@@ -79,7 +83,7 @@ test('buildBaseWindows drops a window crossing a DST spring-forward gap', () => 
 test('buildBaseWindows around fall-back picks the earlier occurrence', () => {
 	// 2026-11-01 in NYC: 01:00 → 02:00 occurs twice; the earlier is at -04:00.
 	const fallback: WeeklySchedule = {
-		sunday: ['00:00-04:00']
+		sun: win('00:00-04:00')
 	};
 	const intervals = buildBaseWindows(plainDate('2026-11-01'), fallback, NYC);
 	expect(intervals).toHaveLength(1);
@@ -89,13 +93,8 @@ test('buildBaseWindows around fall-back picks the earlier occurrence', () => {
 	expect(intervals[0].end.toString()).toBe('2026-11-01T09:00:00Z');
 });
 
-test('buildBaseWindows rejects ill-formed range strings', () => {
-	const bad: WeeklySchedule = { monday: ['9-5'] };
-	expect(buildBaseWindows(plainDate('2026-04-27'), bad, NYC)).toEqual([]);
-});
-
 test('buildBaseWindows rejects inverted ranges', () => {
-	const bad: WeeklySchedule = { monday: ['17:00-09:00'] };
+	const bad: WeeklySchedule = { mon: win('17:00-09:00') };
 	expect(buildBaseWindows(plainDate('2026-04-27'), bad, NYC)).toEqual([]);
 });
 

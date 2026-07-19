@@ -1,2 +1,3 @@
 export { computeSlots, type ComputeOptions } from './calc';
-export type { AvailabilitySettings, Interval, Weekday, WeeklySchedule } from './types';
+export { expandWeekly } from './expand-weekly';
+export type { AvailabilitySettings, Interval, TimeRange, Weekday, WeeklySchedule } from './types';

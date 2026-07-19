@@ -86,16 +86,22 @@ calendars:
   #   service: 'google-service'
   #   google_calendar_id: 'primary'
 
-# --- Weekly availability windows (times are in user.timezone) ---
+# --- Weekly availability (times are in user.timezone) ---
+# `weekly` is a list of rules; availability is the union of all rules.
 schedules:
   - name: 'standard'
     weekly:
-      monday: ['09:00-17:00']
-      tuesday: ['09:00-17:00']
-      wednesday: ['09:00-17:00']
-      thursday: ['09:00-17:00']
-      friday: ['09:00-17:00']
-      # saturday and sunday omitted = not available
+      - days: [mon, tue, wed, thu, fri]
+        from: '09:00'
+        to: '17:00'
+      # For multiple windows in a day (e.g. a lunch break), repeat the days:
+      # - days: [fri]
+      #   from: '09:00'
+      #   to: '13:00'
+      # - days: [fri]
+      #   from: '14:00'
+      #   to: '17:00'
+      # A day named by no rule is unavailable (here: sat, sun).
       # weekly may be omitted entirely = Monday–Friday 09:00–17:00
 
 # --- Bookable meeting types ---

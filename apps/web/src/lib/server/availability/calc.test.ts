@@ -1,10 +1,14 @@
 import { expect, test } from 'vitest';
 import { computeSlots } from '$lib/server/availability';
-import type { AvailabilitySettings, Interval } from '$lib/server/availability';
+import type { AvailabilitySettings, Interval, TimeRange } from '$lib/server/availability';
 
 const NYC = 'America/New_York';
 const PARIS = 'Europe/Paris';
 const I = (s: string) => Temporal.Instant.from(s);
+
+// Concise window builder: win('09:00-17:00', '18:00-20:00') → [{from,to}, ...]
+const win = (...ranges: string[]): TimeRange[] =>
+	ranges.map((r) => ({ from: r.split('-')[0], to: r.split('-')[1] }));
 
 const baseSettings: AvailabilitySettings = {
 	duration: 30,
@@ -15,13 +19,13 @@ const baseSettings: AvailabilitySettings = {
 	buffer_after: 0,
 	max_appointments_per_day: null,
 	weekly: {
-		monday: ['09:00-17:00'],
-		tuesday: ['09:00-17:00'],
-		wednesday: ['09:00-17:00'],
-		thursday: ['09:00-17:00'],
-		friday: ['09:00-17:00'],
-		saturday: ['09:00-17:00'],
-		sunday: ['09:00-17:00']
+		mon: win('09:00-17:00'),
+		tue: win('09:00-17:00'),
+		wed: win('09:00-17:00'),
+		thu: win('09:00-17:00'),
+		fri: win('09:00-17:00'),
+		sat: win('09:00-17:00'),
+		sun: win('09:00-17:00')
 	}
 };
 
@@ -39,7 +43,7 @@ test('DST spring forward: NYC 2026-03-08 00:00-04:00 skips 02:00/02:30 NYC', () 
 	const settings = defaults({
 		duration: 30,
 		slot_granularity: 30,
-		weekly: { sunday: ['00:00-04:00'] }
+		weekly: { sun: win('00:00-04:00') }
 	});
 	const slots = computeSlots({
 		settings,
@@ -59,7 +63,7 @@ test('DST fall back: NYC 2026-11-01 the duplicated 01:00 hour is counted once', 
 	const settings = defaults({
 		duration: 30,
 		slot_granularity: 30,
-		weekly: { sunday: ['00:00-04:00'] }
+		weekly: { sun: win('00:00-04:00') }
 	});
 	// 00:00-04:00 wall-clock spans 5 actual hours due to fall-back, so 10 slots.
 	const slots = computeSlots({
@@ -77,7 +81,7 @@ test('booker TZ is irrelevant — slots are UTC instants admin-anchored', () => 
 	const settings = defaults({
 		duration: 30,
 		slot_granularity: 30,
-		weekly: { monday: ['09:00-17:00'] }
+		weekly: { mon: win('09:00-17:00') }
 	});
 	// 2026-04-27 is a Monday. 09:00 NYC EDT = 13:00 UTC = 15:00 Paris CEST.
 	const slots = computeSlots({
@@ -98,7 +102,7 @@ test('block at 10:00-10:30 UTC rejects overlapping slots, accepts 10:30', () => 
 		slot_granularity: 15,
 		buffer_before: 0,
 		buffer_after: 0,
-		weekly: { monday: ['05:00-12:00'] } // window in NYC local; 05:00 NYC EDT = 09:00 UTC
+		weekly: { mon: win('05:00-12:00') } // window in NYC local; 05:00 NYC EDT = 09:00 UTC
 	});
 	const block: Interval = { start: I('2026-04-27T10:00:00Z'), end: I('2026-04-27T10:30:00Z') };
 	const slots = computeSlots({
@@ -126,7 +130,7 @@ test('buffer_before extends the rejection window', () => {
 		slot_granularity: 5,
 		buffer_before: 10,
 		buffer_after: 0,
-		weekly: { monday: ['05:00-12:00'] }
+		weekly: { mon: win('05:00-12:00') }
 	});
 	const block: Interval = { start: I('2026-04-27T10:00:00Z'), end: I('2026-04-27T10:30:00Z') };
 	const slots = computeSlots({
@@ -149,7 +153,7 @@ test('minimum_notice excludes anything sooner than now + notice', () => {
 		duration: 30,
 		slot_granularity: 30,
 		minimum_notice: 120,
-		weekly: { monday: ['05:00-17:00'] }
+		weekly: { mon: win('05:00-17:00') }
 	});
 	const slots = computeSlots({
 		settings,
@@ -168,9 +172,9 @@ test('maximum_lookahead caps at end-of-day in user_tz', () => {
 		slot_granularity: 60,
 		maximum_lookahead: 1,
 		weekly: {
-			monday: ['09:00-17:00'],
-			tuesday: ['09:00-17:00'],
-			wednesday: ['09:00-17:00']
+			mon: win('09:00-17:00'),
+			tue: win('09:00-17:00'),
+			wed: win('09:00-17:00')
 		}
 	});
 	const now = I('2026-04-27T14:00:00Z'); // 10:00 NYC EDT, Monday
@@ -195,8 +199,8 @@ test('max_appointments_per_day rejects all candidates on capped days', () => {
 		slot_granularity: 30,
 		max_appointments_per_day: 2,
 		weekly: {
-			monday: ['09:00-17:00'],
-			tuesday: ['09:00-17:00']
+			mon: win('09:00-17:00'),
+			tue: win('09:00-17:00')
 		}
 	});
 	const slots = computeSlots({
@@ -217,7 +221,7 @@ test('max_appointments_per_day rejects all candidates on capped days', () => {
 });
 
 test('empty availability for a weekday emits no slots', () => {
-	const settings = defaults({ weekly: { friday: ['09:00-17:00'] } }); // Sat/Sun missing
+	const settings = defaults({ weekly: { fri: win('09:00-17:00') } }); // Sat/Sun missing
 	const slots = computeSlots({
 		settings,
 		userTz: NYC,
@@ -234,8 +238,8 @@ test('RRULE-expanded blocks: same wall-clock slot blocked across consecutive wee
 		duration: 30,
 		slot_granularity: 30,
 		weekly: {
-			monday: ['09:00-17:00'],
-			tuesday: ['09:00-17:00']
+			mon: win('09:00-17:00'),
+			tue: win('09:00-17:00')
 		}
 	});
 	// Simulate a weekly Mon 10:00-10:30 NYC standup (already RRULE-expanded).

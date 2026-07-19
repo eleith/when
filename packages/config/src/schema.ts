@@ -148,15 +148,13 @@ export const CalendarSchema = Type.Union([
 	Ref(CalDavCalendarSchema)
 ], { $id: 'Calendar', title: 'Calendar', description: 'External calendar configuration.' });
 
-export const WeekdaySchema = Type.Union([
-	Type.Literal('mon'),
-	Type.Literal('tue'),
-	Type.Literal('wed'),
-	Type.Literal('thu'),
-	Type.Literal('fri'),
-	Type.Literal('sat'),
-	Type.Literal('sun')
-], { $id: 'Weekday', title: 'Weekday', description: 'A day of the week (mon, tue, wed, thu, fri, sat, sun).' });
+// Canonical weekday tokens in ISO order (Temporal's dayOfWeek: mon=1 … sun=7).
+export const WEEKDAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
+
+export const WeekdaySchema = Type.Union(
+	WEEKDAYS.map((d) => Type.Literal(d)),
+	{ $id: 'Weekday', title: 'Weekday', description: 'A day of the week (mon, tue, wed, thu, fri, sat, sun).' }
+);
 
 export const TimeSchema = Type.String({
 	$id: 'Time',

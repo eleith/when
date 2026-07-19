@@ -1,15 +1,7 @@
-import type { Interval, Weekday, WeeklySchedule } from './types';
+import { WEEKDAYS } from '@when/config';
+import type { Interval, TimeRange, Weekday, WeeklySchedule } from './types';
 
-const WEEKDAYS: readonly Weekday[] = [
-	'monday',
-	'tuesday',
-	'wednesday',
-	'thursday',
-	'friday',
-	'saturday',
-	'sunday'
-];
-
+// Temporal's dayOfWeek is ISO: Monday=1 … Sunday=7, matching WEEKDAYS order.
 export function weekdayOf(date: Temporal.PlainDate): Weekday {
 	return WEEKDAYS[date.dayOfWeek - 1];
 }
@@ -32,8 +24,6 @@ export function candidateDates(
 	return out;
 }
 
-const HHMM_RANGE = /^([01]\d|2[0-3]):([0-5]\d)-([01]\d|2[0-3]):([0-5]\d)$/;
-
 /**
  * Build base availability windows for a single calendar date, anchored in `userTz`
  * and returned as UTC instants. DST handling:
@@ -47,17 +37,12 @@ export function buildBaseWindows(
 	userTz: string
 ): Interval[] {
 	const ranges = weekly[weekdayOf(date)] ?? [];
-	return ranges.map((r) => parseRange(r, date, userTz)).filter((x): x is Interval => x !== null);
+	return ranges.map((r) => rangeToInterval(r, date, userTz)).filter((x): x is Interval => x !== null);
 }
 
-function parseRange(range: string, date: Temporal.PlainDate, tz: string): Interval | null {
-	const m = HHMM_RANGE.exec(range);
-	if (!m) return null;
-	const [, sh, sm, eh, em] = m;
-	const startTime = new Temporal.PlainTime(Number(sh), Number(sm));
-	const endTime = new Temporal.PlainTime(Number(eh), Number(em));
-	const start = localToInstant(date, startTime, tz);
-	const end = localToInstant(date, endTime, tz);
+function rangeToInterval(range: TimeRange, date: Temporal.PlainDate, tz: string): Interval | null {
+	const start = localToInstant(date, Temporal.PlainTime.from(range.from), tz);
+	const end = localToInstant(date, Temporal.PlainTime.from(range.to), tz);
 	if (start === null || end === null) return null;
 	if (Temporal.Instant.compare(start, end) >= 0) return null;
 	return { start, end };

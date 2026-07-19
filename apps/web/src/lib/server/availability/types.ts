@@ -1,21 +1,14 @@
-export type Weekday =
-	| 'monday'
-	| 'tuesday'
-	| 'wednesday'
-	| 'thursday'
-	| 'friday'
-	| 'saturday'
-	| 'sunday';
+import type { Weekday } from '@when/config';
+export type { Weekday };
 
-export interface WeeklySchedule {
-	monday?: string[];
-	tuesday?: string[];
-	wednesday?: string[];
-	thursday?: string[];
-	friday?: string[];
-	saturday?: string[];
-	sunday?: string[];
+/** A wall-clock availability window, HH:MM in the owner's timezone. */
+export interface TimeRange {
+	from: string;
+	to: string;
 }
+
+/** Availability windows per weekday, expanded from the config's rule list. */
+export type WeeklySchedule = Partial<Record<Weekday, TimeRange[]>>;
 
 /** A UTC time interval. Used for both base windows and blocks. */
 export interface Interval {

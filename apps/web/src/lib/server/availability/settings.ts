@@ -1,4 +1,5 @@
 import type { Meeting, WhenConfiguration } from '@when/config';
+import { expandWeekly } from './expand-weekly';
 import type { AvailabilitySettings } from './types';
 
 export function resolveAvailabilitySettingsById(
@@ -24,6 +25,6 @@ export function resolveAvailabilitySettings(
 		buffer_before: et.padding_before_minutes ?? 0,
 		buffer_after: et.padding_after_minutes ?? 0,
 		max_appointments_per_day: et.daily_booking_limit ?? null,
-		weekly: a.weekly
+		weekly: expandWeekly(a.weekly)
 	};
 }

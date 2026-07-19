@@ -53,13 +53,7 @@ export const validConfig: WhenConfiguration = {
 	schedules: [
 		{
 			name: 'standard',
-			weekly: {
-				monday: ['09:00-17:00'],
-				tuesday: ['09:00-17:00'],
-				wednesday: ['09:00-17:00'],
-				thursday: ['09:00-17:00'],
-				friday: ['09:00-17:00']
-			}
+			weekly: [{ days: ['mon', 'tue', 'wed', 'thu', 'fri'], from: '09:00', to: '17:00' }]
 		}
 	],
 	meetings: [

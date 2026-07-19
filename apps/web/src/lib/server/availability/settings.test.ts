@@ -26,8 +26,13 @@ test('throws on unknown meeting name', () => {
 	expect(() => resolveAvailabilitySettingsById(validConfig, 'nope')).toThrow(/unknown meeting/);
 });
 
-test('weekly schedule comes from schedule definition', () => {
-	expect(resolveAvailabilitySettingsById(validConfig, '30-min-chat').weekly).toEqual(
-		validConfig.schedules[0].weekly
-	);
+test('weekly schedule is expanded from the schedule rules', () => {
+	const day = [{ from: '09:00', to: '17:00' }];
+	expect(resolveAvailabilitySettingsById(validConfig, '30-min-chat').weekly).toEqual({
+		mon: day,
+		tue: day,
+		wed: day,
+		thu: day,
+		fri: day
+	});
 });
