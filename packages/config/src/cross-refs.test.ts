@@ -130,6 +130,77 @@ test('duplicate form field name flagged with index', () => {
 	expect(issues.some((i) => i.path === '/meetings/0/form_fields/3/name')).toBe(true);
 });
 
+test('valid show_when passes', () => {
+	const cfg = withForm([
+		...validForm,
+		{ name: 'how', type: 'choice', label: 'How?', required: true, choices: ['phone', 'video'] },
+		{
+			name: 'tel',
+			type: 'phone',
+			label: 'Phone',
+			required: false,
+			show_when: [{ field: 'how', equals: 'phone' }]
+		}
+	]);
+	expect(() => validateConfig(cfg)).not.toThrow();
+});
+
+test('show_when with no equals (filled check) passes', () => {
+	const cfg = withForm([
+		...validForm,
+		{
+			name: 'why',
+			type: 'text',
+			label: 'Why?',
+			required: false,
+			show_when: [{ field: 'notes' }]
+		}
+	]);
+	expect(() => validateConfig(cfg)).not.toThrow();
+});
+
+test('show_when referencing a later field is flagged', () => {
+	const issues = issuesFor(
+		withForm([
+			{
+				name: 'tel',
+				type: 'phone',
+				label: 'Phone',
+				required: false,
+				show_when: [{ field: 'how', equals: 'phone' }]
+			},
+			...validForm,
+			{ name: 'how', type: 'choice', label: 'How?', required: true, choices: ['phone', 'video'] }
+		])
+	);
+	expect(
+		issues.some(
+			(i) => i.path === '/meetings/0/form_fields/0/show_when/0/field' && i.message.includes('how')
+		)
+	).toBe(true);
+});
+
+test('show_when equals value outside the choice options is flagged', () => {
+	const issues = issuesFor(
+		withForm([
+			...validForm,
+			{ name: 'how', type: 'choice', label: 'How?', required: true, choices: ['phone', 'video'] },
+			{
+				name: 'tel',
+				type: 'phone',
+				label: 'Phone',
+				required: false,
+				show_when: [{ field: 'how', equals: 'fax' }]
+			}
+		])
+	);
+	expect(
+		issues.some(
+			(i) => i.path === '/meetings/0/form_fields/4/show_when/0' && i.message.includes('fax')
+		)
+	).toBe(true);
+});
+
 test('missing guest_name flagged', () => {
 	const issues = issuesFor(
 		withForm([{ name: 'email', type: 'guest_email', label: 'Email', required: false }])

@@ -379,6 +379,36 @@
 				}
 			}
 		},
+		"FieldCondition": {
+			"additionalProperties": false,
+			"title": "FieldCondition",
+			"description": "A visibility condition referencing another field.",
+			"type": "object",
+			"required": ["field"],
+			"properties": {
+				"field": {
+					"minLength": 1,
+					"description": "Name of an earlier field whose value this condition tests.",
+					"type": "string"
+				},
+				"equals": {
+					"description": "Value, or list of accepted values, the referenced field must match. Omit to require only that the field has a non-empty value.",
+					"anyOf": [
+						{
+							"type": "string"
+						},
+						{
+							"minItems": 1,
+							"type": "array",
+							"items": {
+								"minLength": 1,
+								"type": "string"
+							}
+						}
+					]
+				}
+			}
+		},
 		"FormField": {
 			"additionalProperties": false,
 			"title": "FormField",
@@ -444,6 +474,13 @@
 					"items": {
 						"minLength": 1,
 						"type": "string"
+					}
+				},
+				"show_when": {
+					"description": "Show this field only when every listed condition holds (logical AND). Each condition references an earlier field.",
+					"type": "array",
+					"items": {
+						"$ref": "#/$defs/FieldCondition"
 					}
 				}
 			}

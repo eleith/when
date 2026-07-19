@@ -1,4 +1,4 @@
-import type { WhenConfiguration, Service, Calendar, Schedule, Meeting } from './schema.js';
+import type { WhenConfiguration, Service, Calendar, Schedule, Meeting, FormField } from './schema.js';
 import type { ConfigIssue } from './load.js';
 
 interface ServiceRegistry {
@@ -324,6 +324,8 @@ function checkFormFields(meeting: Meeting, i: number, issues: ConfigIssue[]): vo
 				message: `choice field "${field.name}" must have a non-empty choices list`
 			});
 		}
+
+		checkFieldConditions(field, j, fields, base, issues);
 	});
 
 	const nameFields = fields.filter((f) => f.type === 'guest_name');
@@ -341,4 +343,37 @@ function checkFormFields(meeting: Meeting, i: number, issues: ConfigIssue[]): vo
 			issues.push({ path: base, message: `${type} may appear at most once` });
 		}
 	}
+}
+
+// A show_when condition may only reference an earlier field (no forward refs or
+// cycles), and an equals value must be a real option of a choice controller.
+function checkFieldConditions(
+	field: FormField,
+	j: number,
+	fields: readonly FormField[],
+	base: string,
+	issues: ConfigIssue[]
+): void {
+	if (!field.show_when) return;
+	const earlier = fields.slice(0, j);
+	field.show_when.forEach((cond, k) => {
+		const target = earlier.find((f) => f.name === cond.field);
+		if (!target) {
+			issues.push({
+				path: `${base}/${j}/show_when/${k}/field`,
+				message: `show_when for "${field.name}" references unknown or later field "${cond.field}"`
+			});
+			return;
+		}
+		if (cond.equals === undefined || target.type !== 'choice' || !target.choices) return;
+		const values = Array.isArray(cond.equals) ? cond.equals : [cond.equals];
+		for (const value of values) {
+			if (!target.choices.includes(value)) {
+				issues.push({
+					path: `${base}/${j}/show_when/${k}`,
+					message: `show_when value "${value}" is not one of "${cond.field}" choices`
+				});
+			}
+		}
+	});
 }

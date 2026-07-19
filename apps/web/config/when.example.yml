@@ -130,10 +130,17 @@ meetings:
     # start_times_every_minutes: 15 # slot step (defaults to duration_minutes)
     # form_fields: # extra questions asked at booking
     #   - name: 'topic'
-    #     type: 'text' # guest_name | guest_email | event_location | text | number | paragraph | choice
+    #     type: 'text' # guest_name | guest_email | event_location | text | number | phone | paragraph | choice
     #     label: 'What would you like to discuss?'
     #     required: false
     #     choices: ['Sales', 'Support'] # only for type: choice
+    #   - name: 'phone'
+    #     type: 'phone'
+    #     label: 'Your phone number'
+    #     required: true # required only while shown
+    #     show_when: # show only when every condition holds (AND)
+    #       - field: 'topic' # references an earlier field by name
+    #         equals: 'Sales' # value or list to match; omit to mean "filled at all"
 
 # --- On-disk SQLite paths (relative to the deployment root); defaults shown ---
 # database:

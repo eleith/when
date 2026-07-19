@@ -184,6 +184,18 @@ meetings:
         type: 'paragraph'
         label: 'What would you like to discuss?'
         required: false
+      - name: 'contact_method'
+        type: 'choice'
+        label: 'How should we reach you?'
+        required: true
+        choices: ['phone', 'email']
+      - name: 'phone'
+        type: 'phone'
+        label: 'Your phone number'
+        required: true # required only while shown
+        show_when: # show only when every condition holds (AND)
+          - field: 'contact_method' # references an earlier field by name
+            equals: 'phone' # a single value, or a list for "one of"; omit to mean "filled at all"
 
     # Scheduling rules:
     start_times_every_minutes: 30 # slots snap to this boundary (defaults to duration_minutes)
@@ -200,7 +212,7 @@ Rather than rigid location structures, meetings are customized using:
 
 - **Fixed Location**: A static string configured via `location`.
 - **Dynamic Video Chat**: Setup under `video_chat_service` referencing the service name (e.g. `my-nextcloud-service` or `my-google-service`). Dynamic links (like Nextcloud Talk rooms or Google Meet URLs) are generated automatically.
-- **Custom Questions**: Configured via `form_fields`. Every form **must** include exactly one `guest_name` field (with `required: true`). Optional special field types include `guest_email` and `event_location`. General text fields, numbers, phone numbers, paragraphs, and choices are also supported.
+- **Custom Questions**: Configured via `form_fields`. Every form **must** include exactly one `guest_name` field (with `required: true`). Optional special field types include `guest_email` and `event_location`. General text fields, numbers, phone numbers, paragraphs, and choices are also supported. A field may be shown conditionally with `show_when`: a list of `{ field, equals }` conditions (all must hold) referencing earlier fields. Omit `equals` to require only that the referenced field is filled, or give it a list to accept any of several values. A field hidden by `show_when` is never required and its answer is not recorded.
 
 ## `database`
 

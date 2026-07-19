@@ -186,6 +186,14 @@ export const LocationSchema = Type.String({
 	description: 'A static location description for a meeting (e.g. an address, a phone number, or a static meeting link).'
 });
 
+export const FieldConditionSchema = Type.Object({
+	field: Type.String({ minLength: 1, description: 'Name of an earlier field whose value this condition tests.' }),
+	equals: Type.Optional(Type.Union([
+		Type.String(),
+		Type.Array(Type.String({ minLength: 1 }), { minItems: 1 })
+	], { description: 'Value, or list of accepted values, the referenced field must match. Omit to require only that the field has a non-empty value.' }))
+}, { $id: 'FieldCondition', additionalProperties: false, title: 'FieldCondition', description: 'A visibility condition referencing another field.' });
+
 export const FormFieldSchema = Type.Object({
 	name: Type.String({ minLength: 1, description: 'Unique name for the form field.' }),
 	type: Type.Union([
@@ -200,7 +208,8 @@ export const FormFieldSchema = Type.Object({
 	], { description: 'Type of form field (e.g. guest_name, guest_email, event_location, text, number, phone, paragraph, choice).' }),
 	label: Type.String({ minLength: 1, description: 'The question prompt or label shown to the user.' }),
 	required: Type.Boolean({ default: false, description: 'Whether the field must be filled in (default: false).' }),
-	choices: Type.Optional(Type.Array(Type.String({ minLength: 1 }), { description: 'List of options for the choice field type.' }))
+	choices: Type.Optional(Type.Array(Type.String({ minLength: 1 }), { description: 'List of options for the choice field type.' })),
+	show_when: Type.Optional(Type.Array(Ref(FieldConditionSchema), { description: 'Show this field only when every listed condition holds (logical AND). Each condition references an earlier field.' }))
 }, { $id: 'FormField', additionalProperties: false, title: 'FormField', description: 'Custom question form fields for bookings.' });
 
 export const MeetingSchema = Type.Object({
@@ -296,6 +305,7 @@ export type AvailabilityRule = Static<typeof AvailabilityRuleSchema>;
 export type Weekday = Static<typeof WeekdaySchema>;
 export type Meeting = Static<typeof MeetingSchema>;
 export type FormField = Static<typeof FormFieldSchema>;
+export type FieldCondition = Static<typeof FieldConditionSchema>;
 export type Location = Static<typeof LocationSchema>;
 export type PrometheusConfig = Static<typeof PrometheusConfigSchema>;
 export type DatabaseConfig = Static<typeof DatabaseConfigSchema>;
