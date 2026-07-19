@@ -90,7 +90,10 @@ describe('parseAndValidateAppointmentForm', () => {
 		expect(parseAndValidateAppointmentForm(event, fd({ name: 'Jane', tel: 'call me' })).ok).toBe(
 			false
 		);
-		const ok = parseAndValidateAppointmentForm(event, fd({ name: 'Jane', tel: '+1 (555) 123-4567' }));
+		const ok = parseAndValidateAppointmentForm(
+			event,
+			fd({ name: 'Jane', tel: '+1 (555) 123-4567' })
+		);
 		expect(ok.ok && ok.data.answers[0]).toEqual({
 			name: 'tel',
 			label: 'Phone',

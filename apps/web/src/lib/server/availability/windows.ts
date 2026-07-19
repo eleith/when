@@ -37,7 +37,9 @@ export function buildBaseWindows(
 	userTz: string
 ): Interval[] {
 	const ranges = weekly[weekdayOf(date)] ?? [];
-	return ranges.map((r) => rangeToInterval(r, date, userTz)).filter((x): x is Interval => x !== null);
+	return ranges
+		.map((r) => rangeToInterval(r, date, userTz))
+		.filter((x): x is Interval => x !== null);
 }
 
 function rangeToInterval(range: TimeRange, date: Temporal.PlainDate, tz: string): Interval | null {
