@@ -1,4 +1,5 @@
 import { resolveFormFields, type GuestAnswer, type Meeting } from '@when/config';
+import { PHONE_RE } from '$lib/forms/phone';
 
 const LIMIT_SHORT = 200;
 const LIMIT_LONG = 1000;
@@ -86,6 +87,8 @@ export function parseAndValidateAppointmentForm(
 					errors[field.name] = `Please keep this under ${limit} characters.`;
 				} else if (field.type === 'number' && Number.isNaN(Number(value))) {
 					errors[field.name] = 'Please enter a number.';
+				} else if (field.type === 'phone' && !PHONE_RE.test(value)) {
+					errors[field.name] = 'Please enter a valid phone number.';
 				} else if (field.type === 'choice' && !field.choices?.includes(value)) {
 					errors[field.name] = 'Pick a valid option.';
 				} else {

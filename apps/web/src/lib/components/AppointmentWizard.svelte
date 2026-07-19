@@ -18,6 +18,7 @@
 		formatTzAbbrev
 	} from '$lib/datetime';
 	import { getPreferredTimezone } from '$lib/preferredTimezone.svelte';
+	import { PHONE_PATTERN } from '$lib/forms/phone';
 	import type { GuestAnswer, Appearance, FormField } from '@when/config';
 	import type { PublicEventType } from '$lib/server/appointment/sanitize';
 
@@ -451,6 +452,19 @@
 												type="number"
 												required={field.required && !fieldsDisabled}
 												disabled={fieldsDisabled}
+												value={initialFieldValue(field)}
+											/>
+										{:else if field.type === 'phone'}
+											<input
+												id={field.name}
+												name={field.name}
+												type="tel"
+												inputmode="tel"
+												autocomplete="tel"
+												required={field.required && !fieldsDisabled}
+												disabled={fieldsDisabled}
+												pattern={PHONE_PATTERN}
+												maxlength="25"
 												value={initialFieldValue(field)}
 											/>
 										{:else if field.type === 'paragraph'}

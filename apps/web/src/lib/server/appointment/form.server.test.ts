@@ -82,6 +82,32 @@ describe('parseAndValidateAppointmentForm', () => {
 		expect(ok.ok && ok.data.answers[0].value).toBe('video');
 	});
 
+	test('phone accepts common formats and rejects free text', () => {
+		const event = eventWith([
+			{ name: 'name', type: 'guest_name', label: 'Name', required: true },
+			{ name: 'tel', type: 'phone', label: 'Phone', required: true }
+		]);
+		expect(parseAndValidateAppointmentForm(event, fd({ name: 'Jane', tel: 'call me' })).ok).toBe(
+			false
+		);
+		const ok = parseAndValidateAppointmentForm(event, fd({ name: 'Jane', tel: '+1 (555) 123-4567' }));
+		expect(ok.ok && ok.data.answers[0]).toEqual({
+			name: 'tel',
+			label: 'Phone',
+			type: 'phone',
+			value: '+1 (555) 123-4567'
+		});
+	});
+
+	test('optional phone may be omitted', () => {
+		const event = eventWith([
+			{ name: 'name', type: 'guest_name', label: 'Name', required: true },
+			{ name: 'tel', type: 'phone', label: 'Phone', required: false }
+		]);
+		const r = parseAndValidateAppointmentForm(event, fd({ name: 'Jane' }));
+		expect(r.ok && r.data.answers).toEqual([]);
+	});
+
 	test('paragraph over the long limit is rejected', () => {
 		const r = parseAndValidateAppointmentForm(
 			baseEvent,
