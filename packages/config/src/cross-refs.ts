@@ -1,4 +1,11 @@
-import type { WhenConfiguration, Service, Calendar, Schedule, Meeting, FormField } from './schema.js';
+import type {
+	WhenConfiguration,
+	Service,
+	Calendar,
+	Schedule,
+	Meeting,
+	FormField
+} from './schema.js';
 import type { ConfigIssue } from './load.js';
 
 interface ServiceRegistry {
