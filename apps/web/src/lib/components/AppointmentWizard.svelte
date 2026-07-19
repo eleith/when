@@ -19,6 +19,7 @@
 	} from '$lib/datetime';
 	import { getPreferredTimezone } from '$lib/preferredTimezone.svelte';
 	import { PHONE_PATTERN } from '$lib/forms/phone';
+	import { evaluateVisibility } from '$lib/forms/conditional';
 	import type { GuestAnswer, Appearance, FormField } from '@when/config';
 	import type { PublicEventType } from '$lib/server/appointment/sanitize';
 
@@ -112,13 +113,22 @@
 	}
 
 	// svelte-ignore state_referenced_locally
-	let paragraphValues = $state<Record<string, string>>(
-		Object.fromEntries(
-			data.formFields
-				.filter((f) => f.type === 'paragraph')
-				.map((f) => [f.name, initialFieldValue(f)])
-		)
+	let fieldValues = $state<Record<string, string>>(
+		Object.fromEntries(data.formFields.map((f) => [f.name, initialFieldValue(f)]))
 	);
+
+	const visibleFields = $derived(
+		evaluateVisibility(data.formFields, (name) => fieldValues[name] ?? '')
+	);
+
+	function trackFieldValue(event: Event) {
+		const target = event.target as
+			| HTMLInputElement
+			| HTMLSelectElement
+			| HTMLTextAreaElement
+			| null;
+		if (target?.name) fieldValues[target.name] = target.value;
+	}
 
 	let rescheduleReasonValue = $state('');
 	let fieldsDisabled = $derived(data.isAdmin && !!data.rescheduleAppt);
@@ -406,7 +416,13 @@
 								<p class="form-error" role="alert">{form.error}</p>
 							{/if}
 
-							<form id="appointment-form" method="POST" action={formAction}>
+							<form
+								id="appointment-form"
+								method="POST"
+								action={formAction}
+								oninput={trackFieldValue}
+								onchange={trackFieldValue}
+							>
 								<input type="hidden" name="slot" value={selectedSlot} />
 								<input type="hidden" name="timezone" value={userTz} />
 								{#if data.rescheduleAppt}
@@ -415,102 +431,104 @@
 								{/if}
 
 								{#each data.formFields as field (field.name)}
-									<div class="field">
-										<label for={field.name}>
-											{field.label}{#if field.required && !fieldsDisabled}<span
-													class="field-req"
-													aria-hidden="true">*</span
-												>{/if}
-										</label>
-										{#if field.type === 'guest_name'}
-											<input
-												id={field.name}
-												name={field.name}
-												type="text"
-												required={!fieldsDisabled}
-												disabled={fieldsDisabled}
-												autocomplete="name"
-												maxlength="200"
-												bind:this={nameInput}
-												value={initialFieldValue(field)}
-											/>
-										{:else if field.type === 'guest_email'}
-											<input
-												id={field.name}
-												name={field.name}
-												type="email"
-												required={field.required && !fieldsDisabled}
-												disabled={fieldsDisabled}
-												autocomplete="email"
-												maxlength="254"
-												value={initialFieldValue(field)}
-											/>
-										{:else if field.type === 'number'}
-											<input
-												id={field.name}
-												name={field.name}
-												type="number"
-												required={field.required && !fieldsDisabled}
-												disabled={fieldsDisabled}
-												value={initialFieldValue(field)}
-											/>
-										{:else if field.type === 'phone'}
-											<input
-												id={field.name}
-												name={field.name}
-												type="tel"
-												inputmode="tel"
-												autocomplete="tel"
-												required={field.required && !fieldsDisabled}
-												disabled={fieldsDisabled}
-												pattern={PHONE_PATTERN}
-												maxlength="25"
-												value={initialFieldValue(field)}
-											/>
-										{:else if field.type === 'paragraph'}
-											<textarea
-												id={field.name}
-												name={field.name}
-												rows="3"
-												required={field.required && !fieldsDisabled}
-												disabled={fieldsDisabled}
-												maxlength="1000"
-												bind:value={paragraphValues[field.name]}
-											></textarea>
-											{#if !fieldsDisabled}
-												<span class="field-count"
-													>{(paragraphValues[field.name] ?? '').length}/1000</span
-												>
-											{/if}
-										{:else if field.type === 'choice' || (field.type === 'event_location' && field.choices)}
-											<select
-												id={field.name}
-												name={field.name}
-												required={field.required && !fieldsDisabled}
-												disabled={fieldsDisabled}
-											>
-												{#if !field.required}<option value="">Select an option</option>{/if}
-												{#each field.choices ?? [] as choice (choice)}
-													<option value={choice} selected={choice === initialFieldValue(field)}
-														>{choice}</option
+									{#if visibleFields.get(field.name)}
+										<div class="field">
+											<label for={field.name}>
+												{field.label}{#if field.required && !fieldsDisabled}<span
+														class="field-req"
+														aria-hidden="true">*</span
+													>{/if}
+											</label>
+											{#if field.type === 'guest_name'}
+												<input
+													id={field.name}
+													name={field.name}
+													type="text"
+													required={!fieldsDisabled}
+													disabled={fieldsDisabled}
+													autocomplete="name"
+													maxlength="200"
+													bind:this={nameInput}
+													value={initialFieldValue(field)}
+												/>
+											{:else if field.type === 'guest_email'}
+												<input
+													id={field.name}
+													name={field.name}
+													type="email"
+													required={field.required && !fieldsDisabled}
+													disabled={fieldsDisabled}
+													autocomplete="email"
+													maxlength="254"
+													value={initialFieldValue(field)}
+												/>
+											{:else if field.type === 'number'}
+												<input
+													id={field.name}
+													name={field.name}
+													type="number"
+													required={field.required && !fieldsDisabled}
+													disabled={fieldsDisabled}
+													value={initialFieldValue(field)}
+												/>
+											{:else if field.type === 'phone'}
+												<input
+													id={field.name}
+													name={field.name}
+													type="tel"
+													inputmode="tel"
+													autocomplete="tel"
+													required={field.required && !fieldsDisabled}
+													disabled={fieldsDisabled}
+													pattern={PHONE_PATTERN}
+													maxlength="25"
+													value={initialFieldValue(field)}
+												/>
+											{:else if field.type === 'paragraph'}
+												<textarea
+													id={field.name}
+													name={field.name}
+													rows="3"
+													required={field.required && !fieldsDisabled}
+													disabled={fieldsDisabled}
+													maxlength="1000"
+													value={initialFieldValue(field)}
+												></textarea>
+												{#if !fieldsDisabled}
+													<span class="field-count"
+														>{(fieldValues[field.name] ?? '').length}/1000</span
 													>
-												{/each}
-											</select>
-										{:else}
-											<input
-												id={field.name}
-												name={field.name}
-												type="text"
-												required={field.required && !fieldsDisabled}
-												disabled={fieldsDisabled}
-												maxlength="200"
-												value={initialFieldValue(field)}
-											/>
-										{/if}
-										{#if form?.fieldErrors?.[field.name]}
-											<p class="field-error" role="alert">{form.fieldErrors[field.name]}</p>
-										{/if}
-									</div>
+												{/if}
+											{:else if field.type === 'choice' || (field.type === 'event_location' && field.choices)}
+												<select
+													id={field.name}
+													name={field.name}
+													required={field.required && !fieldsDisabled}
+													disabled={fieldsDisabled}
+												>
+													{#if !field.required}<option value="">Select an option</option>{/if}
+													{#each field.choices ?? [] as choice (choice)}
+														<option value={choice} selected={choice === initialFieldValue(field)}
+															>{choice}</option
+														>
+													{/each}
+												</select>
+											{:else}
+												<input
+													id={field.name}
+													name={field.name}
+													type="text"
+													required={field.required && !fieldsDisabled}
+													disabled={fieldsDisabled}
+													maxlength="200"
+													value={initialFieldValue(field)}
+												/>
+											{/if}
+											{#if form?.fieldErrors?.[field.name]}
+												<p class="field-error" role="alert">{form.fieldErrors[field.name]}</p>
+											{/if}
+										</div>
+									{/if}
 								{/each}
 
 								{#if data.rescheduleAppt}
