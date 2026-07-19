@@ -194,9 +194,10 @@ export const FormFieldSchema = Type.Object({
 		Type.Literal('event_location'),
 		Type.Literal('text'),
 		Type.Literal('number'),
+		Type.Literal('phone'),
 		Type.Literal('paragraph'),
 		Type.Literal('choice')
-	], { description: 'Type of form field (e.g. guest_name, guest_email, event_location, text, number, paragraph, choice).' }),
+	], { description: 'Type of form field (e.g. guest_name, guest_email, event_location, text, number, phone, paragraph, choice).' }),
 	label: Type.String({ minLength: 1, description: 'The question prompt or label shown to the user.' }),
 	required: Type.Boolean({ default: false, description: 'Whether the field must be filled in (default: false).' }),
 	choices: Type.Optional(Type.Array(Type.String({ minLength: 1 }), { description: 'List of options for the choice field type.' }))

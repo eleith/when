@@ -392,7 +392,7 @@
 					"type": "string"
 				},
 				"type": {
-					"description": "Type of form field (e.g. guest_name, guest_email, event_location, text, number, paragraph, choice).",
+					"description": "Type of form field (e.g. guest_name, guest_email, event_location, text, number, phone, paragraph, choice).",
 					"anyOf": [
 						{
 							"const": "guest_name",
@@ -412,6 +412,10 @@
 						},
 						{
 							"const": "number",
+							"type": "string"
+						},
+						{
+							"const": "phone",
 							"type": "string"
 						},
 						{

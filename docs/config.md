@@ -200,7 +200,7 @@ Rather than rigid location structures, meetings are customized using:
 
 - **Fixed Location**: A static string configured via `location`.
 - **Dynamic Video Chat**: Setup under `video_chat_service` referencing the service name (e.g. `my-nextcloud-service` or `my-google-service`). Dynamic links (like Nextcloud Talk rooms or Google Meet URLs) are generated automatically.
-- **Custom Questions**: Configured via `form_fields`. Every form **must** include exactly one `guest_name` field (with `required: true`). Optional special field types include `guest_email` and `event_location`. General text fields, numbers, paragraphs, and choices are also supported.
+- **Custom Questions**: Configured via `form_fields`. Every form **must** include exactly one `guest_name` field (with `required: true`). Optional special field types include `guest_email` and `event_location`. General text fields, numbers, phone numbers, paragraphs, and choices are also supported.
 
 ## `database`
 
