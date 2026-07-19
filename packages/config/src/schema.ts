@@ -214,7 +214,10 @@ export const FormFieldSchema = Type.Object({
 
 export const MeetingSchema = Type.Object({
 	name: Type.String({ minLength: 1, description: 'Unique name of the meeting (e.g. 30-minute chat).' }),
-	duration_minutes: Type.Integer({ minimum: 1, default: 30, description: 'Duration of the meeting in minutes (default: 30).' }),
+	duration_minutes: Type.Union([
+		Type.Integer({ minimum: 1 }),
+		Type.Array(Type.Integer({ minimum: 1 }), { minItems: 1 })
+	], { default: 30, description: 'Duration of the meeting in minutes: a single value, or a list of offered lengths the guest chooses from (default: 30). The first listed length is the default selection.' }),
 	description: Type.Optional(Type.String({ description: 'Brief description of the meeting.' })),
 	slug: Type.String({ pattern: '^[a-z0-9][a-z0-9-]*$', description: 'URL slug for the booking page (e.g. "chat" for /schedule/chat). Defaults to a slug derived from the meeting name.' }),
 	visibility: Type.Optional(Type.Union([Type.Literal('public'), Type.Literal('private')], { default: 'public', description: 'Visibility on the homepage. "public" shows it; "private" hides it.' })),

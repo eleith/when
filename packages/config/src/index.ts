@@ -14,5 +14,6 @@ export { resolveConfigPath, resolveDeploymentRoot, resolvePublicDir } from './pa
 export { resolveFormFields, DEFAULT_FORM_FIELDS, parseGuestAnswers } from './form-fields.js';
 export type { GuestAnswer } from './form-fields.js';
 export { senderEmail } from './sender.js';
+export { durationsOf } from './durations.js';
 export { ConfigEditor } from './editor.js';
 export * from './schema.js';

@@ -7,6 +7,7 @@ import type {
 	FormField
 } from './schema.js';
 import type { ConfigIssue } from './load.js';
+import { durationsOf } from './durations.js';
 
 interface ServiceRegistry {
 	names: Set<string>;
@@ -254,11 +255,15 @@ function checkMeetingVideoChatService(
 }
 
 function validateSelectBookingStyle(meeting: Meeting, i: number, issues: ConfigIssue[]): void {
-	const start_times_every_minutes = meeting.start_times_every_minutes ?? meeting.duration_minutes;
-	if (start_times_every_minutes < meeting.duration_minutes) {
+	const durations = durationsOf(meeting);
+	// The step defaults to the shortest length (as the app does); the longest length
+	// is what must fit between buttons so they can't overlap.
+	const step = meeting.start_times_every_minutes ?? Math.min(...durations);
+	const longest = Math.max(...durations);
+	if (step < longest) {
 		issues.push({
 			path: `/meetings/${i}/start_times_every_minutes`,
-			message: `in "select" booking style, start_times_every_minutes (${start_times_every_minutes}) must be greater than or equal to the meeting duration_minutes (${meeting.duration_minutes}) to prevent overlapping slot buttons`
+			message: `in "select" booking style, start_times_every_minutes (${step}) must be greater than or equal to the longest meeting duration (${longest}) to prevent overlapping slot buttons`
 		});
 	}
 }

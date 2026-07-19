@@ -576,10 +576,22 @@
 					"type": "string"
 				},
 				"duration_minutes": {
-					"minimum": 1,
 					"default": 30,
-					"description": "Duration of the meeting in minutes (default: 30).",
-					"type": "integer"
+					"description": "Duration of the meeting in minutes: a single value, or a list of offered lengths the guest chooses from (default: 30). The first listed length is the default selection.",
+					"anyOf": [
+						{
+							"minimum": 1,
+							"type": "integer"
+						},
+						{
+							"minItems": 1,
+							"type": "array",
+							"items": {
+								"minimum": 1,
+								"type": "integer"
+							}
+						}
+					]
 				},
 				"description": {
 					"description": "Brief description of the meeting.",

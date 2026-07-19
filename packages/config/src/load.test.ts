@@ -168,6 +168,22 @@ test('meeting duration_minutes defaults to 30 when omitted', () => {
 	expect(validateConfig(raw).meetings[0].duration_minutes).toBe(30);
 });
 
+test('meeting duration_minutes accepts a list of lengths', () => {
+	const raw = clone(validConfig) as unknown as {
+		meetings: { duration_minutes: number | number[] }[];
+	};
+	raw.meetings[0].duration_minutes = [15, 30, 60];
+	expect(validateConfig(raw).meetings[0].duration_minutes).toEqual([15, 30, 60]);
+});
+
+test('meeting duration_minutes rejects an empty list', () => {
+	const bad = clone(validConfig) as unknown as {
+		meetings: { duration_minutes: number | number[] }[];
+	};
+	bad.meetings[0].duration_minutes = [];
+	expect(() => validateConfig(bad)).toThrow();
+});
+
 test('meeting booking_approval defaults to request when omitted', () => {
 	const raw = clone(validConfig) as unknown as { meetings: { booking_approval?: string }[] };
 	delete raw.meetings[0].booking_approval;

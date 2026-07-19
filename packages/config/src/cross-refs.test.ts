@@ -362,3 +362,24 @@ test('select booking style with start_times_every_minutes equal or greater than 
 	good.meetings[0].duration_minutes = 30;
 	expect(() => validateConfig(good)).not.toThrow();
 });
+
+test('select booking style with a duration array guards against the longest length', () => {
+	const bad = clone(validConfig);
+	bad.meetings[0].booking_style = 'select';
+	bad.meetings[0].duration_minutes = [15, 30, 60];
+	bad.meetings[0].start_times_every_minutes = 30; // < longest (60)
+	const issues = issuesFor(bad);
+	expect(
+		issues.some(
+			(i) => i.path === '/meetings/0/start_times_every_minutes' && i.message.includes('60')
+		)
+	).toBe(true);
+});
+
+test('select booking style with a duration array passes when the step covers the longest', () => {
+	const good = clone(validConfig);
+	good.meetings[0].booking_style = 'select';
+	good.meetings[0].duration_minutes = [15, 30, 60];
+	good.meetings[0].start_times_every_minutes = 60;
+	expect(() => validateConfig(good)).not.toThrow();
+});
