@@ -7,7 +7,7 @@ import { getBusyIntervals } from '@when/db';
 import { systemClock } from '$lib/server/clock';
 import { logger } from '$lib/server/logger';
 import { getConfig, getDb } from '$lib/server/state';
-import { resolveFormFields } from '@when/config';
+import { durationsOf, resolveFormFields } from '@when/config';
 import { createAppointment } from '$lib/server/appointment/create';
 import { resolveDuration } from '$lib/server/appointment/duration';
 import {
@@ -29,7 +29,15 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 
 	// Strip malformed/unknown deep-link params up front by redirecting to the canonical URL.
 	const clean = normalizeDeepLinkParams(url.searchParams);
+	const durations = durationsOf(eventType);
 	const expected: [string, string][] = [];
+	if (
+		clean.duration !== undefined &&
+		durations.includes(clean.duration) &&
+		clean.duration !== durations[0]
+	) {
+		expected.push(['duration', String(clean.duration)]);
+	}
 	if (clean.slot) {
 		expected.push(['slot', clean.slot]);
 	} else if (clean.date) {
@@ -44,12 +52,12 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 		redirect(307, query ? `${url.pathname}?${query}` : url.pathname);
 	}
 
-	const { slotsByDate, workingWindows, busyBlocks } = await loadAvailability(cfg, eventType);
+	const { slotsByDuration, workingWindows, busyBlocks } = await loadAvailability(cfg, eventType);
 
 	return {
 		eventType: toPublicEventType(eventType, isAdmin),
 		formFields: resolveFormFields(eventType),
-		slotsByDate,
+		slotsByDuration,
 		workingWindows,
 		busyBlocks,
 		rescheduleAppt: null,

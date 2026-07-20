@@ -108,18 +108,31 @@ export function resolveDeepLink(p: {
 	return { step: 1 };
 }
 
-export function normalizeDeepLinkParams(params: URLSearchParams): { date?: string; slot?: string } {
+export function normalizeDeepLinkParams(params: URLSearchParams): {
+	date?: string;
+	slot?: string;
+	duration?: number;
+} {
+	const result: { date?: string; slot?: string; duration?: number } = {};
+
+	const duration = params.get('duration');
+	if (duration && /^[1-9]\d*$/.test(duration)) {
+		result.duration = Number(duration);
+	}
+
 	const slot = params.get('slot');
 	if (params.has('slot') && slot && isInstant(slot)) {
-		return { slot: InstantFns.toString(InstantFns.fromString(slot)) };
+		result.slot = InstantFns.toString(InstantFns.fromString(slot));
+		return result;
 	}
 
 	const date = params.get('date');
 	if (params.has('date') && date && isDateKey(date)) {
-		return { date };
+		result.date = date;
+		return result;
 	}
 
-	return {};
+	return result;
 }
 
 export interface TimelineEventType {

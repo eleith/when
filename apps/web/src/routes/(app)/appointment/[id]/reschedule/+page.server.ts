@@ -32,7 +32,7 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 	const ctx = classifyReschedule({ rescheduleId: row.id, token, existing: row, eventType, now });
 	const rescheduleError = ctx.kind === 'error' ? ctx.code : null;
 
-	const { slotsByDate, workingWindows, busyBlocks } = await loadAvailability(
+	const { slotsByDuration, workingWindows, busyBlocks } = await loadAvailability(
 		cfg,
 		eventType,
 		row.start_time
@@ -41,7 +41,7 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 	return {
 		eventType: toPublicEventType(eventType, isAdmin),
 		formFields: resolveFormFields(eventType),
-		slotsByDate,
+		slotsByDuration,
 		workingWindows,
 		busyBlocks,
 		rescheduleAppt: rescheduleError ? null : toPublicAppointment(row, isAdmin),

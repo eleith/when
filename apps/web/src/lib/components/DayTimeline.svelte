@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte';
 	import IconCaretLeft from 'virtual:icons/ph/caret-left';
 	import IconGlobe from 'virtual:icons/ph/globe';
 	import { formatDate, formatTzShort } from '$lib/datetime';
@@ -14,6 +15,7 @@
 		bookingStyle?: 'insert' | 'select';
 		originalSlot?: string | null;
 		onEditDate?: (() => void) | null;
+		beforeSlots?: Snippet;
 	}
 
 	let {
@@ -23,7 +25,8 @@
 		eventType,
 		bookingStyle = 'insert',
 		originalSlot = null,
-		onEditDate = null
+		onEditDate = null,
+		beforeSlots
 	}: Props = $props();
 
 	// read-only views of the shared flow; all mutations go through flow.* below
@@ -182,6 +185,7 @@
 				<span class="slots-tz-text">{formatTzShort(userTz)}</span>
 			</button>
 		</div>
+		{@render beforeSlots?.()}
 		<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 		<div class="timeline-scroll" tabindex="0">
 			<div class="timeline" style:height="{(timeline.totalMs / 3600000) * 96}px">

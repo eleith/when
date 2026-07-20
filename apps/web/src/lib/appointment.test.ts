@@ -190,6 +190,22 @@ describe('normalizeDeepLinkParams', () => {
 	test('drops unknown keys (nothing valid remains)', () => {
 		expect(norm('foo=bar')).toEqual({});
 	});
+
+	test('keeps a valid duration alongside a slot', () => {
+		expect(norm('duration=60&slot=2026-06-19T18:30:00Z')).toEqual({
+			duration: 60,
+			slot: '2026-06-19T18:30:00Z'
+		});
+	});
+
+	test('keeps a bare duration', () => {
+		expect(norm('duration=45')).toEqual({ duration: 45 });
+	});
+
+	test('drops a non-positive or malformed duration', () => {
+		expect(norm('duration=0')).toEqual({});
+		expect(norm('duration=abc')).toEqual({});
+	});
 });
 
 describe('buildDayTimeline', () => {

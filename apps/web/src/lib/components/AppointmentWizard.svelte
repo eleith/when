@@ -7,6 +7,7 @@
 	import IconInfo from 'virtual:icons/ph/info';
 	import DatePicker from '$lib/components/DatePicker.svelte';
 	import DayTimeline from '$lib/components/DayTimeline.svelte';
+	import DurationDialog from '$lib/components/DurationDialog.svelte';
 	import { createAppointmentFlow } from '$lib/appointmentFlow.svelte';
 	import { resolveDeepLink, buildDayTimeline, type DeepLinkResult } from '$lib/appointment';
 	import {
@@ -32,7 +33,7 @@
 		};
 		eventType: PublicEventType;
 		formFields: readonly FormField[];
-		slotsByDate: Record<string, string[]>;
+		slotsByDuration: Record<number, Record<string, string[]>>;
 		workingWindows: { start: string; end: string }[];
 		busyBlocks: { start: string; end: string }[];
 		rescheduleAppt: {
@@ -57,13 +58,32 @@
 
 	let { data, form, deepLink = false }: Props = $props();
 
-	const flow = createAppointmentFlow(() => data.slotsByDate);
+	const durationParam = Number(page.url.searchParams.get('duration'));
+	// svelte-ignore state_referenced_locally
+	let activeDuration = $state(
+		data.eventType.durations.includes(durationParam) ? durationParam : data.eventType.durations[0]
+	);
+	const activeSlots = $derived(data.slotsByDuration[activeDuration] ?? {});
+
+	const flow = createAppointmentFlow(() => activeSlots);
 	const ptz = getPreferredTimezone();
+
+	// Changing the length can drop the selected time; if it no longer fits, clear it
+	// and step back so the guest re-picks.
+	$effect(() => {
+		if (flow.selectedSlot && !flow.allSlots.includes(flow.selectedSlot)) {
+			flow.clearSlot();
+			if (flow.step === 3) flow.goToStep(2);
+		}
+	});
 
 	let step = $derived(flow.step);
 	let viewDate = $derived(flow.viewDate);
 	let selectedSlot = $derived(flow.selectedSlot);
 	let userTz = $derived(flow.userTz);
+
+	const durations = $derived(data.eventType.durations);
+	const activeEventType = $derived({ ...data.eventType, duration_minutes: activeDuration });
 
 	let formAction = $derived.by(() => {
 		if (data.isAdmin) {
@@ -88,13 +108,14 @@
 			viewDate,
 			workingWindows: data.workingWindows,
 			busyBlocks: data.busyBlocks,
-			eventType: data.eventType,
+			eventType: activeEventType,
 			daySlots: [],
 			tz: data.user.timezone
 		});
 		return t ? Math.round(t.totalMs / 3600000) : 0;
 	});
 
+	let durationOpen = $state(false);
 	let routerReady = $state(false);
 	let nameInput = $state<HTMLInputElement | null>(null);
 	let rescheduleReasonEl = $state<HTMLTextAreaElement | null>(null);
@@ -196,6 +217,7 @@
 		if (!routerReady) return;
 		if (!deepLink) return;
 
+		const desiredDuration = activeDuration === durations[0] ? null : String(activeDuration);
 		let desiredSlot: string | null = null;
 		let desiredDate: string | null = null;
 		if (flow.step === 3 && flow.selectedSlot) {
@@ -206,18 +228,19 @@
 
 		// Compare decoded values, not the encoded search string, so re-encoding can't loop.
 		if (
+			page.url.searchParams.get('duration') === desiredDuration &&
 			page.url.searchParams.get('slot') === desiredSlot &&
 			page.url.searchParams.get('date') === desiredDate
 		) {
 			return;
 		}
 
-		let search = '';
-		if (desiredSlot) {
-			search = `?slot=${encodeURIComponent(desiredSlot)}`;
-		} else if (desiredDate) {
-			search = `?date=${encodeURIComponent(desiredDate)}`;
-		}
+		// Canonical order matches the server load: duration, then slot or date.
+		const parts: string[] = [];
+		if (desiredDuration) parts.push(`duration=${desiredDuration}`);
+		if (desiredSlot) parts.push(`slot=${encodeURIComponent(desiredSlot)}`);
+		else if (desiredDate) parts.push(`date=${encodeURIComponent(desiredDate)}`);
+		const search = parts.length ? `?${parts.join('&')}` : '';
 
 		replaceState(`${page.url.pathname}${search}`, page.state);
 	});
@@ -239,12 +262,9 @@
 	</a>
 	<div class="banner-event">
 		<h1 class="banner-event-name">{data.eventType.name}</h1>
-		<p class="banner-event-meta">
-			{data.eventType.duration_minutes} min{#if data.eventType.description}<span
-					class="context-event-sep"
-					aria-hidden="true">|</span
-				>{data.eventType.description}{/if}
-		</p>
+		{#if data.eventType.description}
+			<p class="banner-event-meta">{data.eventType.description}</p>
+		{/if}
 	</div>
 </header>
 
@@ -315,12 +335,9 @@
 
 				<section class="context-section context-section-about">
 					<h1 class="context-event-name">{data.eventType.name}</h1>
-					<p class="context-event-meta">
-						{data.eventType.duration_minutes} min{#if data.eventType.description}<span
-								class="context-event-sep"
-								aria-hidden="true">|</span
-							>{data.eventType.description}{/if}
-					</p>
+					{#if data.eventType.description}
+						<p class="context-event-meta">{data.eventType.description}</p>
+					{/if}
 				</section>
 
 				<section class="context-step">
@@ -367,11 +384,26 @@
 								{flow}
 								workingWindows={data.workingWindows}
 								busyBlocks={data.busyBlocks}
-								eventType={data.eventType}
+								eventType={activeEventType}
 								bookingStyle={data.eventType.booking_style}
 								originalSlot={data.rescheduleAppt?.start_time ?? null}
 								onEditDate={flow.goBack}
-							/>
+							>
+								{#snippet beforeSlots()}
+									{#if durations.length > 1}
+										<p class="duration-sentence">
+											Let's meet for
+											<button
+												type="button"
+												class="duration-pick"
+												onclick={() => (durationOpen = true)}
+											>
+												{activeDuration} minutes
+											</button>
+										</p>
+									{/if}
+								{/snippet}
+							</DayTimeline>
 						{:else}
 							<div class="tl-skeleton" aria-hidden="true">
 								<div class="skel-header">
@@ -425,6 +457,7 @@
 							>
 								<input type="hidden" name="slot" value={selectedSlot} />
 								<input type="hidden" name="timezone" value={userTz} />
+								<input type="hidden" name="duration" value={activeDuration} />
 								{#if data.rescheduleAppt}
 									<input type="hidden" name="reschedule" value={data.rescheduleAppt.id} />
 									<input type="hidden" name="token" value={data.rescheduleToken} />
@@ -605,6 +638,8 @@
 	{/if}
 </main>
 
+<DurationDialog bind:open={durationOpen} {durations} bind:value={activeDuration} />
+
 <style>
 	.appointment {
 		max-width: 960px;
@@ -677,11 +712,6 @@
 		font-size: var(--font-size-sm);
 		margin: 0;
 		line-height: 1.5;
-	}
-
-	.context-event-sep {
-		color: var(--text-muted);
-		margin: 0 var(--space-2);
 	}
 
 	.card-stage {
@@ -953,6 +983,32 @@
 		font-size: var(--font-size-md);
 		font-weight: 700;
 		color: var(--text);
+	}
+
+	/* A quiet prompt between the day/timezone header and the time slots on step 2. */
+	.duration-sentence {
+		margin: var(--space-4) 0;
+		padding: var(--space-5) 0;
+		border-top: 1px solid var(--border);
+		text-align: center;
+		font-size: var(--font-size-lg);
+		color: var(--text-secondary);
+	}
+
+	.duration-pick {
+		background: none;
+		border: none;
+		padding: 0;
+		font: inherit;
+		font-weight: 600;
+		color: var(--primary);
+		text-decoration: underline;
+		text-underline-offset: 3px;
+		cursor: pointer;
+	}
+
+	.duration-pick:hover {
+		text-decoration-thickness: 2px;
 	}
 
 	.wizard-step {

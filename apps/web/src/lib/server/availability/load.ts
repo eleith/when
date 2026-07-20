@@ -13,8 +13,6 @@ export interface Availability {
 	settings: AvailabilitySettings;
 	durations: number[];
 	slotsByDuration: Record<number, Record<string, string[]>>;
-	// the default (first) length's slots
-	slotsByDate: Record<string, string[]>;
 	workingWindows: { start: string; end: string }[];
 	busyBlocks: { start: string; end: string }[];
 }
@@ -65,7 +63,6 @@ export async function loadAvailability(
 		}
 		slotsByDuration[duration] = byDate;
 	}
-	const slotsByDate = slotsByDuration[durations[0]];
 
 	const dates = candidateDates(nowInstant, rangeEnd, userTz);
 	const workingWindows: { start: string; end: string }[] = [];
@@ -80,7 +77,7 @@ export async function loadAvailability(
 		end: b.end.toString()
 	}));
 
-	return { settings, durations, slotsByDuration, slotsByDate, workingWindows, busyBlocks };
+	return { settings, durations, slotsByDuration, workingWindows, busyBlocks };
 }
 
 // Re-check, at submit time, that a slot is still on offer. `excludeStart` drops the
