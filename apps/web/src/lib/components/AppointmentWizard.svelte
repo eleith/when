@@ -3,13 +3,13 @@
 	import { replaceState, afterNavigate } from '$app/navigation';
 	import IconArrowRight from 'virtual:icons/ph/arrow-right';
 	import IconCaretLeft from 'virtual:icons/ph/caret-left';
-	import IconWarningCircle from 'virtual:icons/ph/warning-circle';
-	import IconInfo from 'virtual:icons/ph/info';
 	import DatePicker from '$lib/components/DatePicker.svelte';
 	import DayTimeline from '$lib/components/DayTimeline.svelte';
 	import DurationDialog from '$lib/components/DurationDialog.svelte';
 	import CalendarSkeleton from '$lib/components/CalendarSkeleton.svelte';
 	import TimelineSkeleton from '$lib/components/TimelineSkeleton.svelte';
+	import RescheduleBanner from '$lib/components/RescheduleBanner.svelte';
+	import LinkNotice from '$lib/components/LinkNotice.svelte';
 	import { createAppointmentFlow } from '$lib/appointmentFlow.svelte';
 	import { resolveDeepLink, buildDayTimeline, type DeepLinkResult } from '$lib/appointment';
 	import {
@@ -17,7 +17,6 @@
 		formatDateCompact,
 		formatTime,
 		formatTimeShort,
-		formatSlot,
 		formatTzAbbrev
 	} from '$lib/datetime';
 	import { getPreferredTimezone } from '$lib/preferredTimezone.svelte';
@@ -293,32 +292,15 @@
 		<p class="empty">No availability in the near future.</p>
 	{:else}
 		{#if data.rescheduleAppt}
-			<aside class="reschedule-banner">
-				<span class="reschedule-banner-icon"><IconInfo aria-hidden="true" /></span>
-				<span class="reschedule-banner-text">
-					Rescheduling <a class="reschedule-banner-link" href={previousAppointmentHref}
-						>previous appointment</a
-					>
-					for {formatSlot(data.rescheduleAppt.start_time, userTz)}.
-				</span>
-			</aside>
+			<RescheduleBanner
+				previousHref={previousAppointmentHref}
+				startTime={data.rescheduleAppt.start_time}
+				tz={userTz}
+			/>
 		{/if}
 
 		{#if linkNotice && (step === 1 || linkNotice.kind === 'slot')}
-			<aside class="warning-card">
-				<span class="warning-card-icon"><IconWarningCircle aria-hidden="true" /></span>
-				<div class="warning-card-content">
-					<span class="warning-card-text">
-						{#if linkNotice.kind === 'slot'}
-							<strong>{formatSlot(linkNotice.requested, userTz)}</strong> is no longer available. Pick
-							another time below.
-						{:else}
-							<strong>{formatDate(linkNotice.requested)}</strong> has no availability. Pick another day
-							below.
-						{/if}
-					</span>
-				</div>
-			</aside>
+			<LinkNotice notice={linkNotice} tz={userTz} />
 		{/if}
 
 		<div class="card">
@@ -1097,78 +1079,6 @@
 			border-top: 1px solid var(--border);
 			z-index: 100;
 		}
-	}
-
-	/* ---- warning card ---- */
-	.warning-card {
-		display: flex;
-		align-items: flex-start;
-		gap: var(--space-4);
-		padding: var(--space-5) var(--space-6);
-		background: var(--warning-bg);
-		border: 1px solid var(--warning-border);
-		border-radius: var(--radius-md);
-		margin-bottom: var(--space-6);
-		color: var(--text);
-	}
-
-	.warning-card-icon {
-		font-size: var(--font-size-xl);
-		color: var(--warning);
-		flex-shrink: 0;
-		margin-top: 2px;
-		display: inline-flex;
-	}
-
-	.warning-card-content {
-		flex: 1;
-	}
-
-	.warning-card-text {
-		font-size: var(--font-size-md);
-		line-height: 1.5;
-		color: var(--text-secondary);
-	}
-
-	.warning-card-text strong {
-		color: var(--text);
-		font-weight: 600;
-	}
-
-	/* ---- reschedule banner ---- */
-	.reschedule-banner {
-		display: flex;
-		align-items: center;
-		gap: var(--space-4);
-		padding: var(--space-5) var(--space-6);
-		margin-bottom: var(--space-6);
-		background: var(--info-bg);
-		border: 1px solid var(--info-border);
-		border-radius: var(--radius-md);
-	}
-
-	.reschedule-banner-icon {
-		font-size: var(--font-size-xl);
-		color: var(--info-strong);
-		flex-shrink: 0;
-		display: inline-flex;
-	}
-
-	.reschedule-banner-text {
-		font-size: var(--font-size-md);
-		line-height: 1.4;
-		color: var(--text);
-	}
-
-	.reschedule-banner-link {
-		color: var(--info-strong);
-		font-weight: 600;
-		text-decoration: underline;
-		text-underline-offset: 2px;
-	}
-
-	.reschedule-banner-link:hover {
-		text-decoration: none;
 	}
 
 	.reschedule-error-card {
