@@ -10,6 +10,7 @@
 	import TimelineSkeleton from '$lib/components/TimelineSkeleton.svelte';
 	import RescheduleBanner from '$lib/components/RescheduleBanner.svelte';
 	import LinkNotice from '$lib/components/LinkNotice.svelte';
+	import WizardContext from '$lib/components/WizardContext.svelte';
 	import { createAppointmentFlow } from '$lib/appointmentFlow.svelte';
 	import { resolveDeepLink, buildDayTimeline, type DeepLinkResult } from '$lib/appointment';
 	import {
@@ -304,33 +305,13 @@
 		{/if}
 
 		<div class="card">
-			<aside class="card-context">
-				<section class="context-section">
-					<a href="/" class="context-provider">
-						{#if data.user.appearance.avatar_url}
-							<img
-								src={data.user.appearance.avatar_url}
-								alt={data.user.name}
-								class="context-provider-avatar"
-							/>
-						{/if}
-					</a>
-				</section>
-
-				<section class="context-section context-section-about">
-					<h1 class="context-event-name">{data.eventType.name}</h1>
-					{#if data.eventType.description}
-						<p class="context-event-meta">{data.eventType.description}</p>
-					{/if}
-				</section>
-
-				<section class="context-step">
-					<span class="context-step-num">Step {step} of 3</span>
-					<h2 class="context-step-title">
-						{#if step === 1}Pick a day{:else if step === 2}Pick a time{:else}Enter your info{/if}
-					</h2>
-				</section>
-			</aside>
+			<WizardContext
+				appearance={data.user.appearance}
+				providerName={data.user.name}
+				eventName={data.eventType.name}
+				eventDescription={data.eventType.description}
+				{step}
+			/>
 
 			<div class="card-stage">
 				<div class="appointment-body">
@@ -610,56 +591,6 @@
 		min-height: 520px;
 	}
 
-	.card-context {
-		flex: 0 0 30%;
-		padding: var(--space-7);
-		border-right: 1px solid var(--border);
-		background: var(--surface-muted);
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-7);
-	}
-
-	.context-section {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-3);
-	}
-
-	.context-provider {
-		display: inline-flex;
-		text-decoration: none;
-		color: inherit;
-	}
-
-	.context-provider:hover .context-provider-avatar {
-		opacity: 0.8;
-	}
-
-	.context-provider-avatar {
-		flex-shrink: 0;
-		width: 48px;
-		height: 48px;
-		border-radius: 50%;
-		object-fit: cover;
-		border: solid 2px var(--text);
-		transition: opacity var(--transition);
-	}
-
-	.context-event-name {
-		font-size: var(--font-size-xl);
-		font-weight: 700;
-		margin: 0 0 var(--space-2);
-		color: var(--text);
-	}
-
-	.context-event-meta {
-		color: var(--text-secondary);
-		font-size: var(--font-size-sm);
-		margin: 0;
-		line-height: 1.5;
-	}
-
 	.card-stage {
 		flex: 1;
 		min-width: 0;
@@ -786,30 +717,6 @@
 	}
 
 	/* ---- wizard chrome ---- */
-	.context-step {
-		margin-top: auto;
-		padding-top: var(--space-6);
-		border-top: 1px solid var(--border-strong);
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-1);
-	}
-
-	.context-step-num {
-		font-size: var(--font-size-xs);
-		font-weight: 600;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-		color: var(--text-muted);
-	}
-
-	.context-step-title {
-		margin: 0;
-		font-size: var(--font-size-md);
-		font-weight: 700;
-		color: var(--text);
-	}
-
 	/* A quiet prompt between the day/timezone header and the time slots on step 2. */
 	.duration-sentence {
 		margin: var(--space-4) 0;
@@ -1024,10 +931,6 @@
 			border-radius: 0;
 			min-height: 0;
 			display: block;
-		}
-
-		.card-context {
-			display: none;
 		}
 
 		.card-stage {
