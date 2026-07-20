@@ -11,6 +11,7 @@
 	import RescheduleBanner from '$lib/components/RescheduleBanner.svelte';
 	import LinkNotice from '$lib/components/LinkNotice.svelte';
 	import WizardContext from '$lib/components/WizardContext.svelte';
+	import FormFieldControl from '$lib/components/FormFieldControl.svelte';
 	import { createAppointmentFlow } from '$lib/appointmentFlow.svelte';
 	import { resolveDeepLink, buildDayTimeline, type DeepLinkResult } from '$lib/appointment';
 	import {
@@ -21,7 +22,6 @@
 		formatTzAbbrev
 	} from '$lib/datetime';
 	import { getPreferredTimezone } from '$lib/preferredTimezone.svelte';
-	import { PHONE_PATTERN } from '$lib/forms/phone';
 	import { evaluateVisibility } from '$lib/forms/conditional';
 	import type { GuestAnswer, Appearance, FormField } from '@when/config';
 	import type { PublicEventType } from '$lib/server/appointment/sanitize';
@@ -119,7 +119,6 @@
 
 	let durationOpen = $state(false);
 	let routerReady = $state(false);
-	let nameInput = $state<HTMLInputElement | null>(null);
 	let rescheduleReasonEl = $state<HTMLTextAreaElement | null>(null);
 	let linkNotice = $state<NonNullable<DeepLinkResult['notice']> | null>(null);
 
@@ -189,12 +188,8 @@
 	});
 
 	$effect(() => {
-		if (step === 3 && selectedSlot) {
-			if (fieldsDisabled) {
-				rescheduleReasonEl?.focus();
-			} else {
-				nameInput?.focus();
-			}
+		if (step === 3 && selectedSlot && fieldsDisabled) {
+			rescheduleReasonEl?.focus();
 		}
 	});
 
@@ -392,102 +387,14 @@
 
 								{#each data.formFields as field (field.name)}
 									{#if visibleFields.get(field.name)}
-										<div class="field">
-											<label for={field.name}>
-												{field.label}{#if field.required && !fieldsDisabled}<span
-														class="field-req"
-														aria-hidden="true">*</span
-													>{/if}
-											</label>
-											{#if field.type === 'guest_name'}
-												<input
-													id={field.name}
-													name={field.name}
-													type="text"
-													required={!fieldsDisabled}
-													disabled={fieldsDisabled}
-													autocomplete="name"
-													maxlength="200"
-													bind:this={nameInput}
-													value={initialFieldValue(field)}
-												/>
-											{:else if field.type === 'guest_email'}
-												<input
-													id={field.name}
-													name={field.name}
-													type="email"
-													required={field.required && !fieldsDisabled}
-													disabled={fieldsDisabled}
-													autocomplete="email"
-													maxlength="254"
-													value={initialFieldValue(field)}
-												/>
-											{:else if field.type === 'number'}
-												<input
-													id={field.name}
-													name={field.name}
-													type="number"
-													required={field.required && !fieldsDisabled}
-													disabled={fieldsDisabled}
-													value={initialFieldValue(field)}
-												/>
-											{:else if field.type === 'phone'}
-												<input
-													id={field.name}
-													name={field.name}
-													type="tel"
-													inputmode="tel"
-													autocomplete="tel"
-													required={field.required && !fieldsDisabled}
-													disabled={fieldsDisabled}
-													pattern={PHONE_PATTERN}
-													maxlength="25"
-													value={initialFieldValue(field)}
-												/>
-											{:else if field.type === 'paragraph'}
-												<textarea
-													id={field.name}
-													name={field.name}
-													rows="3"
-													required={field.required && !fieldsDisabled}
-													disabled={fieldsDisabled}
-													maxlength="1000"
-													value={initialFieldValue(field)}
-												></textarea>
-												{#if !fieldsDisabled}
-													<span class="field-count"
-														>{(fieldValues[field.name] ?? '').length}/1000</span
-													>
-												{/if}
-											{:else if field.type === 'choice' || (field.type === 'event_location' && field.choices)}
-												<select
-													id={field.name}
-													name={field.name}
-													required={field.required && !fieldsDisabled}
-													disabled={fieldsDisabled}
-												>
-													{#if !field.required}<option value="">Select an option</option>{/if}
-													{#each field.choices ?? [] as choice (choice)}
-														<option value={choice} selected={choice === initialFieldValue(field)}
-															>{choice}</option
-														>
-													{/each}
-												</select>
-											{:else}
-												<input
-													id={field.name}
-													name={field.name}
-													type="text"
-													required={field.required && !fieldsDisabled}
-													disabled={fieldsDisabled}
-													maxlength="200"
-													value={initialFieldValue(field)}
-												/>
-											{/if}
-											{#if form?.fieldErrors?.[field.name]}
-												<p class="field-error" role="alert">{form.fieldErrors[field.name]}</p>
-											{/if}
-										</div>
+										<FormFieldControl
+											{field}
+											value={initialFieldValue(field)}
+											liveValue={fieldValues[field.name] ?? ''}
+											disabled={fieldsDisabled}
+											error={form?.fieldErrors?.[field.name]}
+											focusOnMount={field.type === 'guest_name' && !fieldsDisabled}
+										/>
 									{/if}
 								{/each}
 
@@ -671,13 +578,6 @@
 		color: var(--text-secondary);
 	}
 
-	.field-req {
-		color: var(--danger);
-		margin-left: 2px;
-	}
-
-	.field input,
-	.field select,
 	.field textarea {
 		width: 100%;
 		padding: var(--space-4) var(--space-4);
@@ -690,8 +590,6 @@
 		color: var(--text);
 	}
 
-	.field input:focus,
-	.field select:focus,
 	.field textarea:focus {
 		outline: none;
 		border-color: var(--primary);
@@ -704,12 +602,6 @@
 		text-align: right;
 		font-size: var(--font-size-xs);
 		color: var(--text-muted);
-	}
-
-	.field-error {
-		margin: var(--space-2) 0 0;
-		font-size: var(--font-size-sm);
-		color: var(--danger);
 	}
 
 	.submit-btn {
@@ -1035,9 +927,7 @@
 		margin: 0;
 	}
 
-	input:disabled,
-	textarea:disabled,
-	select:disabled {
+	textarea:disabled {
 		background: var(--surface-muted);
 		border-color: var(--border);
 		color: var(--text-muted);
