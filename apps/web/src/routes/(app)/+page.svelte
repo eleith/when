@@ -23,11 +23,9 @@
 				<a href="/schedule/{et.slug}" class="event-card">
 					<div class="event-info">
 						<h2>{et.name}</h2>
-						<p class="event-meta">
-							{et.duration} min{#if et.description}<span class="event-sep" aria-hidden="true"
-									>|</span
-								>{et.description}{/if}
-						</p>
+						{#if et.description}
+							<p class="event-meta">{et.description}</p>
+						{/if}
 					</div>
 					<span class="arrow"><IconArrowRight aria-hidden="true" /></span>
 				</a>
@@ -114,11 +112,6 @@
 		font-size: var(--font-size-base);
 		margin: var(--space-1) 0 0;
 		line-height: 1.4;
-	}
-
-	.event-sep {
-		color: var(--text-muted);
-		margin: 0 var(--space-2);
 	}
 
 	.arrow {

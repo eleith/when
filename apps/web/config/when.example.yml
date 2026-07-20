@@ -107,7 +107,7 @@ schedules:
 # --- Bookable meeting types ---
 meetings:
   - name: '30-minute chat'
-    duration_minutes: 30 # default 30
+    duration_minutes: 30 # default 30; or a list like [15, 30, 60] to let the guest pick the length
     booking_approval: 'request' # 'request' (host approves) or 'instant'
     # slug defaults to a slug of the name ("30-minute-chat")
     # slug: 'chat'

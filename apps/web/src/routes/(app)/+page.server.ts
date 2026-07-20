@@ -10,7 +10,6 @@ export const load: PageServerLoad = () => {
 			id: e.name,
 			name: e.name,
 			slug: e.slug,
-			duration: e.duration_minutes,
 			description: e.description ?? null
 		}));
 

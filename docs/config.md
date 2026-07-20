@@ -156,7 +156,7 @@ The meetings people can book. Only `name` is required: `duration_minutes` (30), 
 ```yaml
 meetings:
   - name: '30-minute chat'
-    duration_minutes: 30 # minutes (default 30)
+    duration_minutes: 30 # minutes (default 30); or a list like [15, 30, 60] to let the guest choose the length
     slug: 'chat' # URL slug: /schedule/chat (defaults to a slug of the name)
     description: 'A quick intro call.'
     visibility: 'public' # 'public' (default) or 'private' (hidden from the homepage)
