@@ -8,6 +8,8 @@
 	import DatePicker from '$lib/components/DatePicker.svelte';
 	import DayTimeline from '$lib/components/DayTimeline.svelte';
 	import DurationDialog from '$lib/components/DurationDialog.svelte';
+	import CalendarSkeleton from '$lib/components/CalendarSkeleton.svelte';
+	import TimelineSkeleton from '$lib/components/TimelineSkeleton.svelte';
 	import { createAppointmentFlow } from '$lib/appointmentFlow.svelte';
 	import { resolveDeepLink, buildDayTimeline, type DeepLinkResult } from '$lib/appointment';
 	import {
@@ -354,29 +356,7 @@
 						{#if ptz.current}
 							<DatePicker {flow} />
 						{:else}
-							<div class="cal-skeleton" aria-hidden="true">
-								<div class="skel-header">
-									<span class="skel-heading"></span>
-									<div class="skel-nav">
-										<span class="skel-navbtn"></span>
-										<span class="skel-navbtn"></span>
-									</div>
-								</div>
-								<div class="skel-grid">
-									<div class="skel-weekdays">
-										{#each Array.from({ length: 7 }, (_, i) => i) as i (i)}
-											<span class="skel-weekday"></span>
-										{/each}
-									</div>
-									{#each Array.from({ length: 6 }, (_, i) => i) as r (r)}
-										<div class="skel-row">
-											{#each Array.from({ length: 7 }, (_, i) => i) as c (c)}
-												<span class="skel-cell"></span>
-											{/each}
-										</div>
-									{/each}
-								</div>
-							</div>
+							<CalendarSkeleton />
 						{/if}
 					{:else if step === 2}
 						{#if ptz.current}
@@ -405,23 +385,7 @@
 								{/snippet}
 							</DayTimeline>
 						{:else}
-							<div class="tl-skeleton" aria-hidden="true">
-								<div class="skel-header">
-									<span class="skel-heading"></span>
-									<span class="skel-tz"></span>
-								</div>
-								<div class="tl-skel-scroll">
-									<div class="tl-skel-track" style:height="{timelineSkeletonRows * 96}px">
-										{#each Array.from({ length: timelineSkeletonRows }, (_, i) => i) as i (i)}
-											<div class="tl-skel-row" style:top="{i * 96}px">
-												<span class="tl-skel-label"></span>
-												<span class="tl-skel-gridline"></span>
-											</div>
-										{/each}
-										<span class="tl-skel-slot"></span>
-									</div>
-								</div>
-							</div>
+							<TimelineSkeleton rows={timelineSkeletonRows} />
 						{/if}
 					{/if}
 
@@ -725,127 +689,6 @@
 	.appointment-body {
 		flex: 1;
 		min-height: 0;
-	}
-
-	.skel-header {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		margin-bottom: var(--space-7);
-	}
-
-	.skel-heading {
-		height: var(--font-size-xl);
-		width: 9rem;
-		border-radius: var(--radius-sm);
-		background: var(--surface-muted);
-	}
-
-	.skel-nav {
-		display: flex;
-		gap: var(--space-1);
-	}
-
-	.skel-navbtn {
-		width: var(--space-7);
-		height: var(--space-7);
-		border-radius: var(--radius-sm);
-		background: var(--surface-muted);
-	}
-
-	.skel-grid {
-		width: 100%;
-		max-width: 360px;
-		margin: 0 auto;
-	}
-
-	.skel-weekdays {
-		display: flex;
-		width: 100%;
-		margin-bottom: var(--space-2);
-		background: var(--surface-muted);
-		border-radius: var(--radius-sm);
-	}
-
-	.skel-weekday {
-		flex: 1;
-		height: calc(var(--font-size-xs) + var(--space-4));
-	}
-
-	.skel-row {
-		display: flex;
-		width: 100%;
-	}
-
-	.skel-cell {
-		flex: 1;
-		aspect-ratio: 1;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-	}
-
-	.skel-cell::before {
-		content: '';
-		width: 55%;
-		height: 55%;
-		border-radius: 50%;
-		background: var(--surface-muted);
-	}
-
-	.skel-tz {
-		align-self: center;
-		width: 4rem;
-		height: var(--font-size-md);
-		border-radius: var(--radius-sm);
-		background: var(--surface-muted);
-	}
-
-	.tl-skel-scroll {
-		position: relative;
-		max-height: 60vh;
-		overflow: hidden;
-	}
-
-	.tl-skel-track {
-		position: relative;
-		margin-left: 60px;
-		border-left: 1px solid var(--border-strong);
-	}
-
-	.tl-skel-row {
-		position: absolute;
-		left: 0;
-		right: 0;
-	}
-
-	.tl-skel-label {
-		position: absolute;
-		left: -60px;
-		top: -0.5em;
-		width: 40px;
-		height: var(--font-size-sm);
-		border-radius: var(--radius-sm);
-		background: var(--surface-muted);
-	}
-
-	.tl-skel-gridline {
-		position: absolute;
-		left: 0;
-		right: 0;
-		top: 0;
-		height: 1px;
-		background: var(--border);
-	}
-
-	.tl-skel-slot {
-		position: absolute;
-		left: var(--space-4);
-		right: var(--space-4);
-		top: 112px;
-		height: 48px;
-		border-radius: var(--radius-sm);
-		background: var(--surface-muted);
 	}
 
 	.appointment-form {
@@ -1213,8 +1056,7 @@
 			display: inline-flex;
 		}
 
-		.appointment :global(.timeline-scroll),
-		.tl-skel-scroll {
+		.appointment :global(.timeline-scroll) {
 			max-height: none;
 			overflow: visible;
 		}
