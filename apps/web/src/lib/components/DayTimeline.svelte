@@ -378,6 +378,7 @@
 	}
 
 	.slots-tz-icon {
+		display: inline-flex;
 		font-size: var(--font-size-base);
 	}
 
