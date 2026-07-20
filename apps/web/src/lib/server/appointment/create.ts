@@ -71,7 +71,9 @@ export async function createAppointment(
 				external_calendar_id: null,
 				meeting_snapshot: JSON.stringify({
 					name: eventType.name,
-					duration_minutes: eventType.duration_minutes,
+					duration_minutes: Temporal.Instant.from(input.start)
+						.until(Temporal.Instant.from(input.end))
+						.total('minutes'),
 					description: eventType.description,
 					slug: eventType.slug
 				})

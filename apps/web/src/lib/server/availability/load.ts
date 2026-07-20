@@ -1,5 +1,5 @@
 import { getBusyIntervals } from '@when/db';
-import type { Meeting, WhenConfiguration } from '@when/config';
+import { durationsOf, type Meeting, type WhenConfiguration } from '@when/config';
 import { systemClock } from '$lib/server/clock';
 import { getDb } from '$lib/server/state';
 import { computeSlots } from './calc';
@@ -11,6 +11,9 @@ import type { AvailabilitySettings } from './types';
 
 export interface Availability {
 	settings: AvailabilitySettings;
+	durations: number[];
+	slotsByDuration: Record<number, Record<string, string[]>>;
+	// the default (first) length's slots
 	slotsByDate: Record<string, string[]>;
 	workingWindows: { start: string; end: string }[];
 	busyBlocks: { start: string; end: string }[];
@@ -41,22 +44,28 @@ export async function loadAvailability(
 		})
 	).map((b) => ({ start: Temporal.Instant.from(b.start), end: Temporal.Instant.from(b.end) }));
 
-	const slots = computeSlots({
-		settings,
-		rangeStart: nowInstant,
-		rangeEnd,
-		userTz,
-		now: nowInstant,
-		existingAppointments: blocks.appointments,
-		remoteBusy,
-		perDayCount: blocks.perDayCount
-	});
-
-	const slotsByDate: Record<string, string[]> = {};
-	for (const s of slots) {
-		const date = s.toZonedDateTimeISO(userTz).toPlainDate().toString();
-		(slotsByDate[date] ??= []).push(s.toString());
+	// Busy data is length-independent; run the engine once per offered length.
+	const durations = durationsOf(eventType);
+	const slotsByDuration: Record<number, Record<string, string[]>> = {};
+	for (const duration of durations) {
+		const slots = computeSlots({
+			settings: { ...settings, duration },
+			rangeStart: nowInstant,
+			rangeEnd,
+			userTz,
+			now: nowInstant,
+			existingAppointments: blocks.appointments,
+			remoteBusy,
+			perDayCount: blocks.perDayCount
+		});
+		const byDate: Record<string, string[]> = {};
+		for (const s of slots) {
+			const date = s.toZonedDateTimeISO(userTz).toPlainDate().toString();
+			(byDate[date] ??= []).push(s.toString());
+		}
+		slotsByDuration[duration] = byDate;
 	}
+	const slotsByDate = slotsByDuration[durations[0]];
 
 	const dates = candidateDates(nowInstant, rangeEnd, userTz);
 	const workingWindows: { start: string; end: string }[] = [];
@@ -71,7 +80,7 @@ export async function loadAvailability(
 		end: b.end.toString()
 	}));
 
-	return { settings, slotsByDate, workingWindows, busyBlocks };
+	return { settings, durations, slotsByDuration, slotsByDate, workingWindows, busyBlocks };
 }
 
 // Re-check, at submit time, that a slot is still on offer. `excludeStart` drops the
@@ -80,8 +89,11 @@ export async function isSlotBookable(
 	cfg: WhenConfiguration,
 	eventType: Meeting,
 	slot: string,
+	duration: number,
 	excludeStart: string | null = null
 ): Promise<boolean> {
-	const { slotsByDate } = await loadAvailability(cfg, eventType, excludeStart);
-	return Object.values(slotsByDate).flat().includes(slot);
+	const { slotsByDuration } = await loadAvailability(cfg, eventType, excludeStart);
+	return Object.values(slotsByDuration[duration] ?? {})
+		.flat()
+		.includes(slot);
 }

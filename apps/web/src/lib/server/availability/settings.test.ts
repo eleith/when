@@ -26,6 +26,15 @@ test('throws on unknown meeting name', () => {
 	expect(() => resolveAvailabilitySettingsById(validConfig, 'nope')).toThrow(/unknown meeting/);
 });
 
+test('a duration array uses the first length and defaults granularity to the shortest', () => {
+	const cfg: WhenConfiguration = JSON.parse(JSON.stringify(validConfig));
+	delete cfg.meetings[0].start_times_every_minutes;
+	cfg.meetings[0].duration_minutes = [30, 15, 60];
+	const settings = resolveAvailabilitySettingsById(cfg, '30-min-chat');
+	expect(settings.duration).toBe(30); // first listed = default
+	expect(settings.slot_granularity).toBe(15); // shortest offered
+});
+
 test('weekly schedule is expanded from the schedule rules', () => {
 	const day = [{ from: '09:00', to: '17:00' }];
 	expect(resolveAvailabilitySettingsById(validConfig, '30-min-chat').weekly).toEqual({

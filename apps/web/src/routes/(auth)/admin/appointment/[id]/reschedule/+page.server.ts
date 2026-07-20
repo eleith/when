@@ -2,6 +2,7 @@ import { fail, redirect } from '@sveltejs/kit';
 import { findAppointment } from '@when/db';
 import { getConfig, getDb } from '$lib/server/state';
 import { isSlotBookable } from '$lib/server/availability/load';
+import { resolveDuration } from '$lib/server/appointment/duration';
 import { rescheduleAppointment } from '$lib/server/appointment/reschedule';
 import { validateReason } from '$lib/server/appointment/form.server';
 import { appointmentContext } from '$lib/server/appointment/context';
@@ -29,13 +30,16 @@ export const actions: Actions = {
 		if (!reasonResult.ok) return fail(400, { error: reasonResult.error });
 		const reason = reasonResult.reason;
 
+		const duration = resolveDuration(eventType, form);
+		if (duration === null) return fail(400, { error: 'Please pick a valid meeting length.' });
+
 		// Re-validate the slot is currently bookable, ignoring the appointment's own current slot.
-		if (!(await isSlotBookable(cfg, eventType, slotStr, found.start_time))) {
+		if (!(await isSlotBookable(cfg, eventType, slotStr, duration, found.start_time))) {
 			return fail(409, { error: 'That time is no longer available. Please pick another.' });
 		}
 
 		const start = Temporal.Instant.from(slotStr);
-		const end = start.add({ minutes: eventType.duration_minutes });
+		const end = start.add({ minutes: duration });
 		const result = await rescheduleAppointment(appointmentContext(), {
 			appointment: found,
 			initiator: 'host', // Admin is always the host

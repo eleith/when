@@ -1,4 +1,4 @@
-import { parseGuestAnswers, type Meeting } from '@when/config';
+import { durationsOf, parseGuestAnswers, type Meeting } from '@when/config';
 import { parseActionLog, type ActionLogEntry, type Appointment } from '@when/db';
 
 type Resolved<T> = { [K in keyof T]-?: NonNullable<T[K]> };
@@ -15,10 +15,10 @@ export interface PublicEventType
 				| 'notice_minutes'
 			>
 		>,
-		Pick<
-			Meeting,
-			'name' | 'slug' | 'duration_minutes' | 'booking_approval' | 'description' | 'location'
-		> {}
+		Pick<Meeting, 'name' | 'slug' | 'booking_approval' | 'description' | 'location'> {
+	duration_minutes: number; // the default (first) length
+	durations: number[]; // all offered lengths, in config order
+}
 
 export interface PublicAppointment {
 	id: string;
@@ -38,7 +38,8 @@ export function toPublicEventType(eventType: Meeting, isAdmin: boolean): PublicE
 	return {
 		name: eventType.name,
 		slug: eventType.slug,
-		duration_minutes: eventType.duration_minutes,
+		duration_minutes: durationsOf(eventType)[0],
+		durations: durationsOf(eventType),
 		description: eventType.description,
 		visibility: eventType.visibility ?? 'public',
 		booking_approval: eventType.booking_approval,

@@ -6,6 +6,7 @@ import { getBusyIntervals } from '@when/db';
 import { systemClock } from '$lib/server/clock';
 import { getConfig, getDb } from '$lib/server/state';
 import { createAppointment } from '$lib/server/appointment/create';
+import { resolveDuration } from '$lib/server/appointment/duration';
 import {
 	parseAndValidateAppointmentForm,
 	resolveTimezone
@@ -32,7 +33,12 @@ export const actions: Actions = {
 		}
 		const { name, email, answers, location: resolvedLocation } = parsed.data;
 
-		// Re-validate the slot is currently available.
+		const duration = resolveDuration(eventType, form);
+		if (duration === null) {
+			return fail(400, { error: 'Please pick a valid meeting length.' });
+		}
+
+		// Re-validate the slot is currently available for the chosen length.
 		const settings = resolveAvailabilitySettings(cfg, eventType);
 		const userTz = cfg.user.timezone;
 		const nowInstant = Temporal.Instant.fromEpochMilliseconds(systemClock.nowMs());
@@ -47,7 +53,7 @@ export const actions: Actions = {
 		);
 		const remoteBusy = await slotDayBusy(getDb(), eventType.busy_calendars ?? [], slotStr, userTz);
 		const slots = computeSlots({
-			settings,
+			settings: { ...settings, duration },
 			rangeStart: nowInstant,
 			rangeEnd,
 			userTz,
@@ -61,7 +67,7 @@ export const actions: Actions = {
 		}
 
 		const start = Temporal.Instant.from(slotStr);
-		const end = start.add({ minutes: eventType.duration_minutes });
+		const end = start.add({ minutes: duration });
 
 		const result = await createAppointment(appointmentContext(), {
 			eventType,
