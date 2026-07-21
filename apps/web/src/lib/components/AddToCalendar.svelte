@@ -100,8 +100,8 @@
 		gap: var(--space-4);
 		padding: var(--space-6);
 		padding-bottom: calc(var(--space-6) + env(safe-area-inset-bottom));
-		background: var(--surface);
-		border-top: 1px solid var(--border);
+		background: var(--color-surface);
+		border-top: 1px solid var(--color-border);
 		border-radius: var(--radius-md) var(--radius-md) 0 0;
 		box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.12);
 		animation: atc-slide-up 0.2s ease-out;
@@ -117,7 +117,7 @@
 			max-width: calc(100vw - var(--space-7) * 2);
 			padding-bottom: var(--space-6);
 			transform: translate(-50%, -50%);
-			border: 1px solid var(--border);
+			border: 1px solid var(--color-border);
 			border-radius: var(--radius-md);
 			animation: atc-fade-up 0.2s ease-out;
 		}
@@ -147,7 +147,7 @@
 
 	.atc-option:hover,
 	.atc-option:focus-visible {
-		background: var(--surface-muted);
+		background: var(--color-surface-muted);
 		outline: none;
 	}
 

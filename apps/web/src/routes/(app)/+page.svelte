@@ -58,12 +58,12 @@
 	}
 
 	.subtitle {
-		color: var(--text-muted);
+		color: var(--color-text-muted);
 		margin: 0 0 var(--space-8);
 	}
 
 	.empty {
-		color: var(--text-muted);
+		color: var(--color-text-muted);
 	}
 
 	.event-list {
@@ -76,8 +76,8 @@
 		display: flex;
 		align-items: center;
 		gap: var(--space-5);
-		background: var(--surface);
-		border: 1px solid var(--border);
+		background: var(--color-surface);
+		border: 1px solid var(--color-border);
 		border-radius: var(--radius);
 		padding: var(--space-6) var(--space-6);
 		text-decoration: none;
@@ -108,14 +108,14 @@
 	}
 
 	.event-meta {
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		font-size: var(--font-size-base);
 		margin: var(--space-1) 0 0;
 		line-height: 1.4;
 	}
 
 	.arrow {
-		color: var(--text-disabled);
+		color: var(--color-text-disabled);
 		font-size: var(--font-size-xl);
 		flex-shrink: 0;
 		transition: color var(--transition);

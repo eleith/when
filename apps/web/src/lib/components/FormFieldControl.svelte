@@ -123,11 +123,11 @@
 		font-size: var(--font-size-sm);
 		font-weight: 600;
 		margin-bottom: var(--space-2);
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 	}
 
 	.required {
-		color: var(--danger);
+		color: var(--color-danger);
 		margin-left: 2px;
 	}
 
@@ -136,12 +136,12 @@
 	.field textarea {
 		width: 100%;
 		padding: var(--space-4) var(--space-4);
-		border: 1px solid var(--border-strong);
+		border: 1px solid var(--color-border-strong);
 		border-radius: var(--radius);
 		font-size: var(--font-size-md);
 		box-sizing: border-box;
 		transition: border-color var(--transition);
-		background: var(--surface);
+		background: var(--color-surface);
 		color: var(--when-color-text);
 	}
 
@@ -158,21 +158,21 @@
 		margin-top: var(--space-1);
 		text-align: right;
 		font-size: var(--font-size-xs);
-		color: var(--text-muted);
+		color: var(--color-text-muted);
 	}
 
 	.error {
 		margin: var(--space-2) 0 0;
 		font-size: var(--font-size-sm);
-		color: var(--danger);
+		color: var(--color-danger);
 	}
 
 	input:disabled,
 	textarea:disabled,
 	select:disabled {
-		background: var(--surface-muted);
-		border-color: var(--border);
-		color: var(--text-muted);
+		background: var(--color-surface-muted);
+		border-color: var(--color-border);
+		color: var(--color-text-muted);
 		cursor: not-allowed;
 		opacity: 0.7;
 	}

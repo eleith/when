@@ -109,8 +109,8 @@
 	.signin-card {
 		width: 100%;
 		max-width: 400px;
-		background: var(--surface);
-		border: 1px solid var(--border);
+		background: var(--color-surface);
+		border: 1px solid var(--color-border);
 		border-radius: var(--radius-md);
 		box-shadow: var(--shadow-card);
 		padding: var(--space-8);
@@ -144,7 +144,7 @@
 
 	.signin-subtitle {
 		font-size: var(--font-size-sm);
-		color: var(--text-muted);
+		color: var(--color-text-muted);
 		margin: var(--space-1) 0 0;
 	}
 
@@ -154,10 +154,10 @@
 		align-items: flex-start;
 		gap: var(--space-3);
 		padding: var(--space-3) var(--space-4);
-		background: var(--danger-bg);
-		border: 1px solid var(--danger-border);
+		background: var(--color-danger-bg);
+		border: 1px solid var(--color-danger-border);
 		border-radius: var(--radius);
-		color: var(--danger);
+		color: var(--color-danger);
 	}
 
 	.error-icon {
@@ -188,7 +188,7 @@
 	.form-label {
 		font-size: var(--font-size-sm);
 		font-weight: 600;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 	}
 
 	.form-input {
@@ -198,7 +198,7 @@
 		font-family: inherit;
 		color: var(--when-color-text);
 		background: var(--when-color-surface-page);
-		border: 1px solid var(--border-strong);
+		border: 1px solid var(--color-border-strong);
 		border-radius: var(--radius);
 		transition:
 			border-color var(--transition),
@@ -207,14 +207,14 @@
 	}
 
 	.form-input::placeholder {
-		color: var(--text-muted);
+		color: var(--color-text-muted);
 	}
 
 	.form-input:focus {
 		outline: none;
 		border-color: var(--when-color-primary);
 		box-shadow: var(--shadow-focus);
-		background: var(--surface);
+		background: var(--color-surface);
 	}
 
 	.submit-btn {
@@ -250,7 +250,7 @@
 
 	.sso-desc {
 		font-size: var(--font-size-sm);
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		line-height: 1.5;
 		text-align: center;
 		margin: 0 0 var(--space-2);

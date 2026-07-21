@@ -139,7 +139,7 @@
 <style>
 	/* Sits as the last section of the appointment card; provides its own top divider. */
 	.log-section {
-		border-top: 1px solid var(--border-strong);
+		border-top: 1px solid var(--color-border-strong);
 	}
 
 	.log-summary {
@@ -157,12 +157,12 @@
 	}
 
 	.log-summary:hover {
-		background: var(--surface-muted);
+		background: var(--color-surface-muted);
 	}
 
 	.log-summary-icon {
 		font-size: var(--font-size-xl);
-		color: var(--text-muted);
+		color: var(--color-text-muted);
 		display: inline-flex;
 		flex-shrink: 0;
 		margin-top: 1px;
@@ -182,7 +182,7 @@
 	}
 
 	.log-summary-count {
-		color: var(--text-muted);
+		color: var(--color-text-muted);
 		font-size: var(--font-size-base);
 		margin-top: 2px;
 	}
@@ -191,7 +191,7 @@
 		margin-left: auto;
 		align-self: center;
 		display: inline-flex;
-		color: var(--text-muted);
+		color: var(--color-text-muted);
 		transition: transform var(--transition);
 	}
 
@@ -201,12 +201,12 @@
 
 	.log-body {
 		padding: var(--space-5) var(--space-7) var(--space-6);
-		border-bottom: 1px solid var(--border-strong);
+		border-bottom: 1px solid var(--color-border-strong);
 	}
 
 	.log-empty {
 		margin: 0;
-		color: var(--text-muted);
+		color: var(--color-text-muted);
 		font-size: var(--font-size-base);
 	}
 
@@ -215,7 +215,7 @@
 		list-style: none;
 		margin: 0 0 0 var(--space-4);
 		padding: var(--space-1) 0 var(--space-1) var(--space-6);
-		border-left: 2px solid var(--border);
+		border-left: 2px solid var(--color-border);
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-5);
@@ -229,14 +229,14 @@
 
 	.log-icon {
 		font-size: var(--font-size-xl);
-		color: var(--text-muted);
+		color: var(--color-text-muted);
 		flex-shrink: 0;
 		margin-top: 1px;
 		display: inline-flex;
 	}
 
 	.log-icon.is-fail {
-		color: var(--danger-strong);
+		color: var(--color-danger-strong);
 	}
 
 	.log-text {
@@ -258,15 +258,15 @@
 		font-weight: 600;
 		text-transform: uppercase;
 		letter-spacing: 0.04em;
-		color: var(--text-muted);
-		background: var(--surface-muted);
-		border: 1px solid var(--border);
+		color: var(--color-text-muted);
+		background: var(--color-surface-muted);
+		border: 1px solid var(--color-border);
 		border-radius: var(--radius-pill);
 		padding: 1px var(--space-2);
 	}
 
 	.log-secondary {
-		color: var(--text-muted);
+		color: var(--color-text-muted);
 		font-size: var(--font-size-base);
 		margin-top: 2px;
 	}

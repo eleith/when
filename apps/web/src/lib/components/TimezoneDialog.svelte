@@ -125,8 +125,8 @@
 		display: flex;
 		flex-direction: column;
 		max-height: 80vh;
-		background: var(--surface);
-		border-top: 1px solid var(--border);
+		background: var(--color-surface);
+		border-top: 1px solid var(--color-border);
 		border-radius: var(--radius-md) var(--radius-md) 0 0;
 		padding: var(--space-5);
 		gap: var(--space-4);
@@ -144,7 +144,7 @@
 			max-width: calc(100vw - var(--space-7) * 2);
 			max-height: min(70vh, 520px);
 			transform: translate(-50%, -50%);
-			border: 1px solid var(--border);
+			border: 1px solid var(--color-border);
 			border-radius: var(--radius-md);
 			animation: tz-fade-up-desktop 0.2s ease-out;
 		}
@@ -197,24 +197,24 @@
 		border: none;
 		font-size: var(--font-size-2xl);
 		line-height: 1;
-		color: var(--text-muted);
+		color: var(--color-text-muted);
 		cursor: pointer;
 		padding: var(--space-1) var(--space-3);
 		border-radius: var(--radius-sm);
 	}
 
 	.tz-dialog-close:hover {
-		background: var(--surface-muted);
+		background: var(--color-surface-muted);
 		color: var(--when-color-text);
 	}
 
 	.tz-search {
 		width: 100%;
 		padding: var(--space-3) var(--space-4);
-		border: 1px solid var(--border-strong);
+		border: 1px solid var(--color-border-strong);
 		border-radius: var(--radius);
 		font-size: var(--font-size-md);
-		background: var(--surface);
+		background: var(--color-surface);
 		color: var(--when-color-text);
 		box-sizing: border-box;
 	}
@@ -254,11 +254,11 @@
 	}
 
 	.tz-option:hover {
-		background: var(--surface-muted);
+		background: var(--color-surface-muted);
 	}
 
 	.tz-option.selected {
-		background: var(--primary-muted);
+		background: var(--color-primary-muted);
 		color: var(--when-color-primary);
 		font-weight: 600;
 	}
@@ -273,7 +273,7 @@
 	.tz-option-offset {
 		flex-shrink: 0;
 		font-size: var(--font-size-sm);
-		color: var(--text-muted);
+		color: var(--color-text-muted);
 		font-variant-numeric: tabular-nums;
 	}
 
@@ -284,7 +284,7 @@
 	.tz-empty {
 		padding: var(--space-5);
 		text-align: center;
-		color: var(--text-muted);
+		color: var(--color-text-muted);
 		font-size: var(--font-size-sm);
 	}
 </style>

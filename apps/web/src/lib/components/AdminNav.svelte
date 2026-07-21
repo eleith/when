@@ -99,7 +99,7 @@
 		display: inline-block;
 		width: 1em;
 		height: 1em;
-		background-color: var(--text-disabled);
+		background-color: var(--color-text-disabled);
 		mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'%3E%3Cpath fill='currentColor' d='m181.66 133.66l-80 80a8 8 0 0 1-11.32-11.32L164.69 128L90.34 53.66a8 8 0 0 1 11.32-11.32l80 80a8 8 0 0 1 0 11.32Z'/%3E%3C/svg%3E")
 			center / contain no-repeat;
 		font-size: var(--font-size-md);
@@ -107,7 +107,7 @@
 	}
 
 	.crumb-link {
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		text-decoration: none;
 		display: inline-flex;
 		align-items: center;
@@ -127,7 +127,7 @@
 	}
 
 	.crumb-root {
-		color: var(--text-muted);
+		color: var(--color-text-muted);
 		display: inline-flex;
 		align-items: center;
 		gap: var(--space-2);
@@ -141,7 +141,7 @@
 
 	.crumb-item [aria-current='page'] {
 		font-size: var(--font-size-md);
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 	}
 
 	.signout-form {
@@ -154,7 +154,7 @@
 		background: none;
 		border: none;
 		padding: 0;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		cursor: pointer;
 		display: inline-flex;
 		align-items: center;

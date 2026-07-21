@@ -78,8 +78,8 @@
 		display: flex;
 		flex-direction: column;
 		max-height: 80vh;
-		background: var(--surface);
-		border-top: 1px solid var(--border);
+		background: var(--color-surface);
+		border-top: 1px solid var(--color-border);
 		border-radius: var(--radius-md) var(--radius-md) 0 0;
 		padding: var(--space-5);
 		gap: var(--space-4);
@@ -96,7 +96,7 @@
 			width: 320px;
 			max-width: calc(100vw - var(--space-7) * 2);
 			transform: translate(-50%, -50%);
-			border: 1px solid var(--border);
+			border: 1px solid var(--color-border);
 			border-radius: var(--radius-md);
 			animation: none;
 		}
@@ -138,14 +138,14 @@
 		border: none;
 		font-size: var(--font-size-2xl);
 		line-height: 1;
-		color: var(--text-muted);
+		color: var(--color-text-muted);
 		cursor: pointer;
 		padding: var(--space-1) var(--space-3);
 		border-radius: var(--radius-sm);
 	}
 
 	.duration-dialog-close:hover {
-		background: var(--surface-muted);
+		background: var(--color-surface-muted);
 		color: var(--when-color-text);
 	}
 
@@ -174,11 +174,11 @@
 	}
 
 	.duration-row:hover {
-		background: var(--surface-muted);
+		background: var(--color-surface-muted);
 	}
 
 	.duration-row.selected {
-		background: var(--primary-muted);
+		background: var(--color-primary-muted);
 		color: var(--when-color-primary);
 	}
 </style>

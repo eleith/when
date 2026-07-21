@@ -32,8 +32,8 @@
 		align-items: flex-start;
 		gap: var(--space-4);
 		padding: var(--space-5) var(--space-6);
-		background: var(--warning-bg);
-		border: 1px solid var(--warning-border);
+		background: var(--color-warning-bg);
+		border: 1px solid var(--color-warning-border);
 		border-radius: var(--radius-md);
 		margin-bottom: var(--space-6);
 		color: var(--when-color-text);
@@ -41,7 +41,7 @@
 
 	.icon {
 		font-size: var(--font-size-xl);
-		color: var(--warning);
+		color: var(--color-warning);
 		flex-shrink: 0;
 		margin-top: 2px;
 		display: inline-flex;
@@ -54,7 +54,7 @@
 	.text {
 		font-size: var(--font-size-md);
 		line-height: 1.5;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 	}
 
 	.text strong {

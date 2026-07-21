@@ -254,14 +254,14 @@
 
 	.empty {
 		text-align: center;
-		color: var(--text-muted);
+		color: var(--color-text-muted);
 		padding: var(--space-9) 0;
 	}
 
 	/* ---- card layout ---- */
 	.card {
-		background: var(--surface);
-		border: 1px solid var(--border);
+		background: var(--color-surface);
+		border: 1px solid var(--color-border);
 		border-radius: var(--radius-md);
 		display: flex;
 		overflow: hidden;
@@ -284,7 +284,7 @@
 	/* ---- page banner (full-width) ---- */
 	.page-banner {
 		width: 100%;
-		border-bottom: 1px solid var(--border);
+		border-bottom: 1px solid var(--color-border);
 		padding: var(--space-5) var(--space-7);
 		display: flex;
 		align-items: center;
@@ -318,7 +318,7 @@
 	}
 
 	.banner-event-meta {
-		color: var(--text-muted);
+		color: var(--color-text-muted);
 		font-size: var(--font-size-sm);
 		margin: var(--space-1) 0 0;
 		overflow: hidden;
@@ -349,7 +349,7 @@
 	}
 
 	.banner-desc {
-		color: var(--text-muted);
+		color: var(--color-text-muted);
 		font-size: var(--font-size-sm);
 		margin-top: var(--space-1);
 	}
@@ -423,7 +423,7 @@
 	}
 
 	.error-reason {
-		color: var(--text-muted);
+		color: var(--color-text-muted);
 		font-size: var(--font-size-md);
 		line-height: 1.5;
 		margin: 0 0 var(--space-4);

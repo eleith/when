@@ -28,7 +28,7 @@
 
 	.empty-text {
 		font-size: var(--font-size-md);
-		color: var(--text-muted);
+		color: var(--color-text-muted);
 		margin: 0;
 	}
 </style>

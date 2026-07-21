@@ -29,10 +29,10 @@
 	.prompt {
 		margin: var(--space-4) 0;
 		padding: var(--space-5) 0;
-		border-top: 1px solid var(--border);
+		border-top: 1px solid var(--color-border);
 		text-align: center;
 		font-size: var(--font-size-lg);
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 	}
 
 	.pick {

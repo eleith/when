@@ -27,7 +27,7 @@
 	}
 
 	p {
-		color: var(--text-muted);
+		color: var(--color-text-muted);
 		margin: 0 0 var(--space-7);
 	}
 

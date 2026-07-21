@@ -35,7 +35,7 @@
 		height: var(--font-size-xl);
 		width: 9rem;
 		border-radius: var(--radius-sm);
-		background: var(--surface-muted);
+		background: var(--color-surface-muted);
 	}
 
 	.nav {
@@ -47,7 +47,7 @@
 		width: var(--space-7);
 		height: var(--space-7);
 		border-radius: var(--radius-sm);
-		background: var(--surface-muted);
+		background: var(--color-surface-muted);
 	}
 
 	.grid {
@@ -60,7 +60,7 @@
 		display: flex;
 		width: 100%;
 		margin-bottom: var(--space-2);
-		background: var(--surface-muted);
+		background: var(--color-surface-muted);
 		border-radius: var(--radius-sm);
 	}
 
@@ -87,6 +87,6 @@
 		width: 55%;
 		height: 55%;
 		border-radius: 50%;
-		background: var(--surface-muted);
+		background: var(--color-surface-muted);
 	}
 </style>

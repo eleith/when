@@ -38,7 +38,7 @@
 <style>
 	/* Mirrors AppointmentLog: a collapsible section with its own top divider. */
 	.questions-section {
-		border-top: 1px solid var(--border-strong);
+		border-top: 1px solid var(--color-border-strong);
 	}
 
 	.questions-summary {
@@ -56,12 +56,12 @@
 	}
 
 	.questions-summary:hover {
-		background: var(--surface-muted);
+		background: var(--color-surface-muted);
 	}
 
 	.questions-summary-icon {
 		font-size: var(--font-size-xl);
-		color: var(--text-muted);
+		color: var(--color-text-muted);
 		display: inline-flex;
 		flex-shrink: 0;
 		margin-top: 1px;
@@ -81,7 +81,7 @@
 	}
 
 	.questions-summary-count {
-		color: var(--text-muted);
+		color: var(--color-text-muted);
 		font-size: var(--font-size-base);
 		margin-top: 2px;
 	}
@@ -90,7 +90,7 @@
 		margin-left: auto;
 		align-self: center;
 		display: inline-flex;
-		color: var(--text-muted);
+		color: var(--color-text-muted);
 		transition: transform var(--transition);
 	}
 
@@ -100,7 +100,7 @@
 
 	.questions-body {
 		padding: var(--space-5) var(--space-7) var(--space-6);
-		border-bottom: 1px solid var(--border-strong);
+		border-bottom: 1px solid var(--color-border-strong);
 	}
 
 	/* Indented with a guide rail so answers read as nested under the summary. */
@@ -108,7 +108,7 @@
 		list-style: none;
 		margin: 0 0 0 var(--space-4);
 		padding: var(--space-1) 0 var(--space-1) var(--space-6);
-		border-left: 2px solid var(--border);
+		border-left: 2px solid var(--color-border);
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-5);
@@ -119,7 +119,7 @@
 	}
 
 	.questions-label {
-		color: var(--text-muted);
+		color: var(--color-text-muted);
 		font-size: var(--font-size-base);
 	}
 

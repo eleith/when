@@ -9,46 +9,46 @@
 :root {
 	color-scheme: light dark;
 
-	--surface: #ffffff;
+	--color-surface: #ffffff;
 	/* --when-color-surface-page: injected from config appearance */
-	--surface-muted: color-mix(in srgb, var(--when-color-text) 5%, var(--when-color-surface-page));
-	--surface-active: color-mix(in srgb, var(--when-color-text) 8%, transparent);
+	--color-surface-muted: color-mix(in srgb, var(--when-color-text) 5%, var(--when-color-surface-page));
+	--color-surface-active: color-mix(in srgb, var(--when-color-text) 8%, transparent);
 
-	--primary-muted: color-mix(in srgb, var(--when-color-primary) 5%, var(--when-color-surface-page));
-	--primary-border: color-mix(in srgb, var(--when-color-primary) 20%, var(--when-color-surface-page));
+	--color-primary-muted: color-mix(in srgb, var(--when-color-primary) 5%, var(--when-color-surface-page));
+	--color-primary-border: color-mix(in srgb, var(--when-color-primary) 20%, var(--when-color-surface-page));
 
-	--border: color-mix(in srgb, var(--when-color-text) 10%, var(--when-color-surface-page));
-	--border-strong: color-mix(in srgb, var(--when-color-text) 20%, var(--when-color-surface-page));
+	--color-border: color-mix(in srgb, var(--when-color-text) 10%, var(--when-color-surface-page));
+	--color-border-strong: color-mix(in srgb, var(--when-color-text) 20%, var(--when-color-surface-page));
 
 	/* --when-color-text: injected from config appearance */
-	--text-secondary: color-mix(in srgb, var(--when-color-text) 85%, var(--when-color-surface-page));
-	--text-muted: color-mix(in srgb, var(--when-color-text) 78%, var(--when-color-surface-page));
-	--text-disabled: color-mix(in srgb, var(--when-color-text) 35%, var(--when-color-surface-page));
+	--color-text-secondary: color-mix(in srgb, var(--when-color-text) 85%, var(--when-color-surface-page));
+	--color-text-muted: color-mix(in srgb, var(--when-color-text) 78%, var(--when-color-surface-page));
+	--color-text-disabled: color-mix(in srgb, var(--when-color-text) 35%, var(--when-color-surface-page));
 
-	--success: #059669;
-	--success-strong: #005530;
-	--success-border: #a7f3d0;
-	--success-bg: #ecfdf5;
+	--color-success: #059669;
+	--color-success-strong: #005530;
+	--color-success-border: #a7f3d0;
+	--color-success-bg: #ecfdf5;
 
-	--danger: #dc2626;
-	--danger-strong: #991616;
-	--danger-border: #fca5a5;
-	--danger-bg: #fef2f2;
+	--color-danger: #dc2626;
+	--color-danger-strong: #991616;
+	--color-danger-border: #fca5a5;
+	--color-danger-bg: #fef2f2;
 
-	--warning: #d97706;
-	--warning-strong: #8a3c00;
-	--warning-border: #fcd34d;
-	--warning-bg: #fffbeb;
+	--color-warning: #d97706;
+	--color-warning-strong: #8a3c00;
+	--color-warning-border: #fcd34d;
+	--color-warning-bg: #fffbeb;
 
-	--info: #2563eb;
-	--info-strong: #0a3ccc;
-	--info-border: #93c5fd;
-	--info-bg: #eff6ff;
+	--color-info: #2563eb;
+	--color-info-strong: #0a3ccc;
+	--color-info-border: #93c5fd;
+	--color-info-bg: #eff6ff;
 
-	--quiet: #737373;
-	--quiet-strong: #3d3d3d;
-	--quiet-border: #d4d4d4;
-	--quiet-bg: #d4d4d4;
+	--color-quiet: #737373;
+	--color-quiet-strong: #3d3d3d;
+	--color-quiet-border: #d4d4d4;
+	--color-quiet-bg: #d4d4d4;
 
 	--shadow-card: 0 1px 6px rgba(0, 0, 0, 0.06);
 	--shadow-focus: 0 0 0 3px oklch(from var(--when-color-primary) l c h / 0.35);
@@ -86,36 +86,36 @@
 
 @media (prefers-color-scheme: dark) {
 	:root {
-		--text-muted: color-mix(in srgb, var(--when-color-text) 72%, var(--when-color-surface-page));
+		--color-text-muted: color-mix(in srgb, var(--when-color-text) 72%, var(--when-color-surface-page));
 		/* --when-color-surface-page: injected from config appearance */
 		/* --when-color-text: injected from config appearance */
-		--surface: color-mix(in srgb, var(--when-color-text) 8%, var(--when-color-surface-page));
-		--surface-active: color-mix(in srgb, var(--when-color-text) 20%, transparent);
+		--color-surface: color-mix(in srgb, var(--when-color-text) 8%, var(--when-color-surface-page));
+		--color-surface-active: color-mix(in srgb, var(--when-color-text) 20%, transparent);
 
-		--success: #34d399;
-		--success-strong: #10b981;
-		--success-border: #064e3b;
-		--success-bg: #022c22;
+		--color-success: #34d399;
+		--color-success-strong: #10b981;
+		--color-success-border: #064e3b;
+		--color-success-bg: #022c22;
 
-		--danger: #ff9090;
-		--danger-strong: #ef4444;
-		--danger-border: #7f1d1d;
-		--danger-bg: #450a0a;
+		--color-danger: #ff9090;
+		--color-danger-strong: #ef4444;
+		--color-danger-border: #7f1d1d;
+		--color-danger-bg: #450a0a;
 
-		--warning: #fbbf24;
-		--warning-strong: #f59e0b;
-		--warning-border: #78350f;
-		--warning-bg: #451a03;
+		--color-warning: #fbbf24;
+		--color-warning-strong: #f59e0b;
+		--color-warning-border: #78350f;
+		--color-warning-bg: #451a03;
 
-		--info: #80bdfc;
-		--info-strong: #3b82f6;
-		--info-border: #1e3a8a;
-		--info-bg: #172554;
+		--color-info: #80bdfc;
+		--color-info-strong: #3b82f6;
+		--color-info-border: #1e3a8a;
+		--color-info-bg: #172554;
 
-		--quiet: #c8c8c8;
-		--quiet-strong: #a3a3a3;
-		--quiet-border: #404040;
-		--quiet-bg: #333333;
+		--color-quiet: #c8c8c8;
+		--color-quiet-strong: #a3a3a3;
+		--color-quiet-border: #404040;
+		--color-quiet-bg: #333333;
 
 		--shadow-card: 0 1px 6px rgba(0, 0, 0, 0.4);
 		--shadow-focus: 0 0 0 3px oklch(from var(--when-color-primary) l c h / 0.45);

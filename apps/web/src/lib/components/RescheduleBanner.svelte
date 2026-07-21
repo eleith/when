@@ -27,14 +27,14 @@
 		gap: var(--space-4);
 		padding: var(--space-5) var(--space-6);
 		margin-bottom: var(--space-6);
-		background: var(--info-bg);
-		border: 1px solid var(--info-border);
+		background: var(--color-info-bg);
+		border: 1px solid var(--color-info-border);
 		border-radius: var(--radius-md);
 	}
 
 	.icon {
 		font-size: var(--font-size-xl);
-		color: var(--info-strong);
+		color: var(--color-info-strong);
 		flex-shrink: 0;
 		display: inline-flex;
 	}
@@ -46,7 +46,7 @@
 	}
 
 	.link {
-		color: var(--info-strong);
+		color: var(--color-info-strong);
 		font-weight: 600;
 		text-decoration: underline;
 		text-underline-offset: 2px;

@@ -51,7 +51,7 @@
 <style>
 	.step-label {
 		font-weight: 500;
-		color: var(--text-muted);
+		color: var(--color-text-muted);
 		margin-right: var(--space-2);
 	}
 
@@ -62,12 +62,12 @@
 		gap: var(--space-4);
 		margin-top: var(--space-6);
 		padding-top: var(--space-5);
-		border-top: 1px solid var(--border);
+		border-top: 1px solid var(--color-border);
 	}
 
 	.summary {
 		margin: 0 auto 0 0;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		font-size: var(--font-size-md);
 		font-weight: 500;
 		display: flex;
@@ -111,12 +111,12 @@
 
 	.button-secondary {
 		background: transparent;
-		color: var(--text-secondary);
-		border: 1px solid var(--border-strong);
+		color: var(--color-text-secondary);
+		border: 1px solid var(--color-border-strong);
 	}
 
 	.button-secondary:not(:disabled):hover {
-		background: var(--surface-active);
+		background: var(--color-surface-active);
 		color: var(--when-color-text);
 		opacity: 1;
 	}
@@ -161,8 +161,8 @@
 			left: 0;
 			right: 0;
 			padding: var(--space-4) var(--space-5) calc(var(--space-4) + env(safe-area-inset-bottom));
-			background: var(--surface);
-			border-top: 1px solid var(--border);
+			background: var(--color-surface);
+			border-top: 1px solid var(--color-border);
 			z-index: 100;
 		}
 	}

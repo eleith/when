@@ -37,7 +37,7 @@
 		height: var(--font-size-xl);
 		width: 9rem;
 		border-radius: var(--radius-sm);
-		background: var(--surface-muted);
+		background: var(--color-surface-muted);
 	}
 
 	.timezone {
@@ -45,7 +45,7 @@
 		width: 4rem;
 		height: var(--font-size-md);
 		border-radius: var(--radius-sm);
-		background: var(--surface-muted);
+		background: var(--color-surface-muted);
 	}
 
 	.scroll {
@@ -57,7 +57,7 @@
 	.track {
 		position: relative;
 		margin-left: 60px;
-		border-left: 1px solid var(--border-strong);
+		border-left: 1px solid var(--color-border-strong);
 	}
 
 	.row {
@@ -73,7 +73,7 @@
 		width: 40px;
 		height: var(--font-size-sm);
 		border-radius: var(--radius-sm);
-		background: var(--surface-muted);
+		background: var(--color-surface-muted);
 	}
 
 	.gridline {
@@ -82,7 +82,7 @@
 		right: 0;
 		top: 0;
 		height: 1px;
-		background: var(--border);
+		background: var(--color-border);
 	}
 
 	.slot {
@@ -92,7 +92,7 @@
 		top: 112px;
 		height: 48px;
 		border-radius: var(--radius-sm);
-		background: var(--surface-muted);
+		background: var(--color-surface-muted);
 	}
 
 	@media (max-width: 768px) {

@@ -175,7 +175,7 @@
 	.form-title-tz {
 		font-size: var(--font-size-md);
 		font-weight: 400;
-		color: var(--text-muted);
+		color: var(--color-text-muted);
 	}
 
 	/* caret to return to the time picker — mobile only (desktop has the wizard back button) */
@@ -190,7 +190,7 @@
 		margin-left: calc(var(--space-2) * -1);
 		font-size: var(--font-size-xl);
 		line-height: 1;
-		color: var(--text-muted);
+		color: var(--color-text-muted);
 		cursor: pointer;
 		transition: color var(--transition);
 	}
@@ -200,8 +200,8 @@
 	}
 
 	.form-error {
-		background: var(--danger-bg);
-		color: var(--danger);
+		background: var(--color-danger-bg);
+		color: var(--color-danger);
 		padding: var(--space-4) var(--space-5);
 		border-radius: var(--radius);
 		font-size: var(--font-size-base);
@@ -217,18 +217,18 @@
 		font-size: var(--font-size-sm);
 		font-weight: 600;
 		margin-bottom: var(--space-2);
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 	}
 
 	.field textarea {
 		width: 100%;
 		padding: var(--space-4) var(--space-4);
-		border: 1px solid var(--border-strong);
+		border: 1px solid var(--color-border-strong);
 		border-radius: var(--radius);
 		font-size: var(--font-size-md);
 		box-sizing: border-box;
 		transition: border-color var(--transition);
-		background: var(--surface);
+		background: var(--color-surface);
 		color: var(--when-color-text);
 	}
 
@@ -243,7 +243,7 @@
 		margin-top: var(--space-1);
 		text-align: right;
 		font-size: var(--font-size-xs);
-		color: var(--text-muted);
+		color: var(--color-text-muted);
 	}
 
 	/* Hidden control so pressing Enter in a field submits; the visible submit is the wizard CTA. */
@@ -257,14 +257,14 @@
 
 	.wizard-separator {
 		border: 0;
-		border-top: 1px dashed var(--border-strong);
+		border-top: 1px dashed var(--color-border-strong);
 		margin: 0;
 	}
 
 	textarea:disabled {
-		background: var(--surface-muted);
-		border-color: var(--border);
-		color: var(--text-muted);
+		background: var(--color-surface-muted);
+		border-color: var(--color-border);
+		color: var(--color-text-muted);
 		cursor: not-allowed;
 		opacity: 0.7;
 	}

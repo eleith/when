@@ -755,7 +755,7 @@
 		border: 1px solid;
 		border-radius: var(--radius-md);
 		margin: var(--space-4) 0;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		font-size: var(--font-size-md);
 		line-height: 1.5;
 	}
@@ -772,27 +772,27 @@
 	}
 
 	.banner-danger {
-		background: var(--danger-bg);
-		border-color: var(--danger-border);
+		background: var(--color-danger-bg);
+		border-color: var(--color-danger-border);
 	}
 
 	.banner-danger .banner-icon {
-		color: var(--danger);
+		color: var(--color-danger);
 	}
 
 	.banner-info {
-		background: var(--info-bg);
-		border-color: var(--info-border);
+		background: var(--color-info-bg);
+		border-color: var(--color-info-border);
 	}
 
 	.banner-info .banner-icon {
-		color: var(--info-strong);
+		color: var(--color-info-strong);
 	}
 
 	/* ---- card ---- */
 	.card {
-		background: var(--surface);
-		border: 1px solid var(--border);
+		background: var(--color-surface);
+		border: 1px solid var(--color-border);
 		border-radius: var(--radius-md);
 		overflow: hidden;
 	}
@@ -802,11 +802,11 @@
 	}
 
 	.card-section + .card-section {
-		border-top: 1px solid var(--border);
+		border-top: 1px solid var(--color-border);
 	}
 
 	.card-section-header {
-		background: var(--surface-muted);
+		background: var(--color-surface-muted);
 		display: flex;
 		align-items: flex-start;
 		justify-content: space-between;
@@ -844,45 +844,45 @@
 	}
 
 	.state-info {
-		background: var(--info-bg);
-		color: var(--info-strong);
+		background: var(--color-info-bg);
+		color: var(--color-info-strong);
 	}
 
 	.state-active {
-		background: var(--success-bg);
-		color: var(--success-strong);
+		background: var(--color-success-bg);
+		color: var(--color-success-strong);
 	}
 
 	.state-warning {
-		background: var(--warning-bg);
-		color: var(--warning-strong);
+		background: var(--color-warning-bg);
+		color: var(--color-warning-strong);
 	}
 
 	.state-danger {
-		background: var(--danger-bg);
-		color: var(--danger-strong);
+		background: var(--color-danger-bg);
+		color: var(--color-danger-strong);
 	}
 
 	.state-quiet {
-		background: var(--quiet-bg);
-		color: var(--quiet-strong);
+		background: var(--color-quiet-bg);
+		color: var(--color-quiet-strong);
 	}
 
 	@media (prefers-color-scheme: dark) {
 		.state-info {
-			color: var(--info);
+			color: var(--color-info);
 		}
 		.state-active {
-			color: var(--success);
+			color: var(--color-success);
 		}
 		.state-warning {
-			color: var(--warning);
+			color: var(--color-warning);
 		}
 		.state-danger {
-			color: var(--danger);
+			color: var(--color-danger);
 		}
 		.state-quiet {
-			color: var(--quiet);
+			color: var(--color-quiet);
 		}
 	}
 
@@ -893,7 +893,7 @@
 	}
 
 	.event-meta {
-		color: var(--text-muted);
+		color: var(--color-text-muted);
 		font-size: var(--font-size-base);
 		margin: 0;
 	}
@@ -915,7 +915,7 @@
 
 	.detail-icon {
 		font-size: var(--font-size-xl);
-		color: var(--text-muted);
+		color: var(--color-text-muted);
 		flex-shrink: 0;
 		margin-top: 1px;
 		display: inline-flex;
@@ -933,7 +933,7 @@
 	}
 
 	.detail-secondary {
-		color: var(--text-muted);
+		color: var(--color-text-muted);
 		font-size: var(--font-size-base);
 		margin-top: 2px;
 	}
@@ -992,15 +992,15 @@
 	}
 
 	.decide-decline {
-		border: 1px solid var(--border-strong);
-		background: var(--surface);
-		color: var(--text-secondary);
+		border: 1px solid var(--color-border-strong);
+		background: var(--color-surface);
+		color: var(--color-text-secondary);
 	}
 
 	.decide-decline:hover {
-		background: var(--danger-bg);
-		border-color: var(--danger-border);
-		color: var(--danger-strong);
+		background: var(--color-danger-bg);
+		border-color: var(--color-danger-border);
+		color: var(--color-danger-strong);
 	}
 
 	/* ---- rebook CTA (declined / cancelled) ---- */
@@ -1057,8 +1057,8 @@
 			z-index: 50;
 			padding: var(--space-4) var(--space-5);
 			padding-bottom: calc(var(--space-4) + env(safe-area-inset-bottom));
-			background: var(--surface);
-			border-top: 1px solid var(--border);
+			background: var(--color-surface);
+			border-top: 1px solid var(--color-border);
 			box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08);
 		}
 
@@ -1097,8 +1097,8 @@
 		display: flex;
 		flex-direction: column;
 		max-height: 80vh;
-		background: var(--surface);
-		border-top: 1px solid var(--border);
+		background: var(--color-surface);
+		border-top: 1px solid var(--color-border);
 		border-radius: var(--radius-md) var(--radius-md) 0 0;
 		padding: var(--space-6);
 		gap: var(--space-5);
@@ -1116,7 +1116,7 @@
 			max-width: calc(100vw - var(--space-7) * 2);
 			max-height: min(70vh, 520px);
 			transform: translate(-50%, -50%);
-			border: 1px solid var(--border);
+			border: 1px solid var(--color-border);
 			border-radius: var(--radius-md);
 			animation: none;
 		}
@@ -1156,7 +1156,7 @@
 	}
 
 	.cancel-dialog-desc {
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		font-size: var(--font-size-md);
 		line-height: 1.5;
 		margin: 0;
@@ -1170,9 +1170,9 @@
 	}
 
 	.cancel-confirm-btn {
-		background: var(--danger);
+		background: var(--color-danger);
 		color: var(--when-color-text-on-primary);
-		border: 1px solid var(--danger);
+		border: 1px solid var(--color-danger);
 		border-radius: var(--radius);
 		padding: var(--space-3) var(--space-6);
 		font-size: var(--font-size-md);
@@ -1184,13 +1184,13 @@
 	}
 
 	.cancel-confirm-btn:hover {
-		background: var(--danger-strong);
-		border-color: var(--danger-strong);
+		background: var(--color-danger-strong);
+		border-color: var(--color-danger-strong);
 	}
 
 	.cancel-cancel-btn {
 		background: none;
-		border: 1px solid var(--border-strong);
+		border: 1px solid var(--color-border-strong);
 		border-radius: var(--radius);
 		padding: var(--space-3) var(--space-6);
 		font-size: var(--font-size-md);
@@ -1201,20 +1201,20 @@
 	}
 
 	.cancel-cancel-btn:hover {
-		background: var(--surface-muted);
+		background: var(--color-surface-muted);
 	}
 
 	.cancel-reason-input {
 		width: 100%;
 		padding: var(--space-3) var(--space-4);
-		border: 1px solid var(--border);
+		border: 1px solid var(--color-border);
 		border-radius: var(--radius);
 		font-size: var(--font-size-md);
 		font-family: inherit;
 		resize: vertical;
 		box-sizing: border-box;
 		margin-bottom: var(--space-4);
-		background: var(--surface);
+		background: var(--color-surface);
 		color: var(--when-color-text);
 	}
 
@@ -1274,23 +1274,23 @@
 	}
 
 	.page-header-icon.status-info {
-		color: var(--info-strong);
+		color: var(--color-info-strong);
 	}
 
 	.page-header-icon.status-active {
-		color: var(--success-strong);
+		color: var(--color-success-strong);
 	}
 
 	.page-header-icon.status-warning {
-		color: var(--warning-strong);
+		color: var(--color-warning-strong);
 	}
 
 	.page-header-icon.status-danger {
-		color: var(--danger-strong);
+		color: var(--color-danger-strong);
 	}
 
 	.page-header-icon.status-quiet {
-		color: var(--quiet-strong);
+		color: var(--color-quiet-strong);
 	}
 
 	.page-header-title {
@@ -1302,7 +1302,7 @@
 
 	.page-header-desc {
 		font-size: calc(var(--font-size-lg) * 1.25);
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		max-width: 480px;
 		margin: 0 auto;
 		line-height: 1.5;
@@ -1326,14 +1326,14 @@
 	}
 
 	.detail-row-button:hover {
-		background-color: var(--surface-muted);
+		background-color: var(--color-surface-muted);
 	}
 
 	.detail-edit-icon {
 		margin-left: auto;
 		align-self: center;
 		display: inline-flex;
-		color: var(--text-muted);
+		color: var(--color-text-muted);
 		transition: color var(--transition);
 	}
 
@@ -1343,18 +1343,18 @@
 
 	.delete-note-btn {
 		background: none;
-		border: 1px solid var(--danger-border);
+		border: 1px solid var(--color-danger-border);
 		border-radius: var(--radius);
 		padding: var(--space-3) var(--space-6);
 		font-size: var(--font-size-md);
 		font-weight: 600;
-		color: var(--danger-strong);
+		color: var(--color-danger-strong);
 		cursor: pointer;
 		transition: background var(--transition);
 	}
 
 	.delete-note-btn:hover {
-		background: var(--danger-bg);
+		background: var(--color-danger-bg);
 	}
 
 	.edit-note-actions .cancel-cancel-btn {

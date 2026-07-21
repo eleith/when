@@ -42,8 +42,8 @@
 	.sidebar {
 		flex: 0 0 30%;
 		padding: var(--space-7);
-		border-right: 1px solid var(--border);
-		background: var(--surface-muted);
+		border-right: 1px solid var(--color-border);
+		background: var(--color-surface-muted);
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-7);
@@ -83,7 +83,7 @@
 	}
 
 	.event-description {
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		font-size: var(--font-size-sm);
 		margin: 0;
 		line-height: 1.5;
@@ -92,7 +92,7 @@
 	.step {
 		margin-top: auto;
 		padding-top: var(--space-6);
-		border-top: 1px solid var(--border-strong);
+		border-top: 1px solid var(--color-border-strong);
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-1);
@@ -103,7 +103,7 @@
 		font-weight: 600;
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
-		color: var(--text-muted);
+		color: var(--color-text-muted);
 	}
 
 	.step-title {

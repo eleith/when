@@ -364,18 +364,18 @@
 
 	th {
 		background: var(--when-color-surface-page);
-		color: var(--text-muted);
+		color: var(--color-text-muted);
 		font-size: var(--font-size-sm);
 		font-weight: 700;
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
 		padding: var(--space-4) var(--space-5);
-		border-bottom: 1px solid var(--border);
+		border-bottom: 1px solid var(--color-border);
 	}
 
 	td {
 		padding: var(--space-4) var(--space-5);
-		border-bottom: 1px solid var(--border);
+		border-bottom: 1px solid var(--color-border);
 		vertical-align: middle;
 		font-size: var(--font-size-md);
 	}
@@ -395,7 +395,7 @@
 
 	/* Row selection styling */
 	tr.selected {
-		background: var(--surface-active);
+		background: var(--color-surface-active);
 	}
 
 	/* Table actions bar and outline buttons styling */
@@ -405,14 +405,14 @@
 		justify-content: space-between;
 		padding: var(--space-3) var(--space-5);
 		background: var(--when-color-surface-page);
-		border-bottom: 1px solid var(--border);
+		border-bottom: 1px solid var(--color-border);
 		animation: fade-in 0.15s ease-out;
 	}
 
 	.selected-count {
 		font-size: var(--font-size-sm);
 		font-weight: 600;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 	}
 
 	.action-buttons {
@@ -427,8 +427,8 @@
 		font-size: var(--font-size-sm);
 		font-weight: 600;
 		background: transparent;
-		border: 1px solid var(--border-strong);
-		color: var(--text-secondary);
+		border: 1px solid var(--color-border-strong);
+		color: var(--color-text-secondary);
 		border-radius: var(--radius);
 		cursor: pointer;
 		display: inline-flex;
@@ -448,31 +448,31 @@
 	}
 
 	.btn-outline:disabled {
-		color: var(--text-disabled);
-		border-color: var(--border);
+		color: var(--color-text-disabled);
+		border-color: var(--color-border);
 		background: transparent;
 		cursor: not-allowed;
 		opacity: 0.6;
 	}
 
 	.btn-outline.btn-danger:not(:disabled) {
-		color: var(--danger-strong);
-		border-color: var(--danger-border);
+		color: var(--color-danger-strong);
+		border-color: var(--color-danger-border);
 	}
 
 	.btn-outline.btn-danger:not(:disabled):hover {
-		background: var(--danger-bg);
-		border-color: var(--danger-strong);
+		background: var(--color-danger-bg);
+		border-color: var(--color-danger-strong);
 	}
 
 	.btn-outline.btn-success:not(:disabled) {
-		color: var(--success-strong);
-		border-color: var(--success-border);
+		color: var(--color-success-strong);
+		border-color: var(--color-success-border);
 	}
 
 	.btn-outline.btn-success:not(:disabled):hover {
-		background: var(--success-bg);
-		border-color: var(--success-strong);
+		background: var(--color-success-bg);
+		border-color: var(--color-success-strong);
 	}
 
 	/* Checkbox column styling */
@@ -522,8 +522,8 @@
 		display: flex;
 		flex-direction: column;
 		max-height: 80vh;
-		background: var(--surface);
-		border-top: 1px solid var(--border);
+		background: var(--color-surface);
+		border-top: 1px solid var(--color-border);
 		border-radius: var(--radius-md) var(--radius-md) 0 0;
 		padding: var(--space-6);
 		gap: var(--space-5);
@@ -540,7 +540,7 @@
 			width: 460px;
 			max-width: calc(100vw - var(--space-7) * 2);
 			transform: translate(-50%, -50%);
-			border: 1px solid var(--border);
+			border: 1px solid var(--color-border);
 			border-radius: var(--radius-md);
 			animation: bulk-fade-up-desktop 0.2s ease-out;
 		}
@@ -594,7 +594,7 @@
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		cursor: pointer;
 		padding: var(--space-2);
 		border-radius: var(--radius-sm);
@@ -604,7 +604,7 @@
 	}
 
 	.dialog-close:hover {
-		background: var(--surface-muted);
+		background: var(--color-surface-muted);
 		color: var(--when-color-text);
 	}
 
@@ -614,7 +614,7 @@
 	}
 
 	.dialog-desc {
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		font-size: var(--font-size-md);
 		line-height: 1.5;
 		margin: 0;
@@ -653,9 +653,9 @@
 		width: 100%;
 		height: 80px;
 		padding: var(--space-2) var(--space-3);
-		border: 1px solid var(--border-strong);
+		border: 1px solid var(--color-border-strong);
 		border-radius: var(--radius);
-		background: var(--surface);
+		background: var(--color-surface);
 		color: var(--when-color-text);
 		font-size: var(--font-size-base);
 		font-family: inherit;
@@ -684,21 +684,21 @@
 	}
 
 	.btn-confirm-danger {
-		background: var(--danger);
+		background: var(--color-danger);
 		color: var(--when-color-text-on-primary);
 	}
 
 	.btn-confirm-success {
-		background: var(--success);
+		background: var(--color-success);
 		color: var(--when-color-text-on-primary);
 	}
 
 	.btn-cancel {
 		height: 40px;
 		padding: 0 var(--space-4);
-		border: 1px solid var(--border-strong);
+		border: 1px solid var(--color-border-strong);
 		border-radius: var(--radius);
-		background: var(--surface);
+		background: var(--color-surface);
 		color: var(--when-color-text);
 		font-size: var(--font-size-md);
 		font-weight: 600;
@@ -707,22 +707,22 @@
 	}
 
 	.btn-cancel:hover {
-		background: var(--surface-muted);
+		background: var(--color-surface-muted);
 	}
 
 	/* rows styling for past events */
 	tr.past td {
-		color: var(--text-muted);
+		color: var(--color-text-muted);
 	}
 
 	tr.past .row-link {
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		font-weight: 500;
 	}
 
 	tr.past .event-tag {
-		background: var(--surface-muted);
-		color: var(--text-muted);
+		background: var(--color-surface-muted);
+		color: var(--color-text-muted);
 	}
 
 	/* cell specifics */
@@ -744,7 +744,7 @@
 		align-items: center;
 		gap: var(--space-1);
 		font-size: var(--font-size-sm);
-		color: var(--text-muted);
+		color: var(--color-text-muted);
 	}
 
 	.guest-email.no-email {
@@ -755,8 +755,8 @@
 		display: inline-block;
 		font-size: var(--font-size-sm);
 		font-weight: 600;
-		background: var(--surface-muted);
-		color: var(--text-secondary);
+		background: var(--color-surface-muted);
+		color: var(--color-text-secondary);
 		padding: var(--space-1) var(--space-3);
 		border-radius: var(--radius-sm);
 	}
@@ -780,8 +780,8 @@
 		font-weight: 600;
 		padding: var(--space-1) var(--space-2);
 		border-radius: var(--radius-sm);
-		background: color-mix(in srgb, var(--warning) 12%, transparent);
-		color: var(--warning);
+		background: color-mix(in srgb, var(--color-warning) 12%, transparent);
+		color: var(--color-warning);
 		white-space: nowrap;
 	}
 
@@ -796,38 +796,38 @@
 	}
 
 	.status-confirmed {
-		background: var(--info-bg);
-		color: var(--info-strong);
+		background: var(--color-info-bg);
+		color: var(--color-info-strong);
 	}
 
 	.status-in_progress {
-		background: var(--success-bg);
-		color: var(--success-strong);
+		background: var(--color-success-bg);
+		color: var(--color-success-strong);
 	}
 
 	.status-pending {
-		background: var(--warning-bg);
-		color: var(--warning-strong);
+		background: var(--color-warning-bg);
+		color: var(--color-warning-strong);
 	}
 
 	.status-concluded,
 	.status-rescheduled {
-		background: var(--quiet-bg);
-		color: var(--quiet-strong);
+		background: var(--color-quiet-bg);
+		color: var(--color-quiet-strong);
 	}
 
 	.status-declined,
 	.status-cancelled,
 	.status-expired {
-		background: var(--danger-bg);
-		color: var(--danger-strong);
+		background: var(--color-danger-bg);
+		color: var(--color-danger-strong);
 	}
 
 	@media (prefers-color-scheme: dark) {
 		.status-declined,
 		.status-cancelled,
 		.status-expired {
-			color: var(--danger);
+			color: var(--color-danger);
 		}
 	}
 

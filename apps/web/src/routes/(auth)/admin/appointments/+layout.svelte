@@ -126,8 +126,8 @@
 	}
 
 	.card {
-		background: var(--surface);
-		border: 1px solid var(--border);
+		background: var(--color-surface);
+		border: 1px solid var(--color-border);
 		border-radius: var(--radius-md);
 		box-shadow: var(--shadow-card);
 		overflow: hidden;
@@ -137,17 +137,17 @@
 
 	.card-header {
 		background: var(--when-color-surface-page);
-		border-bottom: 1px solid var(--border);
+		border-bottom: 1px solid var(--color-border);
 		padding: 0 var(--space-2);
 	}
 
 	.card-content {
-		background: var(--surface);
+		background: var(--color-surface);
 	}
 
 	.card-footer {
 		background: var(--when-color-surface-page);
-		border-top: 1px solid var(--border);
+		border-top: 1px solid var(--color-border);
 		padding: var(--space-3) var(--space-5);
 	}
 
@@ -163,7 +163,7 @@
 		gap: var(--space-2);
 		font-size: var(--font-size-base);
 		font-weight: 600;
-		color: var(--text-muted);
+		color: var(--color-text-muted);
 		text-decoration: none;
 		padding: var(--space-4) var(--space-3);
 		border-bottom: 2px solid transparent;
@@ -192,14 +192,14 @@
 		font-size: var(--font-size-sm);
 		font-weight: 700;
 		border-radius: var(--radius-pill);
-		background: var(--surface-active);
-		color: var(--text-secondary);
+		background: var(--color-surface-active);
+		color: var(--color-text-secondary);
 		line-height: 1;
 	}
 
 	.tab-badge-pending {
-		background: var(--warning-bg);
-		color: var(--warning-strong);
+		background: var(--color-warning-bg);
+		color: var(--color-warning-strong);
 	}
 
 	/* ---- pagination (clean text links with arrows) ---- */
@@ -210,7 +210,7 @@
 	}
 
 	.pagination-link {
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		text-decoration: none;
 		transition: color var(--transition);
 		cursor: pointer;
@@ -227,7 +227,7 @@
 	}
 
 	.pagination-link.disabled {
-		color: var(--text-disabled);
+		color: var(--color-text-disabled);
 		cursor: not-allowed;
 	}
 
@@ -238,8 +238,8 @@
 		gap: var(--space-2);
 		padding: var(--space-3) var(--space-4);
 		border-radius: var(--radius-md);
-		background: color-mix(in srgb, var(--warning) 12%, transparent);
-		color: var(--warning);
+		background: color-mix(in srgb, var(--color-warning) 12%, transparent);
+		color: var(--color-warning);
 		font-weight: 600;
 		font-size: var(--font-size-sm);
 	}

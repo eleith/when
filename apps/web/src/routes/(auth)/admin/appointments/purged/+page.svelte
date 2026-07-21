@@ -29,7 +29,7 @@
 
 	.empty-text {
 		font-size: var(--font-size-md);
-		color: var(--text-muted);
+		color: var(--color-text-muted);
 		margin: 0;
 	}
 
@@ -37,6 +37,6 @@
 		margin: 0;
 		padding: var(--space-3) var(--space-5);
 		font-size: var(--font-size-sm);
-		color: var(--text-muted);
+		color: var(--color-text-muted);
 	}
 </style>
