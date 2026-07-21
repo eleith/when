@@ -34,6 +34,9 @@
 	let selectedSlot = $derived(flow.selectedSlot);
 	let userTz = $derived(flow.userTz);
 
+	// The picked length is flow state; overlay it onto the static event-type config.
+	let liveEventType = $derived({ ...eventType, duration_minutes: flow.duration });
+
 	let tzOpen = $state(false);
 
 	let daySlots = $derived(viewDate ? slotsOnDate(flow.allSlots, viewDate, userTz) : []);
@@ -44,7 +47,7 @@
 					viewDate,
 					workingWindows,
 					busyBlocks,
-					eventType,
+					eventType: liveEventType,
 					daySlots,
 					tz: userTz,
 					originalSlot
@@ -238,7 +241,7 @@
 									style:height="{s.height}%"
 									onclick={() => selectSlot(s.iso)}
 								>
-									<span class="slot-text">{s.time} ({eventType.duration_minutes} min)</span>
+									<span class="slot-text">{s.time} ({flow.duration} min)</span>
 								</button>
 							{/if}
 						{/each}
@@ -261,7 +264,7 @@
 								style:height="{s.height}%"
 							>
 								<span class="slot-text">
-									{preview ? preview.time : s.time} ({eventType.duration_minutes} min)
+									{preview ? preview.time : s.time} ({flow.duration} min)
 								</span>
 							</div>
 						{/if}

@@ -75,8 +75,6 @@
 	let selectedSlot = $derived(flow.selectedSlot);
 	let userTz = $derived(flow.userTz);
 
-	const activeEventType = $derived({ ...data.eventType, duration_minutes: flow.duration });
-
 	let formAction = $derived.by(() => {
 		if (data.isAdmin) {
 			if (rescheduleAppt) {
@@ -94,13 +92,15 @@
 			: ''
 	);
 
+	// The skeleton mirrors the eventual timeline height (hours in the working window),
+	// which depends only on the windows — not the chosen length or the slots.
 	let timelineSkeletonRows = $derived.by(() => {
 		if (step !== 2 || !viewDate) return 0;
 		const t = buildDayTimeline({
 			viewDate,
 			workingWindows: data.availability.workingWindows,
 			busyBlocks: data.availability.busyBlocks,
-			eventType: activeEventType,
+			eventType: data.eventType,
 			daySlots: [],
 			tz: data.user.timezone
 		});
@@ -206,7 +206,7 @@
 								{flow}
 								workingWindows={data.availability.workingWindows}
 								busyBlocks={data.availability.busyBlocks}
-								eventType={activeEventType}
+								eventType={data.eventType}
 								bookingStyle={data.eventType.booking_style}
 								originalSlot={rescheduleAppt?.start_time ?? null}
 								onEditDate={flow.goBack}
