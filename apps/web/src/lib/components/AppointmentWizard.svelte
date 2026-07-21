@@ -222,18 +222,14 @@
 
 					{#if step === 3 && selectedSlot}
 						<GuestForm
+							{flow}
 							formFields={data.formFields}
 							{rescheduleAppt}
 							{rescheduleToken}
 							{fieldsDisabled}
 							{form}
 							{formAction}
-							{selectedSlot}
-							{viewDate}
-							{userTz}
-							duration={flow.duration}
 							bookingApproval={data.eventType.booking_approval}
-							onBack={flow.goBack}
 						/>
 					{/if}
 				</div>

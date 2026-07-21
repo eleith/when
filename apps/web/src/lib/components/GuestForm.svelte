@@ -4,6 +4,7 @@
 	import { formatDateCompact, formatTimeShort, formatTzAbbrev } from '$lib/datetime';
 	import { evaluateVisibility } from '$lib/forms/conditional';
 	import FormFieldControl from '$lib/components/FormFieldControl.svelte';
+	import type { AppointmentFlow } from '$lib/appointmentFlow.svelte';
 	import type { GuestAnswer, FormField } from '@when/config';
 	import type { PublicEventType } from '$lib/server/appointment/sanitize';
 
@@ -16,34 +17,31 @@
 	}
 
 	interface Props {
+		flow: AppointmentFlow;
 		formFields: readonly FormField[];
 		rescheduleAppt: RescheduleAppt | null;
 		rescheduleToken: string | null;
 		fieldsDisabled: boolean;
 		form: { error?: string; fieldErrors?: Record<string, string> } | null;
 		formAction: string;
-		selectedSlot: string;
-		viewDate: string | null;
-		userTz: string;
-		duration: number;
 		bookingApproval: PublicEventType['booking_approval'];
-		onBack: () => void;
 	}
 
 	let {
+		flow,
 		formFields,
 		rescheduleAppt,
 		rescheduleToken,
 		fieldsDisabled,
 		form,
 		formAction,
-		selectedSlot,
-		viewDate,
-		userTz,
-		duration,
-		bookingApproval,
-		onBack
+		bookingApproval
 	}: Props = $props();
+
+	// read-only views of the shared flow; the back button goes through flow.goBack
+	let selectedSlot = $derived(flow.selectedSlot);
+	let viewDate = $derived(flow.viewDate);
+	let userTz = $derived(flow.userTz);
 
 	// svelte-ignore state_referenced_locally
 	const priorAnswers = rescheduleAppt?.answers ?? [];
@@ -83,12 +81,17 @@
 </script>
 
 <div class="form-header">
-	<button type="button" class="form-back" onclick={onBack} aria-label="Back to time picker">
+	<button type="button" class="form-back" onclick={flow.goBack} aria-label="Back to time picker">
 		<IconCaretLeft aria-hidden="true" />
 	</button>
 	<h2 class="form-title">
-		{#if viewDate}{formatDateCompact(viewDate)} at&nbsp;{/if}{formatTimeShort(selectedSlot, userTz)}
-		<span class="form-title-tz">{formatTzAbbrev(selectedSlot, userTz)}</span>
+		{#if selectedSlot}
+			{#if viewDate}{formatDateCompact(viewDate)} at&nbsp;{/if}{formatTimeShort(
+				selectedSlot,
+				userTz
+			)}
+			<span class="form-title-tz">{formatTzAbbrev(selectedSlot, userTz)}</span>
+		{/if}
 	</h2>
 </div>
 <div class="appointment-form">
@@ -105,7 +108,7 @@
 	>
 		<input type="hidden" name="slot" value={selectedSlot} />
 		<input type="hidden" name="timezone" value={userTz} />
-		<input type="hidden" name="duration" value={duration} />
+		<input type="hidden" name="duration" value={flow.duration} />
 		{#if rescheduleAppt}
 			<input type="hidden" name="reschedule" value={rescheduleAppt.id} />
 			<input type="hidden" name="token" value={rescheduleToken} />
