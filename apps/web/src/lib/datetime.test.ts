@@ -1,15 +1,19 @@
 import { describe, expect, test } from 'vitest';
 import {
 	formatDate,
+	formatDateCompact,
 	formatDateShort,
 	formatWeekday,
 	formatTime,
+	formatTimeShort,
 	formatTimeRange,
 	formatSlot,
+	formatTimestamp,
 	instantToDateKey,
 	tzCity,
 	tzOffset,
-	formatTzShort
+	formatTzShort,
+	formatTzAbbrev
 } from './datetime';
 
 // Output strings assume the en-US default locale (matches dev + CI). Timezone
@@ -29,6 +33,10 @@ describe('instantToDateKey', () => {
 		// 02:30Z is the previous evening (22:30) in America/New_York (EDT).
 		expect(instantToDateKey('2025-06-15T02:30:00Z', 'America/New_York')).toBe('2025-06-14');
 	});
+
+	test('returns the input unchanged on bad data', () => {
+		expect(instantToDateKey('nope', 'UTC')).toBe('nope');
+	});
 });
 
 describe('formatDate', () => {
@@ -38,6 +46,16 @@ describe('formatDate', () => {
 
 	test('returns the key unchanged when it is not a valid date', () => {
 		expect(formatDate('nope')).toBe('nope');
+	});
+});
+
+describe('formatDateCompact', () => {
+	test('renders a YYYY-MM-DD key as a compact date', () => {
+		expect(formatDateCompact('2025-06-15')).toBe('Sun, Jun 15');
+	});
+
+	test('returns the key unchanged when it is not a valid date', () => {
+		expect(formatDateCompact('nope')).toBe('nope');
 	});
 });
 
@@ -79,6 +97,21 @@ describe('formatTime', () => {
 	});
 });
 
+describe('formatTimeShort', () => {
+	test('drops the leading zero and lowercases the meridiem', () => {
+		expect(formatTimeShort(ISO, 'UTC')).toBe('9:30am');
+		expect(formatTimeShort('2025-06-15T13:00:00Z', 'UTC')).toBe('1:00pm');
+	});
+
+	test('shifts the time for a different timezone', () => {
+		expect(formatTimeShort(ISO, 'America/New_York')).toBe('5:30am');
+	});
+
+	test('returns the input unchanged on bad data', () => {
+		expect(formatTimeShort('nope', 'UTC')).toBe('nope');
+	});
+});
+
 describe('formatTimeRange', () => {
 	test('joins start and end with an en dash', () => {
 		expect(formatTimeRange(ISO, ISO_END, 'UTC')).toBe('09:30 AM – 10:00 AM');
@@ -96,6 +129,20 @@ describe('formatSlot', () => {
 
 	test('returns the input unchanged on bad data', () => {
 		expect(formatSlot('nope', 'UTC')).toBe('nope');
+	});
+});
+
+describe('formatTimestamp', () => {
+	test('renders a zero-padded log-style timestamp in the given timezone', () => {
+		expect(formatTimestamp(ISO, 'UTC')).toBe('2025-06-15 09:30:00');
+	});
+
+	test('shifts to the local wall clock of the timezone', () => {
+		expect(formatTimestamp(ISO, 'America/New_York')).toBe('2025-06-15 05:30:00');
+	});
+
+	test('returns the input unchanged on bad data', () => {
+		expect(formatTimestamp('nope', 'UTC')).toBe('nope');
 	});
 });
 
@@ -129,5 +176,17 @@ describe('formatTzShort', () => {
 
 	test('falls back to the city alone when there is no offset', () => {
 		expect(formatTzShort('Not/AZone')).toBe('AZone');
+	});
+});
+
+describe('formatTzAbbrev', () => {
+	test('renders the season-aware abbreviation for the instant', () => {
+		// June is unambiguously EDT, not EST.
+		expect(formatTzAbbrev(ISO, 'America/New_York')).toBe('EDT');
+		expect(formatTzAbbrev(ISO, 'UTC')).toBe('UTC');
+	});
+
+	test('returns an empty string on bad data', () => {
+		expect(formatTzAbbrev('nope', 'America/New_York')).toBe('');
 	});
 });
