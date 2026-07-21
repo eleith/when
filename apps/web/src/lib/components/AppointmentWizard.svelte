@@ -4,7 +4,7 @@
 	import IconArrowRight from 'virtual:icons/ph/arrow-right';
 	import DatePicker from '$lib/components/DatePicker.svelte';
 	import DayTimeline from '$lib/components/DayTimeline.svelte';
-	import DurationDialog from '$lib/components/DurationDialog.svelte';
+	import DurationPrompt from '$lib/components/DurationPrompt.svelte';
 	import CalendarSkeleton from '$lib/components/CalendarSkeleton.svelte';
 	import TimelineSkeleton from '$lib/components/TimelineSkeleton.svelte';
 	import RescheduleBanner from '$lib/components/RescheduleBanner.svelte';
@@ -109,7 +109,6 @@
 		return t ? Math.round(t.totalMs / 3600000) : 0;
 	});
 
-	let durationOpen = $state(false);
 	let routerReady = $state(false);
 	let linkNotice = $state<NonNullable<DeepLinkResult['notice']> | null>(null);
 
@@ -282,18 +281,7 @@
 								onEditDate={flow.goBack}
 							>
 								{#snippet beforeSlots()}
-									{#if durations.length > 1}
-										<p class="duration-sentence">
-											Let's meet for
-											<button
-												type="button"
-												class="duration-pick"
-												onclick={() => (durationOpen = true)}
-											>
-												{activeDuration} minutes
-											</button>
-										</p>
-									{/if}
+									<DurationPrompt {durations} bind:value={activeDuration} />
 								{/snippet}
 							</DayTimeline>
 						{:else}
@@ -365,8 +353,6 @@
 	{/if}
 </main>
 
-<DurationDialog bind:open={durationOpen} {durations} bind:value={activeDuration} />
-
 <style>
 	.appointment {
 		max-width: 960px;
@@ -405,32 +391,6 @@
 	}
 
 	/* ---- wizard chrome ---- */
-	/* A quiet prompt between the day/timezone header and the time slots on step 2. */
-	.duration-sentence {
-		margin: var(--space-4) 0;
-		padding: var(--space-5) 0;
-		border-top: 1px solid var(--border);
-		text-align: center;
-		font-size: var(--font-size-lg);
-		color: var(--text-secondary);
-	}
-
-	.duration-pick {
-		background: none;
-		border: none;
-		padding: 0;
-		font: inherit;
-		font-weight: 600;
-		color: var(--primary);
-		text-decoration: underline;
-		text-underline-offset: 3px;
-		cursor: pointer;
-	}
-
-	.duration-pick:hover {
-		text-decoration-thickness: 2px;
-	}
-
 	.wizard-step {
 		font-weight: 500;
 		color: var(--text-muted);
