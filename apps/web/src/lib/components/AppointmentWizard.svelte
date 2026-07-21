@@ -2,7 +2,6 @@
 	import { page } from '$app/state';
 	import { replaceState, afterNavigate } from '$app/navigation';
 	import IconArrowRight from 'virtual:icons/ph/arrow-right';
-	import IconCaretLeft from 'virtual:icons/ph/caret-left';
 	import DatePicker from '$lib/components/DatePicker.svelte';
 	import DayTimeline from '$lib/components/DayTimeline.svelte';
 	import DurationDialog from '$lib/components/DurationDialog.svelte';
@@ -11,18 +10,11 @@
 	import RescheduleBanner from '$lib/components/RescheduleBanner.svelte';
 	import LinkNotice from '$lib/components/LinkNotice.svelte';
 	import WizardContext from '$lib/components/WizardContext.svelte';
-	import FormFieldControl from '$lib/components/FormFieldControl.svelte';
+	import GuestForm from '$lib/components/GuestForm.svelte';
 	import { createAppointmentFlow } from '$lib/appointmentFlow.svelte';
 	import { resolveDeepLink, buildDayTimeline, type DeepLinkResult } from '$lib/appointment';
-	import {
-		formatDate,
-		formatDateCompact,
-		formatTime,
-		formatTimeShort,
-		formatTzAbbrev
-	} from '$lib/datetime';
+	import { formatDate, formatTime } from '$lib/datetime';
 	import { getPreferredTimezone } from '$lib/preferredTimezone.svelte';
-	import { evaluateVisibility } from '$lib/forms/conditional';
 	import type { GuestAnswer, Appearance, FormField } from '@when/config';
 	import type { PublicEventType } from '$lib/server/appointment/sanitize';
 
@@ -119,40 +111,8 @@
 
 	let durationOpen = $state(false);
 	let routerReady = $state(false);
-	let rescheduleReasonEl = $state<HTMLTextAreaElement | null>(null);
 	let linkNotice = $state<NonNullable<DeepLinkResult['notice']> | null>(null);
 
-	// svelte-ignore state_referenced_locally
-	const priorAnswers = data.rescheduleAppt?.answers ?? [];
-
-	function initialFieldValue(field: FormField): string {
-		const r = data.rescheduleAppt;
-		if (!r) return '';
-		if (field.type === 'guest_name') return r.guest_name ?? '';
-		if (field.type === 'guest_email') return r.guest_email ?? '';
-		if (field.type === 'event_location') return r.location ?? '';
-		return priorAnswers.find((a) => a.name === field.name)?.value ?? '';
-	}
-
-	// svelte-ignore state_referenced_locally
-	let fieldValues = $state<Record<string, string>>(
-		Object.fromEntries(data.formFields.map((f) => [f.name, initialFieldValue(f)]))
-	);
-
-	const visibleFields = $derived(
-		evaluateVisibility(data.formFields, (name) => fieldValues[name] ?? '')
-	);
-
-	function trackFieldValue(event: Event) {
-		const target = event.target as
-			| HTMLInputElement
-			| HTMLSelectElement
-			| HTMLTextAreaElement
-			| null;
-		if (target?.name) fieldValues[target.name] = target.value;
-	}
-
-	let rescheduleReasonValue = $state('');
 	let fieldsDisabled = $derived(data.isAdmin && !!data.rescheduleAppt);
 
 	const initialSlot = page.url.searchParams.get('slot');
@@ -185,12 +145,6 @@
 
 	afterNavigate(() => {
 		routerReady = true;
-	});
-
-	$effect(() => {
-		if (step === 3 && selectedSlot && fieldsDisabled) {
-			rescheduleReasonEl?.focus();
-		}
 	});
 
 	$effect(() => {
@@ -348,81 +302,20 @@
 					{/if}
 
 					{#if step === 3 && selectedSlot}
-						<div class="form-header">
-							<button
-								type="button"
-								class="form-back"
-								onclick={flow.goBack}
-								aria-label="Back to time picker"
-							>
-								<IconCaretLeft aria-hidden="true" />
-							</button>
-							<h2 class="form-title">
-								{#if viewDate}{formatDateCompact(viewDate)} at&nbsp;{/if}{formatTimeShort(
-									selectedSlot,
-									userTz
-								)}
-								<span class="form-title-tz">{formatTzAbbrev(selectedSlot, userTz)}</span>
-							</h2>
-						</div>
-						<div class="appointment-form">
-							{#if form?.error}
-								<p class="form-error" role="alert">{form.error}</p>
-							{/if}
-
-							<form
-								id="appointment-form"
-								method="POST"
-								action={formAction}
-								oninput={trackFieldValue}
-								onchange={trackFieldValue}
-							>
-								<input type="hidden" name="slot" value={selectedSlot} />
-								<input type="hidden" name="timezone" value={userTz} />
-								<input type="hidden" name="duration" value={activeDuration} />
-								{#if data.rescheduleAppt}
-									<input type="hidden" name="reschedule" value={data.rescheduleAppt.id} />
-									<input type="hidden" name="token" value={data.rescheduleToken} />
-								{/if}
-
-								{#each data.formFields as field (field.name)}
-									{#if visibleFields.get(field.name)}
-										<FormFieldControl
-											{field}
-											value={initialFieldValue(field)}
-											liveValue={fieldValues[field.name] ?? ''}
-											disabled={fieldsDisabled}
-											error={form?.fieldErrors?.[field.name]}
-											focusOnMount={field.type === 'guest_name' && !fieldsDisabled}
-										/>
-									{/if}
-								{/each}
-
-								{#if data.rescheduleAppt}
-									<div class="field-separator-container">
-										<hr class="wizard-separator" />
-									</div>
-									<div class="field">
-										<label for="reschedule_reason"> Reason for rescheduling </label>
-										<textarea
-											id="reschedule_reason"
-											name="reschedule_reason"
-											rows="3"
-											maxlength="500"
-											placeholder="e.g. scheduling conflict, double booked..."
-											required
-											bind:value={rescheduleReasonValue}
-											bind:this={rescheduleReasonEl}
-										></textarea>
-										<span class="field-count">{(rescheduleReasonValue ?? '').length}/500</span>
-									</div>
-								{/if}
-
-								<button type="submit" class="submit-btn">
-									{#if data.rescheduleAppt}Confirm Reschedule{:else if data.eventType.booking_approval === 'request'}Request{:else}Schedule{/if}
-								</button>
-							</form>
-						</div>
+						<GuestForm
+							formFields={data.formFields}
+							rescheduleAppt={data.rescheduleAppt}
+							rescheduleToken={data.rescheduleToken}
+							{fieldsDisabled}
+							{form}
+							{formAction}
+							{selectedSlot}
+							{viewDate}
+							{userTz}
+							duration={activeDuration}
+							bookingApproval={data.eventType.booking_approval}
+							onBack={flow.goBack}
+						/>
 					{/if}
 				</div>
 
@@ -509,103 +402,6 @@
 	.appointment-body {
 		flex: 1;
 		min-height: 0;
-	}
-
-	.appointment-form {
-		width: 100%;
-	}
-
-	/* ---- appointment form ---- */
-	.form-header {
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-		margin: 0 0 var(--space-7);
-		min-width: 0;
-	}
-
-	.form-title {
-		font-size: var(--font-size-xl);
-		font-weight: 600;
-		margin: 0;
-	}
-
-	.form-title-tz {
-		font-size: var(--font-size-md);
-		font-weight: 400;
-		color: var(--text-muted);
-	}
-
-	/* caret to return to the time picker — mobile only (desktop has the wizard back button) */
-	.form-back {
-		display: none;
-		align-items: center;
-		justify-content: center;
-		flex-shrink: 0;
-		background: none;
-		border: none;
-		padding: var(--space-1);
-		margin-left: calc(var(--space-2) * -1);
-		font-size: var(--font-size-xl);
-		line-height: 1;
-		color: var(--text-muted);
-		cursor: pointer;
-		transition: color var(--transition);
-	}
-
-	.form-back:hover {
-		color: var(--text);
-	}
-
-	.form-error {
-		background: var(--danger-bg);
-		color: var(--danger);
-		padding: var(--space-4) var(--space-5);
-		border-radius: var(--radius);
-		font-size: var(--font-size-base);
-		margin-bottom: var(--space-6);
-	}
-
-	.field {
-		margin-bottom: var(--space-5);
-	}
-
-	.field label {
-		display: block;
-		font-size: var(--font-size-sm);
-		font-weight: 600;
-		margin-bottom: var(--space-2);
-		color: var(--text-secondary);
-	}
-
-	.field textarea {
-		width: 100%;
-		padding: var(--space-4) var(--space-4);
-		border: 1px solid var(--border-strong);
-		border-radius: var(--radius);
-		font-size: var(--font-size-md);
-		box-sizing: border-box;
-		transition: border-color var(--transition);
-		background: var(--surface);
-		color: var(--text);
-	}
-
-	.field textarea:focus {
-		outline: none;
-		border-color: var(--primary);
-		box-shadow: var(--shadow-focus);
-	}
-
-	.field-count {
-		display: block;
-		margin-top: var(--space-1);
-		text-align: right;
-		font-size: var(--font-size-xs);
-		color: var(--text-muted);
-	}
-
-	.submit-btn {
-		display: none;
 	}
 
 	/* ---- wizard chrome ---- */
@@ -829,10 +625,6 @@
 			padding: 0;
 		}
 
-		.form-back {
-			display: inline-flex;
-		}
-
 		.appointment :global(.timeline-scroll) {
 			max-height: none;
 			overflow: visible;
@@ -915,23 +707,5 @@
 
 	.error-back-btn:hover {
 		opacity: 0.9;
-	}
-
-	.field-separator-container {
-		margin: var(--space-6) 0 var(--space-6);
-	}
-
-	.wizard-separator {
-		border: 0;
-		border-top: 1px dashed var(--border-strong);
-		margin: 0;
-	}
-
-	textarea:disabled {
-		background: var(--surface-muted);
-		border-color: var(--border);
-		color: var(--text-muted);
-		cursor: not-allowed;
-		opacity: 0.7;
 	}
 </style>
