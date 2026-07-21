@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { replaceState, afterNavigate } from '$app/navigation';
 	import DatePicker from '$lib/components/DatePicker.svelte';
 	import DayTimeline from '$lib/components/DayTimeline.svelte';
 	import DurationPrompt from '$lib/components/DurationPrompt.svelte';
@@ -12,7 +11,8 @@
 	import WizardActions from '$lib/components/WizardActions.svelte';
 	import GuestForm from '$lib/components/GuestForm.svelte';
 	import { createAppointmentFlow } from '$lib/appointmentFlow.svelte';
-	import { resolveDeepLink, buildDayTimeline, type DeepLinkResult } from '$lib/appointment';
+	import { createAppointmentUrlSync } from '$lib/appointmentUrlSync.svelte';
+	import { buildDayTimeline } from '$lib/appointment';
 	import { getPreferredTimezone } from '$lib/preferredTimezone.svelte';
 	import type { GuestAnswer, Appearance, FormField } from '@when/config';
 	import type { PublicEventType } from '$lib/server/appointment/sanitize';
@@ -98,91 +98,24 @@
 		return t ? Math.round(t.totalMs / 3600000) : 0;
 	});
 
-	let routerReady = $state(false);
-	let linkNotice = $state<NonNullable<DeepLinkResult['notice']> | null>(null);
-
 	let fieldsDisabled = $derived(data.isAdmin && !!data.rescheduleAppt);
 
-	const initialSlot = page.url.searchParams.get('slot');
-	const initialDate = page.url.searchParams.get('date');
-
-	// Resolved before render so SSR lands on the right step.
-	// svelte-ignore state_referenced_locally
-	const deepLinkResult = resolveDeepLink({
-		slotParam: initialSlot,
-		dateParam: initialDate,
-		allSlots: flow.allSlots,
-		tz: ptz.current ?? data.user.timezone
-	});
+	// Set the viewer timezone before the URL sync applies a deep-linked slot, so it
+	// resolves to the right day. The effect re-applies once tz resolves client-side.
 	if (ptz.current) flow.setTz(ptz.current);
-	if (deepLinkResult.notice) {
-		linkNotice = deepLinkResult.notice;
-	}
-	if (deepLinkResult.slot) {
-		flow.selectSlot(deepLinkResult.slot);
-		flow.goToStep(3);
-	} else if (deepLinkResult.date) {
-		flow.openDate(deepLinkResult.date);
-	}
-
 	$effect(() => {
 		if (!ptz.current) return;
 		flow.setTz(ptz.current);
 		if (flow.selectedSlot) flow.selectSlot(flow.selectedSlot);
 	});
 
-	afterNavigate(() => {
-		routerReady = true;
+	// svelte-ignore state_referenced_locally
+	const urlSync = createAppointmentUrlSync(flow, {
+		deepLink,
+		tz: ptz.current ?? data.user.timezone,
+		defaultDuration: durations[0]
 	});
-
-	$effect(() => {
-		if (!deepLink) return;
-		if (linkNotice) {
-			if (linkNotice.kind === 'slot') {
-				// Clear slot notice if they select any slot, or if they navigate to a different day
-				if (selectedSlot || (viewDate && viewDate !== deepLinkResult.date)) {
-					linkNotice = null;
-				}
-			} else {
-				// Clear date notice if they select any day
-				if (viewDate) {
-					linkNotice = null;
-				}
-			}
-		}
-	});
-
-	$effect(() => {
-		if (!routerReady) return;
-		if (!deepLink) return;
-
-		const desiredDuration = flow.duration === durations[0] ? null : String(flow.duration);
-		let desiredSlot: string | null = null;
-		let desiredDate: string | null = null;
-		if (flow.step === 3 && flow.selectedSlot) {
-			desiredSlot = flow.selectedSlot;
-		} else if (flow.viewDate) {
-			desiredDate = flow.viewDate;
-		}
-
-		// Compare decoded values, not the encoded search string, so re-encoding can't loop.
-		if (
-			page.url.searchParams.get('duration') === desiredDuration &&
-			page.url.searchParams.get('slot') === desiredSlot &&
-			page.url.searchParams.get('date') === desiredDate
-		) {
-			return;
-		}
-
-		// Canonical order matches the server load: duration, then slot or date.
-		const parts: string[] = [];
-		if (desiredDuration) parts.push(`duration=${desiredDuration}`);
-		if (desiredSlot) parts.push(`slot=${encodeURIComponent(desiredSlot)}`);
-		else if (desiredDate) parts.push(`date=${encodeURIComponent(desiredDate)}`);
-		const search = parts.length ? `?${parts.join('&')}` : '';
-
-		replaceState(`${page.url.pathname}${search}`, page.state);
-	});
+	let linkNotice = $derived(urlSync.notice);
 </script>
 
 <svelte:head>

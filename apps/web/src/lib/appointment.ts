@@ -135,6 +135,48 @@ export function normalizeDeepLinkParams(params: URLSearchParams): {
 	return result;
 }
 
+export interface AppointmentUrlState {
+	duration: string | null;
+	slot: string | null;
+	date: string | null;
+}
+
+/**
+ * The `?duration/slot/date` a flow position should encode. Duration is dropped
+ * when it's the default length; a slot (only once picked on the details step)
+ * wins over the viewed day.
+ */
+export function desiredUrlState(p: {
+	duration: number;
+	defaultDuration: number;
+	step: WizardStep;
+	selectedSlot: string | null;
+	viewDate: string | null;
+}): AppointmentUrlState {
+	const duration = p.duration === p.defaultDuration ? null : String(p.duration);
+	if (p.step === 3 && p.selectedSlot) return { duration, slot: p.selectedSlot, date: null };
+	if (p.viewDate) return { duration, slot: null, date: p.viewDate };
+	return { duration, slot: null, date: null };
+}
+
+/** True when the URL already encodes this state — the guard against a re-encode loop. */
+export function urlStateMatches(params: URLSearchParams, state: AppointmentUrlState): boolean {
+	return (
+		params.get('duration') === state.duration &&
+		params.get('slot') === state.slot &&
+		params.get('date') === state.date
+	);
+}
+
+/** Canonical query string for a URL state, matching the server load: duration, then slot or date. */
+export function buildAppointmentSearch(state: AppointmentUrlState): string {
+	const parts: string[] = [];
+	if (state.duration) parts.push(`duration=${state.duration}`);
+	if (state.slot) parts.push(`slot=${encodeURIComponent(state.slot)}`);
+	else if (state.date) parts.push(`date=${encodeURIComponent(state.date)}`);
+	return parts.length ? `?${parts.join('&')}` : '';
+}
+
 export interface TimelineEventType {
 	duration_minutes: number;
 	padding_before_minutes?: number | null;

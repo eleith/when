@@ -6,7 +6,10 @@ import {
 	canAdvance,
 	resolveDeepLink,
 	normalizeDeepLinkParams,
-	buildDayTimeline
+	buildDayTimeline,
+	desiredUrlState,
+	urlStateMatches,
+	buildAppointmentSearch
 } from './appointment';
 
 // Slots straddle a UTC midnight so the timezone-dependent cases are meaningful:
@@ -275,5 +278,79 @@ describe('buildDayTimeline', () => {
 		const t = buildDayTimeline({ ...base, now: Temporal.Instant.from('2025-06-15T10:00:00Z') })!;
 		// 10:00 is 20% into the 08:00–18:00 view
 		expect(t.past).toEqual({ top: 0, height: 20 });
+	});
+});
+
+describe('desiredUrlState', () => {
+	const base = {
+		duration: 30,
+		defaultDuration: 30,
+		step: 1 as const,
+		selectedSlot: null,
+		viewDate: null
+	};
+
+	test('omits the duration when it is the default length', () => {
+		expect(desiredUrlState(base).duration).toBeNull();
+	});
+
+	test('encodes a non-default duration', () => {
+		expect(desiredUrlState({ ...base, duration: 60 }).duration).toBe('60');
+	});
+
+	test('prefers the slot once picked on the details step', () => {
+		expect(
+			desiredUrlState({
+				...base,
+				step: 3,
+				selectedSlot: '2025-06-15T09:00:00Z',
+				viewDate: '2025-06-15'
+			})
+		).toEqual({ duration: null, slot: '2025-06-15T09:00:00Z', date: null });
+	});
+
+	test('encodes the viewed day off the details step', () => {
+		expect(desiredUrlState({ ...base, step: 2, viewDate: '2025-06-15' })).toEqual({
+			duration: null,
+			slot: null,
+			date: '2025-06-15'
+		});
+	});
+
+	test('ignores a selected slot until the details step', () => {
+		expect(
+			desiredUrlState({
+				...base,
+				step: 2,
+				selectedSlot: '2025-06-15T09:00:00Z',
+				viewDate: '2025-06-15'
+			}).slot
+		).toBeNull();
+	});
+});
+
+describe('urlStateMatches', () => {
+	test('is true only when every param matches', () => {
+		const params = new URLSearchParams('duration=60&date=2025-06-15');
+		expect(urlStateMatches(params, { duration: '60', slot: null, date: '2025-06-15' })).toBe(true);
+		expect(urlStateMatches(params, { duration: null, slot: null, date: '2025-06-15' })).toBe(false);
+	});
+});
+
+describe('buildAppointmentSearch', () => {
+	test('orders duration before slot', () => {
+		expect(
+			buildAppointmentSearch({ duration: '60', slot: '2025-06-15T09:00:00Z', date: null })
+		).toBe('?duration=60&slot=2025-06-15T09%3A00%3A00Z');
+	});
+
+	test('slot wins over date', () => {
+		expect(
+			buildAppointmentSearch({ duration: null, slot: '2025-06-15T09:00:00Z', date: '2025-06-15' })
+		).toBe('?slot=2025-06-15T09%3A00%3A00Z');
+	});
+
+	test('is empty when nothing is set', () => {
+		expect(buildAppointmentSearch({ duration: null, slot: null, date: null })).toBe('');
 	});
 });
