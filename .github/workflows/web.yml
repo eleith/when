@@ -56,6 +56,9 @@ jobs:
       - name: Check
         run: pnpm run check
 
+      - name: Test
+        run: pnpm run test:coverage
+
   build-push:
     needs: check
     runs-on: ubuntu-latest
