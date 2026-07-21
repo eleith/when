@@ -2,32 +2,22 @@
 <script lang="ts">
 	import IconArrowRight from 'virtual:icons/ph/arrow-right';
 	import { formatDate, formatTime } from '$lib/datetime';
-	import type { WizardStep } from '$lib/appointment';
+	import type { AppointmentFlow } from '$lib/appointmentFlow.svelte';
 	import type { PublicEventType } from '$lib/server/appointment/sanitize';
 
 	interface Props {
-		step: WizardStep;
-		viewDate: string | null;
-		selectedSlot: string | null;
-		userTz: string;
-		canAdvance: boolean;
+		flow: AppointmentFlow;
 		isReschedule: boolean;
 		bookingApproval: PublicEventType['booking_approval'];
-		onAdvance: () => void;
-		onBack: () => void;
 	}
 
-	let {
-		step,
-		viewDate,
-		selectedSlot,
-		userTz,
-		canAdvance,
-		isReschedule,
-		bookingApproval,
-		onAdvance,
-		onBack
-	}: Props = $props();
+	let { flow, isReschedule, bookingApproval }: Props = $props();
+
+	// read-only views of the shared flow; navigation goes through flow.* below
+	let step = $derived(flow.step);
+	let viewDate = $derived(flow.viewDate);
+	let selectedSlot = $derived(flow.selectedSlot);
+	let userTz = $derived(flow.userTz);
 </script>
 
 <div class="actions">
@@ -42,16 +32,16 @@
 	{/if}
 
 	{#if step === 1}
-		<button type="button" class="button" onclick={onAdvance} disabled={!canAdvance}>
+		<button type="button" class="button" onclick={flow.advance} disabled={!flow.canAdvance}>
 			Continue <span class="arrow"><IconArrowRight aria-hidden="true" /></span>
 		</button>
 	{:else if step === 2}
-		<button type="button" class="button button-secondary" onclick={onBack}> Back </button>
-		<button type="button" class="button" onclick={onAdvance} disabled={!canAdvance}>
+		<button type="button" class="button button-secondary" onclick={flow.goBack}> Back </button>
+		<button type="button" class="button" onclick={flow.advance} disabled={!flow.canAdvance}>
 			Confirm <span class="arrow"><IconArrowRight aria-hidden="true" /></span>
 		</button>
 	{:else}
-		<button type="button" class="button button-secondary" onclick={onBack}> Back </button>
+		<button type="button" class="button button-secondary" onclick={flow.goBack}> Back </button>
 		<button type="submit" form="appointment-form" class="button" disabled={!selectedSlot}>
 			{#if isReschedule}Confirm Reschedule{:else if bookingApproval === 'request'}Request{:else}Schedule{/if}
 		</button>

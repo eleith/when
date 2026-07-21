@@ -239,15 +239,9 @@
 				</div>
 
 				<WizardActions
-					{step}
-					{viewDate}
-					{selectedSlot}
-					{userTz}
-					canAdvance={flow.canAdvance}
+					{flow}
 					isReschedule={!!rescheduleAppt}
 					bookingApproval={data.eventType.booking_approval}
-					onAdvance={flow.advance}
-					onBack={flow.goBack}
 				/>
 			</div>
 		</div>
