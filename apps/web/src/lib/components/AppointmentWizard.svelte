@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { replaceState, afterNavigate } from '$app/navigation';
-	import IconArrowRight from 'virtual:icons/ph/arrow-right';
 	import DatePicker from '$lib/components/DatePicker.svelte';
 	import DayTimeline from '$lib/components/DayTimeline.svelte';
 	import DurationPrompt from '$lib/components/DurationPrompt.svelte';
@@ -10,10 +9,10 @@
 	import RescheduleBanner from '$lib/components/RescheduleBanner.svelte';
 	import LinkNotice from '$lib/components/LinkNotice.svelte';
 	import WizardContext from '$lib/components/WizardContext.svelte';
+	import WizardActions from '$lib/components/WizardActions.svelte';
 	import GuestForm from '$lib/components/GuestForm.svelte';
 	import { createAppointmentFlow } from '$lib/appointmentFlow.svelte';
 	import { resolveDeepLink, buildDayTimeline, type DeepLinkResult } from '$lib/appointment';
-	import { formatDate, formatTime } from '$lib/datetime';
 	import { getPreferredTimezone } from '$lib/preferredTimezone.svelte';
 	import type { GuestAnswer, Appearance, FormField } from '@when/config';
 	import type { PublicEventType } from '$lib/server/appointment/sanitize';
@@ -307,47 +306,17 @@
 					{/if}
 				</div>
 
-				<div class="wizard-cta">
-					<p class="cta-title">
-						<span class="wizard-step">Step {step} of 3:</span>
-						{#if step === 1}Pick a day{:else if step === 2}Pick a time{:else}Enter your info{/if}
-					</p>
-					{#if step === 1 && viewDate}
-						<p class="cta-summary">You selected {formatDate(viewDate)}</p>
-					{:else if step === 2 && selectedSlot}
-						<p class="cta-summary">You selected {formatTime(selectedSlot, userTz)}</p>
-					{/if}
-
-					{#if step === 1}
-						<button
-							type="button"
-							class="cta-btn"
-							onclick={flow.advance}
-							disabled={!flow.canAdvance}
-						>
-							Continue <span class="cta-arrow"><IconArrowRight aria-hidden="true" /></span>
-						</button>
-					{:else if step === 2}
-						<button type="button" class="cta-btn cta-btn-secondary" onclick={flow.goBack}>
-							Back
-						</button>
-						<button
-							type="button"
-							class="cta-btn"
-							onclick={flow.advance}
-							disabled={!flow.canAdvance}
-						>
-							Confirm <span class="cta-arrow"><IconArrowRight aria-hidden="true" /></span>
-						</button>
-					{:else}
-						<button type="button" class="cta-btn cta-btn-secondary" onclick={flow.goBack}>
-							Back
-						</button>
-						<button type="submit" form="appointment-form" class="cta-btn" disabled={!selectedSlot}>
-							{#if data.rescheduleAppt}Confirm Reschedule{:else if data.eventType.booking_approval === 'request'}Request{:else}Schedule{/if}
-						</button>
-					{/if}
-				</div>
+				<WizardActions
+					{step}
+					{viewDate}
+					{selectedSlot}
+					{userTz}
+					canAdvance={flow.canAdvance}
+					isReschedule={!!data.rescheduleAppt}
+					bookingApproval={data.eventType.booking_approval}
+					onAdvance={flow.advance}
+					onBack={flow.goBack}
+				/>
 			</div>
 		</div>
 	{/if}
@@ -388,79 +357,6 @@
 	.appointment-body {
 		flex: 1;
 		min-height: 0;
-	}
-
-	/* ---- wizard chrome ---- */
-	.wizard-step {
-		font-weight: 500;
-		color: var(--text-muted);
-		margin-right: var(--space-2);
-	}
-
-	.wizard-cta {
-		display: flex;
-		align-items: center;
-		justify-content: flex-end;
-		gap: var(--space-4);
-		margin-top: var(--space-6);
-		padding-top: var(--space-5);
-		border-top: 1px solid var(--border);
-	}
-
-	.cta-summary {
-		margin: 0 auto 0 0;
-		color: var(--text-secondary);
-		font-size: var(--font-size-md);
-		font-weight: 500;
-		display: flex;
-		align-items: center;
-	}
-
-	.cta-arrow {
-		display: inline-flex;
-		margin-left: var(--space-2);
-		transition: transform var(--transition);
-	}
-
-	.cta-btn:not(:disabled):hover .cta-arrow {
-		transform: translateX(2px);
-	}
-
-	.cta-btn {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		min-height: 44px;
-		padding: var(--space-3) var(--space-7);
-		background: var(--primary);
-		color: var(--text-on-primary);
-		border: none;
-		border-radius: var(--radius);
-		font-size: var(--font-size-md);
-		font-weight: 600;
-		cursor: pointer;
-		transition: opacity var(--transition);
-	}
-
-	.cta-btn:disabled {
-		opacity: 0.4;
-		cursor: not-allowed;
-	}
-
-	.cta-btn:not(:disabled):hover {
-		opacity: 0.9;
-	}
-
-	.cta-btn-secondary {
-		background: transparent;
-		color: var(--text-secondary);
-		border: 1px solid var(--border-strong);
-	}
-
-	.cta-btn-secondary:not(:disabled):hover {
-		background: var(--surface-active);
-		color: var(--text);
-		opacity: 1;
 	}
 
 	/* ---- page banner (full-width) ---- */
@@ -545,10 +441,6 @@
 		.page-banner {
 			display: none;
 		}
-
-		.cta-title {
-			display: none;
-		}
 	}
 
 	/* ---- responsive ---- */
@@ -588,43 +480,6 @@
 		.appointment :global(.timeline-scroll) {
 			max-height: none;
 			overflow: visible;
-		}
-
-		.cta-summary {
-			display: none;
-		}
-
-		.cta-title {
-			margin: 0 0 var(--space-2);
-			font-size: var(--font-size-md);
-			font-weight: 600;
-			color: var(--text);
-		}
-
-		.cta-btn {
-			min-height: 56px;
-			width: 100%;
-			padding: var(--space-4) var(--space-6);
-		}
-
-		.cta-btn-secondary {
-			display: none;
-		}
-
-		.wizard-cta {
-			display: block;
-			justify-content: initial;
-			border-top: none;
-			padding-top: 0;
-			margin: 0;
-			position: fixed;
-			bottom: 0;
-			left: 0;
-			right: 0;
-			padding: var(--space-4) var(--space-5) calc(var(--space-4) + env(safe-area-inset-bottom));
-			background: var(--surface);
-			border-top: 1px solid var(--border);
-			z-index: 100;
 		}
 	}
 
