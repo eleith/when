@@ -82,6 +82,7 @@
 		padding: var(--space-6) var(--space-6);
 		text-decoration: none;
 		color: inherit;
+		min-height: calc(var(--space-10) * 2);
 		transition:
 			border-color var(--transition),
 			box-shadow var(--transition);
@@ -112,6 +113,12 @@
 		font-size: var(--font-size-base);
 		margin: var(--space-1) 0 0;
 		line-height: 1.4;
+		display: -webkit-box;
+		-webkit-line-clamp: 3;
+		-webkit-box-orient: vertical;
+		line-clamp: 3;
+		overflow: hidden;
+		text-overflow: ellipsis;
 	}
 
 	.arrow {
