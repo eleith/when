@@ -249,7 +249,7 @@
 		max-width: 960px;
 		margin: 0 auto;
 		padding: var(--space-8) var(--space-6) var(--space-10);
-		color: var(--text);
+		color: var(--when-color-text);
 	}
 
 	.empty {
@@ -434,8 +434,8 @@
 		display: inline-flex;
 		align-items: center;
 		padding: var(--space-3) var(--space-6);
-		background: var(--primary);
-		color: var(--text-on-primary);
+		background: var(--when-color-primary);
+		color: var(--when-color-text-on-primary);
 		border-radius: var(--radius);
 		font-weight: 600;
 		text-decoration: none;

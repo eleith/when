@@ -363,7 +363,7 @@
 	}
 
 	th {
-		background: var(--surface-page);
+		background: var(--when-color-surface-page);
 		color: var(--text-muted);
 		font-size: var(--font-size-sm);
 		font-weight: 700;
@@ -390,7 +390,7 @@
 	}
 
 	tr:hover {
-		background: var(--surface-page);
+		background: var(--when-color-surface-page);
 	}
 
 	/* Row selection styling */
@@ -404,7 +404,7 @@
 		align-items: center;
 		justify-content: space-between;
 		padding: var(--space-3) var(--space-5);
-		background: var(--surface-page);
+		background: var(--when-color-surface-page);
 		border-bottom: 1px solid var(--border);
 		animation: fade-in 0.15s ease-out;
 	}
@@ -499,7 +499,7 @@
 		width: 18px;
 		height: 18px;
 		cursor: pointer;
-		accent-color: var(--primary);
+		accent-color: var(--when-color-primary);
 	}
 
 	/* ---- Dialog Overlay & Content ---- */
@@ -605,7 +605,7 @@
 
 	.dialog-close:hover {
 		background: var(--surface-muted);
-		color: var(--text);
+		color: var(--when-color-text);
 	}
 
 	.dialog-close :global(svg) {
@@ -646,7 +646,7 @@
 	.form-label {
 		font-size: var(--font-size-sm);
 		font-weight: 600;
-		color: var(--text);
+		color: var(--when-color-text);
 	}
 
 	.form-textarea {
@@ -656,7 +656,7 @@
 		border: 1px solid var(--border-strong);
 		border-radius: var(--radius);
 		background: var(--surface);
-		color: var(--text);
+		color: var(--when-color-text);
 		font-size: var(--font-size-base);
 		font-family: inherit;
 		resize: none;
@@ -664,7 +664,7 @@
 
 	.form-textarea:focus {
 		outline: none;
-		border-color: var(--primary);
+		border-color: var(--when-color-primary);
 	}
 
 	/* Button variants */
@@ -685,12 +685,12 @@
 
 	.btn-confirm-danger {
 		background: var(--danger);
-		color: var(--text-on-primary);
+		color: var(--when-color-text-on-primary);
 	}
 
 	.btn-confirm-success {
 		background: var(--success);
-		color: var(--text-on-primary);
+		color: var(--when-color-text-on-primary);
 	}
 
 	.btn-cancel {
@@ -699,7 +699,7 @@
 		border: 1px solid var(--border-strong);
 		border-radius: var(--radius);
 		background: var(--surface);
-		color: var(--text);
+		color: var(--when-color-text);
 		font-size: var(--font-size-md);
 		font-weight: 600;
 		cursor: pointer;
@@ -733,7 +733,7 @@
 	}
 
 	.row-link {
-		color: var(--text);
+		color: var(--when-color-text);
 		text-decoration: none;
 		font-weight: 600;
 		font-size: var(--font-size-lg);

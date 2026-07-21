@@ -36,7 +36,7 @@
 		border: 1px solid var(--warning-border);
 		border-radius: var(--radius-md);
 		margin-bottom: var(--space-6);
-		color: var(--text);
+		color: var(--when-color-text);
 	}
 
 	.icon {
@@ -58,7 +58,7 @@
 	}
 
 	.text strong {
-		color: var(--text);
+		color: var(--when-color-text);
 		font-weight: 600;
 	}
 </style>

@@ -257,7 +257,7 @@
 
 	.change-trigger:hover {
 		background: var(--surface-active);
-		color: var(--text);
+		color: var(--when-color-text);
 	}
 
 	.action-item {
@@ -268,7 +268,7 @@
 		border: none;
 		border-radius: var(--radius-sm);
 		background: none;
-		color: var(--text);
+		color: var(--when-color-text);
 		font-size: var(--font-size-md);
 		font-weight: 500;
 		font-family: inherit;
@@ -421,14 +421,14 @@
 		border: 1px solid var(--border-strong);
 		border-radius: var(--radius);
 		background: var(--surface-muted);
-		color: var(--text);
+		color: var(--when-color-text);
 		font-size: var(--font-size-base);
 		font-family: inherit;
 	}
 
 	.share-input:focus {
 		outline: none;
-		border-color: var(--primary);
+		border-color: var(--when-color-primary);
 	}
 
 	.share-copy-btn {
@@ -436,8 +436,8 @@
 		height: 40px;
 		border: none;
 		border-radius: var(--radius);
-		background: var(--primary);
-		color: var(--text-on-primary);
+		background: var(--when-color-primary);
+		color: var(--when-color-text-on-primary);
 		font-size: var(--font-size-md);
 		font-weight: 600;
 		cursor: pointer;
@@ -472,7 +472,7 @@
 
 	.share-dialog-close:hover {
 		background: var(--surface-muted);
-		color: var(--text);
+		color: var(--when-color-text);
 	}
 
 	.share-dialog-close :global(svg) {

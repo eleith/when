@@ -1,6 +1,6 @@
 /*
- * Appearance-driven variables (--primary, --text, --surface-page, --text-on-primary,
- * --font-family) come from the config: getHeadInjections injects them at :root on every
+ * Appearance-driven variables (--when-color-primary, --when-color-text, --when-color-surface-page, --when-color-text-on-primary,
+ * --when-font-family) come from the config: getHeadInjections injects them at :root on every
  * render, and every appearance field has a default, so they are always present. The
  * overlapping ones are commented out here rather than kept as fallbacks — a second
  * declaration would compete on the cascade and, in dev (Vite re-injects this file's
@@ -10,20 +10,20 @@
 	color-scheme: light dark;
 
 	--surface: #ffffff;
-	/* --surface-page: injected from config appearance */
-	--surface-muted: color-mix(in srgb, var(--text) 5%, var(--surface-page));
-	--surface-active: color-mix(in srgb, var(--text) 8%, transparent);
+	/* --when-color-surface-page: injected from config appearance */
+	--surface-muted: color-mix(in srgb, var(--when-color-text) 5%, var(--when-color-surface-page));
+	--surface-active: color-mix(in srgb, var(--when-color-text) 8%, transparent);
 
-	--primary-muted: color-mix(in srgb, var(--primary) 5%, var(--surface-page));
-	--primary-border: color-mix(in srgb, var(--primary) 20%, var(--surface-page));
+	--primary-muted: color-mix(in srgb, var(--when-color-primary) 5%, var(--when-color-surface-page));
+	--primary-border: color-mix(in srgb, var(--when-color-primary) 20%, var(--when-color-surface-page));
 
-	--border: color-mix(in srgb, var(--text) 10%, var(--surface-page));
-	--border-strong: color-mix(in srgb, var(--text) 20%, var(--surface-page));
+	--border: color-mix(in srgb, var(--when-color-text) 10%, var(--when-color-surface-page));
+	--border-strong: color-mix(in srgb, var(--when-color-text) 20%, var(--when-color-surface-page));
 
-	/* --text: injected from config appearance */
-	--text-secondary: color-mix(in srgb, var(--text) 85%, var(--surface-page));
-	--text-muted: color-mix(in srgb, var(--text) 78%, var(--surface-page));
-	--text-disabled: color-mix(in srgb, var(--text) 35%, var(--surface-page));
+	/* --when-color-text: injected from config appearance */
+	--text-secondary: color-mix(in srgb, var(--when-color-text) 85%, var(--when-color-surface-page));
+	--text-muted: color-mix(in srgb, var(--when-color-text) 78%, var(--when-color-surface-page));
+	--text-disabled: color-mix(in srgb, var(--when-color-text) 35%, var(--when-color-surface-page));
 
 	--success: #059669;
 	--success-strong: #005530;
@@ -51,7 +51,7 @@
 	--quiet-bg: #d4d4d4;
 
 	--shadow-card: 0 1px 6px rgba(0, 0, 0, 0.06);
-	--shadow-focus: 0 0 0 3px oklch(from var(--primary) l c h / 0.35);
+	--shadow-focus: 0 0 0 3px oklch(from var(--when-color-primary) l c h / 0.35);
 
 	--space-1: 2px;
 	--space-2: 4px;
@@ -81,16 +81,16 @@
 
 	--transition: 0.15s;
 
-	/* --font-family: injected from config appearance */
+	/* --when-font-family: injected from config appearance */
 }
 
 @media (prefers-color-scheme: dark) {
 	:root {
-		--text-muted: color-mix(in srgb, var(--text) 72%, var(--surface-page));
-		/* --surface-page: injected from config appearance */
-		/* --text: injected from config appearance */
-		--surface: color-mix(in srgb, var(--text) 8%, var(--surface-page));
-		--surface-active: color-mix(in srgb, var(--text) 20%, transparent);
+		--text-muted: color-mix(in srgb, var(--when-color-text) 72%, var(--when-color-surface-page));
+		/* --when-color-surface-page: injected from config appearance */
+		/* --when-color-text: injected from config appearance */
+		--surface: color-mix(in srgb, var(--when-color-text) 8%, var(--when-color-surface-page));
+		--surface-active: color-mix(in srgb, var(--when-color-text) 20%, transparent);
 
 		--success: #34d399;
 		--success-strong: #10b981;
@@ -118,13 +118,13 @@
 		--quiet-bg: #333333;
 
 		--shadow-card: 0 1px 6px rgba(0, 0, 0, 0.4);
-		--shadow-focus: 0 0 0 3px oklch(from var(--primary) l c h / 0.45);
+		--shadow-focus: 0 0 0 3px oklch(from var(--when-color-primary) l c h / 0.45);
 	}
 }
 
 html,
 body {
-	background: var(--surface-page);
-	color: var(--text);
-	font-family: var(--font-family);
+	background: var(--when-color-surface-page);
+	color: var(--when-color-text);
+	font-family: var(--when-font-family);
 }

@@ -146,7 +146,7 @@
 
 	.duration-dialog-close:hover {
 		background: var(--surface-muted);
-		color: var(--text);
+		color: var(--when-color-text);
 	}
 
 	.duration-list {
@@ -179,6 +179,6 @@
 
 	.duration-row.selected {
 		background: var(--primary-muted);
-		color: var(--primary);
+		color: var(--when-color-primary);
 	}
 </style>

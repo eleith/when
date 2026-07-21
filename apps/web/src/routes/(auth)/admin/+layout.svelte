@@ -17,7 +17,7 @@
 		max-width: 1024px;
 		margin: 0 auto;
 		padding: var(--space-6) var(--space-6) var(--space-10);
-		color: var(--text);
+		color: var(--when-color-text);
 	}
 
 	.admin-main {

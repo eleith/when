@@ -205,7 +205,7 @@
 
 	.tz-dialog-close:hover {
 		background: var(--surface-muted);
-		color: var(--text);
+		color: var(--when-color-text);
 	}
 
 	.tz-search {
@@ -215,13 +215,13 @@
 		border-radius: var(--radius);
 		font-size: var(--font-size-md);
 		background: var(--surface);
-		color: var(--text);
+		color: var(--when-color-text);
 		box-sizing: border-box;
 	}
 
 	.tz-search:focus {
 		outline: none;
-		border-color: var(--primary);
+		border-color: var(--when-color-primary);
 		box-shadow: var(--shadow-focus);
 	}
 
@@ -259,7 +259,7 @@
 
 	.tz-option.selected {
 		background: var(--primary-muted);
-		color: var(--primary);
+		color: var(--when-color-primary);
 		font-weight: 600;
 	}
 
@@ -278,7 +278,7 @@
 	}
 
 	.tz-option.selected .tz-option-offset {
-		color: var(--primary);
+		color: var(--when-color-primary);
 	}
 
 	.tz-empty {

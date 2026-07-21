@@ -24,23 +24,23 @@ export function getHeadInjections(appearance: Appearance): string {
 		appearance.text_dark_color
 	);
 
-	const fontDecl = `--font-family: ${fontStack(appearance.font_name)};`;
+	const fontDecl = `--when-font-family: ${fontStack(appearance.font_name)};`;
 
 	const styleTag = `<style>
 		:root {
-			--primary: ${appearance.primary_light_color};
-			--text: ${appearance.text_light_color};
-			--surface-page: ${appearance.background_light_color};
-			--text-on-primary: ${textOnPrimaryLight};
+			--when-color-primary: ${appearance.primary_light_color};
+			--when-color-text: ${appearance.text_light_color};
+			--when-color-surface-page: ${appearance.background_light_color};
+			--when-color-text-on-primary: ${textOnPrimaryLight};
 			${fontDecl}
 		}
 
 		@media (prefers-color-scheme: dark) {
 			:root {
-				--primary: ${appearance.primary_dark_color};
-				--text: ${appearance.text_dark_color};
-				--surface-page: ${appearance.background_dark_color};
-				--text-on-primary: ${textOnPrimaryDark};
+				--when-color-primary: ${appearance.primary_dark_color};
+				--when-color-text: ${appearance.text_dark_color};
+				--when-color-surface-page: ${appearance.background_dark_color};
+				--when-color-text-on-primary: ${textOnPrimaryDark};
 			}
 		}
 	</style>`;

@@ -66,8 +66,8 @@
 		padding: var(--space-4) var(--space-6);
 		border: none;
 		border-radius: var(--radius);
-		background: var(--primary);
-		color: var(--text-on-primary);
+		background: var(--when-color-primary);
+		color: var(--when-color-text-on-primary);
 		font-size: var(--font-size-md);
 		font-weight: 600;
 		font-family: inherit;
@@ -139,7 +139,7 @@
 		display: block;
 		padding: var(--space-4);
 		border-radius: var(--radius-sm);
-		color: var(--text);
+		color: var(--when-color-text);
 		text-decoration: none;
 		font-size: var(--font-size-md);
 		font-weight: 500;

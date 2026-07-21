@@ -39,7 +39,7 @@
 		max-width: 640px;
 		margin: 0 auto;
 		padding: var(--space-9) var(--space-7);
-		color: var(--text);
+		color: var(--when-color-text);
 	}
 
 	.avatar {
@@ -47,7 +47,7 @@
 		height: 72px;
 		border-radius: 50%;
 		object-fit: cover;
-		border: 3px solid var(--text);
+		border: 3px solid var(--when-color-text);
 		margin-bottom: var(--space-5);
 	}
 
@@ -88,12 +88,12 @@
 	}
 
 	.event-card:hover {
-		border-color: var(--primary);
+		border-color: var(--when-color-primary);
 		box-shadow: var(--shadow-card);
 	}
 
 	.event-card:hover .arrow {
-		color: var(--primary);
+		color: var(--when-color-primary);
 	}
 
 	.event-info {

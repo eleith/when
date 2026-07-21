@@ -118,11 +118,11 @@
 	}
 
 	.crumb-link:hover {
-		color: var(--text);
+		color: var(--when-color-text);
 	}
 
 	.crumb-link:focus-visible {
-		outline: 2px solid var(--primary);
+		outline: 2px solid var(--when-color-primary);
 		outline-offset: 2px;
 	}
 
@@ -165,11 +165,11 @@
 	}
 
 	.logout-btn:hover {
-		color: var(--text);
+		color: var(--when-color-text);
 	}
 
 	.logout-btn:focus-visible {
-		outline: 2px solid var(--primary);
+		outline: 2px solid var(--when-color-primary);
 		outline-offset: 2px;
 	}
 

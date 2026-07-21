@@ -77,7 +77,7 @@
 		font-weight: 500;
 		font-size: var(--font-size-lg);
 		line-height: 1.4;
-		color: var(--text);
+		color: var(--when-color-text);
 	}
 
 	.questions-summary-count {
@@ -124,7 +124,7 @@
 	}
 
 	.questions-value {
-		color: var(--text);
+		color: var(--when-color-text);
 		font-weight: 500;
 		font-size: var(--font-size-lg);
 		line-height: 1.4;

@@ -136,7 +136,7 @@
 	}
 
 	.card-header {
-		background: var(--surface-page);
+		background: var(--when-color-surface-page);
 		border-bottom: 1px solid var(--border);
 		padding: 0 var(--space-2);
 	}
@@ -146,7 +146,7 @@
 	}
 
 	.card-footer {
-		background: var(--surface-page);
+		background: var(--when-color-surface-page);
 		border-top: 1px solid var(--border);
 		padding: var(--space-3) var(--space-5);
 	}
@@ -174,12 +174,12 @@
 	}
 
 	.sub-tab:hover {
-		color: var(--text);
+		color: var(--when-color-text);
 	}
 
 	.sub-tab.active {
-		color: var(--text);
-		border-bottom-color: var(--primary);
+		color: var(--when-color-text);
+		border-bottom-color: var(--when-color-primary);
 	}
 
 	.tab-badge {
@@ -223,7 +223,7 @@
 	}
 
 	.pagination-link:not(.disabled):hover {
-		color: var(--text);
+		color: var(--when-color-text);
 	}
 
 	.pagination-link.disabled {

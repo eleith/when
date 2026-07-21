@@ -245,7 +245,7 @@
 	.stat-value {
 		font-size: var(--font-size-2xl);
 		font-weight: 700;
-		color: var(--text);
+		color: var(--when-color-text);
 		line-height: 1.1;
 	}
 
@@ -275,7 +275,7 @@
 	}
 
 	.card-header {
-		background: var(--surface-page);
+		background: var(--when-color-surface-page);
 		border-bottom: 1px solid var(--border);
 		padding: var(--space-3) var(--space-4);
 		display: flex;
@@ -286,7 +286,7 @@
 	.card-title {
 		font-size: var(--font-size-base);
 		font-weight: 600;
-		color: var(--text);
+		color: var(--when-color-text);
 		display: flex;
 		align-items: center;
 		gap: var(--space-2);
@@ -303,7 +303,7 @@
 	}
 
 	.header-link:hover {
-		color: var(--text);
+		color: var(--when-color-text);
 	}
 
 	.card-body {
@@ -322,7 +322,7 @@
 		gap: var(--space-3);
 		padding: var(--space-3) var(--space-4);
 		text-decoration: none;
-		color: var(--text);
+		color: var(--when-color-text);
 		transition: background var(--transition);
 	}
 
@@ -374,7 +374,7 @@
 	}
 
 	.manage-link:hover {
-		color: var(--text);
+		color: var(--when-color-text);
 		border-color: var(--text-muted);
 	}
 

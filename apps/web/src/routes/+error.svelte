@@ -17,7 +17,7 @@
 		max-width: 480px;
 		margin: var(--space-10) auto;
 		text-align: center;
-		color: var(--text);
+		color: var(--when-color-text);
 	}
 
 	h1 {
@@ -32,6 +32,6 @@
 	}
 
 	a {
-		color: var(--primary);
+		color: var(--when-color-primary);
 	}
 </style>

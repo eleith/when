@@ -178,7 +178,7 @@
 		font-weight: 500;
 		font-size: var(--font-size-lg);
 		line-height: 1.4;
-		color: var(--text);
+		color: var(--when-color-text);
 	}
 
 	.log-summary-count {
@@ -244,7 +244,7 @@
 	}
 
 	.log-primary {
-		color: var(--text);
+		color: var(--when-color-text);
 		font-weight: 500;
 		font-size: var(--font-size-lg);
 		line-height: 1.4;

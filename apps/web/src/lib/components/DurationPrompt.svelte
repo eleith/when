@@ -41,7 +41,7 @@
 		padding: 0;
 		font: inherit;
 		font-weight: 600;
-		color: var(--primary);
+		color: var(--when-color-primary);
 		text-decoration: underline;
 		text-underline-offset: 3px;
 		cursor: pointer;

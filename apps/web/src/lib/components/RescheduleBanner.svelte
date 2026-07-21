@@ -42,7 +42,7 @@
 	.text {
 		font-size: var(--font-size-md);
 		line-height: 1.4;
-		color: var(--text);
+		color: var(--when-color-text);
 	}
 
 	.link {

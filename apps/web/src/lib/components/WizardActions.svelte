@@ -90,8 +90,8 @@
 		justify-content: center;
 		min-height: 44px;
 		padding: var(--space-3) var(--space-7);
-		background: var(--primary);
-		color: var(--text-on-primary);
+		background: var(--when-color-primary);
+		color: var(--when-color-text-on-primary);
 		border: none;
 		border-radius: var(--radius);
 		font-size: var(--font-size-md);
@@ -117,7 +117,7 @@
 
 	.button-secondary:not(:disabled):hover {
 		background: var(--surface-active);
-		color: var(--text);
+		color: var(--when-color-text);
 		opacity: 1;
 	}
 
@@ -137,7 +137,7 @@
 			margin: 0 0 var(--space-2);
 			font-size: var(--font-size-md);
 			font-weight: 600;
-			color: var(--text);
+			color: var(--when-color-text);
 		}
 
 		.button {

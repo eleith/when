@@ -337,7 +337,7 @@
 	}
 
 	.slots-back:hover {
-		color: var(--text);
+		color: var(--when-color-text);
 	}
 
 	@media (max-width: 768px) {
@@ -386,7 +386,7 @@
 	}
 
 	.slots-tz:hover {
-		color: var(--text);
+		color: var(--when-color-text);
 	}
 
 	.slots-tz:hover::before {
@@ -521,7 +521,7 @@
 		align-items: center;
 		padding: var(--space-1) var(--space-2);
 		font-size: var(--font-size-sm);
-		color: var(--primary);
+		color: var(--when-color-primary);
 		z-index: 5;
 		transition: top var(--transition);
 		cursor: grab;
@@ -586,14 +586,14 @@
 	.slot-btn:hover {
 		background: var(--primary-muted);
 		border: 1px solid var(--primary-border);
-		color: var(--primary);
+		color: var(--when-color-primary);
 		transform: scale(0.99);
 	}
 
 	.slot-btn.selected {
 		background: var(--primary-muted);
 		border: 1px solid var(--primary-border);
-		color: var(--primary);
+		color: var(--when-color-primary);
 	}
 
 	.slot-btn.selected:hover {

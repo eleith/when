@@ -49,6 +49,6 @@
 	}
 
 	:global(a) {
-		color: var(--primary);
+		color: var(--when-color-primary);
 	}
 </style>

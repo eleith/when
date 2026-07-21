@@ -9,7 +9,7 @@
 .calendar-panel .cal-heading {
 	font-weight: 600;
 	font-size: var(--font-size-xl);
-	color: var(--text);
+	color: var(--when-color-text);
 }
 
 .calendar-panel .cal-nav {
@@ -31,7 +31,7 @@
 
 .calendar-panel .cal-nav-btn:hover {
 	background: var(--surface-muted);
-	color: var(--text);
+	color: var(--when-color-text);
 }
 
 .calendar-panel .cal-grid {
@@ -79,7 +79,7 @@
 	background: none;
 	cursor: pointer;
 	border-radius: var(--radius);
-	color: var(--text);
+	color: var(--when-color-text);
 	transition: background var(--transition);
 	position: relative;
 	width: 100%;
@@ -101,7 +101,7 @@
 
 .calendar-panel .cal-day:not([data-unavailable]):not([data-disabled]):not([data-selected]) {
 	font-weight: 600;
-	color: var(--text);
+	color: var(--when-color-text);
 }
 
 .calendar-panel .cal-day:not([data-unavailable]):not([data-disabled]):not([data-selected]):hover {
@@ -122,15 +122,15 @@
 
 .calendar-panel .cal-day[data-selected] {
 	background: var(--primary-muted);
-	color: var(--primary);
+	color: var(--when-color-primary);
 }
 
 .calendar-panel .cal-day[data-selected][data-today]::after {
-	background: var(--primary);
+	background: var(--when-color-primary);
 }
 
 .calendar-panel .cal-day:focus-visible {
-	outline: 2px solid var(--primary);
+	outline: 2px solid var(--when-color-primary);
 	outline-offset: -2px;
 }
 

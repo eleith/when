@@ -137,7 +137,7 @@
 	.signin-title {
 		font-size: var(--font-size-xl);
 		font-weight: 700;
-		color: var(--text);
+		color: var(--when-color-text);
 		margin: 0;
 		letter-spacing: -0.01em;
 	}
@@ -196,8 +196,8 @@
 		padding: var(--space-3) var(--space-4);
 		font-size: var(--font-size-base);
 		font-family: inherit;
-		color: var(--text);
-		background: var(--surface-page);
+		color: var(--when-color-text);
+		background: var(--when-color-surface-page);
 		border: 1px solid var(--border-strong);
 		border-radius: var(--radius);
 		transition:
@@ -212,7 +212,7 @@
 
 	.form-input:focus {
 		outline: none;
-		border-color: var(--primary);
+		border-color: var(--when-color-primary);
 		box-shadow: var(--shadow-focus);
 		background: var(--surface);
 	}
@@ -223,8 +223,8 @@
 		justify-content: center;
 		gap: var(--space-2);
 		padding: var(--space-4);
-		background: var(--primary);
-		color: var(--text-on-primary);
+		background: var(--when-color-primary);
+		color: var(--when-color-text-on-primary);
 		border: none;
 		border-radius: var(--radius);
 		font-size: var(--font-size-base);

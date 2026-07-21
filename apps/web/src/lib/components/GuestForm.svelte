@@ -196,7 +196,7 @@
 	}
 
 	.form-back:hover {
-		color: var(--text);
+		color: var(--when-color-text);
 	}
 
 	.form-error {
@@ -229,12 +229,12 @@
 		box-sizing: border-box;
 		transition: border-color var(--transition);
 		background: var(--surface);
-		color: var(--text);
+		color: var(--when-color-text);
 	}
 
 	.field textarea:focus {
 		outline: none;
-		border-color: var(--primary);
+		border-color: var(--when-color-primary);
 		box-shadow: var(--shadow-focus);
 	}
 

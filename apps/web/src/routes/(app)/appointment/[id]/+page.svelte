@@ -735,7 +735,7 @@
 		max-width: 640px;
 		margin: 0 auto;
 		padding: var(--space-6) var(--space-6) var(--space-10);
-		color: var(--text);
+		color: var(--when-color-text);
 	}
 
 	/* Full-bleed page nav; empty for guests, holds the back arrow for admins. */
@@ -926,7 +926,7 @@
 	}
 
 	.detail-primary {
-		color: var(--text);
+		color: var(--when-color-text);
 		font-weight: 500;
 		font-size: var(--font-size-lg);
 		line-height: 1.4;
@@ -939,7 +939,7 @@
 	}
 
 	.detail-secondary a {
-		color: var(--primary);
+		color: var(--when-color-primary);
 		text-decoration: underline;
 		word-break: break-all;
 	}
@@ -983,8 +983,8 @@
 
 	.decide-accept {
 		border: none;
-		background: var(--primary);
-		color: var(--text-on-primary);
+		background: var(--when-color-primary);
+		color: var(--when-color-text-on-primary);
 	}
 
 	.decide-accept:hover {
@@ -1015,8 +1015,8 @@
 		align-items: center;
 		gap: var(--space-2);
 		padding: var(--space-4) var(--space-7);
-		background: var(--primary);
-		color: var(--text-on-primary);
+		background: var(--when-color-primary);
+		color: var(--when-color-text-on-primary);
 		border-radius: var(--radius);
 		font-size: var(--font-size-md);
 		font-weight: 600;
@@ -1171,7 +1171,7 @@
 
 	.cancel-confirm-btn {
 		background: var(--danger);
-		color: var(--text-on-primary);
+		color: var(--when-color-text-on-primary);
 		border: 1px solid var(--danger);
 		border-radius: var(--radius);
 		padding: var(--space-3) var(--space-6);
@@ -1195,7 +1195,7 @@
 		padding: var(--space-3) var(--space-6);
 		font-size: var(--font-size-md);
 		font-weight: 600;
-		color: var(--text);
+		color: var(--when-color-text);
 		cursor: pointer;
 		transition: background var(--transition);
 	}
@@ -1215,12 +1215,12 @@
 		box-sizing: border-box;
 		margin-bottom: var(--space-4);
 		background: var(--surface);
-		color: var(--text);
+		color: var(--when-color-text);
 	}
 
 	.cancel-reason-input:focus {
 		outline: none;
-		border-color: var(--primary);
+		border-color: var(--when-color-primary);
 		box-shadow: 0 0 0 2px var(--primary-alpha);
 	}
 
@@ -1296,7 +1296,7 @@
 	.page-header-title {
 		font-size: calc(var(--font-size-3xl) * 1.5);
 		font-weight: 700;
-		color: var(--text);
+		color: var(--when-color-text);
 		margin: 0 0 var(--space-1);
 	}
 
@@ -1338,7 +1338,7 @@
 	}
 
 	.detail-row-button:hover .detail-edit-icon {
-		color: var(--text);
+		color: var(--when-color-text);
 	}
 
 	.delete-note-btn {

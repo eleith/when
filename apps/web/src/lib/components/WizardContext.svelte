@@ -71,7 +71,7 @@
 		height: 48px;
 		border-radius: 50%;
 		object-fit: cover;
-		border: solid 2px var(--text);
+		border: solid 2px var(--when-color-text);
 		transition: opacity var(--transition);
 	}
 
@@ -79,7 +79,7 @@
 		font-size: var(--font-size-xl);
 		font-weight: 700;
 		margin: 0 0 var(--space-2);
-		color: var(--text);
+		color: var(--when-color-text);
 	}
 
 	.event-description {
@@ -110,7 +110,7 @@
 		margin: 0;
 		font-size: var(--font-size-md);
 		font-weight: 700;
-		color: var(--text);
+		color: var(--when-color-text);
 	}
 
 	@media (max-width: 768px) {
