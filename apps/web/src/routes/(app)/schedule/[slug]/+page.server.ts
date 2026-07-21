@@ -57,12 +57,8 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 	return {
 		eventType: toPublicEventType(eventType, isAdmin),
 		formFields: resolveFormFields(eventType),
-		slotsByDuration,
-		workingWindows,
-		busyBlocks,
-		rescheduleAppt: null,
-		rescheduleError: null,
-		rescheduleToken: null,
+		availability: { slotsByDuration, workingWindows, busyBlocks },
+		reschedule: null,
 		isAdmin
 	};
 };

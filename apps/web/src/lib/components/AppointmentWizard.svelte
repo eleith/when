@@ -26,20 +26,25 @@
 		};
 		eventType: PublicEventType;
 		formFields: readonly FormField[];
-		slotsByDuration: Record<number, Record<string, string[]>>;
-		workingWindows: { start: string; end: string }[];
-		busyBlocks: { start: string; end: string }[];
-		rescheduleAppt: {
-			id: string;
-			start_time: string;
-			end_time: string;
-			guest_name: string;
-			guest_email: string | null;
-			answers: GuestAnswer[];
-			location: string | null;
+		availability: {
+			slotsByDuration: Record<number, Record<string, string[]>>;
+			workingWindows: { start: string; end: string }[];
+			busyBlocks: { start: string; end: string }[];
+		};
+		// Present only on the reschedule route. `appt` is null when `error` explains why.
+		reschedule: {
+			appt: {
+				id: string;
+				start_time: string;
+				end_time: string;
+				guest_name: string;
+				guest_email: string | null;
+				answers: GuestAnswer[];
+				location: string | null;
+			} | null;
+			error: string | null;
+			token: string | null;
 		} | null;
-		rescheduleError: string | null;
-		rescheduleToken: string | null;
 		isAdmin: boolean;
 	}
 
@@ -51,11 +56,15 @@
 
 	let { data, form, deepLink = false }: Props = $props();
 
+	const rescheduleAppt = $derived(data.reschedule?.appt ?? null);
+	const rescheduleError = $derived(data.reschedule?.error ?? null);
+	const rescheduleToken = $derived(data.reschedule?.token ?? null);
+
 	const durationParam = Number(page.url.searchParams.get('duration'));
 	// svelte-ignore state_referenced_locally
 	const durations = data.eventType.durations;
 	// svelte-ignore state_referenced_locally
-	const slotsByDuration = data.slotsByDuration;
+	const slotsByDuration = data.availability.slotsByDuration;
 	const initialDuration = durations.includes(durationParam) ? durationParam : durations[0];
 
 	const flow = createAppointmentFlow({ slotsByDuration, durations, initialDuration });
@@ -70,8 +79,8 @@
 
 	let formAction = $derived.by(() => {
 		if (data.isAdmin) {
-			if (data.rescheduleAppt) {
-				return `/admin/appointment/${data.rescheduleAppt.id}/reschedule?/book`;
+			if (rescheduleAppt) {
+				return `/admin/appointment/${rescheduleAppt.id}/reschedule?/book`;
 			} else {
 				return `/admin/schedule/${data.eventType.slug}?/book`;
 			}
@@ -80,8 +89,8 @@
 	});
 
 	let previousAppointmentHref = $derived(
-		data.rescheduleAppt
-			? `/appointment/${data.rescheduleAppt.id}?token=${encodeURIComponent(data.rescheduleToken || '')}`
+		rescheduleAppt
+			? `/appointment/${rescheduleAppt.id}?token=${encodeURIComponent(rescheduleToken || '')}`
 			: ''
 	);
 
@@ -89,8 +98,8 @@
 		if (step !== 2 || !viewDate) return 0;
 		const t = buildDayTimeline({
 			viewDate,
-			workingWindows: data.workingWindows,
-			busyBlocks: data.busyBlocks,
+			workingWindows: data.availability.workingWindows,
+			busyBlocks: data.availability.busyBlocks,
 			eventType: activeEventType,
 			daySlots: [],
 			tz: data.user.timezone
@@ -98,7 +107,7 @@
 		return t ? Math.round(t.totalMs / 3600000) : 0;
 	});
 
-	let fieldsDisabled = $derived(data.isAdmin && !!data.rescheduleAppt);
+	let fieldsDisabled = $derived(data.isAdmin && !!rescheduleAppt);
 
 	// Set the viewer timezone before the URL sync applies a deep-linked slot, so it
 	// resolves to the right day. The effect re-applies once tz resolves client-side.
@@ -141,19 +150,19 @@
 </header>
 
 <main class="appointment">
-	{#if data.rescheduleError}
+	{#if rescheduleError}
 		<div class="card reschedule-error-card">
 			<h1 class="error-title">Can't reschedule this appointment</h1>
 			<p class="error-reason">
-				{#if data.rescheduleError === 'token'}
+				{#if rescheduleError === 'token'}
 					This link doesn't match an appointment. Check your email for the latest reschedule link.
-				{:else if data.rescheduleError === 'event_type'}
+				{:else if rescheduleError === 'event_type'}
 					This appointment's event type no longer exists.
-				{:else if data.rescheduleError === 'past_window'}
+				{:else if rescheduleError === 'past_window'}
 					This appointment is too old to reschedule.
-				{:else if data.rescheduleError === 'terminal'}
+				{:else if rescheduleError === 'terminal'}
 					This appointment has already been cancelled or declined.
-				{:else if data.rescheduleError === 'minimum_notice'}
+				{:else if rescheduleError === 'minimum_notice'}
 					It's too close to the start time to reschedule.
 				{/if}
 			</p>
@@ -162,10 +171,10 @@
 	{:else if flow.availableDates.size === 0}
 		<p class="empty">No availability in the near future.</p>
 	{:else}
-		{#if data.rescheduleAppt}
+		{#if rescheduleAppt}
 			<RescheduleBanner
 				previousHref={previousAppointmentHref}
-				startTime={data.rescheduleAppt.start_time}
+				startTime={rescheduleAppt.start_time}
 				tz={userTz}
 			/>
 		{/if}
@@ -195,11 +204,11 @@
 						{#if ptz.current}
 							<DayTimeline
 								{flow}
-								workingWindows={data.workingWindows}
-								busyBlocks={data.busyBlocks}
+								workingWindows={data.availability.workingWindows}
+								busyBlocks={data.availability.busyBlocks}
 								eventType={activeEventType}
 								bookingStyle={data.eventType.booking_style}
-								originalSlot={data.rescheduleAppt?.start_time ?? null}
+								originalSlot={rescheduleAppt?.start_time ?? null}
 								onEditDate={flow.goBack}
 							>
 								{#snippet beforeSlots()}
@@ -214,8 +223,8 @@
 					{#if step === 3 && selectedSlot}
 						<GuestForm
 							formFields={data.formFields}
-							rescheduleAppt={data.rescheduleAppt}
-							rescheduleToken={data.rescheduleToken}
+							{rescheduleAppt}
+							{rescheduleToken}
 							{fieldsDisabled}
 							{form}
 							{formAction}
@@ -235,7 +244,7 @@
 					{selectedSlot}
 					{userTz}
 					canAdvance={flow.canAdvance}
-					isReschedule={!!data.rescheduleAppt}
+					isReschedule={!!rescheduleAppt}
 					bookingApproval={data.eventType.booking_approval}
 					onAdvance={flow.advance}
 					onBack={flow.goBack}
