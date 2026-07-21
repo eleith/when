@@ -1,5 +1,5 @@
 import { sequence } from '@sveltejs/kit/hooks';
-import { redirect, error } from '@sveltejs/kit';
+import { redirect, error, type Handle } from '@sveltejs/kit';
 import { getAuth } from '$lib/server/auth';
 import { bootApp } from '$lib/server/boot';
 import { logger } from '$lib/server/logger';
@@ -13,7 +13,7 @@ try {
 	process.exit(1);
 }
 
-export const handle = sequence(getAuth().handle, async ({ event, resolve }) => {
+export const authGate: Handle = async ({ event, resolve }) => {
 	if (event.route.id?.startsWith('/(auth)')) {
 		const session = await event.locals.auth();
 		if (!session) {
@@ -36,4 +36,6 @@ export const handle = sequence(getAuth().handle, async ({ event, resolve }) => {
 			return html.replace('</head>', `\t${injections}\n</head>`);
 		}
 	});
-});
+};
+
+export const handle = sequence(getAuth().handle, authGate);
