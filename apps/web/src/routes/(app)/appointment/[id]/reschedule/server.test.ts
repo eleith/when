@@ -20,7 +20,9 @@ vi.mock('@when/db', async (io) => ({
 	...(await io<typeof import('@when/db')>()),
 	findAppointment: async () => h.row.current
 }));
-vi.mock('$lib/server/appointment/access', () => ({ requireViewableAppointment: h.requireViewable }));
+vi.mock('$lib/server/appointment/access', () => ({
+	requireViewableAppointment: h.requireViewable
+}));
 vi.mock('$lib/server/appointment/reschedule', () => ({
 	classifyReschedule: h.classify,
 	rescheduleAppointment: h.reschedule
@@ -117,11 +119,7 @@ describe('/appointment/[id]/reschedule load', () => {
 		const result = (await load(loadEvent())) as LoadResult;
 		expect(result.reschedule.appt).toEqual({ id: 'appt-1' });
 		expect(result.reschedule.error).toBeNull();
-		expect(h.loadAvailability).toHaveBeenCalledWith(
-			expect.anything(),
-			expect.anything(),
-			CURRENT
-		);
+		expect(h.loadAvailability).toHaveBeenCalledWith(expect.anything(), expect.anything(), CURRENT);
 	});
 
 	test('surfaces a classify error and nulls the appointment', async () => {

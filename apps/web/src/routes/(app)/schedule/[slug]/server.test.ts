@@ -121,7 +121,10 @@ describe('/schedule/[slug] book action', () => {
 		fd.set('slot', SLOT);
 		return fd;
 	}
-	const validGuest = { ok: true, data: { name: 'A', email: 'a@b.co', answers: null, location: null } };
+	const validGuest = {
+		ok: true,
+		data: { name: 'A', email: 'a@b.co', answers: null, location: null }
+	};
 
 	test('rejects a missing slot with 400', async () => {
 		const result = (await actions.book(bookEvent(new FormData()))) as Failure;

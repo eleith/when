@@ -14,7 +14,9 @@ vi.mock('@when/db', async (io) => ({
 	...(await io<typeof import('@when/db')>()),
 	findAppointment: async () => h.row.current
 }));
-vi.mock('$lib/server/appointment/access', () => ({ requireViewableAppointment: h.requireViewable }));
+vi.mock('$lib/server/appointment/access', () => ({
+	requireViewableAppointment: h.requireViewable
+}));
 vi.mock('@when/calendar', async (io) => ({
 	...(await io<typeof import('@when/calendar')>()),
 	buildIcs: h.buildIcs
