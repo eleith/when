@@ -12,6 +12,8 @@ export interface AppointmentFlow {
 	readonly viewDate: string | null;
 	readonly selectedSlot: string | null;
 	readonly userTz: string;
+	readonly duration: number;
+	readonly durations: number[];
 	readonly allSlots: string[];
 	readonly availableDates: Set<string>;
 	readonly offeredDates: Set<string>;
@@ -24,26 +26,38 @@ export interface AppointmentFlow {
 	selectSlot(iso: string): void;
 	clearSlot(): void;
 	setTz(tz: string): void;
+	setDuration(minutes: number): void;
+}
+
+export interface AppointmentFlowInit {
+	slotsByDuration: Record<number, Record<string, string[]>>;
+	durations: number[];
+	initialDuration: number;
 }
 
 /**
  * Single source of truth for the appointment wizard: which step we're on, the
- * picked date/slot/timezone, and the rules for moving between steps. Created
- * once per page and handed to the picker components as a single `flow` prop, so
- * their selections flow back here without a `bind:` ladder.
+ * picked date/slot/timezone/length, and the rules for moving between steps.
+ * Created once per page and handed to the picker components as a single `flow`
+ * prop, so their selections flow back here without a `bind:` ladder. The chosen
+ * duration selects which day/slot map is live, so it lives here too.
  */
-export function createAppointmentFlow(
-	getSlotsByDate: () => Record<string, string[]>
-): AppointmentFlow {
+export function createAppointmentFlow({
+	slotsByDuration,
+	durations,
+	initialDuration
+}: AppointmentFlowInit): AppointmentFlow {
 	let step = $state<WizardStep>(1);
 	let viewDate = $state<string | null>(null);
 	let selectedSlot = $state<string | null>(null);
 	let userTz = $state('UTC');
+	let duration = $state(initialDuration);
 
-	const allSlots = $derived(flattenSlots(getSlotsByDate()));
+	const slotsByDate = $derived(slotsByDuration[duration] ?? {});
+	const allSlots = $derived(flattenSlots(slotsByDate));
 	const dates = $derived(datesFromSlots(allSlots, userTz));
 	// The raw server day keys (host tz), unlike `availableDates` which re-buckets in `userTz`.
-	const offeredDates = $derived(dateKeys(getSlotsByDate()));
+	const offeredDates = $derived(dateKeys(slotsByDate));
 	const canAdvance = $derived(canAdvanceRule(step, viewDate, selectedSlot));
 
 	function scrollToTop() {
@@ -62,6 +76,12 @@ export function createAppointmentFlow(
 		},
 		get userTz() {
 			return userTz;
+		},
+		get duration() {
+			return duration;
+		},
+		get durations() {
+			return durations;
 		},
 		get allSlots() {
 			return allSlots;
@@ -114,6 +134,16 @@ export function createAppointmentFlow(
 		},
 		setTz(tz) {
 			userTz = tz;
+		},
+		// Changing the length swaps the live slot map. If the picked time no longer
+		// exists at the new length, drop it and step back so the guest re-picks.
+		setDuration(minutes) {
+			if (minutes === duration || !durations.includes(minutes)) return;
+			duration = minutes;
+			if (selectedSlot && !flattenSlots(slotsByDuration[minutes] ?? {}).includes(selectedSlot)) {
+				selectedSlot = null;
+				if (step === 3) step = 2;
+			}
 		}
 	};
 }

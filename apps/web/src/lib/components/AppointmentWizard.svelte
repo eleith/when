@@ -53,30 +53,20 @@
 
 	const durationParam = Number(page.url.searchParams.get('duration'));
 	// svelte-ignore state_referenced_locally
-	let activeDuration = $state(
-		data.eventType.durations.includes(durationParam) ? durationParam : data.eventType.durations[0]
-	);
-	const activeSlots = $derived(data.slotsByDuration[activeDuration] ?? {});
+	const durations = data.eventType.durations;
+	// svelte-ignore state_referenced_locally
+	const slotsByDuration = data.slotsByDuration;
+	const initialDuration = durations.includes(durationParam) ? durationParam : durations[0];
 
-	const flow = createAppointmentFlow(() => activeSlots);
+	const flow = createAppointmentFlow({ slotsByDuration, durations, initialDuration });
 	const ptz = getPreferredTimezone();
-
-	// Changing the length can drop the selected time; if it no longer fits, clear it
-	// and step back so the guest re-picks.
-	$effect(() => {
-		if (flow.selectedSlot && !flow.allSlots.includes(flow.selectedSlot)) {
-			flow.clearSlot();
-			if (flow.step === 3) flow.goToStep(2);
-		}
-	});
 
 	let step = $derived(flow.step);
 	let viewDate = $derived(flow.viewDate);
 	let selectedSlot = $derived(flow.selectedSlot);
 	let userTz = $derived(flow.userTz);
 
-	const durations = $derived(data.eventType.durations);
-	const activeEventType = $derived({ ...data.eventType, duration_minutes: activeDuration });
+	const activeEventType = $derived({ ...data.eventType, duration_minutes: flow.duration });
 
 	let formAction = $derived.by(() => {
 		if (data.isAdmin) {
@@ -166,7 +156,7 @@
 		if (!routerReady) return;
 		if (!deepLink) return;
 
-		const desiredDuration = activeDuration === durations[0] ? null : String(activeDuration);
+		const desiredDuration = flow.duration === durations[0] ? null : String(flow.duration);
 		let desiredSlot: string | null = null;
 		let desiredDate: string | null = null;
 		if (flow.step === 3 && flow.selectedSlot) {
@@ -280,7 +270,7 @@
 								onEditDate={flow.goBack}
 							>
 								{#snippet beforeSlots()}
-									<DurationPrompt {durations} bind:value={activeDuration} />
+									<DurationPrompt {durations} value={flow.duration} onSelect={flow.setDuration} />
 								{/snippet}
 							</DayTimeline>
 						{:else}
@@ -299,7 +289,7 @@
 							{selectedSlot}
 							{viewDate}
 							{userTz}
-							duration={activeDuration}
+							duration={flow.duration}
 							bookingApproval={data.eventType.booking_approval}
 							onBack={flow.goBack}
 						/>

@@ -5,12 +5,13 @@
 		open?: boolean;
 		durations: number[];
 		value?: number;
+		onSelect: (minutes: number) => void;
 	}
 
-	let { open = $bindable(false), durations, value = $bindable() }: Props = $props();
+	let { open = $bindable(false), durations, value, onSelect }: Props = $props();
 
 	function select(d: number) {
-		value = d;
+		onSelect(d);
 		open = false;
 	}
 </script>

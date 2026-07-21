@@ -5,9 +5,10 @@
 	interface Props {
 		durations: number[];
 		value: number;
+		onSelect: (minutes: number) => void;
 	}
 
-	let { durations, value = $bindable() }: Props = $props();
+	let { durations, value, onSelect }: Props = $props();
 
 	let open = $state(false);
 </script>
@@ -20,7 +21,7 @@
 		</button>
 	</p>
 
-	<DurationDialog bind:open {durations} bind:value />
+	<DurationDialog bind:open {durations} {value} {onSelect} />
 {/if}
 
 <style>
