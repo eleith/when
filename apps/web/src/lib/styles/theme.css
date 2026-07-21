@@ -11,19 +11,47 @@
 
 	--color-surface: #ffffff;
 	/* --when-color-surface-page: injected from config appearance */
-	--color-surface-muted: color-mix(in srgb, var(--when-color-text) 5%, var(--when-color-surface-page));
+	--color-surface-muted: color-mix(
+		in srgb,
+		var(--when-color-text) 5%,
+		var(--when-color-surface-page)
+	);
 	--color-surface-active: color-mix(in srgb, var(--when-color-text) 8%, transparent);
 
-	--color-primary-muted: color-mix(in srgb, var(--when-color-primary) 5%, var(--when-color-surface-page));
-	--color-primary-border: color-mix(in srgb, var(--when-color-primary) 20%, var(--when-color-surface-page));
+	--color-primary-muted: color-mix(
+		in srgb,
+		var(--when-color-primary) 5%,
+		var(--when-color-surface-page)
+	);
+	--color-primary-border: color-mix(
+		in srgb,
+		var(--when-color-primary) 20%,
+		var(--when-color-surface-page)
+	);
 
 	--color-border: color-mix(in srgb, var(--when-color-text) 10%, var(--when-color-surface-page));
-	--color-border-strong: color-mix(in srgb, var(--when-color-text) 20%, var(--when-color-surface-page));
+	--color-border-strong: color-mix(
+		in srgb,
+		var(--when-color-text) 20%,
+		var(--when-color-surface-page)
+	);
 
 	/* --when-color-text: injected from config appearance */
-	--color-text-secondary: color-mix(in srgb, var(--when-color-text) 85%, var(--when-color-surface-page));
-	--color-text-muted: color-mix(in srgb, var(--when-color-text) 78%, var(--when-color-surface-page));
-	--color-text-disabled: color-mix(in srgb, var(--when-color-text) 35%, var(--when-color-surface-page));
+	--color-text-secondary: color-mix(
+		in srgb,
+		var(--when-color-text) 85%,
+		var(--when-color-surface-page)
+	);
+	--color-text-muted: color-mix(
+		in srgb,
+		var(--when-color-text) 78%,
+		var(--when-color-surface-page)
+	);
+	--color-text-disabled: color-mix(
+		in srgb,
+		var(--when-color-text) 35%,
+		var(--when-color-surface-page)
+	);
 
 	--color-success: #059669;
 	--color-success-strong: #005530;
@@ -86,7 +114,11 @@
 
 @media (prefers-color-scheme: dark) {
 	:root {
-		--color-text-muted: color-mix(in srgb, var(--when-color-text) 72%, var(--when-color-surface-page));
+		--color-text-muted: color-mix(
+			in srgb,
+			var(--when-color-text) 72%,
+			var(--when-color-surface-page)
+		);
 		/* --when-color-surface-page: injected from config appearance */
 		/* --when-color-text: injected from config appearance */
 		--color-surface: color-mix(in srgb, var(--when-color-text) 8%, var(--when-color-surface-page));
