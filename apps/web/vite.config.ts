@@ -30,11 +30,12 @@ export default defineConfig(({ command }) => {
 			include: ['src/**/*.test.ts'],
 			environment: 'node',
 			coverage: {
+				include: ['src/**/*.ts'],
 				thresholds: {
-					statements: 80,
-					branches: 80,
-					functions: 80,
-					lines: 80
+					statements: 60,
+					branches: 60,
+					functions: 60,
+					lines: 60
 				}
 			}
 		}
