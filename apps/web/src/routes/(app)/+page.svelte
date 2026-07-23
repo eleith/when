@@ -1,6 +1,4 @@
 <script lang="ts">
-	import IconArrowRight from 'virtual:icons/ph/arrow-right';
-
 	let { data } = $props();
 </script>
 
@@ -27,7 +25,25 @@
 							<p class="event-meta">{et.description}</p>
 						{/if}
 					</div>
-					<span class="arrow"><IconArrowRight aria-hidden="true" /></span>
+					<div class="event-duration">
+						<span class="duration-value" aria-hidden="true">
+							{#if et.durations.length > 2}
+								{et.durations[0]} / … / {et.durations[et.durations.length - 1]}
+							{:else}
+								{et.durations.join(' / ')}
+							{/if}
+						</span>
+						<span class="duration-unit" aria-hidden="true">min</span>
+						<span class="visibility-hidden">
+							{#if et.durations.length > 2}
+								{et.durations.length} lengths between {et.durations[0]} and {et.durations[
+									et.durations.length - 1
+								]} minutes
+							{:else}
+								{et.durations.join(' or ')} minutes
+							{/if}
+						</span>
+					</div>
 				</a>
 			{/each}
 		</div>
@@ -69,7 +85,7 @@
 	.event-list {
 		display: flex;
 		flex-direction: column;
-		gap: var(--space-4);
+		gap: var(--space-6);
 	}
 
 	.event-card {
@@ -82,7 +98,7 @@
 		padding: var(--space-6) var(--space-6);
 		text-decoration: none;
 		color: inherit;
-		min-height: calc(var(--space-10) * 2);
+		min-height: calc(var(--space-10) * 2 + var(--space-3));
 		transition:
 			border-color var(--transition),
 			box-shadow var(--transition);
@@ -93,7 +109,8 @@
 		box-shadow: var(--shadow-card);
 	}
 
-	.event-card:hover .arrow {
+	.event-card:hover .event-info h2,
+	.event-card:hover .event-duration {
 		color: var(--when-color-primary);
 	}
 
@@ -103,15 +120,17 @@
 	}
 
 	.event-info h2 {
-		font-size: var(--font-size-lg);
+		font-size: var(--font-size-xl);
 		font-weight: 600;
+		line-height: 1.25;
 		margin: 0;
+		transition: color var(--transition);
 	}
 
 	.event-meta {
-		color: var(--color-text-secondary);
+		color: var(--color-text-muted);
 		font-size: var(--font-size-base);
-		margin: var(--space-1) 0 0;
+		margin: var(--space-3) 0 0;
 		line-height: 1.4;
 		display: -webkit-box;
 		-webkit-line-clamp: 3;
@@ -121,11 +140,27 @@
 		text-overflow: ellipsis;
 	}
 
-	.arrow {
-		color: var(--color-text-disabled);
-		font-size: var(--font-size-xl);
+	.event-duration {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: var(--space-1);
+		min-width: calc(var(--space-10) + var(--space-8));
 		flex-shrink: 0;
+		color: var(--color-text-secondary);
+		line-height: 1;
 		transition: color var(--transition);
-		display: inline-flex;
+	}
+
+	.duration-value {
+		font-size: var(--font-size-base);
+		font-weight: 600;
+		white-space: nowrap;
+		font-variant-numeric: tabular-nums;
+	}
+
+	.duration-unit {
+		font-size: var(--font-size-xs);
+		color: var(--color-text-muted);
 	}
 </style>

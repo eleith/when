@@ -1,3 +1,4 @@
+import { durationsOf } from '@when/config';
 import { getConfig } from '$lib/server/state';
 import type { PageServerLoad } from './$types';
 
@@ -10,7 +11,9 @@ export const load: PageServerLoad = () => {
 			id: e.name,
 			name: e.name,
 			slug: e.slug,
-			description: e.description ?? null
+			description: e.description ?? null,
+			// Ascending for the card rail's span; config order marks the booking default, unused here.
+			durations: durationsOf(e).toSorted((a, b) => a - b)
 		}));
 
 	return { eventTypes };
