@@ -193,6 +193,7 @@ export interface TimelineBlock {
 export interface TimelineSlot extends TimelineBlock {
 	iso: string;
 	time: string;
+	endTime: string;
 	isOriginal: boolean;
 }
 
@@ -331,6 +332,7 @@ export function buildDayTimeline({
 		return {
 			iso,
 			time: formatTime(iso, tz),
+			endTime: formatTime(InstantFns.toString(end), tz),
 			top: toPercent(start),
 			height: toPercent(end) - toPercent(start),
 			isOriginal: iso === originalSlot

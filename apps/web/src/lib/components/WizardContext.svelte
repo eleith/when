@@ -1,17 +1,15 @@
-<!-- Desktop-only sidebar: provider, event summary, and current step. Hidden on mobile. -->
+<!-- Desktop-only sidebar: provider and event summary. Hidden on mobile. -->
 <script lang="ts">
 	import type { Appearance } from '@when/config';
-	import type { WizardStep } from '$lib/appointment';
 
 	interface Props {
 		appearance: Appearance;
 		providerName: string;
 		eventName: string;
 		eventDescription?: string | null;
-		step: WizardStep;
 	}
 
-	let { appearance, providerName, eventName, eventDescription, step }: Props = $props();
+	let { appearance, providerName, eventName, eventDescription }: Props = $props();
 </script>
 
 <aside class="sidebar">
@@ -24,17 +22,10 @@
 	</section>
 
 	<section class="section">
-		<h1 class="event-name">{eventName}</h1>
+		<p class="event-name">{eventName}</p>
 		{#if eventDescription}
 			<p class="event-description">{eventDescription}</p>
 		{/if}
-	</section>
-
-	<section class="step">
-		<span class="step-label">Step {step} of 3</span>
-		<h2 class="step-title">
-			{#if step === 1}Pick a day{:else if step === 2}Pick a time{:else}Enter your info{/if}
-		</h2>
 	</section>
 </aside>
 
@@ -76,8 +67,8 @@
 	}
 
 	.event-name {
-		font-size: var(--font-size-xl);
-		font-weight: 700;
+		font-size: var(--font-size-lg);
+		font-weight: 600;
 		margin: 0 0 var(--space-2);
 		color: var(--when-color-text);
 	}
@@ -87,30 +78,6 @@
 		font-size: var(--font-size-sm);
 		margin: 0;
 		line-height: 1.5;
-	}
-
-	.step {
-		margin-top: auto;
-		padding-top: var(--space-6);
-		border-top: 1px solid var(--color-border-strong);
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-1);
-	}
-
-	.step-label {
-		font-size: var(--font-size-xs);
-		font-weight: 600;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-		color: var(--color-text-muted);
-	}
-
-	.step-title {
-		margin: 0;
-		font-size: var(--font-size-md);
-		font-weight: 700;
-		color: var(--when-color-text);
 	}
 
 	@media (max-width: 768px) {

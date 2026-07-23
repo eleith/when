@@ -1,4 +1,4 @@
-<!-- The wizard's action bar: current step, selection summary, and the navigation/submit buttons. -->
+<!-- The wizard's action bar: selection summary and the navigation/submit buttons. -->
 <script lang="ts">
 	import IconArrowRight from 'virtual:icons/ph/arrow-right';
 	import { formatDate, formatTime } from '$lib/datetime';
@@ -21,10 +21,6 @@
 </script>
 
 <div class="actions">
-	<p class="title">
-		<span class="step-label">Step {step} of 3:</span>
-		{#if step === 1}Pick a day{:else if step === 2}Pick a time{:else}Enter your info{/if}
-	</p>
 	{#if step === 1 && viewDate}
 		<p class="summary">You selected {formatDate(viewDate)}</p>
 	{:else if step === 2 && selectedSlot}
@@ -49,12 +45,6 @@
 </div>
 
 <style>
-	.step-label {
-		font-weight: 500;
-		color: var(--color-text-muted);
-		margin-right: var(--space-2);
-	}
-
 	.actions {
 		display: flex;
 		align-items: center;
@@ -121,23 +111,9 @@
 		opacity: 1;
 	}
 
-	/* The step title lives in the sidebar on desktop, so the bar only shows it on mobile. */
-	@media (min-width: 769px) {
-		.title {
-			display: none;
-		}
-	}
-
 	@media (max-width: 768px) {
 		.summary {
 			display: none;
-		}
-
-		.title {
-			margin: 0 0 var(--space-2);
-			font-size: var(--font-size-md);
-			font-weight: 600;
-			color: var(--when-color-text);
 		}
 
 		.button {

@@ -259,8 +259,22 @@ describe('buildDayTimeline', () => {
 	test('places slots by start and duration, flagging the original', () => {
 		const t = buildDayTimeline({ ...base, originalSlot: '2025-06-15T09:30:00Z' })!;
 		expect(t.slots).toEqual([
-			{ iso: '2025-06-15T09:00:00Z', time: '09:00 AM', top: 10, height: 5, isOriginal: false },
-			{ iso: '2025-06-15T09:30:00Z', time: '09:30 AM', top: 15, height: 5, isOriginal: true }
+			{
+				iso: '2025-06-15T09:00:00Z',
+				time: '09:00 AM',
+				endTime: '09:30 AM',
+				top: 10,
+				height: 5,
+				isOriginal: false
+			},
+			{
+				iso: '2025-06-15T09:30:00Z',
+				time: '09:30 AM',
+				endTime: '10:00 AM',
+				top: 15,
+				height: 5,
+				isOriginal: true
+			}
 		]);
 	});
 

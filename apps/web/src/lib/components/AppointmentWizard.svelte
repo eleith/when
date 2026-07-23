@@ -2,7 +2,6 @@
 	import { page } from '$app/state';
 	import DatePicker from '$lib/components/DatePicker.svelte';
 	import DayTimeline from '$lib/components/DayTimeline.svelte';
-	import DurationPrompt from '$lib/components/DurationPrompt.svelte';
 	import CalendarSkeleton from '$lib/components/CalendarSkeleton.svelte';
 	import TimelineSkeleton from '$lib/components/TimelineSkeleton.svelte';
 	import RescheduleBanner from '$lib/components/RescheduleBanner.svelte';
@@ -189,10 +188,14 @@
 				providerName={data.user.name}
 				eventName={data.eventType.name}
 				eventDescription={data.eventType.description}
-				{step}
 			/>
 
 			<div class="card-stage">
+				<h1 class="stage-title">
+					<span class="stage-step">Step {step} of 3:</span>
+					{#if step === 1}Pick a day{:else if step === 2}Pick a time{:else}Enter your info{/if}
+				</h1>
+
 				<div class="appointment-body">
 					{#if step === 1}
 						{#if ptz.current}
@@ -210,11 +213,7 @@
 								bookingStyle={data.eventType.booking_style}
 								originalSlot={rescheduleAppt?.start_time ?? null}
 								onEditDate={flow.goBack}
-							>
-								{#snippet beforeSlots()}
-									<DurationPrompt {durations} value={flow.duration} onSelect={flow.setDuration} />
-								{/snippet}
-							</DayTimeline>
+							/>
 						{:else}
 							<TimelineSkeleton rows={timelineSkeletonRows} />
 						{/if}
@@ -274,6 +273,22 @@
 		display: flex;
 		flex-direction: column;
 		padding: var(--space-7);
+	}
+
+	.stage-title {
+		font-size: var(--font-size-xl);
+		font-weight: 700;
+		line-height: 1.25;
+		margin: 0 0 var(--space-6);
+		padding-bottom: var(--space-5);
+		border-bottom: 1px solid var(--color-border);
+		color: var(--when-color-text);
+	}
+
+	.stage-step {
+		font-weight: 500;
+		color: var(--color-text-muted);
+		margin-right: var(--space-2);
 	}
 
 	.appointment-body {
@@ -384,7 +399,7 @@
 		}
 
 		.appointment {
-			padding: var(--space-5) var(--space-5) calc(var(--space-9) + 64px);
+			padding: 0 var(--space-5) calc(var(--space-9) + 64px);
 		}
 
 		.card {
@@ -393,10 +408,21 @@
 			border-radius: 0;
 			min-height: 0;
 			display: block;
+			overflow: visible;
 		}
 
 		.card-stage {
 			padding: 0;
+		}
+
+		.stage-title {
+			margin: 0 calc(var(--space-5) * -1) var(--space-5);
+			padding: var(--space-4) var(--space-5);
+			border-width: 1px 0;
+			border-style: solid;
+			border-color: var(--color-border);
+			border-radius: 0;
+			background: var(--color-surface);
 		}
 
 		.appointment :global(.timeline-scroll) {

@@ -1,11 +1,11 @@
 <script lang="ts">
-	import type { Snippet } from 'svelte';
 	import IconCaretLeft from 'virtual:icons/ph/caret-left';
 	import IconGlobe from 'virtual:icons/ph/globe';
-	import { formatDate, formatTzShort } from '$lib/datetime';
+	import { formatDate, formatTzShort, tzCity, tzOffset } from '$lib/datetime';
 	import { slotsOnDate, buildDayTimeline, type TimelineEventType } from '$lib/appointment';
 	import type { AppointmentFlow } from '$lib/appointmentFlow.svelte';
 	import TimezoneDialog from './TimezoneDialog.svelte';
+	import DurationDialog from './DurationDialog.svelte';
 
 	interface Props {
 		flow: AppointmentFlow;
@@ -15,7 +15,6 @@
 		bookingStyle?: 'insert' | 'select';
 		originalSlot?: string | null;
 		onEditDate?: (() => void) | null;
-		beforeSlots?: Snippet;
 	}
 
 	let {
@@ -25,19 +24,23 @@
 		eventType,
 		bookingStyle = 'insert',
 		originalSlot = null,
-		onEditDate = null,
-		beforeSlots
+		onEditDate = null
 	}: Props = $props();
 
 	// read-only views of the shared flow; all mutations go through flow.* below
 	let viewDate = $derived(flow.viewDate);
 	let selectedSlot = $derived(flow.selectedSlot);
 	let userTz = $derived(flow.userTz);
+	let durations = $derived(flow.durations);
 
 	// The picked length is flow state; overlay it onto the static event-type config.
 	let liveEventType = $derived({ ...eventType, duration_minutes: flow.duration });
 
+	let tzFull = $derived(formatTzShort(userTz));
+	let tzShort = $derived(tzOffset(userTz) || tzCity(userTz));
+
 	let tzOpen = $state(false);
+	let durationOpen = $state(false);
 
 	let daySlots = $derived(viewDate ? slotsOnDate(flow.allSlots, viewDate, userTz) : []);
 
@@ -183,12 +186,21 @@
 				{/if}
 				<h2 class="slots-date">{formatDate(viewDate)}</h2>
 			</div>
-			<button type="button" class="slots-tz" onclick={() => (tzOpen = true)}>
-				<span class="slots-tz-icon"><IconGlobe /></span>
-				<span class="slots-tz-text">{formatTzShort(userTz)}</span>
-			</button>
+			<div class="slots-meta">
+				{#if durations.length > 1}
+					<button type="button" class="slots-chip" onclick={() => (durationOpen = true)}>
+						<span class="slots-chip-text">{flow.duration} min</span>
+					</button>
+				{:else}
+					<span class="slots-static">{flow.duration} min</span>
+				{/if}
+				<button type="button" class="slots-chip" onclick={() => (tzOpen = true)}>
+					<span class="slots-chip-icon"><IconGlobe /></span>
+					<span class="slots-chip-text slots-tz-full">{tzFull}</span>
+					<span class="slots-chip-text slots-tz-short">{tzShort}</span>
+				</button>
+			</div>
 		</div>
-		{@render beforeSlots?.()}
 		<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 		<div class="timeline-scroll" tabindex="0">
 			<div class="timeline" style:height="{(timeline.totalMs / 3600000) * 96}px">
@@ -241,7 +253,7 @@
 									style:height="{s.height}%"
 									onclick={() => selectSlot(s.iso)}
 								>
-									<span class="slot-text">{s.time} ({flow.duration} min)</span>
+									<span class="slot-text">{s.time} – {s.endTime}</span>
 								</button>
 							{/if}
 						{/each}
@@ -264,7 +276,7 @@
 								style:height="{s.height}%"
 							>
 								<span class="slot-text">
-									{preview ? preview.time : s.time} ({flow.duration} min)
+									{preview ? preview.time : s.time} – {preview ? preview.endTime : s.endTime}
 								</span>
 							</div>
 						{/if}
@@ -291,6 +303,12 @@
 {/if}
 
 <TimezoneDialog bind:open={tzOpen} />
+<DurationDialog
+	bind:open={durationOpen}
+	{durations}
+	value={flow.duration}
+	onSelect={flow.setDuration}
+/>
 
 <style>
 	.timeline-container {
@@ -301,7 +319,7 @@
 	.slots-header {
 		display: flex;
 		justify-content: space-between;
-		align-items: baseline;
+		align-items: center;
 		gap: var(--space-4);
 		margin: 0 0 var(--space-7);
 	}
@@ -314,7 +332,7 @@
 	}
 
 	.slots-date {
-		font-size: var(--font-size-xl);
+		font-size: var(--font-size-lg);
 		font-weight: 600;
 		margin: 0;
 	}
@@ -346,7 +364,14 @@
 		}
 	}
 
-	.slots-tz {
+	.slots-meta {
+		display: flex;
+		align-items: center;
+		gap: var(--space-6);
+		flex-shrink: 0;
+	}
+
+	.slots-chip {
 		display: inline-flex;
 		align-items: center;
 		gap: var(--space-2);
@@ -364,7 +389,7 @@
 		transition: color var(--transition);
 	}
 
-	.slots-tz::before {
+	.slots-chip::before {
 		content: '';
 		position: absolute;
 		inset: calc(var(--space-4) * -1);
@@ -374,23 +399,43 @@
 		z-index: -1;
 	}
 
-	.slots-tz-text {
+	.slots-chip-text {
 		text-decoration: underline;
 		text-decoration-style: dotted;
 		text-underline-offset: 3px;
 	}
 
-	.slots-tz-icon {
+	.slots-static {
+		font-size: var(--font-size-sm);
+		color: var(--color-text-muted);
+		white-space: nowrap;
+	}
+
+	.slots-chip-icon {
 		display: inline-flex;
 		font-size: var(--font-size-base);
 	}
 
-	.slots-tz:hover {
+	.slots-chip:hover {
 		color: var(--when-color-text);
 	}
 
-	.slots-tz:hover::before {
+	.slots-chip:hover::before {
 		background: var(--color-surface-muted);
+	}
+
+	.slots-tz-short {
+		display: none;
+	}
+
+	@media (max-width: 768px) {
+		.slots-tz-full {
+			display: none;
+		}
+
+		.slots-tz-short {
+			display: inline;
+		}
 	}
 
 	.timeline-scroll {
