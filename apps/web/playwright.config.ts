@@ -14,6 +14,7 @@ export default defineConfig({
 	retries: process.env.CI ? 2 : 0,
 	use: {
 		baseURL: `http://localhost:${port}`,
+		timezoneId: 'UTC',
 		trace: 'on-first-retry'
 	},
 	projects: [

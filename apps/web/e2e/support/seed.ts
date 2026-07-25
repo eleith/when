@@ -15,10 +15,11 @@ export const CHAT_MEETING = {
 };
 
 // Live rows are unique on (event_type_id, start_time), and workers are separate processes.
+// A month out so seeds never occupy the near days the booking spec picks from.
 let seedsInThisWorker = 0;
 function unusedStart(): Date {
 	const offsetSeconds = (process.pid % 10_000) * 10 + seedsInThisWorker++;
-	return new Date(Date.now() + DAY_MS + offsetSeconds * 1000);
+	return new Date(Date.now() + 30 * DAY_MS + offsetSeconds * 1000);
 }
 
 export interface SeedAppointmentOptions {
