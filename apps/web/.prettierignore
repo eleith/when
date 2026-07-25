@@ -3,3 +3,6 @@
 build/
 static/
 coverage/
+test-results/
+playwright-report/
+blob-report/

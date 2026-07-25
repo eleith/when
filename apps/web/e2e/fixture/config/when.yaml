@@ -1,0 +1,55 @@
+# yaml-language-server: $schema=../../../../../packages/config/src/config.schema.json
+#
+# Fixture config for the Playwright suite, deliberately separate from the
+# developer's own `apps/web/config/when.yaml`. playwright.config.ts points
+# CONFIG_PATH here, which also makes this directory's parent the deployment
+# root, so the databases land in `e2e/fixture/data/` rather than `apps/web/data/`.
+#
+# No `${ENV_VAR}` references — a run must not depend on the developer's shell.
+# Nothing here is contacted over the network: the web app only reads busy times
+# the worker has already mirrored into SQLite, and no worker runs during E2E.
+
+auth:
+  credentials:
+    username: admin
+    password: e2e-admin-password
+
+user:
+  name: 'E2E Fixture'
+  email: 'e2e@example.test'
+  timezone: 'UTC'
+
+smtp:
+  host: 'smtp.example.test'
+  user: 'e2e@example.test'
+  pass: 'e2e-smtp-password'
+
+services:
+  - name: 'fixture-service'
+    type: 'caldav'
+    url: 'http://caldav.example.test/dav/'
+    username: 'e2e'
+    password: 'e2e-caldav-password'
+
+calendars:
+  - name: 'main'
+    type: 'caldav'
+    service: 'fixture-service'
+    path: 'calendars/e2e/main/'
+
+schedules:
+  - name: 'standard'
+    weekly:
+      - days: [mon, tue, wed, thu, fri]
+        from: '09:00'
+        to: '17:00'
+
+meetings:
+  - name: '30-minute chat'
+    slug: 'chat'
+    duration_minutes: 30
+    booking_approval: 'request'
+    description: 'A quick introductory call.'
+
+url:
+  app: 'http://localhost:4183'

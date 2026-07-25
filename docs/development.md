@@ -56,6 +56,17 @@ by **injecting dependencies** rather than reaching for globals — a `Clock` for
 fake `Mailer` for email, a fake workflow `step` for jobs. End-to-end tests live in
 `apps/web/e2e` (Playwright).
 
+E2E runs a production build against a self-contained fixture environment, never your own
+setup. `playwright.config.ts` builds and previews the app on port **4183** with
+`CONFIG_PATH` pointed at `apps/web/e2e/fixture/config/when.yaml`, which also makes
+`e2e/fixture/` the deployment root — so the suite's SQLite files land in
+`e2e/fixture/data/` (gitignored, dropped before every run) instead of `apps/web/data/`.
+`AUTH_SECRET` and `ENCRYPTION_KEY` are set to throwaway values in `webServer.env`, because
+`vite preview` feeds `.env` into `$env/dynamic/private` only and never into `process.env`.
+Your `config/when.yaml`, `data/`, and dev server on 5173 are untouched, so the two can run
+side by side. Browsers install once with
+`pnpm --filter @when/web exec playwright install chromium`.
+
 ## Conventions
 
 - **Tooling:** pnpm and Node 24 only — no bun, no `npm`/`npx`. Run TypeScript CLIs under
