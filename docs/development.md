@@ -6,7 +6,7 @@ measured against.
 
 ## Setup
 
-Requires Node 24 and pnpm. Install dependencies:
+Requires Node 26 (pinned in `mise.toml`) and pnpm. Install dependencies:
 
 ```sh
 pnpm install
@@ -69,7 +69,7 @@ side by side. Browsers install once with
 
 ## Conventions
 
-- **Tooling:** pnpm and Node 24 only — no bun, no `npm`/`npx`. Run TypeScript CLIs under
+- **Tooling:** pnpm and Node 26 only — no bun, no `npm`/`npx`. Run TypeScript CLIs under
   `tsx`.
 - **Exact versions:** pin dependencies exactly (no `^`/`~` ranges); add with
   `pnpm add -E`. Shared tool versions live in the `pnpm-workspace.yaml` catalog

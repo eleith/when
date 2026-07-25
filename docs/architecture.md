@@ -5,12 +5,13 @@ How "When" is built. For _why_ it's built this way, see
 
 ## Stack
 
-Node 24, TypeScript (`strict`), pnpm workspaces. SvelteKit (`@sveltejs/adapter-node`)
+Node 26, TypeScript (`strict`), pnpm workspaces. SvelteKit (`@sveltejs/adapter-node`)
 for the web app. SQLite through Node's built-in `node:sqlite` behind a small Kysely
 dialect. [openworkflow](https://openworkflow.dev) for durable background jobs. Vitest
 for tests, Prettier + ESLint for formatting/linting. Email templates render with Eta;
-zoned time math uses `@js-temporal/polyfill`; calendar iCal in and out goes through
-`ts-ics`.
+zoned time math uses Node's native `Temporal` on the server and `temporal-polyfill`'s
+function-style entrypoints (`temporal-polyfill/fns/*`) in the browser; calendar iCal in
+and out goes through `ts-ics`.
 
 ## Monorepo layout
 
