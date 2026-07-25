@@ -39,3 +39,6 @@ minimumReleaseAgeExclude:
   - '@takumi-rs/helpers@2.2.0'
   - '@takumi-rs/wasm@2.2.0'
   - takumi-js@2.2.0
+  - '@playwright/test@1.62.0'
+  - playwright-core@1.62.0
+  - playwright@1.62.0
