@@ -1,10 +1,8 @@
 import { fileURLToPath } from 'node:url';
 import { defineConfig, devices } from '@playwright/test';
 
-// E2E runs against its own config, port, and databases so it never reads or
-// disturbs the developer's `config/when.yaml`, dev server, or `data/`.
-// CONFIG_PATH also fixes the deployment root, which puts the fixture's SQLite
-// files under `e2e/fixture/data/`.
+// CONFIG_PATH below also sets the deployment root, which is what keeps the fixture's
+// sqlite files out of the developer's apps/web/data/.
 const port = 4183;
 const configPath = fileURLToPath(new URL('./e2e/fixture/config/when.yaml', import.meta.url));
 
@@ -26,11 +24,10 @@ export default defineConfig({
 	],
 	webServer: {
 		command: `node e2e/reset-fixture.mjs && pnpm build && pnpm preview --port ${port}`,
-		url: `http://localhost:${port}`,
+		url: `http://localhost:${port}/healthz`,
 		reuseExistingServer: !process.env.CI,
-		// `vite preview` feeds .env into $env/dynamic/private only, never into
-		// process.env, so boot's requireAuthSecret() sees nothing unless the
-		// values are set on the spawned process here.
+		// `vite preview` feeds .env into $env/dynamic/private only, never process.env,
+		// which boot's requireAuthSecret() reads.
 		env: {
 			CONFIG_PATH: configPath,
 			AUTH_SECRET: 'e2e-auth-secret-not-used-outside-tests',

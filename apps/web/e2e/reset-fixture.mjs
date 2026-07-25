@@ -1,5 +1,4 @@
-// Drops the fixture databases so each Playwright run starts from a freshly
-// migrated schema — the app recreates and migrates them at boot.
+// The app recreates and migrates the databases at boot.
 import { rm } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 

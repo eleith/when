@@ -1,13 +1,7 @@
 # yaml-language-server: $schema=../../../../../packages/config/src/config.schema.json
 #
-# Fixture config for the Playwright suite, deliberately separate from the
-# developer's own `apps/web/config/when.yaml`. playwright.config.ts points
-# CONFIG_PATH here, which also makes this directory's parent the deployment
-# root, so the databases land in `e2e/fixture/data/` rather than `apps/web/data/`.
-#
-# No `${ENV_VAR}` references — a run must not depend on the developer's shell.
-# Nothing here is contacted over the network: the web app only reads busy times
-# the worker has already mirrored into SQLite, and no worker runs during E2E.
+# Fixture config for the Playwright suite. No `${ENV_VAR}` references — a run must
+# not depend on the developer's shell.
 
 auth:
   credentials:
