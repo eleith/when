@@ -1,4 +1,6 @@
 import { expect, test } from '@playwright/test';
+import { parseActionLog } from '@when/db';
+import { readAppointment, readQueuedWorkflows } from './support/database.ts';
 import { CHAT_MEETING, seedAppointment } from './support/seed.ts';
 
 test('a guest with the cancel token sees the appointment', async ({ page }) => {
@@ -20,6 +22,19 @@ test('a guest cancels a confirmed appointment', async ({ page }) => {
 	await page.getByRole('button', { name: 'Submit' }).click();
 
 	await expect(page.getByRole('heading', { name: 'Cancelled', exact: true })).toBeVisible();
+
+	// The reason never appears on the page, so the row is the only place it can be
+	// proved to have survived the form post.
+	const row = await readAppointment(appointment.id);
+	expect(row.status).toBe('cancelled');
+	expect(parseActionLog(row.action_log).at(-1)).toMatchObject({
+		action: 'cancel',
+		actor: 'guest',
+		payload: { note: 'Something came up' }
+	});
+	expect(
+		readQueuedWorkflows(`${appointment.id}:cancelled-by-guest:${row.ics_sequence}`)
+	).toHaveLength(1);
 });
 
 test('a guest without a token cannot see the appointment', async ({ page }) => {

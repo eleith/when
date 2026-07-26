@@ -1,8 +1,6 @@
 import { randomUUID } from 'node:crypto';
-import { fileURLToPath } from 'node:url';
 import { createActionLog, openDb, type Appointment, type AppointmentStatus } from '@when/db';
-
-const DB_PATH = fileURLToPath(new URL('../fixture/data/when.sqlite', import.meta.url));
+import { APP_DB_PATH } from './database.ts';
 
 const MINUTE_MS = 60_000;
 const DAY_MS = 24 * 60 * MINUTE_MS;
@@ -34,7 +32,7 @@ export async function seedAppointment(options: SeedAppointmentOptions = {}): Pro
 	const start = options.start ?? unusedStart();
 	const durationMinutes = options.durationMinutes ?? CHAT_MEETING.durationMinutes;
 	const id = `e2e-${randomUUID()}`;
-	const db = openDb(DB_PATH);
+	const db = openDb(APP_DB_PATH);
 
 	try {
 		return await db
