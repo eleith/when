@@ -56,16 +56,44 @@ by **injecting dependencies** rather than reaching for globals — a `Clock` for
 fake `Mailer` for email, a fake workflow `step` for jobs. End-to-end tests live in
 `apps/web/e2e` (Playwright).
 
-E2E runs a production build against a self-contained fixture environment, never your own
-setup. `playwright.config.ts` builds and previews the app on port **4183** with
-`CONFIG_PATH` pointed at `apps/web/e2e/fixture/config/when.yaml`, which also makes
-`e2e/fixture/` the deployment root — so the suite's SQLite files land in
-`e2e/fixture/data/` (gitignored, dropped before every run) instead of `apps/web/data/`.
-`AUTH_SECRET` and `ENCRYPTION_KEY` are set to throwaway values in `webServer.env`, because
-`vite preview` feeds `.env` into `$env/dynamic/private` only and never into `process.env`.
-Your `config/when.yaml`, `data/`, and dev server on 5173 are untouched, so the two can run
-side by side. Browsers install once with
-`pnpm --filter @when/web exec playwright install chromium`.
+### End-to-end
+
+E2E covers what only a browser and a real server round trip can prove: SSR through
+hydration, form actions and redirects, the auth gate as an HTTP boundary, and the client
+router reconciling URL state. Availability maths, validation and templates stay in Vitest,
+where they are cheaper. Five specs — booking, deep links, auth, approval, cancellation.
+
+It runs a production build against a self-contained fixture, never your own setup.
+`playwright.config.ts` builds and previews on port **4183** with `CONFIG_PATH` pointed at
+`e2e/fixture/config/when.yaml`, which also makes `e2e/fixture/` the deployment root, so the
+suite's SQLite files land in `e2e/fixture/data/` (gitignored, dropped before every run)
+rather than `apps/web/data/`. `AUTH_SECRET` and `ENCRYPTION_KEY` come from `webServer.env`,
+because `vite preview` feeds `.env` into `$env/dynamic/private` only, never `process.env`.
+Your `config/when.yaml`, `data/` and dev server on 5173 are untouched.
+
+Two rules keep it stable, both learned the hard way:
+
+- **Derive, never hardcode.** Availability is computed from the wall clock, so specs pick
+  the first available day and read times back out of the page. The only literal date is the
+  one the deep-link spec deliberately wants to be unavailable.
+- **Assert on the row you seeded, never on totals.** Workers share one database.
+  `e2e/support/seed.ts` writes appointments directly for states the UI cannot reach (a
+  pending request, a past booking), giving each a unique id, token and start time — live
+  rows are unique on `(event_type_id, start_time)`.
+
+Running it needs `pnpm build:packages` first: `vite build` resolves `@when/*` to `dist/`,
+not source. Browsers install once per Playwright version, and the version matters —
+`@playwright/test` and the browsers on disk must match, or Playwright cannot find an
+executable:
+
+```sh
+pnpm --filter @when/web exec playwright install chromium
+```
+
+CI runs the suite in both pipelines from a prebuilt image
+(`eleith/containers` → `playwright`) that carries the browsers and Node 26. Its tag and
+`@playwright/test` are a matched pair — **bump them together**. Publishing waits on the
+suite in both pipelines.
 
 ## Conventions
 
