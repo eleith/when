@@ -52,6 +52,12 @@ steps:
       - corepack enable
       - pnpm run test:coverage
 
+  e2e:
+    image: git.eleith.com/eleith.private/playwright:1.61.1-node26
+    commands:
+      - cd apps/web
+      - pnpm run test:e2e
+
   check-version:
     image: node:26
     commands:

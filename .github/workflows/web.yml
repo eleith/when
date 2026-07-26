@@ -59,8 +59,32 @@ jobs:
       - name: Test
         run: pnpm run test:coverage
 
-  build-push:
+  e2e:
     needs: check
+    runs-on: ubuntu-latest
+    # Ships the browsers @playwright/test expects; bump both together or it cannot find them.
+    container:
+      image: ghcr.io/eleith/containers-playwright:1.61.1-node26
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install dependencies
+        working-directory: .
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared packages
+        working-directory: .
+        run: pnpm build:packages
+
+      - name: Test
+        run: pnpm run test:e2e
+
+  build-push:
+    needs: [check, e2e]
     runs-on: ubuntu-latest
     permissions:
       contents: read
