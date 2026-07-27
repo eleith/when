@@ -11,8 +11,7 @@
 	const TAB_LABELS: Record<string, string> = {
 		upcoming: 'Upcoming',
 		pending: 'Pending',
-		concluded: 'Concluded',
-		archived: 'Archived',
+		past: 'Past',
 		purged: 'Purged'
 	};
 

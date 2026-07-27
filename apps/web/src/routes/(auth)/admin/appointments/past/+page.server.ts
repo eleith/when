@@ -15,13 +15,13 @@ export const load: PageServerLoad = async ({ url }) => {
 	let page = pageParam ? parseInt(pageParam, 10) : 1;
 	if (isNaN(page) || page < 1) page = 1;
 
-	const total = await countAppointments(db, { bucket: 'archived', now });
+	const total = await countAppointments(db, { bucket: 'past', now });
 	const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
 	if (page > pageCount) page = pageCount;
 
 	const offset = (page - 1) * PAGE_SIZE;
 	const rows = await listAppointmentsPage(db, {
-		bucket: 'archived',
+		bucket: 'past',
 		now,
 		limit: PAGE_SIZE,
 		offset

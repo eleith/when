@@ -9,6 +9,9 @@
 	let currentPath = $derived(page.url.pathname);
 	let badCalendars = $derived(data.calendars.filter((c) => c.health === 'bad'));
 
+	// Purged is reachable from the dashboard, not from the tabs.
+	let showTabs = $derived(currentPath !== '/admin/appointments/purged');
+
 	let currentPage = $derived(page.data.page ?? 1);
 	let pageCount = $derived(page.data.pageCount ?? 1);
 	let prevHref = $derived(currentPage > 1 ? `?page=${currentPage - 1}` : null);
@@ -41,51 +44,39 @@
 
 	<div class="card appointments-card">
 		<h1 class="visibility-hidden">When Admin</h1>
-		<div class="card-header">
-			<div class="tabs-strip">
-				<a
-					href="/admin/appointments/upcoming"
-					class="sub-tab"
-					class:active={currentPath === '/admin/appointments/upcoming'}
-				>
-					Upcoming
-					{#if data.upcomingCount > 0}
-						<span class="tab-badge">{data.upcomingCount}</span>
-					{/if}
-				</a>
-				<a
-					href="/admin/appointments/pending"
-					class="sub-tab"
-					class:active={currentPath === '/admin/appointments/pending'}
-				>
-					Pending
-					{#if data.pendingCount > 0}
-						<span class="tab-badge tab-badge-pending">{data.pendingCount}</span>
-					{/if}
-				</a>
-				<a
-					href="/admin/appointments/concluded"
-					class="sub-tab"
-					class:active={currentPath === '/admin/appointments/concluded'}
-				>
-					Concluded
-				</a>
-				<a
-					href="/admin/appointments/archived"
-					class="sub-tab"
-					class:active={currentPath === '/admin/appointments/archived'}
-				>
-					Archived
-				</a>
-				<a
-					href="/admin/appointments/purged"
-					class="sub-tab"
-					class:active={currentPath === '/admin/appointments/purged'}
-				>
-					Purged
-				</a>
+		{#if showTabs}
+			<div class="card-header">
+				<div class="tabs-strip">
+					<a
+						href="/admin/appointments/upcoming"
+						class="sub-tab"
+						class:active={currentPath === '/admin/appointments/upcoming'}
+					>
+						Upcoming
+						{#if data.upcomingCount > 0}
+							<span class="tab-badge">{data.upcomingCount}</span>
+						{/if}
+					</a>
+					<a
+						href="/admin/appointments/pending"
+						class="sub-tab"
+						class:active={currentPath === '/admin/appointments/pending'}
+					>
+						Pending
+						{#if data.pendingCount > 0}
+							<span class="tab-badge tab-badge-pending">{data.pendingCount}</span>
+						{/if}
+					</a>
+					<a
+						href="/admin/appointments/past"
+						class="sub-tab"
+						class:active={currentPath === '/admin/appointments/past'}
+					>
+						Past
+					</a>
+				</div>
 			</div>
-		</div>
+		{/if}
 
 		<div class="card-content">
 			{@render children()}

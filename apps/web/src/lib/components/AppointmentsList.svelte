@@ -6,7 +6,7 @@
 
 	interface Props {
 		appointments: ReturnType<typeof toAppointmentView>[];
-		bucket?: 'upcoming' | 'pending' | 'concluded' | 'archived' | 'purged';
+		bucket?: 'upcoming' | 'pending' | 'past' | 'purged';
 	}
 
 	let { appointments, bucket = 'upcoming' }: Props = $props();

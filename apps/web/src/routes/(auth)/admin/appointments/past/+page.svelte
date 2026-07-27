@@ -5,15 +5,15 @@
 </script>
 
 <svelte:head>
-	<title>Archived Appointments — When</title>
+	<title>Past Appointments — When</title>
 </svelte:head>
 
 {#if data.appointments.length === 0}
 	<div class="empty-state">
-		<p class="empty-text">No archived appointments.</p>
+		<p class="empty-text">No past appointments.</p>
 	</div>
 {:else}
-	<AppointmentsList appointments={data.appointments} bucket="archived" />
+	<AppointmentsList appointments={data.appointments} bucket="past" />
 {/if}
 
 <style>

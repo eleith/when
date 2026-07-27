@@ -3,7 +3,7 @@
 	type BulkAction = 'delete' | 'cancel' | 'accept' | 'decline';
 
 	interface Props {
-		bucket: 'upcoming' | 'pending' | 'concluded' | 'archived' | 'purged';
+		bucket: 'upcoming' | 'pending' | 'past' | 'purged';
 		selectedCount: number;
 		onAction: (action: BulkAction) => void;
 	}
@@ -13,7 +13,7 @@
 
 <div class="bulk-actions-bar" class:has-selection={selectedCount > 0}>
 	<div class="action-buttons">
-		{#if bucket === 'concluded' || bucket === 'archived'}
+		{#if bucket === 'past'}
 			<button
 				type="button"
 				class="btn-outline btn-danger"
