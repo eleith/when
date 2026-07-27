@@ -97,18 +97,22 @@
 					{#if prevHref}
 						<a href={prevHref} class="pagination-link" aria-label="Previous page">
 							<IconCaretLeft aria-hidden="true" />
+							<span>Previous</span>
 						</a>
 					{:else}
 						<span class="pagination-link disabled">
 							<IconCaretLeft aria-hidden="true" />
+							<span>Previous</span>
 						</span>
 					{/if}
 					{#if nextHref}
 						<a href={nextHref} class="pagination-link" aria-label="Next page">
+							<span>Next</span>
 							<IconCaretRight aria-hidden="true" />
 						</a>
 					{:else}
 						<span class="pagination-link disabled">
+							<span>Next</span>
 							<IconCaretRight aria-hidden="true" />
 						</span>
 					{/if}
@@ -231,8 +235,15 @@
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		width: 28px;
-		height: 28px;
+		gap: var(--space-1);
+		min-width: 44px;
+		min-height: 44px;
+		padding: 0 var(--space-2);
+		font-size: var(--font-size-md);
+		font-weight: 600;
+	}
+
+	.pagination-link :global(svg) {
 		font-size: var(--font-size-xl);
 	}
 
