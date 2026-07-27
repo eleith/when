@@ -35,7 +35,7 @@ async function expireStalePending(db: Kysely<Database>, nowIso: string): Promise
 	return Number(result.numUpdatedRows);
 }
 
-type AppointmentBucket = 'pending' | 'upcoming' | 'past' | 'concluded' | 'archived' | 'purged';
+type AppointmentBucket = 'pending' | 'upcoming' | 'past' | 'purged';
 
 function listAppointmentsPage(
 	db: Kysely<Database>,
@@ -76,10 +76,6 @@ function applyBucket<Selected>(
 					eb('status', 'in', ['declined', 'cancelled', 'expired'])
 				])
 			);
-		case 'concluded':
-			return qb.where('status', '=', 'confirmed').where('end_time', '<=', nowIso);
-		case 'archived':
-			return qb.where('status', 'in', ['declined', 'cancelled', 'expired']);
 		case 'purged':
 			return qb.where('status', '=', 'purged');
 	}

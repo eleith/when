@@ -256,26 +256,6 @@ test('bucket listings and counts', async () => {
 		});
 		expect(upcomingList.map((a) => a.id)).toEqual(['upcoming-inprogress', 'upcoming1']);
 
-		// --- Test Concluded ---
-		expect(await countAppointments(db, { bucket: 'concluded', now })).toBe(2);
-		const concludedList = await listAppointmentsPage(db, {
-			bucket: 'concluded',
-			now,
-			limit: 10,
-			offset: 0
-		});
-		expect(concludedList.map((a) => a.id)).toEqual(['concluded1', 'concluded2']);
-
-		// --- Test Archived ---
-		expect(await countAppointments(db, { bucket: 'archived', now })).toBe(3);
-		const archivedList = await listAppointmentsPage(db, {
-			bucket: 'archived',
-			now,
-			limit: 10,
-			offset: 0
-		});
-		expect(archivedList.map((a) => a.id)).toEqual(['cancelled1', 'declined1', 'expired1']);
-
 		// --- Test Past (concluded + archived, excluding rescheduled and purged) ---
 		expect(await countAppointments(db, { bucket: 'past', now })).toBe(5);
 		const pastList = await listAppointmentsPage(db, {
