@@ -193,7 +193,7 @@
 		.btn-outline {
 			flex: 1;
 			height: auto;
-			min-height: 56px;
+			min-height: var(--when-bottom-bar-height);
 			font-size: var(--font-size-md);
 		}
 	}

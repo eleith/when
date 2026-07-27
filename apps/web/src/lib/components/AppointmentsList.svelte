@@ -414,7 +414,9 @@
 		}
 
 		.bulk-bar-spacer.has-selection {
-			height: calc(56px + var(--space-4) * 2 + env(safe-area-inset-bottom));
+			height: calc(
+				var(--when-bottom-bar-height) + var(--space-4) * 2 + env(safe-area-inset-bottom)
+			);
 		}
 	}
 </style>

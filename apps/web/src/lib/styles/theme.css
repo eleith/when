@@ -107,6 +107,9 @@
 	--radius-md: 12px;
 	--radius-pill: 999px;
 
+	/* Height of the mobile bottom bars, which must agree so they can occupy one slot. */
+	--when-bottom-bar-height: 56px;
+
 	--transition: 0.15s;
 
 	/* --when-font-family: injected from config appearance */
