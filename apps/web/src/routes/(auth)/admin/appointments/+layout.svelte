@@ -18,7 +18,7 @@
 	let nextHref = $derived(currentPage < pageCount ? `?page=${currentPage + 1}` : null);
 </script>
 
-<div class="appointments-layout">
+<div class="appointments-layout" class:has-bottom-bar={showTabs}>
 	{#if data.conflictCount > 0}
 		<div class="review-banner" role="alert">
 			<IconWarning class="review-icon" aria-hidden="true" />
@@ -276,5 +276,47 @@
 
 	.health-cal {
 		font-weight: 700;
+	}
+
+	/* Mobile: the tabs become the bottom nav. The bulk action bar sits at a higher z-index
+	   with an opaque background, so it covers these without either knowing about the other. */
+	@media (max-width: 768px) {
+		.card-header {
+			position: fixed;
+			bottom: 0;
+			left: 0;
+			right: 0;
+			z-index: 90;
+			background: var(--color-surface);
+			border-top: 1px solid var(--color-border);
+			padding-bottom: env(safe-area-inset-bottom);
+			box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08);
+		}
+
+		.tabs-strip {
+			height: var(--when-bottom-bar-height);
+			padding: 0;
+			border-bottom: none;
+		}
+
+		.sub-tab {
+			flex: 1;
+			justify-content: center;
+			height: 100%;
+			padding: 0;
+			border-bottom: none;
+			border-top: 2px solid transparent;
+		}
+
+		.sub-tab.active {
+			border-top-color: var(--when-color-primary);
+		}
+
+		/* Clears the fixed bar. Sized to the action bar, the taller of the two. */
+		.has-bottom-bar {
+			padding-bottom: calc(
+				var(--when-bottom-bar-height) + var(--space-4) * 2 + env(safe-area-inset-bottom)
+			);
+		}
 	}
 </style>

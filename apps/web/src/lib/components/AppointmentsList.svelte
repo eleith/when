@@ -134,15 +134,6 @@
 	{/each}
 </ul>
 
-<!-- Must be last in the flow, or the gap lands above the first row instead of below the last. -->
-{#if supportsSelection}
-	<div
-		class="bulk-bar-spacer"
-		class:has-selection={selectedIds.length > 0}
-		aria-hidden="true"
-	></div>
-{/if}
-
 {#if dialogOpen && activeAction}
 	<AppointmentsBulkDialog bind:open={dialogOpen} action={activeAction} {selectedIds} />
 {/if}
@@ -206,10 +197,6 @@
 	.details-time,
 	.details-status {
 		min-width: 0;
-	}
-
-	.bulk-bar-spacer {
-		height: 0;
 	}
 
 	.action-target {
@@ -411,12 +398,6 @@
 		.action-target {
 			grid-column: 3;
 			grid-row: 1 / span 2;
-		}
-
-		.bulk-bar-spacer.has-selection {
-			height: calc(
-				var(--when-bottom-bar-height) + var(--space-4) * 2 + env(safe-area-inset-bottom)
-			);
 		}
 	}
 </style>
