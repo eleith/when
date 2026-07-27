@@ -154,9 +154,7 @@
 	}
 
 	/* ---- sub-tabs (underline style flush to header bottom) ---- */
-	/* The hairline and padding live here rather than on .card-header so the strip can
-	   scroll horizontally: an overflow-x container clips the y axis too, which would eat
-	   the underline a negative margin used to hang over the header's border. */
+	/* Hairline lives here, not on .card-header: overflow-x clips the y axis too. */
 	.tabs-strip {
 		display: flex;
 		flex-wrap: nowrap;

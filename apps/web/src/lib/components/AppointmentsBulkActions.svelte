@@ -1,4 +1,4 @@
-<!-- The admin list's bulk action bar: which actions a bucket offers, and the selection count. -->
+<!-- Bulk actions for the admin list: above the table on desktop, fixed to the bottom on mobile. -->
 <script lang="ts">
 	type BulkAction = 'delete' | 'cancel' | 'accept' | 'decline';
 
@@ -11,12 +11,7 @@
 	let { bucket, selectedCount, onAction }: Props = $props();
 </script>
 
-<div class="table-actions-bar">
-	<span class="selected-count">
-		{#if selectedCount > 0}
-			{selectedCount} appointment{#if selectedCount !== 1}s{/if} selected
-		{/if}
-	</span>
+<div class="table-actions-bar" class:has-selection={selectedCount > 0}>
 	<div class="action-buttons">
 		{#if bucket === 'concluded' || bucket === 'archived'}
 			<button
@@ -25,7 +20,7 @@
 				disabled={selectedCount === 0}
 				onclick={() => onAction('delete')}
 			>
-				Delete
+				Delete{#if selectedCount > 0}&nbsp;{selectedCount}{/if}
 			</button>
 		{:else if bucket === 'upcoming'}
 			<button
@@ -34,7 +29,7 @@
 				disabled={selectedCount === 0}
 				onclick={() => onAction('cancel')}
 			>
-				Cancel
+				Cancel{#if selectedCount > 0}&nbsp;{selectedCount}{/if}
 			</button>
 		{:else if bucket === 'pending'}
 			<button
@@ -43,7 +38,7 @@
 				disabled={selectedCount === 0}
 				onclick={() => onAction('accept')}
 			>
-				Accept
+				Accept{#if selectedCount > 0}&nbsp;{selectedCount}{/if}
 			</button>
 			<button
 				type="button"
@@ -51,7 +46,7 @@
 				disabled={selectedCount === 0}
 				onclick={() => onAction('decline')}
 			>
-				Decline
+				Decline{#if selectedCount > 0}&nbsp;{selectedCount}{/if}
 			</button>
 		{/if}
 	</div>
@@ -61,16 +56,10 @@
 	.table-actions-bar {
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
+		justify-content: flex-end;
 		padding: var(--space-3) var(--space-5);
 		background: var(--when-color-surface-page);
 		border-bottom: 1px solid var(--color-border);
-	}
-
-	.selected-count {
-		font-size: var(--font-size-sm);
-		font-weight: 600;
-		color: var(--color-text-secondary);
 	}
 
 	.action-buttons {
@@ -131,5 +120,48 @@
 	.btn-outline.btn-success:not(:disabled):hover {
 		background: var(--color-success-bg);
 		border-color: var(--color-success-strong);
+	}
+
+	@media (max-width: 768px) {
+		.table-actions-bar {
+			position: fixed;
+			bottom: 0;
+			left: 0;
+			right: 0;
+			z-index: 100;
+			padding: var(--space-4) var(--space-5);
+			padding-bottom: calc(var(--space-4) + env(safe-area-inset-bottom));
+			background: var(--color-surface);
+			border-top: 1px solid var(--color-border);
+			border-bottom: none;
+			box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08);
+			animation: bulk-bar-slide-up 0.2s ease-out;
+		}
+
+		.table-actions-bar:not(.has-selection) {
+			display: none;
+		}
+
+		.action-buttons {
+			width: 100%;
+			gap: var(--space-4);
+		}
+
+		/* One row keeps the bar a constant height, which .bulk-bar-spacer depends on. */
+		.btn-outline {
+			flex: 1;
+			height: auto;
+			min-height: 56px;
+			font-size: var(--font-size-md);
+		}
+	}
+
+	@keyframes bulk-bar-slide-up {
+		from {
+			transform: translateY(100%);
+		}
+		to {
+			transform: translateY(0);
+		}
 	}
 </style>

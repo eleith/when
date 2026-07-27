@@ -18,7 +18,7 @@
 	let activeAction = $state<'delete' | 'cancel' | 'accept' | 'decline' | null>(null);
 	let cancelReason = $state('I can no longer attend');
 
-	let hasActionColumn = $derived(bucket !== 'purged');
+	let supportsSelection = $derived(bucket !== 'purged');
 
 	// Reset selection on tab/appointments change
 	$effect(() => {
@@ -77,14 +77,16 @@
 	}
 </script>
 
-<AppointmentsBulkActions {bucket} selectedCount={selectedIds.length} onAction={triggerAction} />
+{#if supportsSelection}
+	<AppointmentsBulkActions {bucket} selectedCount={selectedIds.length} onAction={triggerAction} />
+{/if}
 
 <div class="table-wrap">
 	<table>
 		<thead>
 			<tr>
 				<th>Appointment</th>
-				{#if hasActionColumn}
+				{#if supportsSelection}
 					<th class="cell-action-header">
 						<label class="action-target">
 							<input
@@ -144,7 +146,7 @@
 							</div>
 						</div>
 					</td>
-					{#if hasActionColumn}
+					{#if supportsSelection}
 						<td class="cell-action" onclick={(e) => e.stopPropagation()}>
 							<label class="action-target">
 								<input
@@ -161,6 +163,15 @@
 		</tbody>
 	</table>
 </div>
+
+<!-- Must be last in the flow, or the gap lands above the first row instead of below the last. -->
+{#if supportsSelection}
+	<div
+		class="bulk-bar-spacer"
+		class:has-selection={selectedIds.length > 0}
+		aria-hidden="true"
+	></div>
+{/if}
 
 {#if dialogOpen && activeAction}
 	<Dialog.Root bind:open={dialogOpen}>
@@ -357,8 +368,11 @@
 		background: var(--color-surface-active);
 	}
 
-	/* Checkbox column styling. The padding lives on .action-target, not the cell, so the
-	   whole column is tappable rather than just the 18px input. */
+	.bulk-bar-spacer {
+		height: 0;
+	}
+
+	/* Padding lives on .action-target so the whole column is tappable. */
 	.cell-action-header,
 	.cell-action {
 		width: 60px;
@@ -728,6 +742,10 @@
 
 		.action-target {
 			padding: var(--space-3) var(--space-4);
+		}
+
+		.bulk-bar-spacer.has-selection {
+			height: calc(56px + var(--space-4) * 2 + env(safe-area-inset-bottom));
 		}
 
 		.details-layout {
