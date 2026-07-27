@@ -1,17 +1,25 @@
-<!-- Bulk actions for the admin list: above the table on desktop, fixed to the bottom on mobile. -->
+<!-- Bulk actions for the admin list: above the list on desktop, fixed to the bottom on mobile. -->
 <script lang="ts">
+	import IconX from 'virtual:icons/ph/x';
+
 	type BulkAction = 'delete' | 'cancel' | 'accept' | 'decline';
 
 	interface Props {
 		bucket: 'upcoming' | 'pending' | 'past' | 'purged';
 		selectedCount: number;
 		onAction: (action: BulkAction) => void;
+		onClear: () => void;
 	}
 
-	let { bucket, selectedCount, onAction }: Props = $props();
+	let { bucket, selectedCount, onAction, onClear }: Props = $props();
 </script>
 
 <div class="bulk-actions-bar" class:has-selection={selectedCount > 0}>
+	{#if selectedCount > 0}
+		<button type="button" class="clear-button" onclick={onClear} aria-label="Clear selection">
+			<IconX aria-hidden="true" />
+		</button>
+	{/if}
 	<div class="action-buttons">
 		{#if bucket === 'past'}
 			<button
@@ -60,6 +68,33 @@
 		padding: var(--space-3) var(--space-5);
 		background: var(--when-color-surface-page);
 		border-bottom: 1px solid var(--color-border);
+	}
+
+	/* Pushed to the far edge so it reads as dismissing the bar, not as another action. */
+	.clear-button {
+		margin-right: auto;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		height: 36px;
+		min-width: 36px;
+		background: none;
+		border: none;
+		border-radius: var(--radius-sm);
+		color: var(--color-text-secondary);
+		cursor: pointer;
+		transition:
+			background var(--transition),
+			color var(--transition);
+	}
+
+	.clear-button:hover {
+		background: var(--color-surface-active);
+		color: var(--when-color-text);
+	}
+
+	.clear-button :global(svg) {
+		font-size: var(--font-size-xl);
 	}
 
 	.action-buttons {
@@ -142,9 +177,16 @@
 			display: none;
 		}
 
+		/* flex, not width:100%, so the buttons share the row with the clear control. */
 		.action-buttons {
-			width: 100%;
+			flex: 1;
 			gap: var(--space-4);
+		}
+
+		.clear-button {
+			margin-right: var(--space-4);
+			height: 44px;
+			min-width: 44px;
 		}
 
 		/* One row keeps the bar a constant height, which .bulk-bar-spacer depends on. */

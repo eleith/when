@@ -60,7 +60,12 @@
 </script>
 
 {#if supportsSelection}
-	<AppointmentsBulkActions {bucket} selectedCount={selectedIds.length} onAction={triggerAction} />
+	<AppointmentsBulkActions
+		{bucket}
+		selectedCount={selectedIds.length}
+		onAction={triggerAction}
+		onClear={() => (selectedIds = [])}
+	/>
 {/if}
 
 <div class="list-header">
