@@ -137,8 +137,6 @@
 
 	.card-header {
 		background: var(--when-color-surface-page);
-		border-bottom: 1px solid var(--color-border);
-		padding: 0 var(--space-2);
 	}
 
 	.card-content {
@@ -152,22 +150,38 @@
 	}
 
 	/* ---- sub-tabs (underline style flush to header bottom) ---- */
+	/* The hairline and padding live here rather than on .card-header so the strip can
+	   scroll horizontally: an overflow-x container clips the y axis too, which would eat
+	   the underline a negative margin used to hang over the header's border. */
 	.tabs-strip {
 		display: flex;
+		flex-wrap: nowrap;
 		gap: var(--space-2);
+		padding: 0 var(--space-2);
+		border-bottom: 1px solid var(--color-border);
+		overflow-x: auto;
+		overflow-y: hidden;
+		scroll-snap-type: x proximity;
+		scrollbar-width: none;
+	}
+
+	.tabs-strip::-webkit-scrollbar {
+		display: none;
 	}
 
 	.sub-tab {
 		display: inline-flex;
 		align-items: center;
 		gap: var(--space-2);
+		flex-shrink: 0;
+		white-space: nowrap;
+		scroll-snap-align: start;
 		font-size: var(--font-size-base);
 		font-weight: 600;
 		color: var(--color-text-muted);
 		text-decoration: none;
 		padding: var(--space-4) var(--space-3);
 		border-bottom: 2px solid transparent;
-		margin-bottom: -1px;
 		transition:
 			border-color var(--transition),
 			color var(--transition);
