@@ -129,7 +129,7 @@
 				<th>Appointment</th>
 				{#if hasActionColumn}
 					<th class="cell-action-header">
-						<div class="action-header-content">
+						<label class="action-target">
 							<input
 								type="checkbox"
 								class="header-checkbox"
@@ -137,7 +137,7 @@
 								onchange={handleSelectAll}
 								aria-label="Select all rows"
 							/>
-						</div>
+						</label>
 					</th>
 				{/if}
 			</tr>
@@ -189,12 +189,14 @@
 					</td>
 					{#if hasActionColumn}
 						<td class="cell-action" onclick={(e) => e.stopPropagation()}>
-							<input
-								type="checkbox"
-								checked={selectedIds.includes(a.id)}
-								onchange={(e) => handleSelectRow(a.id, (e.target as HTMLInputElement).checked)}
-								aria-label="Select appointment"
-							/>
+							<label class="action-target">
+								<input
+									type="checkbox"
+									checked={selectedIds.includes(a.id)}
+									onchange={(e) => handleSelectRow(a.id, (e.target as HTMLInputElement).checked)}
+									aria-label="Select appointment"
+								/>
+							</label>
 						</td>
 					{/if}
 				</tr>
@@ -475,23 +477,24 @@
 		border-color: var(--color-success-strong);
 	}
 
-	/* Checkbox column styling */
-	.cell-action-header {
-		text-align: right;
+	/* Checkbox column styling. The padding lives on .action-target, not the cell, so the
+	   whole column is tappable rather than just the 18px input. */
+	.cell-action-header,
+	.cell-action {
 		width: 60px;
+		padding: 0;
+		vertical-align: middle;
 	}
 
-	.action-header-content {
+	.action-target {
 		display: flex;
 		align-items: center;
 		justify-content: flex-end;
-		gap: var(--space-3);
-	}
-
-	.cell-action {
-		text-align: right;
-		vertical-align: middle;
-		width: 60px;
+		min-width: 44px;
+		min-height: 44px;
+		height: 100%;
+		padding: var(--space-4) var(--space-5);
+		cursor: pointer;
 	}
 
 	.header-checkbox,
@@ -835,6 +838,15 @@
 	@media (max-width: 768px) {
 		th,
 		td {
+			padding: var(--space-3) var(--space-4);
+		}
+
+		.cell-action-header,
+		.cell-action {
+			padding: 0;
+		}
+
+		.action-target {
 			padding: var(--space-3) var(--space-4);
 		}
 
