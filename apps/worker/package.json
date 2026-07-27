@@ -26,7 +26,7 @@
 		"@when/video-chat": "workspace:*",
 		"eta": "4.6.0",
 		"kysely": "0.28.17",
-		"nodemailer": "8.0.10",
+		"nodemailer": "9.0.3",
 		"openworkflow": "0.9.0",
 		"pino": "10.3.1",
 		"prom-client": "15.1.3",

@@ -31,7 +31,7 @@
 		"@iconify-json/ph": "1.2.2",
 		"@playwright/test": "1.61.1",
 		"@sveltejs/adapter-node": "5.5.4",
-		"@sveltejs/kit": "2.61.1",
+		"@sveltejs/kit": "2.70.1",
 		"@sveltejs/vite-plugin-svelte": "7.1.2",
 		"@types/node": "24.12.4",
 		"@vitest/coverage-v8": "4.1.7",
@@ -51,7 +51,7 @@
 		"vitest": "4.1.7"
 	},
 	"dependencies": {
-		"@auth/sveltekit": "1.11.2",
+		"@auth/sveltekit": "1.11.3",
 		"@dicebear/core": "10.3.0",
 		"@internationalized/date": "3.12.2",
 		"@when/calendar": "workspace:*",
