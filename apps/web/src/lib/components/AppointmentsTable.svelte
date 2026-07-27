@@ -3,6 +3,7 @@
 	import IconWarning from 'virtual:icons/ph/warning';
 	import IconX from 'virtual:icons/ph/x';
 	import type { toAppointmentView } from '$lib/server/appointments';
+	import AppointmentsBulkActions from '$lib/components/AppointmentsBulkActions.svelte';
 	import { Dialog } from 'bits-ui';
 
 	interface Props {
@@ -76,51 +77,7 @@
 	}
 </script>
 
-<div class="table-actions-bar">
-	<span class="selected-count">
-		{#if selectedIds.length > 0}
-			{selectedIds.length} appointment{#if selectedIds.length !== 1}s{/if} selected
-		{/if}
-	</span>
-	<div class="action-buttons">
-		{#if bucket === 'concluded' || bucket === 'archived'}
-			<button
-				type="button"
-				class="btn-outline btn-danger"
-				disabled={selectedIds.length === 0}
-				onclick={() => triggerAction('delete')}
-			>
-				Delete
-			</button>
-		{:else if bucket === 'upcoming'}
-			<button
-				type="button"
-				class="btn-outline btn-danger"
-				disabled={selectedIds.length === 0}
-				onclick={() => triggerAction('cancel')}
-			>
-				Cancel
-			</button>
-		{:else if bucket === 'pending'}
-			<button
-				type="button"
-				class="btn-outline btn-success"
-				disabled={selectedIds.length === 0}
-				onclick={() => triggerAction('accept')}
-			>
-				Accept
-			</button>
-			<button
-				type="button"
-				class="btn-outline btn-danger"
-				disabled={selectedIds.length === 0}
-				onclick={() => triggerAction('decline')}
-			>
-				Decline
-			</button>
-		{/if}
-	</div>
-</div>
+<AppointmentsBulkActions {bucket} selectedCount={selectedIds.length} onAction={triggerAction} />
 
 <div class="table-wrap">
 	<table>
@@ -398,83 +355,6 @@
 	/* Row selection styling */
 	tr.selected {
 		background: var(--color-surface-active);
-	}
-
-	/* Table actions bar and outline buttons styling */
-	.table-actions-bar {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		padding: var(--space-3) var(--space-5);
-		background: var(--when-color-surface-page);
-		border-bottom: 1px solid var(--color-border);
-		animation: fade-in 0.15s ease-out;
-	}
-
-	.selected-count {
-		font-size: var(--font-size-sm);
-		font-weight: 600;
-		color: var(--color-text-secondary);
-	}
-
-	.action-buttons {
-		display: flex;
-		align-items: center;
-		gap: var(--space-3);
-	}
-
-	.btn-outline {
-		height: 36px;
-		padding: 0 var(--space-4);
-		font-size: var(--font-size-sm);
-		font-weight: 600;
-		background: transparent;
-		border: 1px solid var(--color-border-strong);
-		color: var(--color-text-secondary);
-		border-radius: var(--radius);
-		cursor: pointer;
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		white-space: nowrap;
-		transition:
-			background var(--transition),
-			color var(--transition),
-			border-color var(--transition),
-			opacity var(--transition),
-			transform var(--transition);
-	}
-
-	.btn-outline:active:not(:disabled) {
-		transform: scale(0.98);
-	}
-
-	.btn-outline:disabled {
-		color: var(--color-text-disabled);
-		border-color: var(--color-border);
-		background: transparent;
-		cursor: not-allowed;
-		opacity: 0.6;
-	}
-
-	.btn-outline.btn-danger:not(:disabled) {
-		color: var(--color-danger-strong);
-		border-color: var(--color-danger-border);
-	}
-
-	.btn-outline.btn-danger:not(:disabled):hover {
-		background: var(--color-danger-bg);
-		border-color: var(--color-danger-strong);
-	}
-
-	.btn-outline.btn-success:not(:disabled) {
-		color: var(--color-success-strong);
-		border-color: var(--color-success-border);
-	}
-
-	.btn-outline.btn-success:not(:disabled):hover {
-		background: var(--color-success-bg);
-		border-color: var(--color-success-strong);
 	}
 
 	/* Checkbox column styling. The padding lives on .action-target, not the cell, so the
