@@ -11,7 +11,7 @@
 	let { bucket, selectedCount, onAction }: Props = $props();
 </script>
 
-<div class="table-actions-bar" class:has-selection={selectedCount > 0}>
+<div class="bulk-actions-bar" class:has-selection={selectedCount > 0}>
 	<div class="action-buttons">
 		{#if bucket === 'concluded' || bucket === 'archived'}
 			<button
@@ -53,7 +53,7 @@
 </div>
 
 <style>
-	.table-actions-bar {
+	.bulk-actions-bar {
 		display: flex;
 		align-items: center;
 		justify-content: flex-end;
@@ -123,7 +123,7 @@
 	}
 
 	@media (max-width: 768px) {
-		.table-actions-bar {
+		.bulk-actions-bar {
 			position: fixed;
 			bottom: 0;
 			left: 0;
@@ -138,7 +138,7 @@
 			animation: bulk-bar-slide-up 0.2s ease-out;
 		}
 
-		.table-actions-bar:not(.has-selection) {
+		.bulk-actions-bar:not(.has-selection) {
 			display: none;
 		}
 

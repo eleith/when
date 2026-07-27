@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
 	import IconWarning from 'virtual:icons/ph/warning';
 	import IconX from 'virtual:icons/ph/x';
 	import type { toAppointmentView } from '$lib/server/appointments';
@@ -37,18 +36,6 @@
 		});
 	}
 
-	function handleRowClick(e: MouseEvent, id: string) {
-		const target = e.target as HTMLElement;
-		if (
-			target.closest('a') ||
-			target.closest('input[type="checkbox"]') ||
-			target.closest('button')
-		) {
-			return;
-		}
-		goto(`/appointment/${id}`);
-	}
-
 	function handleSelectAll(e: Event) {
 		const checkbox = e.target as HTMLInputElement;
 		if (checkbox.checked) {
@@ -81,88 +68,71 @@
 	<AppointmentsBulkActions {bucket} selectedCount={selectedIds.length} onAction={triggerAction} />
 {/if}
 
-<div class="table-wrap">
-	<table>
-		<thead>
-			<tr>
-				<th>Appointment</th>
-				{#if supportsSelection}
-					<th class="cell-action-header">
-						<label class="action-target">
-							<input
-								type="checkbox"
-								class="header-checkbox"
-								checked={selectedIds.length === appointments.length && appointments.length > 0}
-								onchange={handleSelectAll}
-								aria-label="Select all rows"
-							/>
-						</label>
-					</th>
-				{/if}
-			</tr>
-		</thead>
-		<tbody>
-			{#each appointments as a (a.id)}
-				<tr
-					class:past={a.is_past}
-					class:selected={selectedIds.includes(a.id)}
-					onclick={(e) => handleRowClick(e, a.id)}
-				>
-					<td class="cell-details">
-						<div class="details-layout">
-							<div class="details-guest">
-								<div class="guest-info">
-									<a href="/appointment/{a.id}" class="row-link">{a.guest_name}</a>
-									<span class="guest-email" class:no-email={!a.guest_email}>
-										{a.guest_email ?? 'No email'}
-									</span>
-								</div>
-							</div>
-							<div class="details-event">
-								<span class="event-tag">{a.event_type_name}</span>
-							</div>
-							<div class="details-time">
-								<span class="time-text">{fmt(a.start_time)}</span>
-							</div>
-							<div class="details-status">
-								<div class="status-wrapper">
-									<span class="status-badge status-{a.display_status}">
-										{#if a.display_status === 'in_progress'}
-											in progress
-										{:else}
-											{a.display_status}
-										{/if}
-									</span>
-									{#if a.possible_conflict}
-										<span
-											class="conflict-chip"
-											title="This time overlaps a busy event on a conflict calendar"
-										>
-											<IconWarning class="conflict-icon" aria-hidden="true" />
-											Conflict
-										</span>
-									{/if}
-								</div>
-							</div>
-						</div>
-					</td>
-					{#if supportsSelection}
-						<td class="cell-action" onclick={(e) => e.stopPropagation()}>
-							<label class="action-target">
-								<input
-									type="checkbox"
-									checked={selectedIds.includes(a.id)}
-									onchange={(e) => handleSelectRow(a.id, (e.target as HTMLInputElement).checked)}
-									aria-label="Select appointment"
-								/>
-							</label>
-						</td>
-					{/if}
-				</tr>
-			{/each}
-		</tbody>
-	</table>
+<div class="list-header">
+	<span class="list-header-label">Appointment</span>
+	{#if supportsSelection}
+		<label class="action-target">
+			<input
+				type="checkbox"
+				class="header-checkbox"
+				checked={selectedIds.length === appointments.length && appointments.length > 0}
+				onchange={handleSelectAll}
+				aria-label="Select all rows"
+			/>
+		</label>
+	{/if}
 </div>
+
+<ul class="appointments-list" class:no-selection={!supportsSelection}>
+	{#each appointments as a (a.id)}
+		<li class="appointment-row" class:past={a.is_past} class:selected={selectedIds.includes(a.id)}>
+			<div class="details-guest">
+				<div class="guest-info">
+					<a href="/appointment/{a.id}" class="row-link">{a.guest_name}</a>
+					<span class="guest-email" class:no-email={!a.guest_email}>
+						{a.guest_email ?? 'No email'}
+					</span>
+				</div>
+			</div>
+			<div class="details-event">
+				<span class="event-tag">{a.event_type_name}</span>
+			</div>
+			<div class="details-time">
+				<span class="time-text">{fmt(a.start_time)}</span>
+			</div>
+			<div class="details-status">
+				<div class="status-wrapper">
+					<span class="status-badge status-{a.display_status}">
+						{#if a.display_status === 'in_progress'}
+							in progress
+						{:else}
+							{a.display_status}
+						{/if}
+					</span>
+					{#if a.possible_conflict}
+						<span
+							class="conflict-chip"
+							title="This time overlaps a busy event on a conflict calendar"
+						>
+							<IconWarning class="conflict-icon" aria-hidden="true" />
+							Conflict
+						</span>
+					{/if}
+				</div>
+			</div>
+			{#if supportsSelection}
+				<label class="action-target">
+					<input
+						type="checkbox"
+						checked={selectedIds.includes(a.id)}
+						onchange={(e) => handleSelectRow(a.id, (e.target as HTMLInputElement).checked)}
+						aria-label="Select appointment"
+					/>
+				</label>
+			{/if}
+		</li>
+	{/each}
+</ul>
 
 <!-- Must be last in the flow, or the gap lands above the first row instead of below the last. -->
 {#if supportsSelection}
@@ -293,106 +263,84 @@
 {/if}
 
 <style>
-	table {
-		width: 100%;
-		border-collapse: collapse;
-		text-align: left;
-	}
-
-	.cell-details {
-		width: 100%;
-	}
-
-	.details-layout {
+	.list-header {
 		display: flex;
 		align-items: center;
+		justify-content: space-between;
 		gap: var(--space-4);
-		width: 100%;
-	}
-
-	.details-guest {
-		flex: 2;
-		min-width: 0;
-	}
-
-	.details-event {
-		flex: 1.2;
-		min-width: 0;
-	}
-
-	.details-time {
-		flex: 2.2;
-		min-width: 0;
-	}
-
-	.details-status {
-		flex: 1.5;
-		min-width: 0;
-		display: flex;
-		justify-content: flex-start;
-	}
-
-	th {
 		background: var(--when-color-surface-page);
+		border-bottom: 1px solid var(--color-border);
+		padding: 0 var(--space-5);
+	}
+
+	.list-header-label {
 		color: var(--color-text-muted);
 		font-size: var(--font-size-sm);
 		font-weight: 700;
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
-		padding: var(--space-4) var(--space-5);
-		border-bottom: 1px solid var(--color-border);
+		padding: var(--space-4) 0;
 	}
 
-	td {
+	.appointments-list {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+	}
+
+	.appointment-row {
+		position: relative;
+		display: grid;
+		grid-template-columns: 2fr 1.2fr 2.2fr 1.5fr 44px;
+		align-items: center;
+		gap: var(--space-4);
 		padding: var(--space-4) var(--space-5);
 		border-bottom: 1px solid var(--color-border);
-		vertical-align: middle;
 		font-size: var(--font-size-md);
-	}
-
-	tr:last-child td {
-		border-bottom: none;
-	}
-
-	tr {
-		cursor: pointer;
 		transition: background var(--transition);
 	}
 
-	tr:hover {
+	.no-selection .appointment-row {
+		grid-template-columns: 2fr 1.2fr 2.2fr 1.5fr;
+	}
+
+	.appointment-row:last-child {
+		border-bottom: none;
+	}
+
+	.appointment-row:hover {
 		background: var(--when-color-surface-page);
 	}
 
-	/* Row selection styling */
-	tr.selected {
+	.appointment-row.selected {
 		background: var(--color-surface-active);
+	}
+
+	.details-guest,
+	.details-event,
+	.details-time,
+	.details-status {
+		min-width: 0;
 	}
 
 	.bulk-bar-spacer {
 		height: 0;
 	}
 
-	/* Padding lives on .action-target so the whole column is tappable. */
-	.cell-action-header,
-	.cell-action {
-		width: 60px;
-		padding: 0;
-		vertical-align: middle;
-	}
-
 	.action-target {
+		position: relative;
+		z-index: 1;
 		display: flex;
 		align-items: center;
 		justify-content: flex-end;
+		align-self: stretch;
 		min-width: 44px;
 		min-height: 44px;
-		height: 100%;
-		padding: var(--space-4) var(--space-5);
 		cursor: pointer;
 	}
 
 	.header-checkbox,
-	.cell-action input[type='checkbox'] {
+	.action-target input[type='checkbox'] {
 		width: 18px;
 		height: 18px;
 		cursor: pointer;
@@ -608,16 +556,16 @@
 	}
 
 	/* rows styling for past events */
-	tr.past td {
+	.appointment-row.past {
 		color: var(--color-text-muted);
 	}
 
-	tr.past .row-link {
+	.appointment-row.past .row-link {
 		color: var(--color-text-secondary);
 		font-weight: 500;
 	}
 
-	tr.past .event-tag {
+	.appointment-row.past .event-tag {
 		background: var(--color-surface-muted);
 		color: var(--color-text-muted);
 	}
@@ -634,6 +582,14 @@
 		text-decoration: none;
 		font-weight: 600;
 		font-size: var(--font-size-lg);
+	}
+
+	/* Stretches the guest-name link over the whole row, so the row is clickable without a
+	   click handler on the <li>. */
+	.row-link::after {
+		content: '';
+		position: absolute;
+		inset: 0;
 	}
 
 	.guest-email {
@@ -661,6 +617,7 @@
 	.time-text {
 		font-weight: 500;
 		font-size: var(--font-size-base);
+		white-space: nowrap;
 	}
 
 	.status-wrapper {
@@ -730,54 +687,55 @@
 
 	/* ---- responsive overrides ---- */
 	@media (max-width: 768px) {
-		th,
-		td {
-			padding: var(--space-3) var(--space-4);
+		.list-header,
+		.appointment-row {
+			padding-left: var(--space-4);
+			padding-right: var(--space-4);
 		}
 
-		.cell-action-header,
-		.cell-action {
-			padding: 0;
+		.list-header-label {
+			padding: var(--space-3) 0;
 		}
 
-		.action-target {
-			padding: var(--space-3) var(--space-4);
-		}
-
-		.bulk-bar-spacer.has-selection {
-			height: calc(56px + var(--space-4) * 2 + env(safe-area-inset-bottom));
-		}
-
-		.details-layout {
-			display: grid;
-			grid-template-columns: 1fr 1fr;
-			gap: var(--space-2) var(--space-4);
+		.appointment-row {
+			grid-template-columns: auto 1fr 44px;
+			gap: var(--space-1) var(--space-3);
 			align-items: start;
+			padding-top: var(--space-3);
+			padding-bottom: var(--space-3);
+		}
+
+		.no-selection .appointment-row {
+			grid-template-columns: auto 1fr;
 		}
 
 		.details-guest {
-			grid-column: 1;
-			grid-row: 1 / span 3;
-		}
-
-		.details-event {
-			grid-column: 2;
-			grid-row: 2;
-			display: flex;
-			justify-content: flex-end;
+			grid-column: 1 / span 2;
+			grid-row: 1;
 		}
 
 		.details-time {
-			grid-column: 2;
-			grid-row: 1;
-			text-align: right;
+			grid-column: 1 / span 2;
+			grid-row: 2;
+		}
+
+		.details-event {
+			grid-column: 1;
+			grid-row: 3;
 		}
 
 		.details-status {
 			grid-column: 2;
 			grid-row: 3;
-			display: flex;
-			justify-content: flex-end;
+		}
+
+		.action-target {
+			grid-column: 3;
+			grid-row: 1 / span 3;
+		}
+
+		.bulk-bar-spacer.has-selection {
+			height: calc(56px + var(--space-4) * 2 + env(safe-area-inset-bottom));
 		}
 	}
 </style>
