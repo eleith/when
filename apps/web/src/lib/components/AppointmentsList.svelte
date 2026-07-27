@@ -370,7 +370,7 @@
 		}
 
 		.appointment-row {
-			grid-template-columns: auto 1fr 44px;
+			grid-template-columns: minmax(0, 1fr) auto 44px;
 			gap: var(--space-1) var(--space-3);
 			align-items: start;
 			padding-top: var(--space-3);
@@ -378,32 +378,34 @@
 		}
 
 		.no-selection .appointment-row {
-			grid-template-columns: auto 1fr;
+			grid-template-columns: minmax(0, 1fr) auto;
 		}
 
 		.details-guest {
-			grid-column: 1 / span 2;
-			grid-row: 1;
-		}
-
-		.details-time {
-			grid-column: 1 / span 2;
-			grid-row: 2;
-		}
-
-		.details-event {
 			grid-column: 1;
-			grid-row: 3;
+			grid-row: 1;
 		}
 
 		.details-status {
 			grid-column: 2;
-			grid-row: 3;
+			grid-row: 1;
+			justify-self: end;
+		}
+
+		.details-time {
+			grid-column: 1;
+			grid-row: 2;
+		}
+
+		.details-event {
+			grid-column: 2;
+			grid-row: 2;
+			justify-self: end;
 		}
 
 		.action-target {
 			grid-column: 3;
-			grid-row: 1 / span 3;
+			grid-row: 1 / span 2;
 		}
 
 		.bulk-bar-spacer.has-selection {
