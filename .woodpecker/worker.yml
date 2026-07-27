@@ -94,7 +94,7 @@ steps:
   build-docker-main:
     image: woodpeckerci/plugin-docker-buildx:6.0.3
     settings:
-      repo: git.eleith.com/eleith/when-worker
+      repo: git.eleith.com/eleith.private/when-worker
       username: eleith
       dockerfile: apps/worker/Dockerfile
       context: .
@@ -110,7 +110,7 @@ steps:
   build-docker-tag:
     image: woodpeckerci/plugin-docker-buildx:6.0.3
     settings:
-      repo: git.eleith.com/eleith/when-worker
+      repo: git.eleith.com/eleith.private/when-worker
       username: eleith
       dockerfile: apps/worker/Dockerfile
       context: .
