@@ -276,6 +276,22 @@ test('bucket listings and counts', async () => {
 		});
 		expect(archivedList.map((a) => a.id)).toEqual(['cancelled1', 'declined1', 'expired1']);
 
+		// --- Test Past (concluded + archived, excluding rescheduled and purged) ---
+		expect(await countAppointments(db, { bucket: 'past', now })).toBe(5);
+		const pastList = await listAppointmentsPage(db, {
+			bucket: 'past',
+			now,
+			limit: 10,
+			offset: 0
+		});
+		expect(pastList.map((a) => a.id)).toEqual([
+			'cancelled1',
+			'declined1',
+			'concluded1',
+			'concluded2',
+			'expired1'
+		]);
+
 		// --- Test Purged ---
 		expect(await countAppointments(db, { bucket: 'purged', now })).toBe(1);
 		const purgedList = await listAppointmentsPage(db, {
