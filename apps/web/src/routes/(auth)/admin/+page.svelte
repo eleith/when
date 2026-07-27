@@ -171,6 +171,10 @@
 			</section>
 		{/if}
 	</div>
+
+	<div class="purged-link">
+		<a href="/admin/appointments/purged">View purged appointments</a>
+	</div>
 </div>
 
 <style>
@@ -376,6 +380,25 @@
 	.manage-link:hover {
 		color: var(--when-color-text);
 		border-color: var(--color-text-muted);
+	}
+
+	/* ---- purged link ---- */
+	.purged-link {
+		display: flex;
+		justify-content: center;
+	}
+
+	.purged-link a {
+		padding: var(--space-2) var(--space-3);
+		font-size: var(--font-size-sm);
+		color: var(--color-text-muted);
+		text-decoration: none;
+		transition: color var(--transition);
+	}
+
+	.purged-link a:hover {
+		color: var(--color-text-secondary);
+		text-decoration: underline;
 	}
 
 	/* ---- responsive ---- */
