@@ -84,7 +84,8 @@ export const actions: Actions = {
 		if (duration === null) return fail(400, { error: 'Please pick a valid meeting length.' });
 
 		// Re-validate the slot is currently bookable, ignoring the appointment's own current slot.
-		if (!(await isSlotBookable(cfg, eventType, slotStr, duration, found.start_time))) {
+		const bookable = await isSlotBookable(cfg, eventType, slotStr, duration, found.start_time);
+		if (!bookable) {
 			return fail(409, { error: 'That time is no longer available. Please pick another.' });
 		}
 

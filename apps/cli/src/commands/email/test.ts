@@ -34,7 +34,8 @@ export async function runEmailTest(configPath: string, address: string): Promise
 	const config = await loadConfig(configPath);
 	if (!config) return;
 
-	if (!(await workerReachable(config.url.worker))) return;
+	const reachable = await workerReachable(config.url.worker);
+	if (!reachable) return;
 
 	try {
 		const client = initOpenWorkflow({ dbPath: config.database.queue });

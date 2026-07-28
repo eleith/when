@@ -7,7 +7,8 @@ import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ url, locals }) => {
 	const callbackUrl = url.searchParams.get('callbackUrl') ?? '/admin';
-	if (await locals.auth()) redirect(303, callbackUrl);
+	const session = await locals.auth();
+	if (session) redirect(303, callbackUrl);
 
 	const cfg = getConfig();
 	const authType = 'credentials' in cfg.auth ? 'credentials' : 'oidc';
