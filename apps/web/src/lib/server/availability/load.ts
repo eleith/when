@@ -3,8 +3,8 @@ import { durationsOf, type Meeting, type WhenConfiguration } from '@when/config'
 import { systemClock } from '$lib/server/clock';
 import { getDb } from '$lib/server/state';
 import { computeSlots } from './calc';
-import { mergeBlocks } from './blocks';
-import { loadAppointmentBlocks } from './db-blocks';
+import { mergeBlocks } from './intervals';
+import { loadAppointmentBlocks } from './blocks';
 import { resolveAvailabilitySettings } from './settings';
 import { buildBaseWindows, candidateDates } from './windows';
 import type { AvailabilitySettings } from './types';

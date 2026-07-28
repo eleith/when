@@ -15,7 +15,7 @@ const h = vi.hoisted(() => ({
 vi.mock('$lib/server/state', () => ({ getConfig: () => h.cfg.current, getDb: () => ({}) }));
 vi.mock('$lib/server/availability/load', () => ({ loadAvailability: h.loadAvailability }));
 vi.mock('$lib/server/availability', () => ({ computeSlots: h.computeSlots }));
-vi.mock('$lib/server/availability/db-blocks', () => ({
+vi.mock('$lib/server/availability/blocks', () => ({
 	loadAppointmentBlocks: async () => ({ appointments: [], perDayCount: {} })
 }));
 vi.mock('$lib/server/availability/settings', () => ({

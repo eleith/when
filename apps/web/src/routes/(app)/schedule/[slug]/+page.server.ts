@@ -1,6 +1,6 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { computeSlots } from '$lib/server/availability';
-import { loadAppointmentBlocks } from '$lib/server/availability/db-blocks';
+import { loadAppointmentBlocks } from '$lib/server/availability/blocks';
 import { resolveAvailabilitySettings } from '$lib/server/availability/settings';
 import { loadAvailability } from '$lib/server/availability/load';
 import { getBusyIntervals } from '@when/db';

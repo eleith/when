@@ -1,4 +1,4 @@
-import { mergeBlocks } from './blocks';
+import { mergeBlocks } from './intervals';
 import { filterSlots } from './filter';
 import { generateSlots } from './slots';
 import type { AvailabilitySettings, Interval } from './types';

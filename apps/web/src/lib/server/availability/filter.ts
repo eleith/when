@@ -1,4 +1,4 @@
-import { overlapsAny } from './blocks';
+import { overlapsAny } from './intervals';
 import type { AvailabilitySettings, Interval } from './types';
 
 export interface FilterContext {
