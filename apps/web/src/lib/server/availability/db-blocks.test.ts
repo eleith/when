@@ -119,7 +119,7 @@ test('appointments outside the range (with 1-day margin) are excluded', async ()
 	expect(result.appointments[0].start.toString()).toBe('2026-05-01T13:00:00Z');
 });
 
-test('different event_type_id is excluded', async () => {
+test('another meeting type still blocks the slot — the host is busy either way', async () => {
 	await insert({
 		id: '1',
 		start: '2026-05-01T13:00:00Z',
@@ -135,7 +135,64 @@ test('different event_type_id is excluded', async () => {
 		I('2026-05-01T23:59:59Z'),
 		'America/New_York'
 	);
-	expect(result.appointments).toHaveLength(0);
+	expect(result.appointments).toHaveLength(1);
+	expect(result.appointments[0].start.toString()).toBe('2026-05-01T13:00:00Z');
+});
+
+test('perDayCount counts only the requested meeting type', async () => {
+	await insert({
+		id: '1',
+		start: '2026-05-01T13:00:00Z',
+		end: '2026-05-01T13:30:00Z',
+		status: 'confirmed',
+		event_type_id: 'chat'
+	});
+	await insert({
+		id: '2',
+		start: '2026-05-01T15:00:00Z',
+		end: '2026-05-01T16:00:00Z',
+		status: 'confirmed',
+		event_type_id: 'lunch'
+	});
+
+	const result = await loadAppointmentBlocks(
+		db,
+		'chat',
+		I('2026-05-01T00:00:00Z'),
+		I('2026-05-01T23:59:59Z'),
+		'America/New_York'
+	);
+	expect(result.appointments).toHaveLength(2);
+	expect([...result.perDayCount.entries()]).toEqual([['2026-05-01', 1]]);
+});
+
+test('excludeStart drops this type’s own slot but not another type’s', async () => {
+	await insert({
+		id: '1',
+		start: '2026-05-01T13:00:00Z',
+		end: '2026-05-01T13:30:00Z',
+		status: 'confirmed',
+		event_type_id: 'chat'
+	});
+	await insert({
+		id: '2',
+		start: '2026-05-01T13:00:00Z',
+		end: '2026-05-01T14:00:00Z',
+		status: 'confirmed',
+		event_type_id: 'lunch'
+	});
+
+	const result = await loadAppointmentBlocks(
+		db,
+		'chat',
+		I('2026-05-01T00:00:00Z'),
+		I('2026-05-01T23:59:59Z'),
+		'America/New_York',
+		'2026-05-01T13:00:00Z'
+	);
+	expect(result.appointments).toHaveLength(1);
+	expect(result.appointments[0].end.toString()).toBe('2026-05-01T14:00:00Z');
+	expect([...result.perDayCount.entries()]).toEqual([['2026-05-01', 1]]);
 });
 
 test('perDayCount keys by user_tz date, not UTC', async () => {

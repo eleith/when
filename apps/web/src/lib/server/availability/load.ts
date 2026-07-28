@@ -27,13 +27,14 @@ export async function loadAvailability(
 	const nowInstant = Temporal.Instant.fromEpochMilliseconds(systemClock.nowMs());
 	const rangeEnd = nowInstant.add({ hours: 24 * settings.maximum_lookahead });
 
-	let blocks = await loadAppointmentBlocks(getDb(), eventType.name, nowInstant, rangeEnd, userTz);
-	if (excludeStart) {
-		blocks = {
-			appointments: blocks.appointments.filter((a) => a.start.toString() !== excludeStart),
-			perDayCount: blocks.perDayCount
-		};
-	}
+	const blocks = await loadAppointmentBlocks(
+		getDb(),
+		eventType.name,
+		nowInstant,
+		rangeEnd,
+		userTz,
+		excludeStart
+	);
 
 	const remoteBusy = (
 		await getBusyIntervals(getDb(), eventType.busy_calendars ?? [], {
