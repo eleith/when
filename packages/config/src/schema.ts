@@ -253,9 +253,9 @@ export const DatabaseConfigSchema = Type.Object({
 
 export const UrlSchema = Type.Object({
 	app: Type.String({
-		description: 'Public base URL of the app (include the scheme), used to build links in emails and calendar events.',
+		description: 'Public base URL of the app (include the scheme), used to build links in emails and calendar events. Defaults to the ORIGIN env var, which adapter-node needs anyway to sit behind a reverse proxy — set ORIGIN alone and both agree.',
 		minLength: 1,
-		default: 'http://localhost:5173'
+		default: '${ORIGIN:-http://localhost:5173}'
 	}),
 	internal: Type.String({
 		description: 'Base URL the worker uses to reach the app over the internal network (e.g. http://when-app:3000), used to fetch relative branding images for embedding in emails. Defaults to the WHEN_URL_INTERNAL env var (baked into the Docker images per target); empty falls back to `app`.',

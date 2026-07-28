@@ -232,10 +232,14 @@ Public URLs and internal network endpoints for service-to-service communication.
 
 ```yaml
 url:
-  app: 'https://book.example.com' # public base URL (with scheme); used in emails + calendar events
+  app: 'https://book.example.com' # public base URL (with scheme); used in emails + calendar events (defaults to ${ORIGIN})
   internal: 'http://when-app:3000' # base URL the worker uses to reach the web app internally (defaults to ${WHEN_URL_INTERNAL}; falls back to `app`)
   worker: 'http://when-worker:9000' # base URL the web app uses to reach the worker internally for telemetry and metrics (default 'http://when-worker:9000')
 ```
+
+Usually you can omit `app` entirely. It defaults to the `ORIGIN` env var, which
+`adapter-node` requires anyway to run behind a reverse proxy (see
+[`deployment.md`](deployment.md)) — so `ORIGIN` alone keeps both in sync.
 
 ## `prometheus`
 

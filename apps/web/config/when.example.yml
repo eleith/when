@@ -148,10 +148,12 @@ meetings:
 #   queue: './data/openworkflow.sqlite'
 
 # --- Public and internal URLs ---
-url:
-  app: 'http://localhost:5173' # public base URL, used in emails and calendar events
-  # internal: 'http://when-app:3000' # worker → web (defaults to ${WHEN_URL_INTERNAL})
-  # worker: 'http://when-worker:9000' # web → worker
+# url:
+# app defaults to ${ORIGIN}, which you must set anyway to run behind a reverse
+# proxy — set ORIGIN in .env and leave this alone rather than repeating it here.
+#   app: 'https://when.example.com' # public base URL, used in emails and calendar events
+#   internal: 'http://when-app:3000' # worker → web (defaults to ${WHEN_URL_INTERNAL})
+#   worker: 'http://when-worker:9000' # web → worker
 
 # --- Prometheus metrics (off by default) ---
 # prometheus:

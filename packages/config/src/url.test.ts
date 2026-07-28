@@ -12,6 +12,7 @@ const saved = { ...process.env };
 beforeEach(async () => {
 	dir = await mkdtemp(join(tmpdir(), 'when-config-'));
 	delete process.env.WHEN_URL_INTERNAL;
+	delete process.env.ORIGIN;
 });
 
 afterEach(async () => {
@@ -43,4 +44,21 @@ test('an explicit url.internal wins over WHEN_URL_INTERNAL', async () => {
 test('url.internal is empty when omitted with no env (worker falls back to url.app)', async () => {
 	const config = await load({ ...validConfig, url: { app: validConfig.url.app } });
 	expect(config.url.internal).toBe('');
+});
+
+test('url.app defaults to ORIGIN when omitted', async () => {
+	process.env.ORIGIN = 'https://when.example.com';
+	const config = await load({ ...validConfig, url: {} });
+	expect(config.url.app).toBe('https://when.example.com');
+});
+
+test('an explicit url.app wins over ORIGIN', async () => {
+	process.env.ORIGIN = 'https://when.example.com';
+	const config = await load({ ...validConfig, url: { app: 'https://other.example.com' } });
+	expect(config.url.app).toBe('https://other.example.com');
+});
+
+test('url.app falls back to localhost when omitted with no ORIGIN', async () => {
+	const config = await load({ ...validConfig, url: {} });
+	expect(config.url.app).toBe('http://localhost:5173');
 });

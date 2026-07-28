@@ -7,12 +7,24 @@ config reference.
 
 ## Environment variables
 
+Both compose files deliver the environment from `apps/web/.env` via `env_file:` — start
+from the tracked `apps/web/.env.example`. Nothing is baked into the image, so the same
+image runs against whatever `.env` you bring. Compose's auto-loaded `.env` only
+substitutes `${VAR}` inside the compose YAML itself; `env_file:` is what populates the
+container's environment.
+
 A few variables are read **directly** by the app from the environment:
 
-| Variable         | Required   | Notes                                                                                                                                                  |
-| ---------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `AUTH_SECRET`    | always     | Auth.js JWT signing secret. 32+ random bytes, base64-encoded (`openssl rand -base64 32`).                                                              |
-| `ENCRYPTION_KEY` | production | Base64 of 32 random bytes. Encrypts OAuth refresh tokens at the column level (AES-256-GCM). In dev an ephemeral key is generated and a warning logged. |
+| Variable         | Required       | Notes                                                                                                                                                                                                                                                                                                                              |
+| ---------------- | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `AUTH_SECRET`    | always         | Auth.js JWT signing secret. 32+ random bytes, base64-encoded (`openssl rand -base64 32`).                                                                                                                                                                                                                                          |
+| `ENCRYPTION_KEY` | production     | Base64 of 32 random bytes. Encrypts OAuth refresh tokens at the column level (AES-256-GCM). In dev an ephemeral key is generated and a warning logged.                                                                                                                                                                             |
+| `ORIGIN`         | behind a proxy | Public base URL, no trailing slash. `adapter-node` otherwise derives the origin from the inbound `Host` header, which a TLS-terminating proxy makes `http://…` while the browser sends `https://…` — SvelteKit's CSRF check then rejects every form POST with a 403. Also the default for `url.app`, so setting it here is enough. |
+
+`ORIGIN` and `url.app` in `when.yaml` are the same value — your public base URL. Set
+`ORIGIN` and leave `url.app` unset: `adapter-node` reads `ORIGIN` from the environment
+before any app code runs, so it can only travel in that direction. If you do set both,
+keep them identical; a mismatch means correct links in emails and 403s on every form.
 
 Everything else is a **secret referenced from `when.yaml`** via `${ENV_VAR}`
 interpolation — the variable _names_ are whatever your config uses (`config/when.example.yml`
@@ -41,8 +53,11 @@ The worker also honors a few operational variables:
 ## Docker
 
 ```sh
+cp apps/web/.env.example apps/web/.env   # then fill it in
 docker compose -f apps/web/docker-compose.yml up -d
 ```
+
+`.env` must exist — compose refuses to start without the file it is told to load.
 
 This brings up the web app (appointment page at \`/\`, admin at \`/admin\`) and the worker
 (calendar sync + email delivery). Both run database migrations relevant to their role on

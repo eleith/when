@@ -21,18 +21,16 @@ calendar sync and sends appointment emails off the request path. The bundled
 
    See [`docs/config.md`](docs/config.md) for the full configuration reference.
 
-2. Generate the secrets the app needs and export them in your environment:
+2. Copy `apps/web/.env.example` to `apps/web/.env` and fill it in — the compose file
+   loads it into all three services. Generate the secrets it asks for:
 
    ```sh
-   # Set your admin password (skip if using OIDC):
-   export WHEN_ADMIN_PASSWORD="your-secure-password"
-
-   # Generate the other secrets:
-   openssl rand -base64 32       # -> ENCRYPTION_KEY
    openssl rand -base64 32       # -> AUTH_SECRET
+   openssl rand -base64 32       # -> ENCRYPTION_KEY
    ```
 
-   The full list of environment variables is in
+   Set `ORIGIN` to the public URL you serve from; behind a reverse proxy, form
+   submissions fail with a 403 without it. The full list of environment variables is in
    [`docs/deployment.md`](docs/deployment.md).
 
 3. Bring up both services:
