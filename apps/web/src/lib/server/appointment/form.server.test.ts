@@ -232,3 +232,51 @@ describe('resolveTimezone', () => {
 		expect(resolveTimezone('Mars/Olympus', 'UTC')).toBe('UTC');
 	});
 });
+
+describe('control characters in guest input', () => {
+	const CR = String.fromCharCode(13);
+	const LF = String.fromCharCode(10);
+	const BEL = String.fromCharCode(7);
+
+	test('a CR in a single-line field becomes a space', () => {
+		const r = parseAndValidateAppointmentForm(
+			baseEvent,
+			fd({ name: `Jane${CR}ATTENDEE:mailto:evil@example.com`, email: 'jane@example.com' })
+		);
+		expect(r.ok).toBe(true);
+		if (!r.ok) return;
+		expect(r.data.name).toBe('Jane ATTENDEE:mailto:evil@example.com');
+		expect(r.data.name).not.toContain(CR);
+	});
+
+	test('a paragraph answer keeps its newlines', () => {
+		const r = parseAndValidateAppointmentForm(
+			baseEvent,
+			fd({ name: 'Jane', email: 'jane@example.com', notes: `line one${LF}line two` })
+		);
+		expect(r.ok).toBe(true);
+		if (!r.ok) return;
+		expect(r.data.answers[0].value).toBe(`line one${LF}line two`);
+	});
+
+	test('a paragraph answer normalizes CRLF but drops other controls', () => {
+		const r = parseAndValidateAppointmentForm(
+			baseEvent,
+			fd({ name: 'Jane', email: 'jane@example.com', notes: `a${CR}${LF}b${BEL}c` })
+		);
+		expect(r.ok).toBe(true);
+		if (!r.ok) return;
+		expect(r.data.answers[0].value).toBe(`a${LF}bc`);
+	});
+
+	test('length limits are enforced against the cleaned value', () => {
+		const name = 'a'.repeat(200) + BEL.repeat(50);
+		const r = parseAndValidateAppointmentForm(baseEvent, fd({ name, email: 'jane@example.com' }));
+		expect(r.ok).toBe(true);
+	});
+
+	test('validateReason strips control characters and keeps newlines', () => {
+		const r = validateReason(fd({ reason: `sick${CR}${LF}sorry${BEL}` }), 'cancelling');
+		expect(r).toEqual({ ok: true, reason: `sick${LF}sorry` });
+	});
+});

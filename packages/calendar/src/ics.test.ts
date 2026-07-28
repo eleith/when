@@ -180,3 +180,45 @@ test('CONFERENCE is omitted when the appointment has none', () => {
 	const ics = buildIcs({ appointment: baseAppointment, ...baseInput });
 	expect(ics).not.toMatch(/^CONFERENCE/m);
 });
+
+const CR = String.fromCharCode(13);
+const BEL = String.fromCharCode(7);
+
+// Split on any line ending, not just the CRLF the spec mandates — a lenient parser will.
+function contentLines(ics: string): string[] {
+	return ics.split(/\r\n|\r|\n/).reduce<string[]>((lines, line) => {
+		if (line.startsWith(' ')) lines[lines.length - 1] += line.slice(1);
+		else lines.push(line);
+		return lines;
+	}, []);
+}
+
+test('a CR in guest input cannot forge a content line', () => {
+	const ics = buildIcs({
+		appointment: {
+			...baseAppointment,
+			guest_name: `Booker${CR}ATTENDEE;PARTSTAT=ACCEPTED:mailto:evil@example.com`,
+			location: `Room 1${CR}ORGANIZER:mailto:evil@example.com`
+		},
+		...baseInput
+	});
+
+	const lines = contentLines(ics);
+	const attendees = lines.filter((l) => l.startsWith('ATTENDEE'));
+	const organizers = lines.filter((l) => l.startsWith('ORGANIZER'));
+
+	expect(attendees).toHaveLength(1);
+	expect(attendees[0]).toContain('booker@example.com');
+	expect(organizers).toHaveLength(1);
+	expect(organizers[0]).toContain('jane@example.com');
+	expect(attendees[0]).toMatch(/:MAILTO:booker@example\.com$/i);
+});
+
+test('other control characters never reach the output', () => {
+	const ics = buildIcs({
+		appointment: { ...baseAppointment, guest_name: `Bo${BEL}oker` },
+		...baseInput
+	});
+	expect(ics).not.toContain(BEL);
+	expect(ics).toContain('Booker');
+});

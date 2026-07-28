@@ -1,5 +1,6 @@
 import { generateIcsCalendar, type IcsCalendar, type IcsEvent } from 'ts-ics';
 import { describeAppointment } from './description.js';
+import { icsParameter, icsValue } from './text.js';
 import { guestContact } from './guest.js';
 import { systemClock, type Clock } from './clock.js';
 import { originId, type Appointment, type AppointmentStatus } from '@when/db';
@@ -32,18 +33,22 @@ export function buildIcs(input: IcsInput): string {
 	const event: IcsEvent = {
 		uid: originId(appointment),
 		sequence: appointment.ics_sequence,
-		summary: eventTypeName,
+		summary: icsValue(eventTypeName),
 		start: { date: new Date(appointment.start_time), type: 'DATE-TIME' },
 		end: { date: new Date(appointment.end_time), type: 'DATE-TIME' },
 		stamp: { date: clock.now(), type: 'DATE-TIME' },
-		description: describeAppointment(appointment, cancelUrl),
-		location: appointment.location ?? undefined,
-		organizer: { name: hostName, email: hostEmail },
+		description: icsValue(describeAppointment(appointment, cancelUrl)),
+		location: appointment.location ? icsValue(appointment.location) : undefined,
+		organizer: icsPerson(hostName, hostEmail),
 		// The guest booked, so they've effectively accepted; mark it so calendar
 		// clients don't prompt them to RSVP to the noreply organizer.
-		attendees: guest ? [{ ...guest, partstat: 'ACCEPTED', rsvp: false }] : undefined,
+		attendees: guest
+			? [{ ...icsPerson(guest.name, guest.email), partstat: 'ACCEPTED', rsvp: false }]
+			: undefined,
 		status: eventStatus(method, appointment.status),
-		nonStandard: appointment.video_chat ? { conference: appointment.video_chat } : undefined
+		nonStandard: appointment.video_chat
+			? { conference: icsValue(appointment.video_chat) }
+			: undefined
 	};
 
 	const calendar: IcsCalendar = {
@@ -61,6 +66,10 @@ export function buildIcs(input: IcsInput): string {
 			}
 		}
 	});
+}
+
+function icsPerson(name: string, email: string): { name: string; email: string } {
+	return { name: icsParameter(name), email };
 }
 
 function eventStatus(

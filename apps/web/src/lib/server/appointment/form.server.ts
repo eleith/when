@@ -8,6 +8,21 @@ const LIMIT_EMAIL = 254;
 const LIMIT_REASON = 500;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+const DEL = 0x7f;
+const FIRST_PRINTABLE = 0x20;
+
+export function cleanGuestText(value: string, multiline: boolean): string {
+	const normalized = multiline ? value.replace(/\r\n?/g, '\n') : value.replace(/[\r\n\t]+/g, ' ');
+	return [...normalized]
+		.filter((ch) => {
+			if (multiline && (ch === '\n' || ch === '\t')) return true;
+			const code = ch.codePointAt(0) ?? 0;
+			return code >= FIRST_PRINTABLE && code !== DEL;
+		})
+		.join('')
+		.trim();
+}
+
 export interface ParsedAppointment {
 	name: string;
 	email: string | null;
@@ -42,9 +57,11 @@ export function parseAndValidateAppointmentForm(
 	let email: string | null = null;
 	let location: string | null = eventType.location ?? null;
 
+	const multiline = new Set(fields.filter((f) => f.type === 'paragraph').map((f) => f.name));
 	const readValue = (fieldName: string) => {
 		const raw = formData.get(fieldName);
-		return typeof raw === 'string' ? raw.trim() : '';
+		if (typeof raw !== 'string') return '';
+		return cleanGuestText(raw, multiline.has(fieldName));
 	};
 	// A field hidden by show_when is never required, validated, or recorded.
 	const visible = evaluateVisibility(fields, readValue);
@@ -117,7 +134,7 @@ export type ValidateReasonResult = { ok: true; reason: string } | { ok: false; e
 // Cancel and reschedule submit the reason under different field names.
 export function validateReason(form: FormData, purpose: ReasonPurpose): ValidateReasonResult {
 	const field = purpose === 'rescheduling' ? 'reschedule_reason' : 'reason';
-	const reason = String(form.get(field) ?? '').trim();
+	const reason = cleanGuestText(String(form.get(field) ?? ''), true);
 
 	if (!reason) {
 		return {

@@ -4,6 +4,7 @@
 
 // ICS document building.
 export { buildIcs } from './ics.js';
+export { icsValue, icsParameter } from './text.js';
 export type { IcsInput, IcsMethod } from './ics.js';
 export type { Clock } from './clock.js';
 

@@ -1,3 +1,4 @@
+import { cleanGuestText } from './form.server';
 import { sql } from 'kysely';
 import { isTerminalStatus } from './actions';
 import { enqueueAppointmentReconciliation } from '../workflow';
@@ -59,11 +60,16 @@ export async function editAppointment(
 		| 'video_chat_removed'
 	)[] = [];
 
-	const noteValue = input.note !== undefined ? input.note?.trim() || null : appointment.note;
+	const noteValue =
+		input.note !== undefined ? cleanGuestText(input.note ?? '', true) || null : appointment.note;
 	const locationValue =
-		input.location !== undefined ? input.location?.trim() || null : appointment.location;
+		input.location !== undefined
+			? cleanGuestText(input.location ?? '', false) || null
+			: appointment.location;
 	const video_chatValue =
-		input.video_chat !== undefined ? input.video_chat?.trim() || null : appointment.video_chat;
+		input.video_chat !== undefined
+			? cleanGuestText(input.video_chat ?? '', false) || null
+			: appointment.video_chat;
 
 	const noteChange = detectFieldChange(appointment.note, input.note);
 	if (noteChange) {
