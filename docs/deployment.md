@@ -63,6 +63,62 @@ This brings up the web app (appointment page at \`/\`, admin at \`/admin\`) and 
 (calendar sync + email delivery). Both run database migrations relevant to their role on
 boot.
 
+## Behind a reverse proxy
+
+The app speaks plain HTTP on port 3000 and terminates no TLS of its own, so any
+internet-facing deployment puts a proxy in front. Below is the split of who owns what.
+
+### Required of the deployment
+
+- **Set `ORIGIN`** to the public base URL. Without it the app derives its origin from the
+  inbound `Host` header, which a TLS-terminating proxy reports as `http://…` while the
+  browser sends `Origin: https://…`; SvelteKit compares the two and rejects **every** form
+  POST with a 403 — booking, cancel, reschedule, sign-in, and the admin bulk actions.
+- **The proxy must set `Host` from its own configuration** and must not forward a
+  client-supplied value. With `ORIGIN` set the app ignores `Host` when building the request
+  URL, which is also what makes Auth.js's `trustHost: true` safe — OIDC callback URLs are
+  then built from a pinned origin rather than an attacker-influenceable header.
+- **Point the proxy's upstream health check at `GET /healthz`** on the web app.
+
+You do **not** need `PROTOCOL_HEADER` or `HOST_HEADER`: those exist to reconstruct the
+origin from forwarded headers, and a set `ORIGIN` takes precedence over both. Likewise
+`ADDRESS_HEADER` and `XFF_DEPTH` — the app never reads the client address.
+
+### Owned by the proxy
+
+- **TLS termination** and the HTTP → HTTPS redirect.
+- **`Strict-Transport-Security`.** Deliberately not sent by the app; it is meaningless on
+  the plaintext hop and belongs to whatever terminates TLS.
+- **Rate limiting.** The app does none. The endpoints worth a rule are the unauthenticated
+  ones: `POST /schedule/<slug>` (each success writes a row _and_ sends mail over your SMTP
+  credentials, so abuse costs sender reputation), `POST /appointment/<id>` and
+  `POST /appointment/<id>/reschedule`, and the sign-in POST when `auth.credentials` is in
+  use — the app performs no lockout or throttling on password attempts.
+- **Response caching** for `/assets/images/opengraph.png` and `/assets/images/avatar.svg`,
+  which are rendered per request, and for `/public/*`.
+- **Request body limits**, if you set any: keep them at or above the app's own
+  `BODY_SIZE_LIMIT` (512K by default) so oversized requests produce the app's error rather
+  than the proxy's.
+
+### Do not set at the proxy
+
+Leave `Content-Security-Policy` and `X-Frame-Options` / `frame-ancestors` to the app. The
+booking page carries an injected inline `<style>` for the configured theme, and SvelteKit
+emits inline hydration scripts, so a CSP added at the proxy will break rendering unless it
+carries matching hashes — which only the app can generate.
+
+### Ports
+
+Publish only the web app's 3000. The worker's port (`9000` by default) is internal-only and
+the bundled `docker-compose.yml` correctly does not publish it: its `GET /healthz` is
+unauthenticated by design, for the container liveness check. Its `/metrics` is bearer-gated
+and served only when `prometheus.enabled` is true, but the port should still never be
+reachable from outside the compose network.
+
+The web app's `/metrics` is bearer-gated the same way. If you scrape it through the proxy,
+keep it off the public vhost or restrict it by source address — the bearer token is the only
+thing in front of it.
+
 ## Persistence
 
 State is two SQLite files under the data directory the compose file mounts

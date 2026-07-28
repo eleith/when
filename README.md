@@ -48,5 +48,5 @@ calendar sync and sends appointment emails off the request path. The bundled
 - [Philosophy](docs/philosophy.md) — what "When" is, and the principles behind it.
 - [Architecture](docs/architecture.md) — how the system is built.
 - [Configuration](docs/config.md) — the full `when.yaml` reference.
-- [Deployment](docs/deployment.md) — environment variables, Docker, persistence, and operating endpoints.
+- [Deployment](docs/deployment.md) — environment variables, Docker, running behind a reverse proxy, persistence, and operating endpoints.
 - [Development](docs/development.md) — running it locally, the scripts, testing, and coding conventions.
