@@ -159,3 +159,143 @@ test('an event type with no conflict calendars is never flagged', async () => {
 		await ctx.db.destroy();
 	}
 });
+
+test('flags two appointments that overlap each other, with no busy calendars', async () => {
+	const ctx = await ctxWith({
+		meetings: [
+			{ name: 'chat', busy_calendars: [] },
+			{ name: 'lunch', busy_calendars: [] }
+		] as unknown as WhenConfiguration['meetings']
+	});
+	try {
+		await ctx.db
+			.insertInto('appointments')
+			.values([
+				appt({
+					id: 'chat-1',
+					cancel_token: 'a',
+					event_type_id: 'chat',
+					start_time: '2026-05-01T14:00:00Z',
+					end_time: '2026-05-01T15:00:00Z'
+				}),
+				appt({
+					id: 'lunch-1',
+					cancel_token: 'b',
+					event_type_id: 'lunch',
+					start_time: '2026-05-01T14:30:00Z',
+					end_time: '2026-05-01T15:30:00Z'
+				}),
+				appt({
+					id: 'alone',
+					cancel_token: 'c',
+					event_type_id: 'chat',
+					start_time: '2026-05-01T17:00:00Z',
+					end_time: '2026-05-01T17:30:00Z'
+				})
+			])
+			.execute();
+
+		await flagConflicts(ctx, { now: inst('2026-05-01T00:00:00Z') });
+
+		const rows = await ctx.db
+			.selectFrom('appointments')
+			.select(['id', 'has_possible_conflict'])
+			.orderBy('id')
+			.execute();
+		expect(rows).toEqual([
+			{ id: 'alone', has_possible_conflict: 0 },
+			{ id: 'chat-1', has_possible_conflict: 1 },
+			{ id: 'lunch-1', has_possible_conflict: 1 }
+		]);
+	} finally {
+		await ctx.db.destroy();
+	}
+});
+
+test('back-to-back appointments are not a conflict', async () => {
+	const ctx = await ctxWith({
+		meetings: [
+			{ name: 'chat', busy_calendars: [] },
+			{ name: 'lunch', busy_calendars: [] }
+		] as unknown as WhenConfiguration['meetings']
+	});
+	try {
+		await ctx.db
+			.insertInto('appointments')
+			.values([
+				appt({
+					id: 'first',
+					cancel_token: 'a',
+					event_type_id: 'chat',
+					start_time: '2026-05-01T14:00:00Z',
+					end_time: '2026-05-01T14:30:00Z'
+				}),
+				appt({
+					id: 'second',
+					cancel_token: 'b',
+					event_type_id: 'lunch',
+					start_time: '2026-05-01T14:30:00Z',
+					end_time: '2026-05-01T15:00:00Z'
+				})
+			])
+			.execute();
+
+		await flagConflicts(ctx, { now: inst('2026-05-01T00:00:00Z') });
+
+		const rows = await ctx.db
+			.selectFrom('appointments')
+			.select(['id', 'has_possible_conflict'])
+			.orderBy('id')
+			.execute();
+		expect(rows).toEqual([
+			{ id: 'first', has_possible_conflict: 0 },
+			{ id: 'second', has_possible_conflict: 0 }
+		]);
+	} finally {
+		await ctx.db.destroy();
+	}
+});
+
+test('clears the survivor once the overlapping appointment is cancelled', async () => {
+	const ctx = await ctxWith({
+		meetings: [
+			{ name: 'chat', busy_calendars: [] },
+			{ name: 'lunch', busy_calendars: [] }
+		] as unknown as WhenConfiguration['meetings']
+	});
+	try {
+		await ctx.db
+			.insertInto('appointments')
+			.values([
+				appt({
+					id: 'kept',
+					cancel_token: 'a',
+					event_type_id: 'chat',
+					start_time: '2026-05-01T14:00:00Z',
+					end_time: '2026-05-01T15:00:00Z',
+					has_possible_conflict: 1
+				}),
+				appt({
+					id: 'gone',
+					cancel_token: 'b',
+					event_type_id: 'lunch',
+					status: 'cancelled',
+					start_time: '2026-05-01T14:30:00Z',
+					end_time: '2026-05-01T15:30:00Z',
+					has_possible_conflict: 1
+				})
+			])
+			.execute();
+
+		await flagConflicts(ctx, { now: inst('2026-05-01T00:00:00Z') });
+
+		const row = await ctx.db
+			.selectFrom('appointments')
+			.select('has_possible_conflict')
+			.where('id', '=', 'kept')
+			.executeTakeFirstOrThrow();
+		expect(row.has_possible_conflict).toBe(0);
+	} finally {
+		await ctx.db.destroy();
+	}
+});
