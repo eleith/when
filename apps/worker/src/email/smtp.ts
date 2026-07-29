@@ -41,17 +41,10 @@ export function createMailer(config: WhenConfiguration, logger: Logger): Mailer 
 					html: envelope.html,
 					attachments: envelope.attachments
 				});
-				logger.info({ to: envelope.to, subject: envelope.subject }, 'email sent');
+				logger.info('email sent');
 				return { ok: true };
 			} catch (err) {
-				logger.error(
-					{
-						error: String(err),
-						to: envelope.to,
-						subject: envelope.subject
-					},
-					'SMTP send failed'
-				);
+				logger.error({ error: String(err) }, 'SMTP send failed');
 				return { ok: false, reason: String(err) };
 			}
 		}

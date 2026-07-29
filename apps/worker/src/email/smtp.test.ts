@@ -23,15 +23,15 @@ vi.mock('nodemailer', () => ({
 	default: { createTransport: (options: TransportOptions) => createTransport(options) }
 }));
 
+const configForPort = (port: number) =>
+	({
+		user: { name: 'Jane Doe', email: 'owner@acme.test' },
+		smtp: { host: 'smtp.test', port, user: 'u', pass: 'p' }
+	}) as unknown as WhenConfiguration;
+
 function mailerForPort(port: number) {
 	createTransport.mockClear();
-	createMailer(
-		{
-			user: { name: 'Jane Doe', email: 'owner@acme.test' },
-			smtp: { host: 'smtp.test', port, user: 'u', pass: 'p' }
-		} as unknown as WhenConfiguration,
-		createLogger()
-	);
+	createMailer(configForPort(port), createLogger());
 	return createTransport.mock.calls[0][0];
 }
 
@@ -51,13 +51,28 @@ describe('smtp', () => {
 	});
 
 	test('createMailer builds a mailer from the smtp config', () => {
-		const mailer = createMailer(
-			{
-				user: { name: 'Jane Doe', email: 'owner@acme.test' },
-				smtp: { host: 'smtp.test', port: 587, user: 'u', pass: 'p' }
-			} as unknown as WhenConfiguration,
-			createLogger()
-		);
+		const mailer = createMailer(configForPort(587), createLogger());
 		expect(typeof mailer.send).toBe('function');
+	});
+
+	test.for([true, false])('a send logs no guest identity (delivered: %s)', async (delivered) => {
+		createTransport.mockReturnValueOnce({
+			sendMail: () => (delivered ? undefined : Promise.reject(new Error('550 no such user')))
+		});
+		const logs: unknown[] = [];
+		const capture = (payload: unknown) => void logs.push(payload);
+		const mailer = createMailer(configForPort(587), {
+			info: capture,
+			error: capture
+		} as unknown as Parameters<typeof createMailer>[1]);
+
+		await mailer.send({
+			to: 'guest@example.test',
+			subject: 'New appointment: chat with Booker McBookface',
+			text: 'body'
+		});
+
+		expect(JSON.stringify(logs)).not.toContain('guest@example.test');
+		expect(JSON.stringify(logs)).not.toContain('Booker McBookface');
 	});
 });

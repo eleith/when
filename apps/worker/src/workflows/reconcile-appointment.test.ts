@@ -122,8 +122,8 @@ describe('runReconcileAppointment', () => {
 		expect(names).toEqual([
 			'resolve-video-chat',
 			'sync-calendar',
-			'smtp:jane@example.com',
-			'smtp:owner@acme.test',
+			'smtp:guest',
+			'smtp:host',
 			'log:result'
 		]);
 		expect(await readEmailJobStates(db)).toEqual(['done']);

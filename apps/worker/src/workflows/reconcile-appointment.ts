@@ -49,19 +49,20 @@ export async function runReconcileAppointment(
 		let allSent = true;
 
 		for (const envelope of envelopes) {
+			const recipientType = envelope.to === ctx.config.user.email ? 'host' : 'guest';
 			try {
-				await step.run({ name: `smtp:${envelope.to}`, retryPolicy: SEND_RETRY }, async () => {
+				await step.run({ name: `smtp:${recipientType}`, retryPolicy: SEND_RETRY }, async () => {
 					const result = await ctx.mailer.send(envelope);
 					if (!result.ok) {
 						emailsTotal.inc({
-							recipient_type: envelope.to === ctx.config.user.email ? 'host' : 'guest',
+							recipient_type: recipientType,
 							email_kind: input.emailKind!,
 							status: 'failure'
 						});
 						throw new Error(result.reason);
 					}
 					emailsTotal.inc({
-						recipient_type: envelope.to === ctx.config.user.email ? 'host' : 'guest',
+						recipient_type: recipientType,
 						email_kind: input.emailKind!,
 						status: 'success'
 					});
@@ -70,7 +71,8 @@ export async function runReconcileAppointment(
 				allSent = false;
 				ctx.logger.error(
 					{
-						to: envelope.to,
+						appointmentId: input.appointmentId,
+						recipientType,
 						error: err instanceof Error ? err.message : String(err)
 					},
 					'appointment email send failed after retries'
