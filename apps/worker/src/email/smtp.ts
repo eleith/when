@@ -24,6 +24,7 @@ export function createMailer(config: WhenConfiguration, logger: Logger): Mailer 
 		host: config.smtp.host,
 		port: config.smtp.port,
 		secure: isSecurePort(config.smtp.port),
+		requireTLS: !isSecurePort(config.smtp.port),
 		auth: { user: config.smtp.user, pass: config.smtp.pass }
 	});
 
