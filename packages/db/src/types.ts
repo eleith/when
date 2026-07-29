@@ -85,6 +85,7 @@ export interface ActionLogEntry {
 		| 'decline'
 		| 'cancel'
 		| 'reschedule'
+		| 'rotate'
 		| 'expire'
 		| 'email'
 		| 'calendar'

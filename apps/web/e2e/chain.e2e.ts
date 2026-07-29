@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
+import { parseActionLog } from '@when/db';
 import { readAppointment } from './support/database.ts';
+import { signInAsAdmin } from './support/auth.ts';
 import { seedAppointment } from './support/seed.ts';
 import { pickLastBookableDay, pickSlotFromEndOfDay } from './support/wizard.ts';
 
@@ -72,4 +74,57 @@ test('the cancel form refuses a token from a different appointment', async ({ pa
 
 	expect(await response.json()).toMatchObject({ type: 'failure', status: 403 });
 	expect((await readAppointment(mine.id)).status).toBe('confirmed');
+});
+
+test('rotating the guest link kills the old one and issues a working replacement', async ({
+	page,
+	request
+}) => {
+	const appointment = await seedAppointment({ status: 'confirmed' });
+	const oldLink = `/appointment/${appointment.id}?token=${appointment.cancel_token}`;
+
+	await signInAsAdmin(page);
+	await page.goto(`/appointment/${appointment.id}`);
+	await page.getByRole('button', { name: 'Appointment actions' }).click();
+	await page.getByRole('menuitem', { name: 'Guest Link' }).click();
+
+	const link = page.locator('input.share-input');
+	await expect(link).toHaveValue(new RegExp(appointment.cancel_token));
+
+	await page.getByRole('button', { name: 'Rotate link' }).click();
+
+	// The dialog stays open and swaps in the new link, ready to copy.
+	await expect(link).not.toHaveValue(new RegExp(appointment.cancel_token));
+
+	const rotated = await readAppointment(appointment.id);
+	await expect(link).toHaveValue(new RegExp(rotated.cancel_token));
+
+	// Selected, so the token at the tail is scrolled into view and ready to copy.
+	await expect(link).toBeFocused();
+	expect(await link.evaluate((el: HTMLInputElement) => el.selectionEnd === el.value.length)).toBe(
+		true
+	);
+	expect(rotated.cancel_token).not.toBe(appointment.cancel_token);
+	expect(parseActionLog(rotated.action_log).at(-1)).toMatchObject({
+		action: 'rotate',
+		actor: 'host'
+	});
+
+	const stale = await request.get(oldLink);
+	expect(stale.status()).toBe(404);
+
+	const fresh = await request.get(`/appointment/${appointment.id}?token=${rotated.cancel_token}`);
+	expect(fresh.status()).toBe(200);
+});
+
+test('a signed-out visitor cannot rotate a guest link', async ({ request }) => {
+	const appointment = await seedAppointment({ status: 'confirmed' });
+
+	const response = await request.post(`/admin/appointment/${appointment.id}?/rotate`, {
+		headers: { origin: 'http://localhost:4183' },
+		form: {}
+	});
+
+	expect(response.status()).toBe(403);
+	expect((await readAppointment(appointment.id)).cancel_token).toBe(appointment.cancel_token);
 });

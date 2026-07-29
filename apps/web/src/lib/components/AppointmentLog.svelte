@@ -7,6 +7,8 @@
 	import IconXCircle from 'virtual:icons/ph/x-circle';
 	import IconCalendarX from 'virtual:icons/ph/calendar-x';
 	import IconArrowsClockwise from 'virtual:icons/ph/arrows-clockwise';
+	import IconKey from 'virtual:icons/ph/key';
+	import IconVideoCamera from 'virtual:icons/ph/video-camera';
 	import IconHourglass from 'virtual:icons/ph/hourglass';
 	import IconEnvelope from 'virtual:icons/ph/envelope-simple';
 	import IconCalendarBlank from 'virtual:icons/ph/calendar-blank';
@@ -58,12 +60,16 @@
 								<IconCalendarX aria-hidden="true" />
 							{:else if entry.action === 'reschedule'}
 								<IconArrowsClockwise aria-hidden="true" />
+							{:else if entry.action === 'rotate'}
+								<IconKey aria-hidden="true" />
 							{:else if entry.action === 'expire'}
 								<IconHourglass aria-hidden="true" />
 							{:else if entry.action === 'email'}
 								<IconEnvelope aria-hidden="true" />
 							{:else if entry.action === 'calendar'}
 								<IconCalendarBlank aria-hidden="true" />
+							{:else if entry.action === 'video_chat'}
+								<IconVideoCamera aria-hidden="true" />
 							{:else if entry.action === 'edit'}
 								<IconPencilSimple aria-hidden="true" />
 							{:else}
@@ -82,6 +88,8 @@
 									Cancelled
 								{:else if entry.action === 'reschedule'}
 									Rescheduled
+								{:else if entry.action === 'rotate'}
+									Guest link rotated
 								{:else if entry.action === 'expire'}
 									Expired
 								{:else if entry.action === 'email'}
@@ -99,6 +107,14 @@
 										Calendar sync failed
 									{:else}
 										Calendar sync queued
+									{/if}
+								{:else if entry.action === 'video_chat'}
+									{#if state === 'done'}
+										Video room created
+									{:else if state === 'failed'}
+										Video room failed
+									{:else}
+										Video room queued
 									{/if}
 								{:else if entry.action === 'edit'}
 									{@const changes = (entry.payload?.metadata?.changes as string[]) || []}

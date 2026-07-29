@@ -4,7 +4,8 @@ import {
 	confirmAppointment,
 	rescheduleAppointmentTransition,
 	cancelAppointmentTransition,
-	declineAppointmentTransition
+	declineAppointmentTransition,
+	rotateGuestTokenTransition
 } from './transitions';
 
 async function makeDb() {
@@ -271,6 +272,67 @@ test('declineAppointmentTransition queues a delete when a re-approval revert car
 		expect(JSON.parse(row.action_log!)).toEqual([
 			{ action: 'decline', actor: 'host', at: '2026-01-01T15:00:00Z' }
 		]);
+	} finally {
+		await db.destroy();
+	}
+});
+
+test('rotateGuestTokenTransition replaces the token and records the move', async () => {
+	const db = await makeDb();
+	try {
+		await insert(db, { id: '1', status: 'confirmed', cancel_token: 't1' });
+
+		expect(await rotateGuestTokenTransition(db, '1', '2026-01-01T12:00:00Z')).toEqual({ ok: true });
+
+		const row = await fetchRow(db, '1');
+		expect(row.cancel_token).not.toBe('t1');
+		expect(JSON.parse(row.action_log!)).toEqual([
+			{ action: 'rotate', actor: 'host', at: '2026-01-01T12:00:00Z' }
+		]);
+	} finally {
+		await db.destroy();
+	}
+});
+
+test('rotateGuestTokenTransition keeps both tokens out of the log', async () => {
+	const db = await makeDb();
+	try {
+		await insert(db, { id: '1', status: 'confirmed', cancel_token: 't1' });
+		await rotateGuestTokenTransition(db, '1', '2026-01-01T12:00:00Z');
+
+		const row = await fetchRow(db, '1');
+		expect(row.action_log).not.toContain('t1');
+		expect(row.action_log).not.toContain(row.cancel_token);
+	} finally {
+		await db.destroy();
+	}
+});
+
+test.for(['rescheduled', 'purged'])(
+	'rotateGuestTokenTransition refuses a %s row and leaves its token alone',
+	async (status) => {
+		const db = await makeDb();
+		try {
+			await insert(db, { id: '1', status, cancel_token: 't1' });
+
+			expect(await rotateGuestTokenTransition(db, '1', '2026-01-01T12:00:00Z')).toEqual({
+				ok: false,
+				reason: 'conflict'
+			});
+			expect((await fetchRow(db, '1')).cancel_token).toBe('t1');
+		} finally {
+			await db.destroy();
+		}
+	}
+);
+
+test('rotateGuestTokenTransition reports a missing appointment', async () => {
+	const db = await makeDb();
+	try {
+		expect(await rotateGuestTokenTransition(db, 'nope', '2026-01-01T12:00:00Z')).toEqual({
+			ok: false,
+			reason: 'not_found'
+		});
 	} finally {
 		await db.destroy();
 	}

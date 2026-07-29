@@ -224,3 +224,25 @@ export async function declineAppointmentTransition(
 		.executeTakeFirst();
 	return classify(db, id, result.numUpdatedRows);
 }
+
+/**
+ * Mint a fresh guest token, invalidating every link issued so far. Restricted in SQL to the
+ * chain tip — findChainTip's own predicate — since superseded rows are terminal and view-only.
+ */
+export async function rotateGuestTokenTransition(
+	db: Kysely<Database>,
+	id: string,
+	now: string
+): Promise<TransitionOutcome> {
+	const result = await db
+		.updateTable('appointments')
+		.set({
+			cancel_token: newCancelToken(),
+			action_log: appendActionLogSql({ action: 'rotate', actor: 'host', at: now }),
+			updated_at: sql`CURRENT_TIMESTAMP`
+		})
+		.where('id', '=', id)
+		.where('status', 'not in', ['rescheduled', 'purged'])
+		.executeTakeFirst();
+	return classify(db, id, result.numUpdatedRows);
+}

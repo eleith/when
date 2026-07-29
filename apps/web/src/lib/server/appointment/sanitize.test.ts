@@ -116,6 +116,24 @@ describe('toPublicAppointment', () => {
 		expect(res.action_log).toEqual([]);
 	});
 
+	test('never shows a guest that their link was rotated', () => {
+		const rowWithLog: Appointment = {
+			...baseRow,
+			action_log: JSON.stringify([
+				{ action: 'rotate', actor: 'host', at: '2026-05-01T12:00:00Z' },
+				{ action: 'cancel', actor: 'host', at: '2026-05-01T13:00:00Z' }
+			])
+		};
+
+		const res = toPublicAppointment(rowWithLog, false);
+
+		expect(res.action_log.map((e) => e.action)).toEqual(['cancel']);
+		expect(toPublicAppointment(rowWithLog, true).action_log.map((e) => e.action)).toEqual([
+			'rotate',
+			'cancel'
+		]);
+	});
+
 	test('returns only sanitized cancellation entries in action_log for non-admins', () => {
 		const rowWithLog: Appointment = {
 			...baseRow,

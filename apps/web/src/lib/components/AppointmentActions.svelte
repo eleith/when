@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { DropdownMenu, Dialog } from 'bits-ui';
+	import { enhance } from '$app/forms';
+	import { tick } from 'svelte';
 	import IconDotsThreeVertical from 'virtual:icons/ph/dots-three-vertical';
 	import IconX from 'virtual:icons/ph/x';
 
@@ -51,9 +53,12 @@
 		actions.reschedule.allowed || actions.cancel.allowed || (isAdmin && isEditable)
 	);
 
+	let rotated = $state(false);
+
 	let copied = $state(false);
 	let feedbackTimeout: ReturnType<typeof setTimeout>;
 	let copyBtnEl = $state<HTMLButtonElement | null>(null);
+	let shareInputEl = $state<HTMLInputElement | null>(null);
 
 	async function handleCopy() {
 		try {
@@ -148,9 +153,7 @@
 									{/if}
 									<DropdownMenu.Item onSelect={() => (shareDialogOpen = true)}>
 										{#snippet child({ props: itemProps })}
-											<button {...itemProps} type="button" class="action-item"
-												>Copy Guest Link</button
-											>
+											<button {...itemProps} type="button" class="action-item">Guest Link</button>
 										{/snippet}
 									</DropdownMenu.Item>
 								{/if}
@@ -195,7 +198,7 @@
 						<header class="share-dialog-header">
 							<Dialog.Title>
 								{#snippet child({ props: titleProps })}
-									<h2 {...titleProps} class="share-dialog-title">Copy Guest Link</h2>
+									<h2 {...titleProps} class="share-dialog-title">Guest Link</h2>
 								{/snippet}
 							</Dialog.Title>
 							<Dialog.Close>
@@ -217,6 +220,7 @@
 								type="text"
 								readonly
 								value={shareLink}
+								bind:this={shareInputEl}
 								class="share-input"
 								onclick={(e) => (e.target as HTMLInputElement).select()}
 							/>
@@ -229,6 +233,33 @@
 								{copied ? 'Copied' : 'Copy'}
 							</button>
 						</div>
+
+						<form
+							method="POST"
+							action="/admin/appointment/{appointmentId}?/rotate"
+							class="share-rotate"
+							use:enhance={() => {
+								return async ({ update }) => {
+									await update({ reset: false });
+									rotated = true;
+									copied = false;
+									// The token is the tail of a long value, so scroll it into view.
+									await tick();
+									shareInputEl?.focus();
+									shareInputEl?.select();
+								};
+							}}
+						>
+							<p class="share-rotate-desc">
+								{#if rotated}
+									Rotated. Every earlier link now 404s — send this one to the guest.
+								{:else}
+									Sent this to the wrong person? Rotating issues a new link and stops every earlier
+									one working. No email is sent.
+								{/if}
+							</p>
+							<button type="submit" class="share-rotate-btn">Rotate link</button>
+						</form>
 					</div>
 				{/snippet}
 			</Dialog.Content>
@@ -446,6 +477,40 @@
 
 	.share-copy-btn:hover {
 		opacity: 0.9;
+	}
+
+	.share-rotate {
+		display: flex;
+		align-items: center;
+		gap: var(--space-3);
+		padding-top: var(--space-3);
+		border-top: 1px solid var(--color-border);
+	}
+
+	.share-rotate-desc {
+		flex: 1;
+		margin: 0;
+		color: var(--color-text-secondary);
+		font-size: var(--font-size-sm);
+		line-height: 1.4;
+	}
+
+	.share-rotate-btn {
+		flex-shrink: 0;
+		height: 40px;
+		padding: 0 var(--space-3);
+		border: 1px solid var(--color-border-strong);
+		border-radius: var(--radius);
+		background: var(--color-surface);
+		color: var(--color-danger);
+		font-size: var(--font-size-md);
+		font-weight: 600;
+		cursor: pointer;
+		transition: background var(--transition);
+	}
+
+	.share-rotate-btn:hover {
+		background: var(--color-surface-muted);
 	}
 
 	.share-dialog-header {

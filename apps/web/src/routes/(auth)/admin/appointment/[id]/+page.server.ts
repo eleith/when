@@ -8,6 +8,7 @@ import { purgeAppointment } from '$lib/server/appointment/purge';
 import { editAppointment } from '$lib/server/appointment/edit';
 import { validateReason } from '$lib/server/appointment/form.server';
 import { appointmentContext } from '$lib/server/appointment/context';
+import { rotateGuestTokenTransition } from '$lib/server/appointment/transitions';
 import type { Actions, PageServerLoad } from './$types';
 import { systemClock } from '$lib/server/clock';
 
@@ -81,6 +82,20 @@ export const actions: Actions = {
 		await purgeAppointment(appointmentContext(), { appointment: row });
 
 		redirect(303, '/admin/appointments/upcoming');
+	},
+
+	rotate: async ({ params }) => {
+		const result = await rotateGuestTokenTransition(
+			getDb(),
+			params.id,
+			systemClock.now().toISOString()
+		);
+		if (!result.ok) {
+			return result.reason === 'not_found'
+				? fail(404, { error: 'Appointment not found.' })
+				: fail(409, { error: 'Only the current appointment in a chain has a link to rotate.' });
+		}
+		return { success: 'rotated' };
 	},
 
 	edit: async ({ params, request }) => {
