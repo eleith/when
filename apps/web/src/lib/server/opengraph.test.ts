@@ -97,3 +97,62 @@ test('still renders when the custom font cannot be loaded', async () => {
 	const bytes = new Uint8Array(await response.arrayBuffer());
 	expect(readUint32BE(bytes, 16)).toBe(1200);
 });
+
+async function freshModules() {
+	vi.resetModules();
+	const state = await import('./state');
+	const opengraph = await import('./opengraph');
+	state.setState({ config: validConfig, db: {} as never });
+	return {
+		...opengraph,
+		setConfig: (c: typeof validConfig) => state.setState({ config: c, db: {} as never })
+	};
+}
+
+test('the configured png is rendered once and replayed', async () => {
+	const { renderConfiguredOpengraph } = await freshModules();
+	let fetches = 0;
+	const countingFetch: typeof fetch = (...args) => {
+		fetches += 1;
+		return fakeFetch(...args);
+	};
+
+	const first = new Uint8Array(
+		await (await renderConfiguredOpengraph(countingFetch)).arrayBuffer()
+	);
+	expect(fetches).toBeGreaterThan(0);
+
+	fetches = 0;
+	const second = new Uint8Array(
+		await (await renderConfiguredOpengraph(countingFetch)).arrayBuffer()
+	);
+
+	expect(fetches).toBe(0);
+	expect(second).toEqual(first);
+	expect(readUint32BE(second, 16)).toBe(1200);
+});
+
+test('a swapped-in config re-renders; a rejected reload leaves the cache alone', async () => {
+	const { renderConfiguredOpengraph, setConfig } = await freshModules();
+	let fetches = 0;
+	const countingFetch: typeof fetch = (...args) => {
+		fetches += 1;
+		return fakeFetch(...args);
+	};
+
+	await renderConfiguredOpengraph(countingFetch);
+
+	// A rejected reload never reaches setState, so the config object is unchanged.
+	fetches = 0;
+	await renderConfiguredOpengraph(countingFetch);
+	expect(fetches).toBe(0);
+
+	setConfig({ ...validConfig });
+
+	fetches = 0;
+	const response = await renderConfiguredOpengraph(countingFetch);
+
+	expect(fetches).toBeGreaterThan(0);
+	expect(response.headers.get('content-type')).toBe('image/png');
+	expect(response.headers.get('cache-control')).toBe('public, max-age=3600');
+});

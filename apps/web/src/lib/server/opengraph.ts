@@ -1,7 +1,7 @@
 import { render } from 'svelte/server';
 import { ImageResponse } from 'takumi-js/response';
 import { Renderer } from 'takumi-js/node';
-import type { Appearance } from '@when/config';
+import type { Appearance, WhenConfiguration } from '@when/config';
 import OpengraphImage from '$lib/opengraph/OpengraphImage.svelte';
 import { getConfig } from './state.js';
 import { hexToRgba } from './color.js';
@@ -11,7 +11,10 @@ const WIDTH = 1200;
 const HEIGHT = 630;
 const CACHE_CONTROL = 'public, max-age=3600';
 
-let rendererPromise: Promise<Renderer> | null = null;
+// Both caches key on the object they were built from. A config reload installs a new
+// one, which is the invalidation; a rejected reload never installs anything.
+let cachedRenderer: { appearance: Appearance; renderer: Promise<Renderer> } | null = null;
+let cachedPng: { config: WhenConfiguration; png: Promise<ArrayBuffer> } | null = null;
 
 async function registerBundledFamily(
 	renderer: Renderer,
@@ -25,36 +28,40 @@ async function registerBundledFamily(
 	}
 }
 
-function getRenderer(fetchFn: typeof fetch, appearance: Appearance): Promise<Renderer> {
-	if (!rendererPromise) {
-		rendererPromise = (async () => {
-			const renderer = new Renderer();
-			const family = appearance.font_name;
-			if (isBundledFont(family)) {
-				await registerBundledFamily(renderer, fetchFn, family);
-			} else {
-				await registerBundledFamily(renderer, fetchFn, FALLBACK_FONT_NAME);
-				if (appearance.font_url) {
-					try {
-						const res = await fetchFn(appearance.font_url);
-						if (res.ok) {
-							await renderer.registerFont({
-								name: appearance.font_name,
-								data: Buffer.from(await res.arrayBuffer())
-							});
-						}
-					} catch {
-						// fall back to the fallback family
-					}
+async function buildRenderer(fetchFn: typeof fetch, appearance: Appearance): Promise<Renderer> {
+	const renderer = new Renderer();
+	const family = appearance.font_name;
+	if (isBundledFont(family)) {
+		await registerBundledFamily(renderer, fetchFn, family);
+	} else {
+		await registerBundledFamily(renderer, fetchFn, FALLBACK_FONT_NAME);
+		if (appearance.font_url) {
+			try {
+				const res = await fetchFn(appearance.font_url);
+				if (res.ok) {
+					await renderer.registerFont({
+						name: appearance.font_name,
+						data: Buffer.from(await res.arrayBuffer())
+					});
 				}
+			} catch {
+				// fall back to the fallback family
 			}
-			return renderer;
-		})().catch((err) => {
-			rendererPromise = null;
-			throw err;
-		});
+		}
 	}
-	return rendererPromise;
+	return renderer;
+}
+
+function getRenderer(fetchFn: typeof fetch, appearance: Appearance): Promise<Renderer> {
+	if (cachedRenderer?.appearance === appearance) return cachedRenderer.renderer;
+
+	// Drop a failed build so the next request retries rather than replaying the error.
+	const renderer = buildRenderer(fetchFn, appearance).catch((err) => {
+		if (cachedRenderer?.appearance === appearance) cachedRenderer = null;
+		throw err;
+	});
+	cachedRenderer = { appearance, renderer };
+	return renderer;
 }
 
 async function loadImage(
@@ -79,11 +86,27 @@ function formatDisplayUrl(appUrl: string): string {
 	return appUrl.replace(/^https?:\/\//, '').replace(/\/+$/, '');
 }
 
-export function renderConfiguredOpengraph(fetchFn: typeof fetch): Promise<Response> {
-	const { user, url } = getConfig();
-	return renderOpengraph(fetchFn, {
-		appUrl: url.app,
-		appearance: user.appearance
+async function renderPng(fetchFn: typeof fetch, config: WhenConfiguration): Promise<ArrayBuffer> {
+	const rendered = await renderOpengraph(fetchFn, {
+		appUrl: config.url.app,
+		appearance: config.user.appearance
+	});
+	return rendered.arrayBuffer();
+}
+
+export async function renderConfiguredOpengraph(fetchFn: typeof fetch): Promise<Response> {
+	const config = getConfig();
+	if (cachedPng?.config !== config) {
+		const png = renderPng(fetchFn, config).catch((err) => {
+			if (cachedPng?.config === config) cachedPng = null;
+			throw err;
+		});
+		cachedPng = { config, png };
+	}
+
+	// A Response body is single-use, so each request gets a new one over the same bytes.
+	return new Response(await cachedPng.png, {
+		headers: { 'content-type': 'image/png', 'cache-control': CACHE_CONTROL }
 	});
 }
 
