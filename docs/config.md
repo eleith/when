@@ -44,6 +44,19 @@ auth:
     client_secret: '${OIDC_CLIENT_SECRET}'
 ```
 
+Both are supported in production. Which one fits depends on who can reach the sign-in page:
+
+- **`credentials`** is a good fit on a trusted network — a LAN, a VPN, or behind a proxy that
+  authenticates before the request arrives. The app applies **no rate limiting and no lockout**
+  to password attempts, so nothing slows an attacker who can reach `/signin`. Running it in
+  production logs one warning at startup saying so.
+- **`oidc`** is the recommendation for an internet-facing deployment. Attempt throttling,
+  lockout, password policy, and MFA then belong to your identity provider, which is built for
+  them.
+
+If you want `credentials` on a public address anyway, put the rate limiting at the reverse
+proxy — see the sign-in endpoint in `docs/deployment.md`.
+
 ## `user`
 
 The schedule owner and the appointment page's appearance.

@@ -93,7 +93,9 @@ origin from forwarded headers, and a set `ORIGIN` takes precedence over both. Li
   ones: `POST /schedule/<slug>` (each success writes a row _and_ sends mail over your SMTP
   credentials, so abuse costs sender reputation), `POST /appointment/<id>` and
   `POST /appointment/<id>/reschedule`, and the sign-in POST when `auth.credentials` is in
-  use — the app performs no lockout or throttling on password attempts.
+  use — the app performs no lockout or throttling on password attempts. It warns once at
+  startup when credentials auth runs in production; a rule here, or OIDC instead, is the
+  answer. See the `auth` section of `docs/config.md`.
 - **Response caching** for `/assets/images/opengraph.png` and `/assets/images/avatar.svg`,
   which are rendered per request, and for `/public/*`.
 - **Request body limits**, if you set any: keep them at or above the app's own

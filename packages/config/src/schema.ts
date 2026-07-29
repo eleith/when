@@ -298,6 +298,8 @@ export const WhenConfigurationSchema = Type.Object({
 
 export type WhenConfiguration = Static<typeof WhenConfigurationSchema>;
 export type Auth = Static<typeof AuthSchema>;
+export type CredentialsAuth = Static<typeof CredentialsAuthSchema>;
+export type OidcAuth = Static<typeof OidcAuthSchema>;
 export type User = Static<typeof UserSchema>;
 export type Appearance = Static<typeof AppearanceSchema>;
 export type Smtp = Static<typeof SmtpSchema>;
