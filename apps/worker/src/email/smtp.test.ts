@@ -3,9 +3,24 @@ import type { WhenConfiguration } from '@when/config';
 import { createMailer, isSecurePort } from './smtp.js';
 import { createLogger } from '../services/logger.js';
 
-const createTransport = vi.fn(() => ({ sendMail: vi.fn() }));
+interface TransportOptions {
+	secure: boolean;
+	requireTLS: boolean;
+}
+
+interface FakeTransport {
+	sendMail: (message: unknown) => unknown;
+}
+
+const createTransport = vi.fn(
+	(_options: TransportOptions): FakeTransport => ({
+		sendMail: () => undefined
+	})
+);
+
+// The factory is hoisted above createTransport, so it can only call it lazily.
 vi.mock('nodemailer', () => ({
-	default: { createTransport: (...args: unknown[]) => createTransport(...args) }
+	default: { createTransport: (options: TransportOptions) => createTransport(options) }
 }));
 
 function mailerForPort(port: number) {
@@ -17,7 +32,7 @@ function mailerForPort(port: number) {
 		} as unknown as WhenConfiguration,
 		createLogger()
 	);
-	return createTransport.mock.calls[0][0] as { secure: boolean; requireTLS: boolean };
+	return createTransport.mock.calls[0][0];
 }
 
 describe('smtp', () => {
