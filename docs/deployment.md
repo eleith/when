@@ -100,12 +100,31 @@ origin from forwarded headers, and a set `ORIGIN` takes precedence over both. Li
   `BODY_SIZE_LIMIT` (512K by default) so oversized requests produce the app's error rather
   than the proxy's.
 
-### Do not set at the proxy
+### Security headers
 
-Leave `Content-Security-Policy` and `X-Frame-Options` / `frame-ancestors` to the app. The
-booking page carries an injected inline `<style>` for the configured theme, and SvelteKit
-emits inline hydration scripts, so a CSP added at the proxy will break rendering unless it
-carries matching hashes — which only the app can generate.
+The app sends these itself, so it is safe without a proxy in front of it:
+
+- `Content-Security-Policy`, including `frame-ancestors 'none'` — which supersedes
+  `X-Frame-Options`, so you do not need that header at all.
+- `Referrer-Policy: strict-origin-when-cross-origin`.
+- `X-Content-Type-Options: nosniff`.
+
+**Never set `Content-Security-Policy` at the proxy.** Two CSP headers are not
+last-one-wins — the browser enforces both and the page gets their intersection. SvelteKit
+mints a per-request nonce for its hydration script and the booking page carries an injected
+inline `<style>` for the configured theme, neither of which a proxy can account for, so a
+second policy will break rendering.
+
+The other two are yours to duplicate if your standard vhost sets them. A proxy that replaces
+headers wins outright; one that appends (bare nginx `add_header`) leaves two values and the
+browser takes the last valid one. Either way the app's value is the fallback, not the winner,
+so make sure yours is at least as strict. For `Referrer-Policy` that matters: guest
+appointment links carry their access token in the query string, and anything weaker than
+`strict-origin-when-cross-origin` leaks a working credential in the `Referer` of an outbound
+click.
+
+The app's policy allows no remote origin at all. Every `appearance.*_url` is a root-relative
+path this app serves, so custom branding goes in `./public/` and is referenced at `/public/…`.
 
 ### Ports
 

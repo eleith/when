@@ -11,7 +11,7 @@ vi.mock('$lib/server/auth', () => ({
 	})
 }));
 
-import { authGate } from './hooks.server';
+import { authGate, securityHeaders } from './hooks.server';
 
 function event(opts: {
 	routeId: string;
@@ -86,5 +86,17 @@ describe('hooks auth gate', () => {
 			authGate({ event: event({ routeId: '/(auth)/admin', accept: 'application/json' }), resolve })
 		);
 		expect(r.status).toBe(403);
+	});
+});
+
+describe('hooks security headers', () => {
+	test.for([
+		['/(app)/appointment/[id]', '/appointment/abc'],
+		['/(auth)/admin', '/admin']
+	])('sets them on %s', async ([routeId, path]) => {
+		const resolve = vi.fn(async () => new Response('ok'));
+		const response = await securityHeaders({ event: event({ routeId, path }), resolve });
+		expect(response.headers.get('referrer-policy')).toBe('strict-origin-when-cross-origin');
+		expect(response.headers.get('x-content-type-options')).toBe('nosniff');
 	});
 });

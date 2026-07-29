@@ -13,6 +13,13 @@ try {
 	process.exit(1);
 }
 
+export const securityHeaders: Handle = async ({ event, resolve }) => {
+	const response = await resolve(event);
+	response.headers.set('referrer-policy', 'strict-origin-when-cross-origin');
+	response.headers.set('x-content-type-options', 'nosniff');
+	return response;
+};
+
 export const authGate: Handle = async ({ event, resolve }) => {
 	if (event.route.id?.startsWith('/(auth)')) {
 		const session = await event.locals.auth();
@@ -38,4 +45,4 @@ export const authGate: Handle = async ({ event, resolve }) => {
 	});
 };
 
-export const handle = sequence(getAuth().handle, authGate);
+export const handle = sequence(securityHeaders, getAuth().handle, authGate);
