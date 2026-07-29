@@ -3,7 +3,6 @@ import type { LayoutServerLoad } from './$types';
 
 export const load: LayoutServerLoad = ({ cookies }) => {
 	const cfg = getConfig();
-	const opengraphUrl = cfg.user.appearance.opengraph_url;
 	return {
 		appearance: {
 			primary_light_color: cfg.user.appearance.primary_light_color,
@@ -13,7 +12,7 @@ export const load: LayoutServerLoad = ({ cookies }) => {
 			title: cfg.user.appearance.title,
 			description: cfg.user.appearance.description
 		},
-		ogImage: opengraphUrl.startsWith('/') ? `${cfg.url.app}${opengraphUrl}` : opengraphUrl,
+		ogImage: `${cfg.url.app}${cfg.user.appearance.opengraph_url}`,
 		preferredTimezone: cookies.get('tz') ?? null
 	};
 };

@@ -84,28 +84,24 @@
 					"type": "string"
 				},
 				"app_icon_url": {
-					"minLength": 1,
 					"default": "/assets/images/app-icon.svg",
-					"description": "URL of the app icon (default: the bundled /assets/images/app-icon.svg, a calendar). Can be relative (e.g. /public/icon.png).",
-					"type": "string"
+					"description": "Path to the app icon (default: the bundled /assets/images/app-icon.svg, a calendar).",
+					"$ref": "#/$defs/LocalPath"
 				},
 				"avatar_url": {
-					"minLength": 1,
 					"default": "/assets/images/avatar.svg",
-					"description": "URL of the avatar image (default: /assets/images/avatar.svg, generated from the owner's name). Can be relative (e.g. /public/avatar.png).",
-					"type": "string"
+					"description": "Path to the avatar image (default: /assets/images/avatar.svg, generated from the owner's name).",
+					"$ref": "#/$defs/LocalPath"
 				},
 				"favicon_url": {
-					"minLength": 1,
 					"default": "/assets/images/favicon.svg",
-					"description": "URL of the favicon image (default: the bundled /assets/images/favicon.svg). Can be relative (e.g. /public/favicon.ico).",
-					"type": "string"
+					"description": "Path to the favicon image (default: the bundled /assets/images/favicon.svg).",
+					"$ref": "#/$defs/LocalPath"
 				},
 				"opengraph_url": {
-					"minLength": 1,
 					"default": "/assets/images/opengraph.png",
-					"description": "URL of the share (opengraph) image (default: /assets/images/opengraph.png, generated from the appearance). Can be relative (e.g. /public/opengraph.png).",
-					"type": "string"
+					"description": "Path to the share (opengraph) image (default: /assets/images/opengraph.png, generated from the appearance).",
+					"$ref": "#/$defs/LocalPath"
 				},
 				"font_name": {
 					"minLength": 1,
@@ -114,9 +110,8 @@
 					"type": "string"
 				},
 				"font_url": {
-					"minLength": 1,
-					"description": "URL of the custom font file (woff2), registered as `font_name`. Can be relative (e.g. /public/font.woff2).",
-					"type": "string"
+					"description": "Path to the custom font file (woff2), registered as `font_name`.",
+					"$ref": "#/$defs/LocalPath"
 				},
 				"primary_light_color": {
 					"default": "#166534",
@@ -555,6 +550,11 @@
 		"HexColor": {
 			"pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$",
 			"description": "Hex color code (e.g. #4f46e5 or #fff).",
+			"type": "string"
+		},
+		"LocalPath": {
+			"pattern": "^/[^/\\\\]",
+			"description": "Root-relative path to an asset this app serves (e.g. /public/icon.png). Remote URLs are not accepted — put the file in ./public/ and reference it at /public/.",
 			"type": "string"
 		},
 		"Location": {

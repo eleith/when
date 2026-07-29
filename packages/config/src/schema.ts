@@ -10,6 +10,13 @@ export const HexColorSchema = Type.String({
 	description: 'Hex color code (e.g. #4f46e5 or #fff).'
 });
 
+export const LocalPathSchema = Type.String({
+	$id: 'LocalPath',
+	pattern: '^/[^/\\\\]',
+	description:
+		'Root-relative path to an asset this app serves (e.g. /public/icon.png). Remote URLs are not accepted — put the file in ./public/ and reference it at /public/.'
+});
+
 export const OidcAuthSchema = Type.Object({
 	issuer: Type.String({ format: 'uri', description: 'OIDC provider issuer URI.' }),
 	client_id: Type.String({ minLength: 1, description: 'OIDC client ID.' }),
@@ -43,12 +50,12 @@ export const AuthSchema = Type.Union([
 export const AppearanceSchema = Type.Object({
 	title: Type.String({ default: 'if not now, when?', description: 'Title of the booking page.' }),
 	description: Type.String({ default: 'find some time and we can meet', description: 'Subtext or introduction shown on the booking page.' }),
-	app_icon_url: Type.String({ minLength: 1, default: '/assets/images/app-icon.svg', description: 'URL of the app icon (default: the bundled /assets/images/app-icon.svg, a calendar). Can be relative (e.g. /public/icon.png).' }),
-	avatar_url: Type.String({ minLength: 1, default: '/assets/images/avatar.svg', description: 'URL of the avatar image (default: /assets/images/avatar.svg, generated from the owner\'s name). Can be relative (e.g. /public/avatar.png).' }),
-	favicon_url: Type.String({ minLength: 1, default: '/assets/images/favicon.svg', description: 'URL of the favicon image (default: the bundled /assets/images/favicon.svg). Can be relative (e.g. /public/favicon.ico).' }),
-	opengraph_url: Type.String({ minLength: 1, default: '/assets/images/opengraph.png', description: 'URL of the share (opengraph) image (default: /assets/images/opengraph.png, generated from the appearance). Can be relative (e.g. /public/opengraph.png).' }),
+	app_icon_url: Ref(LocalPathSchema, { default: '/assets/images/app-icon.svg', description: 'Path to the app icon (default: the bundled /assets/images/app-icon.svg, a calendar).' }),
+	avatar_url: Ref(LocalPathSchema, { default: '/assets/images/avatar.svg', description: 'Path to the avatar image (default: /assets/images/avatar.svg, generated from the owner\'s name).' }),
+	favicon_url: Ref(LocalPathSchema, { default: '/assets/images/favicon.svg', description: 'Path to the favicon image (default: the bundled /assets/images/favicon.svg).' }),
+	opengraph_url: Ref(LocalPathSchema, { default: '/assets/images/opengraph.png', description: 'Path to the share (opengraph) image (default: /assets/images/opengraph.png, generated from the appearance).' }),
 	font_name: Type.String({ minLength: 1, default: 'Noto Sans', description: 'Font family for the booking page and share card: one of the bundled families (Noto Sans, Lato, Outfit, Inter) or the family name of a custom `font_url` font.' }),
-	font_url: Type.Optional(Type.String({ minLength: 1, description: 'URL of the custom font file (woff2), registered as `font_name`. Can be relative (e.g. /public/font.woff2).' })),
+	font_url: Type.Optional(Ref(LocalPathSchema, { description: 'Path to the custom font file (woff2), registered as `font_name`.' })),
 	primary_light_color: Ref(HexColorSchema, { default: '#166534', description: 'Primary brand color for light mode.' }),
 	primary_dark_color: Ref(HexColorSchema, { default: '#34d399', description: 'Primary brand color for dark mode.' }),
 	background_light_color: Ref(HexColorSchema, { default: '#f5f5f5', description: 'Background color for light mode.' }),
