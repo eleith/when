@@ -1,13 +1,13 @@
 import { redirect } from '@sveltejs/kit';
 import { isRedirect } from '@sveltejs/kit';
 import { signInAction } from '$lib/server/auth';
-import { safeCallbackUrl } from '$lib/server/auth/callback-url';
+import { localRedirect } from '$lib/server/redirect';
 import { getConfig } from '$lib/server/state';
 import { userLoginsTotal } from '$lib/server/metrics';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ url, locals }) => {
-	const callbackUrl = safeCallbackUrl(url.searchParams.get('callbackUrl'));
+	const callbackUrl = localRedirect(url.searchParams.get('callbackUrl'), url.origin, '/admin');
 	const session = await locals.auth();
 	if (session) redirect(303, callbackUrl);
 
@@ -34,7 +34,11 @@ export const actions: Actions = {
 
 			userLoginsTotal.inc({ provider, status: 'failure' });
 
-			const callbackUrl = safeCallbackUrl(event.url.searchParams.get('callbackUrl'));
+			const callbackUrl = localRedirect(
+				event.url.searchParams.get('callbackUrl'),
+				event.url.origin,
+				'/admin'
+			);
 			let errorType = 'CredentialsSignin';
 
 			if (error instanceof Error) {
