@@ -8,7 +8,7 @@ import {
 import type { Kysely } from 'kysely';
 import type { Database } from '@when/db';
 
-export const APPOINTMENT_VIEW_GRACE_DAYS = 14;
+export const APPOINTMENT_VIEW_GRACE_DAYS = 7;
 
 const ACTIVE_STATUSES: ReadonlySet<AppointmentStatus> = new Set(['pending', 'confirmed']);
 

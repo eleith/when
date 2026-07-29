@@ -146,6 +146,10 @@ moment, not a zone.
   with AES-256-GCM using the `ENCRYPTION_KEY` env var.
 - Never log raw request bodies, session tokens, `cancel_token` values, or decrypted
   secrets.
+- A guest link stops resolving `APPOINTMENT_VIEW_GRACE_DAYS` (7) after the appointment ends —
+  `access.ts`. The same window gates the `.ics` download, so re-grabbing the calendar file has
+  the same deadline. A rescheduled row measures those 7 days from the *move*, not from its
+  old slot, which would otherwise still be months away.
 
 ### Styling and theming (web)
 
