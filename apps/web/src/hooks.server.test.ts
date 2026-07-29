@@ -3,7 +3,7 @@ import type { Handle } from '@sveltejs/kit';
 import { validConfig } from '$lib/server/__fixtures__/valid-config';
 
 vi.mock('$lib/server/boot', () => ({ bootApp: async () => {} }));
-vi.mock('$lib/server/appearance', () => ({ getHeadInjections: () => '' }));
+vi.mock('$lib/server/appearance', () => ({ themeStyleTag: () => '' }));
 vi.mock('$lib/server/state', () => ({ getConfig: () => validConfig }));
 vi.mock('$lib/server/auth', () => ({
 	getAuth: () => ({

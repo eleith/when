@@ -1,50 +1,53 @@
 import type { Appearance } from '@when/config';
 import { getContrastText } from './color.js';
-import { fontStack } from './fonts.js';
+import { fontFamilies } from './fonts.js';
 
-export function getHeadInjections(appearance: Appearance): string {
-	let headInjections = '';
+// A <style> element ends at the first `</style`, whatever CSS quoting says, so `<` goes too.
+function cssString(value: string): string {
+	const escaped = value
+		.replace(/[\\']/g, '\\$&')
+		.replace(/</g, '\\3c ')
+		.replace(/[\r\n]+/g, ' ');
+	return `'${escaped}'`;
+}
 
-	if (appearance.font_url) {
-		headInjections += `<style>
-		@font-face {
-			font-family: '${appearance.font_name}';
-			src: url('${appearance.font_url}') format('woff2');
+function fontFaceRule(appearance: Appearance): string {
+	if (!appearance.font_url) return '';
+	return `@font-face {
+			font-family: ${cssString(appearance.font_name)};
+			src: url(${cssString(appearance.font_url)}) format('woff2');
 			font-display: swap;
-		}
-	</style>\n\t\t`;
-	}
+		}`;
+}
 
-	const textOnPrimaryLight = getContrastText(
-		appearance.primary_light_color,
-		appearance.text_light_color
-	);
-	const textOnPrimaryDark = getContrastText(
-		appearance.primary_dark_color,
-		appearance.text_dark_color
-	);
+function colorVariables(appearance: Appearance, scheme: 'light' | 'dark'): string {
+	const primary =
+		scheme === 'light' ? appearance.primary_light_color : appearance.primary_dark_color;
+	const text = scheme === 'light' ? appearance.text_light_color : appearance.text_dark_color;
+	const surface =
+		scheme === 'light' ? appearance.background_light_color : appearance.background_dark_color;
 
-	const fontDecl = `--when-font-family: ${fontStack(appearance.font_name)};`;
+	return `--when-color-primary: ${primary};
+			--when-color-text: ${text};
+			--when-color-surface-page: ${surface};
+			--when-color-text-on-primary: ${getContrastText(primary, text)};`;
+}
 
-	const styleTag = `<style>
+/** The owner's configured theme, as a <style> element for the document head. */
+export function themeStyleTag(appearance: Appearance): string {
+	const families = fontFamilies(appearance.font_name).map(cssString).join(', ');
+
+	return `<style>
+		${fontFaceRule(appearance)}
 		:root {
-			--when-color-primary: ${appearance.primary_light_color};
-			--when-color-text: ${appearance.text_light_color};
-			--when-color-surface-page: ${appearance.background_light_color};
-			--when-color-text-on-primary: ${textOnPrimaryLight};
-			${fontDecl}
+			${colorVariables(appearance, 'light')}
+			--when-font-family: ${families};
 		}
 
 		@media (prefers-color-scheme: dark) {
 			:root {
-				--when-color-primary: ${appearance.primary_dark_color};
-				--when-color-text: ${appearance.text_dark_color};
-				--when-color-surface-page: ${appearance.background_dark_color};
-				--when-color-text-on-primary: ${textOnPrimaryDark};
+				${colorVariables(appearance, 'dark')}
 			}
 		}
 	</style>`;
-	headInjections += styleTag;
-
-	return headInjections;
 }

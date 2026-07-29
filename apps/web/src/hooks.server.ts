@@ -5,7 +5,7 @@ import { localRedirect } from '$lib/server/redirect';
 import { bootApp } from '$lib/server/boot';
 import { logger } from '$lib/server/logger';
 import { getConfig } from '$lib/server/state';
-import { getHeadInjections } from '$lib/server/appearance';
+import { themeStyleTag } from '$lib/server/appearance';
 
 try {
 	await bootApp();
@@ -43,10 +43,8 @@ export const authGate: Handle = async ({ event, resolve }) => {
 	const appearance = cfg.user.appearance;
 
 	return resolve(event, {
-		transformPageChunk: ({ html }) => {
-			const injections = getHeadInjections(appearance);
-			return html.replace('</head>', `\t${injections}\n</head>`);
-		}
+		transformPageChunk: ({ html }) =>
+			html.replace('</head>', `\t${themeStyleTag(appearance)}\n</head>`)
 	});
 };
 

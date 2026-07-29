@@ -1,11 +1,3 @@
-/*
- * Appearance-driven variables (--when-color-primary, --when-color-text, --when-color-surface-page, --when-color-text-on-primary,
- * --when-font-family) come from the config: getHeadInjections injects them at :root on every
- * render, and every appearance field has a default, so they are always present. The
- * overlapping ones are commented out here rather than kept as fallbacks — a second
- * declaration would compete on the cascade and, in dev (Vite re-injects this file's
- * <style> after the server injection), win on source order and revert the config.
- */
 :root {
 	color-scheme: light dark;
 

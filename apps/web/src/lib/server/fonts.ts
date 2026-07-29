@@ -20,6 +20,10 @@ export function bundledFontUrls(family: string): string[] {
 	);
 }
 
+export function fontFamilies(family: string): string[] {
+	return isBundledFont(family) ? [family] : [family, FALLBACK_FONT_NAME];
+}
+
 export function fontStack(family: string): string {
-	return isBundledFont(family) ? family : `${family}, ${FALLBACK_FONT_NAME}`;
+	return fontFamilies(family).join(', ');
 }
