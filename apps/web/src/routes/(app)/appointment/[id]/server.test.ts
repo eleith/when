@@ -35,16 +35,21 @@ const mockAppt: Appointment = {
 	updated_at: ''
 };
 
-function rescheduleLog(previousId: string, nextId: string): string {
-	return JSON.stringify([
-		{
-			action: 'reschedule',
-			actor: 'guest',
-			at: '2099-04-01T00:00:00Z',
-			payload: { metadata: { previous_id: previousId, next_id: nextId } }
-		}
-	]);
+// transitions.ts appends the move to the old row's log and copies that whole log onto the
+// new row, so a later row carries every earlier move as well as its own.
+function moves(...pairs: [previousId: string, nextId: string][]) {
+	return pairs.map(([previousId, nextId], i) => ({
+		action: 'reschedule',
+		actor: 'guest',
+		at: `2099-0${i + 1}-01T00:00:00Z`,
+		payload: { metadata: { previous_id: previousId, next_id: nextId } }
+	}));
 }
+
+const CHAIN_MOVES: [string, string][] = [
+	['chain-1', 'chain-2'],
+	['chain-2', 'chain-3']
+];
 
 const chain: Record<string, Appointment> = {
 	'chain-1': {
@@ -52,7 +57,8 @@ const chain: Record<string, Appointment> = {
 		id: 'chain-1',
 		origin_id: 'chain-1',
 		cancel_token: 'tok-1',
-		status: 'rescheduled'
+		status: 'rescheduled',
+		action_log: JSON.stringify(moves(...CHAIN_MOVES.slice(0, 1)))
 	},
 	'chain-2': {
 		...mockAppt,
@@ -60,7 +66,7 @@ const chain: Record<string, Appointment> = {
 		origin_id: 'chain-1',
 		cancel_token: 'tok-2',
 		status: 'rescheduled',
-		action_log: rescheduleLog('chain-1', 'chain-2')
+		action_log: JSON.stringify(moves(...CHAIN_MOVES.slice(0, 2)))
 	},
 	'chain-3': {
 		...mockAppt,
@@ -68,7 +74,7 @@ const chain: Record<string, Appointment> = {
 		origin_id: 'chain-1',
 		cancel_token: 'tok-3',
 		status: 'confirmed',
-		action_log: rescheduleLog('chain-2', 'chain-3')
+		action_log: JSON.stringify(moves(...CHAIN_MOVES))
 	}
 };
 

@@ -46,6 +46,17 @@ const baseRow: Appointment = {
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+function rescheduledLog(rowId: string, at: string): string {
+	return JSON.stringify([
+		{
+			action: 'reschedule',
+			actor: 'guest',
+			at,
+			payload: { metadata: { previous_id: rowId, next_id: 'next' } }
+		}
+	]);
+}
+
 describe('isViewable', () => {
 	test('true before end_time', () => {
 		expect(isViewable(baseRow, new Date('2026-05-01T14:00:00Z'))).toBe(true);
@@ -66,8 +77,39 @@ describe('isViewable', () => {
 		expect(isViewable(baseRow, now)).toBe(false);
 	});
 
-	test('viewable independent of status (signature accepts only end_time)', () => {
-		expect(isViewable({ end_time: baseRow.end_time }, new Date('2026-05-01T14:00:00Z'))).toBe(true);
+	test('a superseded row measures its window from the move, not its old slot', () => {
+		const movedAt = '2026-04-01T00:00:00Z';
+		const row = {
+			...baseRow,
+			status: 'rescheduled' as const,
+			action_log: rescheduledLog(baseRow.id, movedAt)
+		};
+
+		const inside = new Date(Date.parse(movedAt) + (APPOINTMENT_VIEW_GRACE_DAYS - 1) * DAY_MS);
+		const outside = new Date(Date.parse(movedAt) + (APPOINTMENT_VIEW_GRACE_DAYS + 1) * DAY_MS);
+
+		expect(isViewable(row, inside)).toBe(true);
+		// Still before end_time + grace, so the old rule would have kept this open.
+		expect(Date.parse(baseRow.end_time)).toBeGreaterThan(outside.getTime());
+		expect(isViewable(row, outside)).toBe(false);
+	});
+
+	test('a superseded row expires even when its old slot is months away', () => {
+		const movedAt = '2026-01-01T00:00:00Z';
+		const row = {
+			...baseRow,
+			end_time: '2026-06-01T15:30:00Z',
+			status: 'rescheduled' as const,
+			action_log: rescheduledLog(baseRow.id, movedAt)
+		};
+
+		const later = new Date(Date.parse(movedAt) + (APPOINTMENT_VIEW_GRACE_DAYS + 1) * DAY_MS);
+		expect(isViewable(row, later)).toBe(false);
+	});
+
+	test('a rescheduled row with no recorded move is not viewable', () => {
+		const row = { ...baseRow, status: 'rescheduled' as const, action_log: null };
+		expect(isViewable(row, new Date('2026-05-01T14:00:00Z'))).toBe(false);
 	});
 });
 
@@ -166,7 +208,12 @@ describe('isViewAllowed', () => {
 
 describe('isViewAllowed with the chain tip token', () => {
 	const now = new Date('2026-05-01T14:00:00Z');
-	const superseded: Appointment = { ...baseRow, id: 'old', status: 'rescheduled' };
+	const superseded: Appointment = {
+		...baseRow,
+		id: 'old',
+		status: 'rescheduled',
+		action_log: rescheduledLog('old', '2026-04-28T00:00:00Z')
+	};
 	const tip: Appointment = {
 		...baseRow,
 		id: 'tip',
@@ -183,6 +230,21 @@ describe('isViewAllowed with the chain tip token', () => {
 		chainTip = tip;
 		const past = new Date(Date.parse(tip.end_time) + (APPOINTMENT_VIEW_GRACE_DAYS + 1) * DAY_MS);
 		await expect(isViewAllowed(db, superseded, 'tok-tip', past)).resolves.toBe(false);
+	});
+
+	test('the tip token still opens a row whose own token has already expired', async () => {
+		const movedAt = '2026-04-01T00:00:00Z';
+		const expired = {
+			...superseded,
+			action_log: rescheduledLog('old', movedAt)
+		};
+		const afterOwnWindow = new Date(
+			Date.parse(movedAt) + (APPOINTMENT_VIEW_GRACE_DAYS + 1) * DAY_MS
+		);
+		chainTip = tip;
+
+		await expect(isViewAllowed(db, expired, 'tok-abc', afterOwnWindow)).resolves.toBe(false);
+		await expect(isViewAllowed(db, expired, 'tok-tip', afterOwnWindow)).resolves.toBe(true);
 	});
 
 	test('a sibling token that is not the tip stays locked out', async () => {
