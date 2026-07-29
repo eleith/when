@@ -1,6 +1,7 @@
 import { sequence } from '@sveltejs/kit/hooks';
 import { redirect, error, type Handle } from '@sveltejs/kit';
 import { getAuth } from '$lib/server/auth';
+import { safeCallbackUrl } from '$lib/server/auth/callback-url';
 import { bootApp } from '$lib/server/boot';
 import { logger } from '$lib/server/logger';
 import { getConfig } from '$lib/server/state';
@@ -26,7 +27,7 @@ export const authGate: Handle = async ({ event, resolve }) => {
 		if (!session) {
 			const accept = event.request.headers.get('accept') || '';
 			if (event.request.method === 'GET' && accept.includes('text/html')) {
-				const callbackUrl = event.url.pathname + event.url.search;
+				const callbackUrl = safeCallbackUrl(event.url.pathname + event.url.search);
 				throw redirect(303, `/signin?callbackUrl=${encodeURIComponent(callbackUrl)}`);
 			} else {
 				throw error(403, 'Not authorized.');

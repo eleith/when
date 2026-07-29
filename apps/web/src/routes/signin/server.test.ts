@@ -37,6 +37,28 @@ describe('/signin server load and actions', () => {
 		});
 	});
 
+	test('load function refuses to bounce a signed-in admin off-site', async () => {
+		setState({
+			config: validConfig,
+			db: {} as AppState['db']
+		});
+
+		const url = new URL('http://localhost/signin?callbackUrl=https://evil.com');
+		let location: string | undefined;
+		try {
+			await load({
+				url,
+				locals: { auth: vi.fn().mockResolvedValue({ user: { name: 'admin' } }) },
+				route: { id: '/signin' },
+				params: {}
+			} as unknown as Parameters<typeof load>[0]);
+		} catch (err) {
+			location = (err as { location: string }).location;
+		}
+
+		expect(location).toBe('/admin');
+	});
+
 	test('load function redirects if already logged in', async () => {
 		setState({
 			config: validConfig,
