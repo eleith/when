@@ -26,7 +26,8 @@ vi.mock('@when/db', async (io) => ({
 	getBusyIntervals: async () => []
 }));
 vi.mock('$lib/server/appointment/create', () => ({ createAppointment: h.createAppointment }));
-vi.mock('$lib/server/appointment/form.server', () => ({
+vi.mock('$lib/server/appointment/form.server', async (io) => ({
+	...(await io<typeof import('$lib/server/appointment/form.server')>()),
 	parseAndValidateAppointmentForm: h.parseForm,
 	resolveTimezone: h.resolveTimezone
 }));
@@ -130,6 +131,16 @@ describe('/schedule/[slug] book action', () => {
 		const result = (await actions.book(bookEvent(new FormData()))) as Failure;
 		expect(result?.status).toBe(400);
 	});
+
+	test.for(['not-a-time', '2099-13-45T99:99:99Z', '2099-05-01'])(
+		'rejects the unparseable slot %s with 400',
+		async (slot) => {
+			h.parseForm.mockReturnValue(validGuest);
+			const fd = new FormData();
+			fd.set('slot', slot);
+			expect(((await actions.book(bookEvent(fd))) as Failure)?.status).toBe(400);
+		}
+	);
 
 	test('rejects invalid form fields with 400', async () => {
 		h.parseForm.mockReturnValue({ ok: false, errors: { name: 'required' } });

@@ -9,6 +9,7 @@ import { requireViewableAppointment } from '$lib/server/appointment/access';
 import { classifyReschedule, rescheduleAppointment } from '$lib/server/appointment/reschedule';
 import {
 	parseAndValidateAppointmentForm,
+	parseSlot,
 	resolveTimezone,
 	validateReason
 } from '$lib/server/appointment/form.server';
@@ -57,7 +58,8 @@ export const actions: Actions = {
 		const slotStr = String(form.get('slot') ?? '');
 		const token = String(form.get('token') ?? '').trim();
 
-		if (!slotStr) return fail(400, { error: 'Please pick a time slot.' });
+		const start = parseSlot(slotStr);
+		if (!start) return fail(400, { error: 'Please pick a time slot.' });
 
 		const found = await findAppointment(getDb(), params.id);
 		if (!found || found.cancel_token !== token) {
@@ -89,7 +91,6 @@ export const actions: Actions = {
 			return fail(409, { error: 'That time is no longer available. Please pick another.' });
 		}
 
-		const start = Temporal.Instant.from(slotStr);
 		const end = start.add({ minutes: duration });
 		const result = await rescheduleAppointment(appointmentContext(), {
 			appointment: found,

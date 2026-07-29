@@ -4,7 +4,7 @@ import { getConfig, getDb } from '$lib/server/state';
 import { isSlotBookable } from '$lib/server/availability/load';
 import { resolveDuration } from '$lib/server/appointment/duration';
 import { rescheduleAppointment } from '$lib/server/appointment/reschedule';
-import { validateReason } from '$lib/server/appointment/form.server';
+import { parseSlot, validateReason } from '$lib/server/appointment/form.server';
 import { appointmentContext } from '$lib/server/appointment/context';
 import type { Actions } from './$types';
 
@@ -13,7 +13,8 @@ export const actions: Actions = {
 		const form = await request.formData();
 		const slotStr = String(form.get('slot') ?? '');
 
-		if (!slotStr) return fail(400, { error: 'Please pick a time slot.' });
+		const start = parseSlot(slotStr);
+		if (!start) return fail(400, { error: 'Please pick a time slot.' });
 
 		const found = await findAppointment(getDb(), params.id);
 		if (!found) return fail(404, { error: 'Appointment not found.' });
@@ -39,7 +40,6 @@ export const actions: Actions = {
 			return fail(409, { error: 'That time is no longer available. Please pick another.' });
 		}
 
-		const start = Temporal.Instant.from(slotStr);
 		const end = start.add({ minutes: duration });
 		const result = await rescheduleAppointment(appointmentContext(), {
 			appointment: found,

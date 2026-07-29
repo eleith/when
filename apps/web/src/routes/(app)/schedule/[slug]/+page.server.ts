@@ -12,6 +12,7 @@ import { createAppointment } from '$lib/server/appointment/create';
 import { resolveDuration } from '$lib/server/appointment/duration';
 import {
 	parseAndValidateAppointmentForm,
+	parseSlot,
 	resolveTimezone
 } from '$lib/server/appointment/form.server';
 import { appointmentContext } from '$lib/server/appointment/context';
@@ -72,7 +73,8 @@ export const actions: Actions = {
 		const form = await request.formData();
 		const slotStr = String(form.get('slot') ?? '');
 
-		if (!slotStr) {
+		const start = parseSlot(slotStr);
+		if (!start) {
 			bookingAttemptsTotal.inc({ event_type_id: eventType.name, status: 'invalid_input' });
 			return fail(400, { error: 'Please pick a time slot.' });
 		}
@@ -119,7 +121,6 @@ export const actions: Actions = {
 			return fail(409, { error: 'That time is no longer available. Please pick another.' });
 		}
 
-		const start = Temporal.Instant.from(slotStr);
 		const end = start.add({ minutes: duration });
 
 		let created;

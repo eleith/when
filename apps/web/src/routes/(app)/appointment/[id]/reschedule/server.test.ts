@@ -31,7 +31,8 @@ vi.mock('$lib/server/availability/load', () => ({
 	loadAvailability: h.loadAvailability,
 	isSlotBookable: h.isSlotBookable
 }));
-vi.mock('$lib/server/appointment/form.server', () => ({
+vi.mock('$lib/server/appointment/form.server', async (io) => ({
+	...(await io<typeof import('$lib/server/appointment/form.server')>()),
 	parseAndValidateAppointmentForm: h.parseForm,
 	resolveTimezone: h.resolveTimezone,
 	validateReason: h.validateReason

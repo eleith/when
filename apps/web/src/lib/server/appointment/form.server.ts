@@ -34,6 +34,14 @@ export type ParseAppointmentResult =
 	| { ok: true; data: ParsedAppointment }
 	| { ok: false; errors: Record<string, string> };
 
+export function parseSlot(value: string): Temporal.Instant | null {
+	try {
+		return Temporal.Instant.from(value);
+	} catch {
+		return null;
+	}
+}
+
 export function resolveTimezone(raw: FormDataEntryValue | null, fallback: string): string {
 	const tz = typeof raw === 'string' ? raw.trim() : '';
 	if (!tz) return fallback;
