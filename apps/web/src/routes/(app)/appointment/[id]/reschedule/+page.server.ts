@@ -5,7 +5,7 @@ import { getConfig, getDb } from '$lib/server/state';
 import { resolveFormFields } from '@when/config';
 import { isSlotBookable, loadAvailability } from '$lib/server/availability/load';
 import { resolveDuration } from '$lib/server/appointment/duration';
-import { requireViewableAppointment } from '$lib/server/appointment/access';
+import { isViewAllowed } from '$lib/server/appointment/access';
 import { classifyReschedule, rescheduleAppointment } from '$lib/server/appointment/reschedule';
 import {
 	parseAndValidateAppointmentForm,
@@ -24,7 +24,8 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 	const now = systemClock.now();
 
 	// 404s on a missing/expired appointment or a bad token — the cases with no event type to render.
-	const row = requireViewableAppointment(await findAppointment(getDb(), params.id), token, now);
+	const row = await findAppointment(getDb(), params.id);
+	if (!row || !(await isViewAllowed(getDb(), row, token, now))) error(404);
 
 	const cfg = getConfig();
 	const eventType = cfg.meetings.find((e) => e.name === row.event_type_id);

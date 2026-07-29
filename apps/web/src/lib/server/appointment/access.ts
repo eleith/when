@@ -1,5 +1,6 @@
-import { error } from '@sveltejs/kit';
-import type { Appointment, AppointmentStatus } from '@when/db';
+import { findChainTip, originId, type Appointment, type AppointmentStatus } from '@when/db';
+import type { Kysely } from 'kysely';
+import type { Database } from '@when/db';
 
 export const APPOINTMENT_VIEW_GRACE_DAYS = 14;
 
@@ -34,10 +35,21 @@ export function isRescheduleAllowed(
 	return now.getTime() + minimumNoticeMinutes * 60 * 1000 <= startMs;
 }
 
-export function requireViewableAppointment<
-	T extends Pick<Appointment, 'cancel_token' | 'end_time' | 'status'>
->(row: T | undefined, token: string | null, now: Date): T {
-	if (!row || !token || row.cancel_token !== token) error(404);
-	if (row.status === 'purged' || !isViewable(row, now)) error(404);
-	return row;
+export type ViewableRow = Pick<
+	Appointment,
+	'id' | 'origin_id' | 'cancel_token' | 'end_time' | 'status'
+>;
+
+export async function isViewAllowed(
+	db: Kysely<Database>,
+	row: ViewableRow,
+	token: string | null,
+	now: Date
+): Promise<boolean> {
+	if (!token || row.status === 'purged') return false;
+
+	if (row.cancel_token === token) return isViewable(row, now);
+
+	const tip = row.status === 'rescheduled' ? await findChainTip(db, originId(row)) : row;
+	return !!tip && tip.cancel_token === token && isViewable(tip, now);
 }

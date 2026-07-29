@@ -1,11 +1,10 @@
 import { describe, expect, test, vi, beforeEach } from 'vitest';
-import { error } from '@sveltejs/kit';
 import { validConfig } from '$lib/server/__fixtures__/valid-config';
 import type { Appointment } from '@when/db';
 
 const h = vi.hoisted(() => ({
 	row: { current: null as Appointment | null },
-	requireViewable: vi.fn(),
+	viewAllowed: vi.fn(),
 	buildIcs: vi.fn(() => 'BEGIN:VCALENDAR')
 }));
 
@@ -15,7 +14,7 @@ vi.mock('@when/db', async (io) => ({
 	findAppointment: async () => h.row.current
 }));
 vi.mock('$lib/server/appointment/access', () => ({
-	requireViewableAppointment: h.requireViewable
+	isViewAllowed: h.viewAllowed
 }));
 vi.mock('@when/calendar', async (io) => ({
 	...(await io<typeof import('@when/calendar')>()),
@@ -54,7 +53,7 @@ function appt(status = 'confirmed'): Appointment {
 beforeEach(() => {
 	vi.clearAllMocks();
 	h.row.current = appt();
-	h.requireViewable.mockReturnValue(h.row.current);
+	h.viewAllowed.mockResolvedValue(true);
 	h.buildIcs.mockReturnValue('BEGIN:VCALENDAR');
 });
 
@@ -73,7 +72,7 @@ describe('GET /appointment/[id]/ics', () => {
 
 	test('403s when the appointment is not confirmed', async () => {
 		h.row.current = appt('pending');
-		h.requireViewable.mockReturnValue(h.row.current);
+		h.viewAllowed.mockResolvedValue(true);
 		expect((await caught(() => GET(event('tok-1')))).status).toBe(403);
 		expect(h.buildIcs).not.toHaveBeenCalled();
 	});
@@ -81,14 +80,12 @@ describe('GET /appointment/[id]/ics', () => {
 	test('404s when the meeting type no longer exists', async () => {
 		h.row.current = appt();
 		h.row.current.event_type_id = 'gone';
-		h.requireViewable.mockReturnValue(h.row.current);
+		h.viewAllowed.mockResolvedValue(true);
 		expect((await caught(() => GET(event('tok-1')))).status).toBe(404);
 	});
 
-	test('propagates the access error for a bad or expired token', async () => {
-		h.requireViewable.mockImplementation(() => {
-			throw error(403, 'nope');
-		});
-		expect((await caught(() => GET(event('tok-1')))).status).toBe(403);
+	test('404s on a bad or expired token', async () => {
+		h.viewAllowed.mockResolvedValue(false);
+		expect((await caught(() => GET(event('tok-1')))).status).toBe(404);
 	});
 });

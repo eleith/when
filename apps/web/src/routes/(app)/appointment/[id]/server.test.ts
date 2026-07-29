@@ -35,8 +35,6 @@ const mockAppt: Appointment = {
 	updated_at: ''
 };
 
-// A three-row reschedule chain: chain-1 was moved to chain-2, which was moved to chain-3.
-// Each row's own log carries the entry naming it as the `next_id`.
 function rescheduleLog(previousId: string, nextId: string): string {
 	return JSON.stringify([
 		{
@@ -208,17 +206,29 @@ describe('/appointment/[id] reschedule chain links — characterization', () => 
 		await expect(loadAppointment('chain-1', 'tok-1')).resolves.toBeTruthy();
 	});
 
-	test('a row hands back its predecessor together with that predecessor token', async () => {
+	test('a row names its predecessor but hands over no token for it', async () => {
 		const result = await loadAppointment('chain-2', 'tok-2');
 
-		expect(result.rescheduledFrom).toMatchObject({ id: 'chain-1', token: 'tok-1' });
+		expect(result.rescheduledFrom).toEqual({
+			id: 'chain-1',
+			start_time: mockAppt.start_time
+		});
 	});
 
-	// C16 inverts this: a superseded row should NOT hand a guest the live row's token.
-	test('a superseded row hands back the chain tip together with the tip token', async () => {
+	test('a superseded row names the chain tip but hands over no token for it', async () => {
 		const result = await loadAppointment('chain-1', 'tok-1');
 
-		expect(result.latestAppointment).toEqual({ id: 'chain-3', token: 'tok-3' });
+		expect(result.latestAppointment).toEqual({ id: 'chain-3' });
+	});
+
+	test('the tip token opens the rows the chain grew out of', async () => {
+		await expect(loadAppointment('chain-1', 'tok-3')).resolves.toBeTruthy();
+		await expect(loadAppointment('chain-2', 'tok-3')).resolves.toBeTruthy();
+	});
+
+	test('a superseded token still cannot reach the live row', async () => {
+		await expect(loadAppointment('chain-3', 'tok-1')).rejects.toThrow();
+		await expect(loadAppointment('chain-3', 'tok-2')).rejects.toThrow();
 	});
 
 	test('the live row at the tip has no successor to point at', async () => {

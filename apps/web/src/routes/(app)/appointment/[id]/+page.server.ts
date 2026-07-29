@@ -1,5 +1,5 @@
 import { error, fail, redirect } from '@sveltejs/kit';
-import { requireViewableAppointment } from '$lib/server/appointment/access';
+import { isViewAllowed } from '$lib/server/appointment/access';
 import { resolveAppointmentActions } from '$lib/server/appointment/actions';
 import { buildAddToCalendarLinks } from '$lib/server/calendar-links';
 import { systemClock } from '$lib/server/clock';
@@ -46,12 +46,9 @@ export const load: PageServerLoad = async ({ params, url, locals, cookies }) => 
 	if (!found) error(404, 'Appointment not found.');
 
 	const now = systemClock.now();
-	let row = found;
+	const row = found;
 
-	if (!isAdmin) {
-		if (!token) error(404);
-		row = requireViewableAppointment(found, token, now);
-	}
+	if (!isAdmin && !(await isViewAllowed(getDb(), row, token, now))) error(404);
 
 	const cfg = getConfig();
 	const eventType = cfg.meetings.find((e) => e.name === row.event_type_id);
@@ -101,7 +98,6 @@ export const load: PageServerLoad = async ({ params, url, locals, cookies }) => 
 				)
 			: null;
 
-	// A valid token for this row authorises its chain siblings, so we pass their tokens to the links.
 	const actionLog = parseActionLog(row.action_log);
 	const rescheduleToSelf = actionLog.findLast(
 		(e) => e.action === 'reschedule' && e.payload?.metadata?.next_id === row.id
@@ -134,9 +130,9 @@ export const load: PageServerLoad = async ({ params, url, locals, cookies }) => 
 		hostTz: cfg.user.timezone,
 		guestTz: row.guest_timezone ?? cfg.user.timezone,
 		rescheduledFrom: predecessor
-			? { id: predecessor.id, token: predecessor.cancel_token, start_time: predecessor.start_time }
+			? { id: predecessor.id, start_time: predecessor.start_time }
 			: null,
-		latestAppointment: latest ? { id: latest.id, token: latest.cancel_token } : null,
+		latestAppointment: latest ? { id: latest.id } : null,
 		deleteCheck
 	};
 };

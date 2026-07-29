@@ -291,9 +291,7 @@
 						Rescheduled from
 						<a
 							class="state-meta-link"
-							href="/appointment/{data.rescheduledFrom.id}?token={encodeURIComponent(
-								data.rescheduledFrom.token
-							)}"
+							href="/appointment/{data.rescheduledFrom.id}?token={encodeURIComponent(data.token)}"
 						>
 							{formatDateShort(data.rescheduledFrom.start_time, displayTz)}
 						</a>
@@ -302,9 +300,7 @@
 					{#if data.latestAppointment}
 						<a
 							class="state-meta-link"
-							href="/appointment/{data.latestAppointment.id}?token={encodeURIComponent(
-								data.latestAppointment.token
-							)}"
+							href="/appointment/{data.latestAppointment.id}?token={encodeURIComponent(data.token)}"
 						>
 							View latest appointment
 						</a>

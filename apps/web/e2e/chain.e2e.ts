@@ -3,8 +3,6 @@ import { readAppointment } from './support/database.ts';
 import { seedAppointment } from './support/seed.ts';
 import { pickLastBookableDay, pickSlotFromEndOfDay } from './support/wizard.ts';
 
-// Characterizes the guest-facing chain links. The stale-link assertions below are the
-// surface the forward-isolation work changes.
 test('a stale link shows the rescheduled state and links to the live appointment', async ({
 	page
 }) => {
@@ -31,10 +29,34 @@ test('a stale link shows the rescheduled state and links to the live appointment
 	const latest = page.getByRole('link', { name: 'View latest appointment' });
 	await expect(latest).toBeVisible();
 
-	const successor = await readAppointment(successorId);
 	expect(await latest.getAttribute('href')).toBe(
-		`/appointment/${successorId}?token=${encodeURIComponent(successor.cancel_token)}`
+		`/appointment/${successorId}?token=${encodeURIComponent(original.cancel_token)}`
 	);
+	const followed = await page.goto(`/appointment/${successorId}?token=${original.cancel_token}`);
+	expect(followed?.status()).toBe(404);
+});
+
+test('the live token is a master key over the appointment history', async ({ page }) => {
+	const original = await seedAppointment({ status: 'confirmed' });
+
+	await page.goto(`/appointment/${original.id}/reschedule?token=${original.cancel_token}`);
+	await pickLastBookableDay(page);
+	await pickSlotFromEndOfDay(page, 6 + test.info().retry);
+	await page.getByRole('button', { name: 'Confirm' }).click();
+	await page.locator('textarea[name="reschedule_reason"]').fill('Moving again');
+	await page
+		.getByRole('button', { name: /Reschedule|Request|Confirm/ })
+		.last()
+		.click();
+	await page.waitForURL(/\/appointment\/[^/?]+\?token=.+/);
+
+	const successorId = new URL(page.url()).pathname.split('/').at(-1)!;
+	const successor = await readAppointment(successorId);
+
+	const response = await page.goto(`/appointment/${original.id}?token=${successor.cancel_token}`);
+
+	expect(response?.status()).toBe(200);
+	await expect(page.getByRole('heading', { name: 'Rescheduled', exact: true })).toBeVisible();
 });
 
 test('the cancel form refuses a token from a different appointment', async ({ page, request }) => {
@@ -48,7 +70,6 @@ test('the cancel form refuses a token from a different appointment', async ({ pa
 		form: { token: theirs.cancel_token, reason: 'let me in' }
 	});
 
-	// Kit serializes an action failure into a 200 envelope; the rejection is inside it.
 	expect(await response.json()).toMatchObject({ type: 'failure', status: 403 });
 	expect((await readAppointment(mine.id)).status).toBe('confirmed');
 });

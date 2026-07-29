@@ -1,12 +1,21 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 import {
 	APPOINTMENT_VIEW_GRACE_DAYS,
 	isCancelAllowed,
 	isRescheduleAllowed,
 	isViewable,
-	requireViewableAppointment
+	isViewAllowed
 } from './access';
 import type { Appointment } from '@when/db';
+
+let chainTip: Appointment | null = null;
+const findChainTip = vi.fn(async () => chainTip);
+vi.mock('@when/db', async (importOriginal) => ({
+	...(await importOriginal<typeof import('@when/db')>()),
+	findChainTip: () => findChainTip()
+}));
+
+const db = {} as never;
 
 const baseRow: Appointment = {
 	id: 'appt-1',
@@ -120,41 +129,79 @@ describe('isRescheduleAllowed', () => {
 	});
 });
 
-describe('requireViewableAppointment', () => {
+describe('isViewAllowed', () => {
 	const now = new Date('2026-05-01T14:00:00Z');
 
-	test('returns row on happy path', () => {
-		expect(requireViewableAppointment(baseRow, 'tok-abc', now)).toBe(baseRow);
+	test('allows a row its own token', async () => {
+		await expect(isViewAllowed(db, baseRow, 'tok-abc', now)).resolves.toBe(true);
 	});
 
-	test('passes through terminal statuses (caller decides)', () => {
+	test('allows terminal statuses through (the caller decides what to render)', async () => {
 		const cancelled = { ...baseRow, status: 'cancelled' as const };
-		expect(requireViewableAppointment(cancelled, 'tok-abc', now)).toBe(cancelled);
+		await expect(isViewAllowed(db, cancelled, 'tok-abc', now)).resolves.toBe(true);
 		const declined = { ...baseRow, status: 'declined' as const };
-		expect(requireViewableAppointment(declined, 'tok-abc', now)).toBe(declined);
+		await expect(isViewAllowed(db, declined, 'tok-abc', now)).resolves.toBe(true);
 	});
 
-	test('throws 404 when row missing', () => {
-		expect(() => requireViewableAppointment(undefined, 'tok-abc', now)).toThrow();
+	test('refuses a missing token', async () => {
+		await expect(isViewAllowed(db, baseRow, null, now)).resolves.toBe(false);
 	});
 
-	test('throws 404 when token missing', () => {
-		expect(() => requireViewableAppointment(baseRow, null, now)).toThrow();
+	test('refuses a token mismatch', async () => {
+		await expect(isViewAllowed(db, baseRow, 'wrong', now)).resolves.toBe(false);
 	});
 
-	test('throws 404 on token mismatch', () => {
-		expect(() => requireViewableAppointment(baseRow, 'wrong', now)).toThrow();
-	});
-
-	test('throws 404 past grace window', () => {
+	test('refuses a row past its grace window', async () => {
 		const past = new Date(
 			Date.parse(baseRow.end_time) + (APPOINTMENT_VIEW_GRACE_DAYS + 1) * DAY_MS
 		);
-		expect(() => requireViewableAppointment(baseRow, 'tok-abc', past)).toThrow();
+		await expect(isViewAllowed(db, baseRow, 'tok-abc', past)).resolves.toBe(false);
 	});
 
-	test('throws 404 for a purged appointment even with a valid token', () => {
+	test('refuses a purged appointment even with a valid token', async () => {
 		const purged = { ...baseRow, status: 'purged' as const };
-		expect(() => requireViewableAppointment(purged, 'tok-abc', now)).toThrow();
+		await expect(isViewAllowed(db, purged, 'tok-abc', now)).resolves.toBe(false);
+	});
+});
+
+describe('isViewAllowed with the chain tip token', () => {
+	const now = new Date('2026-05-01T14:00:00Z');
+	const superseded: Appointment = { ...baseRow, id: 'old', status: 'rescheduled' };
+	const tip: Appointment = {
+		...baseRow,
+		id: 'tip',
+		cancel_token: 'tok-tip',
+		end_time: '2026-06-01T15:30:00Z'
+	};
+
+	test("the tip's token opens a superseded row it grew out of", async () => {
+		chainTip = tip;
+		await expect(isViewAllowed(db, superseded, 'tok-tip', now)).resolves.toBe(true);
+	});
+
+	test("the tip's token stops working once the tip's own window closes", async () => {
+		chainTip = tip;
+		const past = new Date(Date.parse(tip.end_time) + (APPOINTMENT_VIEW_GRACE_DAYS + 1) * DAY_MS);
+		await expect(isViewAllowed(db, superseded, 'tok-tip', past)).resolves.toBe(false);
+	});
+
+	test('a sibling token that is not the tip stays locked out', async () => {
+		chainTip = tip;
+		await expect(isViewAllowed(db, superseded, 'tok-sibling', now)).resolves.toBe(false);
+	});
+
+	test('a live row never asks the database for a tip it already is', async () => {
+		chainTip = tip;
+		findChainTip.mockClear();
+
+		await expect(isViewAllowed(db, baseRow, 'tok-tip', now)).resolves.toBe(false);
+
+		expect(findChainTip).not.toHaveBeenCalled();
+	});
+
+	test('a chain with no tip refuses everything but the row own token', async () => {
+		chainTip = null;
+		await expect(isViewAllowed(db, superseded, 'tok-tip', now)).resolves.toBe(false);
+		await expect(isViewAllowed(db, superseded, 'tok-abc', now)).resolves.toBe(true);
 	});
 });

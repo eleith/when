@@ -1,5 +1,5 @@
 import { error, isHttpError } from '@sveltejs/kit';
-import { requireViewableAppointment } from '$lib/server/appointment/access';
+import { isViewAllowed } from '$lib/server/appointment/access';
 import { systemClock } from '$lib/server/clock';
 import { buildIcs } from '@when/calendar';
 import { senderEmail } from '@when/config';
@@ -16,9 +16,11 @@ export const GET: RequestHandler = async ({ params, url }) => {
 			error(404);
 		}
 
-		const found = await findAppointment(getDb(), params.id);
-
-		const row = requireViewableAppointment(found, token, systemClock.now());
+		const row = await findAppointment(getDb(), params.id);
+		if (!row || !(await isViewAllowed(getDb(), row, token, systemClock.now()))) {
+			icsDownloadsTotal.inc({ status: 'not_found' });
+			error(404);
+		}
 
 		if (row.status !== 'confirmed') {
 			icsDownloadsTotal.inc({ status: 'forbidden' });

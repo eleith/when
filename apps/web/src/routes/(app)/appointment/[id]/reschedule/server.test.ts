@@ -4,7 +4,7 @@ import type { Appointment } from '@when/db';
 
 const h = vi.hoisted(() => ({
 	row: { current: null as Appointment | null },
-	requireViewable: vi.fn(),
+	viewAllowed: vi.fn(),
 	classify: vi.fn(),
 	reschedule: vi.fn(),
 	loadAvailability: vi.fn(),
@@ -21,7 +21,7 @@ vi.mock('@when/db', async (io) => ({
 	findAppointment: async () => h.row.current
 }));
 vi.mock('$lib/server/appointment/access', () => ({
-	requireViewableAppointment: h.requireViewable
+	isViewAllowed: h.viewAllowed
 }));
 vi.mock('$lib/server/appointment/reschedule', () => ({
 	classifyReschedule: h.classify,
@@ -106,7 +106,7 @@ async function book(fd: FormData): Promise<Failure> {
 beforeEach(() => {
 	vi.clearAllMocks();
 	h.row.current = appt();
-	h.requireViewable.mockReturnValue(h.row.current);
+	h.viewAllowed.mockResolvedValue(true);
 	h.classify.mockReturnValue({ kind: 'ok' });
 	h.loadAvailability.mockResolvedValue({ slotsByDuration: {}, workingWindows: [], busyBlocks: [] });
 	h.isSlotBookable.mockResolvedValue(true);
