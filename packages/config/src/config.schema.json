@@ -604,14 +604,14 @@
 				},
 				"visibility": {
 					"default": "public",
-					"description": "Visibility on the homepage. \"public\" shows it; \"private\" hides it.",
+					"description": "Whether this meeting is listed on the homepage. \"unlisted\" only hides it from that list — anyone with the /schedule/<slug> link can still book it.",
 					"anyOf": [
 						{
 							"const": "public",
 							"type": "string"
 						},
 						{
-							"const": "private",
+							"const": "unlisted",
 							"type": "string"
 						}
 					]

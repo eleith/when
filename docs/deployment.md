@@ -156,6 +156,17 @@ and need no mount.
 Back up the data directory (and `public/`, if you use it) to preserve appointments and
 settings across restarts. Database paths are configurable under `database` in `when.yaml`.
 
+## Config reloads
+
+`when.yaml` is watched, and most edits are applied in place. Changes under `auth` or `database`
+cannot be — the auth provider and the database connections are built once at boot — so the app
+logs `config change requires a restart` and exits **0**, expecting the supervisor to bring it
+back. Compose does, via `restart: unless-stopped`.
+
+If you run the built server under something else, make sure a clean exit restarts it. A systemd
+unit with `Restart=on-failure` will *not*, and the app will simply stop after an `auth` or
+`database` edit. Use `Restart=always`.
+
 ## Operating endpoints
 
 Web app:

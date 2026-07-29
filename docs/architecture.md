@@ -140,16 +140,62 @@ moment, not a zone.
 
 ### Security
 
-- Credentials auth compares plain passwords resolved from environment variables/config.
+- Credentials auth compares the configured username and password with `timingSafeEqual`, both
+  always evaluated so an early return cannot time the username. Supported in production; see
+  the `auth` section of `docs/config.md` for when it fits.
 - Secrets are injected via `${ENV_VAR}` interpolation in `when.yaml`, never committed.
 - Secrets persisted to SQLite (OAuth refresh tokens) are encrypted at the column level
   with AES-256-GCM using the `ENCRYPTION_KEY` env var.
 - Never log raw request bodies, session tokens, `cancel_token` values, or decrypted
   secrets.
-- A guest link stops resolving `APPOINTMENT_VIEW_GRACE_DAYS` (7) after the appointment ends —
-  `access.ts`. The same window gates the `.ics` download, so re-grabbing the calendar file has
-  the same deadline. A rescheduled row measures those 7 days from the *move*, not from its
-  old slot, which would otherwise still be months away.
+
+#### The guest capability model
+
+Guests have no account, so their link *is* their credential — a `cancel_token` in the query
+string. A phone-only booking may not even have an email address to send a second factor to, so
+the goal is not to make a leak impossible. It is to keep the blast radius small, bounded in
+time, and reversible by the host.
+
+- **One token per row.** A reschedule creates a new row with a new token; the old row is marked
+  `rescheduled` and keeps its own.
+- **The live token is a master key over its chain.** A row opens to its own token or to the
+  chain tip's, so whoever holds the current link can read the history it grew out of.
+  `isViewAllowed`, `access.ts`.
+- **Old links do not reach forward.** A superseded row names its successor but hands over no
+  token for it. A stale link therefore shows that the meeting moved and stops there; the guest
+  was sent the new link when it moved.
+- **Everything expires.** `APPOINTMENT_VIEW_GRACE_DAYS` (7) past the appointment's end, and the
+  same window gates the `.ics` download. A superseded row counts those 7 days from the *move*,
+  not from its old slot, which would otherwise still be months away.
+- **The host can revoke.** Rotating from the guest-link dialog mints a fresh token, so every
+  link issued so far stops resolving. Offered only on the chain tip, enforced in SQL. No email
+  is sent — re-delivery is the host's call, since the address may itself be the leak path.
+
+What a leaked *live* link still permits: cancelling, or moving the appointment — which on a
+`booking_approval: request` meeting drops it back to `pending` and re-arms host approval. Both
+are written to the action log, both are visible to the host, and both are recoverable. That is
+accepted as proportionate. View-only tokens and emailed confirmation before destructive actions
+were both considered and rejected: they tax every honest guest, and neither is available at all
+when no email was captured.
+
+#### Known limits, accepted
+
+These are understood and deliberately not fixed. Recorded so a future reader does not mistake
+them for oversights.
+
+- **`cancel_token` and bearer tokens compare with `!==`, not in constant time.** They are
+  full-entropy random values, which makes remote timing extraction impractical. The *password*
+  comparison is constant-time, because a human-chosen secret is a different problem.
+- **`/public/[...file]` follows symlinks.** `resolve()` blocks `../`, but a symlink planted
+  inside the public directory serves its target. That directory is operator-mounted, and an
+  operator who can plant a symlink there can already edit `when.yaml`.
+- **Bulk admin actions are not transactional.** They mutate row by row and report a combined
+  error afterwards, so a partial failure leaves earlier rows changed. Admin-only, low frequency,
+  and the outcome is visible in the list.
+- **A config reload is not atomic with respect to in-flight requests.** `setState` swaps the
+  object, so a single request can observe two configs across two `getConfig()` calls. Reloads
+  are rare and the window is microseconds.
+- **The app does no rate limiting.** Delegated to the reverse proxy; see `docs/deployment.md`.
 
 ### Styling and theming (web)
 

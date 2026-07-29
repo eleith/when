@@ -172,7 +172,7 @@ meetings:
     duration_minutes: 30 # minutes (default 30); or a list like [15, 30, 60] to let the guest choose the length
     slug: 'chat' # URL slug: /schedule/chat (defaults to a slug of the name)
     description: 'A quick intro call.'
-    visibility: 'public' # 'public' (default) or 'private' (hidden from the homepage)
+    visibility: 'public' # 'public' (default) or 'unlisted' (kept off the homepage; the link still works)
     booking_approval: 'request' # 'request' (default, requires host approval) or 'instant'
     busy_calendars: ['work', 'personal'] # busy-time calendar names to check for conflicts (default [])
     booking_calendar: 'work' # where the appointment is written (defaults to the first calendar)

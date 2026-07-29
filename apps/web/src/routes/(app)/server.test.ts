@@ -77,7 +77,7 @@ describe('home page load', () => {
 	test('hides private meetings', () => {
 		withMeetings(
 			{ ...baseMeeting, name: 'public-chat', slug: 'public-chat' },
-			{ ...baseMeeting, name: 'secret', slug: 'secret', visibility: 'private' }
+			{ ...baseMeeting, name: 'secret', slug: 'secret', visibility: 'unlisted' }
 		);
 
 		expect(loadEventTypes().map((et) => et.slug)).toEqual(['public-chat']);

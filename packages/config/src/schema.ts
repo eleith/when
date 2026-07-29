@@ -227,7 +227,7 @@ export const MeetingSchema = Type.Object({
 	], { default: 30, description: 'Duration of the meeting in minutes: a single value, or a list of offered lengths the guest chooses from (default: 30). The first listed length is the default selection.' }),
 	description: Type.Optional(Type.String({ description: 'Brief description of the meeting.' })),
 	slug: Type.String({ pattern: '^[a-z0-9][a-z0-9-]*$', description: 'URL slug for the booking page (e.g. "chat" for /schedule/chat). Defaults to a slug derived from the meeting name.' }),
-	visibility: Type.Optional(Type.Union([Type.Literal('public'), Type.Literal('private')], { default: 'public', description: 'Visibility on the homepage. "public" shows it; "private" hides it.' })),
+	visibility: Type.Optional(Type.Union([Type.Literal('public'), Type.Literal('unlisted')], { default: 'public', description: 'Whether this meeting is listed on the homepage. "unlisted" only hides it from that list — anyone with the /schedule/<slug> link can still book it.' })),
 	booking_approval: Type.Union([Type.Literal('instant'), Type.Literal('request')], { default: 'request', description: 'The approval flow (default: "request"). "instant" confirms instantly; "request" requires host approval.' }),
 	busy_calendars: Type.Optional(Type.Array(Type.String({ minLength: 1 }), { default: [], description: 'Calendar names to check for conflicts (busy times) to block slots.' })),
 	booking_calendar: Type.String({ minLength: 1, description: 'Calendar name where confirmed bookings will be written. Defaults to the first calendar.' }),
