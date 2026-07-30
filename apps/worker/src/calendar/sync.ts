@@ -28,9 +28,8 @@ export async function reconcileAppointment(ctx: WorkerContext, row: Appointment)
 				baseUrl: ctx.config.url.app,
 				appointment: row
 			}).booked;
-			const pushed = await pushAppointment(ctx.config, connectedServices(ctx.config), row, target, {
-				cancelUrl
-			});
+			const services = await connectedServices(ctx.config, ctx.db);
+			const pushed = await pushAppointment(ctx.config, services, row, target, { cancelUrl });
 			if (pushed.ok) {
 				await markSynced(ctx.db, row.id, revision, {
 					external_event_id: pushed.externalEventId,
@@ -67,9 +66,10 @@ export async function reconcileAppointment(ctx: WorkerContext, row: Appointment)
 			await deleteStandaloneVideoChat(ctx.db, row.id, ctx.config);
 		}
 		if (shouldRemove && row.external_event_id && row.external_calendar_id) {
+			const services = await connectedServices(ctx.config, ctx.db);
 			const deleted = await deleteAppointmentFromCalendar(
 				ctx.config,
-				connectedServices(ctx.config),
+				services,
 				row.external_calendar_id,
 				row.external_event_id
 			);

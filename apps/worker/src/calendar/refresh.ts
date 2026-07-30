@@ -51,10 +51,8 @@ export async function refreshCalendar(
 	const at = (opts.now ?? window.start).toString();
 	try {
 		const excludeUids = new Set(await listOwnEventIds(ctx.db, cal.name));
-		const intervals = await fetchBusyIntervals(cal, window, {
-			excludeUids,
-			services: connectedServices(ctx.config)
-		});
+		const services = await connectedServices(ctx.config, ctx.db);
+		const intervals = await fetchBusyIntervals(cal, window, { excludeUids, services });
 		await replaceCalendarBusy(
 			ctx.db,
 			cal.name,
