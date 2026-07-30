@@ -8,18 +8,7 @@
 
 	let isHome = $derived(pathname === '/admin' || pathname === '/admin/');
 
-	const TAB_LABELS: Record<string, string> = {
-		upcoming: 'Upcoming',
-		pending: 'Pending',
-		past: 'Past',
-		purged: 'Purged'
-	};
-
-	let currentCrumb = $derived.by(() => {
-		const match = pathname.match(/^\/admin\/appointments\/(\w+)/);
-		if (match && match[1] in TAB_LABELS) return TAB_LABELS[match[1]];
-		return null;
-	});
+	let currentCrumb = $derived(page.data.crumb ?? null);
 
 	let homeHref = $derived(isHome ? null : '/admin');
 </script>

@@ -13,6 +13,7 @@ import type { Actions, PageServerLoad } from './$types';
 export const load: PageServerLoad = async () => {
 	const config = getConfig();
 	return {
+		crumb: 'Services',
 		services: await listGoogleServices(config, getDb()),
 		redirectUri: googleRedirectUri(config.url.app)
 	};
