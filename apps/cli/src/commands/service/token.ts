@@ -69,7 +69,7 @@ function resolveClientCreds(service: GoogleService): ClientCreds | null {
 }
 
 async function promptAuthCode(clientId: string): Promise<string | null> {
-	const url = buildGoogleAuthUrl(clientId, REDIRECT_URI);
+	const url = buildGoogleAuthUrl({ clientId, redirectUri: REDIRECT_URI });
 	console.log(`\nAuthorize access, then paste the code (or the redirected URL):\n  ${url}\n`);
 	const input = await text({
 		message: 'Authorization code or redirect URL:',

@@ -35,7 +35,12 @@ export {
 	exchangeGoogleAuthCode,
 	listGoogleCalendars
 } from './adapters/google.js';
-export type { GoogleConfig, GoogleTokens, GoogleCalendarItem } from './adapters/google.js';
+export type {
+	GoogleConfig,
+	GoogleTokens,
+	GoogleCalendarItem,
+	GoogleAuthUrlOptions
+} from './adapters/google.js';
 export { verifyCalDavService, discoverCalDavCalendars } from './adapters/caldav.js';
 export type { CalDavCalendarItem } from './adapters/caldav.js';
 

@@ -147,8 +147,22 @@ test('getGoogleAccessToken caches by refresh token and skips a second request', 
 	expect(fetchSpy).toHaveBeenCalledOnce();
 });
 
+test('buildGoogleAuthUrl carries a state nonce when given one', () => {
+	const url = new URL(
+		buildGoogleAuthUrl({ clientId: 'c', redirectUri: 'https://x.example/cb', state: 'nonce-1' })
+	);
+	expect(url.searchParams.get('state')).toBe('nonce-1');
+});
+
+test('buildGoogleAuthUrl omits state when none is given', () => {
+	const url = new URL(buildGoogleAuthUrl({ clientId: 'c', redirectUri: 'https://x.example/cb' }));
+	expect(url.searchParams.has('state')).toBe(false);
+});
+
 test('buildGoogleAuthUrl includes client, scopes, and offline consent', () => {
-	const url = new URL(buildGoogleAuthUrl('client-123', 'http://localhost'));
+	const url = new URL(
+		buildGoogleAuthUrl({ clientId: 'client-123', redirectUri: 'http://localhost' })
+	);
 	expect(url.searchParams.get('client_id')).toBe('client-123');
 	expect(url.searchParams.get('redirect_uri')).toBe('http://localhost');
 	expect(url.searchParams.get('access_type')).toBe('offline');

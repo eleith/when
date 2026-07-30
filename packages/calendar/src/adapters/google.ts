@@ -332,14 +332,21 @@ export interface GoogleCalendarItem {
 	primary?: boolean;
 }
 
-export function buildGoogleAuthUrl(clientId: string, redirectUri: string): string {
+export interface GoogleAuthUrlOptions {
+	clientId: string;
+	redirectUri: string;
+	state?: string;
+}
+
+export function buildGoogleAuthUrl(opts: GoogleAuthUrlOptions): string {
 	const url = new URL('https://accounts.google.com/o/oauth2/v2/auth');
-	url.searchParams.set('client_id', clientId);
-	url.searchParams.set('redirect_uri', redirectUri);
+	url.searchParams.set('client_id', opts.clientId);
+	url.searchParams.set('redirect_uri', opts.redirectUri);
 	url.searchParams.set('response_type', 'code');
 	url.searchParams.set('scope', OAUTH_SCOPES);
 	url.searchParams.set('access_type', 'offline');
 	url.searchParams.set('prompt', 'consent');
+	if (opts.state) url.searchParams.set('state', opts.state);
 	return url.toString();
 }
 
