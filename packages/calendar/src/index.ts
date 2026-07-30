@@ -22,7 +22,7 @@ export type { PushOptions, PushResult, DeleteResult } from './push.js';
 
 // Adapters and shared calendar types.
 export { getCalendarAdapter } from './adapter.js';
-export type { CalendarAdapter } from './adapter.js';
+export type { CalendarAdapter, ConnectedService, ConnectedGoogleService } from './adapter.js';
 export type { BusyEvent, Interval } from './types.js';
 export type { ExpandWindow } from './expand.js';
 

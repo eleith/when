@@ -4,8 +4,14 @@ import { logger } from '../logger.js';
 import type { BusyEvent } from '../types.js';
 import type { Appointment } from '@when/db';
 import type { FetchBusyOptions } from './caldav.js';
-import type { CalendarAdapter, PushOptions, PushResult, DeleteResult } from '../adapter.js';
-import type { WhenConfiguration, GoogleCalendar, GoogleService } from '@when/config';
+import type {
+	CalendarAdapter,
+	PushOptions,
+	PushResult,
+	DeleteResult,
+	ConnectedGoogleService
+} from '../adapter.js';
+import type { WhenConfiguration, GoogleCalendar } from '@when/config';
 import type { ExpandWindow } from '../expand.js';
 
 export interface GoogleConfig {
@@ -256,9 +262,9 @@ export async function deleteGoogleEvent(cfg: GoogleConfig, externalEventId: stri
 
 export class GoogleAdapter implements CalendarAdapter {
 	private cal: GoogleCalendar;
-	private service?: GoogleService;
+	private service?: ConnectedGoogleService;
 
-	constructor(cal: GoogleCalendar, service?: GoogleService) {
+	constructor(cal: GoogleCalendar, service?: ConnectedGoogleService) {
 		this.cal = cal;
 		this.service = service;
 	}
@@ -268,6 +274,9 @@ export class GoogleAdapter implements CalendarAdapter {
 			throw new Error(
 				`Credentials service "${this.cal.service}" was not provided to GoogleAdapter`
 			);
+		}
+		if (!this.service.refresh_token) {
+			throw new Error(`Google service "${this.cal.service}" is not connected`);
 		}
 		return {
 			client_id: this.service.client_id,

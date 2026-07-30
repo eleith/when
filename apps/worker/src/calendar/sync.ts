@@ -1,4 +1,5 @@
 import { deleteAppointmentFromCalendar, pushAppointment } from '@when/calendar';
+import { connectedServices } from './services.js';
 import { listOutOfSyncAppointments, markSynced, type Appointment } from '@when/db';
 import type { WorkerContext } from '../services/context.js';
 import { appointmentLinks } from '../links.js';
@@ -27,7 +28,7 @@ export async function reconcileAppointment(ctx: WorkerContext, row: Appointment)
 				baseUrl: ctx.config.url.app,
 				appointment: row
 			}).booked;
-			const pushed = await pushAppointment(ctx.config, row, target, {
+			const pushed = await pushAppointment(ctx.config, connectedServices(ctx.config), row, target, {
 				cancelUrl
 			});
 			if (pushed.ok) {
@@ -68,6 +69,7 @@ export async function reconcileAppointment(ctx: WorkerContext, row: Appointment)
 		if (shouldRemove && row.external_event_id && row.external_calendar_id) {
 			const deleted = await deleteAppointmentFromCalendar(
 				ctx.config,
+				connectedServices(ctx.config),
 				row.external_calendar_id,
 				row.external_event_id
 			);

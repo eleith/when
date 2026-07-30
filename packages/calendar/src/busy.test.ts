@@ -55,7 +55,7 @@ beforeEach(() => {
 test('returns all intervals when nothing is excluded', async () => {
 	vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(twoEvents, { status: 207 }));
 	const intervals = await fetchBusyIntervals(workCal, window, {
-		config: fakeConfig
+		services: fakeConfig.services ?? []
 	});
 	expect(intervals).toHaveLength(2);
 });
@@ -63,7 +63,7 @@ test('returns all intervals when nothing is excluded', async () => {
 test('drops our own event by uid but keeps a genuine event at the same time', async () => {
 	vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(twoEvents, { status: 207 }));
 	const intervals = await fetchBusyIntervals(workCal, window, {
-		config: fakeConfig,
+		services: fakeConfig.services ?? [],
 		excludeUids: new Set(['our-appt-1'])
 	});
 	expect(intervals).toHaveLength(1);
@@ -74,5 +74,7 @@ test('propagates a provider failure to the caller', async () => {
 	vi.spyOn(globalThis, 'fetch').mockResolvedValue(
 		new Response('boom', { status: 500, statusText: 'Internal Server Error' })
 	);
-	await expect(fetchBusyIntervals(workCal, window, { config: fakeConfig })).rejects.toThrow(/500/);
+	await expect(
+		fetchBusyIntervals(workCal, window, { services: fakeConfig.services ?? [] })
+	).rejects.toThrow(/500/);
 });
