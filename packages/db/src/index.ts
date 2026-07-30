@@ -5,58 +5,11 @@ import { Kysely } from 'kysely';
 import { NodeSqliteDialect } from './node-sqlite-dialect.js';
 import type { Database } from './types.js';
 
-export type { Database } from './types.js';
-export type {
-	AppointmentsTable,
-	OauthTokensTable,
-	ExternalCalendarBusyTable,
-	CalendarSyncStatusTable,
-	AppointmentStatus,
-	Appointment,
-	NewAppointment,
-	AppointmentUpdate,
-	ExternalCalendarBusy,
-	NewExternalCalendarBusy,
-	CalendarSyncStatus,
-	NewCalendarSyncStatus,
-	CalendarSyncStatusUpdate,
-	ActionLogEntry,
-	JobKind,
-	JobState
-} from './types.js';
-export { runMigrations } from './migrate.js';
-export { migrations } from './migrations/index.js';
-export {
-	findAppointment,
-	findChainTip,
-	expireStalePending,
-	originId,
-	listAppointmentsPage,
-	countAppointments,
-	isChainTerminal,
-	parseActionLog,
-	appendActionLogSql,
-	appendJobLogSql,
-	createActionLog
-} from './appointments.js';
-export type { AppointmentBucket } from './appointments.js';
-export {
-	replaceCalendarBusy,
-	recordRefreshResult,
-	listOwnEventIds,
-	getBusyIntervals,
-	listUpcomingActiveAppointments,
-	setPossibleConflicts,
-	listOutOfSyncAppointments,
-	markSynced,
-	listCalendarSyncStatus
-} from './calendar-busy.js';
-export type {
-	BusyInterval,
-	RefreshResult,
-	UpcomingAppointment,
-	MarkSyncedFields
-} from './calendar-busy.js';
+export * from './types.js';
+export * from './appointments.js';
+export * from './calendar-busy.js';
+export * from './migrate.js';
+export * from './migrations/index.js';
 
 export function openDb(path: string): Kysely<Database> {
 	if (path !== ':memory:') {
