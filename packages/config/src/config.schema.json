@@ -516,9 +516,9 @@
 		"GoogleService": {
 			"additionalProperties": false,
 			"title": "GoogleService",
-			"description": "Google API service credentials for calendar and meet integrations.",
+			"description": "Google API service credentials. The refresh token is not configured here — connect the service from the admin and it is stored in the database.",
 			"type": "object",
-			"required": ["name", "type", "client_id", "client_secret", "refresh_token"],
+			"required": ["name", "type", "client_id", "client_secret"],
 			"properties": {
 				"name": {
 					"minLength": 1,
@@ -538,11 +538,6 @@
 				"client_secret": {
 					"minLength": 1,
 					"description": "Google OAuth client secret.",
-					"type": "string"
-				},
-				"refresh_token": {
-					"minLength": 1,
-					"description": "Google OAuth refresh token.",
 					"type": "string"
 				}
 			}

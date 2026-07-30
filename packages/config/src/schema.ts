@@ -99,9 +99,8 @@ export const GoogleServiceSchema = Type.Object({
 	name: Type.String({ minLength: 1, description: 'Unique name for the service, referenced by calendars.' }),
 	type: Type.Literal('google', { description: 'Service type: must be google.' }),
 	client_id: Type.String({ minLength: 1, description: 'Google OAuth client ID.' }),
-	client_secret: Type.String({ minLength: 1, description: 'Google OAuth client secret.' }),
-	refresh_token: Type.String({ minLength: 1, description: 'Google OAuth refresh token.' })
-}, { $id: 'GoogleService', additionalProperties: false, title: 'GoogleService', description: 'Google API service credentials for calendar and meet integrations.' });
+	client_secret: Type.String({ minLength: 1, description: 'Google OAuth client secret.' })
+}, { $id: 'GoogleService', additionalProperties: false, title: 'GoogleService', description: 'Google API service credentials. The refresh token is not configured here — connect the service from the admin and it is stored in the database.' });
 
 export const NextcloudServiceSchema = Type.Object({
 	name: Type.String({ minLength: 1, description: 'Unique name for the service, referenced by calendars.' }),

@@ -1,6 +1,7 @@
 import { expect, test, vi, beforeEach } from 'vitest';
-import type { Calendar, WhenConfiguration } from '@when/config';
+import type { Calendar } from '@when/config';
 import { fetchBusyIntervals } from './busy.js';
+import type { ConnectedService } from './adapter.js';
 
 const inst = (s: string): Temporal.Instant => Temporal.Instant.from(s);
 const window = { start: inst('2026-04-01T00:00:00Z'), end: inst('2026-05-01T00:00:00Z') };
@@ -12,17 +13,15 @@ const workCal: Calendar = {
 	url: 'https://cal.example.com/work/'
 };
 
-const fakeConfig = {
-	services: [
-		{
-			name: 'work-dav',
-			type: 'caldav',
-			url: 'https://cal.example.com/work/',
-			username: 'jane',
-			password: 'secret'
-		}
-	]
-} as unknown as WhenConfiguration;
+const davServices: ConnectedService[] = [
+	{
+		name: 'work-dav',
+		type: 'caldav',
+		url: 'https://cal.example.com/work/',
+		username: 'jane',
+		password: 'secret'
+	}
+];
 
 const twoEvents = `<?xml version="1.0"?>
 <multistatus xmlns:C="urn:ietf:params:xml:ns:caldav">
@@ -55,7 +54,7 @@ beforeEach(() => {
 test('returns all intervals when nothing is excluded', async () => {
 	vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(twoEvents, { status: 207 }));
 	const intervals = await fetchBusyIntervals(workCal, window, {
-		services: fakeConfig.services ?? []
+		services: davServices
 	});
 	expect(intervals).toHaveLength(2);
 });
@@ -63,7 +62,7 @@ test('returns all intervals when nothing is excluded', async () => {
 test('drops our own event by uid but keeps a genuine event at the same time', async () => {
 	vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(twoEvents, { status: 207 }));
 	const intervals = await fetchBusyIntervals(workCal, window, {
-		services: fakeConfig.services ?? [],
+		services: davServices,
 		excludeUids: new Set(['our-appt-1'])
 	});
 	expect(intervals).toHaveLength(1);
@@ -74,7 +73,7 @@ test('propagates a provider failure to the caller', async () => {
 	vi.spyOn(globalThis, 'fetch').mockResolvedValue(
 		new Response('boom', { status: 500, statusText: 'Internal Server Error' })
 	);
-	await expect(
-		fetchBusyIntervals(workCal, window, { services: fakeConfig.services ?? [] })
-	).rejects.toThrow(/500/);
+	await expect(fetchBusyIntervals(workCal, window, { services: davServices })).rejects.toThrow(
+		/500/
+	);
 });

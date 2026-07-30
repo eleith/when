@@ -38,8 +38,7 @@ export const validConfig: WhenConfiguration = {
 			name: 'google-service',
 			type: 'google',
 			client_id: 'gc-id',
-			client_secret: 'gc-secret',
-			refresh_token: 'gc-token'
+			client_secret: 'gc-secret'
 		}
 	],
 	calendars: [

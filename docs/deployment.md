@@ -15,10 +15,10 @@ container's environment.
 
 A few variables are read **directly** by the app from the environment:
 
-| Variable         | Required       | Notes                                                                                                                                                                                                                                                                                                                              |
-| ---------------- | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `AUTH_SECRET`    | always         | Auth.js JWT signing secret. 32+ random bytes, base64-encoded (`openssl rand -base64 32`).                                                                                                                                                                                                                                          |
-| `ORIGIN`         | behind a proxy | Public base URL, no trailing slash. `adapter-node` otherwise derives the origin from the inbound `Host` header, which a TLS-terminating proxy makes `http://…` while the browser sends `https://…` — SvelteKit's CSRF check then rejects every form POST with a 403. Also the default for `url.app`, so setting it here is enough. |
+| Variable      | Required       | Notes                                                                                                                                                                                                                                                                                                                              |
+| ------------- | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `AUTH_SECRET` | always         | Auth.js JWT signing secret. 32+ random bytes, base64-encoded (`openssl rand -base64 32`).                                                                                                                                                                                                                                          |
+| `ORIGIN`      | behind a proxy | Public base URL, no trailing slash. `adapter-node` otherwise derives the origin from the inbound `Host` header, which a TLS-terminating proxy makes `http://…` while the browser sends `https://…` — SvelteKit's CSRF check then rejects every form POST with a 403. Also the default for `url.app`, so setting it here is enough. |
 
 `ORIGIN` and `url.app` in `when.yaml` are the same value — your public base URL. Set
 `ORIGIN` and leave `url.app` unset: `adapter-node` reads `ORIGIN` from the environment
@@ -29,15 +29,15 @@ Everything else is a **secret referenced from `when.yaml`** via `${ENV_VAR}`
 interpolation — the variable _names_ are whatever your config uses (`config/when.example.yml`
 uses simple names like `${SMTP_PASSWORD}`). The table below lists the names used by the
 skeleton `config init` writes; `<NAME>` is the service's name upper-cased. You set these
-values yourself (the Google refresh token is minted by `service token <name>`).
+values yourself.
 
-| Variable                                                                                | Needed when            | Notes                                                                       |
-| --------------------------------------------------------------------------------------- | ---------------------- | --------------------------------------------------------------------------- |
-| `WHEN_ADMIN_PASSWORD`                                                                   | credentials auth       | Plain text password of the admin (defaults to this if omitted in config).   |
-| `WHEN_OIDC_CLIENT_SECRET`                                                               | OIDC auth              | OIDC provider client secret.                                                |
-| `WHEN_SERVICE_CALDAV_<NAME>_PASSWORD` / `WHEN_SERVICE_NEXTCLOUD_<NAME>_PASSWORD`        | a CalDAV/Nextcloud cal | CalDAV / Nextcloud service password.                                        |
-| `WHEN_SMTP_PASS`                                                                        | always                 | SMTP password — SMTP is required.                                           |
-| `WHEN_SERVICE_GOOGLE_<NAME>_CLIENT_SECRET` / `WHEN_SERVICE_GOOGLE_<NAME>_REFRESH_TOKEN` | a Google service       | Client secret from Google Cloud; refresh token from `service token <name>`. |
+| Variable                                                                         | Needed when            | Notes                                                                                                                                      |
+| -------------------------------------------------------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `WHEN_ADMIN_PASSWORD`                                                            | credentials auth       | Plain text password of the admin (defaults to this if omitted in config).                                                                  |
+| `WHEN_OIDC_CLIENT_SECRET`                                                        | OIDC auth              | OIDC provider client secret.                                                                                                               |
+| `WHEN_SERVICE_CALDAV_<NAME>_PASSWORD` / `WHEN_SERVICE_NEXTCLOUD_<NAME>_PASSWORD` | a CalDAV/Nextcloud cal | CalDAV / Nextcloud service password.                                                                                                       |
+| `WHEN_SMTP_PASS`                                                                 | always                 | SMTP password — SMTP is required.                                                                                                          |
+| `WHEN_SERVICE_GOOGLE_<NAME>_CLIENT_SECRET`                                       | a Google service       | Client secret from Google Cloud. The refresh token is not an env var — connect the service from `/admin` and it is stored in the database. |
 
 The worker also honors a few operational variables:
 
@@ -163,7 +163,7 @@ logs `config change requires a restart` and exits **0**, expecting the superviso
 back. Compose does, via `restart: unless-stopped`.
 
 If you run the built server under something else, make sure a clean exit restarts it. A systemd
-unit with `Restart=on-failure` will *not*, and the app will simply stop after an `auth` or
+unit with `Restart=on-failure` will _not_, and the app will simply stop after an `auth` or
 `database` edit. Use `Restart=always`.
 
 ## Operating endpoints
@@ -203,16 +203,13 @@ Every command takes `-c/--config <path>` (defaults to the standard config locati
   pnpm cli config validate --check-env
   ```
 
-- **Services** — list configured services, authenticate one, list the calendars it
-  exposes (to fill `google_calendar_id` / a CalDAV `path`), or mint a Google refresh
-  token (google only — reads client_id/secret from the service, prints the env var to
-  set; writes nothing).
+- **Services** — list configured services, authenticate one, or list the calendars it
+  exposes (to fill `google_calendar_id` / a CalDAV `path`).
 
   ```sh
   pnpm cli service list
   pnpm cli service test <name>
   pnpm cli service calendars <name>
-  pnpm cli service token <name>
   ```
 
 - **Calendars** — list configured calendars, or fetch busy intervals from one to
@@ -222,6 +219,16 @@ Every command takes `-c/--config <path>` (defaults to the standard config locati
   pnpm cli calendar list
   pnpm cli calendar test <name>
   ```
+
+  The CLI never opens the database, so it cannot read the stored Google refresh token.
+  Checking a Google service or calendar from a terminal means handing it one:
+
+  ```sh
+  pnpm cli service test <name> --refresh-token <token>
+  pnpm cli calendar test <name> --refresh-token <token>
+  ```
+
+  CalDAV and Nextcloud need no flag — their credentials are in `when.yaml`.
 
 - **Email** — render and send a real test email through the worker (proves your
   SMTP + branding + templates work). Requires the worker to be running; it's

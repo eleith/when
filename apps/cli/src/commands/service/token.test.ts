@@ -15,14 +15,8 @@ vi.mock('@when/calendar', () => ({
 }));
 vi.mock('../../services/google.ts', () => ({ extractAuthCode: vi.fn((v: string) => v) }));
 
-function googleSvc(name: string, secret: string, tokenRef: string): Service {
-	return {
-		name,
-		type: 'google',
-		client_id: 'cid',
-		client_secret: secret,
-		refresh_token: tokenRef
-	} as Service;
+function googleSvc(name: string, secret: string): Service {
+	return { name, type: 'google', client_id: 'cid', client_secret: secret } as Service;
 }
 
 const caldavSvc: Service = {
@@ -33,8 +27,8 @@ const caldavSvc: Service = {
 	password: 'p'
 } as Service;
 
-const gg = googleSvc('gg', 'csecret', '${WHEN_SVC_GG_TOKEN}');
-const services: Service[] = [gg, caldavSvc, googleSvc('gg-badenv', '${WHEN_SVC_UNSET}', 'x')];
+const gg = googleSvc('gg', 'csecret');
+const services: Service[] = [gg, caldavSvc, googleSvc('gg-badenv', '${WHEN_SVC_UNSET}')];
 
 describe('service token action', () => {
 	let logSpy: ReturnType<typeof vi.spyOn>;
@@ -79,7 +73,7 @@ describe('service token action', () => {
 		expect(exchangeGoogleAuthCode).not.toHaveBeenCalled();
 	});
 
-	test('mints and prints the env var assignment on success', async () => {
+	test('mints, verifies and prints the raw token', async () => {
 		vi.mocked(exchangeGoogleAuthCode).mockResolvedValue({
 			access_token: 'a',
 			refresh_token: 'RT',
@@ -94,7 +88,8 @@ describe('service token action', () => {
 			'http://localhost'
 		);
 		expect(getGoogleAccessToken).toHaveBeenCalled();
-		expect(logSpy).toHaveBeenCalledWith('WHEN_SVC_GG_TOKEN="RT"');
+		expect(logSpy).toHaveBeenCalledWith('RT');
+		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('connect the service'));
 	});
 
 	test('quiet prints only the raw token', async () => {

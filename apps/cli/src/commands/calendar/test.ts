@@ -1,5 +1,5 @@
 import { define } from 'gunshi';
-import { getCalendarAdapter, type ExpandWindow } from '@when/calendar';
+import { getCalendarAdapter, type ExpandWindow, type ConnectedService } from '@when/calendar';
 import { interpolate, MissingEnvVarsError, type WhenConfiguration } from '@when/config';
 import { loadConfigFromCtx } from '../../utils/command.ts';
 import { pass, fail } from '../../utils/report.ts';
@@ -11,8 +11,13 @@ export const testCommand = define({
 	description: 'fetch busy intervals to confirm a calendar is reachable',
 	args: {
 		name: { type: 'positional', required: false, description: 'the calendar to test' },
-		config: { type: 'string', short: 'c', description: 'Path to when.yaml file' }
+		config: { type: 'string', short: 'c', description: 'Path to when.yaml file' },
+		refreshToken: {
+			type: 'string',
+			description: 'refresh token for a google calendar (the stored one lives in the database)'
+		}
 	},
+	toKebab: true,
 	async run(ctx) {
 		const name = ctx.values?.name as string | undefined;
 		if (!name) {
@@ -21,18 +26,22 @@ export const testCommand = define({
 		}
 		const config = await loadConfigFromCtx(ctx.values?.config);
 		if (!config) return;
-		await runCalendarTest(config, name);
+		await runCalendarTest(config, name, ctx.values?.refreshToken);
 	}
 });
 
-export async function runCalendarTest(config: WhenConfiguration, name: string): Promise<void> {
+export async function runCalendarTest(
+	config: WhenConfiguration,
+	name: string,
+	refreshToken?: string
+): Promise<void> {
 	const cal = config.calendars.find((c) => c.name === name);
 	if (!cal) {
 		fail(`no calendar named "${name}"`);
 		return;
 	}
 
-	const resolved = resolveForAdapter(config, cal, name);
+	const resolved = resolveForAdapter(config, cal, name, refreshToken);
 	if (!resolved) return;
 
 	try {
@@ -50,14 +59,19 @@ export async function runCalendarTest(config: WhenConfiguration, name: string): 
 function resolveForAdapter(
 	config: WhenConfiguration,
 	cal: WhenConfiguration['calendars'][number],
-	name: string
+	name: string,
+	refreshToken?: string
 ) {
 	const service = config.services?.find((s) => s.name === cal.service);
 	try {
-		return {
-			cal: interpolate(cal),
-			services: service ? [interpolate(service)] : []
-		};
+		const services: ConnectedService[] = [];
+		if (service) {
+			const resolved = interpolate(service);
+			services.push(
+				resolved.type === 'google' ? { ...resolved, refresh_token: refreshToken ?? null } : resolved
+			);
+		}
+		return { cal: interpolate(cal), services };
 	} catch (err) {
 		if (err instanceof MissingEnvVarsError) {
 			fail(`${name} — unset env var(s): ${err.missing.join(', ')}`);

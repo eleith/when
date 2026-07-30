@@ -104,7 +104,6 @@ services:
     type: 'google'
     client_id: '${GOOGLE_CLIENT_ID}'
     client_secret: '${GOOGLE_CLIENT_SECRET}'
-    refresh_token: '${GOOGLE_REFRESH_TOKEN}'
   - name: 'my-caldav-service'
     type: 'caldav'
     url: 'https://cloud.example.com/remote.php/dav/'
@@ -137,7 +136,7 @@ calendars:
       refresh_every_minutes: 10
 ```
 
-`sync.refresh_every_minutes` is optional on either type. For a Google service, mint the refresh token with `pnpm cli service token <name>`, and use `pnpm cli service calendars <name>` to find each `google_calendar_id`.
+`sync.refresh_every_minutes` is optional on either type. A Google service carries no refresh token in `when.yaml` — connect it from `/admin` and the token is stored in the database.
 
 ## `schedules`
 

@@ -30,7 +30,6 @@ services:
     type: "google"
     client_id: "cid"
     client_secret: "csecret"
-    refresh_token: "rtok"
   - name: "dav"
     type: "caldav"
     url: "https://dav.example.com/remote.php/dav/"
@@ -40,7 +39,6 @@ services:
     type: "google"
     client_id: "cid2"
     client_secret: "\${WHEN_TEST_SVC_UNSET}"
-    refresh_token: "rtok2"
 calendars:
   - name: "work"
     type: "caldav"
@@ -120,9 +118,16 @@ describe('service command', () => {
 
 	test('google test authenticates via getGoogleAccessToken', async () => {
 		vi.mocked(getGoogleAccessToken).mockResolvedValue('access');
-		await testCommand.run!(ctx({ name: 'gcal', config: path }));
+		await testCommand.run!(ctx({ name: 'gcal', config: path, refreshToken: 'rtok' }));
 		expect(process.exitCode).toBeUndefined();
 		expect(logSpy).toHaveBeenCalledWith('✅ gcal (google) — authenticated');
+	});
+
+	test('google test without a refresh token says where the stored one lives', async () => {
+		await testCommand.run!(ctx({ name: 'gcal', config: path }));
+		expect(process.exitCode).toBe(1);
+		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('--refresh-token'));
+		expect(getGoogleAccessToken).not.toHaveBeenCalled();
 	});
 
 	test('google test fails when the token refresh throws', async () => {

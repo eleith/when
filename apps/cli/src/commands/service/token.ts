@@ -112,17 +112,6 @@ function reportToken(service: GoogleService, refreshToken: string, quiet: boolea
 		return;
 	}
 	pass(`${service.name} (google) — refresh token minted and verified`);
-	const envVar = envRefName(service.refresh_token);
-	if (envVar) {
-		detail('set this in your environment:');
-		console.log(`${envVar}="${refreshToken}"`);
-	} else {
-		detail('set refresh_token in your config to:');
-		console.log(refreshToken);
-	}
-}
-
-function envRefName(value: string): string | null {
-	const match = value.match(/^\$\{([A-Z_][A-Z0-9_]*)(?::-.*)?\}$/);
-	return match ? match[1] : null;
+	detail('connect the service from the admin to store it; this copy is for --refresh-token');
+	console.log(refreshToken);
 }

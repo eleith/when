@@ -9,15 +9,25 @@ export const calendarsCommand = define({
 	description: 'list the calendars a service exposes',
 	args: {
 		name: { type: 'positional', required: false, description: 'the service to inspect' },
-		config: { type: 'string', short: 'c', description: 'Path to when.yaml file' }
+		config: { type: 'string', short: 'c', description: 'Path to when.yaml file' },
+		refreshToken: {
+			type: 'string',
+			description: 'refresh token for a google service (the stored one lives in the database)'
+		}
 	},
+	toKebab: true,
 	async run(ctx) {
 		const resolved = await servicesAndName(ctx.values?.name, ctx.values?.config, 'calendars');
-		if (resolved) await runServiceCalendars(resolved.services, resolved.name);
+		if (resolved)
+			await runServiceCalendars(resolved.services, resolved.name, ctx.values?.refreshToken);
 	}
 });
 
-export async function runServiceCalendars(services: Service[], name: string): Promise<void> {
+export async function runServiceCalendars(
+	services: Service[],
+	name: string,
+	refreshToken?: string
+): Promise<void> {
 	const service = requireService(services, name);
 	if (!service) return;
 
@@ -25,18 +35,22 @@ export async function runServiceCalendars(services: Service[], name: string): Pr
 	if (!resolved) return;
 
 	if (resolved.type === 'google') {
-		await listGoogle(resolved);
+		if (!refreshToken) {
+			fail(`${name} (google) — pass --refresh-token; the stored one is not readable from here`);
+			return;
+		}
+		await listGoogle(resolved, refreshToken);
 	} else {
 		await listCalDav(resolved);
 	}
 }
 
-async function listGoogle(service: GoogleService): Promise<void> {
+async function listGoogle(service: GoogleService, refreshToken: string): Promise<void> {
 	try {
 		const token = await getGoogleAccessToken({
 			client_id: service.client_id,
 			client_secret: service.client_secret,
-			refresh_token: service.refresh_token,
+			refresh_token: refreshToken,
 			google_calendar_id: ''
 		});
 		const calendars = await listGoogleCalendars(token);

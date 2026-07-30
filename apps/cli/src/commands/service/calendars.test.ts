@@ -13,8 +13,7 @@ const gg: Service = {
 	name: 'gg',
 	type: 'google',
 	client_id: 'cid',
-	client_secret: 'csecret',
-	refresh_token: 'rtok'
+	client_secret: 'csecret'
 } as Service;
 const dav: Service = {
 	name: 'dav',
@@ -51,7 +50,7 @@ describe('service calendars action', () => {
 			{ id: 'primary', summary: 'Me', primary: true },
 			{ id: 'team@x.com', summary: 'Team' }
 		]);
-		await runServiceCalendars(services, 'gg');
+		await runServiceCalendars(services, 'gg', 'rtok');
 		expect(process.exitCode).toBeUndefined();
 		expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('✅ gg (google) — 2 calendar(s):'));
 		expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('primary  (primary)  Me'));
@@ -60,14 +59,14 @@ describe('service calendars action', () => {
 
 	test('reports when google has no calendars', async () => {
 		vi.mocked(listGoogleCalendars).mockResolvedValue([]);
-		await runServiceCalendars(services, 'gg');
+		await runServiceCalendars(services, 'gg', 'rtok');
 		expect(process.exitCode).toBeUndefined();
 		expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('no calendars found'));
 	});
 
 	test('fails when google auth throws', async () => {
 		vi.mocked(getGoogleAccessToken).mockRejectedValue(new Error('token refresh failed'));
-		await runServiceCalendars(services, 'gg');
+		await runServiceCalendars(services, 'gg', 'rtok');
 		expect(process.exitCode).toBe(1);
 		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('❌ gg (google)'));
 		expect(listGoogleCalendars).not.toHaveBeenCalled();

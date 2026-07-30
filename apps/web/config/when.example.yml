@@ -57,12 +57,11 @@ services:
     url: 'https://caldav.example.com/dav/' # DAV base URL
     username: 'you'
     password: '${CALDAV_PASSWORD}'
-  # Google (run `pnpm cli calendars add google` — it fetches the refresh_token):
+  # Google (connect it from /admin afterwards to store the refresh token):
   # - name: 'google-service'
   #   type: 'google'
   #   client_id: '...apps.googleusercontent.com'
   #   client_secret: '${GOOGLE_CLIENT_SECRET}'
-  #   refresh_token: '${GOOGLE_REFRESH_TOKEN}'
   # Nextcloud (a CalDAV-compatible service, also usable for Talk video links):
   # - name: 'nextcloud-service'
   #   type: 'nextcloud'
