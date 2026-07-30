@@ -8,6 +8,7 @@ import type { Database } from './types.js';
 export * from './types.js';
 export * from './appointments.js';
 export * from './calendar-busy.js';
+export * from './service-tokens.js';
 export * from './migrate.js';
 export * from './migrations/index.js';
 
