@@ -32,7 +32,6 @@ export default defineConfig({
 		env: {
 			CONFIG_PATH: configPath,
 			AUTH_SECRET: 'e2e-auth-secret-not-used-outside-tests',
-			ENCRYPTION_KEY: 'BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc=',
 			TZ: 'UTC'
 		},
 		stdout: 'pipe',

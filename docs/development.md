@@ -67,7 +67,7 @@ It runs a production build against a self-contained fixture, never your own setu
 `playwright.config.ts` builds and previews on port **4183** with `CONFIG_PATH` pointed at
 `e2e/fixture/config/when.yaml`, which also makes `e2e/fixture/` the deployment root, so the
 suite's SQLite files land in `e2e/fixture/data/` (gitignored, dropped before every run)
-rather than `apps/web/data/`. `AUTH_SECRET` and `ENCRYPTION_KEY` come from `webServer.env`,
+rather than `apps/web/data/`. `AUTH_SECRET` comes from `webServer.env`,
 because `vite preview` feeds `.env` into `$env/dynamic/private` only, never `process.env`.
 Your `config/when.yaml`, `data/` and dev server on 5173 are untouched.
 

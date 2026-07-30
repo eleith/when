@@ -144,10 +144,11 @@ moment, not a zone.
   always evaluated so an early return cannot time the username. Supported in production; see
   the `auth` section of `docs/config.md` for when it fits.
 - Secrets are injected via `${ENV_VAR}` interpolation in `when.yaml`, never committed.
-- Secrets persisted to SQLite (OAuth refresh tokens) are encrypted at the column level
-  with AES-256-GCM using the `ENCRYPTION_KEY` env var.
-- Never log raw request bodies, session tokens, `cancel_token` values, or decrypted
-  secrets.
+- Nothing in SQLite is encrypted at the column level. The database holds guest names,
+  emails and booking history in plain text, so the data directory deserves the same
+  handling as `.env` — and a backup that leaves the host should be encrypted as a whole,
+  which protects that data rather than one field of it.
+- Never log raw request bodies, session tokens, `cancel_token` values, or secrets.
 
 #### The guest capability model
 

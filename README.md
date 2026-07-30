@@ -22,11 +22,10 @@ calendar sync and sends appointment emails off the request path. The bundled
    See [`docs/config.md`](docs/config.md) for the full configuration reference.
 
 2. Copy `apps/web/.env.example` to `apps/web/.env` and fill it in — the compose file
-   loads it into all three services. Generate the secrets it asks for:
+   loads it into all three services. Generate the secret it asks for:
 
    ```sh
    openssl rand -base64 32       # -> AUTH_SECRET
-   openssl rand -base64 32       # -> ENCRYPTION_KEY
    ```
 
    Set `ORIGIN` to the public URL you serve from; behind a reverse proxy, form
