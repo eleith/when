@@ -39,10 +39,10 @@ export interface AppointmentsTable {
 }
 
 export interface OauthTokensTable {
-	calendar_id: string;
-	access_token: string;
+	service_name: string;
 	refresh_token: string;
-	expires_at: string;
+	connected_at: ColumnType<string, string | undefined, string>;
+	last_error: NullableText;
 	updated_at: ColumnType<string, string | undefined, string>;
 }
 
@@ -77,6 +77,10 @@ export type NewExternalCalendarBusy = Insertable<ExternalCalendarBusyTable>;
 export type CalendarSyncStatus = Selectable<CalendarSyncStatusTable>;
 export type NewCalendarSyncStatus = Insertable<CalendarSyncStatusTable>;
 export type CalendarSyncStatusUpdate = Updateable<CalendarSyncStatusTable>;
+
+export type OauthToken = Selectable<OauthTokensTable>;
+export type NewOauthToken = Insertable<OauthTokensTable>;
+export type OauthTokenUpdate = Updateable<OauthTokensTable>;
 
 export interface ActionLogEntry {
 	action:
