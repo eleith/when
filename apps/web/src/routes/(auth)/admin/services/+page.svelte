@@ -66,6 +66,8 @@
 		</aside>
 	{/if}
 
+	<h2 class="section">Calendar &amp; video</h2>
+
 	{#if data.services.length === 0}
 		<p class="empty">No services are configured in when.yaml.</p>
 	{:else}
@@ -158,6 +160,40 @@
 			{/each}
 		</ul>
 	{/if}
+
+	<h2 class="section">Email</h2>
+
+	<div class="card">
+		<div class="body">
+			<h3 class="name">{data.smtp.host}</h3>
+
+			<dl class="fields">
+				<dt>Port</dt>
+				<dd>{data.smtp.port}</dd>
+
+				<dt>Username</dt>
+				<dd>{data.smtp.user}</dd>
+
+				<dt>Sends as</dt>
+				<dd><code>{data.smtp.sender}</code></dd>
+			</dl>
+		</div>
+
+		<div class="actions">
+			<form method="POST" action="?/email" class="email-form">
+				<label class="email-label" for="test-recipient">Send a test email to</label>
+				<input
+					id="test-recipient"
+					class="email-input"
+					type="email"
+					name="to"
+					value={data.smtp.defaultRecipient}
+					required
+				/>
+				<button type="submit" class="button">Send</button>
+			</form>
+		</div>
+	</div>
 </section>
 
 <style>
@@ -214,6 +250,19 @@
 
 	.banner-success .banner-icon {
 		color: var(--color-success);
+	}
+
+	.section {
+		margin: var(--space-8) 0 var(--space-5);
+		font-size: var(--font-size-sm);
+		font-weight: 500;
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+		color: var(--color-text-muted);
+	}
+
+	.section:first-of-type {
+		margin-top: 0;
 	}
 
 	.list {
@@ -386,6 +435,30 @@
 
 	.danger:hover {
 		background: var(--color-danger-bg);
+	}
+
+	.email-form {
+		display: flex;
+		align-items: center;
+		gap: var(--space-3);
+		flex-wrap: wrap;
+		width: 100%;
+	}
+
+	.email-label {
+		font-size: var(--font-size-sm);
+		color: var(--color-text-muted);
+	}
+
+	.email-input {
+		flex: 1;
+		min-width: 12rem;
+		padding: var(--space-3) var(--space-4);
+		background: var(--color-surface);
+		border: 1px solid var(--color-border-strong);
+		border-radius: var(--radius);
+		font-size: var(--font-size-base);
+		color: var(--when-color-text);
 	}
 
 	.empty {

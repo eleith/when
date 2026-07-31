@@ -7,6 +7,7 @@ import {
 	findGoogleService
 } from '$lib/server/services/google-connect';
 import { discoverCalendars, listServices, probeService } from '$lib/server/services/status';
+import { sendTestEmail, smtpSummary } from '$lib/server/email/status';
 import { STATE_COOKIE, stateCookieOptions } from './state-cookie';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -14,7 +15,8 @@ export const load: PageServerLoad = async () => {
 	const config = getConfig();
 	return {
 		crumb: 'Services',
-		services: await listServices(config, getDb())
+		services: await listServices(config, getDb()),
+		smtp: smtpSummary(config)
 	};
 };
 
@@ -59,6 +61,16 @@ export const actions: Actions = {
 			: {
 					notice: { tone: 'error', text: `${name} could not list calendars — ${result.message}` }
 				};
+	},
+
+	email: async ({ request }) => {
+		const to = String((await request.formData()).get('to') ?? '');
+		const result = await sendTestEmail(getConfig(), to);
+		return {
+			notice: result.ok
+				? { tone: 'success', text: result.message }
+				: { tone: 'error', text: `Test email failed — ${result.message}` }
+		};
 	},
 
 	test: async ({ request }) => {
