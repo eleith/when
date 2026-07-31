@@ -1,6 +1,5 @@
 import type { RetryPolicy } from 'openworkflow';
-import { deleteAppointmentFromCalendar } from '@when/calendar';
-import { connectedServices } from '../calendar/services.js';
+import { connectServices, deleteAppointmentFromCalendar } from '@when/calendar';
 import { purgeAppointment } from '@when/jobs/specs';
 import type { PurgeAppointmentInput, PurgeAppointmentResult } from '@when/jobs';
 import { getWorkerContext } from '../services/context.js';
@@ -33,7 +32,7 @@ export async function runPurgeAppointment(
 		if (externalEventId && externalCalendarId) {
 			try {
 				await step.run({ name: `calendar:${row.id}`, retryPolicy: CALENDAR_RETRY }, async () => {
-					const services = await connectedServices(config, db);
+					const services = await connectServices(config.services ?? [], db);
 					const res = await deleteAppointmentFromCalendar(
 						config,
 						services,

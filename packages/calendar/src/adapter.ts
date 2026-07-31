@@ -7,7 +7,7 @@ import type {
 	GoogleService,
 	WhenConfiguration
 } from '@when/config';
-import type { Appointment } from '@when/db';
+import { getServiceRefreshToken, type Appointment, type openDb } from '@when/db';
 import type { ExpandWindow } from './expand.js';
 import { CalDavAdapter } from './adapters/caldav.js';
 import { GoogleAdapter } from './adapters/google.js';
@@ -54,6 +54,18 @@ function connectService(service: Service, refreshToken: string | null): Connecte
 	return service.type === 'google' ? { ...service, refresh_token: refreshToken } : service;
 }
 
+// Every configured service joined with whatever credential the store holds for it.
+async function connectServices(
+	services: Service[],
+	db: ReturnType<typeof openDb>
+): Promise<ConnectedService[]> {
+	return Promise.all(
+		services.map(async (service) =>
+			connectService(service, await getServiceRefreshToken(db, service.name))
+		)
+	);
+}
+
 function getCalendarAdapter(cal: Calendar, services?: ConnectedService[]): CalendarAdapter {
 	const type = cal.type;
 	if (type === 'caldav') {
@@ -76,4 +88,4 @@ export type {
 	ConnectedGoogleService
 };
 
-export { getCalendarAdapter, connectService };
+export { getCalendarAdapter, connectService, connectServices };
