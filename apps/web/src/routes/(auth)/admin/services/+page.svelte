@@ -74,15 +74,12 @@
 
 					<div class="actions">
 						<div class="actions-change">
-							{#if service.type === 'google'}
+							{#if unconnected}
 								<form method="POST" action="?/connect">
 									<input type="hidden" name="service" value={service.name} />
-									<button type="submit" class="button" class:primary={unconnected}>
-										{#if service.connectedAt}Reconnect{:else}Connect{/if}
-									</button>
+									<button type="submit" class="button primary">Connect</button>
 								</form>
-							{/if}
-							{#if service.connectedAt}
+							{:else if service.connectedAt}
 								<form method="POST" action="?/disconnect">
 									<input type="hidden" name="service" value={service.name} />
 									<button type="submit" class="button danger">Disconnect</button>

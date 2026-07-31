@@ -154,8 +154,8 @@ describe('completeGoogleConnect', () => {
 	});
 });
 
-describe('reconnect', () => {
-	test('revokes the token it replaces', async () => {
+describe('connecting over an existing token', () => {
+	test('replaces the stored token', async () => {
 		await saveServiceRefreshToken(db, 'gg', 'rt-old');
 		vi.mocked(exchangeGoogleAuthCode).mockResolvedValue({
 			access_token: 'a',
@@ -165,26 +165,13 @@ describe('reconnect', () => {
 
 		await completeGoogleConnect(db, service, 'code-1', 'https://book.example.com');
 
-		expect(revokeGoogleToken).toHaveBeenCalledWith('rt-old');
 		expect(await getServiceRefreshToken(db, 'gg')).toBe('rt-new');
 	});
 
-	test('still stores the new token when revoking the old one fails', async () => {
+	// The admin has no reconnect, so this is unreachable from the UI; revoking here would
+	// end the grant and take the new token with it.
+	test('does not revoke the token it replaces', async () => {
 		await saveServiceRefreshToken(db, 'gg', 'rt-old');
-		vi.mocked(revokeGoogleToken).mockRejectedValue(new Error('already revoked'));
-		vi.mocked(exchangeGoogleAuthCode).mockResolvedValue({
-			access_token: 'a',
-			refresh_token: 'rt-new',
-			expires_in: 3600
-		});
-
-		const result = await completeGoogleConnect(db, service, 'code-1', 'https://book.example.com');
-
-		expect(result.ok).toBe(true);
-		expect(await getServiceRefreshToken(db, 'gg')).toBe('rt-new');
-	});
-
-	test('revokes nothing on a first connection', async () => {
 		vi.mocked(exchangeGoogleAuthCode).mockResolvedValue({
 			access_token: 'a',
 			refresh_token: 'rt-new',

@@ -8,7 +8,6 @@ import {
 	revokeGoogleToken
 } from '@when/calendar';
 import { saveServiceRefreshToken, getServiceRefreshToken, deleteServiceToken } from '@when/db';
-import { logger } from '$lib/server/logger';
 
 export const CALLBACK_PATH = '/admin/services/google/callback';
 
@@ -34,6 +33,10 @@ export type ConnectResult = { ok: true } | { ok: false; reason: string };
 // Exchanges the one-time code, proves the resulting token actually works, and only then
 // stores it — a token that cannot mint an access token is worse than none, because the
 // service would read as connected.
+//
+// Connecting always starts from disconnected — the admin offers no reconnect — so there is
+// never a live token to retire here. Re-establishing is disconnect then connect, which
+// revokes before minting instead of after.
 export async function completeGoogleConnect(
 	db: Kysely<Database>,
 	service: GoogleService,
@@ -62,7 +65,6 @@ export async function completeGoogleConnect(
 			google_calendar_id: ''
 		});
 
-		await retireToken(db, service.name, refresh_token);
 		await saveServiceRefreshToken(db, service.name, refresh_token);
 		return { ok: true };
 	} catch (err) {
@@ -90,21 +92,5 @@ export async function disconnectGoogle(
 		return { revoked: true };
 	} catch (err) {
 		return { revoked: false, reason: err instanceof Error ? err.message : String(err) };
-	}
-}
-
-// Reconnecting mints a new token without invalidating the old one, which would otherwise
-// accumulate against Google's per-client cap. Best effort: the new token already works.
-async function retireToken(
-	db: Kysely<Database>,
-	serviceName: string,
-	replacement: string
-): Promise<void> {
-	const previous = await getServiceRefreshToken(db, serviceName);
-	if (!previous || previous === replacement) return;
-	try {
-		await revokeGoogleToken(previous);
-	} catch (err) {
-		logger.warn({ err, service: serviceName }, 'could not revoke the replaced google token');
 	}
 }
