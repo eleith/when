@@ -1,7 +1,12 @@
 import type { Kysely } from 'kysely';
 import type { WhenConfiguration } from '@when/config';
 import type { Database } from '@when/db';
-import { getGoogleAccessToken, verifyCalDavService } from '@when/calendar';
+import {
+	getGoogleAccessToken,
+	verifyCalDavService,
+	listGoogleCalendars,
+	discoverCalDavCalendars
+} from '@when/calendar';
 import {
 	getServiceRefreshToken,
 	listServiceConnections,
@@ -23,6 +28,17 @@ export interface ServiceView {
 }
 
 export type ProbeResult = { ok: true; message: string } | { ok: false; message: string };
+
+// The id is what goes into when.yaml — google_calendar_id for google, path for CalDAV.
+export interface DiscoveredCalendar {
+	id: string;
+	name: string;
+	primary: boolean;
+}
+
+export type DiscoveryResult =
+	| { ok: true; field: 'google_calendar_id' | 'path'; calendars: DiscoveredCalendar[] }
+	| { ok: false; message: string };
 
 // Cheap: config plus indexed reads. Nothing here reaches the network — the worker already
 // proved whether each credential works on its last refresh pass, and that verdict is what
@@ -101,6 +117,50 @@ export async function probeService(
 			await verifyCalDavService(service);
 		}
 		return { ok: true, message: 'Authenticated.' };
+	} catch (err) {
+		return { ok: false, message: err instanceof Error ? err.message : String(err) };
+	}
+}
+
+export async function discoverCalendars(
+	config: WhenConfiguration,
+	db: Kysely<Database>,
+	name: string
+): Promise<DiscoveryResult> {
+	const service = config.services?.find((s) => s.name === name);
+	if (!service) return { ok: false, message: `No service named "${name}".` };
+
+	try {
+		if (service.type === 'google') {
+			const refreshToken = await getServiceRefreshToken(db, name);
+			if (!refreshToken) return { ok: false, message: 'Not connected yet.' };
+			const accessToken = await getGoogleAccessToken({
+				client_id: service.client_id,
+				client_secret: service.client_secret,
+				refresh_token: refreshToken,
+				google_calendar_id: ''
+			});
+			const found = await listGoogleCalendars(accessToken);
+			return {
+				ok: true,
+				field: 'google_calendar_id',
+				// Google names the primary calendar after the account's email and gives it that
+				// same id, so both read as noise. `primary` is the documented alias and survives
+				// an address change.
+				calendars: found.map((c) =>
+					c.primary === true
+						? { id: 'primary', name: 'Primary calendar', primary: true }
+						: { id: c.id, name: c.summary, primary: false }
+				)
+			};
+		}
+
+		const found = await discoverCalDavCalendars(service);
+		return {
+			ok: true,
+			field: 'path',
+			calendars: found.map((c) => ({ id: c.path, name: c.displayName, primary: false }))
+		};
 	} catch (err) {
 		return { ok: false, message: err instanceof Error ? err.message : String(err) };
 	}

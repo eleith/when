@@ -6,7 +6,7 @@ import {
 	disconnectGoogle,
 	findGoogleService
 } from '$lib/server/services/google-connect';
-import { listServices, probeService } from '$lib/server/services/status';
+import { discoverCalendars, listServices, probeService } from '$lib/server/services/status';
 import { STATE_COOKIE, stateCookieOptions } from './state-cookie';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -49,6 +49,16 @@ export const actions: Actions = {
 						text: `${name} disconnected, but Google did not confirm the revoke — ${result.reason}. Remove access under your Google account if it persists.`
 					}
 		};
+	},
+
+	calendars: async ({ request }) => {
+		const name = String((await request.formData()).get('service') ?? '');
+		const result = await discoverCalendars(getConfig(), getDb(), name);
+		return result.ok
+			? { discovered: { service: name, field: result.field, calendars: result.calendars } }
+			: {
+					notice: { tone: 'error', text: `${name} could not list calendars — ${result.message}` }
+				};
 	},
 
 	test: async ({ request }) => {

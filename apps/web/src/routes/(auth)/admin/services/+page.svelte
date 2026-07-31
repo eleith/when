@@ -1,8 +1,40 @@
 <script lang="ts">
 	import IconCheckCircle from 'virtual:icons/ph/check-circle';
 	import IconWarningCircle from 'virtual:icons/ph/warning-circle';
+	import IconSpinner from 'virtual:icons/ph/spinner';
+	import { enhance } from '$app/forms';
+	import type { SubmitFunction } from './$types';
+
+	interface DiscoveredCalendar {
+		id: string;
+		name: string;
+		primary: boolean;
+	}
 
 	let { data, form } = $props();
+
+	let listingService = $state('');
+	let listing = $state<{ field: string; calendars: DiscoveredCalendar[] } | null>(null);
+
+	// The provider round-trip is slow, so claim the section on submit and show a spinner
+	// rather than leaving the click with no feedback.
+	function listCalendars(service: string): SubmitFunction {
+		return () => {
+			listingService = service;
+			listing = null;
+			return async ({ result, update }) => {
+				await update();
+				if (result.type !== 'success') listingService = '';
+			};
+		};
+	}
+
+	$effect(() => {
+		const discovered = form?.discovered;
+		if (!discovered) return;
+		listingService = discovered.service;
+		listing = { field: discovered.field, calendars: discovered.calendars };
+	});
 
 	function fmt(iso: string): string {
 		return new Date(iso).toLocaleString([], {
@@ -70,6 +102,29 @@
 							<dt>{service.endpoint.label}</dt>
 							<dd><code>{service.endpoint.url}</code></dd>
 						</dl>
+
+						{#if listingService === service.name}
+							<div class="found">
+								<h3 class="found-title">Available calendars</h3>
+								{#if !listing}
+									<p class="found-loading">
+										<span class="spinner"><IconSpinner aria-hidden="true" /></span>
+										Asking {service.name}…
+									</p>
+								{:else if listing.calendars.length === 0}
+									<p class="found-empty">This service exposes no calendars.</p>
+								{:else}
+									<ul class="found-list">
+										{#each listing.calendars as calendar (calendar.id)}
+											<li class="found-item">
+												<span class="found-name">{calendar.name}</span>
+												<code class="found-value">{listing.field}: {calendar.id}</code>
+											</li>
+										{/each}
+									</ul>
+								{/if}
+							</div>
+						{/if}
 					</div>
 
 					<div class="actions">
@@ -87,10 +142,16 @@
 							{/if}
 						</div>
 						{#if !unconnected}
-							<form method="POST" action="?/test">
-								<input type="hidden" name="service" value={service.name} />
-								<button type="submit" class="button">Test</button>
-							</form>
+							<div class="actions-check">
+								<form method="POST" action="?/calendars" use:enhance={listCalendars(service.name)}>
+									<input type="hidden" name="service" value={service.name} />
+									<button type="submit" class="button">List calendars</button>
+								</form>
+								<form method="POST" action="?/test">
+									<input type="hidden" name="service" value={service.name} />
+									<button type="submit" class="button">Test</button>
+								</form>
+							</div>
 						{/if}
 					</div>
 				</li>
@@ -103,6 +164,7 @@
 	.services {
 		padding: var(--space-8) 0;
 		max-width: 42rem;
+		margin: 0 auto;
 	}
 
 	.title {
@@ -179,7 +241,7 @@
 
 	.name {
 		margin: 0;
-		font-size: var(--font-size-md);
+		font-size: var(--font-size-lg);
 		font-weight: 500;
 		color: var(--when-color-text);
 		overflow-wrap: anywhere;
@@ -190,7 +252,7 @@
 		grid-template-columns: 8rem 1fr;
 		gap: var(--space-2) var(--space-4);
 		margin: 0;
-		font-size: var(--font-size-sm);
+		font-size: var(--font-size-md);
 	}
 
 	.fields dt {
@@ -205,6 +267,73 @@
 
 	.fields code {
 		user-select: all;
+	}
+
+	.found {
+		border-top: 1px solid var(--color-border);
+		padding-top: var(--space-4);
+	}
+
+	.found-title {
+		margin: 0 0 var(--space-3);
+		font-size: var(--font-size-md);
+		font-weight: 400;
+		color: var(--when-color-text);
+	}
+
+	.found-loading {
+		display: flex;
+		align-items: center;
+		gap: var(--space-3);
+		margin: 0;
+		font-size: var(--font-size-md);
+		color: var(--color-text-muted);
+	}
+
+	.spinner {
+		display: inline-flex;
+		animation: found-spin 0.9s linear infinite;
+	}
+
+	@keyframes found-spin {
+		to {
+			transform: rotate(360deg);
+		}
+	}
+
+	.found-list {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-4);
+	}
+
+	.found-item {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-1);
+	}
+
+	.found-name {
+		font-size: var(--font-size-sm);
+		font-weight: 500;
+		color: var(--color-text-muted);
+		overflow-wrap: anywhere;
+	}
+
+	.found-value {
+		font-size: var(--font-size-md);
+		color: var(--color-text-secondary);
+		overflow-wrap: anywhere;
+		user-select: all;
+	}
+
+	.found-empty {
+		margin: 0;
+		font-size: var(--font-size-md);
+		color: var(--color-text-muted);
 	}
 
 	.failed {
@@ -226,7 +355,8 @@
 		background: var(--color-surface-muted);
 	}
 
-	.actions-change {
+	.actions-change,
+	.actions-check {
 		display: flex;
 		gap: var(--space-3);
 	}

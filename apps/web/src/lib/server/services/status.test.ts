@@ -1,15 +1,22 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { openDb, runMigrations, saveServiceRefreshToken, recordRefreshResult } from '@when/db';
-import { getGoogleAccessToken, verifyCalDavService } from '@when/calendar';
+import {
+	getGoogleAccessToken,
+	verifyCalDavService,
+	listGoogleCalendars,
+	discoverCalDavCalendars
+} from '@when/calendar';
 import type { WhenConfiguration } from '@when/config';
-import { listServices, probeService } from './status';
+import { discoverCalendars, listServices, probeService } from './status';
 
 vi.mock('@when/calendar', async (importOriginal) => {
 	const actual = await importOriginal<typeof import('@when/calendar')>();
 	return {
 		...actual,
 		getGoogleAccessToken: vi.fn(),
-		verifyCalDavService: vi.fn()
+		verifyCalDavService: vi.fn(),
+		listGoogleCalendars: vi.fn(),
+		discoverCalDavCalendars: vi.fn()
 	};
 });
 
@@ -33,6 +40,8 @@ beforeEach(async () => {
 	await runMigrations(db);
 	vi.mocked(getGoogleAccessToken).mockReset().mockResolvedValue('access');
 	vi.mocked(verifyCalDavService).mockReset().mockResolvedValue(undefined);
+	vi.mocked(listGoogleCalendars).mockReset().mockResolvedValue([]);
+	vi.mocked(discoverCalDavCalendars).mockReset().mockResolvedValue([]);
 });
 
 describe('listServices', () => {
@@ -154,6 +163,82 @@ describe('probeService', () => {
 		expect(await probeService(config, db, 'nope')).toEqual({
 			ok: false,
 			message: 'No service named "nope".'
+		});
+	});
+});
+
+describe('discoverCalendars', () => {
+	// Google reports the primary calendar with the account email as both summary and id.
+	test('names the primary google calendar and uses the stable alias', async () => {
+		await saveServiceRefreshToken(db, 'gg', 'rt-1');
+		vi.mocked(listGoogleCalendars).mockResolvedValue([
+			{ id: 'jane@example.com', summary: 'jane@example.com', primary: true }
+		]);
+
+		const result = await discoverCalendars(config, db, 'gg');
+
+		expect(result).toMatchObject({
+			calendars: [{ id: 'primary', name: 'Primary calendar', primary: true }]
+		});
+	});
+
+	test('keeps a secondary google calendar name and id', async () => {
+		await saveServiceRefreshToken(db, 'gg', 'rt-1');
+		vi.mocked(listGoogleCalendars).mockResolvedValue([
+			{ id: 'c_a1b2@group.calendar.google.com', summary: 'Personal' }
+		]);
+
+		const result = await discoverCalendars(config, db, 'gg');
+
+		expect(result).toEqual({
+			ok: true,
+			field: 'google_calendar_id',
+			calendars: [{ id: 'c_a1b2@group.calendar.google.com', name: 'Personal', primary: false }]
+		});
+	});
+
+	test('normalises caldav calendars, using the path as the id', async () => {
+		vi.mocked(discoverCalDavCalendars).mockResolvedValue([
+			{ path: 'calendars/u/work/', displayName: 'Work' }
+		]);
+
+		const result = await discoverCalendars(config, db, 'dav');
+
+		expect(result).toEqual({
+			ok: true,
+			field: 'path',
+			calendars: [{ id: 'calendars/u/work/', name: 'Work', primary: false }]
+		});
+	});
+
+	test('refuses an unconnected google service without calling google', async () => {
+		const result = await discoverCalendars(config, db, 'gg');
+
+		expect(result).toEqual({ ok: false, message: 'Not connected yet.' });
+		expect(listGoogleCalendars).not.toHaveBeenCalled();
+	});
+
+	test('surfaces a provider failure', async () => {
+		vi.mocked(discoverCalDavCalendars).mockRejectedValue(new Error('401 Unauthorized'));
+
+		expect(await discoverCalendars(config, db, 'dav')).toEqual({
+			ok: false,
+			message: '401 Unauthorized'
+		});
+	});
+
+	test('reports an unknown service', async () => {
+		expect(await discoverCalendars(config, db, 'nope')).toEqual({
+			ok: false,
+			message: 'No service named "nope".'
+		});
+	});
+
+	test('an empty list is a success, not a failure', async () => {
+		expect(await discoverCalendars(config, db, 'dav')).toEqual({
+			ok: true,
+			field: 'path',
+			calendars: []
 		});
 	});
 });
