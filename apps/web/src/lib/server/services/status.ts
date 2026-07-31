@@ -1,11 +1,11 @@
 import type { Kysely } from 'kysely';
-import type { WhenConfiguration } from '@when/config';
+import type { Service, WhenConfiguration } from '@when/config';
 import type { Database } from '@when/db';
 import {
-	getGoogleAccessToken,
-	verifyCalDavService,
-	listGoogleCalendars,
-	discoverCalDavCalendars
+	connectService,
+	getServiceAdapter,
+	type ServiceAdapter,
+	type ServiceCalendar
 } from '@when/calendar';
 import {
 	getServiceRefreshToken,
@@ -13,7 +13,7 @@ import {
 	listCalendarSyncStatus,
 	listOutOfSyncAppointments
 } from '@when/db';
-import { evaluateCalendarStatuses } from '$lib/server/calendar/health';
+import { evaluateCalendarStatuses, type ComputedCalendarStatus } from '$lib/server/calendar/health';
 import { googleRedirectUri } from './google-connect';
 
 export interface ServiceView {
@@ -22,6 +22,7 @@ export interface ServiceView {
 	connectedAt: string | null;
 	calendars: string[];
 	endpoint: { label: string; url: string };
+	usesOAuth: boolean;
 	health: 'good' | 'bad' | 'unknown';
 	reason: string | null;
 	lastSyncedAt: string | null;
@@ -29,15 +30,8 @@ export interface ServiceView {
 
 export type ProbeResult = { ok: true; message: string } | { ok: false; message: string };
 
-// The id is what goes into when.yaml — google_calendar_id for google, path for CalDAV.
-export interface DiscoveredCalendar {
-	id: string;
-	name: string;
-	primary: boolean;
-}
-
 export type DiscoveryResult =
-	| { ok: true; field: 'google_calendar_id' | 'path'; calendars: DiscoveredCalendar[] }
+	| { ok: true; field: string; calendars: ServiceCalendar[] }
 	| { ok: false; message: string };
 
 // Cheap: config plus indexed reads. Nothing here reaches the network — the worker already
@@ -53,46 +47,52 @@ export async function listServices(
 		listOutOfSyncAppointments(db)
 	]);
 
+	const computed = evaluateCalendarStatuses(syncStatus, outOfSync, config, Temporal.Now.instant());
 	const connected = new Map(connections.map((c) => [c.serviceName, c]));
-	const statuses = new Map(
-		evaluateCalendarStatuses(syncStatus, outOfSync, config, Temporal.Now.instant()).map((s) => [
-			s.id,
-			s
-		])
-	);
+	const statuses = new Map(computed.map((s) => [s.id, s]));
 	const lastSynced = new Map(syncStatus.map((s) => [s.calendar_id, s.last_successful_refresh_at]));
 
 	return (config.services ?? []).map((service) => {
+		const { usesOAuth } = getServiceAdapter(connectService(service, null));
 		const calendars = config.calendars
 			.filter((cal) => cal.service === service.name)
 			.map((cal) => cal.name);
-
-		const failing = calendars.map((id) => statuses.get(id)).find((s) => s?.health === 'bad');
-		const anyGood = calendars.some((id) => statuses.get(id)?.health === 'good');
 
 		return {
 			name: service.name,
 			type: service.type,
 			connectedAt: connected.get(service.name)?.connectedAt ?? null,
 			calendars,
-			endpoint:
-				service.type === 'google'
-					? { label: 'Redirect URI', url: googleRedirectUri(config.url.app) }
-					: { label: 'Server URL', url: service.url },
-			health: failing ? 'bad' : anyGood ? 'good' : 'unknown',
-			reason: failing?.reason ?? null,
+			endpoint: endpointOf(service, usesOAuth, config.url.app),
+			usesOAuth,
+			...syncStateOf(calendars, statuses),
 			lastSyncedAt: latest(calendars.map((id) => lastSynced.get(id) ?? null))
 		};
 	});
 }
 
+// The redirect URI is ours, not the provider's, so it stays a web concern.
+function endpointOf(service: Service, usesOAuth: boolean, appUrl: string): ServiceView['endpoint'] {
+	if (!usesOAuth && 'url' in service) return { label: 'Server URL', url: service.url };
+	return { label: 'Redirect URI', url: googleRedirectUri(appUrl) };
+}
+
+// A service is only as healthy as the calendars it backs: one failing calendar condemns it,
+// and with no verdict at all it stays unknown rather than claiming to work.
+function syncStateOf(
+	calendars: string[],
+	statuses: Map<string, ComputedCalendarStatus>
+): Pick<ServiceView, 'health' | 'reason'> {
+	const failing = calendars.map((id) => statuses.get(id)).find((s) => s?.health === 'bad');
+	if (failing) return { health: 'bad', reason: failing.reason };
+
+	const synced = calendars.some((id) => statuses.get(id)?.health === 'good');
+	return { health: synced ? 'good' : 'unknown', reason: null };
+}
+
 function latest(times: (string | null)[]): string | null {
-	return (
-		times
-			.filter((t): t is string => t !== null)
-			.sort()
-			.at(-1) ?? null
-	);
+	const known = times.filter((t): t is string => t !== null);
+	return known.sort().at(-1) ?? null;
 }
 
 export async function probeService(
@@ -100,25 +100,12 @@ export async function probeService(
 	db: Kysely<Database>,
 	name: string
 ): Promise<ProbeResult> {
-	const service = config.services?.find((s) => s.name === name);
-	if (!service) return { ok: false, message: `No service named "${name}".` };
-
 	try {
-		if (service.type === 'google') {
-			const refreshToken = await getServiceRefreshToken(db, name);
-			if (!refreshToken) return { ok: false, message: 'Not connected yet.' };
-			await getGoogleAccessToken({
-				client_id: service.client_id,
-				client_secret: service.client_secret,
-				refresh_token: refreshToken,
-				google_calendar_id: ''
-			});
-		} else {
-			await verifyCalDavService(service);
-		}
+		const adapter = await connectedAdapter(config, db, name);
+		await adapter.verify();
 		return { ok: true, message: 'Authenticated.' };
 	} catch (err) {
-		return { ok: false, message: err instanceof Error ? err.message : String(err) };
+		return { ok: false, message: reason(err) };
 	}
 }
 
@@ -127,41 +114,29 @@ export async function discoverCalendars(
 	db: Kysely<Database>,
 	name: string
 ): Promise<DiscoveryResult> {
-	const service = config.services?.find((s) => s.name === name);
-	if (!service) return { ok: false, message: `No service named "${name}".` };
-
 	try {
-		if (service.type === 'google') {
-			const refreshToken = await getServiceRefreshToken(db, name);
-			if (!refreshToken) return { ok: false, message: 'Not connected yet.' };
-			const accessToken = await getGoogleAccessToken({
-				client_id: service.client_id,
-				client_secret: service.client_secret,
-				refresh_token: refreshToken,
-				google_calendar_id: ''
-			});
-			const found = await listGoogleCalendars(accessToken);
-			return {
-				ok: true,
-				field: 'google_calendar_id',
-				// Google names the primary calendar after the account's email and gives it that
-				// same id, so both read as noise. `primary` is the documented alias and survives
-				// an address change.
-				calendars: found.map((c) =>
-					c.primary === true
-						? { id: 'primary', name: 'Primary calendar', primary: true }
-						: { id: c.id, name: c.summary, primary: false }
-				)
-			};
-		}
-
-		const found = await discoverCalDavCalendars(service);
-		return {
-			ok: true,
-			field: 'path',
-			calendars: found.map((c) => ({ id: c.path, name: c.displayName, primary: false }))
-		};
+		const adapter = await connectedAdapter(config, db, name);
+		const calendars = await adapter.listCalendars();
+		return { ok: true, field: adapter.calendarIdField, calendars };
 	} catch (err) {
-		return { ok: false, message: err instanceof Error ? err.message : String(err) };
+		return { ok: false, message: reason(err) };
 	}
+}
+
+function reason(err: unknown): string {
+	return err instanceof Error ? err.message : String(err);
+}
+
+// Joins the two halves of a service — config and stored credential — into the adapter
+// that knows how to talk to it.
+async function connectedAdapter(
+	config: WhenConfiguration,
+	db: Kysely<Database>,
+	name: string
+): Promise<ServiceAdapter> {
+	const service = config.services?.find((s) => s.name === name);
+	if (!service) throw new Error(`No service named "${name}".`);
+
+	const refreshToken = await getServiceRefreshToken(db, name);
+	return getServiceAdapter(connectService(service, refreshToken));
 }

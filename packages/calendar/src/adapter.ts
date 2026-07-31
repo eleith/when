@@ -48,6 +48,12 @@ type ConnectedGoogleService = Omit<GoogleService, 'refresh_token'> & {
 };
 type ConnectedService = Exclude<Service, GoogleService> | ConnectedGoogleService;
 
+// Only google carries a stored credential; every other service is already complete in
+// when.yaml. Callers hand over whatever token they hold and let this decide.
+function connectService(service: Service, refreshToken: string | null): ConnectedService {
+	return service.type === 'google' ? { ...service, refresh_token: refreshToken } : service;
+}
+
 function getCalendarAdapter(cal: Calendar, services?: ConnectedService[]): CalendarAdapter {
 	const type = cal.type;
 	if (type === 'caldav') {
@@ -70,4 +76,4 @@ export type {
 	ConnectedGoogleService
 };
 
-export { getCalendarAdapter };
+export { getCalendarAdapter, connectService };

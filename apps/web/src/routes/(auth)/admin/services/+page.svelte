@@ -71,7 +71,7 @@
 	{:else}
 		<ul class="list">
 			{#each data.services as service (service.name)}
-				{@const unconnected = service.type === 'google' && !service.connectedAt}
+				{@const unconnected = service.usesOAuth && !service.connectedAt}
 				<li class="card">
 					<div class="body">
 						<h2 class="name">{service.name}</h2>
