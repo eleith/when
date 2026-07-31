@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest';
 import { sql } from 'kysely';
 import { openDb } from './index.js';
-import { runMigrations } from './migrate.js';
+import { migrationStatus, runMigrations } from './migrate.js';
 
 test('runMigrations creates appointments and oauth_tokens', async () => {
 	const db = openDb(':memory:');
@@ -60,6 +60,34 @@ test('partial unique index rejects concurrent active slot but allows cancelled',
 			.insertInto('appointments')
 			.values({ ...base, id: '3', status: 'cancelled', cancel_token: 't3' })
 			.execute();
+	} finally {
+		await db.destroy();
+	}
+});
+
+test('migrationStatus reports a fresh database as all pending, and applies none of it', async () => {
+	const db = openDb(':memory:');
+	try {
+		const status = await migrationStatus(db);
+		expect(status.applied).toEqual([]);
+		expect(status.pending).toContain('0001_initial');
+
+		const tables = await sql<{ name: string }>`
+			SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'kysely_%'
+		`.execute(db);
+		expect(tables.rows).toEqual([]);
+	} finally {
+		await db.destroy();
+	}
+});
+
+test('migrationStatus reports nothing pending once migrated', async () => {
+	const db = openDb(':memory:');
+	try {
+		await runMigrations(db);
+		const status = await migrationStatus(db);
+		expect(status.pending).toEqual([]);
+		expect(status.applied).toContain('0001_initial');
 	} finally {
 		await db.destroy();
 	}
