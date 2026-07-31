@@ -1,6 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
 import { signInAsAdmin } from './support/auth.ts';
-import { pickLastBookableDay } from './support/wizard.ts';
 
 function collectCspViolations(page: Page): string[] {
 	const violations: string[] = [];
@@ -31,8 +30,13 @@ test('the booking page renders and hydrates under the policy', async ({ page }) 
 	);
 	expect(primary).not.toBe('');
 
-	await pickLastBookableDay(page);
-	await expect(page.getByRole('heading', { name: /Step 2 of 3/ })).toBeVisible();
+	// Month navigation is client-side, so a changed heading proves the calendar hydrated.
+	// Deliberately not a booking flow: this test is about the policy, and picking a day
+	// would tie it to whether the fixture's schedule has a slot left today.
+	const month = page.getByRole('heading', { level: 2 });
+	const opening = await month.textContent();
+	await page.getByRole('button', { name: 'Next' }).click();
+	await expect(month).not.toHaveText(opening ?? '');
 
 	expect(violations).toEqual([]);
 });
