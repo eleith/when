@@ -1,6 +1,6 @@
 import { define } from 'gunshi';
 import { getCalendarAdapter, type ExpandWindow, type ConnectedService } from '@when/calendar';
-import { interpolate, MissingEnvVarsError, type WhenConfiguration } from '@when/config';
+import type { WhenConfiguration } from '@when/config';
 import { loadConfigFromCtx } from '../../utils/command.ts';
 import { pass, fail } from '../../utils/report.ts';
 
@@ -41,13 +41,12 @@ export async function runCalendarTest(
 		return;
 	}
 
-	const resolved = resolveForAdapter(config, cal, name, refreshToken);
-	if (!resolved) return;
+	const services = connectedServicesFor(config, cal, refreshToken);
 
 	try {
 		const now = Temporal.Now.instant();
 		const window: ExpandWindow = { start: now, end: now.add({ hours: 24 * WINDOW_DAYS }) };
-		const busy = await getCalendarAdapter(resolved.cal, resolved.services).fetchBusy(window);
+		const busy = await getCalendarAdapter(cal, services).fetchBusy(window);
 		pass(
 			`${name} (${cal.type}) — ${busy.length} busy interval(s) over the next ${WINDOW_DAYS} days`
 		);
@@ -56,27 +55,14 @@ export async function runCalendarTest(
 	}
 }
 
-function resolveForAdapter(
+function connectedServicesFor(
 	config: WhenConfiguration,
 	cal: WhenConfiguration['calendars'][number],
-	name: string,
 	refreshToken?: string
-) {
+): ConnectedService[] {
 	const service = config.services?.find((s) => s.name === cal.service);
-	try {
-		const services: ConnectedService[] = [];
-		if (service) {
-			const resolved = interpolate(service);
-			services.push(
-				resolved.type === 'google' ? { ...resolved, refresh_token: refreshToken ?? null } : resolved
-			);
-		}
-		return { cal: interpolate(cal), services };
-	} catch (err) {
-		if (err instanceof MissingEnvVarsError) {
-			fail(`${name} — unset env var(s): ${err.missing.join(', ')}`);
-			return null;
-		}
-		throw err;
-	}
+	if (!service) return [];
+	return [
+		service.type === 'google' ? { ...service, refresh_token: refreshToken ?? null } : service
+	];
 }

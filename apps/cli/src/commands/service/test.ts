@@ -1,7 +1,7 @@
 import { define } from 'gunshi';
 import { connectService, getServiceAdapter } from '@when/calendar';
 import type { Service } from '@when/config';
-import { requireService, resolveServiceEnv, servicesAndName } from './shared.ts';
+import { requireService, servicesAndName } from './shared.ts';
 import { pass, fail } from '../../utils/report.ts';
 
 export const testCommand = define({
@@ -30,19 +30,16 @@ export async function runServiceTest(
 	const service = requireService(services, name);
 	if (!service) return;
 
-	const resolved = resolveServiceEnv(service);
-	if (!resolved) return;
-
-	const adapter = getServiceAdapter(connectService(resolved, refreshToken ?? null));
+	const adapter = getServiceAdapter(connectService(service, refreshToken ?? null));
 	if (adapter.usesOAuth && !refreshToken) {
-		fail(`${name} (${resolved.type}) — pass --refresh-token; the stored one lives in the database`);
+		fail(`${name} (${service.type}) — pass --refresh-token; the stored one lives in the database`);
 		return;
 	}
 
 	try {
 		await adapter.verify();
-		pass(`${name} (${resolved.type}) — authenticated`);
+		pass(`${name} (${service.type}) — authenticated`);
 	} catch (err) {
-		fail(`${name} (${resolved.type}) — ${err instanceof Error ? err.message : String(err)}`);
+		fail(`${name} (${service.type}) — ${err instanceof Error ? err.message : String(err)}`);
 	}
 }

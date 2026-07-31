@@ -1,12 +1,7 @@
 import { define } from 'gunshi';
-import {
-	loadConfigFile,
-	ConfigError,
-	MissingEnvVarsError,
-	type WhenConfiguration
-} from '@when/config';
 import { initOpenWorkflow, testEmail } from '@when/jobs';
 import { requireConfigPath } from '../../utils/config-path.ts';
+import { loadConfigFully } from '../../utils/load.ts';
 import { pass, fail } from '../../utils/report.ts';
 
 const RESULT_TIMEOUT_MS = 30_000;
@@ -31,7 +26,7 @@ export const testCommand = define({
 });
 
 export async function runEmailTest(configPath: string, address: string): Promise<void> {
-	const config = await loadConfig(configPath);
+	const config = await loadConfigFully(configPath);
 	if (!config) return;
 
 	const reachable = await workerReachable(config.url.worker);
@@ -48,22 +43,6 @@ export async function runEmailTest(configPath: string, address: string): Promise
 		pass(`test email sent to ${address}`);
 	} catch (err) {
 		fail(`test email failed — ${err instanceof Error ? err.message : String(err)}`);
-	}
-}
-
-async function loadConfig(configPath: string): Promise<WhenConfiguration | null> {
-	try {
-		return await loadConfigFile(configPath);
-	} catch (err) {
-		if (err instanceof ConfigError) {
-			fail('config is not valid — run when-cli config validate');
-			return null;
-		}
-		if (err instanceof MissingEnvVarsError) {
-			fail(`config env not fully set: ${err.missing.join(', ')}`);
-			return null;
-		}
-		throw err;
 	}
 }
 

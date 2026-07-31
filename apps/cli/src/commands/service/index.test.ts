@@ -37,10 +37,10 @@ services:
     url: "https://dav.example.com/remote.php/dav/"
     username: "u"
     password: "p"
-  - name: "gcal-badenv"
+  - name: "gcal-envref"
     type: "google"
     client_id: "cid2"
-    client_secret: "\${WHEN_TEST_SVC_UNSET}"
+    client_secret: "\${WHEN_TEST_SVC_SECRET}"
 calendars:
   - name: "work"
     type: "caldav"
@@ -87,7 +87,7 @@ describe('service command', () => {
 		vi.mocked(getServiceAdapter)
 			.mockReset()
 			.mockImplementation((service) => ({ ...adapter, usesOAuth: service.type === 'google' }));
-		delete process.env.WHEN_TEST_SVC_UNSET;
+		process.env.WHEN_TEST_SVC_SECRET = 'set';
 		writeFileSync(path, configYaml);
 	});
 
@@ -163,10 +163,11 @@ describe('service command', () => {
 		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('no service named "nope"'));
 	});
 
-	test('unset env var is named, not resolved', async () => {
-		await testCommand.run!(ctx({ name: 'gcal-badenv', config: path }));
+	test('an unset env var anywhere in the config is named, before any service work', async () => {
+		delete process.env.WHEN_TEST_SVC_SECRET;
+		await testCommand.run!(ctx({ name: 'dav', config: path }));
 		expect(process.exitCode).toBe(1);
-		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('WHEN_TEST_SVC_UNSET'));
+		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('WHEN_TEST_SVC_SECRET'));
 		expect(adapter.verify).not.toHaveBeenCalled();
 	});
 });

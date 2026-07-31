@@ -28,20 +28,20 @@ services:
     url: "https://dav.example.com/"
     username: "u"
     password: "p"
-  - name: "dav-badenv"
+  - name: "dav-envref"
     type: "caldav"
     url: "https://dav.example.com/"
     username: "u"
-    password: "\${WHEN_CAL_UNSET}"
+    password: "\${WHEN_CAL_SECRET}"
 calendars:
   - name: "work"
     type: "caldav"
     service: "dav"
     url: "https://dav.example.com/calendars/u/work/"
-  - name: "broken"
+  - name: "envref"
     type: "caldav"
-    service: "dav-badenv"
-    url: "https://dav.example.com/calendars/u/broken/"
+    service: "dav-envref"
+    url: "https://dav.example.com/calendars/u/envref/"
 schedules:
   - name: "standard"
     weekly:
@@ -85,7 +85,7 @@ describe('calendar command', () => {
 		originalExitCode = process.exitCode as number | undefined;
 		process.exitCode = undefined;
 		vi.mocked(getCalendarAdapter).mockReset();
-		delete process.env.WHEN_CAL_UNSET;
+		process.env.WHEN_CAL_SECRET = 'set';
 		writeFileSync(path, configYaml);
 	});
 
@@ -110,7 +110,7 @@ describe('calendar command', () => {
 		await listCommand.run!(ctx({ config: path }));
 		expect(process.exitCode).toBeUndefined();
 		expect(logSpy).toHaveBeenCalledWith('work  (caldav)');
-		expect(logSpy).toHaveBeenCalledWith('broken  (caldav)');
+		expect(logSpy).toHaveBeenCalledWith('envref  (caldav)');
 	});
 
 	test('test reports the busy interval count', async () => {
@@ -143,10 +143,11 @@ describe('calendar command', () => {
 		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('no calendar named "nope"'));
 	});
 
-	test('unset service env var is named, not resolved', async () => {
-		await testCommand.run!(ctx({ name: 'broken', config: path }));
+	test('an unset env var anywhere in the config is named, before any calendar work', async () => {
+		delete process.env.WHEN_CAL_SECRET;
+		await testCommand.run!(ctx({ name: 'work', config: path }));
 		expect(process.exitCode).toBe(1);
-		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('WHEN_CAL_UNSET'));
+		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('WHEN_CAL_SECRET'));
 		expect(getCalendarAdapter).not.toHaveBeenCalled();
 	});
 });
