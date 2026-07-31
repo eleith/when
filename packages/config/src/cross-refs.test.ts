@@ -47,15 +47,15 @@ test('unknown booking_calendar flagged', () => {
 	}
 });
 
-test('unknown busy_calendars entry flagged with index', () => {
+test('unknown additional_busy_calendars entry flagged with index', () => {
 	const bad = clone(validConfig);
-	bad.meetings[0].busy_calendars = ['my-google-cal', 'missing-cal'];
+	bad.meetings[0].additional_busy_calendars = ['my-google-cal', 'missing-cal'];
 	try {
 		validateConfig(bad);
 		throw new Error('expected ConfigError');
 	} catch (err) {
 		const issues = (err as ConfigError).issues;
-		expect(issues.some((i) => i.path === '/meetings/0/busy_calendars/1')).toBe(true);
+		expect(issues.some((i) => i.path === '/meetings/0/additional_busy_calendars/1')).toBe(true);
 	}
 });
 

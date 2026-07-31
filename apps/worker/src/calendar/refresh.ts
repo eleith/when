@@ -21,7 +21,7 @@ export interface RefreshOptions {
 export function conflictCalendarIds(config: WhenConfiguration): string[] {
 	const ids = new Set<string>();
 	for (const et of config.meetings) {
-		for (const name of et.busy_calendars ?? []) ids.add(name);
+		for (const name of et.additional_busy_calendars ?? []) ids.add(name);
 	}
 	return [...ids];
 }
@@ -33,7 +33,7 @@ export function refreshWindow(
 ): ExpandWindow {
 	let days = 0;
 	for (const et of config.meetings) {
-		if (!(et.busy_calendars ?? []).includes(calendarId)) continue;
+		if (!(et.additional_busy_calendars ?? []).includes(calendarId)) continue;
 		const lookahead = et.booking_window_days ?? DEFAULT_MAX_LOOKAHEAD_DAYS;
 		days = Math.max(days, lookahead);
 	}

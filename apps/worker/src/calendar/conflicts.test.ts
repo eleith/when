@@ -46,7 +46,7 @@ async function ctxWith(config: Partial<WhenConfiguration>): Promise<WorkerContex
 test('flags confirmed + pending appointments overlapping the mirror, clears the rest', async () => {
 	const ctx = await ctxWith({
 		meetings: [
-			{ name: 'chat', busy_calendars: ['work'] }
+			{ name: 'chat', additional_busy_calendars: ['work'] }
 		] as unknown as WhenConfiguration['meetings']
 	});
 	try {
@@ -100,7 +100,7 @@ test('flags confirmed + pending appointments overlapping the mirror, clears the 
 test('clears a previously-flagged appointment once the overlap is gone', async () => {
 	const ctx = await ctxWith({
 		meetings: [
-			{ name: 'chat', busy_calendars: ['work'] }
+			{ name: 'chat', additional_busy_calendars: ['work'] }
 		] as unknown as WhenConfiguration['meetings']
 	});
 	try {
@@ -131,7 +131,9 @@ test('clears a previously-flagged appointment once the overlap is gone', async (
 
 test('an event type with no conflict calendars is never flagged', async () => {
 	const ctx = await ctxWith({
-		meetings: [{ name: 'chat', busy_calendars: [] }] as unknown as WhenConfiguration['meetings']
+		meetings: [
+			{ name: 'chat', additional_busy_calendars: [] }
+		] as unknown as WhenConfiguration['meetings']
 	});
 	try {
 		await replaceCalendarBusy(ctx.db, 'work', [
@@ -163,8 +165,8 @@ test('an event type with no conflict calendars is never flagged', async () => {
 test('flags two appointments that overlap each other, with no busy calendars', async () => {
 	const ctx = await ctxWith({
 		meetings: [
-			{ name: 'chat', busy_calendars: [] },
-			{ name: 'lunch', busy_calendars: [] }
+			{ name: 'chat', additional_busy_calendars: [] },
+			{ name: 'lunch', additional_busy_calendars: [] }
 		] as unknown as WhenConfiguration['meetings']
 	});
 	try {
@@ -215,8 +217,8 @@ test('flags two appointments that overlap each other, with no busy calendars', a
 test('back-to-back appointments are not a conflict', async () => {
 	const ctx = await ctxWith({
 		meetings: [
-			{ name: 'chat', busy_calendars: [] },
-			{ name: 'lunch', busy_calendars: [] }
+			{ name: 'chat', additional_busy_calendars: [] },
+			{ name: 'lunch', additional_busy_calendars: [] }
 		] as unknown as WhenConfiguration['meetings']
 	});
 	try {
@@ -259,8 +261,8 @@ test('back-to-back appointments are not a conflict', async () => {
 test('clears the survivor once the overlapping appointment is cancelled', async () => {
 	const ctx = await ctxWith({
 		meetings: [
-			{ name: 'chat', busy_calendars: [] },
-			{ name: 'lunch', busy_calendars: [] }
+			{ name: 'chat', additional_busy_calendars: [] },
+			{ name: 'lunch', additional_busy_calendars: [] }
 		] as unknown as WhenConfiguration['meetings']
 	});
 	try {

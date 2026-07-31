@@ -212,10 +212,10 @@ function checkMeetingCalendarReferences(
 		});
 	}
 
-	(meeting.busy_calendars ?? []).forEach((cid, j) => {
+	(meeting.additional_busy_calendars ?? []).forEach((cid, j) => {
 		if (!calendarRegistry.names.has(cid)) {
 			issues.push({
-				path: `/meetings/${i}/busy_calendars/${j}`,
+				path: `/meetings/${i}/additional_busy_calendars/${j}`,
 				message: `references unknown calendar name "${cid}"`
 			});
 		}

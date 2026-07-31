@@ -37,7 +37,7 @@ export async function loadAvailability(
 	);
 
 	const remoteBusy = (
-		await getBusyIntervals(getDb(), eventType.busy_calendars ?? [], {
+		await getBusyIntervals(getDb(), eventType.additional_busy_calendars ?? [], {
 			start: nowInstant.toString(),
 			end: rangeEnd.toString()
 		})

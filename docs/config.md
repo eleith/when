@@ -173,7 +173,7 @@ meetings:
     description: 'A quick intro call.'
     visibility: 'public' # 'public' (default) or 'unlisted' (kept off the homepage; the link still works)
     booking_approval: 'request' # 'request' (default, requires host approval) or 'instant'
-    busy_calendars: ['work', 'personal'] # busy-time calendar names to check for conflicts (default [])
+    additional_busy_calendars: ['personal'] # further calendars to check for conflicts; booking_calendar is always checked (default [])
     booking_calendar: 'work' # where the appointment is written (defaults to the first calendar)
     schedule: 'standard' # references a schedules name (defaults to the first schedule)
     location: 'Office Room 101' # a static URL, address, or phone number (optional)

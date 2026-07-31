@@ -116,7 +116,7 @@ meetings:
     # schedule: 'standard'
     # booking_calendar defaults to the first calendar above
     # booking_calendar: 'main'
-    # busy_calendars: ['main'] # extra calendars to check for conflicts
+    # additional_busy_calendars: ['personal'] # further calendars to check; booking_calendar is always checked
     # location: 'Suite 200, 123 Main St' # a static address, phone, or link
     # video_chat_service: 'google-service' # generate a video link per booking
     # note: 'Please add an agenda when you book.'

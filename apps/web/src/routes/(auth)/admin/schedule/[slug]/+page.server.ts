@@ -53,7 +53,12 @@ export const actions: Actions = {
 			rangeEnd,
 			userTz
 		);
-		const remoteBusy = await slotDayBusy(getDb(), eventType.busy_calendars ?? [], slotStr, userTz);
+		const remoteBusy = await slotDayBusy(
+			getDb(),
+			eventType.additional_busy_calendars ?? [],
+			slotStr,
+			userTz
+		);
 		const slots = computeSlots({
 			settings: { ...settings, duration },
 			rangeStart: nowInstant,

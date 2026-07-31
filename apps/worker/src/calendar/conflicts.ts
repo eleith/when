@@ -55,7 +55,7 @@ async function busyCalendarAppointmentIds(
 	const ids = new Set<string>();
 	for (const appt of appointments) {
 		const meeting = ctx.config.meetings.find((e) => e.name === appt.event_type_id);
-		const busy = await getBusyIntervals(ctx.db, meeting?.busy_calendars ?? [], {
+		const busy = await getBusyIntervals(ctx.db, meeting?.additional_busy_calendars ?? [], {
 			start: appt.start_time,
 			end: appt.end_time
 		});

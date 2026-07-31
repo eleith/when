@@ -159,7 +159,11 @@ test('refreshCalendar drops our own published event', async () => {
 
 test('conflictCalendarIds unions and dedupes across meetings', () => {
 	const config = {
-		meetings: [{ busy_calendars: ['a', 'b'] }, { busy_calendars: ['b', 'c'] }, {}]
+		meetings: [
+			{ additional_busy_calendars: ['a', 'b'] },
+			{ additional_busy_calendars: ['b', 'c'] },
+			{}
+		]
 	} as unknown as WhenConfiguration;
 	expect(conflictCalendarIds(config).sort()).toEqual(['a', 'b', 'c']);
 });
@@ -169,9 +173,9 @@ test('refreshWindow uses the max lookahead among meetings using the calendar', (
 	const config = {
 		schedules: [{ name: 'standard' }],
 		meetings: [
-			{ busy_calendars: ['work'], booking_window_days: 30, schedule: 'standard' },
-			{ busy_calendars: ['work'], booking_window_days: 90, schedule: 'standard' },
-			{ busy_calendars: ['other'], booking_window_days: 120, schedule: 'standard' }
+			{ additional_busy_calendars: ['work'], booking_window_days: 30, schedule: 'standard' },
+			{ additional_busy_calendars: ['work'], booking_window_days: 90, schedule: 'standard' },
+			{ additional_busy_calendars: ['other'], booking_window_days: 120, schedule: 'standard' }
 		]
 	} as unknown as WhenConfiguration;
 	const w = refreshWindow(config, 'work', now);
@@ -182,7 +186,7 @@ test('refreshWindow falls back to the default lookahead when unset', () => {
 	const now = inst('2026-04-15T00:00:00Z');
 	const config = {
 		schedules: [{ name: 'standard' }],
-		meetings: [{ busy_calendars: ['work'], schedule: 'standard' }]
+		meetings: [{ additional_busy_calendars: ['work'], schedule: 'standard' }]
 	} as unknown as WhenConfiguration;
 	const w = refreshWindow(config, 'work', now);
 	expect(w.end.toString()).toBe(now.add({ hours: 24 * 60 }).toString());
@@ -196,7 +200,7 @@ test('refreshCalendars refreshes known conflict calendars and skips unknown ids'
 			schedules: [{ name: 'standard' }],
 			services: defaultTestConfig.services,
 			calendars: [workCal],
-			meetings: [{ busy_calendars: ['work', 'ghost'], schedule: 'standard' }]
+			meetings: [{ additional_busy_calendars: ['work', 'ghost'], schedule: 'standard' }]
 		} as unknown as WhenConfiguration,
 		logger: silent,
 		db,
@@ -230,7 +234,7 @@ test('refreshCalendars skips a calendar refreshed within its interval, refreshes
 			schedules: [{ name: 'standard' }],
 			services: defaultTestConfig.services,
 			calendars: [{ ...workCal, sync: { refresh_every_minutes: 30 } }],
-			meetings: [{ busy_calendars: ['work'], schedule: 'standard' }]
+			meetings: [{ additional_busy_calendars: ['work'], schedule: 'standard' }]
 		} as unknown as WhenConfiguration,
 		logger: silent,
 		db,

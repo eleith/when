@@ -228,7 +228,7 @@ export const MeetingSchema = Type.Object({
 	slug: Type.String({ pattern: '^[a-z0-9][a-z0-9-]*$', description: 'URL slug for the booking page (e.g. "chat" for /schedule/chat). Defaults to a slug derived from the meeting name.' }),
 	visibility: Type.Optional(Type.Union([Type.Literal('public'), Type.Literal('unlisted')], { default: 'public', description: 'Whether this meeting is listed on the homepage. "unlisted" only hides it from that list — anyone with the /schedule/<slug> link can still book it.' })),
 	booking_approval: Type.Union([Type.Literal('instant'), Type.Literal('request')], { default: 'request', description: 'The approval flow (default: "request"). "instant" confirms instantly; "request" requires host approval.' }),
-	busy_calendars: Type.Optional(Type.Array(Type.String({ minLength: 1 }), { default: [], description: 'Calendar names to check for conflicts (busy times) to block slots.' })),
+	additional_busy_calendars: Type.Optional(Type.Array(Type.String({ minLength: 1 }), { default: [], description: 'Further calendar names to check for conflicts (busy times) to block slots. The booking_calendar is always checked and never needs listing here.' })),
 	booking_calendar: Type.String({ minLength: 1, description: 'Calendar name where confirmed bookings will be written. Defaults to the first calendar.' }),
 	schedule: Type.String({ minLength: 1, description: 'Name of the schedule to use for availability. Defaults to the first schedule.' }),
 	booking_style: Type.Optional(Type.Union([Type.Literal('insert'), Type.Literal('select')], { default: 'insert', description: 'The booking UI interaction style.' })),

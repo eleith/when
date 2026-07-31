@@ -625,9 +625,9 @@
 						}
 					]
 				},
-				"busy_calendars": {
+				"additional_busy_calendars": {
 					"default": [],
-					"description": "Calendar names to check for conflicts (busy times) to block slots.",
+					"description": "Further calendar names to check for conflicts (busy times) to block slots. The booking_calendar is always checked and never needs listing here.",
 					"type": "array",
 					"items": {
 						"minLength": 1,
