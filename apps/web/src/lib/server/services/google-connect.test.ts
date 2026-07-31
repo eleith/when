@@ -6,8 +6,7 @@ import {
 	completeGoogleConnect,
 	consentUrl,
 	findGoogleService,
-	googleRedirectUri,
-	listGoogleServices
+	googleRedirectUri
 } from './google-connect';
 
 vi.mock('@when/calendar', async (importOriginal) => {
@@ -79,26 +78,6 @@ describe('consentUrl', () => {
 		expect(url.searchParams.get('redirect_uri')).toBe(
 			'https://book.example.com/admin/services/google/callback'
 		);
-	});
-});
-
-describe('listGoogleServices', () => {
-	test('reports an unconnected service', async () => {
-		expect(await listGoogleServices(config, db)).toEqual([
-			{ name: 'gg', connectedAt: null, lastError: null }
-		]);
-	});
-
-	test('reports a connected service and never exposes the token', async () => {
-		await saveServiceRefreshToken(db, 'gg', 'rt-1');
-		const [view] = await listGoogleServices(config, db);
-		expect(view.connectedAt).toBeTruthy();
-		expect(JSON.stringify(view)).not.toContain('rt-1');
-	});
-
-	test('omits non-google services', async () => {
-		const names = (await listGoogleServices(config, db)).map((s) => s.name);
-		expect(names).toEqual(['gg']);
 	});
 });
 

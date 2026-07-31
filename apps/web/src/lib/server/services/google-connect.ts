@@ -2,15 +2,9 @@ import type { Kysely } from 'kysely';
 import type { GoogleService, WhenConfiguration } from '@when/config';
 import type { Database } from '@when/db';
 import { buildGoogleAuthUrl, exchangeGoogleAuthCode, getGoogleAccessToken } from '@when/calendar';
-import { saveServiceRefreshToken, listServiceConnections } from '@when/db';
+import { saveServiceRefreshToken } from '@when/db';
 
 export const CALLBACK_PATH = '/admin/services/google/callback';
-
-export interface GoogleServiceView {
-	name: string;
-	connectedAt: string | null;
-	lastError: string | null;
-}
 
 export function googleRedirectUri(appUrl: string): string {
 	return new URL(CALLBACK_PATH, appUrl).toString();
@@ -19,20 +13,6 @@ export function googleRedirectUri(appUrl: string): string {
 export function findGoogleService(config: WhenConfiguration, name: string): GoogleService | null {
 	const service = config.services?.find((s) => s.name === name);
 	return service?.type === 'google' ? service : null;
-}
-
-export async function listGoogleServices(
-	config: WhenConfiguration,
-	db: Kysely<Database>
-): Promise<GoogleServiceView[]> {
-	const connections = new Map((await listServiceConnections(db)).map((c) => [c.serviceName, c]));
-	return (config.services ?? [])
-		.filter((s) => s.type === 'google')
-		.map((s) => ({
-			name: s.name,
-			connectedAt: connections.get(s.name)?.connectedAt ?? null,
-			lastError: connections.get(s.name)?.lastError ?? null
-		}));
 }
 
 export function consentUrl(service: GoogleService, appUrl: string, state: string): string {
