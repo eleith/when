@@ -73,14 +73,26 @@
 	<div class="stats-group">
 		<h2 class="section-label">Right now</h2>
 		<div class="stats-row">
-			<div class="stat-card">
+			<a href="/admin/appointments/upcoming" class="stat-card">
 				<span class="stat-value">{data.upcomingCount}</span>
 				<span class="stat-label">upcoming meetings</span>
-			</div>
-			<div class="stat-card">
+			</a>
+			<a href="/admin/appointments/pending" class="stat-card">
 				<span class="stat-value pending-value">{data.pendingCount}</span>
 				<span class="stat-label">pending meetings</span>
-			</div>
+			</a>
+		</div>
+	</div>
+
+	<div class="stats-group">
+		<h2 class="section-label">Setup</h2>
+		<div class="stats-row">
+			<a href="/admin/services" class="stat-card">
+				<span class="stat-value">{data.serviceCount}</span>
+				<span class="stat-label">
+					configured service{#if data.serviceCount !== 1}s{/if}
+				</span>
+			</a>
 		</div>
 	</div>
 
@@ -244,6 +256,18 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-1);
+		text-decoration: none;
+		color: inherit;
+	}
+
+	a.stat-card:hover {
+		border-color: var(--color-border-strong);
+		background: var(--color-surface-active);
+	}
+
+	a.stat-card:focus-visible {
+		outline: 2px solid var(--when-color-primary);
+		outline-offset: 2px;
 	}
 
 	.stat-value {

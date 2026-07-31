@@ -111,6 +111,7 @@ export const load: PageServerLoad = async () => {
 	);
 
 	return {
+		serviceCount: (cfg.services ?? []).length,
 		calendars,
 		conflictCount,
 		upcomingCount,
