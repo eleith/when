@@ -76,24 +76,6 @@
 	</div>
 
 	<div class="stats-group">
-		<h2 class="section-label">Setup</h2>
-		<div class="stats-row">
-			<a href="/admin/services" class="stat-card">
-				<span class="stat-value">{data.serviceCount}</span>
-				<span class="stat-label">
-					configured service{#if data.serviceCount !== 1}s{/if}
-				</span>
-			</a>
-			<a href="/admin/calendars" class="stat-card">
-				<span class="stat-value">{data.calendarCount}</span>
-				<span class="stat-label">
-					configured calendar{#if data.calendarCount !== 1}s{/if}
-				</span>
-			</a>
-		</div>
-	</div>
-
-	<div class="stats-group">
 		<h2 class="section-label">This week</h2>
 		<div class="stats-row">
 			<div class="stat-card">
@@ -118,6 +100,24 @@
 				<span class="stat-value">{fmtHours(data.lifetimeMinutes)}</span>
 				<span class="stat-label">total meeting time</span>
 			</div>
+		</div>
+	</div>
+
+	<div class="stats-group">
+		<h2 class="section-label">Setup</h2>
+		<div class="stats-row">
+			<a href="/admin/services" class="stat-card">
+				<span class="stat-value">{data.serviceCount}</span>
+				<span class="stat-label">
+					configured service{#if data.serviceCount !== 1}s{/if}
+				</span>
+			</a>
+			<a href="/admin/calendars" class="stat-card">
+				<span class="stat-value">{data.calendarCount}</span>
+				<span class="stat-label">
+					configured calendar{#if data.calendarCount !== 1}s{/if}
+				</span>
+			</a>
 		</div>
 	</div>
 
