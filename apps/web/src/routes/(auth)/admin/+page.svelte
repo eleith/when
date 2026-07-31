@@ -1,5 +1,4 @@
 <script lang="ts">
-	import IconAddressBook from 'virtual:icons/ph/address-book';
 	import IconArrowRight from 'virtual:icons/ph/arrow-right';
 	import IconCalendarBlank from 'virtual:icons/ph/calendar-blank';
 	import IconClock from 'virtual:icons/ph/clock';
@@ -41,14 +40,6 @@
 
 <div class="dashboard">
 	<h1 class="visibility-hidden">Dashboard</h1>
-
-	<div class="quick-link">
-		<a href="/admin/appointments/upcoming" class="manage-link">
-			<IconAddressBook aria-hidden="true" />
-			Manage appointments
-			<IconArrowRight aria-hidden="true" />
-		</a>
-	</div>
 
 	{#if data.conflictCount > 0 || badCalendars.length > 0}
 		<section class="alerts">
@@ -383,33 +374,6 @@
 		font-size: var(--font-size-sm);
 		color: var(--color-text-muted);
 		margin-left: auto;
-	}
-
-	/* ---- quick link ---- */
-	.quick-link {
-		display: flex;
-		justify-content: center;
-	}
-
-	.manage-link {
-		display: inline-flex;
-		align-items: center;
-		gap: var(--space-2);
-		padding: var(--space-3) var(--space-5);
-		font-size: var(--font-size-base);
-		font-weight: 500;
-		color: var(--color-text-secondary);
-		text-decoration: none;
-		border: 1px solid var(--color-border);
-		border-radius: var(--radius-md);
-		transition:
-			color var(--transition),
-			border-color var(--transition);
-	}
-
-	.manage-link:hover {
-		color: var(--when-color-text);
-		border-color: var(--color-text-muted);
 	}
 
 	/* ---- purged link ---- */
