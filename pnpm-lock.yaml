@@ -70,6 +70,9 @@ importers:
       '@when/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@when/db':
+        specifier: workspace:*
+        version: link:../../packages/db
       '@when/jobs':
         specifier: workspace:*
         version: link:../../packages/jobs
