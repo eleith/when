@@ -92,10 +92,10 @@
 	<div class="stats-group">
 		<h2 class="section-label">Lifetime</h2>
 		<div class="stats-row">
-			<div class="stat-card">
+			<a href="/admin/appointments/past" class="stat-card">
 				<span class="stat-value">{data.lifetimeMeetings}</span>
 				<span class="stat-label">total meetings</span>
-			</div>
+			</a>
 			<div class="stat-card">
 				<span class="stat-value">{fmtHours(data.lifetimeMinutes)}</span>
 				<span class="stat-label">total meeting time</span>
