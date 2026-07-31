@@ -13,6 +13,10 @@ export { describeAppointment } from './description.js';
 export { guestContact } from './guest.js';
 export type { CalendarGuest } from './guest.js';
 
+// Which calendars block a meeting's slots. Kept apart from busy.js so the web
+// availability path can import it without pulling in provider adapters.
+export { busyCalendarsFor } from './busy-calendars.js';
+
 // Worker refresh: fetch + expand one calendar's busy intervals, filtering our own events.
 export { fetchBusyIntervals } from './busy.js';
 
