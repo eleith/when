@@ -1,6 +1,6 @@
 import type { Calendar, WhenConfiguration } from '@when/config';
 import type { ExpandWindow } from '@when/calendar';
-import { connectServices, fetchBusyIntervals } from '@when/calendar';
+import { busyCalendarsFor, connectServices, fetchBusyIntervals } from '@when/calendar';
 import {
 	listCalendarSyncStatus,
 	listOwnEventIds,
@@ -18,10 +18,10 @@ export interface RefreshOptions {
 	now?: Temporal.Instant;
 }
 
-export function conflictCalendarIds(config: WhenConfiguration): string[] {
+export function busyCalendarIds(config: WhenConfiguration): string[] {
 	const ids = new Set<string>();
-	for (const et of config.meetings) {
-		for (const name of et.additional_busy_calendars ?? []) ids.add(name);
+	for (const meeting of config.meetings) {
+		for (const name of busyCalendarsFor(meeting)) ids.add(name);
 	}
 	return [...ids];
 }
@@ -32,9 +32,9 @@ export function refreshWindow(
 	now: Temporal.Instant
 ): ExpandWindow {
 	let days = 0;
-	for (const et of config.meetings) {
-		if (!(et.additional_busy_calendars ?? []).includes(calendarId)) continue;
-		const lookahead = et.booking_window_days ?? DEFAULT_MAX_LOOKAHEAD_DAYS;
+	for (const meeting of config.meetings) {
+		if (!busyCalendarsFor(meeting).includes(calendarId)) continue;
+		const lookahead = meeting.booking_window_days ?? DEFAULT_MAX_LOOKAHEAD_DAYS;
 		days = Math.max(days, lookahead);
 	}
 	if (days === 0) days = DEFAULT_MAX_LOOKAHEAD_DAYS;
@@ -88,10 +88,10 @@ export async function refreshCalendars(
 	const now = opts.now ?? Temporal.Now.instant();
 	const statuses = await listCalendarSyncStatus(ctx.db);
 	const lastSuccess = new Map(statuses.map((s) => [s.calendar_id, s.last_successful_refresh_at]));
-	for (const id of conflictCalendarIds(ctx.config)) {
+	for (const id of busyCalendarIds(ctx.config)) {
 		const cal = ctx.config.calendars.find((c) => c.name === id);
 		if (!cal) {
-			ctx.logger.warn({ calendarId: id }, 'conflict_calendar id not found in calendars; skipping');
+			ctx.logger.warn({ calendarId: id }, 'busy calendar id not found in calendars; skipping');
 			continue;
 		}
 		// Each calendar refreshes on its own interval; a never-synced or failing one

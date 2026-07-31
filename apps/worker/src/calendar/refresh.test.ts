@@ -4,12 +4,7 @@ import type { Calendar, WhenConfiguration } from '@when/config';
 import { openDb, runMigrations, replaceCalendarBusy, recordRefreshResult } from '@when/db';
 import type { Logger } from '../services/logger.js';
 import type { WorkerContext } from '../services/context.js';
-import {
-	conflictCalendarIds,
-	refreshCalendar,
-	refreshCalendars,
-	refreshWindow
-} from './refresh.js';
+import { busyCalendarIds, refreshCalendar, refreshCalendars, refreshWindow } from './refresh.js';
 
 const inst = (s: string) => Temporal.Instant.from(s);
 const window = { start: inst('2026-04-01T00:00:00Z'), end: inst('2026-05-01T00:00:00Z') };
@@ -157,15 +152,30 @@ test('refreshCalendar drops our own published event', async () => {
 	}
 });
 
-test('conflictCalendarIds unions and dedupes across meetings', () => {
+test('busyCalendarIds unions and dedupes across meetings', () => {
 	const config = {
 		meetings: [
-			{ additional_busy_calendars: ['a', 'b'] },
-			{ additional_busy_calendars: ['b', 'c'] },
-			{}
+			{ booking_calendar: 'a', additional_busy_calendars: ['b'] },
+			{ booking_calendar: 'a', additional_busy_calendars: ['b', 'c'] },
+			{ booking_calendar: 'a' }
 		]
 	} as unknown as WhenConfiguration;
-	expect(conflictCalendarIds(config).sort()).toEqual(['a', 'b', 'c']);
+	expect(busyCalendarIds(config).sort()).toEqual(['a', 'b', 'c']);
+});
+
+test('busyCalendarIds refreshes a booking calendar no meeting lists as busy', () => {
+	const config = {
+		meetings: [{ booking_calendar: 'personal' }]
+	} as unknown as WhenConfiguration;
+	expect(busyCalendarIds(config)).toEqual(['personal']);
+});
+
+test('busyCalendarIds ignores a configured calendar no meeting references', () => {
+	const config = {
+		calendars: [{ name: 'personal' }, { name: 'unused' }],
+		meetings: [{ booking_calendar: 'personal' }]
+	} as unknown as WhenConfiguration;
+	expect(busyCalendarIds(config)).toEqual(['personal']);
 });
 
 test('refreshWindow uses the max lookahead among meetings using the calendar', () => {
@@ -173,9 +183,24 @@ test('refreshWindow uses the max lookahead among meetings using the calendar', (
 	const config = {
 		schedules: [{ name: 'standard' }],
 		meetings: [
-			{ additional_busy_calendars: ['work'], booking_window_days: 30, schedule: 'standard' },
-			{ additional_busy_calendars: ['work'], booking_window_days: 90, schedule: 'standard' },
-			{ additional_busy_calendars: ['other'], booking_window_days: 120, schedule: 'standard' }
+			{
+				booking_calendar: 'primary',
+				additional_busy_calendars: ['work'],
+				booking_window_days: 30,
+				schedule: 'standard'
+			},
+			{
+				booking_calendar: 'primary',
+				additional_busy_calendars: ['work'],
+				booking_window_days: 90,
+				schedule: 'standard'
+			},
+			{
+				booking_calendar: 'primary',
+				additional_busy_calendars: ['other'],
+				booking_window_days: 120,
+				schedule: 'standard'
+			}
 		]
 	} as unknown as WhenConfiguration;
 	const w = refreshWindow(config, 'work', now);
@@ -186,13 +211,33 @@ test('refreshWindow falls back to the default lookahead when unset', () => {
 	const now = inst('2026-04-15T00:00:00Z');
 	const config = {
 		schedules: [{ name: 'standard' }],
-		meetings: [{ additional_busy_calendars: ['work'], schedule: 'standard' }]
+		meetings: [
+			{ booking_calendar: 'primary', additional_busy_calendars: ['work'], schedule: 'standard' }
+		]
 	} as unknown as WhenConfiguration;
 	const w = refreshWindow(config, 'work', now);
 	expect(w.end.toString()).toBe(now.add({ hours: 24 * 60 }).toString());
 });
 
-test('refreshCalendars refreshes known conflict calendars and skips unknown ids', async () => {
+test('refreshCalendars mirrors a booking calendar no meeting lists as busy', async () => {
+	const ctx = await ctxWithDb({
+		meetings: [{ booking_calendar: 'work', schedule: 'standard' }]
+	} as unknown as Partial<WhenConfiguration>);
+	try {
+		vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(oneEvent('r1'), { status: 207 }));
+		await refreshCalendars(ctx, { now: window.start });
+		const busy = await ctx.db
+			.selectFrom('external_calendar_busy')
+			.selectAll()
+			.where('calendar_id', '=', 'work')
+			.execute();
+		expect(busy.length).toBeGreaterThan(0);
+	} finally {
+		await ctx.db.destroy();
+	}
+});
+
+test('refreshCalendars refreshes known busy calendars and skips unknown ids', async () => {
 	const db = openDb(':memory:');
 	await runMigrations(db);
 	const ctx: WorkerContext = {
@@ -200,7 +245,9 @@ test('refreshCalendars refreshes known conflict calendars and skips unknown ids'
 			schedules: [{ name: 'standard' }],
 			services: defaultTestConfig.services,
 			calendars: [workCal],
-			meetings: [{ additional_busy_calendars: ['work', 'ghost'], schedule: 'standard' }]
+			meetings: [
+				{ booking_calendar: 'work', additional_busy_calendars: ['ghost'], schedule: 'standard' }
+			]
 		} as unknown as WhenConfiguration,
 		logger: silent,
 		db,
@@ -234,7 +281,7 @@ test('refreshCalendars skips a calendar refreshed within its interval, refreshes
 			schedules: [{ name: 'standard' }],
 			services: defaultTestConfig.services,
 			calendars: [{ ...workCal, sync: { refresh_every_minutes: 30 } }],
-			meetings: [{ additional_busy_calendars: ['work'], schedule: 'standard' }]
+			meetings: [{ booking_calendar: 'work', schedule: 'standard' }]
 		} as unknown as WhenConfiguration,
 		logger: silent,
 		db,
