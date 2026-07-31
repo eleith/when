@@ -1,13 +1,21 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
-import { getGoogleAccessToken, listGoogleCalendars, discoverCalDavCalendars } from '@when/calendar';
+import { getServiceAdapter } from '@when/calendar';
 import { runServiceCalendars } from './calendars.ts';
 import type { Service } from '@when/config';
 
-vi.mock('@when/calendar', () => ({
-	getGoogleAccessToken: vi.fn(),
-	listGoogleCalendars: vi.fn(),
-	discoverCalDavCalendars: vi.fn()
-}));
+vi.mock('@when/calendar', async (importOriginal) => {
+	const actual = await importOriginal<typeof import('@when/calendar')>();
+	return { ...actual, getServiceAdapter: vi.fn() };
+});
+
+// Provider behaviour belongs to the adapter; these cover what the command adds — the
+// report it prints and the exit code it sets.
+const adapter = {
+	calendarIdField: 'google_calendar_id',
+	usesOAuth: true,
+	verify: vi.fn(),
+	listCalendars: vi.fn()
+};
 
 const gg: Service = {
 	name: 'gg',
@@ -34,9 +42,15 @@ describe('service calendars action', () => {
 		errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 		originalExitCode = process.exitCode as number | undefined;
 		process.exitCode = undefined;
-		vi.mocked(getGoogleAccessToken).mockReset().mockResolvedValue('access');
-		vi.mocked(listGoogleCalendars).mockReset();
-		vi.mocked(discoverCalDavCalendars).mockReset();
+		adapter.verify = vi.fn().mockResolvedValue(undefined);
+		adapter.listCalendars = vi.fn().mockResolvedValue([]);
+		vi.mocked(getServiceAdapter)
+			.mockReset()
+			.mockImplementation((service) => ({
+				...adapter,
+				usesOAuth: service.type === 'google',
+				calendarIdField: service.type === 'google' ? 'google_calendar_id' : 'path'
+			}));
 	});
 
 	afterEach(() => {
@@ -45,54 +59,57 @@ describe('service calendars action', () => {
 		process.exitCode = originalExitCode;
 	});
 
-	test('lists google calendars with ids and primary marker', async () => {
-		vi.mocked(listGoogleCalendars).mockResolvedValue([
-			{ id: 'primary', summary: 'Me', primary: true },
-			{ id: 'team@x.com', summary: 'Team' }
+	test('prints each calendar with the config field it belongs in', async () => {
+		adapter.listCalendars = vi.fn().mockResolvedValue([
+			{ id: 'primary', name: 'Primary calendar', primary: true },
+			{ id: 'team@x.com', name: 'Team', primary: false }
 		]);
+
 		await runServiceCalendars(services, 'gg', 'rtok');
+
 		expect(process.exitCode).toBeUndefined();
-		expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('✅ gg (google) — 2 calendar(s):'));
-		expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('primary  (primary)  Me'));
-		expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('team@x.com  Team'));
+		expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('gg (google) — 2 calendar(s):'));
+		expect(logSpy).toHaveBeenCalledWith('  google_calendar_id: primary  Primary calendar');
+		expect(logSpy).toHaveBeenCalledWith('  google_calendar_id: team@x.com  Team');
 	});
 
-	test('reports when google has no calendars', async () => {
-		vi.mocked(listGoogleCalendars).mockResolvedValue([]);
+	test('hands the adapter the refresh token it was given', async () => {
 		await runServiceCalendars(services, 'gg', 'rtok');
+
+		expect(getServiceAdapter).toHaveBeenCalledWith(
+			expect.objectContaining({ name: 'gg', refresh_token: 'rtok' })
+		);
+	});
+
+	test('reports when a service exposes no calendars', async () => {
+		await runServiceCalendars(services, 'gg', 'rtok');
+
 		expect(process.exitCode).toBeUndefined();
 		expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('no calendars found'));
 	});
 
-	test('fails when google auth throws', async () => {
-		vi.mocked(getGoogleAccessToken).mockRejectedValue(new Error('token refresh failed'));
+	test('uses the caldav config field for a caldav service', async () => {
+		adapter.listCalendars = vi
+			.fn()
+			.mockResolvedValue([{ id: 'calendars/u/work/', name: 'Work', primary: false }]);
+
+		await runServiceCalendars(services, 'dav');
+
+		expect(logSpy).toHaveBeenCalledWith('  path: calendars/u/work/  Work');
+	});
+
+	test('fails when the adapter throws', async () => {
+		adapter.listCalendars = vi.fn().mockRejectedValue(new Error('401 Unauthorized'));
+
 		await runServiceCalendars(services, 'gg', 'rtok');
+
 		expect(process.exitCode).toBe(1);
-		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('❌ gg (google)'));
-		expect(listGoogleCalendars).not.toHaveBeenCalled();
+		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('401 Unauthorized'));
 	});
 
-	test('lists caldav calendars with paths', async () => {
-		vi.mocked(discoverCalDavCalendars).mockResolvedValue([
-			{ displayName: 'Work', path: 'calendars/u/work/' }
-		]);
-		await runServiceCalendars(services, 'dav');
-		expect(process.exitCode).toBeUndefined();
-		expect(logSpy).toHaveBeenCalledWith(
-			expect.stringContaining('✅ dav (caldav) — 1 calendar(s):')
-		);
-		expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('calendars/u/work/  Work'));
-	});
-
-	test('fails when caldav discovery throws', async () => {
-		vi.mocked(discoverCalDavCalendars).mockRejectedValue(new Error('bad credentials (401)'));
-		await runServiceCalendars(services, 'dav');
-		expect(process.exitCode).toBe(1);
-		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('bad credentials (401)'));
-	});
-
-	test('fails for an unknown service name', async () => {
+	test('fails on an unknown service name', async () => {
 		await runServiceCalendars(services, 'nope');
+
 		expect(process.exitCode).toBe(1);
 		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('no service named "nope"'));
 	});

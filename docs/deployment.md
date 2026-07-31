@@ -181,10 +181,11 @@ Worker:
 
 You author `when.yaml` yourself — start from `config/when.example.yml`, which
 documents every option (and carries a `$schema` header for editor autocomplete).
-`when-cli` is an operator's toolkit for the parts a text editor can't do: it
-validates the file, reaches your services over the network, and mints the one
-credential you can't type by hand. Run it with `pnpm cli` on the host, or against
-a deployment with `docker compose -f apps/web/docker-compose.yml run --rm when-cli <args>`.
+`when-cli` is an operator's toolkit for the parts a text editor can't do: it validates
+the file and reaches your services over the network. It is read-only — connecting a
+Google service happens at `/admin/services`, which is also where the token is stored.
+Run it with `pnpm cli` on the host, or against a deployment with
+`docker compose -f apps/web/docker-compose.yml run --rm when-cli <args>`.
 
 Every command takes `-c/--config <path>` (defaults to the standard config location).
 
@@ -220,8 +221,8 @@ Every command takes `-c/--config <path>` (defaults to the standard config locati
   pnpm cli calendar test <name>
   ```
 
-  The CLI never opens the database, so it cannot read the stored Google refresh token.
-  Checking a Google service or calendar from a terminal means handing it one:
+  The CLI never opens the database, so it cannot read the token that `/admin/services`
+  stored. Checking a Google service or calendar from a terminal means handing it one:
 
   ```sh
   pnpm cli service test <name> --refresh-token <token>

@@ -1,6 +1,6 @@
 import { define } from 'gunshi';
-import { getGoogleAccessToken, listGoogleCalendars, discoverCalDavCalendars } from '@when/calendar';
-import type { Service, GoogleService, CalDavService, NextcloudService } from '@when/config';
+import { connectService, getServiceAdapter } from '@when/calendar';
+import type { Service } from '@when/config';
 import { requireService, resolveServiceEnv, servicesAndName } from './shared.ts';
 import { pass, fail } from '../../utils/report.ts';
 
@@ -34,51 +34,23 @@ export async function runServiceCalendars(
 	const resolved = resolveServiceEnv(service);
 	if (!resolved) return;
 
-	if (resolved.type === 'google') {
-		if (!refreshToken) {
-			fail(`${name} (google) — pass --refresh-token; the stored one is not readable from here`);
-			return;
-		}
-		await listGoogle(resolved, refreshToken);
-	} else {
-		await listCalDav(resolved);
+	const adapter = getServiceAdapter(connectService(resolved, refreshToken ?? null));
+	if (adapter.usesOAuth && !refreshToken) {
+		fail(`${name} (${resolved.type}) — pass --refresh-token; the stored one lives in the database`);
+		return;
 	}
-}
 
-async function listGoogle(service: GoogleService, refreshToken: string): Promise<void> {
 	try {
-		const token = await getGoogleAccessToken({
-			client_id: service.client_id,
-			client_secret: service.client_secret,
-			refresh_token: refreshToken,
-			google_calendar_id: ''
-		});
-		const calendars = await listGoogleCalendars(token);
+		const calendars = await adapter.listCalendars();
 		if (calendars.length === 0) {
-			pass(`${service.name} (google) — no calendars found`);
+			pass(`${name} (${resolved.type}) — no calendars found`);
 			return;
 		}
-		pass(`${service.name} (google) — ${calendars.length} calendar(s):`);
-		for (const c of calendars) {
-			console.log(`  ${c.id}${c.primary ? '  (primary)' : ''}  ${c.summary}`);
+		pass(`${name} (${resolved.type}) — ${calendars.length} calendar(s):`);
+		for (const calendar of calendars) {
+			console.log(`  ${adapter.calendarIdField}: ${calendar.id}  ${calendar.name}`);
 		}
 	} catch (err) {
-		fail(`${service.name} (google) — ${err instanceof Error ? err.message : String(err)}`);
-	}
-}
-
-async function listCalDav(service: CalDavService | NextcloudService): Promise<void> {
-	try {
-		const calendars = await discoverCalDavCalendars(service);
-		if (calendars.length === 0) {
-			pass(`${service.name} (${service.type}) — no calendars found`);
-			return;
-		}
-		pass(`${service.name} (${service.type}) — ${calendars.length} calendar(s):`);
-		for (const c of calendars) {
-			console.log(`  ${c.path}  ${c.displayName}`);
-		}
-	} catch (err) {
-		fail(`${service.name} (${service.type}) — ${err instanceof Error ? err.message : String(err)}`);
+		fail(`${name} (${resolved.type}) — ${err instanceof Error ? err.message : String(err)}`);
 	}
 }

@@ -1,6 +1,6 @@
 import { define } from 'gunshi';
-import { getGoogleAccessToken, verifyCalDavService } from '@when/calendar';
-import type { Service, GoogleService, CalDavService, NextcloudService } from '@when/config';
+import { connectService, getServiceAdapter } from '@when/calendar';
+import type { Service } from '@when/config';
 import { requireService, resolveServiceEnv, servicesAndName } from './shared.ts';
 import { pass, fail } from '../../utils/report.ts';
 
@@ -33,40 +33,16 @@ export async function runServiceTest(
 	const resolved = resolveServiceEnv(service);
 	if (!resolved) return;
 
-	if (resolved.type === 'google') {
-		if (!refreshToken) {
-			fail(`${name} (google) — pass --refresh-token; the stored one is not readable from here`);
-			return;
-		}
-		await testGoogle(name, resolved, refreshToken);
-	} else {
-		await testCalDav(name, resolved);
+	const adapter = getServiceAdapter(connectService(resolved, refreshToken ?? null));
+	if (adapter.usesOAuth && !refreshToken) {
+		fail(`${name} (${resolved.type}) — pass --refresh-token; the stored one lives in the database`);
+		return;
 	}
-}
 
-async function testGoogle(
-	name: string,
-	service: GoogleService,
-	refreshToken: string
-): Promise<void> {
 	try {
-		await getGoogleAccessToken({
-			client_id: service.client_id,
-			client_secret: service.client_secret,
-			refresh_token: refreshToken,
-			google_calendar_id: ''
-		});
-		pass(`${name} (google) — authenticated`);
+		await adapter.verify();
+		pass(`${name} (${resolved.type}) — authenticated`);
 	} catch (err) {
-		fail(`${name} (google) — ${err instanceof Error ? err.message : String(err)}`);
-	}
-}
-
-async function testCalDav(name: string, service: CalDavService | NextcloudService): Promise<void> {
-	try {
-		await verifyCalDavService(service);
-		pass(`${name} (${service.type}) — authenticated`);
-	} catch (err) {
-		fail(`${name} (${service.type}) — ${err instanceof Error ? err.message : String(err)}`);
+		fail(`${name} (${resolved.type}) — ${err instanceof Error ? err.message : String(err)}`);
 	}
 }

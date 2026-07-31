@@ -1,15 +1,17 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { join } from 'node:path';
 import { writeFileSync, unlinkSync } from 'node:fs';
-import { getGoogleAccessToken, verifyCalDavService } from '@when/calendar';
+import { getServiceAdapter } from '@when/calendar';
 import { serviceCommand } from './index.ts';
 import { listCommand } from './list.ts';
 import { testCommand } from './test.ts';
 
-vi.mock('@when/calendar', () => ({
-	getGoogleAccessToken: vi.fn(),
-	verifyCalDavService: vi.fn()
-}));
+vi.mock('@when/calendar', async (importOriginal) => {
+	const actual = await importOriginal<typeof import('@when/calendar')>();
+	return { ...actual, getServiceAdapter: vi.fn() };
+});
+
+const adapter = { calendarIdField: 'x', usesOAuth: true, verify: vi.fn(), listCalendars: vi.fn() };
 
 const configYaml = `
 auth:
@@ -80,8 +82,11 @@ describe('service command', () => {
 		errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 		originalExitCode = process.exitCode as number | undefined;
 		process.exitCode = undefined;
-		vi.mocked(getGoogleAccessToken).mockReset();
-		vi.mocked(verifyCalDavService).mockReset();
+		adapter.verify = vi.fn().mockResolvedValue(undefined);
+		adapter.listCalendars = vi.fn().mockResolvedValue([]);
+		vi.mocked(getServiceAdapter)
+			.mockReset()
+			.mockImplementation((service) => ({ ...adapter, usesOAuth: service.type === 'google' }));
 		delete process.env.WHEN_TEST_SVC_UNSET;
 		writeFileSync(path, configYaml);
 	});
@@ -116,38 +121,37 @@ describe('service command', () => {
 		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('requires a service name'));
 	});
 
-	test('google test authenticates via getGoogleAccessToken', async () => {
-		vi.mocked(getGoogleAccessToken).mockResolvedValue('access');
+	test('google test verifies through the adapter', async () => {
 		await testCommand.run!(ctx({ name: 'gcal', config: path, refreshToken: 'rtok' }));
 		expect(process.exitCode).toBeUndefined();
 		expect(logSpy).toHaveBeenCalledWith('✅ gcal (google) — authenticated');
+		expect(getServiceAdapter).toHaveBeenCalledWith(
+			expect.objectContaining({ name: 'gcal', refresh_token: 'rtok' })
+		);
 	});
 
 	test('google test without a refresh token says where the stored one lives', async () => {
 		await testCommand.run!(ctx({ name: 'gcal', config: path }));
 		expect(process.exitCode).toBe(1);
 		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('--refresh-token'));
-		expect(getGoogleAccessToken).not.toHaveBeenCalled();
+		expect(adapter.verify).not.toHaveBeenCalled();
 	});
 
 	test('google test fails when the token refresh throws', async () => {
-		vi.mocked(getGoogleAccessToken).mockRejectedValue(
-			new Error('Google token refresh failed: 400')
-		);
-		await testCommand.run!(ctx({ name: 'gcal', config: path }));
+		adapter.verify = vi.fn().mockRejectedValue(new Error('Google token refresh failed: 400'));
+		await testCommand.run!(ctx({ name: 'gcal', config: path, refreshToken: 'rtok' }));
 		expect(process.exitCode).toBe(1);
 		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('❌ gcal (google)'));
 	});
 
-	test('caldav test passes when verifyCalDavService resolves', async () => {
-		vi.mocked(verifyCalDavService).mockResolvedValue(undefined);
+	test('caldav test passes when the adapter verifies', async () => {
 		await testCommand.run!(ctx({ name: 'dav', config: path }));
 		expect(process.exitCode).toBeUndefined();
 		expect(logSpy).toHaveBeenCalledWith('✅ dav (caldav) — authenticated');
 	});
 
 	test('caldav test reports the failure reason', async () => {
-		vi.mocked(verifyCalDavService).mockRejectedValue(new Error('bad credentials (401)'));
+		adapter.verify = vi.fn().mockRejectedValue(new Error('bad credentials (401)'));
 		await testCommand.run!(ctx({ name: 'dav', config: path }));
 		expect(process.exitCode).toBe(1);
 		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('bad credentials (401)'));
@@ -163,6 +167,6 @@ describe('service command', () => {
 		await testCommand.run!(ctx({ name: 'gcal-badenv', config: path }));
 		expect(process.exitCode).toBe(1);
 		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('WHEN_TEST_SVC_UNSET'));
-		expect(getGoogleAccessToken).not.toHaveBeenCalled();
+		expect(adapter.verify).not.toHaveBeenCalled();
 	});
 });
