@@ -1,4 +1,5 @@
 import { getBusyIntervals } from '@when/db';
+import { busyCalendarsFor } from '@when/calendar';
 import { durationsOf, type Meeting, type WhenConfiguration } from '@when/config';
 import { systemClock } from '$lib/server/clock';
 import { getDb } from '$lib/server/state';
@@ -37,7 +38,7 @@ export async function loadAvailability(
 	);
 
 	const remoteBusy = (
-		await getBusyIntervals(getDb(), eventType.additional_busy_calendars ?? [], {
+		await getBusyIntervals(getDb(), busyCalendarsFor(eventType), {
 			start: nowInstant.toString(),
 			end: rangeEnd.toString()
 		})

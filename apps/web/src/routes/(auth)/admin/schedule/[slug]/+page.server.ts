@@ -3,6 +3,7 @@ import { computeSlots } from '$lib/server/availability';
 import { loadAppointmentBlocks } from '$lib/server/availability/blocks';
 import { resolveAvailabilitySettings } from '$lib/server/availability/settings';
 import { getBusyIntervals } from '@when/db';
+import { busyCalendarsFor } from '@when/calendar';
 import { systemClock } from '$lib/server/clock';
 import { getConfig, getDb } from '$lib/server/state';
 import { createAppointment } from '$lib/server/appointment/create';
@@ -53,12 +54,7 @@ export const actions: Actions = {
 			rangeEnd,
 			userTz
 		);
-		const remoteBusy = await slotDayBusy(
-			getDb(),
-			eventType.additional_busy_calendars ?? [],
-			slotStr,
-			userTz
-		);
+		const remoteBusy = await slotDayBusy(getDb(), busyCalendarsFor(eventType), slotStr, userTz);
 		const slots = computeSlots({
 			settings: { ...settings, duration },
 			rangeStart: nowInstant,

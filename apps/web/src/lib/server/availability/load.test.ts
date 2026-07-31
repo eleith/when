@@ -13,7 +13,7 @@ vi.mock('@when/db', async (importOriginal) => ({
 	getBusyIntervals: vi.fn(async () => [])
 }));
 
-import { openDb, runMigrations } from '@when/db';
+import { openDb, runMigrations, getBusyIntervals } from '@when/db';
 import { loadAvailability, isSlotBookable } from './load';
 
 // A day whose whole 09:00–17:00 UTC window sits ahead of "now" (00:00 UTC).
@@ -65,6 +65,17 @@ describe('loadAvailability per-duration slots', () => {
 		const et = cfg.meetings[0];
 		expect(await isSlotBookable(cfg, et, EDGE_START, 30)).toBe(true);
 		expect(await isSlotBookable(cfg, et, EDGE_START, 60)).toBe(false);
+	});
+
+	test('the busy lookup covers the booking calendar, not only the listed ones', async () => {
+		const cfg = makeConfig([30]);
+		cfg.meetings[0].booking_calendar = 'personal';
+		cfg.meetings[0].additional_busy_calendars = ['work'];
+		vi.mocked(getBusyIntervals).mockClear();
+
+		await loadAvailability(cfg, cfg.meetings[0]);
+
+		expect(vi.mocked(getBusyIntervals).mock.calls[0][1]).toEqual(['personal', 'work']);
 	});
 
 	test('a single-length meeting keys the map by that one length', async () => {
