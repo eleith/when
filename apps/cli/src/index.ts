@@ -4,6 +4,7 @@ import { configCommand } from './commands/config/index.ts';
 import { serviceCommand } from './commands/service/index.ts';
 import { calendarCommand } from './commands/calendar/index.ts';
 import { emailCommand } from './commands/email/index.ts';
+import { dbCommand } from './commands/db/index.ts';
 
 const rootCommand = define({
 	name: 'when-cli',
@@ -21,7 +22,8 @@ try {
 			config: configCommand,
 			service: serviceCommand,
 			calendar: calendarCommand,
-			email: emailCommand
+			email: emailCommand,
+			db: dbCommand
 		}
 	});
 } catch (err) {
