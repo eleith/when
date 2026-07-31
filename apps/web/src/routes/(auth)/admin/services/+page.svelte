@@ -82,6 +82,12 @@
 									</button>
 								</form>
 							{/if}
+							{#if service.connectedAt}
+								<form method="POST" action="?/disconnect">
+									<input type="hidden" name="service" value={service.name} />
+									<button type="submit" class="button danger">Disconnect</button>
+								</form>
+							{/if}
 						</div>
 						{#if !unconnected}
 							<form method="POST" action="?/test">
@@ -245,6 +251,14 @@
 	.primary {
 		border-color: var(--when-color-primary);
 		color: var(--when-color-primary);
+	}
+
+	.danger {
+		color: var(--color-danger);
+	}
+
+	.danger:hover {
+		background: var(--color-danger-bg);
 	}
 
 	.empty {

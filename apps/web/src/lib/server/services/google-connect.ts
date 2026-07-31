@@ -1,8 +1,14 @@
 import type { Kysely } from 'kysely';
 import type { GoogleService, WhenConfiguration } from '@when/config';
 import type { Database } from '@when/db';
-import { buildGoogleAuthUrl, exchangeGoogleAuthCode, getGoogleAccessToken } from '@when/calendar';
-import { saveServiceRefreshToken } from '@when/db';
+import {
+	buildGoogleAuthUrl,
+	exchangeGoogleAuthCode,
+	getGoogleAccessToken,
+	revokeGoogleToken
+} from '@when/calendar';
+import { saveServiceRefreshToken, getServiceRefreshToken, deleteServiceToken } from '@when/db';
+import { logger } from '$lib/server/logger';
 
 export const CALLBACK_PATH = '/admin/services/google/callback';
 
@@ -56,9 +62,49 @@ export async function completeGoogleConnect(
 			google_calendar_id: ''
 		});
 
+		await retireToken(db, service.name, refresh_token);
 		await saveServiceRefreshToken(db, service.name, refresh_token);
 		return { ok: true };
 	} catch (err) {
 		return { ok: false, reason: err instanceof Error ? err.message : String(err) };
+	}
+}
+
+export interface DisconnectResult {
+	revoked: boolean;
+	reason?: string;
+}
+
+// Removes the stored credential and ends it at Google. The row goes either way — a
+// revoke that fails must not leave the service stuck in a connected-but-unwanted state.
+export async function disconnectGoogle(
+	db: Kysely<Database>,
+	serviceName: string
+): Promise<DisconnectResult> {
+	const token = await getServiceRefreshToken(db, serviceName);
+	await deleteServiceToken(db, serviceName);
+	if (!token) return { revoked: true };
+
+	try {
+		await revokeGoogleToken(token);
+		return { revoked: true };
+	} catch (err) {
+		return { revoked: false, reason: err instanceof Error ? err.message : String(err) };
+	}
+}
+
+// Reconnecting mints a new token without invalidating the old one, which would otherwise
+// accumulate against Google's per-client cap. Best effort: the new token already works.
+async function retireToken(
+	db: Kysely<Database>,
+	serviceName: string,
+	replacement: string
+): Promise<void> {
+	const previous = await getServiceRefreshToken(db, serviceName);
+	if (!previous || previous === replacement) return;
+	try {
+		await revokeGoogleToken(previous);
+	} catch (err) {
+		logger.warn({ err, service: serviceName }, 'could not revoke the replaced google token');
 	}
 }

@@ -1,7 +1,11 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { dev } from '$app/environment';
 import { getConfig, getDb } from '$lib/server/state';
-import { consentUrl, findGoogleService } from '$lib/server/services/google-connect';
+import {
+	consentUrl,
+	disconnectGoogle,
+	findGoogleService
+} from '$lib/server/services/google-connect';
 import { listServices, probeService } from '$lib/server/services/status';
 import { STATE_COOKIE, stateCookieOptions } from './state-cookie';
 import type { Actions, PageServerLoad } from './$types';
@@ -28,6 +32,23 @@ export const actions: Actions = {
 		cookies.set(STATE_COOKIE, JSON.stringify({ state, service: name }), stateCookieOptions(dev));
 
 		redirect(303, consentUrl(service, config.url.app, state));
+	},
+
+	disconnect: async ({ request }) => {
+		const name = String((await request.formData()).get('service') ?? '');
+		if (!findGoogleService(getConfig(), name)) {
+			return fail(404, { notice: { tone: 'error', text: `No google service named "${name}".` } });
+		}
+
+		const result = await disconnectGoogle(getDb(), name);
+		return {
+			notice: result.revoked
+				? { tone: 'success', text: `${name} disconnected and access revoked at Google.` }
+				: {
+						tone: 'error',
+						text: `${name} disconnected, but Google did not confirm the revoke — ${result.reason}. Remove access under your Google account if it persists.`
+					}
+		};
 	},
 
 	test: async ({ request }) => {

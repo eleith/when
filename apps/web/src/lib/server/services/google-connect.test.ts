@@ -1,10 +1,11 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { openDb, runMigrations, getServiceRefreshToken, saveServiceRefreshToken } from '@when/db';
-import { exchangeGoogleAuthCode, getGoogleAccessToken } from '@when/calendar';
+import { exchangeGoogleAuthCode, getGoogleAccessToken, revokeGoogleToken } from '@when/calendar';
 import type { GoogleService, WhenConfiguration } from '@when/config';
 import {
 	completeGoogleConnect,
 	consentUrl,
+	disconnectGoogle,
 	findGoogleService,
 	googleRedirectUri
 } from './google-connect';
@@ -14,7 +15,8 @@ vi.mock('@when/calendar', async (importOriginal) => {
 	return {
 		...actual,
 		exchangeGoogleAuthCode: vi.fn(),
-		getGoogleAccessToken: vi.fn()
+		getGoogleAccessToken: vi.fn(),
+		revokeGoogleToken: vi.fn()
 	};
 });
 
@@ -40,6 +42,7 @@ beforeEach(async () => {
 	await runMigrations(db);
 	vi.mocked(exchangeGoogleAuthCode).mockReset();
 	vi.mocked(getGoogleAccessToken).mockReset().mockResolvedValue('access');
+	vi.mocked(revokeGoogleToken).mockReset().mockResolvedValue(undefined);
 });
 
 describe('redirect uri', () => {
@@ -148,5 +151,74 @@ describe('completeGoogleConnect', () => {
 		await completeGoogleConnect(db, service, 'bad', 'https://book.example.com');
 
 		expect(await getServiceRefreshToken(db, 'gg')).toBe('rt-working');
+	});
+});
+
+describe('reconnect', () => {
+	test('revokes the token it replaces', async () => {
+		await saveServiceRefreshToken(db, 'gg', 'rt-old');
+		vi.mocked(exchangeGoogleAuthCode).mockResolvedValue({
+			access_token: 'a',
+			refresh_token: 'rt-new',
+			expires_in: 3600
+		});
+
+		await completeGoogleConnect(db, service, 'code-1', 'https://book.example.com');
+
+		expect(revokeGoogleToken).toHaveBeenCalledWith('rt-old');
+		expect(await getServiceRefreshToken(db, 'gg')).toBe('rt-new');
+	});
+
+	test('still stores the new token when revoking the old one fails', async () => {
+		await saveServiceRefreshToken(db, 'gg', 'rt-old');
+		vi.mocked(revokeGoogleToken).mockRejectedValue(new Error('already revoked'));
+		vi.mocked(exchangeGoogleAuthCode).mockResolvedValue({
+			access_token: 'a',
+			refresh_token: 'rt-new',
+			expires_in: 3600
+		});
+
+		const result = await completeGoogleConnect(db, service, 'code-1', 'https://book.example.com');
+
+		expect(result.ok).toBe(true);
+		expect(await getServiceRefreshToken(db, 'gg')).toBe('rt-new');
+	});
+
+	test('revokes nothing on a first connection', async () => {
+		vi.mocked(exchangeGoogleAuthCode).mockResolvedValue({
+			access_token: 'a',
+			refresh_token: 'rt-new',
+			expires_in: 3600
+		});
+
+		await completeGoogleConnect(db, service, 'code-1', 'https://book.example.com');
+
+		expect(revokeGoogleToken).not.toHaveBeenCalled();
+	});
+});
+
+describe('disconnectGoogle', () => {
+	test('revokes at google and clears the stored token', async () => {
+		await saveServiceRefreshToken(db, 'gg', 'rt-1');
+
+		expect(await disconnectGoogle(db, 'gg')).toEqual({ revoked: true });
+
+		expect(revokeGoogleToken).toHaveBeenCalledWith('rt-1');
+		expect(await getServiceRefreshToken(db, 'gg')).toBeNull();
+	});
+
+	test('clears the token even when the revoke fails', async () => {
+		await saveServiceRefreshToken(db, 'gg', 'rt-1');
+		vi.mocked(revokeGoogleToken).mockRejectedValue(new Error('invalid_token'));
+
+		const result = await disconnectGoogle(db, 'gg');
+
+		expect(result).toMatchObject({ revoked: false, reason: 'invalid_token' });
+		expect(await getServiceRefreshToken(db, 'gg')).toBeNull();
+	});
+
+	test('is a no-op for a service that was never connected', async () => {
+		expect(await disconnectGoogle(db, 'gg')).toEqual({ revoked: true });
+		expect(revokeGoogleToken).not.toHaveBeenCalled();
 	});
 });

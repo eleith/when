@@ -3,6 +3,7 @@ import {
 	getGoogleAccessToken,
 	buildGoogleAuthUrl,
 	exchangeGoogleAuthCode,
+	revokeGoogleToken,
 	listGoogleCalendars,
 	putGoogleEvent,
 	type GoogleConfig
@@ -199,4 +200,22 @@ test('listGoogleCalendars returns items and throws on failure', async () => {
 
 	vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('no', { status: 401 }));
 	await expect(listGoogleCalendars('tok')).rejects.toThrow(/calendar list failed/);
+});
+
+test('revokeGoogleToken posts the refresh token to google', async () => {
+	const fetchMock = vi
+		.spyOn(globalThis, 'fetch')
+		.mockResolvedValue(new Response('', { status: 200 }));
+
+	await revokeGoogleToken('rt-1');
+
+	const [url, init] = fetchMock.mock.calls[0];
+	expect(url).toBe('https://oauth2.googleapis.com/revoke');
+	expect(String((init as RequestInit).body)).toContain('token=rt-1');
+});
+
+test('revokeGoogleToken throws when google rejects the revoke', async () => {
+	vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('bad', { status: 400 }));
+
+	await expect(revokeGoogleToken('rt-1')).rejects.toThrow(/revoke failed/);
 });

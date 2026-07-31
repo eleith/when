@@ -350,6 +350,19 @@ export function buildGoogleAuthUrl(opts: GoogleAuthUrlOptions): string {
 	return url.toString();
 }
 
+// Google issues long-lived refresh tokens and never rotates them, so dropping a stored
+// token leaves it valid. Revoking is the only way to actually end access.
+export async function revokeGoogleToken(refreshToken: string): Promise<void> {
+	const res = await fetch('https://oauth2.googleapis.com/revoke', {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+		body: new URLSearchParams({ token: refreshToken })
+	});
+	if (!res.ok) {
+		throw new Error(`Google token revoke failed: ${res.status} ${await res.text()}`);
+	}
+}
+
 export async function exchangeGoogleAuthCode(
 	clientId: string,
 	clientSecret: string,

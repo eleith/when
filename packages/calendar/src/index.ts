@@ -33,6 +33,7 @@ export {
 	getGoogleAccessToken,
 	buildGoogleAuthUrl,
 	exchangeGoogleAuthCode,
+	revokeGoogleToken,
 	listGoogleCalendars
 } from './adapters/google.js';
 export type {
