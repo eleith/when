@@ -16,7 +16,7 @@ import {
 import { evaluateCalendarStatuses, type ComputedCalendarStatus } from '$lib/server/calendar/health';
 import { googleRedirectUri } from './google-connect';
 
-export interface ServiceView {
+export interface ProviderView {
 	name: string;
 	type: 'google' | 'caldav' | 'nextcloud';
 	connectedAt: string | null;
@@ -37,10 +37,10 @@ export type DiscoveryResult =
 // Cheap: config plus indexed reads. Nothing here reaches the network — the worker already
 // proved whether each credential works on its last refresh pass, and that verdict is what
 // calendar_sync_status holds.
-export async function listServices(
+export async function listProviders(
 	config: WhenConfiguration,
 	db: Kysely<Database>
-): Promise<ServiceView[]> {
+): Promise<ProviderView[]> {
 	const [connections, syncStatus, outOfSync] = await Promise.all([
 		listProviderConnections(db),
 		listCalendarSyncStatus(db),
@@ -52,18 +52,18 @@ export async function listServices(
 	const statuses = new Map(computed.map((s) => [s.id, s]));
 	const lastSynced = new Map(syncStatus.map((s) => [s.calendar_id, s.last_successful_refresh_at]));
 
-	return (config.providers ?? []).map((service) => {
-		const { usesOAuth } = getProviderAdapter(connectProvider(service, null));
+	return (config.providers ?? []).map((provider) => {
+		const { usesOAuth } = getProviderAdapter(connectProvider(provider, null));
 		const calendars = config.calendars
-			.filter((cal) => cal.provider === service.name)
+			.filter((cal) => cal.provider === provider.name)
 			.map((cal) => cal.name);
 
 		return {
-			name: service.name,
-			type: service.type,
-			connectedAt: connected.get(service.name)?.connectedAt ?? null,
+			name: provider.name,
+			type: provider.type,
+			connectedAt: connected.get(provider.name)?.connectedAt ?? null,
 			calendars,
-			endpoint: endpointOf(service, usesOAuth, config.url.app),
+			endpoint: endpointOf(provider, usesOAuth, config.url.app),
 			usesOAuth,
 			...syncStateOf(calendars, statuses),
 			lastSyncedAt: latest(calendars.map((id) => lastSynced.get(id) ?? null))
@@ -73,20 +73,20 @@ export async function listServices(
 
 // The redirect URI is ours, not the provider's, so it stays a web concern.
 function endpointOf(
-	service: Provider,
+	provider: Provider,
 	usesOAuth: boolean,
 	appUrl: string
-): ServiceView['endpoint'] {
-	if (!usesOAuth && 'url' in service) return { label: 'Server URL', url: service.url };
+): ProviderView['endpoint'] {
+	if (!usesOAuth && 'url' in provider) return { label: 'Server URL', url: provider.url };
 	return { label: 'Redirect URI', url: googleRedirectUri(appUrl) };
 }
 
-// A service is only as healthy as the calendars it backs: one failing calendar condemns it,
+// A provider is only as healthy as the calendars it backs: one failing calendar condemns it,
 // and with no verdict at all it stays unknown rather than claiming to work.
 function syncStateOf(
 	calendars: string[],
 	statuses: Map<string, ComputedCalendarStatus>
-): Pick<ServiceView, 'health' | 'reason'> {
+): Pick<ProviderView, 'health' | 'reason'> {
 	const failing = calendars.map((id) => statuses.get(id)).find((s) => s?.health === 'bad');
 	if (failing) return { health: 'bad', reason: failing.reason };
 
@@ -99,7 +99,7 @@ function latest(times: (string | null)[]): string | null {
 	return known.sort().at(-1) ?? null;
 }
 
-export async function probeService(
+export async function probeProvider(
 	config: WhenConfiguration,
 	db: Kysely<Database>,
 	name: string
@@ -131,16 +131,16 @@ function reason(err: unknown): string {
 	return err instanceof Error ? err.message : String(err);
 }
 
-// Joins the two halves of a service — config and stored credential — into the adapter
+// Joins the two halves of a provider — config and stored credential — into the adapter
 // that knows how to talk to it.
 async function connectedAdapter(
 	config: WhenConfiguration,
 	db: Kysely<Database>,
 	name: string
 ): Promise<ProviderAdapter> {
-	const service = config.providers?.find((s) => s.name === name);
-	if (!service) throw new Error(`No service named "${name}".`);
+	const provider = config.providers?.find((s) => s.name === name);
+	if (!provider) throw new Error(`No provider named "${name}".`);
 
 	const refreshToken = await getProviderRefreshToken(db, name);
-	return getProviderAdapter(connectProvider(service, refreshToken));
+	return getProviderAdapter(connectProvider(provider, refreshToken));
 }

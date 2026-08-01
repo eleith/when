@@ -4,9 +4,9 @@ import { getConfig, getDb } from '$lib/server/state';
 import {
 	consentUrl,
 	disconnectGoogle,
-	findGoogleService
-} from '$lib/server/services/google-connect';
-import { discoverCalendars, listServices, probeService } from '$lib/server/services/status';
+	findGoogleProvider
+} from '$lib/server/providers/google-connect';
+import { discoverCalendars, listProviders, probeProvider } from '$lib/server/providers/status';
 import { sendTestEmail, smtpSummary } from '$lib/server/email/status';
 import { STATE_COOKIE, stateCookieOptions } from './state-cookie';
 import type { Actions, PageServerLoad } from './$types';
@@ -15,19 +15,19 @@ export const load: PageServerLoad = async () => {
 	const config = getConfig();
 	return {
 		crumb: 'Services',
-		services: await listServices(config, getDb()),
+		providers: await listProviders(config, getDb()),
 		smtp: smtpSummary(config)
 	};
 };
 
 export const actions: Actions = {
 	connect: async ({ request, cookies }) => {
-		const name = String((await request.formData()).get('service') ?? '');
+		const name = String((await request.formData()).get('provider') ?? '');
 
 		const config = getConfig();
-		const service = findGoogleService(config, name);
+		const service = findGoogleProvider(config, name);
 		if (!service) {
-			return fail(404, { notice: { tone: 'error', text: `No google service named "${name}".` } });
+			return fail(404, { notice: { tone: 'error', text: `No google provider named "${name}".` } });
 		}
 
 		const state = crypto.randomUUID();
@@ -37,9 +37,9 @@ export const actions: Actions = {
 	},
 
 	disconnect: async ({ request }) => {
-		const name = String((await request.formData()).get('service') ?? '');
-		if (!findGoogleService(getConfig(), name)) {
-			return fail(404, { notice: { tone: 'error', text: `No google service named "${name}".` } });
+		const name = String((await request.formData()).get('provider') ?? '');
+		if (!findGoogleProvider(getConfig(), name)) {
+			return fail(404, { notice: { tone: 'error', text: `No google provider named "${name}".` } });
 		}
 
 		const result = await disconnectGoogle(getDb(), name);
@@ -54,10 +54,10 @@ export const actions: Actions = {
 	},
 
 	calendars: async ({ request }) => {
-		const name = String((await request.formData()).get('service') ?? '');
+		const name = String((await request.formData()).get('provider') ?? '');
 		const result = await discoverCalendars(getConfig(), getDb(), name);
 		return result.ok
-			? { discovered: { service: name, field: result.field, calendars: result.calendars } }
+			? { discovered: { provider: name, field: result.field, calendars: result.calendars } }
 			: {
 					notice: { tone: 'error', text: `${name} could not list calendars — ${result.message}` }
 				};
@@ -74,8 +74,8 @@ export const actions: Actions = {
 	},
 
 	test: async ({ request }) => {
-		const name = String((await request.formData()).get('service') ?? '');
-		const result = await probeService(getConfig(), getDb(), name);
+		const name = String((await request.formData()).get('provider') ?? '');
+		const result = await probeProvider(getConfig(), getDb(), name);
 		return {
 			notice: result.ok
 				? { tone: 'success', text: `${name} authenticated successfully.` }

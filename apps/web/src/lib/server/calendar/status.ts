@@ -11,7 +11,7 @@ const DEFAULT_REFRESH_MINUTES = 10;
 export interface CalendarView {
 	name: string;
 	type: 'google' | 'caldav';
-	service: string;
+	provider: string;
 	target: { label: string; value: string };
 	refreshEveryMinutes: number;
 	health: 'good' | 'bad' | 'unknown';
@@ -41,7 +41,7 @@ export async function listCalendars(
 		return {
 			name: cal.name,
 			type: cal.type,
-			service: cal.provider,
+			provider: cal.provider,
 			target: targetOf(cal),
 			refreshEveryMinutes: cal.sync?.refresh_every_minutes ?? DEFAULT_REFRESH_MINUTES,
 			health: status?.health ?? 'unknown',
@@ -71,8 +71,8 @@ export async function probeCalendar(
 	try {
 		const now = Temporal.Now.instant();
 		const window = { start: now, end: now.add({ hours: 24 * WINDOW_DAYS }) };
-		const services = await connectProviders(config.providers ?? [], db);
-		const busy = await fetchBusyIntervals(cal, window, { services });
+		const providers = await connectProviders(config.providers ?? [], db);
+		const busy = await fetchBusyIntervals(cal, window, { services: providers });
 
 		const label = busy.length === 1 ? 'busy interval' : 'busy intervals';
 		return { ok: true, message: `${busy.length} ${label} over the next ${WINDOW_DAYS} days.` };

@@ -6,7 +6,7 @@ import {
 	completeGoogleConnect,
 	consentUrl,
 	disconnectGoogle,
-	findGoogleService,
+	findGoogleProvider,
 	googleRedirectUri
 } from './google-connect';
 
@@ -59,17 +59,17 @@ describe('redirect uri', () => {
 	});
 });
 
-describe('findGoogleService', () => {
+describe('findGoogleProvider', () => {
 	test('finds a google service by name', () => {
-		expect(findGoogleService(config, 'gg')?.client_id).toBe('cid');
+		expect(findGoogleProvider(config, 'gg')?.client_id).toBe('cid');
 	});
 
 	test('ignores a service of another type', () => {
-		expect(findGoogleService(config, 'dav')).toBeNull();
+		expect(findGoogleProvider(config, 'dav')).toBeNull();
 	});
 
 	test('returns null for an unknown name', () => {
-		expect(findGoogleService(config, 'nope')).toBeNull();
+		expect(findGoogleProvider(config, 'nope')).toBeNull();
 	});
 });
 

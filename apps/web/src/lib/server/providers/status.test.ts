@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { openDb, runMigrations, saveProviderRefreshToken, recordRefreshResult } from '@when/db';
 import { getProviderAdapter } from '@when/calendar';
 import type { WhenConfiguration } from '@when/config';
-import { discoverCalendars, listServices, probeService } from './status';
+import { discoverCalendars, listProviders, probeProvider } from './status';
 
 vi.mock('@when/calendar', async (importOriginal) => {
 	const actual = await importOriginal<typeof import('@when/calendar')>();
@@ -47,33 +47,33 @@ beforeEach(async () => {
 		}));
 });
 
-describe('listServices', () => {
+describe('listProviders', () => {
 	test('lists every service type, not just google', async () => {
-		const views = await listServices(config, db);
+		const views = await listProviders(config, db);
 		expect(views.map((v) => v.name)).toEqual(['gg', 'dav']);
 		expect(views.map((v) => v.type)).toEqual(['google', 'caldav']);
 	});
 
 	test('reaches no provider', async () => {
-		await listServices(config, db);
+		await listProviders(config, db);
 		expect(adapter.verify).not.toHaveBeenCalled();
 		expect(adapter.listCalendars).not.toHaveBeenCalled();
 	});
 
 	test('carries connection state for a connected google service', async () => {
 		await saveProviderRefreshToken(db, 'gg', 'rt-1');
-		const [google] = await listServices(config, db);
+		const [google] = await listProviders(config, db);
 		expect(google.connectedAt).toBeTruthy();
 		expect(JSON.stringify(google)).not.toContain('rt-1');
 	});
 
 	test('leaves connection state null for services that never store one', async () => {
-		const [, dav] = await listServices(config, db);
+		const [, dav] = await listProviders(config, db);
 		expect(dav.connectedAt).toBeNull();
 	});
 
 	test('shows the redirect URI to register for google', async () => {
-		const [google] = await listServices(config, db);
+		const [google] = await listProviders(config, db);
 		expect(google.endpoint).toEqual({
 			label: 'Redirect URI',
 			url: 'https://book.example.com/admin/services/google/callback'
@@ -81,18 +81,18 @@ describe('listServices', () => {
 	});
 
 	test('shows the configured server url for caldav', async () => {
-		const [, dav] = await listServices(config, db);
+		const [, dav] = await listProviders(config, db);
 		expect(dav.endpoint).toEqual({ label: 'Server URL', url: 'https://d.example/' });
 	});
 
 	test('lists the calendars each service backs', async () => {
-		const [google, dav] = await listServices(config, db);
+		const [google, dav] = await listProviders(config, db);
 		expect(google.calendars).toEqual(['work']);
 		expect(dav.calendars).toEqual(['home']);
 	});
 
 	test('health is unknown until the worker has synced', async () => {
-		const [google] = await listServices(config, db);
+		const [google] = await listProviders(config, db);
 		expect(google.health).toBe('unknown');
 		expect(google.lastSyncedAt).toBeNull();
 	});
@@ -100,7 +100,7 @@ describe('listServices', () => {
 	test('a successful worker refresh makes the service read as syncing', async () => {
 		await recordRefreshResult(db, 'work', { at: Temporal.Now.instant().toString() });
 
-		const [google] = await listServices(config, db);
+		const [google] = await listProviders(config, db);
 
 		expect(google.health).toBe('good');
 		expect(google.lastSyncedAt).toBeTruthy();
@@ -110,7 +110,7 @@ describe('listServices', () => {
 		const longAgo = Temporal.Now.instant().subtract({ hours: 2 }).toString();
 		await recordRefreshResult(db, 'work', { at: longAgo, error: 'invalid_grant' });
 
-		const [google, dav] = await listServices(config, db);
+		const [google, dav] = await listProviders(config, db);
 
 		expect(google.health).toBe('bad');
 		expect(google.reason).toContain('invalid_grant');
@@ -118,18 +118,18 @@ describe('listServices', () => {
 	});
 });
 
-describe('probeService', () => {
+describe('probeProvider', () => {
 	test('hands the adapter the stored token', async () => {
 		await saveProviderRefreshToken(db, 'gg', 'rt-1');
 
-		expect(await probeService(config, db, 'gg')).toEqual({ ok: true, message: 'Authenticated.' });
+		expect(await probeProvider(config, db, 'gg')).toEqual({ ok: true, message: 'Authenticated.' });
 		expect(getProviderAdapter).toHaveBeenCalledWith(
 			expect.objectContaining({ name: 'gg', refresh_token: 'rt-1' })
 		);
 	});
 
 	test('hands the adapter a null token when nothing is stored', async () => {
-		await probeService(config, db, 'gg');
+		await probeProvider(config, db, 'gg');
 
 		expect(getProviderAdapter).toHaveBeenCalledWith(
 			expect.objectContaining({ name: 'gg', refresh_token: null })
@@ -139,13 +139,13 @@ describe('probeService', () => {
 	test('surfaces the provider error verbatim', async () => {
 		adapter.verify = vi.fn().mockRejectedValue(new Error('invalid_grant'));
 
-		expect(await probeService(config, db, 'gg')).toEqual({ ok: false, message: 'invalid_grant' });
+		expect(await probeProvider(config, db, 'gg')).toEqual({ ok: false, message: 'invalid_grant' });
 	});
 
-	test('reports an unknown service', async () => {
-		expect(await probeService(config, db, 'nope')).toEqual({
+	test('reports an unknown provider', async () => {
+		expect(await probeProvider(config, db, 'nope')).toEqual({
 			ok: false,
-			message: 'No service named "nope".'
+			message: 'No provider named "nope".'
 		});
 	});
 });
@@ -172,10 +172,10 @@ describe('discoverCalendars', () => {
 		});
 	});
 
-	test('reports an unknown service', async () => {
+	test('reports an unknown provider', async () => {
 		expect(await discoverCalendars(config, db, 'nope')).toEqual({
 			ok: false,
-			message: 'No service named "nope".'
+			message: 'No provider named "nope".'
 		});
 	});
 

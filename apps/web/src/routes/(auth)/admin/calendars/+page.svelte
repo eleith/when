@@ -48,7 +48,7 @@
 							<dd>{calendar.type}</dd>
 
 							<dt>Provider</dt>
-							<dd>{calendar.service}</dd>
+							<dd>{calendar.provider}</dd>
 
 							<dt>Status</dt>
 							{#if calendar.health === 'bad'}

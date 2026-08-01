@@ -13,18 +13,18 @@
 
 	let { data, form } = $props();
 
-	let listingService = $state('');
+	let listingProvider = $state('');
 	let listing = $state<{ field: string; calendars: DiscoveredCalendar[] } | null>(null);
 
 	// The provider round-trip is slow, so claim the section on submit and show a spinner
 	// rather than leaving the click with no feedback.
-	function listCalendars(service: string): SubmitFunction {
+	function listCalendars(provider: string): SubmitFunction {
 		return () => {
-			listingService = service;
+			listingProvider = provider;
 			listing = null;
 			return async ({ result, update }) => {
 				await update();
-				if (result.type !== 'success') listingService = '';
+				if (result.type !== 'success') listingProvider = '';
 			};
 		};
 	}
@@ -32,7 +32,7 @@
 	$effect(() => {
 		const discovered = form?.discovered;
 		if (!discovered) return;
-		listingService = discovered.service;
+		listingProvider = discovered.provider;
 		listing = { field: discovered.field, calendars: discovered.calendars };
 	});
 
@@ -68,53 +68,53 @@
 
 	<h2 class="section">Calendar &amp; video</h2>
 
-	{#if data.services.length === 0}
-		<p class="empty">No services are configured in when.yaml.</p>
+	{#if data.providers.length === 0}
+		<p class="empty">No providers are configured in when.yaml.</p>
 	{:else}
 		<ul class="list">
-			{#each data.services as service (service.name)}
-				{@const unconnected = service.usesOAuth && !service.connectedAt}
+			{#each data.providers as provider (provider.name)}
+				{@const unconnected = provider.usesOAuth && !provider.connectedAt}
 				<li class="card">
 					<div class="body">
-						<h2 class="name">{service.name}</h2>
+						<h2 class="name">{provider.name}</h2>
 
 						<dl class="fields">
 							<dt>Type</dt>
-							<dd>{service.type}</dd>
+							<dd>{provider.type}</dd>
 
 							<dt>Calendars</dt>
-							<dd>{service.calendars.length === 0 ? 'None' : service.calendars.join(', ')}</dd>
+							<dd>{provider.calendars.length === 0 ? 'None' : provider.calendars.join(', ')}</dd>
 
 							<dt>Status</dt>
 							{#if unconnected}
 								<dd>Not connected</dd>
-							{:else if service.health === 'bad'}
-								<dd class="failed">{service.reason ?? 'Not syncing'}</dd>
-							{:else if service.health === 'good'}
+							{:else if provider.health === 'bad'}
+								<dd class="failed">{provider.reason ?? 'Not syncing'}</dd>
+							{:else if provider.health === 'good'}
 								<dd class="ok">
-									Syncing{#if service.lastSyncedAt}
-										— last at {fmt(service.lastSyncedAt)}{/if}
+									Syncing{#if provider.lastSyncedAt}
+										— last at {fmt(provider.lastSyncedAt)}{/if}
 								</dd>
-							{:else if service.calendars.length === 0}
+							{:else if provider.calendars.length === 0}
 								<dd>Nothing to sync</dd>
 							{:else}
 								<dd>Not synced yet</dd>
 							{/if}
 
-							<dt>{service.endpoint.label}</dt>
-							<dd><code>{service.endpoint.url}</code></dd>
+							<dt>{provider.endpoint.label}</dt>
+							<dd><code>{provider.endpoint.url}</code></dd>
 						</dl>
 
-						{#if listingService === service.name}
+						{#if listingProvider === provider.name}
 							<div class="found">
 								<h3 class="found-title">Available calendars</h3>
 								{#if !listing}
 									<p class="found-loading">
 										<span class="spinner"><IconSpinner aria-hidden="true" /></span>
-										Asking {service.name}…
+										Asking {provider.name}…
 									</p>
 								{:else if listing.calendars.length === 0}
-									<p class="found-empty">This service exposes no calendars.</p>
+									<p class="found-empty">This provider exposes no calendars.</p>
 								{:else}
 									<ul class="found-list">
 										{#each listing.calendars as calendar (calendar.id)}
@@ -133,24 +133,24 @@
 						<div class="actions-change">
 							{#if unconnected}
 								<form method="POST" action="?/connect">
-									<input type="hidden" name="service" value={service.name} />
+									<input type="hidden" name="provider" value={provider.name} />
 									<button type="submit" class="button primary">Connect</button>
 								</form>
-							{:else if service.connectedAt}
+							{:else if provider.connectedAt}
 								<form method="POST" action="?/disconnect">
-									<input type="hidden" name="service" value={service.name} />
+									<input type="hidden" name="provider" value={provider.name} />
 									<button type="submit" class="button danger">Disconnect</button>
 								</form>
 							{/if}
 						</div>
 						{#if !unconnected}
 							<div class="actions-check">
-								<form method="POST" action="?/calendars" use:enhance={listCalendars(service.name)}>
-									<input type="hidden" name="service" value={service.name} />
+								<form method="POST" action="?/calendars" use:enhance={listCalendars(provider.name)}>
+									<input type="hidden" name="provider" value={provider.name} />
 									<button type="submit" class="button">List calendars</button>
 								</form>
 								<form method="POST" action="?/test">
-									<input type="hidden" name="service" value={service.name} />
+									<input type="hidden" name="provider" value={provider.name} />
 									<button type="submit" class="button">Test</button>
 								</form>
 							</div>

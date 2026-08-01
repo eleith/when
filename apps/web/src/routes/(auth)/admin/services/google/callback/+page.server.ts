@@ -1,6 +1,6 @@
 import { dev } from '$app/environment';
 import { getConfig, getDb } from '$lib/server/state';
-import { completeGoogleConnect, findGoogleService } from '$lib/server/services/google-connect';
+import { completeGoogleConnect, findGoogleProvider } from '$lib/server/providers/google-connect';
 import { STATE_COOKIE, parseOAuthState, stateCookieOptions } from '../../state-cookie';
 import type { PageServerLoad } from './$types';
 
@@ -28,7 +28,7 @@ export const load: PageServerLoad = async ({ url, cookies }) => {
 	}
 
 	const config = getConfig();
-	const service = findGoogleService(config, pending.service);
+	const service = findGoogleProvider(config, pending.service);
 	if (!service) {
 		return {
 			crumb,
