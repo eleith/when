@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { openDb, runMigrations, saveProviderRefreshToken, recordRefreshResult } from '@when/db';
+import { openDb, runMigrations, saveProviderRefreshToken, recordServiceOutcome } from '@when/db';
 import { getProviderAdapter } from '@when/calendar';
 import type { WhenConfiguration } from '@when/config';
 import { discoverCalendars, listProviders, probeProvider } from './status';
@@ -98,7 +98,14 @@ describe('listProviders', () => {
 	});
 
 	test('a successful worker refresh makes the service read as syncing', async () => {
-		await recordRefreshResult(db, 'work', { at: Temporal.Now.instant().toString() });
+		await recordServiceOutcome(
+			db,
+			{ kind: 'calendar', name: 'work' },
+			{
+				at: Temporal.Now.instant().toString(),
+				via: 'refresh'
+			}
+		);
 
 		const [google] = await listProviders(config, db);
 
@@ -108,7 +115,15 @@ describe('listProviders', () => {
 
 	test('a failed worker refresh surfaces on the service that owns the calendar', async () => {
 		const longAgo = Temporal.Now.instant().subtract({ hours: 2 }).toString();
-		await recordRefreshResult(db, 'work', { at: longAgo, error: 'invalid_grant' });
+		await recordServiceOutcome(
+			db,
+			{ kind: 'calendar', name: 'work' },
+			{
+				at: longAgo,
+				via: 'refresh',
+				error: 'invalid_grant'
+			}
+		);
 
 		const [google, dav] = await listProviders(config, db);
 

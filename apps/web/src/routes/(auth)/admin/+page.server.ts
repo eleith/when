@@ -6,7 +6,7 @@ import { signOutAction } from '$lib/server/auth';
 import {
 	countAppointments,
 	listAppointmentsPage,
-	listCalendarSyncStatus,
+	listServiceStatus,
 	listOutOfSyncAppointments
 } from '@when/db';
 import { sql } from 'kysely';
@@ -44,7 +44,7 @@ export const load: PageServerLoad = async () => {
 		countAppointments(db, { bucket: 'upcoming', now }),
 		listAppointmentsPage(db, { bucket: 'upcoming', now, limit: 5, offset: 0 }),
 		listAppointmentsPage(db, { bucket: 'pending', now, limit: 5, offset: 0 }),
-		listCalendarSyncStatus(db),
+		listServiceStatus(db),
 		listOutOfSyncAppointments(db),
 		db
 			.selectFrom('appointments')

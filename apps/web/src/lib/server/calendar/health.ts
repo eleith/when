@@ -1,4 +1,4 @@
-import { parseActionLog, type Appointment, type CalendarSyncStatus } from '@when/db';
+import { parseActionLog, type Appointment, type ServiceStatus } from '@when/db';
 import type { WhenConfiguration } from '@when/config';
 
 const STALE_GRACE_MINUTES = 30;
@@ -23,7 +23,7 @@ export function openCalendarFailureAt(
 }
 
 export function evaluateCalendarStatuses(
-	syncStatus: CalendarSyncStatus[],
+	syncStatus: ServiceStatus[],
 	outOfSyncAppts: Appointment[],
 	config: WhenConfiguration,
 	now: Temporal.Instant
@@ -45,42 +45,43 @@ export function evaluateCalendarStatuses(
 	}
 
 	return syncStatus.map((s) => {
+		const calendarId = s.name;
 		const intervalMinutes =
-			config.calendars.find((c) => c.name === s.calendar_id)?.sync?.refresh_every_minutes ?? 10;
+			config.calendars.find((c) => c.name === calendarId)?.sync?.refresh_every_minutes ?? 10;
 
 		let health: 'good' | 'bad' | 'unknown' = 'unknown';
 		let reason: string | null = null;
 		let since: string | null = null;
 
-		const writeFailure = failingCalendarIds.get(s.calendar_id);
+		const writeFailure = failingCalendarIds.get(calendarId);
 		if (writeFailure) {
 			health = 'bad';
 			reason = 'An appointment has failed to sync to this calendar for over 30 minutes.';
 			since = writeFailure.failedAt;
-		} else if (s.last_successful_refresh_at) {
-			const staleAfter = Temporal.Instant.from(s.last_successful_refresh_at).add({
+		} else if (s.last_ok_at) {
+			const staleAfter = Temporal.Instant.from(s.last_ok_at).add({
 				minutes: intervalMinutes + STALE_GRACE_MINUTES
 			});
 			if (Temporal.Instant.compare(now, staleAfter) > 0) {
 				health = 'bad';
-				reason = `No successful refresh since ${s.last_successful_refresh_at}.`;
-				since = s.last_successful_refresh_at;
+				reason = `No successful refresh since ${s.last_ok_at}.`;
+				since = s.last_ok_at;
 			} else {
 				health = 'good';
 			}
-		} else if (s.last_refresh_at) {
-			const graceAfter = Temporal.Instant.from(s.last_refresh_at).add({
+		} else if (s.last_attempt_at) {
+			const graceAfter = Temporal.Instant.from(s.last_attempt_at).add({
 				minutes: STARTUP_GRACE_MINUTES
 			});
 			if (Temporal.Instant.compare(now, graceAfter) > 0) {
 				health = 'bad';
 				reason = s.error ? `Never synced: ${s.error}` : 'Never synced.';
-				since = s.last_refresh_at;
+				since = s.last_attempt_at;
 			}
 		}
 
 		return {
-			id: s.calendar_id,
+			id: calendarId,
 			health,
 			reason,
 			since

@@ -10,7 +10,7 @@ import {
 import {
 	getProviderRefreshToken,
 	listProviderConnections,
-	listCalendarSyncStatus,
+	listServiceStatus,
 	listOutOfSyncAppointments
 } from '@when/db';
 import { evaluateCalendarStatuses, type ComputedCalendarStatus } from '$lib/server/calendar/health';
@@ -43,14 +43,14 @@ export async function listProviders(
 ): Promise<ProviderView[]> {
 	const [connections, syncStatus, outOfSync] = await Promise.all([
 		listProviderConnections(db),
-		listCalendarSyncStatus(db),
+		listServiceStatus(db, 'calendar'),
 		listOutOfSyncAppointments(db)
 	]);
 
 	const computed = evaluateCalendarStatuses(syncStatus, outOfSync, config, Temporal.Now.instant());
 	const connected = new Map(connections.map((c) => [c.providerName, c]));
 	const statuses = new Map(computed.map((s) => [s.id, s]));
-	const lastSynced = new Map(syncStatus.map((s) => [s.calendar_id, s.last_successful_refresh_at]));
+	const lastSynced = new Map(syncStatus.map((s) => [s.name, s.last_ok_at]));
 
 	return (config.providers ?? []).map((provider) => {
 		const { usesOAuth } = getProviderAdapter(connectProvider(provider, null));

@@ -1,7 +1,7 @@
 import { expect, test, vi, beforeEach } from 'vitest';
 import pino from 'pino';
 import type { Calendar, WhenConfiguration } from '@when/config';
-import { openDb, runMigrations, replaceCalendarBusy, recordRefreshResult } from '@when/db';
+import { openDb, runMigrations, replaceCalendarBusy, recordServiceOutcome } from '@when/db';
 import type { Logger } from '../services/logger.js';
 import type { WorkerContext } from '../services/context.js';
 import { busyCalendarIds, refreshCalendar, refreshCalendars, refreshWindow } from './refresh.js';
@@ -82,11 +82,12 @@ test('refreshCalendar populates the mirror and records success', async () => {
 		expect(busy).toHaveLength(1);
 		expect(busy[0].start_time).toBe('2026-04-15T14:00:00Z');
 		const status = await ctx.db
-			.selectFrom('calendar_sync_status')
+			.selectFrom('service_status')
 			.selectAll()
-			.where('calendar_id', '=', 'work')
+			.where('kind', '=', 'calendar')
+			.where('name', '=', 'work')
 			.executeTakeFirstOrThrow();
-		expect(status.last_successful_refresh_at).toBe(window.start.toString());
+		expect(status.last_ok_at).toBe(window.start.toString());
 		expect(status.error).toBeNull();
 	} finally {
 		await ctx.db.destroy();
@@ -107,12 +108,13 @@ test('refreshCalendar keeps stale data and records the error on provider failure
 		expect(busy).toHaveLength(1);
 		expect(busy[0].start_time).toBe('2026-04-10T09:00:00Z');
 		const status = await ctx.db
-			.selectFrom('calendar_sync_status')
+			.selectFrom('service_status')
 			.selectAll()
-			.where('calendar_id', '=', 'work')
+			.where('kind', '=', 'calendar')
+			.where('name', '=', 'work')
 			.executeTakeFirstOrThrow();
 		expect(status.error).toContain('500');
-		expect(status.last_successful_refresh_at).toBeNull();
+		expect(status.last_ok_at).toBeNull();
 	} finally {
 		await ctx.db.destroy();
 	}
@@ -263,9 +265,10 @@ test('refreshCalendars refreshes known busy calendars and skips unknown ids', as
 			.execute();
 		expect(work.length).toBeGreaterThan(0);
 		const ghost = await db
-			.selectFrom('calendar_sync_status')
+			.selectFrom('service_status')
 			.selectAll()
-			.where('calendar_id', '=', 'ghost')
+			.where('kind', '=', 'calendar')
+			.where('name', '=', 'ghost')
 			.execute();
 		expect(ghost).toHaveLength(0);
 	} finally {
@@ -288,7 +291,14 @@ test('refreshCalendars skips a calendar refreshed within its interval, refreshes
 		mailer: { send: async () => ({ ok: true as const }) }
 	};
 	try {
-		await recordRefreshResult(db, 'work', { at: window.start.toString() }); // succeeded just now
+		await recordServiceOutcome(
+			db,
+			{ kind: 'calendar', name: 'work' },
+			{
+				at: window.start.toString(),
+				via: 'refresh'
+			}
+		); // succeeded just now
 
 		let fetched = false;
 		vi.spyOn(globalThis, 'fetch').mockImplementation(async () => {

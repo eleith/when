@@ -42,7 +42,6 @@ export interface OauthTokensTable {
 	provider_name: string;
 	refresh_token: string;
 	connected_at: ColumnType<string, string | undefined, string>;
-	last_error: NullableText;
 	updated_at: ColumnType<string, string | undefined, string>;
 }
 
@@ -53,18 +52,21 @@ export interface ExternalCalendarBusyTable {
 	end_time: string;
 }
 
-export interface CalendarSyncStatusTable {
-	calendar_id: string;
-	last_refresh_at: NullableText;
-	last_successful_refresh_at: NullableText;
+export interface ServiceStatusTable {
+	kind: string;
+	name: string;
+	last_attempt_at: NullableText;
+	last_ok_at: NullableText;
+	failing_since: NullableText;
 	error: NullableText;
+	via: NullableText;
 }
 
 export interface Database {
 	appointments: AppointmentsTable;
 	oauth_tokens: OauthTokensTable;
 	external_calendar_busy: ExternalCalendarBusyTable;
-	calendar_sync_status: CalendarSyncStatusTable;
+	service_status: ServiceStatusTable;
 }
 
 export type Appointment = Selectable<AppointmentsTable>;
@@ -74,9 +76,7 @@ export type AppointmentUpdate = Updateable<AppointmentsTable>;
 export type ExternalCalendarBusy = Selectable<ExternalCalendarBusyTable>;
 export type NewExternalCalendarBusy = Insertable<ExternalCalendarBusyTable>;
 
-export type CalendarSyncStatus = Selectable<CalendarSyncStatusTable>;
-export type NewCalendarSyncStatus = Insertable<CalendarSyncStatusTable>;
-export type CalendarSyncStatusUpdate = Updateable<CalendarSyncStatusTable>;
+export type ServiceStatus = Selectable<ServiceStatusTable>;
 
 export type OauthToken = Selectable<OauthTokensTable>;
 export type NewOauthToken = Insertable<OauthTokensTable>;

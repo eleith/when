@@ -2,7 +2,7 @@ import type { Kysely } from 'kysely';
 import type { Calendar, WhenConfiguration } from '@when/config';
 import type { Database } from '@when/db';
 import { connectProviders, fetchBusyIntervals } from '@when/calendar';
-import { listCalendarSyncStatus, listOutOfSyncAppointments } from '@when/db';
+import { listServiceStatus, listOutOfSyncAppointments } from '@when/db';
 import { evaluateCalendarStatuses } from './health';
 
 const WINDOW_DAYS = 14;
@@ -28,13 +28,13 @@ export async function listCalendars(
 	db: Kysely<Database>
 ): Promise<CalendarView[]> {
 	const [syncStatus, outOfSync] = await Promise.all([
-		listCalendarSyncStatus(db),
+		listServiceStatus(db, 'calendar'),
 		listOutOfSyncAppointments(db)
 	]);
 
 	const computed = evaluateCalendarStatuses(syncStatus, outOfSync, config, Temporal.Now.instant());
 	const statuses = new Map(computed.map((s) => [s.id, s]));
-	const lastSynced = new Map(syncStatus.map((s) => [s.calendar_id, s.last_successful_refresh_at]));
+	const lastSynced = new Map(syncStatus.map((s) => [s.name, s.last_ok_at]));
 
 	return config.calendars.map((cal) => {
 		const status = statuses.get(cal.name);

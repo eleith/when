@@ -1,6 +1,6 @@
 import { systemClock } from '$lib/server/clock';
 import { getConfig, getDb } from '$lib/server/state';
-import { countAppointments, listCalendarSyncStatus, listOutOfSyncAppointments } from '@when/db';
+import { countAppointments, listServiceStatus, listOutOfSyncAppointments } from '@when/db';
 import { evaluateCalendarStatuses } from '$lib/server/calendar/health';
 import { sql } from 'kysely';
 import type { LayoutServerLoad } from './$types';
@@ -15,7 +15,7 @@ export const load: LayoutServerLoad = async () => {
 		await Promise.all([
 			countAppointments(db, { bucket: 'pending', now }),
 			countAppointments(db, { bucket: 'upcoming', now }),
-			listCalendarSyncStatus(db),
+			listServiceStatus(db),
 			listOutOfSyncAppointments(db),
 			db
 				.selectFrom('appointments')

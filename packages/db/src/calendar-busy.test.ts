@@ -3,14 +3,12 @@ import { openDb } from './index.js';
 import { runMigrations } from './migrate.js';
 import {
 	replaceCalendarBusy,
-	recordRefreshResult,
 	listOwnEventIds,
 	getBusyIntervals,
 	listUpcomingActiveAppointments,
 	setPossibleConflicts,
 	listOutOfSyncAppointments,
-	markSynced,
-	listCalendarSyncStatus
+	markSynced
 } from './calendar-busy.js';
 
 async function freshDb() {
@@ -85,42 +83,6 @@ test('replaceCalendarBusy leaves other calendars untouched', async () => {
 			.where('calendar_id', '=', 'home')
 			.execute();
 		expect(home).toHaveLength(1);
-	} finally {
-		await db.destroy();
-	}
-});
-
-test('recordRefreshResult: success sets both timestamps and clears error', async () => {
-	const db = await freshDb();
-	try {
-		await recordRefreshResult(db, 'work', { at: 't1', error: 'boom' });
-		await recordRefreshResult(db, 'work', { at: 't2' });
-		const row = await db
-			.selectFrom('calendar_sync_status')
-			.selectAll()
-			.where('calendar_id', '=', 'work')
-			.executeTakeFirstOrThrow();
-		expect(row.last_refresh_at).toBe('t2');
-		expect(row.last_successful_refresh_at).toBe('t2');
-		expect(row.error).toBeNull();
-	} finally {
-		await db.destroy();
-	}
-});
-
-test('recordRefreshResult: failure records error but keeps the last success time', async () => {
-	const db = await freshDb();
-	try {
-		await recordRefreshResult(db, 'work', { at: 't1' });
-		await recordRefreshResult(db, 'work', { at: 't2', error: 'down' });
-		const row = await db
-			.selectFrom('calendar_sync_status')
-			.selectAll()
-			.where('calendar_id', '=', 'work')
-			.executeTakeFirstOrThrow();
-		expect(row.last_refresh_at).toBe('t2');
-		expect(row.last_successful_refresh_at).toBe('t1');
-		expect(row.error).toBe('down');
 	} finally {
 		await db.destroy();
 	}
@@ -377,19 +339,6 @@ test('markSynced sets the synced revision and any provided fields, leaving other
 			.executeTakeFirstOrThrow();
 		expect(row.calendar_synced_revision).toBe(3);
 		expect(row.external_event_id).toBe('ext');
-	} finally {
-		await db.destroy();
-	}
-});
-
-test('listCalendarSyncStatus returns all rows', async () => {
-	const db = await freshDb();
-	try {
-		await recordRefreshResult(db, 'work', { at: 't1' });
-		await recordRefreshResult(db, 'home', { at: 't2', error: 'down' });
-		const rows = await listCalendarSyncStatus(db);
-		expect(rows).toHaveLength(2);
-		expect(rows.map((r) => r.calendar_id).sort()).toEqual(['home', 'work']);
 	} finally {
 		await db.destroy();
 	}

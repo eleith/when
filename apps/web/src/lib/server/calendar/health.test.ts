@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import type { CalendarSyncStatus, Appointment } from '@when/db';
+import type { ServiceStatus, Appointment } from '@when/db';
 import type { WhenConfiguration } from '@when/config';
 import { evaluateCalendarStatuses } from './health.js';
 
@@ -21,12 +21,15 @@ const calendarFailedLog = (at: string) =>
 	]);
 
 test('evaluateCalendarStatuses: good status when recently refreshed', () => {
-	const syncStatus: CalendarSyncStatus[] = [
+	const syncStatus: ServiceStatus[] = [
 		{
-			calendar_id: 'work',
-			last_refresh_at: START.toString(),
-			last_successful_refresh_at: START.toString(),
-			error: null
+			kind: 'calendar',
+			name: 'work',
+			last_attempt_at: START.toString(),
+			last_ok_at: START.toString(),
+			failing_since: null,
+			error: null,
+			via: 'refresh'
 		}
 	];
 	const outOfSync: Appointment[] = [];
@@ -48,12 +51,15 @@ test('evaluateCalendarStatuses: good status when recently refreshed', () => {
 });
 
 test('evaluateCalendarStatuses: bad status when stale (exceeds interval + grace)', () => {
-	const syncStatus: CalendarSyncStatus[] = [
+	const syncStatus: ServiceStatus[] = [
 		{
-			calendar_id: 'work',
-			last_refresh_at: START.toString(),
-			last_successful_refresh_at: START.toString(),
-			error: null
+			kind: 'calendar',
+			name: 'work',
+			last_attempt_at: START.toString(),
+			last_ok_at: START.toString(),
+			failing_since: null,
+			error: null,
+			via: 'refresh'
 		}
 	];
 	const outOfSync: Appointment[] = [];
@@ -70,12 +76,15 @@ test('evaluateCalendarStatuses: bad status when stale (exceeds interval + grace)
 });
 
 test('evaluateCalendarStatuses: bad status when never synced and past grace', () => {
-	const syncStatus: CalendarSyncStatus[] = [
+	const syncStatus: ServiceStatus[] = [
 		{
-			calendar_id: 'work',
-			last_refresh_at: START.toString(),
-			last_successful_refresh_at: null,
-			error: 'connection timeout'
+			kind: 'calendar',
+			name: 'work',
+			last_attempt_at: START.toString(),
+			last_ok_at: null,
+			failing_since: null,
+			error: 'connection timeout',
+			via: 'refresh'
 		}
 	];
 	const outOfSync: Appointment[] = [];
@@ -97,12 +106,15 @@ test('evaluateCalendarStatuses: bad status when never synced and past grace', ()
 });
 
 test('evaluateCalendarStatuses: bad status when write failure is open past threshold', () => {
-	const syncStatus: CalendarSyncStatus[] = [
+	const syncStatus: ServiceStatus[] = [
 		{
-			calendar_id: 'work',
-			last_refresh_at: START.toString(),
-			last_successful_refresh_at: START.toString(),
-			error: null
+			kind: 'calendar',
+			name: 'work',
+			last_attempt_at: START.toString(),
+			last_ok_at: START.toString(),
+			failing_since: null,
+			error: null,
+			via: 'refresh'
 		}
 	];
 	const outOfSync: Appointment[] = [

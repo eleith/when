@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { openDb, runMigrations, recordRefreshResult } from '@when/db';
+import { openDb, runMigrations, recordServiceOutcome } from '@when/db';
 import { fetchBusyIntervals } from '@when/calendar';
 import type { WhenConfiguration } from '@when/config';
 import { listCalendars, probeCalendar } from './status';
@@ -60,7 +60,14 @@ describe('listCalendars', () => {
 	});
 
 	test('reads good health off a successful worker refresh', async () => {
-		await recordRefreshResult(db, 'work', { at: Temporal.Now.instant().toString() });
+		await recordServiceOutcome(
+			db,
+			{ kind: 'calendar', name: 'work' },
+			{
+				at: Temporal.Now.instant().toString(),
+				via: 'refresh'
+			}
+		);
 
 		const [work] = await listCalendars(config, db);
 
@@ -70,7 +77,15 @@ describe('listCalendars', () => {
 
 	test('reads bad health, and only for the calendar that failed', async () => {
 		const longAgo = Temporal.Now.instant().subtract({ hours: 2 }).toString();
-		await recordRefreshResult(db, 'work', { at: longAgo, error: 'invalid_grant' });
+		await recordServiceOutcome(
+			db,
+			{ kind: 'calendar', name: 'work' },
+			{
+				at: longAgo,
+				via: 'refresh',
+				error: 'invalid_grant'
+			}
+		);
 
 		const [work, home] = await listCalendars(config, db);
 

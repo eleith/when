@@ -5,7 +5,6 @@ import type { Database } from './types.js';
 export interface ProviderConnection {
 	providerName: string;
 	connectedAt: string;
-	lastError: string | null;
 }
 
 export async function getProviderRefreshToken(
@@ -32,7 +31,6 @@ export async function saveProviderRefreshToken(
 			oc.column('provider_name').doUpdateSet({
 				refresh_token: refreshToken,
 				connected_at: sql`CURRENT_TIMESTAMP`,
-				last_error: null,
 				updated_at: sql`CURRENT_TIMESTAMP`
 			})
 		)
@@ -49,12 +47,11 @@ export async function deleteProviderToken(
 export async function listProviderConnections(db: Kysely<Database>): Promise<ProviderConnection[]> {
 	const rows = await db
 		.selectFrom('oauth_tokens')
-		.select(['provider_name', 'connected_at', 'last_error'])
+		.select(['provider_name', 'connected_at'])
 		.orderBy('provider_name')
 		.execute();
 	return rows.map((r) => ({
 		providerName: r.provider_name,
-		connectedAt: r.connected_at,
-		lastError: r.last_error
+		connectedAt: r.connected_at
 	}));
 }

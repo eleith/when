@@ -15,9 +15,9 @@ test('runMigrations creates appointments and oauth_tokens', async () => {
 		const tableNames = tables.rows.map((r) => r.name).sort();
 		expect(tableNames).toEqual([
 			'appointments',
-			'calendar_sync_status',
 			'external_calendar_busy',
-			'oauth_tokens'
+			'oauth_tokens',
+			'service_status'
 		]);
 
 		const indexes = await sql<{ name: string }>`

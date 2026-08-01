@@ -2,9 +2,9 @@ import type { Calendar, WhenConfiguration } from '@when/config';
 import type { ExpandWindow } from '@when/calendar';
 import { busyCalendarsFor, connectProviders, fetchBusyIntervals } from '@when/calendar';
 import {
-	listCalendarSyncStatus,
 	listOwnEventIds,
-	recordRefreshResult,
+	listServiceStatus,
+	recordServiceOutcome,
 	replaceCalendarBusy
 } from '@when/db';
 import type { WorkerContext } from '../services/context.js';
@@ -57,7 +57,11 @@ export async function refreshCalendar(
 			cal.name,
 			intervals.map((i) => ({ start: i.start.toString(), end: i.end.toString() }))
 		);
-		await recordRefreshResult(ctx.db, cal.name, { at });
+		await recordServiceOutcome(
+			ctx.db,
+			{ kind: 'calendar', name: cal.name },
+			{ at, via: 'refresh' }
+		);
 		calendarRefreshTotal.inc({
 			calendar_id: cal.name,
 			provider_type: cal.type,
@@ -72,7 +76,11 @@ export async function refreshCalendar(
 			},
 			'calendar refresh failed; keeping stale busy times'
 		);
-		await recordRefreshResult(ctx.db, cal.name, { at, error });
+		await recordServiceOutcome(
+			ctx.db,
+			{ kind: 'calendar', name: cal.name },
+			{ at, via: 'refresh', error }
+		);
 		calendarRefreshTotal.inc({
 			calendar_id: cal.name,
 			provider_type: cal.type,
@@ -86,8 +94,8 @@ export async function refreshCalendars(
 	opts: RefreshOptions = {}
 ): Promise<void> {
 	const now = opts.now ?? Temporal.Now.instant();
-	const statuses = await listCalendarSyncStatus(ctx.db);
-	const lastSuccess = new Map(statuses.map((s) => [s.calendar_id, s.last_successful_refresh_at]));
+	const statuses = await listServiceStatus(ctx.db, 'calendar');
+	const lastSuccess = new Map(statuses.map((s) => [s.name, s.last_ok_at]));
 	for (const id of busyCalendarIds(ctx.config)) {
 		const cal = ctx.config.calendars.find((c) => c.name === id);
 		if (!cal) {

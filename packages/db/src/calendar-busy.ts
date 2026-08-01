@@ -1,5 +1,5 @@
 import { sql, type Kysely } from 'kysely';
-import type { Appointment, CalendarSyncStatus, Database } from './types.js';
+import type { Appointment, Database } from './types.js';
 
 export interface BusyInterval {
 	start: string;
@@ -37,37 +37,6 @@ export async function getBusyIntervals(
 		.where('start_time', '<', window.end)
 		.execute();
 	return rows.map((r) => ({ start: r.start_time, end: r.end_time }));
-}
-
-export interface RefreshResult {
-	at: string;
-	error?: string | null;
-}
-
-export async function recordRefreshResult(
-	db: Kysely<Database>,
-	calendarId: string,
-	result: RefreshResult
-): Promise<void> {
-	const ok = !result.error;
-	await db
-		.insertInto('calendar_sync_status')
-		.values({
-			calendar_id: calendarId,
-			last_refresh_at: result.at,
-			last_successful_refresh_at: ok ? result.at : null,
-			error: ok ? null : result.error
-		})
-		.onConflict((oc) =>
-			oc
-				.column('calendar_id')
-				.doUpdateSet(
-					ok
-						? { last_refresh_at: result.at, last_successful_refresh_at: result.at, error: null }
-						: { last_refresh_at: result.at, error: result.error }
-				)
-		)
-		.execute();
 }
 
 // Our own published events come back from the provider as "busy"; the refresh
@@ -151,8 +120,4 @@ export async function markSynced(
 		.set({ calendar_synced_revision: revision, ...fields })
 		.where('id', '=', id)
 		.execute();
-}
-
-export function listCalendarSyncStatus(db: Kysely<Database>): Promise<CalendarSyncStatus[]> {
-	return db.selectFrom('calendar_sync_status').selectAll().execute();
 }
