@@ -37,7 +37,8 @@ export async function smtpSummary(
 export async function sendTestEmail(config: WhenConfiguration, to: string): Promise<SendResult> {
 	if (!to.trim()) return { ok: false, message: 'A recipient address is required.' };
 
-	if (!(await workerReachable(config.url.worker))) {
+	const reachable = await workerReachable(config.url.worker);
+	if (!reachable) {
 		return { ok: false, message: 'The worker is not reachable, so nothing would send it.' };
 	}
 

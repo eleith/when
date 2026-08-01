@@ -8,6 +8,7 @@ import {
 } from '$lib/server/providers/google-connect';
 import { discoverCalendars, listProviders, probeProvider } from '$lib/server/providers/status';
 import { sendTestEmail, smtpSummary } from '$lib/server/email/status';
+import { workerReachable } from '$lib/server/worker';
 import { STATE_COOKIE, stateCookieOptions } from './state-cookie';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -16,7 +17,8 @@ export const load: PageServerLoad = async () => {
 	return {
 		crumb: 'Services',
 		providers: await listProviders(config, getDb()),
-		smtp: await smtpSummary(config, getDb())
+		smtp: await smtpSummary(config, getDb()),
+		worker: { url: config.url.worker }
 	};
 };
 
@@ -61,6 +63,19 @@ export const actions: Actions = {
 			: {
 					notice: { tone: 'error', text: `${name} could not list calendars — ${result.message}` }
 				};
+	},
+
+	worker: async () => {
+		const { worker } = getConfig().url;
+		const reachable = await workerReachable(worker);
+		if (reachable) return { notice: { tone: 'success', text: 'The worker is running.' } };
+
+		return {
+			notice: {
+				tone: 'error',
+				text: `The worker is not reachable at ${worker} — calendars stop refreshing and email stops sending.`
+			}
+		};
 	},
 
 	email: async ({ request }) => {

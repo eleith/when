@@ -182,6 +182,23 @@
 		</ul>
 	{/if}
 
+	<h2 class="section">Worker</h2>
+
+	<div class="card">
+		<div class="body">
+			<h3 class="name">{data.worker.url}</h3>
+			<p class="worker-note">
+				Runs every calendar refresh, every appointment push and every email.
+			</p>
+		</div>
+
+		<div class="actions">
+			<form method="POST" action="?/worker">
+				<button type="submit" class="button">Test the worker</button>
+			</form>
+		</div>
+	</div>
+
 	<h2 class="section">Email</h2>
 
 	<div class="card">
@@ -498,6 +515,12 @@
 	}
 
 	.empty {
+		margin: 0;
+		font-size: var(--font-size-md);
+		color: var(--color-text-muted);
+	}
+
+	.worker-note {
 		margin: 0;
 		font-size: var(--font-size-md);
 		color: var(--color-text-muted);
