@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
-import { openDb, runMigrations, listServiceStatus } from '@when/db';
+import { openDb, runMigrations } from '@when/db';
 import type { WhenConfiguration } from '@when/config';
 import { setWorkerContext, type WorkerContext } from '../services/context.js';
 import { createLogger } from '../services/logger.js';
@@ -48,7 +48,7 @@ test('a reachable calendar reports its busy count and records both keys', async 
 	const mirror = await db.selectFrom('external_calendar_busy').selectAll().execute();
 	expect(mirror).toEqual([]);
 
-	const rows = await listServiceStatus(db);
+	const rows = await db.selectFrom('service_status').selectAll().execute();
 	expect(rows.map((r) => `${r.kind}/${r.name}`).sort()).toEqual([
 		'calendar/work',
 		'provider/work-dav'
@@ -61,7 +61,7 @@ test('an unreachable calendar records the failure on both keys and rethrows', as
 
 	await expect(runTestCalendar({ name: 'work' })).rejects.toThrow();
 
-	const rows = await listServiceStatus(db);
+	const rows = await db.selectFrom('service_status').selectAll().execute();
 	expect(rows).toHaveLength(2);
 	for (const row of rows) {
 		expect(row.error).toBeTruthy();
@@ -71,5 +71,5 @@ test('an unreachable calendar records the failure on both keys and rethrows', as
 
 test('an unknown calendar throws and records nothing', async () => {
 	await expect(runTestCalendar({ name: 'nope' })).rejects.toThrow('No calendar named');
-	expect(await listServiceStatus(db)).toEqual([]);
+	expect(await db.selectFrom('service_status').selectAll().execute()).toEqual([]);
 });

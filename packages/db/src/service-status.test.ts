@@ -111,12 +111,14 @@ test('keys of different kinds live side by side', async () => {
 		);
 		await recordServiceOutcome(db, { kind: 'smtp' }, { at: 't1', via: 'send' });
 
-		expect((await listServiceStatus(db)).map((r) => `${r.kind}/${r.name}`).sort()).toEqual([
+		const all = await db.selectFrom('service_status').selectAll().execute();
+		expect(all.map((r) => `${r.kind}/${r.name}`).sort()).toEqual([
 			'calendar/work',
 			'provider/nextcloud',
 			'smtp/'
 		]);
 		expect(await listServiceStatus(db, 'calendar')).toHaveLength(1);
+		expect(await listServiceStatus(db, 'smtp')).toHaveLength(1);
 	} finally {
 		await db.destroy();
 	}

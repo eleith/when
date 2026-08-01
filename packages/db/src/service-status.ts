@@ -59,8 +59,7 @@ export async function recordServiceOutcome(
 
 export function listServiceStatus(
 	db: Kysely<Database>,
-	kind?: ServiceKind
+	kind: ServiceKind
 ): Promise<ServiceStatus[]> {
-	const query = db.selectFrom('service_status').selectAll();
-	return (kind === undefined ? query : query.where('kind', '=', kind)).execute();
+	return db.selectFrom('service_status').selectAll().where('kind', '=', kind).execute();
 }
