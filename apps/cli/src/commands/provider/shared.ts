@@ -1,4 +1,4 @@
-import type { Provider } from '@when/config';
+import type { WhenConfiguration, Provider } from '@when/config';
 import { loadConfigFromCtx } from '../../utils/command.ts';
 import { fail } from '../../utils/report.ts';
 
@@ -7,14 +7,14 @@ export async function providersAndName(
 	nameArg: string | undefined,
 	configArg: string | undefined,
 	action: string
-): Promise<{ providers: Provider[]; name: string } | null> {
+): Promise<{ config: WhenConfiguration; name: string } | null> {
 	if (!nameArg) {
 		fail(`provider ${action} requires a provider name`);
 		return null;
 	}
 	const config = await loadConfigFromCtx(configArg);
 	if (!config) return null;
-	return { providers: config.providers ?? [], name: nameArg };
+	return { config, name: nameArg };
 }
 
 export function requireProvider(providers: Provider[], name: string): Provider | null {

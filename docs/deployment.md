@@ -204,8 +204,12 @@ Every command takes `-c/--config <path>` (defaults to the standard config locati
   pnpm cli config validate --check-env
   ```
 
-- **Providers** — list configured providers, authenticate one, or list the calendars it
-  exposes (to fill `google_calendar_id` / a CalDAV `path`).
+- **Providers** — report what has been observed about each provider, authenticate one, or
+  list the calendars it exposes (to fill `google_calendar_id` / a CalDAV `path`).
+
+  `provider list` reads the stored status and touches no network. `provider test`
+  authenticates for real and records the result, so a manual check shows up on
+  `/admin/services` the same as the worker's own.
 
   ```sh
   pnpm cli provider list
@@ -221,13 +225,13 @@ Every command takes `-c/--config <path>` (defaults to the standard config locati
   pnpm cli calendar test <name>
   ```
 
-  `provider test` and `calendar test` do not yet read the refresh token that
-  `/admin/services` stored, so checking a Google provider or calendar from a terminal
-  means handing it one:
+  `provider test` reads the refresh token that `/admin/services` stored. `calendar test`
+  does not, so checking a Google calendar from a terminal means handing it one, and
+  `--refresh-token` overrides the stored token for either:
 
   ```sh
-  pnpm cli provider test <name> --refresh-token <token>
   pnpm cli calendar test <name> --refresh-token <token>
+  pnpm cli provider test <name> --refresh-token <token>
   ```
 
   CalDAV and Nextcloud need no flag — their credentials are in `when.yaml`.

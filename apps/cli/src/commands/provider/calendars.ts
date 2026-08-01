@@ -19,7 +19,11 @@ export const calendarsCommand = define({
 	async run(ctx) {
 		const resolved = await providersAndName(ctx.values?.name, ctx.values?.config, 'calendars');
 		if (resolved)
-			await runProviderCalendars(resolved.providers, resolved.name, ctx.values?.refreshToken);
+			await runProviderCalendars(
+				resolved.config.providers ?? [],
+				resolved.name,
+				ctx.values?.refreshToken
+			);
 	}
 });
 

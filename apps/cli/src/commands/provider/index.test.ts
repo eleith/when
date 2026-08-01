@@ -2,6 +2,16 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { join } from 'node:path';
 import { writeFileSync, unlinkSync } from 'node:fs';
 import { getProviderAdapter } from '@when/calendar';
+import {
+	openDb,
+	runMigrations,
+	recordServiceOutcome,
+	listServiceStatus,
+	saveProviderRefreshToken
+} from '@when/db';
+import { join as joinPath } from 'node:path';
+import { tmpdir } from 'node:os';
+import { rmSync } from 'node:fs';
 import { providerCommand } from './index.ts';
 import { listCommand } from './list.ts';
 import { testCommand } from './test.ts';
@@ -60,13 +70,15 @@ meetings:
     booking_calendar: "work"
     schedule: "standard"
 database:
-  app: "./data/when.sqlite"
+  app: "DB_PATH"
   queue: "./data/openworkflow.sqlite"
 url:
   app: "https://book.example.com"
 `;
 
 const path = join(process.cwd(), 'temp-provider-config.yaml');
+const dataDir = joinPath(tmpdir(), 'when-cli-provider-test');
+const dbPath = joinPath(dataDir, 'when.sqlite');
 
 function ctx(values: Record<string, unknown>) {
 	return { values } as unknown as Parameters<NonNullable<typeof testCommand.run>>[0];
@@ -77,7 +89,7 @@ describe('provider command', () => {
 	let errorSpy: ReturnType<typeof vi.spyOn>;
 	let originalExitCode: number | undefined;
 
-	beforeEach(() => {
+	beforeEach(async () => {
 		logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 		errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 		originalExitCode = process.exitCode as number | undefined;
@@ -88,7 +100,11 @@ describe('provider command', () => {
 			.mockReset()
 			.mockImplementation((provider) => ({ ...adapter, usesOAuth: provider.type === 'google' }));
 		process.env.WHEN_TEST_SVC_SECRET = 'set';
-		writeFileSync(path, configYaml);
+		rmSync(dataDir, { recursive: true, force: true });
+		const db = openDb(dbPath);
+		await runMigrations(db);
+		await db.destroy();
+		writeFileSync(path, configYaml.replace('DB_PATH', dbPath));
 	});
 
 	afterEach(() => {
@@ -100,6 +116,7 @@ describe('provider command', () => {
 		} catch {
 			/* ignore */
 		}
+		rmSync(dataDir, { recursive: true, force: true });
 	});
 
 	test('bare provider prints usage', () => {
@@ -108,11 +125,53 @@ describe('provider command', () => {
 		expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('when-cli provider test <name>'));
 	});
 
-	test('list shows configured providers with type', async () => {
+	test('list reads the stored status without reaching the provider', async () => {
 		await listCommand.run!(ctx({ config: path }));
 		expect(process.exitCode).toBeUndefined();
-		expect(logSpy).toHaveBeenCalledWith('gcal  (google)');
-		expect(logSpy).toHaveBeenCalledWith('dav  (caldav)');
+		expect(logSpy).toHaveBeenCalledWith('gcal (google) — not yet observed');
+		expect(logSpy).toHaveBeenCalledWith('dav (caldav) — not yet observed');
+		expect(getProviderAdapter).not.toHaveBeenCalled();
+	});
+
+	test('list reports a provider observed as working, and one observed as failing', async () => {
+		const db = openDb(dbPath);
+		await recordServiceOutcome(
+			db,
+			{ kind: 'provider', name: 'gcal' },
+			{ at: 't1', via: 'refresh' }
+		);
+		await recordServiceOutcome(
+			db,
+			{ kind: 'provider', name: 'dav' },
+			{ at: 't2', via: 'push', error: 'PROPFIND 401' }
+		);
+		await db.destroy();
+
+		await listCommand.run!(ctx({ config: path }));
+
+		expect(logSpy).toHaveBeenCalledWith('✅ gcal (google) — working, last confirmed t1');
+		expect(errorSpy).toHaveBeenCalledWith('❌ dav (caldav) — failing since t2: PROPFIND 401');
+	});
+
+	test('a passing test is recorded, so the admin sees it too', async () => {
+		await testCommand.run!(ctx({ name: 'dav', config: path }));
+		expect(process.exitCode).toBeUndefined();
+
+		const db = openDb(dbPath);
+		const [status] = await listServiceStatus(db, 'provider');
+		await db.destroy();
+		expect(status).toMatchObject({ name: 'dav', via: 'test', error: null });
+	});
+
+	test('a failing test records the reason', async () => {
+		adapter.verify = vi.fn().mockRejectedValue(new Error('bad credentials (401)'));
+		await testCommand.run!(ctx({ name: 'dav', config: path }));
+
+		const db = openDb(dbPath);
+		const [status] = await listServiceStatus(db, 'provider');
+		await db.destroy();
+		expect(status.error).toContain('401');
+		expect(status.failing_since).toBeTruthy();
 	});
 
 	test('test requires a provider name', async () => {
@@ -130,10 +189,23 @@ describe('provider command', () => {
 		);
 	});
 
-	test('google test without a refresh token says where the stored one lives', async () => {
+	test('google test reads the stored refresh token instead of demanding a flag', async () => {
+		const db = openDb(dbPath);
+		await saveProviderRefreshToken(db, 'gcal', 'stored-rt');
+		await db.destroy();
+
+		await testCommand.run!(ctx({ name: 'gcal', config: path }));
+
+		expect(process.exitCode).toBeUndefined();
+		expect(getProviderAdapter).toHaveBeenCalledWith(
+			expect.objectContaining({ name: 'gcal', refresh_token: 'stored-rt' })
+		);
+	});
+
+	test('google test says to connect when no token is stored', async () => {
 		await testCommand.run!(ctx({ name: 'gcal', config: path }));
 		expect(process.exitCode).toBe(1);
-		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('--refresh-token'));
+		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('not connected'));
 		expect(adapter.verify).not.toHaveBeenCalled();
 	});
 
