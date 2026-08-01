@@ -3,7 +3,7 @@ import type { Calendar, WhenConfiguration } from '@when/config';
 import type { Database } from '@when/db';
 import { getOpenWorkflow, testCalendar } from '@when/jobs';
 import { workerReachable } from '$lib/server/worker';
-import { listServiceStatus, listOutOfSyncAppointments } from '@when/db';
+import { listServiceStatus } from '@when/db';
 import { evaluateCalendarStatuses } from './health';
 
 const PROBE_TIMEOUT_MS = 30_000;
@@ -28,12 +28,9 @@ export async function listCalendars(
 	config: WhenConfiguration,
 	db: Kysely<Database>
 ): Promise<CalendarView[]> {
-	const [syncStatus, outOfSync] = await Promise.all([
-		listServiceStatus(db, 'calendar'),
-		listOutOfSyncAppointments(db)
-	]);
+	const syncStatus = await listServiceStatus(db, 'calendar');
 
-	const computed = evaluateCalendarStatuses(syncStatus, outOfSync, config, Temporal.Now.instant());
+	const computed = evaluateCalendarStatuses(syncStatus, config, Temporal.Now.instant());
 	const statuses = new Map(computed.map((s) => [s.id, s]));
 	const lastSynced = new Map(syncStatus.map((s) => [s.name, s.last_ok_at]));
 
@@ -65,7 +62,8 @@ export async function probeCalendar(
 	config: WhenConfiguration,
 	name: string
 ): Promise<CalendarProbeResult> {
-	if (!(await workerReachable(config.url.worker))) {
+	const reachable = await workerReachable(config.url.worker);
+	if (!reachable) {
 		return { ok: false, message: 'The worker is not reachable, so nothing would check it.' };
 	}
 

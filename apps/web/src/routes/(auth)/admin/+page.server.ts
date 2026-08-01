@@ -3,12 +3,7 @@ import { getConfig, getDb } from '$lib/server/state';
 import { toAppointmentView } from '$lib/server/appointments';
 import { evaluateCalendarStatuses } from '$lib/server/calendar/health';
 import { signOutAction } from '$lib/server/auth';
-import {
-	countAppointments,
-	listAppointmentsPage,
-	listServiceStatus,
-	listOutOfSyncAppointments
-} from '@when/db';
+import { countAppointments, listAppointmentsPage, listServiceStatus } from '@when/db';
 import { sql } from 'kysely';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -33,7 +28,8 @@ export const load: PageServerLoad = async () => {
 		upcomingToday,
 		pendingPreview,
 		syncStatus,
-		outOfSyncAppts,
+		providerStatus,
+		smtpStatus,
 		conflictResult,
 		confirmedWeekRes,
 		totalMonthRes,
@@ -44,8 +40,9 @@ export const load: PageServerLoad = async () => {
 		countAppointments(db, { bucket: 'upcoming', now }),
 		listAppointmentsPage(db, { bucket: 'upcoming', now, limit: 5, offset: 0 }),
 		listAppointmentsPage(db, { bucket: 'pending', now, limit: 5, offset: 0 }),
-		listServiceStatus(db),
-		listOutOfSyncAppointments(db),
+		listServiceStatus(db, 'calendar'),
+		listServiceStatus(db, 'provider'),
+		listServiceStatus(db, 'smtp'),
 		db
 			.selectFrom('appointments')
 			.select(sql<number>`count(*)`.as('cnt'))
@@ -103,19 +100,23 @@ export const load: PageServerLoad = async () => {
 	const lifetimeMeetings = Number(lifetimeRes?.cnt ?? 0);
 	const lifetimeMinutes = Number(lifetimeMinRes?.minutes ?? 0);
 
-	const calendars = evaluateCalendarStatuses(
-		syncStatus,
-		outOfSyncAppts,
-		cfg,
-		Temporal.Now.instant()
-	);
+	const calendars = evaluateCalendarStatuses(syncStatus, cfg, Temporal.Now.instant());
+
+	const failing = [
+		...calendars
+			.filter((c) => c.health === 'bad')
+			.map((c) => ({ name: c.id, reason: c.reason ?? 'not syncing', since: c.since })),
+		...[...providerStatus, ...smtpStatus]
+			.filter((s) => s.error !== null)
+			.map((s) => ({ name: s.name || s.kind, reason: s.error as string, since: s.failing_since }))
+	];
 
 	return {
 		// smtp is a required top-level block, so the services page always lists one more
 		// card than `services:` has entries.
 		serviceCount: (cfg.providers ?? []).length + 1,
 		calendarCount: cfg.calendars.length,
-		calendars,
+		failing,
 		conflictCount,
 		upcomingCount,
 		pendingCount,

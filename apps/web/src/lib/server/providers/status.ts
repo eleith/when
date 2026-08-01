@@ -2,7 +2,7 @@ import type { Kysely } from 'kysely';
 import type { Provider, WhenConfiguration } from '@when/config';
 import type { Database } from '@when/db';
 import { connectProvider, getProviderAdapter, type ProviderCalendar } from '@when/calendar';
-import { listProviderConnections, listServiceStatus, listOutOfSyncAppointments } from '@when/db';
+import { listProviderConnections, listServiceStatus } from '@when/db';
 import { getOpenWorkflow, listProviderCalendars, testProvider } from '@when/jobs';
 import { evaluateCalendarStatuses, type ComputedCalendarStatus } from '$lib/server/calendar/health';
 import { observedFrom, type ObservedView } from '$lib/server/observed';
@@ -38,19 +38,13 @@ export async function listProviders(
 	config: WhenConfiguration,
 	db: Kysely<Database>
 ): Promise<ProviderView[]> {
-	const [connections, calendarStatus, providerStatus, outOfSync] = await Promise.all([
+	const [connections, calendarStatus, providerStatus] = await Promise.all([
 		listProviderConnections(db),
 		listServiceStatus(db, 'calendar'),
-		listServiceStatus(db, 'provider'),
-		listOutOfSyncAppointments(db)
+		listServiceStatus(db, 'provider')
 	]);
 
-	const computed = evaluateCalendarStatuses(
-		calendarStatus,
-		outOfSync,
-		config,
-		Temporal.Now.instant()
-	);
+	const computed = evaluateCalendarStatuses(calendarStatus, config, Temporal.Now.instant());
 	const connected = new Map(connections.map((c) => [c.providerName, c]));
 	const statuses = new Map(computed.map((s) => [s.id, s]));
 	const observedByName = new Map(providerStatus.map((s) => [s.name, s]));
@@ -105,7 +99,8 @@ function latest(times: (string | null)[]): string | null {
 }
 
 export async function probeProvider(config: WhenConfiguration, name: string): Promise<ProbeResult> {
-	if (!(await workerReachable(config.url.worker))) {
+	const reachable = await workerReachable(config.url.worker);
+	if (!reachable) {
 		return { ok: false, message: 'The worker is not reachable, so nothing would check it.' };
 	}
 
@@ -126,7 +121,8 @@ export async function discoverCalendars(
 	config: WhenConfiguration,
 	name: string
 ): Promise<DiscoveryResult> {
-	if (!(await workerReachable(config.url.worker))) {
+	const reachable = await workerReachable(config.url.worker);
+	if (!reachable) {
 		return { ok: false, message: 'The worker is not reachable, so nothing would ask it.' };
 	}
 

@@ -6,8 +6,6 @@
 
 	let { data } = $props();
 
-	let badCalendars = $derived(data.calendars.filter((c) => c.health === 'bad'));
-
 	function fmt(iso: string): string {
 		return new Date(iso).toLocaleString([], {
 			weekday: 'short',
@@ -41,7 +39,7 @@
 <div class="dashboard">
 	<h1 class="visibility-hidden">Dashboard</h1>
 
-	{#if data.conflictCount > 0 || badCalendars.length > 0}
+	{#if data.conflictCount > 0 || data.failing.length > 0}
 		<section class="alerts">
 			{#if data.conflictCount > 0}
 				<a href="/admin/appointments/upcoming" class="alert">
@@ -52,10 +50,10 @@
 					<span class="alert-arrow"><IconArrowRight aria-hidden="true" /></span>
 				</a>
 			{/if}
-			{#each badCalendars as c (c.id)}
+			{#each data.failing as f (f.name)}
 				<div class="alert" role="alert">
 					<IconWarning aria-hidden="true" />
-					<span>{c.id} — {c.reason ?? 'not syncing'}</span>
+					<span>{f.name} — {f.reason}</span>
 				</div>
 			{/each}
 		</section>
