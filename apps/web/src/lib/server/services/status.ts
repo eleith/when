@@ -52,10 +52,10 @@ export async function listServices(
 	const statuses = new Map(computed.map((s) => [s.id, s]));
 	const lastSynced = new Map(syncStatus.map((s) => [s.calendar_id, s.last_successful_refresh_at]));
 
-	return (config.services ?? []).map((service) => {
+	return (config.providers ?? []).map((service) => {
 		const { usesOAuth } = getServiceAdapter(connectService(service, null));
 		const calendars = config.calendars
-			.filter((cal) => cal.service === service.name)
+			.filter((cal) => cal.provider === service.name)
 			.map((cal) => cal.name);
 
 		return {
@@ -134,7 +134,7 @@ async function connectedAdapter(
 	db: Kysely<Database>,
 	name: string
 ): Promise<ServiceAdapter> {
-	const service = config.services?.find((s) => s.name === name);
+	const service = config.providers?.find((s) => s.name === name);
 	if (!service) throw new Error(`No service named "${name}".`);
 
 	const refreshToken = await getServiceRefreshToken(db, name);

@@ -22,7 +22,7 @@ interface CalendarRegistry {
 export function checkCrossRefs(cfg: WhenConfiguration): ConfigIssue[] {
 	const issues: ConfigIssue[] = [];
 
-	const serviceRegistry = validateServices(cfg.services, issues);
+	const serviceRegistry = validateServices(cfg.providers, issues);
 	const calendarRegistry = validateCalendars(cfg.calendars, serviceRegistry.names, issues);
 	const scheduleNames = validateSchedules(cfg.schedules, issues);
 
@@ -32,7 +32,7 @@ export function checkCrossRefs(cfg: WhenConfiguration): ConfigIssue[] {
 }
 
 function validateServices(
-	services: WhenConfiguration['services'],
+	services: WhenConfiguration['providers'],
 	issues: ConfigIssue[]
 ): ServiceRegistry {
 	const serviceNames = new Set<string>();
@@ -55,8 +55,8 @@ function checkServiceDuplicateName(
 ): void {
 	if (serviceNames.has(srv.name)) {
 		issues.push({
-			path: `/services/${i}/name`,
-			message: `duplicate service name "${srv.name}"`
+			path: `/providers/${i}/name`,
+			message: `duplicate provider name "${srv.name}"`
 		});
 	}
 }
@@ -100,10 +100,10 @@ function checkCalendarServiceReference(
 	serviceNames: Set<string>,
 	issues: ConfigIssue[]
 ): void {
-	if (!serviceNames.has(cal.service)) {
+	if (!serviceNames.has(cal.provider)) {
 		issues.push({
-			path: `/calendars/${i}/service`,
-			message: `references unknown service "${cal.service}"`
+			path: `/calendars/${i}/provider`,
+			message: `references unknown provider "${cal.provider}"`
 		});
 	}
 }
@@ -249,7 +249,7 @@ function checkMeetingVideoChatService(
 	calendarTypes: Map<string, string>,
 	issues: ConfigIssue[]
 ): void {
-	if (meeting.video_chat_service) {
+	if (meeting.video_chat_provider) {
 		validateVideoChatService(meeting, i, serviceRegistry, calendarTypes, issues);
 	}
 }
@@ -275,22 +275,22 @@ function validateVideoChatService(
 	calendarTypes: Map<string, string>,
 	issues: ConfigIssue[]
 ): void {
-	const serviceType = serviceRegistry.types.get(meeting.video_chat_service!);
+	const serviceType = serviceRegistry.types.get(meeting.video_chat_provider!);
 	if (!serviceType) {
 		issues.push({
-			path: `/meetings/${i}/video_chat_service`,
-			message: `references unknown service "${meeting.video_chat_service}"`
+			path: `/meetings/${i}/video_chat_provider`,
+			message: `references unknown provider "${meeting.video_chat_provider}"`
 		});
 	} else if (serviceType !== 'google' && serviceType !== 'nextcloud') {
 		issues.push({
-			path: `/meetings/${i}/video_chat_service`,
-			message: `service "${meeting.video_chat_service}" has type "${serviceType}", but video chat is only supported for "google" and "nextcloud" services`
+			path: `/meetings/${i}/video_chat_provider`,
+			message: `provider "${meeting.video_chat_provider}" has type "${serviceType}", but video chat is only supported for "google" and "nextcloud" providers`
 		});
 	} else if (serviceType === 'google') {
 		const destCalType = calendarTypes.get(meeting.booking_calendar);
 		if (destCalType && destCalType !== 'google') {
 			issues.push({
-				path: `/meetings/${i}/video_chat_service`,
+				path: `/meetings/${i}/video_chat_provider`,
 				message: `Google Meet dynamic video chat is only supported when the booking calendar is a Google Calendar (calendar "${meeting.booking_calendar}" is of type "${destCalType}")`
 			});
 		}

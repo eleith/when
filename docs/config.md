@@ -11,7 +11,7 @@ Point your editor at that schema for inline autocomplete and validation:
 # yaml-language-server: $schema=./config.schema.json
 ```
 
-The required top-level keys are: `auth`, `user`, `smtp`, `calendars`, `schedules`, `meetings`. Optional top-level keys include `services`, `database`, `url`, and `prometheus`.
+The required top-level keys are: `auth`, `user`, `smtp`, `calendars`, `schedules`, `meetings`. Optional top-level keys include `providers`, `database`, `url`, and `prometheus`.
 
 ## Environment variable interpolation
 
@@ -92,14 +92,14 @@ smtp:
   pass: '${SMTP_PASS}'
 ```
 
-## `services`
+## `providers`
 
-External APIs and auth credentials. Calendars reference these services by `name`.
+External APIs and auth credentials. Calendars reference these providers by `name`.
 
 Three `type`s are supported: `google`, `caldav`, and `nextcloud`.
 
 ```yaml
-services:
+providers:
   - name: 'my-google-service'
     type: 'google'
     client_id: '${GOOGLE_CLIENT_ID}'
@@ -124,19 +124,19 @@ One or more external calendars, used as conflict sources (busy times) and/or app
 calendars:
   - name: 'work' # referenced by meetings
     type: 'caldav'
-    service: 'my-caldav-service'
+    provider: 'my-caldav-service'
     url: 'https://cloud.example.com/remote.php/dav/calendars/jane/work/'
     sync:
       refresh_every_minutes: 10 # minutes between busy-time refreshes (default 10)
   - name: 'personal'
     type: 'google'
-    service: 'my-google-service'
+    provider: 'my-google-service'
     google_calendar_id: 'primary'
     sync:
       refresh_every_minutes: 10
 ```
 
-`sync.refresh_every_minutes` is optional on either type. A Google service carries no refresh token in `when.yaml` — connect it from `/admin` and the token is stored in the database.
+`sync.refresh_every_minutes` is optional on either type. A Google provider carries no refresh token in `when.yaml` — connect it from `/admin` and the token is stored in the database.
 
 ## `schedules`
 
@@ -177,7 +177,7 @@ meetings:
     booking_calendar: 'work' # where the appointment is written (defaults to the first calendar)
     schedule: 'standard' # references a schedules name (defaults to the first schedule)
     location: 'Office Room 101' # a static URL, address, or phone number (optional)
-    video_chat_service: 'my-nextcloud-service' # references a nextcloud or google service name to generate dynamic meeting links (optional)
+    video_chat_provider: 'my-nextcloud-service' # references a nextcloud or google provider name to generate dynamic meeting links (optional)
     note: 'Please review materials prior to the call.' # a host note shown to guests (optional)
     form_fields: # custom booking questions (optional)
       - name: 'name'
@@ -223,7 +223,7 @@ meetings:
 Rather than rigid location structures, meetings are customized using:
 
 - **Fixed Location**: A static string configured via `location`.
-- **Dynamic Video Chat**: Setup under `video_chat_service` referencing the service name (e.g. `my-nextcloud-service` or `my-google-service`). Dynamic links (like Nextcloud Talk rooms or Google Meet URLs) are generated automatically.
+- **Dynamic Video Chat**: Setup under `video_chat_provider` referencing the provider name (e.g. `my-nextcloud-service` or `my-google-service`). Dynamic links (like Nextcloud Talk rooms or Google Meet URLs) are generated automatically.
 - **Custom Questions**: Configured via `form_fields`. Every form **must** include exactly one `guest_name` field (with `required: true`). Optional special field types include `guest_email` and `event_location`. General text fields, numbers, phone numbers, paragraphs, and choices are also supported. A field may be shown conditionally with `show_when`: a list of `{ field, equals }` conditions (all must hold) referencing earlier fields. Omit `equals` to require only that the referenced field is filled, or give it a list to accept any of several values. A field hidden by `show_when` is never required and its answer is not recorded.
 
 ## `database`

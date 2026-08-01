@@ -24,13 +24,13 @@ export async function createStandaloneVideoChat(
 	}
 
 	const meeting = config.meetings.find((m) => m.name === row.event_type_id);
-	if (!meeting || !meeting.video_chat_service) {
+	if (!meeting || !meeting.video_chat_provider) {
 		return row as Appointment;
 	}
 
-	const service = (config.services ?? []).find((s) => s.name === meeting.video_chat_service);
+	const service = (config.providers ?? []).find((s) => s.name === meeting.video_chat_provider);
 	if (!service) {
-		throw new Error(`Video chat service "${meeting.video_chat_service}" not found`);
+		throw new Error(`Video chat service "${meeting.video_chat_provider}" not found`);
 	}
 
 	// We ONLY handle standalone video chat providers here (like Nextcloud Talk).
@@ -81,11 +81,11 @@ export async function deleteStandaloneVideoChat(
 	}
 
 	const meeting = config.meetings.find((e) => e.name === row.event_type_id);
-	if (!meeting || !meeting.video_chat_service) {
+	if (!meeting || !meeting.video_chat_provider) {
 		return;
 	}
 
-	const service = (config.services ?? []).find((s) => s.name === meeting.video_chat_service);
+	const service = (config.providers ?? []).find((s) => s.name === meeting.video_chat_provider);
 	if (!service || service.type !== 'nextcloud') {
 		return;
 	}

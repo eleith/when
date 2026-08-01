@@ -50,8 +50,8 @@ smtp:
   # from defaults to noreply@<your url.app domain>
   # from: 'bookings@example.com'
 
-# --- Credentials for calendar/video services referenced by calendars below ---
-services:
+# --- Credentials for calendar/video providers referenced by calendars below ---
+providers:
   - name: 'caldav-service'
     type: 'caldav'
     url: 'https://caldav.example.com/dav/' # DAV base URL
@@ -62,7 +62,7 @@ services:
   #   type: 'google'
   #   client_id: '...apps.googleusercontent.com'
   #   client_secret: '${GOOGLE_CLIENT_SECRET}'
-  # Nextcloud (a CalDAV-compatible service, also usable for Talk video links):
+  # Nextcloud (a CalDAV-compatible provider, also usable for Talk video links):
   # - name: 'nextcloud-service'
   #   type: 'nextcloud'
   #   url: 'https://cloud.example.com'
@@ -73,16 +73,16 @@ services:
 calendars:
   - name: 'main'
     type: 'caldav'
-    service: 'caldav-service'
-    path: 'calendars/you/main/' # joined to the service's base url
+    provider: 'caldav-service'
+    path: 'calendars/you/main/' # joined to the provider's base url
     # ...or point at a full endpoint instead of a path:
     # url: 'https://caldav.example.com/dav/calendars/you/main/'
     # sync:
     #   refresh_every_minutes: 10 # busy-time refresh cadence (default 10)
-  # A Google calendar references a google service by name:
+  # A Google calendar references a google provider by name:
   # - name: 'personal'
   #   type: 'google'
-  #   service: 'google-service'
+  #   provider: 'google-service'
   #   google_calendar_id: 'primary'
 
 # --- Weekly availability (times are in user.timezone) ---
@@ -118,7 +118,7 @@ meetings:
     # booking_calendar: 'main'
     # additional_busy_calendars: ['personal'] # further calendars to check; booking_calendar is always checked
     # location: 'Suite 200, 123 Main St' # a static address, phone, or link
-    # video_chat_service: 'google-service' # generate a video link per booking
+    # video_chat_provider: 'google-service' # generate a video link per booking
     # note: 'Please add an agenda when you book.'
     # notice_minutes: 120 # minimum lead time (default 120)
     # booking_window_days: 60 # how far ahead bookings open (default 60)

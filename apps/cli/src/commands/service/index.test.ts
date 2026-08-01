@@ -27,7 +27,7 @@ smtp:
   port: 587
   user: "smtp_user"
   pass: "smtp_pass"
-services:
+providers:
   - name: "gcal"
     type: "google"
     client_id: "cid"
@@ -44,7 +44,7 @@ services:
 calendars:
   - name: "work"
     type: "caldav"
-    service: "dav"
+    provider: "dav"
     url: "https://dav.example.com/remote.php/dav/calendars/u/work/"
 schedules:
   - name: "standard"

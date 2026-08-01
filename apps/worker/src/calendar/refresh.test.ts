@@ -13,7 +13,7 @@ const silent: Logger = pino({ level: 'silent' });
 const workCal: Calendar = {
 	name: 'work',
 	type: 'caldav',
-	service: 'work-dav',
+	provider: 'work-dav',
 	url: 'https://cal.example.com/work/'
 };
 
@@ -37,7 +37,7 @@ END:VCALENDAR</C:calendar-data>
 const defaultTestConfig = {
 	url: { app: 'https://when.example.com' },
 	user: { name: 'Jane', email: 'jane@example.com' },
-	services: [
+	providers: [
 		{
 			name: 'work-dav',
 			type: 'caldav',
@@ -243,7 +243,7 @@ test('refreshCalendars refreshes known busy calendars and skips unknown ids', as
 	const ctx: WorkerContext = {
 		config: {
 			schedules: [{ name: 'standard' }],
-			services: defaultTestConfig.services,
+			providers: defaultTestConfig.providers,
 			calendars: [workCal],
 			meetings: [
 				{ booking_calendar: 'work', additional_busy_calendars: ['ghost'], schedule: 'standard' }
@@ -279,7 +279,7 @@ test('refreshCalendars skips a calendar refreshed within its interval, refreshes
 	const ctx: WorkerContext = {
 		config: {
 			schedules: [{ name: 'standard' }],
-			services: defaultTestConfig.services,
+			providers: defaultTestConfig.providers,
 			calendars: [{ ...workCal, sync: { refresh_every_minutes: 30 } }],
 			meetings: [{ booking_calendar: 'work', schedule: 'standard' }]
 		} as unknown as WhenConfiguration,

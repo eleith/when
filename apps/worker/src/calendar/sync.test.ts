@@ -11,7 +11,7 @@ const silent: Logger = pino({ level: 'silent' });
 const config = {
 	user: { name: 'Jane', email: 'jane@example.com', timezone: 'America/New_York' },
 	url: { app: 'https://when.example.com' },
-	services: [
+	providers: [
 		{
 			name: 'work-dav',
 			type: 'caldav',
@@ -24,7 +24,7 @@ const config = {
 		{
 			name: 'work',
 			type: 'caldav',
-			service: 'work-dav',
+			provider: 'work-dav',
 			url: 'https://cal.example.com/work/'
 		}
 	],

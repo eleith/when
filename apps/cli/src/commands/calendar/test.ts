@@ -60,7 +60,7 @@ function connectedServicesFor(
 	cal: WhenConfiguration['calendars'][number],
 	refreshToken?: string
 ): ConnectedService[] {
-	const service = config.services?.find((s) => s.name === cal.service);
+	const service = config.providers?.find((s) => s.name === cal.provider);
 	if (!service) return [];
 	return [
 		service.type === 'google' ? { ...service, refresh_token: refreshToken ?? null } : service

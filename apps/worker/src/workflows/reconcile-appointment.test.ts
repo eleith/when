@@ -19,7 +19,7 @@ const input: ReconcileAppointmentInput = {
 const testConfig = {
 	...sampleInput.cfg,
 	calendars: [],
-	services: [],
+	providers: [],
 	meetings: [
 		{
 			name: '30-min',

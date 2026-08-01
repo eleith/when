@@ -4,7 +4,7 @@ import type { WhenConfiguration } from '@when/config';
 
 describe('getVideoChatAdapter', () => {
 	const mockConfig: WhenConfiguration = {
-		services: [
+		providers: [
 			{
 				name: 'nc-service',
 				type: 'nextcloud',
@@ -28,14 +28,14 @@ describe('getVideoChatAdapter', () => {
 	} as unknown as WhenConfiguration;
 
 	test('returns NextcloudTalkAdapter for nextcloud service', () => {
-		const srv = mockConfig.services![0];
+		const srv = mockConfig.providers![0];
 		const adapter = getVideoChatAdapter(srv);
 		expect(adapter).toBeDefined();
 		expect(adapter.constructor.name).toBe('NextcloudTalkAdapter');
 	});
 
 	test('returns native meet adapter for google service', () => {
-		const srv = mockConfig.services![1];
+		const srv = mockConfig.providers![1];
 		const adapter = getVideoChatAdapter(srv);
 		expect(adapter).toBeDefined();
 		expect(adapter.constructor.name).toBe('GoogleMeetAdapter');

@@ -19,9 +19,9 @@
 			"description": "SMTP email server settings.",
 			"$ref": "#/$defs/Smtp"
 		},
-		"services": {
+		"providers": {
 			"default": [],
-			"description": "Credentials for third-party services.",
+			"description": "Credentials for third-party providers.",
 			"type": "array",
 			"items": {
 				"$ref": "#/$defs/Service"
@@ -213,7 +213,7 @@
 				{
 					"additionalProperties": false,
 					"type": "object",
-					"required": ["name", "type", "service", "path"],
+					"required": ["name", "type", "provider", "path"],
 					"properties": {
 						"name": {
 							"minLength": 1,
@@ -225,9 +225,9 @@
 							"const": "caldav",
 							"type": "string"
 						},
-						"service": {
+						"provider": {
 							"minLength": 1,
-							"description": "Name of the caldav or nextcloud service to connect with.",
+							"description": "Name of the caldav or nextcloud provider to connect with.",
 							"type": "string"
 						},
 						"path": {
@@ -244,7 +244,7 @@
 				{
 					"additionalProperties": false,
 					"type": "object",
-					"required": ["name", "type", "service", "url"],
+					"required": ["name", "type", "provider", "url"],
 					"properties": {
 						"name": {
 							"minLength": 1,
@@ -256,9 +256,9 @@
 							"const": "caldav",
 							"type": "string"
 						},
-						"service": {
+						"provider": {
 							"minLength": 1,
-							"description": "Name of the caldav or nextcloud service to connect with.",
+							"description": "Name of the caldav or nextcloud provider to connect with.",
 							"type": "string"
 						},
 						"url": {
@@ -283,7 +283,7 @@
 			"properties": {
 				"name": {
 					"minLength": 1,
-					"description": "Unique name for the service, referenced by calendars.",
+					"description": "Unique name for the provider, referenced by calendars.",
 					"type": "string"
 				},
 				"type": {
@@ -485,7 +485,7 @@
 			"title": "GoogleCalendar",
 			"description": "Google Calendar integration configuration.",
 			"type": "object",
-			"required": ["name", "type", "service", "google_calendar_id"],
+			"required": ["name", "type", "provider", "google_calendar_id"],
 			"properties": {
 				"name": {
 					"minLength": 1,
@@ -497,9 +497,9 @@
 					"const": "google",
 					"type": "string"
 				},
-				"service": {
+				"provider": {
 					"minLength": 1,
-					"description": "Name of the google service to connect with.",
+					"description": "Name of the google provider to connect with.",
 					"type": "string"
 				},
 				"google_calendar_id": {
@@ -522,7 +522,7 @@
 			"properties": {
 				"name": {
 					"minLength": 1,
-					"description": "Unique name for the service, referenced by calendars.",
+					"description": "Unique name for the provider, referenced by calendars.",
 					"type": "string"
 				},
 				"type": {
@@ -667,9 +667,9 @@
 					"description": "A note shown to guests after booking.",
 					"type": "string"
 				},
-				"video_chat_service": {
+				"video_chat_provider": {
 					"minLength": 1,
-					"description": "Name of the service to generate dynamic links.",
+					"description": "Name of the provider to generate dynamic links.",
 					"type": "string"
 				},
 				"start_times_every_minutes": {
@@ -732,7 +732,7 @@
 			"properties": {
 				"name": {
 					"minLength": 1,
-					"description": "Unique name for the service, referenced by calendars.",
+					"description": "Unique name for the provider, referenced by calendars.",
 					"type": "string"
 				},
 				"type": {

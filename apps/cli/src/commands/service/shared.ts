@@ -14,7 +14,7 @@ export async function servicesAndName(
 	}
 	const config = await loadConfigFromCtx(configArg);
 	if (!config) return null;
-	return { services: config.services ?? [], name: nameArg };
+	return { services: config.providers ?? [], name: nameArg };
 }
 
 export function requireService(services: Service[], name: string): Service | null {

@@ -47,12 +47,12 @@ describe('home page load', () => {
 		withMeetings({
 			...baseMeeting,
 			location: '1 Main St, Suite 200',
-			video_chat_service: 'google-service'
+			video_chat_provider: 'google-service'
 		});
 
 		const [et] = loadEventTypes();
 		expect(et).not.toHaveProperty('location');
-		expect(et).not.toHaveProperty('video_chat_service');
+		expect(et).not.toHaveProperty('video_chat_provider');
 		expect(JSON.stringify(et)).not.toContain('Main St');
 	});
 

@@ -9,7 +9,7 @@ const window = { start: inst('2026-04-01T00:00:00Z'), end: inst('2026-05-01T00:0
 const workCal: Calendar = {
 	name: 'work',
 	type: 'caldav',
-	service: 'work-dav',
+	provider: 'work-dav',
 	url: 'https://cal.example.com/work/'
 };
 

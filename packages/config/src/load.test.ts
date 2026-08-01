@@ -130,14 +130,14 @@ test('location rejects non-string value', () => {
 
 test('video_chat_service accepts valid service name', () => {
 	const good = clone(validConfig);
-	good.meetings[0].video_chat_service = 'google-service';
+	good.meetings[0].video_chat_provider = 'google-service';
 	const cfg = validateConfig(good);
-	expect(cfg.meetings[0].video_chat_service).toBe('google-service');
+	expect(cfg.meetings[0].video_chat_provider).toBe('google-service');
 });
 
 test('video_chat_service rejects non-string value', () => {
 	const bad = clone(validConfig);
-	bad.meetings[0].video_chat_service = 123 as never;
+	bad.meetings[0].video_chat_provider = 123 as never;
 	expect(() => validateConfig(bad)).toThrow(ConfigError);
 });
 

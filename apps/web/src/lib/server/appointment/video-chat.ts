@@ -4,10 +4,10 @@ export function resolveAppointmentVideoChat(
 	meeting: Meeting,
 	config: WhenConfiguration
 ): string | null {
-	if (!meeting.video_chat_service) {
+	if (!meeting.video_chat_provider) {
 		return null;
 	}
-	const service = config.services?.find((s) => s.name === meeting.video_chat_service);
+	const service = config.providers?.find((s) => s.name === meeting.video_chat_provider);
 	if (service?.type === 'google') {
 		return 'google-meet';
 	}

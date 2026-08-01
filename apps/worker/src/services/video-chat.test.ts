@@ -14,7 +14,7 @@ beforeEach(() => {
 
 const mockConfig = {
 	url: { app: 'https://when.example.com' },
-	services: [
+	providers: [
 		{
 			name: 'nc-service',
 			type: 'nextcloud',
@@ -28,7 +28,7 @@ const mockConfig = {
 		{
 			name: 'chat',
 			slug: 'chat',
-			video_chat_service: 'nc-service'
+			video_chat_provider: 'nc-service'
 		}
 	]
 } as unknown as WhenConfiguration;
@@ -217,7 +217,7 @@ describe('deleteStandaloneVideoChat', () => {
 						name: 'chat',
 						slug: 'chat',
 						booking_calendar: 'g-cal',
-						video_chat_service: 'nc-service'
+						video_chat_provider: 'nc-service'
 					}
 				]
 			} as unknown as WhenConfiguration;
@@ -255,7 +255,7 @@ describe('deleteStandaloneVideoChat', () => {
 
 			await deleteStandaloneVideoChat(db, 'c2', configWithVc);
 
-			expect(getVideoChatAdapter).toHaveBeenCalledWith(mockConfig.services![0]);
+			expect(getVideoChatAdapter).toHaveBeenCalledWith(mockConfig.providers![0]);
 			expect(mockAdapter.deleteRoom).toHaveBeenCalledWith(
 				'https://cloud.example.com/call/room-abc'
 			);

@@ -47,7 +47,7 @@ const davServices: ConnectedService[] = [
 
 const cfgWithCalDav: WhenConfiguration = {
 	...validConfig,
-	services: [
+	providers: [
 		{
 			name: 'work-dav-service',
 			type: 'caldav',
@@ -56,7 +56,7 @@ const cfgWithCalDav: WhenConfiguration = {
 			password: 'secret'
 		}
 	],
-	calendars: [{ name: 'work', type: 'caldav', service: 'work-dav-service', url: caldavCfg.url }],
+	calendars: [{ name: 'work', type: 'caldav', provider: 'work-dav-service', url: caldavCfg.url }],
 	meetings: [
 		{
 			...validConfig.meetings[0],
@@ -144,7 +144,7 @@ test('pushAppointment routes to CalDAV PUT and returns external ids', async () =
 test('pushAppointment fails cleanly when the google service is not connected', async () => {
 	const cfgGoogle: WhenConfiguration = {
 		...validConfig,
-		services: [
+		providers: [
 			{
 				name: 'google-service-2',
 				type: 'google',
@@ -156,7 +156,7 @@ test('pushAppointment fails cleanly when the google service is not connected', a
 			{
 				name: 'g',
 				type: 'google',
-				service: 'google-service-2',
+				provider: 'google-service-2',
 				google_calendar_id: 'gcal'
 			}
 		],
@@ -186,7 +186,7 @@ test('pushAppointment fails cleanly when the google service is not connected', a
 test('pushAppointment succeeds on Google calendar', async () => {
 	const cfgGoogle: WhenConfiguration = {
 		...validConfig,
-		services: [
+		providers: [
 			{
 				name: 'google-service-2',
 				type: 'google',
@@ -198,7 +198,7 @@ test('pushAppointment succeeds on Google calendar', async () => {
 			{
 				name: 'g',
 				type: 'google',
-				service: 'google-service-2',
+				provider: 'google-service-2',
 				google_calendar_id: 'gcal'
 			}
 		],

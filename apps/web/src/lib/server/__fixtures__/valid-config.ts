@@ -33,7 +33,7 @@ export const validConfig: WhenConfiguration = {
 		user: 'mailer',
 		pass: 'secret'
 	},
-	services: [
+	providers: [
 		{
 			name: 'google-service',
 			type: 'google',
@@ -45,7 +45,7 @@ export const validConfig: WhenConfiguration = {
 		{
 			name: 'my-google-cal',
 			type: 'google',
-			service: 'google-service',
+			provider: 'google-service',
 			google_calendar_id: 'gc-calid'
 		}
 	],

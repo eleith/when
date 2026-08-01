@@ -29,7 +29,7 @@ const service: GoogleService = {
 
 const config = {
 	url: { app: 'https://book.example.com' },
-	services: [
+	providers: [
 		service,
 		{ name: 'dav', type: 'caldav', url: 'https://d.example/', username: 'u', password: 'p' }
 	]

@@ -20,7 +20,7 @@ smtp:
   port: 587
   user: smtp-user
   pass: \${WHEN_SMTP_PASS}
-services:
+providers:
   - name: my-caldav
     type: caldav
     url: https://dav.example.com/
@@ -29,7 +29,7 @@ services:
 calendars:
   - name: primary
     type: caldav
-    service: my-caldav
+    provider: my-caldav
     path: calendars/dav-user/primary/
 schedules:
   - name: standard

@@ -27,9 +27,9 @@ smtp:
 calendars:
   - name: "work"
     type: "caldav"
-    service: "dav"
+    provider: "dav"
     url: "https://dav.example.com/calendars/u/work/"
-services:
+providers:
   - name: "dav"
     type: "caldav"
     url: "https://dav.example.com/"

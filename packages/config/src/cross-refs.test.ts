@@ -252,38 +252,38 @@ test('choice field without choices flagged', () => {
 	expect(issues.some((i) => i.path === '/meetings/0/form_fields/3/choices')).toBe(true);
 });
 
-test('unknown service in calendar flagged', () => {
+test('unknown provider in calendar flagged', () => {
 	const bad = clone(validConfig);
-	bad.calendars[0].service = 'non-existent';
+	bad.calendars[0].provider = 'non-existent';
 	const issues = issuesFor(bad);
 	expect(
-		issues.some((i) => i.path === '/calendars/0/service' && i.message.includes('unknown service'))
+		issues.some((i) => i.path === '/calendars/0/provider' && i.message.includes('unknown provider'))
 	).toBe(true);
 });
 
-test('duplicate service name flagged', () => {
+test('duplicate provider name flagged', () => {
 	const bad = clone(validConfig);
-	bad.services!.push({ ...bad.services![0] });
+	bad.providers!.push({ ...bad.providers![0] });
 	const issues = issuesFor(bad);
 	expect(
-		issues.some((i) => i.path === '/services/1/name' && i.message.includes('duplicate service'))
+		issues.some((i) => i.path === '/providers/1/name' && i.message.includes('duplicate provider'))
 	).toBe(true);
 });
 
-test('unknown video_chat_service reference in meeting flagged', () => {
+test('unknown video_chat_provider reference in meeting flagged', () => {
 	const bad = clone(validConfig);
-	bad.meetings[0].video_chat_service = 'non-existent';
+	bad.meetings[0].video_chat_provider = 'non-existent';
 	const issues = issuesFor(bad);
 	expect(
 		issues.some(
-			(i) => i.path === '/meetings/0/video_chat_service' && i.message.includes('unknown service')
+			(i) => i.path === '/meetings/0/video_chat_provider' && i.message.includes('unknown provider')
 		)
 	).toBe(true);
 });
 
-test('Google Meet video_chat_service with CalDAV booking calendar flagged', () => {
+test('Google Meet video_chat_provider with CalDAV booking calendar flagged', () => {
 	const bad = clone(validConfig);
-	bad.services!.push({
+	bad.providers!.push({
 		name: 'nextcloud-service',
 		type: 'nextcloud',
 		url: 'https://cloud.example.com',
@@ -293,17 +293,17 @@ test('Google Meet video_chat_service with CalDAV booking calendar flagged', () =
 	bad.calendars.push({
 		name: 'caldav-cal',
 		type: 'caldav',
-		service: 'nextcloud-service',
+		provider: 'nextcloud-service',
 		url: 'https://cloud.example.com/cal/'
 	});
 	bad.meetings[0].booking_calendar = 'caldav-cal';
-	bad.meetings[0].video_chat_service = 'google-service'; // google-service is of type google
+	bad.meetings[0].video_chat_provider = 'google-service'; // google-service is of type google
 
 	const issues = issuesFor(bad);
 	expect(
 		issues.some(
 			(i) =>
-				i.path === '/meetings/0/video_chat_service' &&
+				i.path === '/meetings/0/video_chat_provider' &&
 				i.message.includes('Google Meet dynamic video chat is only supported')
 		)
 	).toBe(true);

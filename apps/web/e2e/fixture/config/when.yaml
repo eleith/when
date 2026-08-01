@@ -18,7 +18,7 @@ smtp:
   user: 'e2e@example.test'
   pass: 'e2e-smtp-password'
 
-services:
+providers:
   - name: 'fixture-service'
     type: 'caldav'
     url: 'http://caldav.example.test/dav/'
@@ -28,7 +28,7 @@ services:
 calendars:
   - name: 'main'
     type: 'caldav'
-    service: 'fixture-service'
+    provider: 'fixture-service'
     path: 'calendars/e2e/main/'
 
 schedules:

@@ -22,7 +22,7 @@ smtp:
   port: 587
   user: "smtp_user"
   pass: "smtp_pass"
-services:
+providers:
   - name: "dav"
     type: "caldav"
     url: "https://dav.example.com/"
@@ -36,11 +36,11 @@ services:
 calendars:
   - name: "work"
     type: "caldav"
-    service: "dav"
+    provider: "dav"
     url: "https://dav.example.com/calendars/u/work/"
   - name: "envref"
     type: "caldav"
-    service: "dav-envref"
+    provider: "dav-envref"
     url: "https://dav.example.com/calendars/u/envref/"
 schedules:
   - name: "standard"

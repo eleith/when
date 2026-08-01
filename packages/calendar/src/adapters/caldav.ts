@@ -161,7 +161,7 @@ export class CalDavAdapter implements CalendarAdapter {
 	private get adapterCfg(): CalDavConfig {
 		if (!this.service) {
 			throw new Error(
-				`Credentials service "${this.cal.service}" was not provided to CalDavAdapter`
+				`Credentials service "${this.cal.provider}" was not provided to CalDavAdapter`
 			);
 		}
 		let calUrl: string;

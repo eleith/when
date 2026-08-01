@@ -69,11 +69,11 @@ async function connectServices(
 function getCalendarAdapter(cal: Calendar, services?: ConnectedService[]): CalendarAdapter {
 	const type = cal.type;
 	if (type === 'caldav') {
-		const service = services?.find((s) => s.name === (cal as CalDavCalendar).service);
+		const service = services?.find((s) => s.name === (cal as CalDavCalendar).provider);
 		return new CalDavAdapter(cal as CalDavCalendar, service as CalDavService | undefined);
 	}
 	if (type === 'google') {
-		const service = services?.find((s) => s.name === (cal as GoogleCalendar).service);
+		const service = services?.find((s) => s.name === (cal as GoogleCalendar).provider);
 		return new GoogleAdapter(cal as GoogleCalendar, service as ConnectedGoogleService | undefined);
 	}
 	throw new Error(`Unsupported calendar type: ${type}`);

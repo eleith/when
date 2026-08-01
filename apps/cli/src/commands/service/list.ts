@@ -20,6 +20,6 @@ export const listCommand = define({
 	},
 	async run(ctx) {
 		const config = await loadConfigFromCtx(ctx.values?.config);
-		if (config) runServiceList(config.services ?? []);
+		if (config) runServiceList(config.providers ?? []);
 	}
 });

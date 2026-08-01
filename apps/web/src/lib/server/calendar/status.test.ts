@@ -10,13 +10,13 @@ vi.mock('@when/calendar', async (importOriginal) => {
 });
 
 const config = {
-	services: [{ name: 'gg', type: 'google', client_id: 'cid', client_secret: 'csec' }],
+	providers: [{ name: 'gg', type: 'google', client_id: 'cid', client_secret: 'csec' }],
 	calendars: [
-		{ name: 'work', type: 'google', service: 'gg', google_calendar_id: 'primary' },
+		{ name: 'work', type: 'google', provider: 'gg', google_calendar_id: 'primary' },
 		{
 			name: 'home',
 			type: 'caldav',
-			service: 'dav',
+			provider: 'dav',
 			path: 'calendars/u/home/',
 			sync: { refresh_every_minutes: 30 }
 		}

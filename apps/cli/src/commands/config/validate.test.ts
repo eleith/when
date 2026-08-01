@@ -28,7 +28,7 @@ smtp:
   port: 587
   user: "smtp_user"
   pass: "smtp_pass"
-services:
+providers:
   - name: "work-dav"
     type: "caldav"
     url: "https://example.com"
@@ -37,7 +37,7 @@ services:
 calendars:
   - name: "work"
     type: "caldav"
-    service: "work-dav"
+    provider: "work-dav"
     url: "https://example.com"
 schedules:
   - name: "standard"
@@ -81,7 +81,7 @@ smtp:
   port: 587
   user: "smtp_user"
   pass: "smtp_pass"
-services:
+providers:
   - name: "work-dav"
     type: "caldav"
     url: "https://example.com"
@@ -90,7 +90,7 @@ services:
 calendars:
   - name: "work"
     type: "caldav"
-    service: "work-dav"
+    provider: "work-dav"
     url: "https://example.com"
 schedules:
   - name: "standard"

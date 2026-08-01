@@ -20,13 +20,13 @@ const adapter = {
 
 const config = {
 	url: { app: 'https://book.example.com' },
-	services: [
+	providers: [
 		{ name: 'gg', type: 'google', client_id: 'cid', client_secret: 'csec' },
 		{ name: 'dav', type: 'caldav', url: 'https://d.example/', username: 'u', password: 'p' }
 	],
 	calendars: [
-		{ name: 'work', type: 'google', service: 'gg', google_calendar_id: 'primary' },
-		{ name: 'home', type: 'caldav', service: 'dav', url: 'https://d.example/home/' }
+		{ name: 'work', type: 'google', provider: 'gg', google_calendar_id: 'primary' },
+		{ name: 'home', type: 'caldav', provider: 'dav', url: 'https://d.example/home/' }
 	],
 	meetings: []
 } as unknown as WhenConfiguration;

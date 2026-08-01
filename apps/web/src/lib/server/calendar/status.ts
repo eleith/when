@@ -41,7 +41,7 @@ export async function listCalendars(
 		return {
 			name: cal.name,
 			type: cal.type,
-			service: cal.service,
+			service: cal.provider,
 			target: targetOf(cal),
 			refreshEveryMinutes: cal.sync?.refresh_every_minutes ?? DEFAULT_REFRESH_MINUTES,
 			health: status?.health ?? 'unknown',
@@ -71,7 +71,7 @@ export async function probeCalendar(
 	try {
 		const now = Temporal.Now.instant();
 		const window = { start: now, end: now.add({ hours: 24 * WINDOW_DAYS }) };
-		const services = await connectServices(config.services ?? [], db);
+		const services = await connectServices(config.providers ?? [], db);
 		const busy = await fetchBusyIntervals(cal, window, { services });
 
 		const label = busy.length === 1 ? 'busy interval' : 'busy intervals';

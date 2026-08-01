@@ -16,7 +16,7 @@ export function googleRedirectUri(appUrl: string): string {
 }
 
 export function findGoogleService(config: WhenConfiguration, name: string): GoogleService | null {
-	const service = config.services?.find((s) => s.name === name);
+	const service = config.providers?.find((s) => s.name === name);
 	return service?.type === 'google' ? service : null;
 }
 

@@ -272,11 +272,11 @@ export class GoogleAdapter implements CalendarAdapter {
 	private get googleCfg(): GoogleConfig {
 		if (!this.service) {
 			throw new Error(
-				`Credentials service "${this.cal.service}" was not provided to GoogleAdapter`
+				`Credentials service "${this.cal.provider}" was not provided to GoogleAdapter`
 			);
 		}
 		if (!this.service.refresh_token) {
-			throw new Error(`Google service "${this.cal.service}" is not connected`);
+			throw new Error(`Google service "${this.cal.provider}" is not connected`);
 		}
 		return {
 			client_id: this.service.client_id,
