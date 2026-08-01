@@ -1,6 +1,6 @@
 import type { Calendar, WhenConfiguration } from '@when/config';
 import type { ExpandWindow } from '@when/calendar';
-import { busyCalendarsFor, connectServices, fetchBusyIntervals } from '@when/calendar';
+import { busyCalendarsFor, connectProviders, fetchBusyIntervals } from '@when/calendar';
 import {
 	listCalendarSyncStatus,
 	listOwnEventIds,
@@ -50,7 +50,7 @@ export async function refreshCalendar(
 	const at = (opts.now ?? window.start).toString();
 	try {
 		const excludeUids = new Set(await listOwnEventIds(ctx.db, cal.name));
-		const services = await connectServices(ctx.config.providers ?? [], ctx.db);
+		const services = await connectProviders(ctx.config.providers ?? [], ctx.db);
 		const intervals = await fetchBusyIntervals(cal, window, { excludeUids, services });
 		await replaceCalendarBusy(
 			ctx.db,

@@ -1,7 +1,7 @@
 import type { Kysely } from 'kysely';
 import type { Calendar, WhenConfiguration } from '@when/config';
 import type { Database } from '@when/db';
-import { connectServices, fetchBusyIntervals } from '@when/calendar';
+import { connectProviders, fetchBusyIntervals } from '@when/calendar';
 import { listCalendarSyncStatus, listOutOfSyncAppointments } from '@when/db';
 import { evaluateCalendarStatuses } from './health';
 
@@ -71,7 +71,7 @@ export async function probeCalendar(
 	try {
 		const now = Temporal.Now.instant();
 		const window = { start: now, end: now.add({ hours: 24 * WINDOW_DAYS }) };
-		const services = await connectServices(config.providers ?? [], db);
+		const services = await connectProviders(config.providers ?? [], db);
 		const busy = await fetchBusyIntervals(cal, window, { services });
 
 		const label = busy.length === 1 ? 'busy interval' : 'busy intervals';

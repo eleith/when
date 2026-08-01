@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { openDb, runMigrations, saveServiceRefreshToken, recordRefreshResult } from '@when/db';
-import { getServiceAdapter } from '@when/calendar';
+import { getProviderAdapter } from '@when/calendar';
 import type { WhenConfiguration } from '@when/config';
 import { discoverCalendars, listServices, probeService } from './status';
 
 vi.mock('@when/calendar', async (importOriginal) => {
 	const actual = await importOriginal<typeof import('@when/calendar')>();
-	return { ...actual, getServiceAdapter: vi.fn() };
+	return { ...actual, getProviderAdapter: vi.fn() };
 });
 
 // Provider behaviour is the adapter's; these tests cover what web adds — joining the
@@ -38,7 +38,7 @@ beforeEach(async () => {
 	await runMigrations(db);
 	adapter.verify = vi.fn().mockResolvedValue(undefined);
 	adapter.listCalendars = vi.fn().mockResolvedValue([]);
-	vi.mocked(getServiceAdapter)
+	vi.mocked(getProviderAdapter)
 		.mockReset()
 		.mockImplementation((service) => ({
 			...adapter,
@@ -123,7 +123,7 @@ describe('probeService', () => {
 		await saveServiceRefreshToken(db, 'gg', 'rt-1');
 
 		expect(await probeService(config, db, 'gg')).toEqual({ ok: true, message: 'Authenticated.' });
-		expect(getServiceAdapter).toHaveBeenCalledWith(
+		expect(getProviderAdapter).toHaveBeenCalledWith(
 			expect.objectContaining({ name: 'gg', refresh_token: 'rt-1' })
 		);
 	});
@@ -131,7 +131,7 @@ describe('probeService', () => {
 	test('hands the adapter a null token when nothing is stored', async () => {
 		await probeService(config, db, 'gg');
 
-		expect(getServiceAdapter).toHaveBeenCalledWith(
+		expect(getProviderAdapter).toHaveBeenCalledWith(
 			expect.objectContaining({ name: 'gg', refresh_token: null })
 		);
 	});

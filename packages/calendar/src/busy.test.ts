@@ -1,7 +1,7 @@
 import { expect, test, vi, beforeEach } from 'vitest';
 import type { Calendar } from '@when/config';
 import { fetchBusyIntervals } from './busy.js';
-import type { ConnectedService } from './adapter.js';
+import type { ConnectedProvider } from './adapter.js';
 
 const inst = (s: string): Temporal.Instant => Temporal.Instant.from(s);
 const window = { start: inst('2026-04-01T00:00:00Z'), end: inst('2026-05-01T00:00:00Z') };
@@ -13,7 +13,7 @@ const workCal: Calendar = {
 	url: 'https://cal.example.com/work/'
 };
 
-const davServices: ConnectedService[] = [
+const davServices: ConnectedProvider[] = [
 	{
 		name: 'work-dav',
 		type: 'caldav',

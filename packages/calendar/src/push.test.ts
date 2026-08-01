@@ -1,7 +1,7 @@
 import { expect, test, vi, beforeEach } from 'vitest';
 import { deleteCalDavEvent, putCalDavEvent } from './adapters/caldav.js';
 import { deleteAppointmentFromCalendar, pushAppointment } from './push.js';
-import type { ConnectedService } from './adapter.js';
+import type { ConnectedProvider } from './adapter.js';
 import type { Appointment } from '@when/db';
 import type { WhenConfiguration } from '@when/config';
 import { validConfig } from './__fixtures__/valid-config.js';
@@ -35,7 +35,7 @@ const baseAppointment: Appointment = {
 	guest_timezone: 'America/New_York'
 };
 
-const davServices: ConnectedService[] = [
+const davServices: ConnectedProvider[] = [
 	{
 		name: 'work-dav-service',
 		type: 'caldav',
@@ -163,7 +163,7 @@ test('pushAppointment fails cleanly when the google service is not connected', a
 		meetings: [{ ...validConfig.meetings[0], booking_calendar: 'g' }]
 	};
 
-	const disconnected: ConnectedService[] = [
+	const disconnected: ConnectedProvider[] = [
 		{
 			name: 'google-service-2',
 			type: 'google',
@@ -219,7 +219,7 @@ test('pushAppointment succeeds on Google calendar', async () => {
 		return new Response('Not found', { status: 404 });
 	});
 
-	const connectedGoogle: ConnectedService[] = [
+	const connectedGoogle: ConnectedProvider[] = [
 		{
 			name: 'google-service-2',
 			type: 'google',

@@ -1,14 +1,14 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { join } from 'node:path';
 import { writeFileSync, unlinkSync } from 'node:fs';
-import { getServiceAdapter } from '@when/calendar';
+import { getProviderAdapter } from '@when/calendar';
 import { serviceCommand } from './index.ts';
 import { listCommand } from './list.ts';
 import { testCommand } from './test.ts';
 
 vi.mock('@when/calendar', async (importOriginal) => {
 	const actual = await importOriginal<typeof import('@when/calendar')>();
-	return { ...actual, getServiceAdapter: vi.fn() };
+	return { ...actual, getProviderAdapter: vi.fn() };
 });
 
 const adapter = { calendarIdField: 'x', usesOAuth: true, verify: vi.fn(), listCalendars: vi.fn() };
@@ -84,7 +84,7 @@ describe('service command', () => {
 		process.exitCode = undefined;
 		adapter.verify = vi.fn().mockResolvedValue(undefined);
 		adapter.listCalendars = vi.fn().mockResolvedValue([]);
-		vi.mocked(getServiceAdapter)
+		vi.mocked(getProviderAdapter)
 			.mockReset()
 			.mockImplementation((service) => ({ ...adapter, usesOAuth: service.type === 'google' }));
 		process.env.WHEN_TEST_SVC_SECRET = 'set';
@@ -125,7 +125,7 @@ describe('service command', () => {
 		await testCommand.run!(ctx({ name: 'gcal', config: path, refreshToken: 'rtok' }));
 		expect(process.exitCode).toBeUndefined();
 		expect(logSpy).toHaveBeenCalledWith('✅ gcal (google) — authenticated');
-		expect(getServiceAdapter).toHaveBeenCalledWith(
+		expect(getProviderAdapter).toHaveBeenCalledWith(
 			expect.objectContaining({ name: 'gcal', refresh_token: 'rtok' })
 		);
 	});

@@ -6,7 +6,7 @@ import {
 	type PushOptions,
 	type PushResult,
 	type DeleteResult,
-	type ConnectedService
+	type ConnectedProvider
 } from './adapter.js';
 
 export type { PushOptions, PushResult, DeleteResult };
@@ -16,7 +16,7 @@ export type { PushOptions, PushResult, DeleteResult };
  */
 export async function pushAppointment(
 	cfg: WhenConfiguration,
-	services: ConnectedService[],
+	services: ConnectedProvider[],
 	appointment: Appointment,
 	destinationCalendarId: string,
 	opts: PushOptions
@@ -45,7 +45,7 @@ export async function pushAppointment(
  */
 export async function deleteAppointmentFromCalendar(
 	cfg: WhenConfiguration,
-	services: ConnectedService[],
+	services: ConnectedProvider[],
 	externalCalendarId: string,
 	externalEventId: string
 ): Promise<DeleteResult> {

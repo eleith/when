@@ -43,30 +43,30 @@ interface CalendarAdapter {
 
 // Unlike the config's GoogleProvider, the refresh token is stored outside when.yaml and
 // is null until the service is connected.
-type ConnectedGoogleService = Omit<GoogleProvider, 'refresh_token'> & {
+type ConnectedGoogleProvider = Omit<GoogleProvider, 'refresh_token'> & {
 	refresh_token: string | null;
 };
-type ConnectedService = Exclude<Provider, GoogleProvider> | ConnectedGoogleService;
+type ConnectedProvider = Exclude<Provider, GoogleProvider> | ConnectedGoogleProvider;
 
 // Only google carries a stored credential; every other service is already complete in
 // when.yaml. Callers hand over whatever token they hold and let this decide.
-function connectService(service: Provider, refreshToken: string | null): ConnectedService {
+function connectProvider(service: Provider, refreshToken: string | null): ConnectedProvider {
 	return service.type === 'google' ? { ...service, refresh_token: refreshToken } : service;
 }
 
 // Every configured service joined with whatever credential the store holds for it.
-async function connectServices(
+async function connectProviders(
 	services: Provider[],
 	db: ReturnType<typeof openDb>
-): Promise<ConnectedService[]> {
+): Promise<ConnectedProvider[]> {
 	return Promise.all(
 		services.map(async (service) =>
-			connectService(service, await getServiceRefreshToken(db, service.name))
+			connectProvider(service, await getServiceRefreshToken(db, service.name))
 		)
 	);
 }
 
-function getCalendarAdapter(cal: Calendar, services?: ConnectedService[]): CalendarAdapter {
+function getCalendarAdapter(cal: Calendar, services?: ConnectedProvider[]): CalendarAdapter {
 	const type = cal.type;
 	if (type === 'caldav') {
 		const service = services?.find((s) => s.name === (cal as CalDavCalendar).provider);
@@ -74,7 +74,7 @@ function getCalendarAdapter(cal: Calendar, services?: ConnectedService[]): Calen
 	}
 	if (type === 'google') {
 		const service = services?.find((s) => s.name === (cal as GoogleCalendar).provider);
-		return new GoogleAdapter(cal as GoogleCalendar, service as ConnectedGoogleService | undefined);
+		return new GoogleAdapter(cal as GoogleCalendar, service as ConnectedGoogleProvider | undefined);
 	}
 	throw new Error(`Unsupported calendar type: ${type}`);
 }
@@ -84,8 +84,8 @@ export type {
 	PushResult,
 	DeleteResult,
 	CalendarAdapter,
-	ConnectedService,
-	ConnectedGoogleService
+	ConnectedProvider,
+	ConnectedGoogleProvider
 };
 
-export { getCalendarAdapter, connectService, connectServices };
+export { getCalendarAdapter, connectProvider, connectProviders };

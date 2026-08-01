@@ -1,5 +1,5 @@
 import { define } from 'gunshi';
-import { getCalendarAdapter, type ExpandWindow, type ConnectedService } from '@when/calendar';
+import { getCalendarAdapter, type ExpandWindow, type ConnectedProvider } from '@when/calendar';
 import type { WhenConfiguration } from '@when/config';
 import { loadConfigFromCtx } from '../../utils/command.ts';
 import { pass, fail } from '../../utils/report.ts';
@@ -59,7 +59,7 @@ function connectedServicesFor(
 	config: WhenConfiguration,
 	cal: WhenConfiguration['calendars'][number],
 	refreshToken?: string
-): ConnectedService[] {
+): ConnectedProvider[] {
 	const service = config.providers?.find((s) => s.name === cal.provider);
 	if (!service) return [];
 	return [

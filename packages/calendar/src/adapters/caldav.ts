@@ -220,7 +220,7 @@ export interface CalDavCalendarItem {
 	path: string;
 }
 
-type CalDavServiceCreds = CalDavProvider | NextcloudProvider;
+type CalDavProviderCreds = CalDavProvider | NextcloudProvider;
 
 const PRINCIPAL_BODY =
 	'<?xml version="1.0" encoding="utf-8"?><d:propfind xmlns:d="DAV:"><d:prop><d:current-user-principal/></d:prop></d:propfind>';
@@ -229,12 +229,12 @@ const HOME_BODY =
 const CALENDARS_BODY =
 	'<?xml version="1.0" encoding="utf-8"?><d:propfind xmlns:d="DAV:"><d:prop><d:resourcetype/><d:displayname/></d:prop></d:propfind>';
 
-export async function verifyCalDavService(service: CalDavServiceCreds): Promise<void> {
+export async function verifyCalDavProvider(service: CalDavProviderCreds): Promise<void> {
 	await davPropfind(davBaseUrl(service), service, PRINCIPAL_BODY, '0');
 }
 
 export async function discoverCalDavCalendars(
-	service: CalDavServiceCreds
+	service: CalDavProviderCreds
 ): Promise<CalDavCalendarItem[]> {
 	const base = davBaseUrl(service);
 	const principal = firstHref(
@@ -250,7 +250,7 @@ export async function discoverCalDavCalendars(
 	return parseCalendars(xml, base);
 }
 
-function davBaseUrl(service: CalDavServiceCreds): string {
+function davBaseUrl(service: CalDavProviderCreds): string {
 	const base = service.url.replace(/\/$/, '');
 	const withDav = service.type === 'nextcloud' ? `${base}/remote.php/dav` : base;
 	return `${withDav}/`;
@@ -258,7 +258,7 @@ function davBaseUrl(service: CalDavServiceCreds): string {
 
 async function davPropfind(
 	url: string,
-	service: CalDavServiceCreds,
+	service: CalDavProviderCreds,
 	body: string,
 	depth: string
 ): Promise<string> {

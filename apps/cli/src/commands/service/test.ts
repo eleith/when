@@ -1,5 +1,5 @@
 import { define } from 'gunshi';
-import { connectService, getServiceAdapter } from '@when/calendar';
+import { connectProvider, getProviderAdapter } from '@when/calendar';
 import type { Provider } from '@when/config';
 import { requireService, servicesAndName } from './shared.ts';
 import { pass, fail } from '../../utils/report.ts';
@@ -30,7 +30,7 @@ export async function runServiceTest(
 	const service = requireService(services, name);
 	if (!service) return;
 
-	const adapter = getServiceAdapter(connectService(service, refreshToken ?? null));
+	const adapter = getProviderAdapter(connectProvider(service, refreshToken ?? null));
 	if (adapter.usesOAuth && !refreshToken) {
 		fail(`${name} (${service.type}) — pass --refresh-token; the stored one lives in the database`);
 		return;

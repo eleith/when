@@ -9,7 +9,7 @@ import type {
 	PushOptions,
 	PushResult,
 	DeleteResult,
-	ConnectedGoogleService
+	ConnectedGoogleProvider
 } from '../adapter.js';
 import type { WhenConfiguration, GoogleCalendar } from '@when/config';
 import type { ExpandWindow } from '../expand.js';
@@ -262,9 +262,9 @@ export async function deleteGoogleEvent(cfg: GoogleConfig, externalEventId: stri
 
 export class GoogleAdapter implements CalendarAdapter {
 	private cal: GoogleCalendar;
-	private service?: ConnectedGoogleService;
+	private service?: ConnectedGoogleProvider;
 
-	constructor(cal: GoogleCalendar, service?: ConnectedGoogleService) {
+	constructor(cal: GoogleCalendar, service?: ConnectedGoogleProvider) {
 		this.cal = cal;
 		this.service = service;
 	}

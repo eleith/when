@@ -25,14 +25,14 @@ export { pushAppointment, deleteAppointmentFromCalendar } from './push.js';
 export type { PushOptions, PushResult, DeleteResult } from './push.js';
 
 // Adapters and shared calendar types.
-export { getCalendarAdapter, connectService, connectServices } from './adapter.js';
-export type { CalendarAdapter, ConnectedService, ConnectedGoogleService } from './adapter.js';
-export { getServiceAdapter } from './service-adapter.js';
-export type { ServiceAdapter, ServiceCalendar } from './service-adapter.js';
+export { getCalendarAdapter, connectProvider, connectProviders } from './adapter.js';
+export type { CalendarAdapter, ConnectedProvider, ConnectedGoogleProvider } from './adapter.js';
+export { getProviderAdapter } from './provider-adapter.js';
+export type { ProviderAdapter, ProviderCalendar } from './provider-adapter.js';
 export type { BusyEvent, Interval } from './types.js';
 export type { ExpandWindow } from './expand.js';
 
-// Provider connect + discovery — used to authenticate a service, run the OAuth
+// Provider connect + discovery — used to authenticate a provider, run the OAuth
 // consent flow, and list available calendars without a calendar-bound adapter
 // (the CLI today; a web connect/test UI could consume the same paths).
 export {
@@ -48,7 +48,7 @@ export type {
 	GoogleCalendarItem,
 	GoogleAuthUrlOptions
 } from './adapters/google.js';
-export { verifyCalDavService, discoverCalDavCalendars } from './adapters/caldav.js';
+export { verifyCalDavProvider, discoverCalDavCalendars } from './adapters/caldav.js';
 export type { CalDavCalendarItem } from './adapters/caldav.js';
 
 // Logger injection — the host installs its logger once at startup.

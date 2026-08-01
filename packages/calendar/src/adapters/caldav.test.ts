@@ -3,7 +3,7 @@ import {
 	buildReportBody,
 	extractCalendarData,
 	fetchCalDavBusy,
-	verifyCalDavService,
+	verifyCalDavProvider,
 	discoverCalDavCalendars
 } from './caldav.js';
 import type { CalDavProvider, NextcloudProvider } from '@when/config';
@@ -159,14 +159,14 @@ function mockPropfind(
 	});
 }
 
-test('verifyCalDavService resolves on a 207 PROPFIND', async () => {
+test('verifyCalDavProvider resolves on a 207 PROPFIND', async () => {
 	vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 207 }));
-	await expect(verifyCalDavService(davService)).resolves.toBeUndefined();
+	await expect(verifyCalDavProvider(davService)).resolves.toBeUndefined();
 });
 
-test('verifyCalDavService throws bad credentials on 401', async () => {
+test('verifyCalDavProvider throws bad credentials on 401', async () => {
 	vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 401 }));
-	await expect(verifyCalDavService(davService)).rejects.toThrow(/401/);
+	await expect(verifyCalDavProvider(davService)).rejects.toThrow(/401/);
 });
 
 test('discoverCalDavCalendars returns calendar paths relative to the base', async () => {

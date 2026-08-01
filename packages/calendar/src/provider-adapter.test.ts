@@ -1,19 +1,19 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { getServiceAdapter } from './service-adapter.js';
+import { getProviderAdapter } from './provider-adapter.js';
 import { getGoogleAccessToken, listGoogleCalendars } from './adapters/google.js';
-import { verifyCalDavService, discoverCalDavCalendars } from './adapters/caldav.js';
-import type { ConnectedService } from './adapter.js';
+import { verifyCalDavProvider, discoverCalDavCalendars } from './adapters/caldav.js';
+import type { ConnectedProvider } from './adapter.js';
 
 vi.mock('./adapters/google.js', () => ({
 	getGoogleAccessToken: vi.fn(),
 	listGoogleCalendars: vi.fn()
 }));
 vi.mock('./adapters/caldav.js', () => ({
-	verifyCalDavService: vi.fn(),
+	verifyCalDavProvider: vi.fn(),
 	discoverCalDavCalendars: vi.fn()
 }));
 
-const google = (refresh_token: string | null): ConnectedService => ({
+const google = (refresh_token: string | null): ConnectedProvider => ({
 	name: 'gg',
 	type: 'google',
 	client_id: 'cid',
@@ -21,7 +21,7 @@ const google = (refresh_token: string | null): ConnectedService => ({
 	refresh_token
 });
 
-const dav: ConnectedService = {
+const dav: ConnectedProvider = {
 	name: 'dav',
 	type: 'caldav',
 	url: 'https://d.example/',
@@ -32,13 +32,13 @@ const dav: ConnectedService = {
 beforeEach(() => {
 	vi.mocked(getGoogleAccessToken).mockReset().mockResolvedValue('access');
 	vi.mocked(listGoogleCalendars).mockReset().mockResolvedValue([]);
-	vi.mocked(verifyCalDavService).mockReset().mockResolvedValue(undefined);
+	vi.mocked(verifyCalDavProvider).mockReset().mockResolvedValue(undefined);
 	vi.mocked(discoverCalDavCalendars).mockReset().mockResolvedValue([]);
 });
 
 describe('google', () => {
 	test('verifies by minting an access token from the stored refresh token', async () => {
-		await getServiceAdapter(google('rt-1')).verify();
+		await getProviderAdapter(google('rt-1')).verify();
 
 		expect(getGoogleAccessToken).toHaveBeenCalledWith(
 			expect.objectContaining({ refresh_token: 'rt-1', client_id: 'cid' })
@@ -46,7 +46,7 @@ describe('google', () => {
 	});
 
 	test('refuses to reach google when no token is stored', async () => {
-		await expect(getServiceAdapter(google(null)).verify()).rejects.toThrow(/not connected/);
+		await expect(getProviderAdapter(google(null)).verify()).rejects.toThrow(/not connected/);
 		expect(getGoogleAccessToken).not.toHaveBeenCalled();
 	});
 
@@ -56,7 +56,7 @@ describe('google', () => {
 			{ id: 'jane@example.com', summary: 'jane@example.com', primary: true }
 		]);
 
-		expect(await getServiceAdapter(google('rt-1')).listCalendars()).toEqual([
+		expect(await getProviderAdapter(google('rt-1')).listCalendars()).toEqual([
 			{ id: 'primary', name: 'Primary calendar', primary: true }
 		]);
 	});
@@ -66,24 +66,24 @@ describe('google', () => {
 			{ id: 'c_a1b2@group.calendar.google.com', summary: 'Personal' }
 		]);
 
-		expect(await getServiceAdapter(google('rt-1')).listCalendars()).toEqual([
+		expect(await getProviderAdapter(google('rt-1')).listCalendars()).toEqual([
 			{ id: 'c_a1b2@group.calendar.google.com', name: 'Personal', primary: false }
 		]);
 	});
 
 	test('names the config field its ids belong in', () => {
-		expect(getServiceAdapter(google('rt-1')).calendarIdField).toBe('google_calendar_id');
+		expect(getProviderAdapter(google('rt-1')).calendarIdField).toBe('google_calendar_id');
 	});
 
 	test('is an oauth service', () => {
-		expect(getServiceAdapter(google(null)).usesOAuth).toBe(true);
+		expect(getProviderAdapter(google(null)).usesOAuth).toBe(true);
 	});
 });
 
 describe('caldav', () => {
 	test('verifies against the configured credentials', async () => {
-		await getServiceAdapter(dav).verify();
-		expect(verifyCalDavService).toHaveBeenCalledWith(expect.objectContaining({ name: 'dav' }));
+		await getProviderAdapter(dav).verify();
+		expect(verifyCalDavProvider).toHaveBeenCalledWith(expect.objectContaining({ name: 'dav' }));
 	});
 
 	test('maps discovered calendars, using the path as the id', async () => {
@@ -91,16 +91,16 @@ describe('caldav', () => {
 			{ path: 'calendars/u/work/', displayName: 'Work' }
 		]);
 
-		expect(await getServiceAdapter(dav).listCalendars()).toEqual([
+		expect(await getProviderAdapter(dav).listCalendars()).toEqual([
 			{ id: 'calendars/u/work/', name: 'Work', primary: false }
 		]);
 	});
 
 	test('names the config field its ids belong in', () => {
-		expect(getServiceAdapter(dav).calendarIdField).toBe('path');
+		expect(getProviderAdapter(dav).calendarIdField).toBe('path');
 	});
 
 	test('is not an oauth service', () => {
-		expect(getServiceAdapter(dav).usesOAuth).toBe(false);
+		expect(getProviderAdapter(dav).usesOAuth).toBe(false);
 	});
 });

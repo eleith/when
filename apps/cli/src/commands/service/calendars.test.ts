@@ -1,11 +1,11 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
-import { getServiceAdapter } from '@when/calendar';
+import { getProviderAdapter } from '@when/calendar';
 import { runServiceCalendars } from './calendars.ts';
 import type { Provider } from '@when/config';
 
 vi.mock('@when/calendar', async (importOriginal) => {
 	const actual = await importOriginal<typeof import('@when/calendar')>();
-	return { ...actual, getServiceAdapter: vi.fn() };
+	return { ...actual, getProviderAdapter: vi.fn() };
 });
 
 // Provider behaviour belongs to the adapter; these cover what the command adds — the
@@ -44,7 +44,7 @@ describe('service calendars action', () => {
 		process.exitCode = undefined;
 		adapter.verify = vi.fn().mockResolvedValue(undefined);
 		adapter.listCalendars = vi.fn().mockResolvedValue([]);
-		vi.mocked(getServiceAdapter)
+		vi.mocked(getProviderAdapter)
 			.mockReset()
 			.mockImplementation((service) => ({
 				...adapter,
@@ -76,7 +76,7 @@ describe('service calendars action', () => {
 	test('hands the adapter the refresh token it was given', async () => {
 		await runServiceCalendars(services, 'gg', 'rtok');
 
-		expect(getServiceAdapter).toHaveBeenCalledWith(
+		expect(getProviderAdapter).toHaveBeenCalledWith(
 			expect.objectContaining({ name: 'gg', refresh_token: 'rtok' })
 		);
 	});

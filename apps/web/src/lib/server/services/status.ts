@@ -2,10 +2,10 @@ import type { Kysely } from 'kysely';
 import type { Provider, WhenConfiguration } from '@when/config';
 import type { Database } from '@when/db';
 import {
-	connectService,
-	getServiceAdapter,
-	type ServiceAdapter,
-	type ServiceCalendar
+	connectProvider,
+	getProviderAdapter,
+	type ProviderAdapter,
+	type ProviderCalendar
 } from '@when/calendar';
 import {
 	getServiceRefreshToken,
@@ -31,7 +31,7 @@ export interface ServiceView {
 export type ProbeResult = { ok: true; message: string } | { ok: false; message: string };
 
 export type DiscoveryResult =
-	| { ok: true; field: string; calendars: ServiceCalendar[] }
+	| { ok: true; field: string; calendars: ProviderCalendar[] }
 	| { ok: false; message: string };
 
 // Cheap: config plus indexed reads. Nothing here reaches the network — the worker already
@@ -53,7 +53,7 @@ export async function listServices(
 	const lastSynced = new Map(syncStatus.map((s) => [s.calendar_id, s.last_successful_refresh_at]));
 
 	return (config.providers ?? []).map((service) => {
-		const { usesOAuth } = getServiceAdapter(connectService(service, null));
+		const { usesOAuth } = getProviderAdapter(connectProvider(service, null));
 		const calendars = config.calendars
 			.filter((cal) => cal.provider === service.name)
 			.map((cal) => cal.name);
@@ -137,10 +137,10 @@ async function connectedAdapter(
 	config: WhenConfiguration,
 	db: Kysely<Database>,
 	name: string
-): Promise<ServiceAdapter> {
+): Promise<ProviderAdapter> {
 	const service = config.providers?.find((s) => s.name === name);
 	if (!service) throw new Error(`No service named "${name}".`);
 
 	const refreshToken = await getServiceRefreshToken(db, name);
-	return getServiceAdapter(connectService(service, refreshToken));
+	return getProviderAdapter(connectProvider(service, refreshToken));
 }
