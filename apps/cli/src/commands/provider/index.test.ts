@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { join } from 'node:path';
 import { writeFileSync, unlinkSync } from 'node:fs';
 import { getProviderAdapter } from '@when/calendar';
-import { serviceCommand } from './index.ts';
+import { providerCommand } from './index.ts';
 import { listCommand } from './list.ts';
 import { testCommand } from './test.ts';
 
@@ -66,13 +66,13 @@ url:
   app: "https://book.example.com"
 `;
 
-const path = join(process.cwd(), 'temp-service-config.yaml');
+const path = join(process.cwd(), 'temp-provider-config.yaml');
 
 function ctx(values: Record<string, unknown>) {
 	return { values } as unknown as Parameters<NonNullable<typeof testCommand.run>>[0];
 }
 
-describe('service command', () => {
+describe('provider command', () => {
 	let logSpy: ReturnType<typeof vi.spyOn>;
 	let errorSpy: ReturnType<typeof vi.spyOn>;
 	let originalExitCode: number | undefined;
@@ -86,7 +86,7 @@ describe('service command', () => {
 		adapter.listCalendars = vi.fn().mockResolvedValue([]);
 		vi.mocked(getProviderAdapter)
 			.mockReset()
-			.mockImplementation((service) => ({ ...adapter, usesOAuth: service.type === 'google' }));
+			.mockImplementation((provider) => ({ ...adapter, usesOAuth: provider.type === 'google' }));
 		process.env.WHEN_TEST_SVC_SECRET = 'set';
 		writeFileSync(path, configYaml);
 	});
@@ -102,23 +102,23 @@ describe('service command', () => {
 		}
 	});
 
-	test('bare service prints usage', () => {
-		serviceCommand.run!();
+	test('bare provider prints usage', () => {
+		providerCommand.run!();
 		expect(process.exitCode).toBeUndefined();
-		expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('when-cli service test <name>'));
+		expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('when-cli provider test <name>'));
 	});
 
-	test('list shows configured services with type', async () => {
+	test('list shows configured providers with type', async () => {
 		await listCommand.run!(ctx({ config: path }));
 		expect(process.exitCode).toBeUndefined();
 		expect(logSpy).toHaveBeenCalledWith('gcal  (google)');
 		expect(logSpy).toHaveBeenCalledWith('dav  (caldav)');
 	});
 
-	test('test requires a service name', async () => {
+	test('test requires a provider name', async () => {
 		await testCommand.run!(ctx({ config: path }));
 		expect(process.exitCode).toBe(1);
-		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('requires a service name'));
+		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('requires a provider name'));
 	});
 
 	test('google test verifies through the adapter', async () => {
@@ -157,13 +157,13 @@ describe('service command', () => {
 		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('bad credentials (401)'));
 	});
 
-	test('unknown service name fails', async () => {
+	test('unknown provider name fails', async () => {
 		await testCommand.run!(ctx({ name: 'nope', config: path }));
 		expect(process.exitCode).toBe(1);
-		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('no service named "nope"'));
+		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('no provider named "nope"'));
 	});
 
-	test('an unset env var anywhere in the config is named, before any service work', async () => {
+	test('an unset env var anywhere in the config is named, before any provider work', async () => {
 		delete process.env.WHEN_TEST_SVC_SECRET;
 		await testCommand.run!(ctx({ name: 'dav', config: path }));
 		expect(process.exitCode).toBe(1);

@@ -1,7 +1,7 @@
 import { cli, define } from 'gunshi';
 import { intro, outro } from '@clack/prompts';
 import { configCommand } from './commands/config/index.ts';
-import { serviceCommand } from './commands/service/index.ts';
+import { providerCommand } from './commands/provider/index.ts';
 import { calendarCommand } from './commands/calendar/index.ts';
 import { emailCommand } from './commands/email/index.ts';
 import { dbCommand } from './commands/db/index.ts';
@@ -20,7 +20,7 @@ try {
 		name: 'when-cli',
 		subCommands: {
 			config: configCommand,
-			service: serviceCommand,
+			provider: providerCommand,
 			calendar: calendarCommand,
 			email: emailCommand,
 			db: dbCommand

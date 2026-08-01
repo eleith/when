@@ -41,12 +41,12 @@ export async function runCalendarTest(
 		return;
 	}
 
-	const services = connectedServicesFor(config, cal, refreshToken);
+	const providers = connectedProvidersFor(config, cal, refreshToken);
 
 	try {
 		const now = Temporal.Now.instant();
 		const window: ExpandWindow = { start: now, end: now.add({ hours: 24 * WINDOW_DAYS }) };
-		const busy = await getCalendarAdapter(cal, services).fetchBusy(window);
+		const busy = await getCalendarAdapter(cal, providers).fetchBusy(window);
 		pass(
 			`${name} (${cal.type}) — ${busy.length} busy interval(s) over the next ${WINDOW_DAYS} days`
 		);
@@ -55,14 +55,14 @@ export async function runCalendarTest(
 	}
 }
 
-function connectedServicesFor(
+function connectedProvidersFor(
 	config: WhenConfiguration,
 	cal: WhenConfiguration['calendars'][number],
 	refreshToken?: string
 ): ConnectedProvider[] {
-	const service = config.providers?.find((s) => s.name === cal.provider);
-	if (!service) return [];
+	const provider = config.providers?.find((s) => s.name === cal.provider);
+	if (!provider) return [];
 	return [
-		service.type === 'google' ? { ...service, refresh_token: refreshToken ?? null } : service
+		provider.type === 'google' ? { ...provider, refresh_token: refreshToken ?? null } : provider
 	];
 }

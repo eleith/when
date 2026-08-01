@@ -204,13 +204,13 @@ Every command takes `-c/--config <path>` (defaults to the standard config locati
   pnpm cli config validate --check-env
   ```
 
-- **Services** — list configured services, authenticate one, or list the calendars it
+- **Providers** — list configured providers, authenticate one, or list the calendars it
   exposes (to fill `google_calendar_id` / a CalDAV `path`).
 
   ```sh
-  pnpm cli service list
-  pnpm cli service test <name>
-  pnpm cli service calendars <name>
+  pnpm cli provider list
+  pnpm cli provider test <name>
+  pnpm cli provider calendars <name>
   ```
 
 - **Calendars** — list configured calendars, or fetch busy intervals from one to
@@ -221,15 +221,24 @@ Every command takes `-c/--config <path>` (defaults to the standard config locati
   pnpm cli calendar test <name>
   ```
 
-  The CLI never opens the database, so it cannot read the token that `/admin/services`
-  stored. Checking a Google service or calendar from a terminal means handing it one:
+  `provider test` and `calendar test` do not yet read the refresh token that
+  `/admin/services` stored, so checking a Google provider or calendar from a terminal
+  means handing it one:
 
   ```sh
-  pnpm cli service test <name> --refresh-token <token>
+  pnpm cli provider test <name> --refresh-token <token>
   pnpm cli calendar test <name> --refresh-token <token>
   ```
 
   CalDAV and Nextcloud need no flag — their credentials are in `when.yaml`.
+
+- **Database** — report the schema state, or apply pending migrations. Web and the worker
+  both migrate at boot; this is the way in when neither will start.
+
+  ```sh
+  pnpm cli db status
+  pnpm cli db migrate
+  ```
 
 - **Email** — render and send a real test email through the worker (proves your
   SMTP + branding + templates work). Requires the worker to be running; it's
