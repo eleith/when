@@ -30,7 +30,7 @@ export async function createStandaloneVideoChat(
 
 	const service = (config.providers ?? []).find((s) => s.name === meeting.video_chat_provider);
 	if (!service) {
-		throw new Error(`Video chat service "${meeting.video_chat_provider}" not found`);
+		throw new Error(`Video chat provider "${meeting.video_chat_provider}" not found`);
 	}
 
 	// We ONLY handle standalone video chat providers here (like Nextcloud Talk).

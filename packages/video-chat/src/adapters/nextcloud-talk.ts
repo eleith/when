@@ -4,19 +4,19 @@ import { Buffer } from 'node:buffer';
 
 export class NextcloudTalkAdapter implements VideoChatAdapter {
 	static readonly type = 'nextcloud-talk';
-	static readonly expectedServiceType = 'nextcloud';
+	static readonly expectedProviderType = 'nextcloud';
 
-	private readonly service: NextcloudProvider;
+	private readonly provider: NextcloudProvider;
 
-	constructor(service: NextcloudProvider) {
-		this.service = service;
+	constructor(provider: NextcloudProvider) {
+		this.provider = provider;
 	}
 
 	async createRoom(roomName: string): Promise<VideoChatResult> {
-		const baseUrl = this.service.url.replace(/\/$/, '');
+		const baseUrl = this.provider.url.replace(/\/$/, '');
 		const endpoint = `${baseUrl}/ocs/v2.php/apps/spreed/api/v4/room`;
 
-		const credentials = Buffer.from(`${this.service.username}:${this.service.password}`).toString(
+		const credentials = Buffer.from(`${this.provider.username}:${this.provider.password}`).toString(
 			'base64'
 		);
 
@@ -59,7 +59,7 @@ export class NextcloudTalkAdapter implements VideoChatAdapter {
 	}
 
 	async deleteRoom(roomUrl: string): Promise<VideoChatDeleteResult> {
-		const baseUrl = this.service.url.replace(/\/$/, '');
+		const baseUrl = this.provider.url.replace(/\/$/, '');
 		const match = roomUrl.match(/\/call\/([^/]+)$/);
 		if (!match) {
 			return { ok: false, reason: `Invalid room URL format: ${roomUrl}` };
@@ -67,7 +67,7 @@ export class NextcloudTalkAdapter implements VideoChatAdapter {
 		const token = match[1];
 		const endpoint = `${baseUrl}/ocs/v2.php/apps/spreed/api/v4/room/${token}`;
 
-		const credentials = Buffer.from(`${this.service.username}:${this.service.password}`).toString(
+		const credentials = Buffer.from(`${this.provider.username}:${this.provider.password}`).toString(
 			'base64'
 		);
 

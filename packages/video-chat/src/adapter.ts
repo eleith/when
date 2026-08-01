@@ -18,19 +18,19 @@ interface VideoChatAdapter {
 
 interface VideoChatAdapterClass {
 	readonly type: string;
-	readonly expectedServiceType: string;
+	readonly expectedProviderType: string;
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	new (service: any): VideoChatAdapter;
+	new (provider: any): VideoChatAdapter;
 }
 
 const ADAPTERS: VideoChatAdapterClass[] = [NextcloudTalkAdapter, GoogleMeetAdapter];
 
-function getVideoChatAdapter(service: Provider): VideoChatAdapter {
-	const AdapterClass = ADAPTERS.find((a) => a.expectedServiceType === service.type);
+function getVideoChatAdapter(provider: Provider): VideoChatAdapter {
+	const AdapterClass = ADAPTERS.find((a) => a.expectedProviderType === provider.type);
 	if (!AdapterClass) {
-		throw new Error('Unsupported video chat service type: ' + service.type);
+		throw new Error('Unsupported video chat provider type: ' + provider.type);
 	}
-	return new AdapterClass(service);
+	return new AdapterClass(provider);
 }
 
 export type { CreateRoomResult, VideoChatResult, VideoChatDeleteResult, VideoChatAdapter };

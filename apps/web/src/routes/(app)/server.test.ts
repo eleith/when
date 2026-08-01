@@ -43,7 +43,7 @@ beforeEach(() => {
 });
 
 describe('home page load', () => {
-	test('never exposes a meeting location or video chat service', () => {
+	test('never exposes a meeting location or video chat provider', () => {
 		withMeetings({
 			...baseMeeting,
 			location: '1 Main St, Suite 200',

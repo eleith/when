@@ -3,7 +3,7 @@ import type { VideoChatAdapter, VideoChatResult, VideoChatDeleteResult } from '.
 
 export class GoogleMeetAdapter implements VideoChatAdapter {
 	static readonly type = 'google-meet';
-	static readonly expectedServiceType = 'google';
+	static readonly expectedProviderType = 'google';
 
 	private readonly _service: GoogleProvider;
 
