@@ -17,14 +17,29 @@
 	let listingProvider = $state('');
 	let listing = $state<{ field: string; calendars: DiscoveredCalendar[] } | null>(null);
 
-	// The provider round-trip is slow, so claim the section on submit and show a spinner
+	let pending = $state('');
+	let pendingTarget = $derived(pending.includes(':') ? pending.split(':')[1] : pending);
+
+	// These round-trips reach a provider through the worker, so claim the button on submit
 	// rather than leaving the click with no feedback.
+	function run(key: string): SubmitFunction {
+		return () => {
+			pending = key;
+			return async ({ update }) => {
+				await update();
+				pending = '';
+			};
+		};
+	}
+
 	function listCalendars(provider: string): SubmitFunction {
 		return () => {
+			pending = `calendars:${provider}`;
 			listingProvider = provider;
 			listing = null;
 			return async ({ result, update }) => {
 				await update();
+				pending = '';
 				if (result.type !== 'success') listingProvider = '';
 			};
 		};
@@ -42,21 +57,41 @@
 	<title>Services — When</title>
 </svelte:head>
 
-<section class="services">
-	<h1 class="title">Services</h1>
-
-	{#if form?.notice}
-		<aside class="banner banner-{form.notice.tone}" role="alert">
+{#snippet notice(target: string, kind: 'provider' | 'worker' | 'smtp')}
+	{#if form?.notice?.for === target && pendingTarget !== target}
+		{@const outcome = form.notice}
+		{@const ok = outcome.status === 'up' || outcome.status === 'disconnected'}
+		<aside class="banner banner-{ok ? 'success' : 'error'}" role="alert">
 			<span class="banner-icon">
-				{#if form.notice.tone === 'success'}
+				{#if ok}
 					<IconCheckCircle aria-hidden="true" />
 				{:else}
 					<IconWarningCircle aria-hidden="true" />
 				{/if}
 			</span>
-			<p class="banner-text">{form.notice.text}</p>
+			<p class="banner-text">
+				{#if outcome.status === 'unknown'}
+					no google provider named "{target}"
+				{:else if outcome.status === 'disconnected' && outcome.detail}
+					disconnected, but Google did not confirm the revoke: {outcome.detail}
+				{:else if outcome.status === 'disconnected'}
+					disconnected, access revoked
+				{:else if outcome.status === 'up' && kind === 'smtp'}
+					up: test email sent to {outcome.detail}
+				{:else if outcome.status === 'up'}
+					up
+				{:else if kind === 'worker'}
+					down: not reachable at {outcome.detail}
+				{:else}
+					down: {outcome.detail}
+				{/if}
+			</p>
 		</aside>
 	{/if}
+{/snippet}
+
+<section class="services">
+	<h1 class="title">Services</h1>
 
 	<h2 class="section">Calendar &amp; video</h2>
 
@@ -67,6 +102,8 @@
 			{#each data.providers as provider (provider.name)}
 				{@const unconnected = provider.usesOAuth && !provider.connectedAt}
 				<li class="card">
+					{@render notice(provider.name, 'provider')}
+
 					<div class="body">
 						<h2 class="name">{provider.name}</h2>
 
@@ -126,9 +163,19 @@
 									<button type="submit" class="button primary">Connect</button>
 								</form>
 							{:else if provider.connectedAt}
-								<form method="POST" action="?/disconnect">
+								<form
+									method="POST"
+									action="?/disconnect"
+									use:enhance={run(`disconnect:${provider.name}`)}
+								>
 									<input type="hidden" name="provider" value={provider.name} />
-									<button type="submit" class="button danger">Disconnect</button>
+									<button
+										type="submit"
+										class="button danger"
+										disabled={pending === `disconnect:${provider.name}`}
+									>
+										Disconnect
+									</button>
 								</form>
 							{/if}
 						</div>
@@ -136,11 +183,26 @@
 							<div class="actions-check">
 								<form method="POST" action="?/calendars" use:enhance={listCalendars(provider.name)}>
 									<input type="hidden" name="provider" value={provider.name} />
-									<button type="submit" class="button">List calendars</button>
+									<button
+										type="submit"
+										class="button"
+										disabled={pending === `calendars:${provider.name}`}
+									>
+										List calendars
+									</button>
 								</form>
-								<form method="POST" action="?/test">
+								<form method="POST" action="?/test" use:enhance={run(`test:${provider.name}`)}>
 									<input type="hidden" name="provider" value={provider.name} />
-									<button type="submit" class="button">Test</button>
+									<button
+										type="submit"
+										class="button"
+										disabled={pending === `test:${provider.name}`}
+									>
+										{#if pending === `test:${provider.name}`}
+											<span class="spinner"><IconSpinner aria-hidden="true" /></span>
+										{/if}
+										Test
+									</button>
 								</form>
 							</div>
 						{/if}
@@ -153,14 +215,21 @@
 	<h2 class="section">Worker</h2>
 
 	<div class="card">
+		{@render notice('worker', 'worker')}
+
 		<div class="body">
 			<h3 class="name">{data.worker.url}</h3>
 			<p class="worker-note">Runs calendar refreshes, appointment pushes and email.</p>
 		</div>
 
 		<div class="actions">
-			<form method="POST" action="?/worker" class="worker-form">
-				<button type="submit" class="button">Test</button>
+			<form method="POST" action="?/worker" class="worker-form" use:enhance={run('worker')}>
+				<button type="submit" class="button" disabled={pending === 'worker'}>
+					{#if pending === 'worker'}
+						<span class="spinner"><IconSpinner aria-hidden="true" /></span>
+					{/if}
+					Test
+				</button>
 			</form>
 		</div>
 	</div>
@@ -168,6 +237,8 @@
 	<h2 class="section">Email</h2>
 
 	<div class="card">
+		{@render notice('smtp', 'smtp')}
+
 		<div class="body">
 			<h3 class="name">{data.smtp.host}</h3>
 
@@ -195,7 +266,7 @@
 		</div>
 
 		<div class="actions">
-			<form method="POST" action="?/email" class="email-form">
+			<form method="POST" action="?/email" class="email-form" use:enhance={run('smtp')}>
 				<label class="email-label" for="test-recipient">Send a test email to</label>
 				<input
 					id="test-recipient"
@@ -205,7 +276,12 @@
 					value={data.smtp.defaultRecipient}
 					required
 				/>
-				<button type="submit" class="button">Send</button>
+				<button type="submit" class="button" disabled={pending === 'smtp'}>
+					{#if pending === 'smtp'}
+						<span class="spinner"><IconSpinner aria-hidden="true" /></span>
+					{/if}
+					Send
+				</button>
 			</form>
 		</div>
 	</div>
@@ -227,11 +303,11 @@
 	.banner {
 		display: flex;
 		align-items: flex-start;
-		gap: var(--space-4);
-		margin: 0 0 var(--space-6);
-		padding: var(--space-5) var(--space-6);
-		border: 1px solid;
-		border-radius: var(--radius-md);
+		gap: var(--space-3);
+		margin: 0;
+		padding: var(--space-4) var(--space-5);
+		border: 0;
+		border-bottom: 1px solid;
 		color: var(--color-text-secondary);
 		font-size: var(--font-size-md);
 		line-height: 1.5;

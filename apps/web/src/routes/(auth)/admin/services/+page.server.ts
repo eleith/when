@@ -22,6 +22,12 @@ export const load: PageServerLoad = async () => {
 	};
 };
 
+type NoticeStatus = 'up' | 'down' | 'disconnected' | 'unknown';
+
+function notice(target: string, status: NoticeStatus, detail?: string) {
+	return { notice: { for: target, status, detail } };
+}
+
 export const actions: Actions = {
 	connect: async ({ request, cookies }) => {
 		const name = String((await request.formData()).get('provider') ?? '');
@@ -29,7 +35,7 @@ export const actions: Actions = {
 		const config = getConfig();
 		const service = findGoogleProvider(config, name);
 		if (!service) {
-			return fail(404, { notice: { tone: 'error', text: `No google provider named "${name}".` } });
+			return fail(404, notice(name, 'unknown'));
 		}
 
 		const state = crypto.randomUUID();
@@ -41,18 +47,15 @@ export const actions: Actions = {
 	disconnect: async ({ request }) => {
 		const name = String((await request.formData()).get('provider') ?? '');
 		if (!findGoogleProvider(getConfig(), name)) {
-			return fail(404, { notice: { tone: 'error', text: `No google provider named "${name}".` } });
+			return fail(404, notice(name, 'unknown'));
 		}
 
 		const result = await disconnectGoogle(getDb(), name);
-		return {
-			notice: result.revoked
-				? { tone: 'success', text: `${name} disconnected and access revoked at Google.` }
-				: {
-						tone: 'error',
-						text: `${name} disconnected, but Google did not confirm the revoke — ${result.reason}. Remove access under your Google account if it persists.`
-					}
-		};
+		if (result.revoked) {
+			return notice(name, 'disconnected');
+		}
+
+		return notice(name, 'disconnected', result.reason);
 	},
 
 	calendars: async ({ request }) => {
@@ -60,41 +63,26 @@ export const actions: Actions = {
 		const result = await discoverCalendars(getConfig(), name);
 		return result.ok
 			? { discovered: { provider: name, field: result.field, calendars: result.calendars } }
-			: {
-					notice: { tone: 'error', text: `${name} could not list calendars — ${result.message}` }
-				};
+			: notice(name, 'down', result.message);
 	},
 
 	worker: async () => {
 		const { worker } = getConfig().url;
 		const reachable = await workerReachable(worker);
-		if (reachable) return { notice: { tone: 'success', text: 'Worker is running.' } };
+		if (reachable) return notice('worker', 'up');
 
-		return {
-			notice: {
-				tone: 'error',
-				text: `Worker not reachable at ${worker}.`
-			}
-		};
+		return notice('worker', 'down', worker);
 	},
 
 	email: async ({ request }) => {
 		const to = String((await request.formData()).get('to') ?? '');
 		const result = await sendTestEmail(getConfig(), to);
-		return {
-			notice: result.ok
-				? { tone: 'success', text: result.message }
-				: { tone: 'error', text: `Test email failed — ${result.message}` }
-		};
+		return result.ok ? notice('smtp', 'up', to) : notice('smtp', 'down', result.message);
 	},
 
 	test: async ({ request }) => {
 		const name = String((await request.formData()).get('provider') ?? '');
 		const result = await probeProvider(getConfig(), name);
-		return {
-			notice: result.ok
-				? { tone: 'success', text: `${name} authenticated successfully.` }
-				: { tone: 'error', text: `${name} could not authenticate — ${result.message}` }
-		};
+		return result.ok ? notice(name, 'up') : notice(name, 'down', result.message);
 	}
 };
