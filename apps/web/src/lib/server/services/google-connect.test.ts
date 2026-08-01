@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { openDb, runMigrations, getServiceRefreshToken, saveServiceRefreshToken } from '@when/db';
 import { exchangeGoogleAuthCode, getGoogleAccessToken, revokeGoogleToken } from '@when/calendar';
-import type { GoogleService, WhenConfiguration } from '@when/config';
+import type { GoogleProvider, WhenConfiguration } from '@when/config';
 import {
 	completeGoogleConnect,
 	consentUrl,
@@ -20,7 +20,7 @@ vi.mock('@when/calendar', async (importOriginal) => {
 	};
 });
 
-const service: GoogleService = {
+const service: GoogleProvider = {
 	name: 'gg',
 	type: 'google',
 	client_id: 'cid',

@@ -95,34 +95,34 @@ export const CalendarSyncSchema = Type.Object({
 	}))
 }, { $id: 'CalendarSync', additionalProperties: false, title: 'CalendarSync', description: 'Per-calendar sync cadence.' });
 
-export const GoogleServiceSchema = Type.Object({
+export const GoogleProviderSchema = Type.Object({
 	name: Type.String({ minLength: 1, description: 'Unique name for the provider, referenced by calendars.' }),
-	type: Type.Literal('google', { description: 'Service type: must be google.' }),
+	type: Type.Literal('google', { description: 'Provider type: must be google.' }),
 	client_id: Type.String({ minLength: 1, description: 'Google OAuth client ID.' }),
 	client_secret: Type.String({ minLength: 1, description: 'Google OAuth client secret.' })
-}, { $id: 'GoogleService', additionalProperties: false, title: 'GoogleService', description: 'Google API service credentials. The refresh token is not configured here — connect the service from the admin and it is stored in the database.' });
+}, { $id: 'GoogleProvider', additionalProperties: false, title: 'GoogleProvider', description: 'Google API provider credentials. The refresh token is not configured here — connect the provider from the admin and it is stored in the database.' });
 
-export const NextcloudServiceSchema = Type.Object({
+export const NextcloudProviderSchema = Type.Object({
 	name: Type.String({ minLength: 1, description: 'Unique name for the provider, referenced by calendars.' }),
-	type: Type.Literal('nextcloud', { description: 'Service type: must be nextcloud.' }),
+	type: Type.Literal('nextcloud', { description: 'Provider type: must be nextcloud.' }),
 	url: Type.String({ format: 'uri', description: 'Base URL of your Nextcloud instance (e.g. https://nextcloud.example.com/).' }),
 	username: Type.String({ minLength: 1, description: 'Nextcloud username or app username.' }),
 	password: Type.String({ minLength: 1, description: 'Nextcloud password or app-specific password.' })
-}, { $id: 'NextcloudService', additionalProperties: false, title: 'NextcloudService', description: 'Nextcloud service credentials for CalDAV calendar and Talk video chat integrations.' });
+}, { $id: 'NextcloudProvider', additionalProperties: false, title: 'NextcloudProvider', description: 'Nextcloud provider credentials for CalDAV calendar and Talk video chat integrations.' });
 
-export const CalDavServiceSchema = Type.Object({
+export const CalDavProviderSchema = Type.Object({
 	name: Type.String({ minLength: 1, description: 'Unique name for the provider, referenced by calendars.' }),
-	type: Type.Literal('caldav', { description: 'Service type: must be caldav.' }),
+	type: Type.Literal('caldav', { description: 'Provider type: must be caldav.' }),
 	url: Type.String({ format: 'uri', description: 'Base URL of your CalDAV endpoint (e.g. https://cloud.example.com/remote.php/dav/).' }),
 	username: Type.String({ minLength: 1, description: 'CalDAV username.' }),
 	password: Type.String({ minLength: 1, description: 'CalDAV password.' })
-}, { $id: 'CalDavService', additionalProperties: false, title: 'CalDavService', description: 'CalDAV service credentials for generic calendar sync.' });
+}, { $id: 'CalDavProvider', additionalProperties: false, title: 'CalDavProvider', description: 'CalDAV provider credentials for generic calendar sync.' });
 
-export const ServiceSchema = Type.Union([
-	Ref(GoogleServiceSchema),
-	Ref(NextcloudServiceSchema),
-	Ref(CalDavServiceSchema)
-], { $id: 'Service', title: 'Service', description: 'External API service configuration.' });
+export const ProviderSchema = Type.Union([
+	Ref(GoogleProviderSchema),
+	Ref(NextcloudProviderSchema),
+	Ref(CalDavProviderSchema)
+], { $id: 'Provider', title: 'Provider', description: 'External API provider configuration.' });
 
 export const GoogleCalendarSchema = Type.Object({
 	name: Type.String({ minLength: 1, description: 'Unique name for this calendar, referenced by meetings.' }),
@@ -282,7 +282,7 @@ export const WhenConfigurationSchema = Type.Object({
 	auth: Ref(AuthSchema, { description: 'Admin authentication configuration.' }),
 	user: Ref(UserSchema, { description: 'Details about the schedule owner.' }),
 	smtp: Ref(SmtpSchema, { description: 'SMTP email server settings.' }),
-	providers: Type.Optional(Type.Array(Ref(ServiceSchema), { default: [], description: 'Credentials for third-party providers.' })),
+	providers: Type.Optional(Type.Array(Ref(ProviderSchema), { default: [], description: 'Credentials for third-party providers.' })),
 	calendars: Type.Array(Ref(CalendarSchema), { description: 'Connected conflict/destination calendars.' }),
 	schedules: Type.Array(Ref(ScheduleSchema), { minItems: 1, description: 'List of schedules for availability.' }),
 	meetings: Type.Array(Ref(MeetingSchema), { minItems: 1, description: 'Bookable meeting types.' }),
@@ -302,10 +302,10 @@ export type OidcAuth = Static<typeof OidcAuthSchema>;
 export type User = Static<typeof UserSchema>;
 export type Appearance = Static<typeof AppearanceSchema>;
 export type Smtp = Static<typeof SmtpSchema>;
-export type Service = Static<typeof ServiceSchema>;
-export type GoogleService = Static<typeof GoogleServiceSchema>;
-export type NextcloudService = Static<typeof NextcloudServiceSchema>;
-export type CalDavService = Static<typeof CalDavServiceSchema>;
+export type Provider = Static<typeof ProviderSchema>;
+export type GoogleProvider = Static<typeof GoogleProviderSchema>;
+export type NextcloudProvider = Static<typeof NextcloudProviderSchema>;
+export type CalDavProvider = Static<typeof CalDavProviderSchema>;
 export type Calendar = Static<typeof CalendarSchema>;
 export type GoogleCalendar = Static<typeof GoogleCalendarSchema>;
 export type CalendarSync = Static<typeof CalendarSyncSchema>;

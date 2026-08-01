@@ -1,4 +1,4 @@
-import type { Service } from '@when/config';
+import type { Provider } from '@when/config';
 import { loadConfigFromCtx } from '../../utils/command.ts';
 import { fail } from '../../utils/report.ts';
 
@@ -7,7 +7,7 @@ export async function servicesAndName(
 	nameArg: string | undefined,
 	configArg: string | undefined,
 	action: string
-): Promise<{ services: Service[]; name: string } | null> {
+): Promise<{ services: Provider[]; name: string } | null> {
 	if (!nameArg) {
 		fail(`service ${action} requires a service name`);
 		return null;
@@ -17,7 +17,7 @@ export async function servicesAndName(
 	return { services: config.providers ?? [], name: nameArg };
 }
 
-export function requireService(services: Service[], name: string): Service | null {
+export function requireService(services: Provider[], name: string): Provider | null {
 	const service = services.find((s) => s.name === name);
 	if (!service) {
 		fail(`no service named "${name}"`);

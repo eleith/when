@@ -6,7 +6,7 @@ import {
 	verifyCalDavService,
 	discoverCalDavCalendars
 } from './caldav.js';
-import type { CalDavService, NextcloudService } from '@when/config';
+import type { CalDavProvider, NextcloudProvider } from '@when/config';
 
 const inst = (s: string): Temporal.Instant => Temporal.Instant.from(s);
 
@@ -133,7 +133,7 @@ const davService = {
 	url: 'https://host/dav/',
 	username: 'u',
 	password: 'p'
-} as CalDavService;
+} as CalDavProvider;
 
 const calDavXml = (prefix: string) => ({
 	principal: `<d:multistatus xmlns:d="DAV:"><d:response><d:href>${prefix}/</d:href><d:propstat><d:prop><d:current-user-principal><d:href>${prefix}/principals/u/</d:href></d:current-user-principal></d:prop></d:propstat></d:response></d:multistatus>`,
@@ -186,7 +186,7 @@ test('discoverCalDavCalendars targets the Nextcloud dav base', async () => {
 		url: 'https://cloud.example.com/',
 		username: 'u',
 		password: 'p'
-	} as NextcloudService;
+	} as NextcloudProvider;
 	const cals = await discoverCalDavCalendars(nc);
 	expect(urls[0]).toBe('https://cloud.example.com/remote.php/dav/');
 	expect(cals[0].path).toBe('calendars/u/work/');

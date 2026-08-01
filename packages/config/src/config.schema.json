@@ -24,7 +24,7 @@
 			"description": "Credentials for third-party providers.",
 			"type": "array",
 			"items": {
-				"$ref": "#/$defs/Service"
+				"$ref": "#/$defs/Provider"
 			}
 		},
 		"calendars": {
@@ -274,10 +274,10 @@
 				}
 			]
 		},
-		"CalDavService": {
+		"CalDavProvider": {
 			"additionalProperties": false,
-			"title": "CalDavService",
-			"description": "CalDAV service credentials for generic calendar sync.",
+			"title": "CalDavProvider",
+			"description": "CalDAV provider credentials for generic calendar sync.",
 			"type": "object",
 			"required": ["name", "type", "url", "username", "password"],
 			"properties": {
@@ -287,7 +287,7 @@
 					"type": "string"
 				},
 				"type": {
-					"description": "Service type: must be caldav.",
+					"description": "Provider type: must be caldav.",
 					"const": "caldav",
 					"type": "string"
 				},
@@ -513,10 +513,10 @@
 				}
 			}
 		},
-		"GoogleService": {
+		"GoogleProvider": {
 			"additionalProperties": false,
-			"title": "GoogleService",
-			"description": "Google API service credentials. The refresh token is not configured here — connect the service from the admin and it is stored in the database.",
+			"title": "GoogleProvider",
+			"description": "Google API provider credentials. The refresh token is not configured here — connect the provider from the admin and it is stored in the database.",
 			"type": "object",
 			"required": ["name", "type", "client_id", "client_secret"],
 			"properties": {
@@ -526,7 +526,7 @@
 					"type": "string"
 				},
 				"type": {
-					"description": "Service type: must be google.",
+					"description": "Provider type: must be google.",
 					"const": "google",
 					"type": "string"
 				},
@@ -723,10 +723,10 @@
 				}
 			}
 		},
-		"NextcloudService": {
+		"NextcloudProvider": {
 			"additionalProperties": false,
-			"title": "NextcloudService",
-			"description": "Nextcloud service credentials for CalDAV calendar and Talk video chat integrations.",
+			"title": "NextcloudProvider",
+			"description": "Nextcloud provider credentials for CalDAV calendar and Talk video chat integrations.",
 			"type": "object",
 			"required": ["name", "type", "url", "username", "password"],
 			"properties": {
@@ -736,7 +736,7 @@
 					"type": "string"
 				},
 				"type": {
-					"description": "Service type: must be nextcloud.",
+					"description": "Provider type: must be nextcloud.",
 					"const": "nextcloud",
 					"type": "string"
 				},
@@ -799,6 +799,21 @@
 				}
 			}
 		},
+		"Provider": {
+			"title": "Provider",
+			"description": "External API provider configuration.",
+			"anyOf": [
+				{
+					"$ref": "#/$defs/GoogleProvider"
+				},
+				{
+					"$ref": "#/$defs/NextcloudProvider"
+				},
+				{
+					"$ref": "#/$defs/CalDavProvider"
+				}
+			]
+		},
 		"Schedule": {
 			"additionalProperties": false,
 			"title": "Schedule",
@@ -816,21 +831,6 @@
 					"$ref": "#/$defs/WeeklyAvailability"
 				}
 			}
-		},
-		"Service": {
-			"title": "Service",
-			"description": "External API service configuration.",
-			"anyOf": [
-				{
-					"$ref": "#/$defs/GoogleService"
-				},
-				{
-					"$ref": "#/$defs/NextcloudService"
-				},
-				{
-					"$ref": "#/$defs/CalDavService"
-				}
-			]
 		},
 		"Smtp": {
 			"additionalProperties": false,

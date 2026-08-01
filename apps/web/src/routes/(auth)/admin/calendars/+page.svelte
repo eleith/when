@@ -47,7 +47,7 @@
 							<dt>Type</dt>
 							<dd>{calendar.type}</dd>
 
-							<dt>Service</dt>
+							<dt>Provider</dt>
 							<dd>{calendar.service}</dd>
 
 							<dt>Status</dt>

@@ -1,6 +1,6 @@
 import type {
 	WhenConfiguration,
-	Service,
+	Provider,
 	Calendar,
 	Schedule,
 	Meeting,
@@ -48,7 +48,7 @@ function validateServices(
 }
 
 function checkServiceDuplicateName(
-	srv: Service,
+	srv: Provider,
 	i: number,
 	serviceNames: Set<string>,
 	issues: ConfigIssue[]

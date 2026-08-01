@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { getServiceAdapter } from '@when/calendar';
 import { runServiceCalendars } from './calendars.ts';
-import type { Service } from '@when/config';
+import type { Provider } from '@when/config';
 
 vi.mock('@when/calendar', async (importOriginal) => {
 	const actual = await importOriginal<typeof import('@when/calendar')>();
@@ -17,20 +17,20 @@ const adapter = {
 	listCalendars: vi.fn()
 };
 
-const gg: Service = {
+const gg: Provider = {
 	name: 'gg',
 	type: 'google',
 	client_id: 'cid',
 	client_secret: 'csecret'
-} as Service;
-const dav: Service = {
+} as Provider;
+const dav: Provider = {
 	name: 'dav',
 	type: 'caldav',
 	url: 'https://dav.example.com/',
 	username: 'u',
 	password: 'p'
-} as Service;
-const services: Service[] = [gg, dav];
+} as Provider;
+const services: Provider[] = [gg, dav];
 
 describe('service calendars action', () => {
 	let logSpy: ReturnType<typeof vi.spyOn>;

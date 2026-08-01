@@ -1,4 +1,4 @@
-import type { NextcloudService } from '@when/config';
+import type { NextcloudProvider } from '@when/config';
 import type { VideoChatAdapter, VideoChatResult, VideoChatDeleteResult } from '../adapter.js';
 import { Buffer } from 'node:buffer';
 
@@ -6,9 +6,9 @@ export class NextcloudTalkAdapter implements VideoChatAdapter {
 	static readonly type = 'nextcloud-talk';
 	static readonly expectedServiceType = 'nextcloud';
 
-	private readonly service: NextcloudService;
+	private readonly service: NextcloudProvider;
 
-	constructor(service: NextcloudService) {
+	constructor(service: NextcloudProvider) {
 		this.service = service;
 	}
 

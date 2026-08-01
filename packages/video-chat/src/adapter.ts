@@ -1,4 +1,4 @@
-import type { Service } from '@when/config';
+import type { Provider } from '@when/config';
 import { NextcloudTalkAdapter } from './adapters/nextcloud-talk.js';
 import { GoogleMeetAdapter } from './adapters/google-meet.js';
 
@@ -25,7 +25,7 @@ interface VideoChatAdapterClass {
 
 const ADAPTERS: VideoChatAdapterClass[] = [NextcloudTalkAdapter, GoogleMeetAdapter];
 
-function getVideoChatAdapter(service: Service): VideoChatAdapter {
+function getVideoChatAdapter(service: Provider): VideoChatAdapter {
 	const AdapterClass = ADAPTERS.find((a) => a.expectedServiceType === service.type);
 	if (!AdapterClass) {
 		throw new Error('Unsupported video chat service type: ' + service.type);

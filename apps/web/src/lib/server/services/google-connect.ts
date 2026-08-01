@@ -1,5 +1,5 @@
 import type { Kysely } from 'kysely';
-import type { GoogleService, WhenConfiguration } from '@when/config';
+import type { GoogleProvider, WhenConfiguration } from '@when/config';
 import type { Database } from '@when/db';
 import {
 	buildGoogleAuthUrl,
@@ -15,12 +15,12 @@ export function googleRedirectUri(appUrl: string): string {
 	return new URL(CALLBACK_PATH, appUrl).toString();
 }
 
-export function findGoogleService(config: WhenConfiguration, name: string): GoogleService | null {
+export function findGoogleService(config: WhenConfiguration, name: string): GoogleProvider | null {
 	const service = config.providers?.find((s) => s.name === name);
 	return service?.type === 'google' ? service : null;
 }
 
-export function consentUrl(service: GoogleService, appUrl: string, state: string): string {
+export function consentUrl(service: GoogleProvider, appUrl: string, state: string): string {
 	return buildGoogleAuthUrl({
 		clientId: service.client_id,
 		redirectUri: googleRedirectUri(appUrl),
@@ -39,7 +39,7 @@ export type ConnectResult = { ok: true } | { ok: false; reason: string };
 // revokes before minting instead of after.
 export async function completeGoogleConnect(
 	db: Kysely<Database>,
-	service: GoogleService,
+	service: GoogleProvider,
 	code: string,
 	appUrl: string
 ): Promise<ConnectResult> {

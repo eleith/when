@@ -5,8 +5,8 @@ import type { CalendarAdapter, PushOptions, PushResult, DeleteResult } from '../
 import type {
 	WhenConfiguration,
 	CalDavCalendar,
-	CalDavService,
-	NextcloudService
+	CalDavProvider,
+	NextcloudProvider
 } from '@when/config';
 import { originId, type Appointment } from '@when/db';
 import type { ExpandWindow } from '../expand.js';
@@ -151,9 +151,9 @@ function decodeXmlEntities(s: string): string {
 
 export class CalDavAdapter implements CalendarAdapter {
 	private cal: CalDavCalendar;
-	private service?: CalDavService | NextcloudService;
+	private service?: CalDavProvider | NextcloudProvider;
 
-	constructor(cal: CalDavCalendar, service?: CalDavService | NextcloudService) {
+	constructor(cal: CalDavCalendar, service?: CalDavProvider | NextcloudProvider) {
 		this.cal = cal;
 		this.service = service;
 	}
@@ -220,7 +220,7 @@ export interface CalDavCalendarItem {
 	path: string;
 }
 
-type CalDavServiceCreds = CalDavService | NextcloudService;
+type CalDavServiceCreds = CalDavProvider | NextcloudProvider;
 
 const PRINCIPAL_BODY =
 	'<?xml version="1.0" encoding="utf-8"?><d:propfind xmlns:d="DAV:"><d:prop><d:current-user-principal/></d:prop></d:propfind>';

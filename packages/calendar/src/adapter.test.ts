@@ -1,22 +1,22 @@
 import { beforeEach, describe, expect, test } from 'vitest';
 import { openDb, runMigrations, saveServiceRefreshToken } from '@when/db';
-import type { Service } from '@when/config';
+import type { Provider } from '@when/config';
 import { connectService, connectServices } from './adapter.js';
 
-const google: Service = {
+const google: Provider = {
 	name: 'gg',
 	type: 'google',
 	client_id: 'cid',
 	client_secret: 'csec'
-} as Service;
+} as Provider;
 
-const dav: Service = {
+const dav: Provider = {
 	name: 'dav',
 	type: 'caldav',
 	url: 'https://d.example/',
 	username: 'u',
 	password: 'p'
-} as Service;
+} as Provider;
 
 let db: ReturnType<typeof openDb>;
 

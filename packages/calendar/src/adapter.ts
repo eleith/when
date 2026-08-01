@@ -2,9 +2,9 @@ import type {
 	Calendar,
 	CalDavCalendar,
 	GoogleCalendar,
-	Service,
-	CalDavService,
-	GoogleService,
+	Provider,
+	CalDavProvider,
+	GoogleProvider,
 	WhenConfiguration
 } from '@when/config';
 import { getServiceRefreshToken, type Appointment, type openDb } from '@when/db';
@@ -41,22 +41,22 @@ interface CalendarAdapter {
 	deleteAppointment(externalEventId: string): Promise<DeleteResult>;
 }
 
-// Unlike the config's GoogleService, the refresh token is stored outside when.yaml and
+// Unlike the config's GoogleProvider, the refresh token is stored outside when.yaml and
 // is null until the service is connected.
-type ConnectedGoogleService = Omit<GoogleService, 'refresh_token'> & {
+type ConnectedGoogleService = Omit<GoogleProvider, 'refresh_token'> & {
 	refresh_token: string | null;
 };
-type ConnectedService = Exclude<Service, GoogleService> | ConnectedGoogleService;
+type ConnectedService = Exclude<Provider, GoogleProvider> | ConnectedGoogleService;
 
 // Only google carries a stored credential; every other service is already complete in
 // when.yaml. Callers hand over whatever token they hold and let this decide.
-function connectService(service: Service, refreshToken: string | null): ConnectedService {
+function connectService(service: Provider, refreshToken: string | null): ConnectedService {
 	return service.type === 'google' ? { ...service, refresh_token: refreshToken } : service;
 }
 
 // Every configured service joined with whatever credential the store holds for it.
 async function connectServices(
-	services: Service[],
+	services: Provider[],
 	db: ReturnType<typeof openDb>
 ): Promise<ConnectedService[]> {
 	return Promise.all(
@@ -70,7 +70,7 @@ function getCalendarAdapter(cal: Calendar, services?: ConnectedService[]): Calen
 	const type = cal.type;
 	if (type === 'caldav') {
 		const service = services?.find((s) => s.name === (cal as CalDavCalendar).provider);
-		return new CalDavAdapter(cal as CalDavCalendar, service as CalDavService | undefined);
+		return new CalDavAdapter(cal as CalDavCalendar, service as CalDavProvider | undefined);
 	}
 	if (type === 'google') {
 		const service = services?.find((s) => s.name === (cal as GoogleCalendar).provider);

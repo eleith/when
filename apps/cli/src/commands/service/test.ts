@@ -1,6 +1,6 @@
 import { define } from 'gunshi';
 import { connectService, getServiceAdapter } from '@when/calendar';
-import type { Service } from '@when/config';
+import type { Provider } from '@when/config';
 import { requireService, servicesAndName } from './shared.ts';
 import { pass, fail } from '../../utils/report.ts';
 
@@ -23,7 +23,7 @@ export const testCommand = define({
 });
 
 export async function runServiceTest(
-	services: Service[],
+	services: Provider[],
 	name: string,
 	refreshToken?: string
 ): Promise<void> {

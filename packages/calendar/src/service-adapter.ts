@@ -1,4 +1,4 @@
-import type { CalDavService, NextcloudService } from '@when/config';
+import type { CalDavProvider, NextcloudProvider } from '@when/config';
 import type { ConnectedGoogleService, ConnectedService } from './adapter.js';
 import { getGoogleAccessToken, listGoogleCalendars } from './adapters/google.js';
 import { verifyCalDavService, discoverCalDavCalendars } from './adapters/caldav.js';
@@ -11,7 +11,7 @@ export interface ServiceCalendar {
 }
 
 /**
- * Service-level operations, the sibling of CalendarAdapter: that one acts on a configured
+ * Provider-level operations, the sibling of CalendarAdapter: that one acts on a configured
  * calendar, this one on the service behind it — before any calendar exists to name.
  */
 export interface ServiceAdapter {
@@ -66,9 +66,9 @@ class CalDavServiceAdapter implements ServiceAdapter {
 	readonly calendarIdField = 'path';
 	readonly usesOAuth = false;
 
-	private service: CalDavService | NextcloudService;
+	private service: CalDavProvider | NextcloudProvider;
 
-	constructor(service: CalDavService | NextcloudService) {
+	constructor(service: CalDavProvider | NextcloudProvider) {
 		this.service = service;
 	}
 

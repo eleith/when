@@ -1,8 +1,8 @@
 import { define } from 'gunshi';
-import type { Service } from '@when/config';
+import type { Provider } from '@when/config';
 import { loadConfigFromCtx } from '../../utils/command.ts';
 
-export function runServiceList(services: Service[]): void {
+export function runServiceList(services: Provider[]): void {
 	if (services.length === 0) {
 		console.log('No services configured.');
 		return;

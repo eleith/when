@@ -1,5 +1,5 @@
 import type { Kysely } from 'kysely';
-import type { Service, WhenConfiguration } from '@when/config';
+import type { Provider, WhenConfiguration } from '@when/config';
 import type { Database } from '@when/db';
 import {
 	connectService,
@@ -72,7 +72,11 @@ export async function listServices(
 }
 
 // The redirect URI is ours, not the provider's, so it stays a web concern.
-function endpointOf(service: Service, usesOAuth: boolean, appUrl: string): ServiceView['endpoint'] {
+function endpointOf(
+	service: Provider,
+	usesOAuth: boolean,
+	appUrl: string
+): ServiceView['endpoint'] {
 	if (!usesOAuth && 'url' in service) return { label: 'Server URL', url: service.url };
 	return { label: 'Redirect URI', url: googleRedirectUri(appUrl) };
 }

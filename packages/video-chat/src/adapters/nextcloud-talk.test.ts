@@ -1,9 +1,9 @@
 import { describe, expect, test, vi, beforeEach } from 'vitest';
 import { NextcloudTalkAdapter } from './nextcloud-talk.js';
-import type { NextcloudService } from '@when/config';
+import type { NextcloudProvider } from '@when/config';
 
 describe('NextcloudTalkAdapter', () => {
-	const mockService: NextcloudService = {
+	const mockService: NextcloudProvider = {
 		name: 'my-nextcloud',
 		type: 'nextcloud',
 		url: 'https://cloud.example.com/',
