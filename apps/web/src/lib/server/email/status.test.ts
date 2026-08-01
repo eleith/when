@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { getOpenWorkflow, testEmail } from '@when/jobs';
+import { openDb, runMigrations, recordServiceOutcome, type Database } from '@when/db';
+import type { Kysely } from 'kysely';
 import type { WhenConfiguration } from '@when/config';
 import { sendTestEmail, smtpSummary } from './status';
 
@@ -16,8 +18,11 @@ const config = {
 
 const handle = { result: vi.fn() };
 const client = { runWorkflow: vi.fn() };
+let db: Kysely<Database>;
 
-beforeEach(() => {
+beforeEach(async () => {
+	db = openDb(':memory:');
+	await runMigrations(db);
 	handle.result = vi.fn().mockResolvedValue('sent');
 	client.runWorkflow = vi.fn().mockResolvedValue(handle);
 	vi.mocked(getOpenWorkflow)
@@ -27,8 +32,8 @@ beforeEach(() => {
 });
 
 describe('smtpSummary', () => {
-	test('reports the configured server without reaching it', () => {
-		expect(smtpSummary(config)).toMatchObject({
+	test('reports the configured server without reaching it', async () => {
+		expect(await smtpSummary(config, db)).toMatchObject({
 			host: 'smtp.example.com',
 			port: 587,
 			user: 'postmaster'
@@ -36,17 +41,53 @@ describe('smtpSummary', () => {
 		expect(getOpenWorkflow).not.toHaveBeenCalled();
 	});
 
-	test('derives the sender address the app actually sends as', () => {
-		expect(smtpSummary(config).sender).toBe('noreply@book.example.com');
+	test('derives the sender address the app actually sends as', async () => {
+		expect((await smtpSummary(config, db)).sender).toBe('noreply@book.example.com');
 	});
 
-	test('offers the host as the default recipient', () => {
-		expect(smtpSummary(config).defaultRecipient).toBe('jane@example.com');
+	test('offers the host as the default recipient', async () => {
+		expect((await smtpSummary(config, db)).defaultRecipient).toBe('jane@example.com');
 	});
 
-	test('never exposes the smtp password', () => {
+	test('never exposes the smtp password', async () => {
 		const withPassword = { ...config, smtp: { ...config.smtp, pass: 'hunter2' } };
-		expect(JSON.stringify(smtpSummary(withPassword as WhenConfiguration))).not.toContain('hunter2');
+		const view = await smtpSummary(withPassword as WhenConfiguration, db);
+		expect(JSON.stringify(view)).not.toContain('hunter2');
+	});
+
+	test('smtp reads as unobserved until an email has been sent', async () => {
+		expect((await smtpSummary(config, db)).observed.state).toBe('unobserved');
+	});
+
+	test('a sent email is what makes smtp read as working', async () => {
+		await recordServiceOutcome(
+			db,
+			{ kind: 'smtp' },
+			{
+				at: Temporal.Now.instant().toString(),
+				via: 'send'
+			}
+		);
+
+		const { observed } = await smtpSummary(config, db);
+		expect(observed.state).toBe('working');
+		expect(observed.via).toBe('send');
+	});
+
+	test('a failed send surfaces the reason on the card', async () => {
+		await recordServiceOutcome(
+			db,
+			{ kind: 'smtp' },
+			{
+				at: Temporal.Now.instant().toString(),
+				via: 'send',
+				error: 'EAUTH'
+			}
+		);
+
+		const { observed } = await smtpSummary(config, db);
+		expect(observed.state).toBe('failing');
+		expect(observed.error).toBe('EAUTH');
 	});
 });
 

@@ -189,6 +189,21 @@
 			<h3 class="name">{data.smtp.host}</h3>
 
 			<dl class="fields">
+				<dt>Status</dt>
+				{#if data.smtp.observed.state === 'failing'}
+					<dd class="failed">
+						Failing{#if data.smtp.observed.at}
+							since {fmt(data.smtp.observed.at)}{/if} — {data.smtp.observed.error}
+					</dd>
+				{:else if data.smtp.observed.state === 'working'}
+					<dd class="ok">
+						Working{#if data.smtp.observed.at}
+							— last confirmed {fmt(data.smtp.observed.at)}{/if}
+					</dd>
+				{:else}
+					<dd>Not yet observed — no email has been sent</dd>
+				{/if}
+
 				<dt>Port</dt>
 				<dd>{data.smtp.port}</dd>
 

@@ -1,6 +1,9 @@
+import type { Kysely } from 'kysely';
 import type { WhenConfiguration } from '@when/config';
 import { senderEmail } from '@when/config';
+import { listServiceStatus, type Database } from '@when/db';
 import { getOpenWorkflow, testEmail } from '@when/jobs';
+import { observedFrom, type ObservedView } from '$lib/server/observed';
 
 const RESULT_TIMEOUT_MS = 30_000;
 const HEALTH_TIMEOUT_MS = 3_000;
@@ -11,19 +14,23 @@ export interface SmtpView {
 	user: string;
 	sender: string;
 	defaultRecipient: string;
+	observed: ObservedView;
 }
 
 export type SendResult = { ok: true; message: string } | { ok: false; message: string };
 
-// Cheap: config only. Whether the credentials work is unknowable without sending, which
-// is what the test action is for.
-export function smtpSummary(config: WhenConfiguration): SmtpView {
+export async function smtpSummary(
+	config: WhenConfiguration,
+	db: Kysely<Database>
+): Promise<SmtpView> {
+	const [status] = await listServiceStatus(db, 'smtp');
 	return {
 		host: config.smtp.host,
 		port: config.smtp.port,
 		user: config.smtp.user,
 		sender: senderEmail(config),
-		defaultRecipient: config.user.email
+		defaultRecipient: config.user.email,
+		observed: observedFrom(status)
 	};
 }
 

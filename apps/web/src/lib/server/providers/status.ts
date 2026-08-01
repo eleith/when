@@ -12,20 +12,11 @@ import {
 	listProviderConnections,
 	listServiceStatus,
 	listOutOfSyncAppointments,
-	recordServiceOutcome,
-	type ServiceStatus
+	recordServiceOutcome
 } from '@when/db';
 import { evaluateCalendarStatuses, type ComputedCalendarStatus } from '$lib/server/calendar/health';
+import { observedFrom, type ObservedView } from '$lib/server/observed';
 import { googleRedirectUri } from './google-connect';
-
-export type ObservedState = 'working' | 'failing' | 'unobserved';
-
-export interface ObservedView {
-	state: ObservedState;
-	at: string | null;
-	via: string | null;
-	error: string | null;
-}
 
 export interface ProviderView {
 	name: string;
@@ -92,19 +83,6 @@ export async function listProviders(
 			}
 		};
 	});
-}
-
-function observedFrom(status: ServiceStatus | undefined): ObservedView {
-	if (!status) return { state: 'unobserved', at: null, via: null, error: null };
-	if (status.error) {
-		return {
-			state: 'failing',
-			at: status.failing_since,
-			via: status.via,
-			error: status.error
-		};
-	}
-	return { state: 'working', at: status.last_ok_at, via: status.via, error: null };
 }
 
 // The redirect URI is ours, not the provider's, so it stays a web concern.

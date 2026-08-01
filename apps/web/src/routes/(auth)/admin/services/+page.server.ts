@@ -16,7 +16,7 @@ export const load: PageServerLoad = async () => {
 	return {
 		crumb: 'Services',
 		providers: await listProviders(config, getDb()),
-		smtp: smtpSummary(config)
+		smtp: await smtpSummary(config, getDb())
 	};
 };
 
