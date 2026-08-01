@@ -1,5 +1,11 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { openDb, runMigrations, saveProviderRefreshToken, recordServiceOutcome } from '@when/db';
+import {
+	openDb,
+	runMigrations,
+	saveProviderRefreshToken,
+	recordServiceOutcome,
+	listServiceStatus
+} from '@when/db';
 import { getProviderAdapter } from '@when/calendar';
 import type { WhenConfiguration } from '@when/config';
 import { discoverCalendars, listProviders, probeProvider } from './status';
@@ -91,10 +97,40 @@ describe('listProviders', () => {
 		expect(dav.calendars).toEqual(['home']);
 	});
 
-	test('health is unknown until the worker has synced', async () => {
+	test('a provider nothing has touched reads as unobserved, not as broken', async () => {
 		const [google] = await listProviders(config, db);
-		expect(google.health).toBe('unknown');
-		expect(google.lastSyncedAt).toBeNull();
+		expect(google.observed.state).toBe('unobserved');
+		expect(google.sync.health).toBe('unknown');
+		expect(google.sync.lastSyncedAt).toBeNull();
+	});
+
+	test('an observed provider reads working, whatever its calendars are doing', async () => {
+		await recordServiceOutcome(
+			db,
+			{ kind: 'provider', name: 'gg' },
+			{ at: Temporal.Now.instant().toString(), via: 'test' }
+		);
+
+		const [google] = await listProviders(config, db);
+
+		expect(google.observed.state).toBe('working');
+		expect(google.observed.via).toBe('test');
+		expect(google.sync.health).toBe('unknown');
+	});
+
+	test('a failing provider reports the error and when the streak began', async () => {
+		const longAgo = Temporal.Now.instant().subtract({ hours: 2 }).toString();
+		await recordServiceOutcome(
+			db,
+			{ kind: 'provider', name: 'gg' },
+			{ at: longAgo, via: 'refresh', error: 'invalid_grant' }
+		);
+
+		const [google] = await listProviders(config, db);
+
+		expect(google.observed.state).toBe('failing');
+		expect(google.observed.error).toBe('invalid_grant');
+		expect(google.observed.at).toBe(longAgo);
 	});
 
 	test('a successful worker refresh makes the service read as syncing', async () => {
@@ -109,8 +145,8 @@ describe('listProviders', () => {
 
 		const [google] = await listProviders(config, db);
 
-		expect(google.health).toBe('good');
-		expect(google.lastSyncedAt).toBeTruthy();
+		expect(google.sync.health).toBe('good');
+		expect(google.sync.lastSyncedAt).toBeTruthy();
 	});
 
 	test('a failed worker refresh surfaces on the service that owns the calendar', async () => {
@@ -127,13 +163,36 @@ describe('listProviders', () => {
 
 		const [google, dav] = await listProviders(config, db);
 
-		expect(google.health).toBe('bad');
-		expect(google.reason).toContain('invalid_grant');
-		expect(dav.health).toBe('unknown');
+		expect(google.sync.health).toBe('bad');
+		expect(google.sync.reason).toContain('invalid_grant');
+		expect(dav.sync.health).toBe('unknown');
 	});
 });
 
 describe('probeProvider', () => {
+	test('a passing probe is recorded like any other observation', async () => {
+		await saveProviderRefreshToken(db, 'gg', 'rt-1');
+		await probeProvider(config, db, 'gg');
+
+		const [google] = await listProviders(config, db);
+		expect(google.observed.state).toBe('working');
+		expect(google.observed.via).toBe('test');
+	});
+
+	test('a failing probe records the reason it failed', async () => {
+		adapter.verify = vi.fn().mockRejectedValue(new Error('bad credentials (401)'));
+		await probeProvider(config, db, 'gg');
+
+		const [google] = await listProviders(config, db);
+		expect(google.observed.state).toBe('failing');
+		expect(google.observed.error).toContain('401');
+	});
+
+	test('probing a provider that is not configured records nothing', async () => {
+		await probeProvider(config, db, 'nope');
+		expect(await listServiceStatus(db, 'provider')).toEqual([]);
+	});
+
 	test('hands the adapter the stored token', async () => {
 		await saveProviderRefreshToken(db, 'gg', 'rt-1');
 

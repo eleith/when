@@ -11,10 +11,21 @@ import {
 	getProviderRefreshToken,
 	listProviderConnections,
 	listServiceStatus,
-	listOutOfSyncAppointments
+	listOutOfSyncAppointments,
+	recordServiceOutcome,
+	type ServiceStatus
 } from '@when/db';
 import { evaluateCalendarStatuses, type ComputedCalendarStatus } from '$lib/server/calendar/health';
 import { googleRedirectUri } from './google-connect';
+
+export type ObservedState = 'working' | 'failing' | 'unobserved';
+
+export interface ObservedView {
+	state: ObservedState;
+	at: string | null;
+	via: string | null;
+	error: string | null;
+}
 
 export interface ProviderView {
 	name: string;
@@ -23,9 +34,12 @@ export interface ProviderView {
 	calendars: string[];
 	endpoint: { label: string; url: string };
 	usesOAuth: boolean;
-	health: 'good' | 'bad' | 'unknown';
-	reason: string | null;
-	lastSyncedAt: string | null;
+	observed: ObservedView;
+	sync: {
+		health: 'good' | 'bad' | 'unknown';
+		reason: string | null;
+		lastSyncedAt: string | null;
+	};
 }
 
 export type ProbeResult = { ok: true; message: string } | { ok: false; message: string };
@@ -34,23 +48,29 @@ export type DiscoveryResult =
 	| { ok: true; field: string; calendars: ProviderCalendar[] }
 	| { ok: false; message: string };
 
-// Cheap: config plus indexed reads. Nothing here reaches the network — the worker already
-// proved whether each credential works on its last refresh pass, and that verdict is what
-// calendar_sync_status holds.
+// Nothing here reaches the network: every verdict is something the worker or a manual test
+// already observed.
 export async function listProviders(
 	config: WhenConfiguration,
 	db: Kysely<Database>
 ): Promise<ProviderView[]> {
-	const [connections, syncStatus, outOfSync] = await Promise.all([
+	const [connections, calendarStatus, providerStatus, outOfSync] = await Promise.all([
 		listProviderConnections(db),
 		listServiceStatus(db, 'calendar'),
+		listServiceStatus(db, 'provider'),
 		listOutOfSyncAppointments(db)
 	]);
 
-	const computed = evaluateCalendarStatuses(syncStatus, outOfSync, config, Temporal.Now.instant());
+	const computed = evaluateCalendarStatuses(
+		calendarStatus,
+		outOfSync,
+		config,
+		Temporal.Now.instant()
+	);
 	const connected = new Map(connections.map((c) => [c.providerName, c]));
 	const statuses = new Map(computed.map((s) => [s.id, s]));
-	const lastSynced = new Map(syncStatus.map((s) => [s.name, s.last_ok_at]));
+	const observedByName = new Map(providerStatus.map((s) => [s.name, s]));
+	const lastSynced = new Map(calendarStatus.map((s) => [s.name, s.last_ok_at]));
 
 	return (config.providers ?? []).map((provider) => {
 		const { usesOAuth } = getProviderAdapter(connectProvider(provider, null));
@@ -65,10 +85,26 @@ export async function listProviders(
 			calendars,
 			endpoint: endpointOf(provider, usesOAuth, config.url.app),
 			usesOAuth,
-			...syncStateOf(calendars, statuses),
-			lastSyncedAt: latest(calendars.map((id) => lastSynced.get(id) ?? null))
+			observed: observedFrom(observedByName.get(provider.name)),
+			sync: {
+				...syncStateOf(calendars, statuses),
+				lastSyncedAt: latest(calendars.map((id) => lastSynced.get(id) ?? null))
+			}
 		};
 	});
+}
+
+function observedFrom(status: ServiceStatus | undefined): ObservedView {
+	if (!status) return { state: 'unobserved', at: null, via: null, error: null };
+	if (status.error) {
+		return {
+			state: 'failing',
+			at: status.failing_since,
+			via: status.via,
+			error: status.error
+		};
+	}
+	return { state: 'working', at: status.last_ok_at, via: status.via, error: null };
 }
 
 // The redirect URI is ours, not the provider's, so it stays a web concern.
@@ -81,12 +117,10 @@ function endpointOf(
 	return { label: 'Redirect URI', url: googleRedirectUri(appUrl) };
 }
 
-// A provider is only as healthy as the calendars it backs: one failing calendar condemns it,
-// and with no verdict at all it stays unknown rather than claiming to work.
 function syncStateOf(
 	calendars: string[],
 	statuses: Map<string, ComputedCalendarStatus>
-): Pick<ProviderView, 'health' | 'reason'> {
+): Pick<ProviderView['sync'], 'health' | 'reason'> {
 	const failing = calendars.map((id) => statuses.get(id)).find((s) => s?.health === 'bad');
 	if (failing) return { health: 'bad', reason: failing.reason };
 
@@ -104,12 +138,22 @@ export async function probeProvider(
 	db: Kysely<Database>,
 	name: string
 ): Promise<ProbeResult> {
+	const at = Temporal.Now.instant().toString();
 	try {
 		const adapter = await connectedAdapter(config, db, name);
 		await adapter.verify();
+		await recordServiceOutcome(db, { kind: 'provider', name }, { at, via: 'test' });
 		return { ok: true, message: 'Authenticated.' };
 	} catch (err) {
-		return { ok: false, message: reason(err) };
+		const message = reason(err);
+		if (config.providers?.some((p) => p.name === name)) {
+			await recordServiceOutcome(
+				db,
+				{ kind: 'provider', name },
+				{ at, via: 'test', error: message }
+			);
+		}
+		return { ok: false, message };
 	}
 }
 

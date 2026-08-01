@@ -88,17 +88,38 @@
 							<dt>Status</dt>
 							{#if unconnected}
 								<dd>Not connected</dd>
-							{:else if provider.health === 'bad'}
-								<dd class="failed">{provider.reason ?? 'Not syncing'}</dd>
-							{:else if provider.health === 'good'}
-								<dd class="ok">
-									Syncing{#if provider.lastSyncedAt}
-										— last at {fmt(provider.lastSyncedAt)}{/if}
+							{:else if provider.observed.state === 'failing'}
+								<dd class="failed">
+									Failing{#if provider.observed.at}
+										since {fmt(provider.observed.at)}{/if} — {provider.observed.error}
+									{#if provider.observed.via === 'refresh'}(calendar refresh){:else if provider.observed.via === 'push'}(calendar
+										push){:else if provider.observed.via === 'send'}(email send){:else if provider.observed.via === 'test'}(manual
+										test){/if}
 								</dd>
-							{:else if provider.calendars.length === 0}
-								<dd>Nothing to sync</dd>
+							{:else if provider.observed.state === 'working'}
+								<dd class="ok">
+									Working{#if provider.observed.at}
+										— last confirmed {fmt(provider.observed.at)}{/if}
+									{#if provider.observed.via === 'refresh'}(calendar refresh){:else if provider.observed.via === 'push'}(calendar
+										push){:else if provider.observed.via === 'send'}(email send){:else if provider.observed.via === 'test'}(manual
+										test){/if}
+								</dd>
 							{:else}
-								<dd>Not synced yet</dd>
+								<dd>Not yet observed — nothing has used this provider</dd>
+							{/if}
+
+							<dt>Calendars sync</dt>
+							{#if provider.calendars.length === 0}
+								<dd>No calendars configured</dd>
+							{:else if provider.sync.health === 'bad'}
+								<dd class="failed">{provider.sync.reason ?? 'Not syncing'}</dd>
+							{:else if provider.sync.health === 'good'}
+								<dd class="ok">
+									Syncing{#if provider.sync.lastSyncedAt}
+										— last at {fmt(provider.sync.lastSyncedAt)}{/if}
+								</dd>
+							{:else}
+								<dd>Not yet refreshed</dd>
 							{/if}
 
 							<dt>{provider.endpoint.label}</dt>
