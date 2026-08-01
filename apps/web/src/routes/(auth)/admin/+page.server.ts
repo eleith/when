@@ -112,9 +112,8 @@ export const load: PageServerLoad = async () => {
 	];
 
 	return {
-		// smtp is a required top-level block, so the services page always lists one more
-		// card than `services:` has entries.
-		serviceCount: (cfg.providers ?? []).length + 1,
+		// The services page cards: every provider, plus smtp and the worker.
+		serviceCount: (cfg.providers ?? []).length + 2,
 		calendarCount: cfg.calendars.length,
 		failing,
 		conflictCount,
