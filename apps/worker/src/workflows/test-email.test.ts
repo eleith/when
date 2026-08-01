@@ -1,4 +1,5 @@
-import { afterEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { openDb, runMigrations } from '@when/db';
 import { setWorkerContext, type WorkerContext } from '../services/context.js';
 import { createLogger } from '../services/logger.js';
 import type { Mailer, SendResult } from '../email/smtp.js';
@@ -7,21 +8,24 @@ import { runTestEmail } from './test-email.js';
 
 vi.mock('../email/logo.js', () => ({ fetchBrandLogo: vi.fn().mockResolvedValue(null) }));
 
+let db: WorkerContext['db'];
+
 function setContext(result: SendResult): ReturnType<typeof vi.fn> {
 	const sendFn = vi.fn().mockResolvedValue(result);
 	const mailer: Mailer = { send: sendFn };
-	setWorkerContext({
-		config: sampleConfig,
-		logger: createLogger(),
-		db: {} as WorkerContext['db'],
-		mailer
-	});
+	setWorkerContext({ config: sampleConfig, logger: createLogger(), db, mailer });
 	return sendFn;
 }
 
 describe('runTestEmail', () => {
-	afterEach(() => {
+	beforeEach(async () => {
+		db = openDb(':memory:');
+		await runMigrations(db);
+	});
+
+	afterEach(async () => {
 		vi.restoreAllMocks();
+		await db.destroy();
 	});
 
 	test('renders and sends the test email, returning "sent"', async () => {

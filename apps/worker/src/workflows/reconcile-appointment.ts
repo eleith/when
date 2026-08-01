@@ -4,6 +4,7 @@ import type { ReconcileAppointmentInput, ReconcileAppointmentResult } from '@whe
 import { dispatch } from '../email/dispatch.js';
 import { getWorkerContext } from '../services/context.js';
 import { appendJobLog } from '../services/job-log.js';
+import { recordSendOutcome } from '../email/status.js';
 import { createStandaloneVideoChat } from '../services/video-chat.js';
 import { reconcileAppointment as syncCalendarForAppointment } from '../calendar/sync.js';
 import { implementObservedWorkflow, emailsTotal } from '../services/metrics.js';
@@ -53,6 +54,7 @@ export async function runReconcileAppointment(
 			try {
 				await step.run({ name: `smtp:${recipientType}`, retryPolicy: SEND_RETRY }, async () => {
 					const result = await ctx.mailer.send(envelope);
+					await recordSendOutcome(ctx, result);
 					if (!result.ok) {
 						emailsTotal.inc({
 							recipient_type: recipientType,

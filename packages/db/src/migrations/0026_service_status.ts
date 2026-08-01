@@ -1,18 +1,8 @@
 import { sql, type Kysely, type Migration } from 'kysely';
 
-// One table for the last observed outcome of every external dependency, replacing the
-// calendar-only table. Asking the same question at two grains, in two vocabularies, is what
-// let a calendar verdict be rendered as a provider's.
-//
-// `kind` and `name` are separate columns rather than one `kind:name` key so that reading
-// back one kind is a predicate the database can answer, not a prefix every caller has to
-// parse. A kind with a single instance — `smtp` — carries an empty name: SQLite would let a
-// NULL slip past the composite primary key.
-//
-// The rows are derived, and a refresh cycle rebuilds them, but copying keeps the admin from
-// reading empty for one cycle. `failing_since` starts at the last attempt for a row that is
-// already failing: the true streak start is unknowable, and this never reads as older than
-// the truth.
+// A kind with one instance (smtp) carries an empty name: SQLite lets a NULL slip past a
+// composite primary key. Copied rows start their streak at the last attempt — the true
+// start is unknowable, and this never reads as older than the truth.
 export const serviceStatus: Migration = {
 	async up(db: Kysely<unknown>): Promise<void> {
 		await db.schema

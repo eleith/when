@@ -82,9 +82,7 @@ export async function refreshCalendar(
 	}
 }
 
-// One fetch proves two things: that this calendar is reachable, and that the credential
-// behind it still works. The provider row is the only status a provider backing no
-// calendars could ever have, so it is worth writing even when it looks redundant.
+// A provider backing no calendars has no other source of status.
 async function recordRefreshOutcome(
 	ctx: WorkerContext,
 	cal: Calendar,

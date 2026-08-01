@@ -130,6 +130,46 @@ test('a failing publish logs failed once; a later success appends done', async (
 	}
 });
 
+test('a successful push records the calendar and its provider', async () => {
+	const ctx = await ctxWith();
+	try {
+		await insert(ctx, { id: '1', cancel_token: 't1', calendar_revision: 1 });
+		recordingFetch(201);
+		await reconcileAppointment(ctx, await onlyRow(ctx));
+
+		const rows = await ctx.db.selectFrom('service_status').selectAll().execute();
+		expect(rows.map((r) => `${r.kind}/${r.name}`).sort()).toEqual([
+			'calendar/work',
+			'provider/work-dav'
+		]);
+		for (const row of rows) {
+			expect(row.via).toBe('push');
+			expect(row.error).toBeNull();
+		}
+	} finally {
+		await ctx.db.destroy();
+	}
+});
+
+test('a failing push marks the calendar and its provider failing', async () => {
+	const ctx = await ctxWith();
+	try {
+		await insert(ctx, { id: '1', cancel_token: 't1', calendar_revision: 1 });
+		recordingFetch(507);
+		await reconcileAppointment(ctx, await onlyRow(ctx));
+
+		const rows = await ctx.db.selectFrom('service_status').selectAll().execute();
+		expect(rows).toHaveLength(2);
+		for (const row of rows) {
+			expect(row.error).toBeTruthy();
+			expect(row.failing_since).toBeTruthy();
+			expect(row.last_ok_at).toBeNull();
+		}
+	} finally {
+		await ctx.db.destroy();
+	}
+});
+
 test('confirmed with an external event is updated', async () => {
 	const ctx = await ctxWith();
 	try {

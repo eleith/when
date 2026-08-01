@@ -1,13 +1,10 @@
 import { type Kysely } from 'kysely';
 import type { Database, ServiceStatus } from './types.js';
 
-/** What kind of external dependency a status row is about. */
 export type ServiceKind = 'calendar' | 'provider' | 'smtp' | 'video_chat';
 
-/** What observed the outcome: real work, or a human asking. */
 export type ObservedVia = 'refresh' | 'push' | 'send' | 'test';
 
-/** Which dependency. Kinds with a single instance, like `smtp`, carry no name. */
 export interface ServiceRef {
 	kind: ServiceKind;
 	name?: string;
@@ -19,12 +16,7 @@ export interface ServiceOutcome {
 	error?: string | null;
 }
 
-/**
- * Record what an interaction proved about a dependency.
- *
- * `failing_since` survives a streak — it is only set on the healthy→failing transition — so
- * it reads as "failing since" rather than "last failed".
- */
+// failing_since is set only on the healthy-to-failing transition, so it reads as "since".
 export async function recordServiceOutcome(
 	db: Kysely<Database>,
 	ref: ServiceRef,
@@ -65,7 +57,6 @@ export async function recordServiceOutcome(
 		.execute();
 }
 
-/** Every observed dependency, or just those of one kind. */
 export function listServiceStatus(
 	db: Kysely<Database>,
 	kind?: ServiceKind

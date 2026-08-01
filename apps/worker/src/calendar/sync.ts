@@ -1,5 +1,10 @@
 import { connectProviders, deleteAppointmentFromCalendar, pushAppointment } from '@when/calendar';
-import { listOutOfSyncAppointments, markSynced, type Appointment } from '@when/db';
+import {
+	listOutOfSyncAppointments,
+	markSynced,
+	recordServiceOutcome,
+	type Appointment
+} from '@when/db';
 import type { WorkerContext } from '../services/context.js';
 import { appointmentLinks } from '../links.js';
 import { appendJobLog, markCalendarFailing } from '../services/job-log.js';
@@ -36,6 +41,7 @@ export async function reconcileAppointment(ctx: WorkerContext, row: Appointment)
 					video_chat: pushed.videoChatUrl ?? row.video_chat
 				});
 				await appendJobLog(ctx.db, row.id, 'calendar', 'done', Temporal.Now.instant().toString());
+				await recordPushOutcome(ctx, target, null);
 				if (pushed.videoChatUrl) {
 					await appendJobLog(
 						ctx.db,
@@ -47,6 +53,7 @@ export async function reconcileAppointment(ctx: WorkerContext, row: Appointment)
 				}
 			} else {
 				await markCalendarFailing(ctx.db, row, Temporal.Now.instant().toString());
+				await recordPushOutcome(ctx, target, pushed.reason);
 				ctx.logger.error(
 					{
 						appointmentId: row.id,
@@ -78,8 +85,10 @@ export async function reconcileAppointment(ctx: WorkerContext, row: Appointment)
 					external_calendar_id: null
 				});
 				await appendJobLog(ctx.db, row.id, 'calendar', 'done', Temporal.Now.instant().toString());
+				await recordPushOutcome(ctx, row.external_calendar_id, null);
 			} else {
 				await markCalendarFailing(ctx.db, row, Temporal.Now.instant().toString());
+				await recordPushOutcome(ctx, row.external_calendar_id, deleted.reason);
 				ctx.logger.error(
 					{
 						appointmentId: row.id,
@@ -94,6 +103,36 @@ export async function reconcileAppointment(ctx: WorkerContext, row: Appointment)
 		await markSynced(ctx.db, row.id, revision);
 	} finally {
 		timer();
+	}
+}
+
+async function recordPushOutcome(
+	ctx: WorkerContext,
+	calendarName: string,
+	error: string | null | undefined
+): Promise<void> {
+	const at = Temporal.Now.instant().toString();
+	await recordServiceOutcome(
+		ctx.db,
+		{ kind: 'calendar', name: calendarName },
+		{
+			at,
+			via: 'push',
+			error
+		}
+	);
+
+	const provider = ctx.config.calendars.find((c) => c.name === calendarName)?.provider;
+	if (provider) {
+		await recordServiceOutcome(
+			ctx.db,
+			{ kind: 'provider', name: provider },
+			{
+				at,
+				via: 'push',
+				error
+			}
+		);
 	}
 }
 
