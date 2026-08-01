@@ -91,6 +91,45 @@ export const testEmail: WorkflowSpec<TestEmailInput, TestEmailResult> = defineWo
 	}
 });
 
+export interface TestProviderInput {
+	name: string;
+}
+export type TestProviderResult = 'authenticated';
+
+export const testProvider: WorkflowSpec<TestProviderInput, TestProviderResult> = defineWorkflowSpec<
+	TestProviderInput,
+	TestProviderResult
+>({
+	name: 'test-provider',
+	retryPolicy: {
+		maximumAttempts: 1,
+		initialInterval: '1s',
+		backoffCoefficient: 2,
+		maximumInterval: '1s'
+	}
+});
+
+export interface ListProviderCalendarsInput {
+	name: string;
+}
+export interface ListProviderCalendarsResult {
+	field: string;
+	calendars: { id: string; name: string; primary: boolean }[];
+}
+
+export const listProviderCalendars: WorkflowSpec<
+	ListProviderCalendarsInput,
+	ListProviderCalendarsResult
+> = defineWorkflowSpec<ListProviderCalendarsInput, ListProviderCalendarsResult>({
+	name: 'list-provider-calendars',
+	retryPolicy: {
+		maximumAttempts: 1,
+		initialInterval: '1s',
+		backoffCoefficient: 2,
+		maximumInterval: '1s'
+	}
+});
+
 export type SyncCalendarsInput = Record<string, never>;
 export type SyncCalendarsResult = 'requested';
 

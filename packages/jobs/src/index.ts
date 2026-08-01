@@ -1,4 +1,11 @@
-export { reconcileAppointment, syncCalendars, purgeAppointment, testEmail } from './specs.js';
+export {
+	reconcileAppointment,
+	syncCalendars,
+	purgeAppointment,
+	testEmail,
+	testProvider,
+	listProviderCalendars
+} from './specs.js';
 export type {
 	AppointmentEmailKind,
 	ReconcileAppointmentInput,
@@ -9,7 +16,11 @@ export type {
 	PurgeAppointmentInput,
 	PurgeAppointmentResult,
 	TestEmailInput,
-	TestEmailResult
+	TestEmailResult,
+	TestProviderInput,
+	TestProviderResult,
+	ListProviderCalendarsInput,
+	ListProviderCalendarsResult
 } from './specs.js';
 export {
 	initOpenWorkflow,
