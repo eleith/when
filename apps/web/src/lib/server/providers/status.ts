@@ -4,7 +4,6 @@ import type { Database } from '@when/db';
 import { connectProvider, getProviderAdapter, type ProviderCalendar } from '@when/calendar';
 import { listProviderConnections, listServiceStatus } from '@when/db';
 import { getOpenWorkflow, listProviderCalendars, testProvider } from '@when/jobs';
-import { evaluateCalendarStatuses, type ComputedCalendarStatus } from '$lib/server/calendar/health';
 import { observedFrom, type ObservedView } from '$lib/server/observed';
 import { workerReachable } from '$lib/server/worker';
 import { googleRedirectUri } from './google-connect';
@@ -19,11 +18,6 @@ export interface ProviderView {
 	endpoint: { label: string; url: string };
 	usesOAuth: boolean;
 	observed: ObservedView;
-	sync: {
-		health: 'good' | 'bad' | 'unknown';
-		reason: string | null;
-		lastSyncedAt: string | null;
-	};
 }
 
 export type ProbeResult = { ok: true; message: string } | { ok: false; message: string };
@@ -38,17 +32,13 @@ export async function listProviders(
 	config: WhenConfiguration,
 	db: Kysely<Database>
 ): Promise<ProviderView[]> {
-	const [connections, calendarStatus, providerStatus] = await Promise.all([
+	const [connections, providerStatus] = await Promise.all([
 		listProviderConnections(db),
-		listServiceStatus(db, 'calendar'),
 		listServiceStatus(db, 'provider')
 	]);
 
-	const computed = evaluateCalendarStatuses(calendarStatus, config, Temporal.Now.instant());
 	const connected = new Map(connections.map((c) => [c.providerName, c]));
-	const statuses = new Map(computed.map((s) => [s.id, s]));
 	const observedByName = new Map(providerStatus.map((s) => [s.name, s]));
-	const lastSynced = new Map(calendarStatus.map((s) => [s.name, s.last_ok_at]));
 
 	return (config.providers ?? []).map((provider) => {
 		const { usesOAuth } = getProviderAdapter(connectProvider(provider, null));
@@ -63,11 +53,7 @@ export async function listProviders(
 			calendars,
 			endpoint: endpointOf(provider, usesOAuth, config.url.app),
 			usesOAuth,
-			observed: observedFrom(observedByName.get(provider.name)),
-			sync: {
-				...syncStateOf(calendars, statuses),
-				lastSyncedAt: latest(calendars.map((id) => lastSynced.get(id) ?? null))
-			}
+			observed: observedFrom(observedByName.get(provider.name))
 		};
 	});
 }
@@ -82,26 +68,10 @@ function endpointOf(
 	return { label: 'Redirect URI', url: googleRedirectUri(appUrl) };
 }
 
-function syncStateOf(
-	calendars: string[],
-	statuses: Map<string, ComputedCalendarStatus>
-): Pick<ProviderView['sync'], 'health' | 'reason'> {
-	const failing = calendars.map((id) => statuses.get(id)).find((s) => s?.health === 'bad');
-	if (failing) return { health: 'bad', reason: failing.reason };
-
-	const synced = calendars.some((id) => statuses.get(id)?.health === 'good');
-	return { health: synced ? 'good' : 'unknown', reason: null };
-}
-
-function latest(times: (string | null)[]): string | null {
-	const known = times.filter((t): t is string => t !== null);
-	return known.sort().at(-1) ?? null;
-}
-
 export async function probeProvider(config: WhenConfiguration, name: string): Promise<ProbeResult> {
 	const reachable = await workerReachable(config.url.worker);
 	if (!reachable) {
-		return { ok: false, message: 'The worker is not reachable, so nothing would check it.' };
+		return { ok: false, message: 'Worker not reachable.' };
 	}
 
 	try {
@@ -123,7 +93,7 @@ export async function discoverCalendars(
 ): Promise<DiscoveryResult> {
 	const reachable = await workerReachable(config.url.worker);
 	if (!reachable) {
-		return { ok: false, message: 'The worker is not reachable, so nothing would ask it.' };
+		return { ok: false, message: 'Worker not reachable.' };
 	}
 
 	try {

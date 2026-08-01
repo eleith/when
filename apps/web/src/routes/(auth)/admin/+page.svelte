@@ -53,7 +53,7 @@
 			{#each data.failing as f (f.name)}
 				<div class="alert" role="alert">
 					<IconWarning aria-hidden="true" />
-					<span>{f.name} — {f.reason}</span>
+					<span>{f.name}: {f.reason}</span>
 				</div>
 			{/each}
 		</section>

@@ -39,7 +39,7 @@ export async function sendTestEmail(config: WhenConfiguration, to: string): Prom
 
 	const reachable = await workerReachable(config.url.worker);
 	if (!reachable) {
-		return { ok: false, message: 'The worker is not reachable, so nothing would send it.' };
+		return { ok: false, message: 'Worker not reachable.' };
 	}
 
 	try {

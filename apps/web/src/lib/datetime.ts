@@ -178,3 +178,27 @@ export function formatTzAbbrev(iso: string, tz: string): string {
 		return '';
 	}
 }
+
+const STEPS: [seconds: number, unit: Intl.RelativeTimeFormatUnit, per: number][] = [
+	[60, 'second', 1],
+	[3600, 'minute', 60],
+	[86400, 'hour', 3600],
+	[604800, 'day', 86400],
+	[2629800, 'week', 604800],
+	[31557600, 'month', 2629800]
+];
+
+export function timeAgo(iso: string | null, now: number = Date.now()): string {
+	if (!iso) return 'unknown';
+
+	const seconds = Math.max(0, (now - new Date(iso).getTime()) / 1000);
+	if (seconds < 45) return 'just now';
+
+	// 'always' keeps a status line consistent: "1 day ago", never "yesterday".
+	const format = new Intl.RelativeTimeFormat([], { numeric: 'always' });
+
+	for (const [limit, unit, per] of STEPS) {
+		if (seconds < limit) return format.format(-Math.round(seconds / per), unit);
+	}
+	return format.format(-Math.round(seconds / 31557600), 'year');
+}

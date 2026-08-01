@@ -64,7 +64,7 @@ export async function probeCalendar(
 ): Promise<CalendarProbeResult> {
 	const reachable = await workerReachable(config.url.worker);
 	if (!reachable) {
-		return { ok: false, message: 'The worker is not reachable, so nothing would check it.' };
+		return { ok: false, message: 'Worker not reachable.' };
 	}
 
 	try {

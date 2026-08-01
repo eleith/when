@@ -139,7 +139,7 @@ describe('sendTestEmail', () => {
 		const result = await sendTestEmail(config, 'someone@example.com');
 
 		expect(result).toMatchObject({ ok: false });
-		expect(result.message).toContain('worker is not reachable');
+		expect(result.message).toContain('Worker not reachable');
 		expect(client.runWorkflow).not.toHaveBeenCalled();
 	});
 

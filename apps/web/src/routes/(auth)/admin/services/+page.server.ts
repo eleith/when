@@ -68,12 +68,12 @@ export const actions: Actions = {
 	worker: async () => {
 		const { worker } = getConfig().url;
 		const reachable = await workerReachable(worker);
-		if (reachable) return { notice: { tone: 'success', text: 'The worker is running.' } };
+		if (reachable) return { notice: { tone: 'success', text: 'Worker is running.' } };
 
 		return {
 			notice: {
 				tone: 'error',
-				text: `The worker is not reachable at ${worker} — calendars stop refreshing and email stops sending.`
+				text: `Worker not reachable at ${worker}.`
 			}
 		};
 	},

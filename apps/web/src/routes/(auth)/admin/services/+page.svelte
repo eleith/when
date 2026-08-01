@@ -3,6 +3,7 @@
 	import IconWarningCircle from 'virtual:icons/ph/warning-circle';
 	import IconSpinner from 'virtual:icons/ph/spinner';
 	import { enhance } from '$app/forms';
+	import { timeAgo } from '$lib/datetime';
 	import type { SubmitFunction } from './$types';
 
 	interface DiscoveredCalendar {
@@ -35,15 +36,6 @@
 		listingProvider = discovered.provider;
 		listing = { field: discovered.field, calendars: discovered.calendars };
 	});
-
-	function fmt(iso: string): string {
-		return new Date(iso).toLocaleString([], {
-			month: 'short',
-			day: 'numeric',
-			hour: '2-digit',
-			minute: '2-digit'
-		});
-	}
 </script>
 
 <svelte:head>
@@ -83,43 +75,19 @@
 							<dd>{provider.type}</dd>
 
 							<dt>Calendars</dt>
-							<dd>{provider.calendars.length === 0 ? 'None' : provider.calendars.join(', ')}</dd>
+							<dd>{provider.calendars.length}</dd>
 
 							<dt>Status</dt>
 							{#if unconnected}
 								<dd>Not connected</dd>
 							{:else if provider.observed.state === 'failing'}
 								<dd class="failed">
-									Failing{#if provider.observed.at}
-										since {fmt(provider.observed.at)}{/if} — {provider.observed.error}
-									{#if provider.observed.via === 'refresh'}(calendar refresh){:else if provider.observed.via === 'push'}(calendar
-										push){:else if provider.observed.via === 'send'}(email send){:else if provider.observed.via === 'test'}(manual
-										test){/if}
+									down ({timeAgo(provider.observed.at)}): {provider.observed.error}
 								</dd>
 							{:else if provider.observed.state === 'working'}
-								<dd class="ok">
-									Working{#if provider.observed.at}
-										— last confirmed {fmt(provider.observed.at)}{/if}
-									{#if provider.observed.via === 'refresh'}(calendar refresh){:else if provider.observed.via === 'push'}(calendar
-										push){:else if provider.observed.via === 'send'}(email send){:else if provider.observed.via === 'test'}(manual
-										test){/if}
-								</dd>
+								<dd class="ok">up ({timeAgo(provider.observed.at)})</dd>
 							{:else}
-								<dd>Not yet observed — nothing has used this provider</dd>
-							{/if}
-
-							<dt>Calendars sync</dt>
-							{#if provider.calendars.length === 0}
-								<dd>No calendars configured</dd>
-							{:else if provider.sync.health === 'bad'}
-								<dd class="failed">{provider.sync.reason ?? 'Not syncing'}</dd>
-							{:else if provider.sync.health === 'good'}
-								<dd class="ok">
-									Syncing{#if provider.sync.lastSyncedAt}
-										— last at {fmt(provider.sync.lastSyncedAt)}{/if}
-								</dd>
-							{:else}
-								<dd>Not yet refreshed</dd>
+								<dd>not observed</dd>
 							{/if}
 
 							<dt>{provider.endpoint.label}</dt>
@@ -187,14 +155,12 @@
 	<div class="card">
 		<div class="body">
 			<h3 class="name">{data.worker.url}</h3>
-			<p class="worker-note">
-				Runs every calendar refresh, every appointment push and every email.
-			</p>
+			<p class="worker-note">Runs calendar refreshes, appointment pushes and email.</p>
 		</div>
 
 		<div class="actions">
-			<form method="POST" action="?/worker">
-				<button type="submit" class="button">Test the worker</button>
+			<form method="POST" action="?/worker" class="worker-form">
+				<button type="submit" class="button">Test</button>
 			</form>
 		</div>
 	</div>
@@ -209,16 +175,12 @@
 				<dt>Status</dt>
 				{#if data.smtp.observed.state === 'failing'}
 					<dd class="failed">
-						Failing{#if data.smtp.observed.at}
-							since {fmt(data.smtp.observed.at)}{/if} — {data.smtp.observed.error}
+						down ({timeAgo(data.smtp.observed.at)}): {data.smtp.observed.error}
 					</dd>
 				{:else if data.smtp.observed.state === 'working'}
-					<dd class="ok">
-						Working{#if data.smtp.observed.at}
-							— last confirmed {fmt(data.smtp.observed.at)}{/if}
-					</dd>
+					<dd class="ok">up ({timeAgo(data.smtp.observed.at)})</dd>
 				{:else}
-					<dd>Not yet observed — no email has been sent</dd>
+					<dd>not observed</dd>
 				{/if}
 
 				<dt>Port</dt>
@@ -495,6 +457,12 @@
 		align-items: center;
 		gap: var(--space-3);
 		flex-wrap: wrap;
+		width: 100%;
+	}
+
+	.worker-form {
+		display: flex;
+		justify-content: flex-end;
 		width: 100%;
 	}
 

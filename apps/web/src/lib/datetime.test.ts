@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import {
+	timeAgo,
 	formatDate,
 	formatDateCompact,
 	formatDateShort,
@@ -189,4 +190,28 @@ describe('formatTzAbbrev', () => {
 	test('returns an empty string on bad data', () => {
 		expect(formatTzAbbrev('nope', 'America/New_York')).toBe('');
 	});
+});
+
+const agoNow = Date.parse('2026-08-01T12:00:00Z');
+const ago = (seconds: number) => timeAgo(new Date(agoNow - seconds * 1000).toISOString(), agoNow);
+
+test('seconds read as "just now" rather than a count', () => {
+	expect(ago(5)).toBe('just now');
+});
+
+test('picks the largest unit that fits', () => {
+	expect(ago(90)).toBe('2 minutes ago');
+	expect(ago(3 * 3600)).toBe('3 hours ago');
+	expect(ago(5 * 86400)).toBe('5 days ago');
+	expect(ago(86400)).toBe('1 day ago');
+	expect(ago(3 * 604800)).toBe('3 weeks ago');
+	expect(ago(400 * 86400)).toBe('1 year ago');
+});
+
+test('a clock skewed into the future does not read as negative', () => {
+	expect(ago(-30)).toBe('just now');
+});
+
+test('a missing timestamp reads as unknown, not as a bad date', () => {
+	expect(timeAgo(null)).toBe('unknown');
 });

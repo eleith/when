@@ -118,7 +118,7 @@ describe('probeCalendar', () => {
 
 		expect(await probeCalendar(config, 'work')).toEqual({
 			ok: false,
-			message: 'The worker is not reachable, so nothing would check it.'
+			message: 'Worker not reachable.'
 		});
 		expect(client.runWorkflow).not.toHaveBeenCalled();
 	});

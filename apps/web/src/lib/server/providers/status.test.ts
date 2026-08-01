@@ -101,7 +101,7 @@ describe('listProviders', () => {
 		expect(dav.endpoint).toEqual({ label: 'Server URL', url: 'https://d.example/' });
 	});
 
-	test('lists the calendars each service backs', async () => {
+	test('counts the calendars each provider backs', async () => {
 		const [google, dav] = await listProviders(config, db);
 		expect(google.calendars).toEqual(['work']);
 		expect(dav.calendars).toEqual(['home']);
@@ -110,11 +110,9 @@ describe('listProviders', () => {
 	test('a provider nothing has touched reads as unobserved, not as broken', async () => {
 		const [google] = await listProviders(config, db);
 		expect(google.observed.state).toBe('unobserved');
-		expect(google.sync.health).toBe('unknown');
-		expect(google.sync.lastSyncedAt).toBeNull();
 	});
 
-	test('an observed provider reads working, whatever its calendars are doing', async () => {
+	test('an observed provider reads working', async () => {
 		await recordServiceOutcome(
 			db,
 			{ kind: 'provider', name: 'gg' },
@@ -125,7 +123,6 @@ describe('listProviders', () => {
 
 		expect(google.observed.state).toBe('working');
 		expect(google.observed.via).toBe('test');
-		expect(google.sync.health).toBe('unknown');
 	});
 
 	test('a failing provider reports the error and when the streak began', async () => {
@@ -142,41 +139,6 @@ describe('listProviders', () => {
 		expect(google.observed.error).toBe('invalid_grant');
 		expect(google.observed.at).toBe(longAgo);
 	});
-
-	test('a successful worker refresh makes the service read as syncing', async () => {
-		await recordServiceOutcome(
-			db,
-			{ kind: 'calendar', name: 'work' },
-			{
-				at: Temporal.Now.instant().toString(),
-				via: 'refresh'
-			}
-		);
-
-		const [google] = await listProviders(config, db);
-
-		expect(google.sync.health).toBe('good');
-		expect(google.sync.lastSyncedAt).toBeTruthy();
-	});
-
-	test('a failed worker refresh surfaces on the service that owns the calendar', async () => {
-		const longAgo = Temporal.Now.instant().subtract({ hours: 2 }).toString();
-		await recordServiceOutcome(
-			db,
-			{ kind: 'calendar', name: 'work' },
-			{
-				at: longAgo,
-				via: 'refresh',
-				error: 'invalid_grant'
-			}
-		);
-
-		const [google, dav] = await listProviders(config, db);
-
-		expect(google.sync.health).toBe('bad');
-		expect(google.sync.reason).toContain('invalid_grant');
-		expect(dav.sync.health).toBe('unknown');
-	});
 });
 
 describe('probeProvider', () => {
@@ -185,7 +147,7 @@ describe('probeProvider', () => {
 
 		expect(await probeProvider(config, 'gg')).toEqual({
 			ok: false,
-			message: 'The worker is not reachable, so nothing would check it.'
+			message: 'Worker not reachable.'
 		});
 		expect(client.runWorkflow).not.toHaveBeenCalled();
 	});
