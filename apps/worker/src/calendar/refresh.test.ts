@@ -120,6 +120,49 @@ test('refreshCalendar keeps stale data and records the error on provider failure
 	}
 });
 
+test('a successful refresh records the provider behind the calendar', async () => {
+	const ctx = await ctxWithDb();
+	try {
+		vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+			new Response(oneEvent('remote-1@x'), { status: 207 })
+		);
+		await refreshCalendar(ctx, workCal, window, { now: window.start });
+
+		const provider = await ctx.db
+			.selectFrom('service_status')
+			.selectAll()
+			.where('kind', '=', 'provider')
+			.where('name', '=', 'work-dav')
+			.executeTakeFirstOrThrow();
+		expect(provider.last_ok_at).toBe(window.start.toString());
+		expect(provider.via).toBe('refresh');
+	} finally {
+		await ctx.db.destroy();
+	}
+});
+
+test('a provider failure marks both the calendar and the provider', async () => {
+	const ctx = await ctxWithDb();
+	try {
+		vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+			new Response('boom', { status: 500, statusText: 'err' })
+		);
+		await refreshCalendar(ctx, workCal, window, { now: window.start });
+
+		const rows = await ctx.db.selectFrom('service_status').selectAll().execute();
+		expect(rows.map((r) => `${r.kind}/${r.name}`).sort()).toEqual([
+			'calendar/work',
+			'provider/work-dav'
+		]);
+		for (const row of rows) {
+			expect(row.error).toContain('500');
+			expect(row.failing_since).toBe(window.start.toString());
+		}
+	} finally {
+		await ctx.db.destroy();
+	}
+});
+
 test('refreshCalendar drops our own published event', async () => {
 	const ctx = await ctxWithDb();
 	try {

@@ -5,7 +5,8 @@ import {
 	listOwnEventIds,
 	listServiceStatus,
 	recordServiceOutcome,
-	replaceCalendarBusy
+	replaceCalendarBusy,
+	type ServiceOutcome
 } from '@when/db';
 import type { WorkerContext } from '../services/context.js';
 import { calendarRefreshTotal } from '../services/metrics.js';
@@ -57,11 +58,7 @@ export async function refreshCalendar(
 			cal.name,
 			intervals.map((i) => ({ start: i.start.toString(), end: i.end.toString() }))
 		);
-		await recordServiceOutcome(
-			ctx.db,
-			{ kind: 'calendar', name: cal.name },
-			{ at, via: 'refresh' }
-		);
+		await recordRefreshOutcome(ctx, cal, { at, via: 'refresh' });
 		calendarRefreshTotal.inc({
 			calendar_id: cal.name,
 			provider_type: cal.type,
@@ -76,17 +73,25 @@ export async function refreshCalendar(
 			},
 			'calendar refresh failed; keeping stale busy times'
 		);
-		await recordServiceOutcome(
-			ctx.db,
-			{ kind: 'calendar', name: cal.name },
-			{ at, via: 'refresh', error }
-		);
+		await recordRefreshOutcome(ctx, cal, { at, via: 'refresh', error });
 		calendarRefreshTotal.inc({
 			calendar_id: cal.name,
 			provider_type: cal.type,
 			status: 'failure'
 		});
 	}
+}
+
+// One fetch proves two things: that this calendar is reachable, and that the credential
+// behind it still works. The provider row is the only status a provider backing no
+// calendars could ever have, so it is worth writing even when it looks redundant.
+async function recordRefreshOutcome(
+	ctx: WorkerContext,
+	cal: Calendar,
+	outcome: ServiceOutcome
+): Promise<void> {
+	await recordServiceOutcome(ctx.db, { kind: 'calendar', name: cal.name }, outcome);
+	await recordServiceOutcome(ctx.db, { kind: 'provider', name: cal.provider }, outcome);
 }
 
 export async function refreshCalendars(
