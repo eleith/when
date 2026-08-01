@@ -130,6 +130,27 @@ export const listProviderCalendars: WorkflowSpec<
 	}
 });
 
+export interface TestCalendarInput {
+	name: string;
+}
+export interface TestCalendarResult {
+	busyCount: number;
+	days: number;
+}
+
+export const testCalendar: WorkflowSpec<TestCalendarInput, TestCalendarResult> = defineWorkflowSpec<
+	TestCalendarInput,
+	TestCalendarResult
+>({
+	name: 'test-calendar',
+	retryPolicy: {
+		maximumAttempts: 1,
+		initialInterval: '1s',
+		backoffCoefficient: 2,
+		maximumInterval: '1s'
+	}
+});
+
 export type SyncCalendarsInput = Record<string, never>;
 export type SyncCalendarsResult = 'requested';
 

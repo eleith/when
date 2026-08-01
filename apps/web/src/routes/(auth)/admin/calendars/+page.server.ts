@@ -12,7 +12,7 @@ export const load: PageServerLoad = async () => {
 export const actions: Actions = {
 	test: async ({ request }) => {
 		const name = String((await request.formData()).get('calendar') ?? '');
-		const result = await probeCalendar(getConfig(), getDb(), name);
+		const result = await probeCalendar(getConfig(), name);
 		return {
 			notice: result.ok
 				? { tone: 'success', text: `${name} — ${result.message}` }

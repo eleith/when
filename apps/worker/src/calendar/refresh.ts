@@ -17,7 +17,10 @@ const DEFAULT_MAX_LOOKAHEAD_DAYS = 60;
 
 export interface RefreshOptions {
 	now?: Temporal.Instant;
+	via?: ServiceOutcome['via'];
 }
+
+export type RefreshResult = { ok: true; busyCount: number } | { ok: false; error: string };
 
 export function busyCalendarIds(config: WhenConfiguration): string[] {
 	const ids = new Set<string>();
@@ -47,8 +50,9 @@ export async function refreshCalendar(
 	cal: Calendar,
 	window: ExpandWindow,
 	opts: RefreshOptions = {}
-): Promise<void> {
+): Promise<RefreshResult> {
 	const at = (opts.now ?? window.start).toString();
+	const via = opts.via ?? 'refresh';
 	try {
 		const excludeUids = new Set(await listOwnEventIds(ctx.db, cal.name));
 		const services = await connectProviders(ctx.config.providers ?? [], ctx.db);
@@ -58,12 +62,13 @@ export async function refreshCalendar(
 			cal.name,
 			intervals.map((i) => ({ start: i.start.toString(), end: i.end.toString() }))
 		);
-		await recordRefreshOutcome(ctx, cal, { at, via: 'refresh' });
+		await recordRefreshOutcome(ctx, cal, { at, via });
 		calendarRefreshTotal.inc({
 			calendar_id: cal.name,
 			provider_type: cal.type,
 			status: 'success'
 		});
+		return { ok: true, busyCount: intervals.length };
 	} catch (err) {
 		const error = err instanceof Error ? err.message : String(err);
 		ctx.logger.error(
@@ -73,12 +78,13 @@ export async function refreshCalendar(
 			},
 			'calendar refresh failed; keeping stale busy times'
 		);
-		await recordRefreshOutcome(ctx, cal, { at, via: 'refresh', error });
+		await recordRefreshOutcome(ctx, cal, { at, via, error });
 		calendarRefreshTotal.inc({
 			calendar_id: cal.name,
 			provider_type: cal.type,
 			status: 'failure'
 		});
+		return { ok: false, error };
 	}
 }
 

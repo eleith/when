@@ -1,11 +1,12 @@
 import type { Kysely } from 'kysely';
 import type { Calendar, WhenConfiguration } from '@when/config';
 import type { Database } from '@when/db';
-import { connectProviders, fetchBusyIntervals } from '@when/calendar';
+import { getOpenWorkflow, testCalendar } from '@when/jobs';
+import { workerReachable } from '$lib/server/worker';
 import { listServiceStatus, listOutOfSyncAppointments } from '@when/db';
 import { evaluateCalendarStatuses } from './health';
 
-const WINDOW_DAYS = 14;
+const PROBE_TIMEOUT_MS = 30_000;
 const DEFAULT_REFRESH_MINUTES = 10;
 
 export interface CalendarView {
@@ -62,20 +63,21 @@ function targetOf(cal: Calendar): CalendarView['target'] {
 
 export async function probeCalendar(
 	config: WhenConfiguration,
-	db: Kysely<Database>,
 	name: string
 ): Promise<CalendarProbeResult> {
-	const cal = config.calendars.find((c) => c.name === name);
-	if (!cal) return { ok: false, message: `No calendar named "${name}".` };
+	if (!(await workerReachable(config.url.worker))) {
+		return { ok: false, message: 'The worker is not reachable, so nothing would check it.' };
+	}
 
 	try {
-		const now = Temporal.Now.instant();
-		const window = { start: now, end: now.add({ hours: 24 * WINDOW_DAYS }) };
-		const providers = await connectProviders(config.providers ?? [], db);
-		const busy = await fetchBusyIntervals(cal, window, { services: providers });
-
-		const label = busy.length === 1 ? 'busy interval' : 'busy intervals';
-		return { ok: true, message: `${busy.length} ${label} over the next ${WINDOW_DAYS} days.` };
+		const handle = await getOpenWorkflow().runWorkflow(
+			testCalendar,
+			{ name },
+			{ idempotencyKey: crypto.randomUUID() }
+		);
+		const { busyCount, days } = await handle.result({ timeoutMs: PROBE_TIMEOUT_MS });
+		const label = busyCount === 1 ? 'busy interval' : 'busy intervals';
+		return { ok: true, message: `${busyCount} ${label} over the next ${days} days.` };
 	} catch (err) {
 		return { ok: false, message: err instanceof Error ? err.message : String(err) };
 	}

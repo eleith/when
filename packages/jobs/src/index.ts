@@ -4,7 +4,8 @@ export {
 	purgeAppointment,
 	testEmail,
 	testProvider,
-	listProviderCalendars
+	listProviderCalendars,
+	testCalendar
 } from './specs.js';
 export type {
 	AppointmentEmailKind,
@@ -20,7 +21,9 @@ export type {
 	TestProviderInput,
 	TestProviderResult,
 	ListProviderCalendarsInput,
-	ListProviderCalendarsResult
+	ListProviderCalendarsResult,
+	TestCalendarInput,
+	TestCalendarResult
 } from './specs.js';
 export {
 	initOpenWorkflow,

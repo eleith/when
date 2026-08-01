@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { openDb, runMigrations, recordServiceOutcome } from '@when/db';
 import { fetchBusyIntervals } from '@when/calendar';
+import { getOpenWorkflow } from '@when/jobs';
 import type { WhenConfiguration } from '@when/config';
 import { listCalendars, probeCalendar } from './status';
 
@@ -9,7 +10,16 @@ vi.mock('@when/calendar', async (importOriginal) => {
 	return { ...actual, fetchBusyIntervals: vi.fn() };
 });
 
+vi.mock('@when/jobs', async (importOriginal) => {
+	const actual = await importOriginal<typeof import('@when/jobs')>();
+	return { ...actual, getOpenWorkflow: vi.fn() };
+});
+
+const handle = { result: vi.fn() };
+const client = { runWorkflow: vi.fn() };
+
 const config = {
+	url: { app: 'https://book.example.com', worker: 'http://when-worker:9000' },
 	providers: [{ name: 'gg', type: 'google', client_id: 'cid', client_secret: 'csec' }],
 	calendars: [
 		{ name: 'work', type: 'google', provider: 'gg', google_calendar_id: 'primary' },
@@ -30,6 +40,13 @@ beforeEach(async () => {
 	db = openDb(':memory:');
 	await runMigrations(db);
 	vi.mocked(fetchBusyIntervals).mockReset().mockResolvedValue([]);
+
+	handle.result = vi.fn().mockResolvedValue({ busyCount: 0, days: 14 });
+	client.runWorkflow = vi.fn().mockResolvedValue(handle);
+	vi.mocked(getOpenWorkflow)
+		.mockReset()
+		.mockReturnValue(client as never);
+	vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('', { status: 200 }));
 });
 
 describe('listCalendars', () => {
@@ -96,39 +113,38 @@ describe('listCalendars', () => {
 });
 
 describe('probeCalendar', () => {
+	test('names a stopped worker rather than waiting on a run nothing will claim', async () => {
+		vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('ECONNREFUSED'));
+
+		expect(await probeCalendar(config, 'work')).toEqual({
+			ok: false,
+			message: 'The worker is not reachable, so nothing would check it.'
+		});
+		expect(client.runWorkflow).not.toHaveBeenCalled();
+	});
+
 	test('reports how many busy intervals came back', async () => {
-		vi.mocked(fetchBusyIntervals).mockResolvedValue([
-			{ start: Temporal.Now.instant(), end: Temporal.Now.instant() }
-		]);
+		handle.result = vi.fn().mockResolvedValue({ busyCount: 1, days: 14 });
 
-		const result = await probeCalendar(config, db, 'work');
-
-		expect(result).toEqual({
+		expect(await probeCalendar(config, 'work')).toEqual({
 			ok: true,
 			message: '1 busy interval over the next 14 days.'
 		});
 	});
 
 	test('an empty calendar is reachable, not broken', async () => {
-		const result = await probeCalendar(config, db, 'work');
+		const result = await probeCalendar(config, 'work');
 
 		expect(result).toMatchObject({ ok: true });
 		expect(result.message).toContain('0 busy intervals');
 	});
 
-	test('surfaces the provider failure', async () => {
-		vi.mocked(fetchBusyIntervals).mockRejectedValue(new Error('401 Unauthorized'));
+	test('surfaces the failure the worker raised', async () => {
+		handle.result = vi.fn().mockRejectedValue(new Error('401 Unauthorized'));
 
-		expect(await probeCalendar(config, db, 'work')).toEqual({
+		expect(await probeCalendar(config, 'work')).toEqual({
 			ok: false,
 			message: '401 Unauthorized'
-		});
-	});
-
-	test('reports an unknown calendar', async () => {
-		expect(await probeCalendar(config, db, 'nope')).toEqual({
-			ok: false,
-			message: 'No calendar named "nope".'
 		});
 	});
 });
