@@ -1,7 +1,7 @@
 import { define } from 'gunshi';
-import { connectProvider, getProviderAdapter } from '@when/calendar';
-import type { Provider } from '@when/config';
-import { requireProvider, providersAndName } from './shared.ts';
+import { listProviderCalendars } from '@when/jobs';
+import { providersAndName, requireProvider } from './shared.ts';
+import { runInWorker } from '../../utils/worker.ts';
 import { pass, fail } from '../../utils/report.ts';
 
 export const calendarsCommand = define({
@@ -9,49 +9,31 @@ export const calendarsCommand = define({
 	description: 'list the calendars a provider exposes',
 	args: {
 		name: { type: 'positional', required: false, description: 'the provider to inspect' },
-		config: { type: 'string', short: 'c', description: 'Path to when.yaml file' },
-		refreshToken: {
-			type: 'string',
-			description: 'refresh token for a google provider (the stored one lives in the database)'
-		}
+		config: { type: 'string', short: 'c', description: 'Path to when.yaml file' }
 	},
 	toKebab: true,
 	async run(ctx) {
 		const resolved = await providersAndName(ctx.values?.name, ctx.values?.config, 'calendars');
-		if (resolved)
-			await runProviderCalendars(
-				resolved.config.providers ?? [],
-				resolved.name,
-				ctx.values?.refreshToken
-			);
-	}
-});
+		if (!resolved) return;
 
-export async function runProviderCalendars(
-	providers: Provider[],
-	name: string,
-	refreshToken?: string
-): Promise<void> {
-	const provider = requireProvider(providers, name);
-	if (!provider) return;
+		const provider = requireProvider(resolved.config.providers ?? [], resolved.name);
+		if (!provider) return;
 
-	const adapter = getProviderAdapter(connectProvider(provider, refreshToken ?? null));
-	if (adapter.usesOAuth && !refreshToken) {
-		fail(`${name} (${provider.type}) — pass --refresh-token; the stored one lives in the database`);
-		return;
-	}
-
-	try {
-		const calendars = await adapter.listCalendars();
-		if (calendars.length === 0) {
-			pass(`${name} (${provider.type}) — no calendars found`);
+		const label = `${provider.name} (${provider.type})`;
+		const run = await runInWorker(resolved.config, listProviderCalendars, { name: provider.name });
+		if (!run.ok) {
+			fail(`${label} — ${run.message}`);
 			return;
 		}
-		pass(`${name} (${provider.type}) — ${calendars.length} calendar(s):`);
-		for (const calendar of calendars) {
-			console.log(`  ${adapter.calendarIdField}: ${calendar.id}  ${calendar.name}`);
+
+		const { field, calendars } = run.value;
+		if (calendars.length === 0) {
+			pass(`${label} — no calendars found`);
+			return;
 		}
-	} catch (err) {
-		fail(`${name} (${provider.type}) — ${err instanceof Error ? err.message : String(err)}`);
+		pass(`${label} — ${calendars.length} calendar(s):`);
+		for (const calendar of calendars) {
+			console.log(`  ${field}: ${calendar.id}  ${calendar.name}`);
+		}
 	}
-}
+});

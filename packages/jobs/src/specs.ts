@@ -5,7 +5,7 @@ import { defineWorkflowSpec, type Workflow } from 'openworkflow';
  * inferred type of a `defineWorkflowSpec(...)` result can't be named for
  * declaration emit (TS2883). Recover the spec type via `Workflow['spec']`.
  */
-type WorkflowSpec<Input, Output> = Workflow<Input, Output, Input>['spec'];
+export type WorkflowSpec<Input, Output> = Workflow<Input, Output, Input>['spec'];
 
 // Which appointment notification to send; each value maps to one or more email
 // builders in the worker.

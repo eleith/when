@@ -23,7 +23,8 @@ export type {
 	ListProviderCalendarsInput,
 	ListProviderCalendarsResult,
 	TestCalendarInput,
-	TestCalendarResult
+	TestCalendarResult,
+	WorkflowSpec
 } from './specs.js';
 export {
 	initOpenWorkflow,

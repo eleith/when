@@ -1,27 +1,23 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { join } from 'node:path';
 import { writeFileSync, unlinkSync } from 'node:fs';
-import { getProviderAdapter } from '@when/calendar';
-import {
-	openDb,
-	runMigrations,
-	recordServiceOutcome,
-	listServiceStatus,
-	saveProviderRefreshToken
-} from '@when/db';
+import { initOpenWorkflow, testProvider, listProviderCalendars } from '@when/jobs';
+import { openDb, runMigrations, recordServiceOutcome } from '@when/db';
 import { join as joinPath } from 'node:path';
 import { tmpdir } from 'node:os';
 import { rmSync } from 'node:fs';
 import { providerCommand } from './index.ts';
 import { listCommand } from './list.ts';
 import { testCommand } from './test.ts';
+import { calendarsCommand } from './calendars.ts';
 
-vi.mock('@when/calendar', async (importOriginal) => {
-	const actual = await importOriginal<typeof import('@when/calendar')>();
-	return { ...actual, getProviderAdapter: vi.fn() };
+vi.mock('@when/jobs', async (importOriginal) => {
+	const actual = await importOriginal<typeof import('@when/jobs')>();
+	return { ...actual, initOpenWorkflow: vi.fn() };
 });
 
-const adapter = { calendarIdField: 'x', usesOAuth: true, verify: vi.fn(), listCalendars: vi.fn() };
+const handle = { result: vi.fn() };
+const client = { runWorkflow: vi.fn() };
 
 const configYaml = `
 auth:
@@ -94,11 +90,12 @@ describe('provider command', () => {
 		errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 		originalExitCode = process.exitCode as number | undefined;
 		process.exitCode = undefined;
-		adapter.verify = vi.fn().mockResolvedValue(undefined);
-		adapter.listCalendars = vi.fn().mockResolvedValue([]);
-		vi.mocked(getProviderAdapter)
+		handle.result = vi.fn().mockResolvedValue('authenticated');
+		client.runWorkflow = vi.fn().mockResolvedValue(handle);
+		vi.mocked(initOpenWorkflow)
 			.mockReset()
-			.mockImplementation((provider) => ({ ...adapter, usesOAuth: provider.type === 'google' }));
+			.mockReturnValue(client as never);
+		vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('', { status: 200 }));
 		process.env.WHEN_TEST_SVC_SECRET = 'set';
 		rmSync(dataDir, { recursive: true, force: true });
 		const db = openDb(dbPath);
@@ -130,7 +127,7 @@ describe('provider command', () => {
 		expect(process.exitCode).toBeUndefined();
 		expect(logSpy).toHaveBeenCalledWith('gcal (google) — not yet observed');
 		expect(logSpy).toHaveBeenCalledWith('dav (caldav) — not yet observed');
-		expect(getProviderAdapter).not.toHaveBeenCalled();
+		expect(client.runWorkflow).not.toHaveBeenCalled();
 	});
 
 	test('list reports a provider observed as working, and one observed as failing', async () => {
@@ -153,80 +150,66 @@ describe('provider command', () => {
 		expect(errorSpy).toHaveBeenCalledWith('❌ dav (caldav) — failing since t2: PROPFIND 401');
 	});
 
-	test('a passing test is recorded, so the admin sees it too', async () => {
+	test('test runs the probe in the worker', async () => {
 		await testCommand.run!(ctx({ name: 'dav', config: path }));
-		expect(process.exitCode).toBeUndefined();
 
-		const db = openDb(dbPath);
-		const [status] = await listServiceStatus(db, 'provider');
-		await db.destroy();
-		expect(status).toMatchObject({ name: 'dav', via: 'test', error: null });
+		expect(process.exitCode).toBeUndefined();
+		expect(client.runWorkflow).toHaveBeenCalledWith(
+			testProvider,
+			{ name: 'dav' },
+			expect.objectContaining({ idempotencyKey: expect.any(String) })
+		);
+		expect(logSpy).toHaveBeenCalledWith('✅ dav (caldav) — authenticated');
 	});
 
-	test('a failing test records the reason', async () => {
-		adapter.verify = vi.fn().mockRejectedValue(new Error('bad credentials (401)'));
+	test('test surfaces the failure the worker raised', async () => {
+		handle.result = vi.fn().mockRejectedValue(new Error('bad credentials (401)'));
+
 		await testCommand.run!(ctx({ name: 'dav', config: path }));
 
-		const db = openDb(dbPath);
-		const [status] = await listServiceStatus(db, 'provider');
-		await db.destroy();
-		expect(status.error).toContain('401');
-		expect(status.failing_since).toBeTruthy();
+		expect(process.exitCode).toBe(1);
+		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('401'));
+	});
+
+	test('test names a stopped worker instead of hanging on the result poll', async () => {
+		vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('ECONNREFUSED'));
+
+		await testCommand.run!(ctx({ name: 'dav', config: path }));
+
+		expect(process.exitCode).toBe(1);
+		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('worker unreachable'));
+		expect(client.runWorkflow).not.toHaveBeenCalled();
+	});
+
+	test('calendars lists what the worker discovered', async () => {
+		handle.result = vi.fn().mockResolvedValue({
+			field: 'path',
+			calendars: [{ id: 'cal/1', name: 'Work', primary: false }]
+		});
+
+		await calendarsCommand.run!(ctx({ name: 'dav', config: path }));
+
+		expect(client.runWorkflow).toHaveBeenCalledWith(
+			listProviderCalendars,
+			{ name: 'dav' },
+			expect.anything()
+		);
+		expect(logSpy).toHaveBeenCalledWith('  path: cal/1  Work');
+	});
+
+	test('calendars reports an empty list as a success', async () => {
+		handle.result = vi.fn().mockResolvedValue({ field: 'path', calendars: [] });
+
+		await calendarsCommand.run!(ctx({ name: 'dav', config: path }));
+
+		expect(process.exitCode).toBeUndefined();
+		expect(logSpy).toHaveBeenCalledWith('✅ dav (caldav) — no calendars found');
 	});
 
 	test('test requires a provider name', async () => {
 		await testCommand.run!(ctx({ config: path }));
 		expect(process.exitCode).toBe(1);
 		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('requires a provider name'));
-	});
-
-	test('google test verifies through the adapter', async () => {
-		await testCommand.run!(ctx({ name: 'gcal', config: path, refreshToken: 'rtok' }));
-		expect(process.exitCode).toBeUndefined();
-		expect(logSpy).toHaveBeenCalledWith('✅ gcal (google) — authenticated');
-		expect(getProviderAdapter).toHaveBeenCalledWith(
-			expect.objectContaining({ name: 'gcal', refresh_token: 'rtok' })
-		);
-	});
-
-	test('google test reads the stored refresh token instead of demanding a flag', async () => {
-		const db = openDb(dbPath);
-		await saveProviderRefreshToken(db, 'gcal', 'stored-rt');
-		await db.destroy();
-
-		await testCommand.run!(ctx({ name: 'gcal', config: path }));
-
-		expect(process.exitCode).toBeUndefined();
-		expect(getProviderAdapter).toHaveBeenCalledWith(
-			expect.objectContaining({ name: 'gcal', refresh_token: 'stored-rt' })
-		);
-	});
-
-	test('google test says to connect when no token is stored', async () => {
-		await testCommand.run!(ctx({ name: 'gcal', config: path }));
-		expect(process.exitCode).toBe(1);
-		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('not connected'));
-		expect(adapter.verify).not.toHaveBeenCalled();
-	});
-
-	test('google test fails when the token refresh throws', async () => {
-		adapter.verify = vi.fn().mockRejectedValue(new Error('Google token refresh failed: 400'));
-		await testCommand.run!(ctx({ name: 'gcal', config: path, refreshToken: 'rtok' }));
-		expect(process.exitCode).toBe(1);
-		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('❌ gcal (google)'));
-	});
-
-	test('caldav test passes when the adapter verifies', async () => {
-		await testCommand.run!(ctx({ name: 'dav', config: path }));
-		expect(process.exitCode).toBeUndefined();
-		expect(logSpy).toHaveBeenCalledWith('✅ dav (caldav) — authenticated');
-	});
-
-	test('caldav test reports the failure reason', async () => {
-		adapter.verify = vi.fn().mockRejectedValue(new Error('bad credentials (401)'));
-		await testCommand.run!(ctx({ name: 'dav', config: path }));
-		expect(process.exitCode).toBe(1);
-		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('bad credentials (401)'));
 	});
 
 	test('unknown provider name fails', async () => {
@@ -240,6 +223,6 @@ describe('provider command', () => {
 		await testCommand.run!(ctx({ name: 'dav', config: path }));
 		expect(process.exitCode).toBe(1);
 		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('WHEN_TEST_SVC_SECRET'));
-		expect(adapter.verify).not.toHaveBeenCalled();
+		expect(client.runWorkflow).not.toHaveBeenCalled();
 	});
 });

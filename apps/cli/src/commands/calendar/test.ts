@@ -1,21 +1,15 @@
 import { define } from 'gunshi';
-import { getCalendarAdapter, type ExpandWindow, type ConnectedProvider } from '@when/calendar';
-import type { WhenConfiguration } from '@when/config';
+import { testCalendar } from '@when/jobs';
 import { loadConfigFromCtx } from '../../utils/command.ts';
-import { pass, fail } from '../../utils/report.ts';
-
-const WINDOW_DAYS = 14;
+import { reportWorkerRun } from '../../utils/worker.ts';
+import { fail } from '../../utils/report.ts';
 
 export const testCommand = define({
 	name: 'test',
-	description: 'fetch busy intervals to confirm a calendar is reachable',
+	description: 'fetch busy intervals through the worker to confirm a calendar is reachable',
 	args: {
 		name: { type: 'positional', required: false, description: 'the calendar to test' },
-		config: { type: 'string', short: 'c', description: 'Path to when.yaml file' },
-		refreshToken: {
-			type: 'string',
-			description: 'refresh token for a google calendar (the stored one lives in the database)'
-		}
+		config: { type: 'string', short: 'c', description: 'Path to when.yaml file' }
 	},
 	toKebab: true,
 	async run(ctx) {
@@ -26,43 +20,19 @@ export const testCommand = define({
 		}
 		const config = await loadConfigFromCtx(ctx.values?.config);
 		if (!config) return;
-		await runCalendarTest(config, name, ctx.values?.refreshToken);
+
+		const cal = config.calendars.find((c) => c.name === name);
+		if (!cal) {
+			fail(`no calendar named "${name}"`);
+			return;
+		}
+
+		await reportWorkerRun(
+			config,
+			testCalendar,
+			{ name },
+			`${name} (${cal.type})`,
+			({ busyCount, days }) => `${busyCount} busy interval(s) over the next ${days} days`
+		);
 	}
 });
-
-export async function runCalendarTest(
-	config: WhenConfiguration,
-	name: string,
-	refreshToken?: string
-): Promise<void> {
-	const cal = config.calendars.find((c) => c.name === name);
-	if (!cal) {
-		fail(`no calendar named "${name}"`);
-		return;
-	}
-
-	const providers = connectedProvidersFor(config, cal, refreshToken);
-
-	try {
-		const now = Temporal.Now.instant();
-		const window: ExpandWindow = { start: now, end: now.add({ hours: 24 * WINDOW_DAYS }) };
-		const busy = await getCalendarAdapter(cal, providers).fetchBusy(window);
-		pass(
-			`${name} (${cal.type}) — ${busy.length} busy interval(s) over the next ${WINDOW_DAYS} days`
-		);
-	} catch (err) {
-		fail(`${name} (${cal.type}) — ${err instanceof Error ? err.message : String(err)}`);
-	}
-}
-
-function connectedProvidersFor(
-	config: WhenConfiguration,
-	cal: WhenConfiguration['calendars'][number],
-	refreshToken?: string
-): ConnectedProvider[] {
-	const provider = config.providers?.find((s) => s.name === cal.provider);
-	if (!provider) return [];
-	return [
-		provider.type === 'google' ? { ...provider, refresh_token: refreshToken ?? null } : provider
-	];
-}

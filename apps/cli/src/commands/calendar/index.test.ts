@@ -1,12 +1,18 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { join } from 'node:path';
 import { writeFileSync, unlinkSync } from 'node:fs';
-import { getCalendarAdapter } from '@when/calendar';
+import { initOpenWorkflow } from '@when/jobs';
 import { calendarCommand } from './index.ts';
 import { listCommand } from './list.ts';
 import { testCommand } from './test.ts';
 
-vi.mock('@when/calendar', () => ({ getCalendarAdapter: vi.fn() }));
+vi.mock('@when/jobs', async (importOriginal) => {
+	const actual = await importOriginal<typeof import('@when/jobs')>();
+	return { ...actual, initOpenWorkflow: vi.fn() };
+});
+
+const handle = { result: vi.fn() };
+const client = { runWorkflow: vi.fn() };
 
 const configYaml = `
 auth:
@@ -68,12 +74,6 @@ function ctx(values: Record<string, unknown>) {
 	return { values } as unknown as Parameters<NonNullable<typeof testCommand.run>>[0];
 }
 
-function mockFetchBusy(impl: () => Promise<unknown[]>) {
-	vi.mocked(getCalendarAdapter).mockReturnValue({
-		fetchBusy: vi.fn(impl)
-	} as unknown as ReturnType<typeof getCalendarAdapter>);
-}
-
 describe('calendar command', () => {
 	let logSpy: ReturnType<typeof vi.spyOn>;
 	let errorSpy: ReturnType<typeof vi.spyOn>;
@@ -84,7 +84,12 @@ describe('calendar command', () => {
 		errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 		originalExitCode = process.exitCode as number | undefined;
 		process.exitCode = undefined;
-		vi.mocked(getCalendarAdapter).mockReset();
+		handle.result = vi.fn().mockResolvedValue({ busyCount: 0, days: 14 });
+		client.runWorkflow = vi.fn().mockResolvedValue(handle);
+		vi.mocked(initOpenWorkflow)
+			.mockReset()
+			.mockReturnValue(client as never);
+		vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('', { status: 200 }));
 		process.env.WHEN_CAL_SECRET = 'set';
 		writeFileSync(path, configYaml);
 	});
@@ -113,8 +118,8 @@ describe('calendar command', () => {
 		expect(logSpy).toHaveBeenCalledWith('envref  (caldav)');
 	});
 
-	test('test reports the busy interval count', async () => {
-		mockFetchBusy(async () => [{}, {}, {}]);
+	test('test reports the busy interval count the worker returned', async () => {
+		handle.result = vi.fn().mockResolvedValue({ busyCount: 3, days: 14 });
 		await testCommand.run!(ctx({ name: 'work', config: path }));
 		expect(process.exitCode).toBeUndefined();
 		expect(logSpy).toHaveBeenCalledWith(
@@ -122,10 +127,8 @@ describe('calendar command', () => {
 		);
 	});
 
-	test('test fails when the adapter throws', async () => {
-		mockFetchBusy(async () => {
-			throw new Error('REPORT failed: 500');
-		});
+	test('test fails when the worker reports a failure', async () => {
+		handle.result = vi.fn().mockRejectedValue(new Error('REPORT failed: 500'));
 		await testCommand.run!(ctx({ name: 'work', config: path }));
 		expect(process.exitCode).toBe(1);
 		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('❌ work (caldav)'));
@@ -148,6 +151,6 @@ describe('calendar command', () => {
 		await testCommand.run!(ctx({ name: 'work', config: path }));
 		expect(process.exitCode).toBe(1);
 		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('WHEN_CAL_SECRET'));
-		expect(getCalendarAdapter).not.toHaveBeenCalled();
+		expect(client.runWorkflow).not.toHaveBeenCalled();
 	});
 });
