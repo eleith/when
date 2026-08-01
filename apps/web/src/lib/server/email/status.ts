@@ -4,9 +4,9 @@ import { senderEmail } from '@when/config';
 import { listServiceStatus, type Database } from '@when/db';
 import { getOpenWorkflow, testEmail } from '@when/jobs';
 import { observedFrom, type ObservedView } from '$lib/server/observed';
+import { workerReachable } from '$lib/server/worker';
 
 const RESULT_TIMEOUT_MS = 30_000;
-const HEALTH_TIMEOUT_MS = 3_000;
 
 export interface SmtpView {
 	host: string;
@@ -34,11 +34,6 @@ export async function smtpSummary(
 	};
 }
 
-// Goes through the worker's real pipeline — the same workflow the CLI runs — so a pass
-// proves templates, branding and SMTP credentials together, not just a socket.
-//
-// The worker is checked first because it is the one failure the queue cannot report: an
-// unclaimed run just sits pending until the result poll times out half a minute later.
 export async function sendTestEmail(config: WhenConfiguration, to: string): Promise<SendResult> {
 	if (!to.trim()) return { ok: false, message: 'A recipient address is required.' };
 
@@ -56,16 +51,5 @@ export async function sendTestEmail(config: WhenConfiguration, to: string): Prom
 		return { ok: true, message: `Test email sent to ${to}.` };
 	} catch (err) {
 		return { ok: false, message: err instanceof Error ? err.message : String(err) };
-	}
-}
-
-async function workerReachable(workerUrl: string): Promise<boolean> {
-	try {
-		const res = await fetch(`${workerUrl.replace(/\/$/, '')}/healthz`, {
-			signal: AbortSignal.timeout(HEALTH_TIMEOUT_MS)
-		});
-		return res.ok;
-	} catch {
-		return false;
 	}
 }

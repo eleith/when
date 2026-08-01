@@ -55,7 +55,7 @@ export const actions: Actions = {
 
 	calendars: async ({ request }) => {
 		const name = String((await request.formData()).get('provider') ?? '');
-		const result = await discoverCalendars(getConfig(), getDb(), name);
+		const result = await discoverCalendars(getConfig(), name);
 		return result.ok
 			? { discovered: { provider: name, field: result.field, calendars: result.calendars } }
 			: {
@@ -75,7 +75,7 @@ export const actions: Actions = {
 
 	test: async ({ request }) => {
 		const name = String((await request.formData()).get('provider') ?? '');
-		const result = await probeProvider(getConfig(), getDb(), name);
+		const result = await probeProvider(getConfig(), name);
 		return {
 			notice: result.ok
 				? { tone: 'success', text: `${name} authenticated successfully.` }

@@ -1,22 +1,15 @@
 import type { Kysely } from 'kysely';
 import type { Provider, WhenConfiguration } from '@when/config';
 import type { Database } from '@when/db';
-import {
-	connectProvider,
-	getProviderAdapter,
-	type ProviderAdapter,
-	type ProviderCalendar
-} from '@when/calendar';
-import {
-	getProviderRefreshToken,
-	listProviderConnections,
-	listServiceStatus,
-	listOutOfSyncAppointments,
-	recordServiceOutcome
-} from '@when/db';
+import { connectProvider, getProviderAdapter, type ProviderCalendar } from '@when/calendar';
+import { listProviderConnections, listServiceStatus, listOutOfSyncAppointments } from '@when/db';
+import { getOpenWorkflow, listProviderCalendars, testProvider } from '@when/jobs';
 import { evaluateCalendarStatuses, type ComputedCalendarStatus } from '$lib/server/calendar/health';
 import { observedFrom, type ObservedView } from '$lib/server/observed';
+import { workerReachable } from '$lib/server/worker';
 import { googleRedirectUri } from './google-connect';
+
+const PROBE_TIMEOUT_MS = 30_000;
 
 export interface ProviderView {
 	name: string;
@@ -111,39 +104,40 @@ function latest(times: (string | null)[]): string | null {
 	return known.sort().at(-1) ?? null;
 }
 
-export async function probeProvider(
-	config: WhenConfiguration,
-	db: Kysely<Database>,
-	name: string
-): Promise<ProbeResult> {
-	const at = Temporal.Now.instant().toString();
+export async function probeProvider(config: WhenConfiguration, name: string): Promise<ProbeResult> {
+	if (!(await workerReachable(config.url.worker))) {
+		return { ok: false, message: 'The worker is not reachable, so nothing would check it.' };
+	}
+
 	try {
-		const adapter = await connectedAdapter(config, db, name);
-		await adapter.verify();
-		await recordServiceOutcome(db, { kind: 'provider', name }, { at, via: 'test' });
+		const handle = await getOpenWorkflow().runWorkflow(
+			testProvider,
+			{ name },
+			{ idempotencyKey: crypto.randomUUID() }
+		);
+		await handle.result({ timeoutMs: PROBE_TIMEOUT_MS });
 		return { ok: true, message: 'Authenticated.' };
 	} catch (err) {
-		const message = reason(err);
-		if (config.providers?.some((p) => p.name === name)) {
-			await recordServiceOutcome(
-				db,
-				{ kind: 'provider', name },
-				{ at, via: 'test', error: message }
-			);
-		}
-		return { ok: false, message };
+		return { ok: false, message: reason(err) };
 	}
 }
 
 export async function discoverCalendars(
 	config: WhenConfiguration,
-	db: Kysely<Database>,
 	name: string
 ): Promise<DiscoveryResult> {
+	if (!(await workerReachable(config.url.worker))) {
+		return { ok: false, message: 'The worker is not reachable, so nothing would ask it.' };
+	}
+
 	try {
-		const adapter = await connectedAdapter(config, db, name);
-		const calendars = await adapter.listCalendars();
-		return { ok: true, field: adapter.calendarIdField, calendars };
+		const handle = await getOpenWorkflow().runWorkflow(
+			listProviderCalendars,
+			{ name },
+			{ idempotencyKey: crypto.randomUUID() }
+		);
+		const { field, calendars } = await handle.result({ timeoutMs: PROBE_TIMEOUT_MS });
+		return { ok: true, field, calendars };
 	} catch (err) {
 		return { ok: false, message: reason(err) };
 	}
@@ -151,18 +145,4 @@ export async function discoverCalendars(
 
 function reason(err: unknown): string {
 	return err instanceof Error ? err.message : String(err);
-}
-
-// Joins the two halves of a provider — config and stored credential — into the adapter
-// that knows how to talk to it.
-async function connectedAdapter(
-	config: WhenConfiguration,
-	db: Kysely<Database>,
-	name: string
-): Promise<ProviderAdapter> {
-	const provider = config.providers?.find((s) => s.name === name);
-	if (!provider) throw new Error(`No provider named "${name}".`);
-
-	const refreshToken = await getProviderRefreshToken(db, name);
-	return getProviderAdapter(connectProvider(provider, refreshToken));
 }

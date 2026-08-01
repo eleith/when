@@ -1,12 +1,7 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import {
-	openDb,
-	runMigrations,
-	saveProviderRefreshToken,
-	recordServiceOutcome,
-	listServiceStatus
-} from '@when/db';
+import { openDb, runMigrations, saveProviderRefreshToken, recordServiceOutcome } from '@when/db';
 import { getProviderAdapter } from '@when/calendar';
+import { getOpenWorkflow, testProvider } from '@when/jobs';
 import type { WhenConfiguration } from '@when/config';
 import { discoverCalendars, listProviders, probeProvider } from './status';
 
@@ -14,6 +9,14 @@ vi.mock('@when/calendar', async (importOriginal) => {
 	const actual = await importOriginal<typeof import('@when/calendar')>();
 	return { ...actual, getProviderAdapter: vi.fn() };
 });
+
+vi.mock('@when/jobs', async (importOriginal) => {
+	const actual = await importOriginal<typeof import('@when/jobs')>();
+	return { ...actual, getOpenWorkflow: vi.fn() };
+});
+
+const handle = { result: vi.fn() };
+const client = { runWorkflow: vi.fn() };
 
 // Provider behaviour is the adapter's; these tests cover what web adds — joining the
 // stored token, mapping failures, and never reaching a provider on load.
@@ -25,7 +28,7 @@ const adapter = {
 };
 
 const config = {
-	url: { app: 'https://book.example.com' },
+	url: { app: 'https://book.example.com', worker: 'http://when-worker:9000' },
 	providers: [
 		{ name: 'gg', type: 'google', client_id: 'cid', client_secret: 'csec' },
 		{ name: 'dav', type: 'caldav', url: 'https://d.example/', username: 'u', password: 'p' }
@@ -51,6 +54,13 @@ beforeEach(async () => {
 			usesOAuth: service.type === 'google',
 			calendarIdField: service.type === 'google' ? 'google_calendar_id' : 'path'
 		}));
+
+	handle.result = vi.fn().mockResolvedValue('authenticated');
+	client.runWorkflow = vi.fn().mockResolvedValue(handle);
+	vi.mocked(getOpenWorkflow)
+		.mockReset()
+		.mockReturnValue(client as never);
+	vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('', { status: 200 }));
 });
 
 describe('listProviders', () => {
@@ -170,67 +180,40 @@ describe('listProviders', () => {
 });
 
 describe('probeProvider', () => {
-	test('a passing probe is recorded like any other observation', async () => {
-		await saveProviderRefreshToken(db, 'gg', 'rt-1');
-		await probeProvider(config, db, 'gg');
+	test('names a stopped worker rather than waiting on a run nothing will claim', async () => {
+		vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('ECONNREFUSED'));
 
-		const [google] = await listProviders(config, db);
-		expect(google.observed.state).toBe('working');
-		expect(google.observed.via).toBe('test');
-	});
-
-	test('a failing probe records the reason it failed', async () => {
-		adapter.verify = vi.fn().mockRejectedValue(new Error('bad credentials (401)'));
-		await probeProvider(config, db, 'gg');
-
-		const [google] = await listProviders(config, db);
-		expect(google.observed.state).toBe('failing');
-		expect(google.observed.error).toContain('401');
-	});
-
-	test('probing a provider that is not configured records nothing', async () => {
-		await probeProvider(config, db, 'nope');
-		expect(await listServiceStatus(db, 'provider')).toEqual([]);
-	});
-
-	test('hands the adapter the stored token', async () => {
-		await saveProviderRefreshToken(db, 'gg', 'rt-1');
-
-		expect(await probeProvider(config, db, 'gg')).toEqual({ ok: true, message: 'Authenticated.' });
-		expect(getProviderAdapter).toHaveBeenCalledWith(
-			expect.objectContaining({ name: 'gg', refresh_token: 'rt-1' })
-		);
-	});
-
-	test('hands the adapter a null token when nothing is stored', async () => {
-		await probeProvider(config, db, 'gg');
-
-		expect(getProviderAdapter).toHaveBeenCalledWith(
-			expect.objectContaining({ name: 'gg', refresh_token: null })
-		);
-	});
-
-	test('surfaces the provider error verbatim', async () => {
-		adapter.verify = vi.fn().mockRejectedValue(new Error('invalid_grant'));
-
-		expect(await probeProvider(config, db, 'gg')).toEqual({ ok: false, message: 'invalid_grant' });
-	});
-
-	test('reports an unknown provider', async () => {
-		expect(await probeProvider(config, db, 'nope')).toEqual({
+		expect(await probeProvider(config, 'gg')).toEqual({
 			ok: false,
-			message: 'No provider named "nope".'
+			message: 'The worker is not reachable, so nothing would check it.'
 		});
+		expect(client.runWorkflow).not.toHaveBeenCalled();
+	});
+
+	test('runs the probe in the worker and reports success', async () => {
+		expect(await probeProvider(config, 'gg')).toEqual({ ok: true, message: 'Authenticated.' });
+		expect(client.runWorkflow).toHaveBeenCalledWith(
+			testProvider,
+			{ name: 'gg' },
+			expect.objectContaining({ idempotencyKey: expect.any(String) })
+		);
+	});
+
+	test('surfaces the provider error the worker raised', async () => {
+		handle.result = vi.fn().mockRejectedValue(new Error('invalid_grant'));
+
+		expect(await probeProvider(config, 'gg')).toEqual({ ok: false, message: 'invalid_grant' });
 	});
 });
 
 describe('discoverCalendars', () => {
-	test('returns the calendars and the config field the adapter names', async () => {
-		adapter.listCalendars = vi
-			.fn()
-			.mockResolvedValue([{ id: 'primary', name: 'Primary calendar', primary: true }]);
+	test('returns the calendars and the config field the worker named', async () => {
+		handle.result = vi.fn().mockResolvedValue({
+			field: 'google_calendar_id',
+			calendars: [{ id: 'primary', name: 'Primary calendar', primary: true }]
+		});
 
-		expect(await discoverCalendars(config, db, 'gg')).toEqual({
+		expect(await discoverCalendars(config, 'gg')).toEqual({
 			ok: true,
 			field: 'google_calendar_id',
 			calendars: [{ id: 'primary', name: 'Primary calendar', primary: true }]
@@ -238,23 +221,18 @@ describe('discoverCalendars', () => {
 	});
 
 	test('surfaces a provider failure', async () => {
-		adapter.listCalendars = vi.fn().mockRejectedValue(new Error('401 Unauthorized'));
+		handle.result = vi.fn().mockRejectedValue(new Error('401 Unauthorized'));
 
-		expect(await discoverCalendars(config, db, 'dav')).toEqual({
+		expect(await discoverCalendars(config, 'dav')).toEqual({
 			ok: false,
 			message: '401 Unauthorized'
 		});
 	});
 
-	test('reports an unknown provider', async () => {
-		expect(await discoverCalendars(config, db, 'nope')).toEqual({
-			ok: false,
-			message: 'No provider named "nope".'
-		});
-	});
-
 	test('an empty list is a success, not a failure', async () => {
-		expect(await discoverCalendars(config, db, 'dav')).toEqual({
+		handle.result = vi.fn().mockResolvedValue({ field: 'path', calendars: [] });
+
+		expect(await discoverCalendars(config, 'dav')).toEqual({
 			ok: true,
 			field: 'path',
 			calendars: []
