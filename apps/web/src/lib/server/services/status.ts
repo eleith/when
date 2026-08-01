@@ -8,8 +8,8 @@ import {
 	type ProviderCalendar
 } from '@when/calendar';
 import {
-	getServiceRefreshToken,
-	listServiceConnections,
+	getProviderRefreshToken,
+	listProviderConnections,
 	listCalendarSyncStatus,
 	listOutOfSyncAppointments
 } from '@when/db';
@@ -42,13 +42,13 @@ export async function listServices(
 	db: Kysely<Database>
 ): Promise<ServiceView[]> {
 	const [connections, syncStatus, outOfSync] = await Promise.all([
-		listServiceConnections(db),
+		listProviderConnections(db),
 		listCalendarSyncStatus(db),
 		listOutOfSyncAppointments(db)
 	]);
 
 	const computed = evaluateCalendarStatuses(syncStatus, outOfSync, config, Temporal.Now.instant());
-	const connected = new Map(connections.map((c) => [c.serviceName, c]));
+	const connected = new Map(connections.map((c) => [c.providerName, c]));
 	const statuses = new Map(computed.map((s) => [s.id, s]));
 	const lastSynced = new Map(syncStatus.map((s) => [s.calendar_id, s.last_successful_refresh_at]));
 
@@ -141,6 +141,6 @@ async function connectedAdapter(
 	const service = config.providers?.find((s) => s.name === name);
 	if (!service) throw new Error(`No service named "${name}".`);
 
-	const refreshToken = await getServiceRefreshToken(db, name);
+	const refreshToken = await getProviderRefreshToken(db, name);
 	return getProviderAdapter(connectProvider(service, refreshToken));
 }

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { openDb, runMigrations, saveServiceRefreshToken, recordRefreshResult } from '@when/db';
+import { openDb, runMigrations, saveProviderRefreshToken, recordRefreshResult } from '@when/db';
 import { getProviderAdapter } from '@when/calendar';
 import type { WhenConfiguration } from '@when/config';
 import { discoverCalendars, listServices, probeService } from './status';
@@ -61,7 +61,7 @@ describe('listServices', () => {
 	});
 
 	test('carries connection state for a connected google service', async () => {
-		await saveServiceRefreshToken(db, 'gg', 'rt-1');
+		await saveProviderRefreshToken(db, 'gg', 'rt-1');
 		const [google] = await listServices(config, db);
 		expect(google.connectedAt).toBeTruthy();
 		expect(JSON.stringify(google)).not.toContain('rt-1');
@@ -120,7 +120,7 @@ describe('listServices', () => {
 
 describe('probeService', () => {
 	test('hands the adapter the stored token', async () => {
-		await saveServiceRefreshToken(db, 'gg', 'rt-1');
+		await saveProviderRefreshToken(db, 'gg', 'rt-1');
 
 		expect(await probeService(config, db, 'gg')).toEqual({ ok: true, message: 'Authenticated.' });
 		expect(getProviderAdapter).toHaveBeenCalledWith(

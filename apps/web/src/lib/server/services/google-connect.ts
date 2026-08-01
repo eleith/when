@@ -7,7 +7,7 @@ import {
 	getGoogleAccessToken,
 	revokeGoogleToken
 } from '@when/calendar';
-import { saveServiceRefreshToken, getServiceRefreshToken, deleteServiceToken } from '@when/db';
+import { saveProviderRefreshToken, getProviderRefreshToken, deleteProviderToken } from '@when/db';
 
 export const CALLBACK_PATH = '/admin/services/google/callback';
 
@@ -65,7 +65,7 @@ export async function completeGoogleConnect(
 			google_calendar_id: ''
 		});
 
-		await saveServiceRefreshToken(db, service.name, refresh_token);
+		await saveProviderRefreshToken(db, service.name, refresh_token);
 		return { ok: true };
 	} catch (err) {
 		return { ok: false, reason: err instanceof Error ? err.message : String(err) };
@@ -81,10 +81,10 @@ export interface DisconnectResult {
 // revoke that fails must not leave the service stuck in a connected-but-unwanted state.
 export async function disconnectGoogle(
 	db: Kysely<Database>,
-	serviceName: string
+	providerName: string
 ): Promise<DisconnectResult> {
-	const token = await getServiceRefreshToken(db, serviceName);
-	await deleteServiceToken(db, serviceName);
+	const token = await getProviderRefreshToken(db, providerName);
+	await deleteProviderToken(db, providerName);
 	if (!token) return { revoked: true };
 
 	try {

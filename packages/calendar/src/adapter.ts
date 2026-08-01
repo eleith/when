@@ -7,7 +7,7 @@ import type {
 	GoogleProvider,
 	WhenConfiguration
 } from '@when/config';
-import { getServiceRefreshToken, type Appointment, type openDb } from '@when/db';
+import { getProviderRefreshToken, type Appointment, type openDb } from '@when/db';
 import type { ExpandWindow } from './expand.js';
 import { CalDavAdapter } from './adapters/caldav.js';
 import { GoogleAdapter } from './adapters/google.js';
@@ -61,7 +61,7 @@ async function connectProviders(
 ): Promise<ConnectedProvider[]> {
 	return Promise.all(
 		services.map(async (service) =>
-			connectProvider(service, await getServiceRefreshToken(db, service.name))
+			connectProvider(service, await getProviderRefreshToken(db, service.name))
 		)
 	);
 }

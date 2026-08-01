@@ -23,6 +23,7 @@ import { dropCalendarHealthColumns } from './0021_drop_calendar_health_columns.j
 import { renameConferenceToVideoChat } from './0022_rename_conference_to_video_chat.js';
 import { renameEventTypeSnapshotToMeetingSnapshot } from './0023_rename_event_type_snapshot_to_meeting_snapshot.js';
 import { rekeyOauthTokens } from './0024_rekey_oauth_tokens.js';
+import { renameServiceName } from './0025_rename_service_name.js';
 
 // Registered in order; keys are the migration names Kysely's Migrator records.
 export const migrations: Record<string, Migration> = {
@@ -49,5 +50,6 @@ export const migrations: Record<string, Migration> = {
 	'0021_drop_calendar_health_columns': dropCalendarHealthColumns,
 	'0022_rename_conference_to_video_chat': renameConferenceToVideoChat,
 	'0023_rename_event_type_snapshot_to_meeting_snapshot': renameEventTypeSnapshotToMeetingSnapshot,
-	'0024_rekey_oauth_tokens': rekeyOauthTokens
+	'0024_rekey_oauth_tokens': rekeyOauthTokens,
+	'0025_rename_service_name': renameServiceName
 };

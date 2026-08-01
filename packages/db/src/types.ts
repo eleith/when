@@ -39,7 +39,7 @@ export interface AppointmentsTable {
 }
 
 export interface OauthTokensTable {
-	service_name: string;
+	provider_name: string;
 	refresh_token: string;
 	connected_at: ColumnType<string, string | undefined, string>;
 	last_error: NullableText;

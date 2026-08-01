@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test } from 'vitest';
-import { openDb, runMigrations, saveServiceRefreshToken } from '@when/db';
+import { openDb, runMigrations, saveProviderRefreshToken } from '@when/db';
 import type { Provider } from '@when/config';
 import { connectProvider, connectProviders } from './adapter.js';
 
@@ -41,7 +41,7 @@ describe('connectProvider', () => {
 
 describe('connectProviders', () => {
 	test('joins each service with the token the store holds', async () => {
-		await saveServiceRefreshToken(db, 'gg', 'rt-1');
+		await saveProviderRefreshToken(db, 'gg', 'rt-1');
 
 		const connected = await connectProviders([google, dav], db);
 
@@ -55,7 +55,7 @@ describe('connectProviders', () => {
 	});
 
 	test('does not borrow another service token', async () => {
-		await saveServiceRefreshToken(db, 'other', 'not-mine');
+		await saveProviderRefreshToken(db, 'other', 'not-mine');
 
 		const [connected] = await connectProviders([google], db);
 

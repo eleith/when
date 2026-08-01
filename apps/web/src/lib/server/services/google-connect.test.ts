@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { openDb, runMigrations, getServiceRefreshToken, saveServiceRefreshToken } from '@when/db';
+import { openDb, runMigrations, getProviderRefreshToken, saveProviderRefreshToken } from '@when/db';
 import { exchangeGoogleAuthCode, getGoogleAccessToken, revokeGoogleToken } from '@when/calendar';
 import type { GoogleProvider, WhenConfiguration } from '@when/config';
 import {
@@ -100,7 +100,7 @@ describe('completeGoogleConnect', () => {
 
 		expect(result.ok).toBe(true);
 		expect(getGoogleAccessToken).toHaveBeenCalled();
-		expect(await getServiceRefreshToken(db, 'gg')).toBe('rt-new');
+		expect(await getProviderRefreshToken(db, 'gg')).toBe('rt-new');
 	});
 
 	test('exchanges against the same redirect uri it consented with', async () => {
@@ -122,7 +122,7 @@ describe('completeGoogleConnect', () => {
 		const result = await completeGoogleConnect(db, service, 'code-1', 'https://book.example.com');
 
 		expect(result).toMatchObject({ ok: false });
-		expect(await getServiceRefreshToken(db, 'gg')).toBeNull();
+		expect(await getProviderRefreshToken(db, 'gg')).toBeNull();
 	});
 
 	test('stores nothing when the exchange fails', async () => {
@@ -131,7 +131,7 @@ describe('completeGoogleConnect', () => {
 		const result = await completeGoogleConnect(db, service, 'bad', 'https://book.example.com');
 
 		expect(result).toMatchObject({ ok: false, reason: 'invalid_grant' });
-		expect(await getServiceRefreshToken(db, 'gg')).toBeNull();
+		expect(await getProviderRefreshToken(db, 'gg')).toBeNull();
 	});
 
 	test('stores nothing when the new token cannot mint an access token', async () => {
@@ -141,22 +141,22 @@ describe('completeGoogleConnect', () => {
 		const result = await completeGoogleConnect(db, service, 'code-1', 'https://book.example.com');
 
 		expect(result).toMatchObject({ ok: false });
-		expect(await getServiceRefreshToken(db, 'gg')).toBeNull();
+		expect(await getProviderRefreshToken(db, 'gg')).toBeNull();
 	});
 
 	test('a failed reconnect leaves the working token in place', async () => {
-		await saveServiceRefreshToken(db, 'gg', 'rt-working');
+		await saveProviderRefreshToken(db, 'gg', 'rt-working');
 		vi.mocked(exchangeGoogleAuthCode).mockRejectedValue(new Error('invalid_grant'));
 
 		await completeGoogleConnect(db, service, 'bad', 'https://book.example.com');
 
-		expect(await getServiceRefreshToken(db, 'gg')).toBe('rt-working');
+		expect(await getProviderRefreshToken(db, 'gg')).toBe('rt-working');
 	});
 });
 
 describe('connecting over an existing token', () => {
 	test('replaces the stored token', async () => {
-		await saveServiceRefreshToken(db, 'gg', 'rt-old');
+		await saveProviderRefreshToken(db, 'gg', 'rt-old');
 		vi.mocked(exchangeGoogleAuthCode).mockResolvedValue({
 			access_token: 'a',
 			refresh_token: 'rt-new',
@@ -165,13 +165,13 @@ describe('connecting over an existing token', () => {
 
 		await completeGoogleConnect(db, service, 'code-1', 'https://book.example.com');
 
-		expect(await getServiceRefreshToken(db, 'gg')).toBe('rt-new');
+		expect(await getProviderRefreshToken(db, 'gg')).toBe('rt-new');
 	});
 
 	// The admin has no reconnect, so this is unreachable from the UI; revoking here would
 	// end the grant and take the new token with it.
 	test('does not revoke the token it replaces', async () => {
-		await saveServiceRefreshToken(db, 'gg', 'rt-old');
+		await saveProviderRefreshToken(db, 'gg', 'rt-old');
 		vi.mocked(exchangeGoogleAuthCode).mockResolvedValue({
 			access_token: 'a',
 			refresh_token: 'rt-new',
@@ -186,22 +186,22 @@ describe('connecting over an existing token', () => {
 
 describe('disconnectGoogle', () => {
 	test('revokes at google and clears the stored token', async () => {
-		await saveServiceRefreshToken(db, 'gg', 'rt-1');
+		await saveProviderRefreshToken(db, 'gg', 'rt-1');
 
 		expect(await disconnectGoogle(db, 'gg')).toEqual({ revoked: true });
 
 		expect(revokeGoogleToken).toHaveBeenCalledWith('rt-1');
-		expect(await getServiceRefreshToken(db, 'gg')).toBeNull();
+		expect(await getProviderRefreshToken(db, 'gg')).toBeNull();
 	});
 
 	test('clears the token even when the revoke fails', async () => {
-		await saveServiceRefreshToken(db, 'gg', 'rt-1');
+		await saveProviderRefreshToken(db, 'gg', 'rt-1');
 		vi.mocked(revokeGoogleToken).mockRejectedValue(new Error('invalid_token'));
 
 		const result = await disconnectGoogle(db, 'gg');
 
 		expect(result).toMatchObject({ revoked: false, reason: 'invalid_token' });
-		expect(await getServiceRefreshToken(db, 'gg')).toBeNull();
+		expect(await getProviderRefreshToken(db, 'gg')).toBeNull();
 	});
 
 	test('is a no-op for a service that was never connected', async () => {
