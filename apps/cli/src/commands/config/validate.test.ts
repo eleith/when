@@ -206,6 +206,22 @@ url:
 		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining(`❌ ${tempInvalidPath}`));
 	});
 
+	test('reports each issue at its line and column, not as a JSON Pointer', async () => {
+		const ctx = {
+			positionals: ['config', 'validate', tempInvalidPath],
+			commandPath: ['config', 'validate']
+		} as unknown as Parameters<NonNullable<typeof validateCommand.run>>[0];
+
+		await validateCommand.run!(ctx);
+
+		const details = errorSpy.mock.calls.map((c) => String(c[0])).filter((l) => l.startsWith('   '));
+		expect(details.length).toBeGreaterThan(0);
+		for (const line of details) {
+			expect(line).toMatch(/^ {3}\d+:\d+ {2}/);
+			expect(line).not.toContain('/user/');
+		}
+	});
+
 	test('passes a config with unset env refs by default (structural)', async () => {
 		const ctx = {
 			positionals: ['config', 'validate', tempMissingEnvPath],
