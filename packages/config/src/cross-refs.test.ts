@@ -107,9 +107,8 @@ test('omitted form_fields pass (falls back to default)', () => {
 	expect(() => validateConfig(clone(validConfig))).not.toThrow();
 });
 
-test('empty form_fields flagged', () => {
-	const issues = issuesFor(withForm([]));
-	expect(issues.some((i) => i.message.includes('at least one field'))).toBe(true);
+test('empty form_fields rejected by the schema', () => {
+	expect(() => validateConfig(withForm([]))).toThrow(ConfigError);
 });
 
 test('too many form fields flagged', () => {
@@ -119,8 +118,7 @@ test('too many form fields flagged', () => {
 		label: `Extra ${n}`,
 		required: false
 	}));
-	const issues = issuesFor(withForm([...validForm, ...extras]));
-	expect(issues.some((i) => i.message.includes('exceeds the max'))).toBe(true);
+	expect(() => validateConfig(withForm([...validForm, ...extras]))).toThrow(ConfigError);
 });
 
 test('duplicate form field name flagged with index', () => {
@@ -245,11 +243,36 @@ test('event_location appearing twice flagged', () => {
 	);
 });
 
-test('choice field without choices flagged', () => {
-	const issues = issuesFor(
-		withForm([...validForm, { name: 'how', type: 'choice', label: 'How?', required: true }])
-	);
-	expect(issues.some((i) => i.path === '/meetings/0/form_fields/3/choices')).toBe(true);
+test('choice field without choices rejected by the schema', () => {
+	const cfg = clone(validConfig) as unknown as Record<string, unknown>;
+	(cfg.meetings as Record<string, unknown>[])[0].form_fields = [
+		...validForm,
+		{ name: 'how', type: 'choice', label: 'How?', required: true }
+	];
+	expect(() => validateConfig(cfg)).toThrow(ConfigError);
+});
+
+test('choices on a plain field rejected by the schema', () => {
+	const cfg = clone(validConfig) as unknown as Record<string, unknown>;
+	(cfg.meetings as Record<string, unknown>[])[0].form_fields = [
+		...validForm,
+		{ name: 'topic', type: 'text', label: 'Topic?', required: false, choices: ['a', 'b'] }
+	];
+	expect(() => validateConfig(cfg)).toThrow(ConfigError);
+});
+
+test('event_location keeps its optional choices', () => {
+	const withPicklist = withForm([
+		...validForm,
+		{ name: 'where', type: 'event_location', label: 'Where?', required: false, choices: ['a'] }
+	]);
+	expect(() => validateConfig(withPicklist)).not.toThrow();
+
+	const freeText = withForm([
+		...validForm,
+		{ name: 'where', type: 'event_location', label: 'Where?', required: false }
+	]);
+	expect(() => validateConfig(freeText)).not.toThrow();
 });
 
 test('unknown provider in calendar flagged', () => {

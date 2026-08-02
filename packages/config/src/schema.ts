@@ -200,23 +200,40 @@ export const FieldConditionSchema = Type.Object({
 	], { description: 'Value, or list of accepted values, the referenced field must match. Omit to require only that the field has a non-empty value.' }))
 }, { $id: 'FieldCondition', additionalProperties: false, title: 'FieldCondition', description: 'A visibility condition referencing another field.' });
 
-export const FormFieldSchema = Type.Object({
+const formFieldBase = {
 	name: Type.String({ minLength: 1, description: 'Unique name for the form field.' }),
-	type: Type.Union([
-		Type.Literal('guest_name'),
-		Type.Literal('guest_email'),
-		Type.Literal('event_location'),
-		Type.Literal('text'),
-		Type.Literal('number'),
-		Type.Literal('phone'),
-		Type.Literal('paragraph'),
-		Type.Literal('choice')
-	], { description: 'Type of form field (e.g. guest_name, guest_email, event_location, text, number, phone, paragraph, choice).' }),
 	label: Type.String({ minLength: 1, description: 'The question prompt or label shown to the user.' }),
 	required: Type.Boolean({ default: false, description: 'Whether the field must be filled in (default: false).' }),
-	choices: Type.Optional(Type.Array(Type.String({ minLength: 1 }), { description: 'List of options for the choice field type.' })),
 	show_when: Type.Optional(Type.Array(Ref(FieldConditionSchema), { description: 'Show this field only when every listed condition holds (logical AND). Each condition references an earlier field.' }))
-}, { $id: 'FormField', additionalProperties: false, title: 'FormField', description: 'Custom question form fields for bookings.' });
+};
+
+const ChoicesSchema = Type.Array(Type.String({ minLength: 1 }), { minItems: 1, description: 'The options offered, in the order shown.' });
+
+// Split on `type` so the schema itself says where `choices` belongs: required for a
+// choice field, optional for event_location, and rejected on the rest.
+export const FormFieldSchema = Type.Union([
+	Type.Object({
+		...formFieldBase,
+		type: Type.Literal('choice', { description: 'A pick-one list; `choices` lists the options.' }),
+		choices: ChoicesSchema
+	}, { additionalProperties: false, title: 'Choice field' }),
+	Type.Object({
+		...formFieldBase,
+		type: Type.Literal('event_location', { description: 'Where the meeting happens. With `choices` the guest picks one; without, they type it.' }),
+		choices: Type.Optional(ChoicesSchema)
+	}, { additionalProperties: false, title: 'Event location field' }),
+	Type.Object({
+		...formFieldBase,
+		type: Type.Union([
+			Type.Literal('guest_name'),
+			Type.Literal('guest_email'),
+			Type.Literal('text'),
+			Type.Literal('number'),
+			Type.Literal('phone'),
+			Type.Literal('paragraph')
+		], { description: 'Type of form field (guest_name, guest_email, text, number, phone, paragraph).' })
+	}, { additionalProperties: false, title: 'Plain field' })
+], { $id: 'FormField', title: 'FormField', description: 'Custom question form fields for bookings.' });
 
 export const MeetingSchema = Type.Object({
 	name: Type.String({ minLength: 1, description: 'Unique name of the meeting (e.g. 30-minute chat).' }),
@@ -241,7 +258,7 @@ export const MeetingSchema = Type.Object({
 	padding_before_minutes: Type.Integer({ minimum: 0, default: 0, description: 'Minutes of padding time required before each appointment (default: 0).' }),
 	padding_after_minutes: Type.Integer({ minimum: 0, default: 0, description: 'Minutes of padding time required after each appointment (default: 0).' }),
 	daily_booking_limit: Type.Union([Type.Integer({ minimum: 1 }), Type.Null()], { default: null, description: 'Maximum number of appointments allowed in a single day. null means unlimited (default: null).' }),
-	form_fields: Type.Optional(Type.Array(Ref(FormFieldSchema), { description: 'Custom form fields for the booking process.' }))
+	form_fields: Type.Optional(Type.Array(Ref(FormFieldSchema), { minItems: 1, maxItems: 10, description: 'Custom form fields for the booking process.' }))
 }, { $id: 'Meeting', additionalProperties: false, title: 'Meeting', description: 'Definition of a bookable meeting.' });
 
 export const DatabaseConfigSchema = Type.Object({

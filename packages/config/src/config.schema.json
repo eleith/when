@@ -417,80 +417,157 @@
 			}
 		},
 		"FormField": {
-			"additionalProperties": false,
 			"title": "FormField",
 			"description": "Custom question form fields for bookings.",
-			"type": "object",
-			"required": ["name", "type", "label"],
-			"properties": {
-				"name": {
-					"minLength": 1,
-					"description": "Unique name for the form field.",
-					"type": "string"
+			"anyOf": [
+				{
+					"additionalProperties": false,
+					"title": "Choice field",
+					"type": "object",
+					"required": ["name", "label", "type", "choices"],
+					"properties": {
+						"name": {
+							"minLength": 1,
+							"description": "Unique name for the form field.",
+							"type": "string"
+						},
+						"label": {
+							"minLength": 1,
+							"description": "The question prompt or label shown to the user.",
+							"type": "string"
+						},
+						"required": {
+							"default": false,
+							"description": "Whether the field must be filled in (default: false).",
+							"type": "boolean"
+						},
+						"show_when": {
+							"description": "Show this field only when every listed condition holds (logical AND). Each condition references an earlier field.",
+							"type": "array",
+							"items": {
+								"$ref": "#/$defs/FieldCondition"
+							}
+						},
+						"type": {
+							"description": "A pick-one list; `choices` lists the options.",
+							"const": "choice",
+							"type": "string"
+						},
+						"choices": {
+							"minItems": 1,
+							"description": "The options offered, in the order shown.",
+							"type": "array",
+							"items": {
+								"minLength": 1,
+								"type": "string"
+							}
+						}
+					}
 				},
-				"type": {
-					"description": "Type of form field (e.g. guest_name, guest_email, event_location, text, number, phone, paragraph, choice).",
-					"anyOf": [
-						{
-							"const": "guest_name",
+				{
+					"additionalProperties": false,
+					"title": "Event location field",
+					"type": "object",
+					"required": ["name", "label", "type"],
+					"properties": {
+						"name": {
+							"minLength": 1,
+							"description": "Unique name for the form field.",
 							"type": "string"
 						},
-						{
-							"const": "guest_email",
+						"label": {
+							"minLength": 1,
+							"description": "The question prompt or label shown to the user.",
 							"type": "string"
 						},
-						{
+						"required": {
+							"default": false,
+							"description": "Whether the field must be filled in (default: false).",
+							"type": "boolean"
+						},
+						"show_when": {
+							"description": "Show this field only when every listed condition holds (logical AND). Each condition references an earlier field.",
+							"type": "array",
+							"items": {
+								"$ref": "#/$defs/FieldCondition"
+							}
+						},
+						"type": {
+							"description": "Where the meeting happens. With `choices` the guest picks one; without, they type it.",
 							"const": "event_location",
 							"type": "string"
 						},
-						{
-							"const": "text",
-							"type": "string"
-						},
-						{
-							"const": "number",
-							"type": "string"
-						},
-						{
-							"const": "phone",
-							"type": "string"
-						},
-						{
-							"const": "paragraph",
-							"type": "string"
-						},
-						{
-							"const": "choice",
-							"type": "string"
+						"choices": {
+							"minItems": 1,
+							"description": "The options offered, in the order shown.",
+							"type": "array",
+							"items": {
+								"minLength": 1,
+								"type": "string"
+							}
 						}
-					]
-				},
-				"label": {
-					"minLength": 1,
-					"description": "The question prompt or label shown to the user.",
-					"type": "string"
-				},
-				"required": {
-					"default": false,
-					"description": "Whether the field must be filled in (default: false).",
-					"type": "boolean"
-				},
-				"choices": {
-					"description": "List of options for the choice field type.",
-					"type": "array",
-					"items": {
-						"minLength": 1,
-						"type": "string"
 					}
 				},
-				"show_when": {
-					"description": "Show this field only when every listed condition holds (logical AND). Each condition references an earlier field.",
-					"type": "array",
-					"items": {
-						"$ref": "#/$defs/FieldCondition"
+				{
+					"additionalProperties": false,
+					"title": "Plain field",
+					"type": "object",
+					"required": ["name", "label", "type"],
+					"properties": {
+						"name": {
+							"minLength": 1,
+							"description": "Unique name for the form field.",
+							"type": "string"
+						},
+						"label": {
+							"minLength": 1,
+							"description": "The question prompt or label shown to the user.",
+							"type": "string"
+						},
+						"required": {
+							"default": false,
+							"description": "Whether the field must be filled in (default: false).",
+							"type": "boolean"
+						},
+						"show_when": {
+							"description": "Show this field only when every listed condition holds (logical AND). Each condition references an earlier field.",
+							"type": "array",
+							"items": {
+								"$ref": "#/$defs/FieldCondition"
+							}
+						},
+						"type": {
+							"description": "Type of form field (guest_name, guest_email, text, number, phone, paragraph).",
+							"anyOf": [
+								{
+									"const": "guest_name",
+									"type": "string"
+								},
+								{
+									"const": "guest_email",
+									"type": "string"
+								},
+								{
+									"const": "text",
+									"type": "string"
+								},
+								{
+									"const": "number",
+									"type": "string"
+								},
+								{
+									"const": "phone",
+									"type": "string"
+								},
+								{
+									"const": "paragraph",
+									"type": "string"
+								}
+							]
+						}
 					}
 				}
-			}
+			]
 		},
 		"GoogleCalendar": {
 			"additionalProperties": false,
@@ -728,6 +805,8 @@
 					]
 				},
 				"form_fields": {
+					"minItems": 1,
+					"maxItems": 10,
 					"description": "Custom form fields for the booking process.",
 					"type": "array",
 					"items": {

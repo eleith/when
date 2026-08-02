@@ -297,26 +297,11 @@ function validateVideoChatService(
 	}
 }
 
-const MAX_FORM_FIELDS = 10;
-
 function checkFormFields(meeting: Meeting, i: number, issues: ConfigIssue[]): void {
 	const fields = meeting.form_fields;
 	if (!fields) return;
 
 	const base = `/meetings/${i}/form_fields`;
-
-	if (fields.length === 0) {
-		issues.push({ path: base, message: 'form_fields must have at least one field' });
-		return;
-	}
-
-	if (fields.length > MAX_FORM_FIELDS) {
-		issues.push({
-			path: base,
-			message: `form has ${fields.length} fields, exceeds the max of ${MAX_FORM_FIELDS}`
-		});
-	}
-
 	const seenNames = new Set<string>();
 	const typeCounts = new Map<string, number>();
 
@@ -329,13 +314,6 @@ function checkFormFields(meeting: Meeting, i: number, issues: ConfigIssue[]): vo
 		}
 		seenNames.add(field.name);
 		typeCounts.set(field.type, (typeCounts.get(field.type) ?? 0) + 1);
-
-		if (field.type === 'choice' && (field.choices?.length ?? 0) === 0) {
-			issues.push({
-				path: `${base}/${j}/choices`,
-				message: `choice field "${field.name}" must have a non-empty choices list`
-			});
-		}
 
 		checkFieldConditions(field, j, fields, base, issues);
 	});
