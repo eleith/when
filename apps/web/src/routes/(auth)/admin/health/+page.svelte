@@ -62,8 +62,7 @@
 {#snippet notice(target: string, kind: 'provider' | 'calendar' | 'worker' | 'smtp')}
 	{#if form?.notice?.for === target && pendingTarget !== target}
 		{@const outcome = form.notice}
-		{@const name = target.slice(target.indexOf(':') + 1)}
-		{@const ok = outcome.status === 'up' || outcome.status === 'disconnected'}
+		{@const ok = outcome.status === 'up'}
 		<aside class="banner banner-{ok ? 'success' : 'error'}" role="alert">
 			<span class="banner-icon">
 				{#if ok}
@@ -73,13 +72,7 @@
 				{/if}
 			</span>
 			<p class="banner-text">
-				{#if outcome.status === 'unknown'}
-					no google provider named "{name}"
-				{:else if outcome.status === 'disconnected' && outcome.detail}
-					disconnected, but Google did not confirm the revoke: {outcome.detail}
-				{:else if outcome.status === 'disconnected'}
-					disconnected, access revoked
-				{:else if outcome.status === 'up' && kind === 'smtp'}
+				{#if outcome.status === 'up' && kind === 'smtp'}
 					up: test email sent to {outcome.detail}
 				{:else if outcome.status === 'up' && kind === 'calendar'}
 					up: {outcome.detail}
@@ -163,24 +156,14 @@
 					<div class="actions">
 						<div class="actions-change">
 							{#if unconnected}
-								<form method="POST" action="?/connect">
+								<form method="POST" action="/admin/services/google/connect">
 									<input type="hidden" name="provider" value={provider.name} />
 									<button type="submit" class="button primary">Connect</button>
 								</form>
 							{:else if provider.connectedAt}
-								<form
-									method="POST"
-									action="?/disconnect"
-									use:enhance={run(`disconnect:provider:${provider.name}`)}
-								>
+								<form method="POST" action="/admin/services/google/disconnect">
 									<input type="hidden" name="provider" value={provider.name} />
-									<button
-										type="submit"
-										class="button danger"
-										disabled={pending === `disconnect:provider:${provider.name}`}
-									>
-										Disconnect
-									</button>
+									<button type="submit" class="button danger">Disconnect</button>
 								</form>
 							{/if}
 						</div>
