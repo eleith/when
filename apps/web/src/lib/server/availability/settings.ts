@@ -21,11 +21,11 @@ export function resolveAvailabilitySettings(
 	return {
 		duration: durations[0],
 		slot_granularity: et.start_times_every_minutes ?? Math.min(...durations),
-		minimum_notice: et.notice_minutes ?? 120,
-		maximum_lookahead: et.booking_window_days ?? 60,
-		buffer_before: et.padding_before_minutes ?? 0,
-		buffer_after: et.padding_after_minutes ?? 0,
-		max_appointments_per_day: et.daily_booking_limit ?? null,
+		minimum_notice: et.notice_minutes,
+		maximum_lookahead: et.booking_window_days,
+		buffer_before: et.padding_before_minutes,
+		buffer_after: et.padding_after_minutes,
+		max_appointments_per_day: et.daily_booking_limit,
 		weekly: expandWeekly(a.weekly)
 	};
 }

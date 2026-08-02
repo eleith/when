@@ -26,7 +26,7 @@ export function evaluateCalendarStatuses(
 
 		if (s.last_ok_at) {
 			const intervalMinutes =
-				config.calendars.find((c) => c.name === id)?.sync?.refresh_every_minutes ?? 10;
+				config.calendars.find((c) => c.name === id)?.sync.refresh_every_minutes ?? 10;
 			const staleAfter = Temporal.Instant.from(s.last_ok_at).add({
 				minutes: intervalMinutes + STALE_GRACE_MINUTES
 			});

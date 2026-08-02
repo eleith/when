@@ -203,7 +203,7 @@ test('busyCalendarIds unions and dedupes across meetings', () => {
 		meetings: [
 			{ booking_calendar: 'a', additional_busy_calendars: ['b'] },
 			{ booking_calendar: 'a', additional_busy_calendars: ['b', 'c'] },
-			{ booking_calendar: 'a' }
+			{ booking_calendar: 'a', additional_busy_calendars: [] }
 		]
 	} as unknown as WhenConfiguration;
 	expect(busyCalendarIds(config).sort()).toEqual(['a', 'b', 'c']);
@@ -211,7 +211,7 @@ test('busyCalendarIds unions and dedupes across meetings', () => {
 
 test('busyCalendarIds refreshes a booking calendar no meeting lists as busy', () => {
 	const config = {
-		meetings: [{ booking_calendar: 'personal' }]
+		meetings: [{ booking_calendar: 'personal', additional_busy_calendars: [] }]
 	} as unknown as WhenConfiguration;
 	expect(busyCalendarIds(config)).toEqual(['personal']);
 });
@@ -219,7 +219,7 @@ test('busyCalendarIds refreshes a booking calendar no meeting lists as busy', ()
 test('busyCalendarIds ignores a configured calendar no meeting references', () => {
 	const config = {
 		calendars: [{ name: 'personal' }, { name: 'unused' }],
-		meetings: [{ booking_calendar: 'personal' }]
+		meetings: [{ booking_calendar: 'personal', additional_busy_calendars: [] }]
 	} as unknown as WhenConfiguration;
 	expect(busyCalendarIds(config)).toEqual(['personal']);
 });
@@ -253,21 +253,33 @@ test('refreshWindow uses the max lookahead among meetings using the calendar', (
 	expect(w.end.toString()).toBe(now.add({ hours: 24 * 90 }).toString());
 });
 
-test('refreshWindow falls back to the default lookahead when unset', () => {
+test('refreshWindow uses the default lookahead for a calendar no meeting references', () => {
 	const now = inst('2026-04-15T00:00:00Z');
 	const config = {
 		schedules: [{ name: 'standard' }],
 		meetings: [
-			{ booking_calendar: 'primary', additional_busy_calendars: ['work'], schedule: 'standard' }
+			{
+				booking_calendar: 'primary',
+				additional_busy_calendars: ['work'],
+				booking_window_days: 30,
+				schedule: 'standard'
+			}
 		]
 	} as unknown as WhenConfiguration;
-	const w = refreshWindow(config, 'work', now);
+	const w = refreshWindow(config, 'unreferenced', now);
 	expect(w.end.toString()).toBe(now.add({ hours: 24 * 60 }).toString());
 });
 
 test('refreshCalendars mirrors a booking calendar no meeting lists as busy', async () => {
 	const ctx = await ctxWithDb({
-		meetings: [{ booking_calendar: 'work', schedule: 'standard' }]
+		meetings: [
+			{
+				booking_calendar: 'work',
+				additional_busy_calendars: [],
+				booking_window_days: 60,
+				schedule: 'standard'
+			}
+		]
 	} as unknown as Partial<WhenConfiguration>);
 	try {
 		vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(oneEvent('r1'), { status: 207 }));
@@ -292,7 +304,12 @@ test('refreshCalendars refreshes known busy calendars and skips unknown ids', as
 			providers: defaultTestConfig.providers,
 			calendars: [workCal],
 			meetings: [
-				{ booking_calendar: 'work', additional_busy_calendars: ['ghost'], schedule: 'standard' }
+				{
+					booking_calendar: 'work',
+					additional_busy_calendars: ['ghost'],
+					booking_window_days: 60,
+					schedule: 'standard'
+				}
 			]
 		} as unknown as WhenConfiguration,
 		logger: silent,
@@ -328,7 +345,14 @@ test('refreshCalendars skips a calendar refreshed within its interval, refreshes
 			schedules: [{ name: 'standard' }],
 			providers: defaultTestConfig.providers,
 			calendars: [{ ...workCal, sync: { refresh_every_minutes: 30 } }],
-			meetings: [{ booking_calendar: 'work', schedule: 'standard' }]
+			meetings: [
+				{
+					booking_calendar: 'work',
+					additional_busy_calendars: [],
+					booking_window_days: 60,
+					schedule: 'standard'
+				}
+			]
 		} as unknown as WhenConfiguration,
 		logger: silent,
 		db,

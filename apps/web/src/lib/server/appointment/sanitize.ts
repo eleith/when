@@ -1,21 +1,19 @@
 import { durationsOf, parseGuestAnswers, type Meeting } from '@when/config';
 import { parseActionLog, type ActionLogEntry, type Appointment } from '@when/db';
 
-type Resolved<T> = { [K in keyof T]-?: NonNullable<T[K]> };
-
-export interface PublicEventType
-	extends
-		Resolved<
-			Pick<
-				Meeting,
-				| 'visibility'
-				| 'booking_style'
-				| 'padding_before_minutes'
-				| 'padding_after_minutes'
-				| 'notice_minutes'
-			>
-		>,
-		Pick<Meeting, 'name' | 'slug' | 'booking_approval' | 'description' | 'location'> {
+export interface PublicEventType extends Pick<
+	Meeting,
+	| 'name'
+	| 'slug'
+	| 'booking_approval'
+	| 'description'
+	| 'location'
+	| 'visibility'
+	| 'booking_style'
+	| 'padding_before_minutes'
+	| 'padding_after_minutes'
+	| 'notice_minutes'
+> {
 	duration_minutes: number; // the default (first) length
 	durations: number[]; // all offered lengths, in config order
 }
@@ -41,13 +39,13 @@ export function toPublicEventType(eventType: Meeting, isAdmin: boolean): PublicE
 		duration_minutes: durationsOf(eventType)[0],
 		durations: durationsOf(eventType),
 		description: eventType.description,
-		visibility: eventType.visibility ?? 'public',
+		visibility: eventType.visibility,
 		booking_approval: eventType.booking_approval,
 		location: isAdmin ? eventType.location : undefined,
-		booking_style: eventType.booking_style ?? 'insert',
-		padding_before_minutes: eventType.padding_before_minutes ?? 0,
-		padding_after_minutes: eventType.padding_after_minutes ?? 0,
-		notice_minutes: eventType.notice_minutes ?? 120
+		booking_style: eventType.booking_style,
+		padding_before_minutes: eventType.padding_before_minutes,
+		padding_after_minutes: eventType.padding_after_minutes,
+		notice_minutes: eventType.notice_minutes
 	};
 }
 

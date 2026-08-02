@@ -9,5 +9,5 @@ import type { Meeting } from '@when/config';
 export function busyCalendarsFor(
 	meeting: Pick<Meeting, 'booking_calendar' | 'additional_busy_calendars'>
 ): string[] {
-	return [...new Set([meeting.booking_calendar, ...(meeting.additional_busy_calendars ?? [])])];
+	return [...new Set([meeting.booking_calendar, ...meeting.additional_busy_calendars])];
 }

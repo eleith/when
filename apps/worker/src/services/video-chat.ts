@@ -28,7 +28,7 @@ export async function createStandaloneVideoChat(
 		return row as Appointment;
 	}
 
-	const service = (config.providers ?? []).find((s) => s.name === meeting.video_chat_provider);
+	const service = config.providers.find((s) => s.name === meeting.video_chat_provider);
 	if (!service) {
 		throw new Error(`Video chat provider "${meeting.video_chat_provider}" not found`);
 	}
@@ -85,7 +85,7 @@ export async function deleteStandaloneVideoChat(
 		return;
 	}
 
-	const service = (config.providers ?? []).find((s) => s.name === meeting.video_chat_provider);
+	const service = config.providers.find((s) => s.name === meeting.video_chat_provider);
 	if (!service || service.type !== 'nextcloud') {
 		return;
 	}

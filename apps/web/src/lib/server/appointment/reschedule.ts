@@ -138,7 +138,7 @@ export function classifyReschedule({
 	if (isTerminalStatus(existing.status)) {
 		return { kind: 'error', code: 'terminal' };
 	}
-	if (!isRescheduleAllowed(existing, now, eventType.notice_minutes ?? 0)) {
+	if (!isRescheduleAllowed(existing, now, eventType.notice_minutes)) {
 		return { kind: 'error', code: 'minimum_notice' };
 	}
 	return { kind: 'reschedule' };

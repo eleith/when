@@ -16,7 +16,7 @@ export const calendarsCommand = define({
 		const resolved = await providersAndName(ctx.values?.name, ctx.values?.config, 'calendars');
 		if (!resolved) return;
 
-		const provider = requireProvider(resolved.config.providers ?? [], resolved.name);
+		const provider = requireProvider(resolved.config.providers, resolved.name);
 		if (!provider) return;
 
 		const label = `${provider.name} (${provider.type})`;

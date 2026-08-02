@@ -7,7 +7,6 @@ import { listServiceStatus } from '@when/db';
 import { evaluateCalendarStatuses } from './health';
 
 const PROBE_TIMEOUT_MS = 30_000;
-const DEFAULT_REFRESH_MINUTES = 10;
 
 export interface CalendarView {
 	name: string;
@@ -41,7 +40,7 @@ export async function listCalendars(
 			type: cal.type,
 			provider: cal.provider,
 			target: targetOf(cal),
-			refreshEveryMinutes: cal.sync?.refresh_every_minutes ?? DEFAULT_REFRESH_MINUTES,
+			refreshEveryMinutes: cal.sync.refresh_every_minutes,
 			health: status?.health ?? 'unknown',
 			reason: status?.reason ?? null,
 			lastSyncedAt: lastSynced.get(cal.name) ?? null

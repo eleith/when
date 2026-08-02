@@ -8,7 +8,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 	const cfg = getConfig();
 
 	const eventTypes = cfg.meetings
-		.filter((e) => (e.visibility ?? 'public') === 'public')
+		.filter((e) => e.visibility === 'public')
 		.map((e) => ({
 			id: e.name,
 			name: e.name,

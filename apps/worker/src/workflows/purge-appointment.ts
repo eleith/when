@@ -32,7 +32,7 @@ export async function runPurgeAppointment(
 		if (externalEventId && externalCalendarId) {
 			try {
 				await step.run({ name: `calendar:${row.id}`, retryPolicy: CALENDAR_RETRY }, async () => {
-					const services = await connectProviders(config.providers ?? [], db);
+					const services = await connectProviders(config.providers, db);
 					const res = await deleteAppointmentFromCalendar(
 						config,
 						services,

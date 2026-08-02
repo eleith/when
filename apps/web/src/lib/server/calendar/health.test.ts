@@ -6,7 +6,7 @@ import { evaluateCalendarStatuses } from './health.js';
 const START = Temporal.Instant.from('2026-05-01T00:00:00Z');
 
 const config = {
-	calendars: [{ name: 'work' }],
+	calendars: [{ name: 'work', sync: { refresh_every_minutes: 10 } }],
 	meetings: [{ name: 'chat', booking_calendar: 'work' }]
 } as unknown as WhenConfiguration;
 

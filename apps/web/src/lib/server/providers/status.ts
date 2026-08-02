@@ -40,7 +40,7 @@ export async function listProviders(
 	const connected = new Map(connections.map((c) => [c.providerName, c]));
 	const observedByName = new Map(providerStatus.map((s) => [s.name, s]));
 
-	return (config.providers ?? []).map((provider) => {
+	return config.providers.map((provider) => {
 		const { usesOAuth } = getProviderAdapter(connectProvider(provider, null));
 		const calendars = config.calendars
 			.filter((cal) => cal.provider === provider.name)

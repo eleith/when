@@ -18,7 +18,14 @@ const config = {
 	calendars: [
 		{ name: 'work', type: 'caldav', provider: 'work-dav', url: 'https://cal.example.com/work/' }
 	],
-	meetings: [{ name: 'chat', booking_calendar: 'work', booking_window_days: 14 }]
+	meetings: [
+		{
+			name: 'chat',
+			booking_calendar: 'work',
+			additional_busy_calendars: [],
+			booking_window_days: 14
+		}
+	]
 } as unknown as WhenConfiguration;
 
 const emptyReport = `<?xml version="1.0"?><multistatus xmlns:C="urn:ietf:params:xml:ns:caldav"></multistatus>`;

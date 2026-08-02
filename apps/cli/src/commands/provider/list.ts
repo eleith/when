@@ -35,7 +35,7 @@ export const listCommand = define({
 		const db = await openAppDb(config);
 		if (!db) return;
 		try {
-			await runProviderList(config.providers ?? [], db);
+			await runProviderList(config.providers, db);
 		} finally {
 			await db.destroy();
 		}

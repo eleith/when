@@ -22,7 +22,13 @@ const config = {
 	url: { app: 'https://book.example.com', worker: 'http://when-worker:9000' },
 	providers: [{ name: 'gg', type: 'google', client_id: 'cid', client_secret: 'csec' }],
 	calendars: [
-		{ name: 'work', type: 'google', provider: 'gg', google_calendar_id: 'primary' },
+		{
+			name: 'work',
+			type: 'google',
+			provider: 'gg',
+			google_calendar_id: 'primary',
+			sync: { refresh_every_minutes: 10 }
+		},
 		{
 			name: 'home',
 			type: 'caldav',

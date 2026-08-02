@@ -212,7 +212,7 @@ function checkMeetingCalendarReferences(
 		});
 	}
 
-	(meeting.additional_busy_calendars ?? []).forEach((cid, j) => {
+	meeting.additional_busy_calendars.forEach((cid, j) => {
 		if (!calendarRegistry.names.has(cid)) {
 			issues.push({
 				path: `/meetings/${i}/additional_busy_calendars/${j}`,

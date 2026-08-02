@@ -113,7 +113,7 @@ export const load: PageServerLoad = async () => {
 
 	return {
 		// The services page cards: every provider, plus smtp and the worker.
-		serviceCount: (cfg.providers ?? []).length + 2,
+		serviceCount: cfg.providers.length + 2,
 		calendarCount: cfg.calendars.length,
 		failing,
 		conflictCount,

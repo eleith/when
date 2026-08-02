@@ -11,7 +11,6 @@ import {
 import type { WorkerContext } from '../services/context.js';
 import { calendarRefreshTotal } from '../services/metrics.js';
 import { flagConflicts } from './conflicts.js';
-import { DEFAULT_REFRESH_INTERVAL_MINUTES } from './intervals.js';
 
 const DEFAULT_MAX_LOOKAHEAD_DAYS = 60;
 
@@ -38,7 +37,7 @@ export function refreshWindow(
 	let days = 0;
 	for (const meeting of config.meetings) {
 		if (!busyCalendarsFor(meeting).includes(calendarId)) continue;
-		const lookahead = meeting.booking_window_days ?? DEFAULT_MAX_LOOKAHEAD_DAYS;
+		const lookahead = meeting.booking_window_days;
 		days = Math.max(days, lookahead);
 	}
 	if (days === 0) days = DEFAULT_MAX_LOOKAHEAD_DAYS;
@@ -55,7 +54,7 @@ export async function refreshCalendar(
 	const via = opts.via ?? 'refresh';
 	try {
 		const excludeUids = new Set(await listOwnEventIds(ctx.db, cal.name));
-		const services = await connectProviders(ctx.config.providers ?? [], ctx.db);
+		const services = await connectProviders(ctx.config.providers, ctx.db);
 		const intervals = await fetchBusyIntervals(cal, window, { excludeUids, services });
 		await replaceCalendarBusy(
 			ctx.db,
@@ -120,7 +119,7 @@ export async function refreshCalendars(
 
 function isDue(lastSuccess: string | null, cal: Calendar, now: Temporal.Instant): boolean {
 	if (!lastSuccess) return true;
-	const interval = cal.sync?.refresh_every_minutes ?? DEFAULT_REFRESH_INTERVAL_MINUTES;
+	const interval = cal.sync.refresh_every_minutes;
 	const nextDue = Temporal.Instant.from(lastSuccess).add({ minutes: interval });
 	return Temporal.Instant.compare(now, nextDue) >= 0;
 }
