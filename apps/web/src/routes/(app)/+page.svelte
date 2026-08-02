@@ -1,10 +1,16 @@
 <script lang="ts">
+	import AdminNav from '$lib/components/AdminNav.svelte';
+
 	let { data } = $props();
 </script>
 
 <svelte:head>
 	<title>{data.user.name} | When</title>
 </svelte:head>
+
+{#if data.isAdmin}
+	<AdminNav />
+{/if}
 
 <main class="landing">
 	{#if data.user.appearance.avatar_url}

@@ -34,8 +34,14 @@ type ListedEventType = {
 	durations: number[];
 };
 
-function loadEventTypes(): ListedEventType[] {
-	return (load({} as Parameters<typeof load>[0]) as LoadResult).eventTypes;
+function loadHome(session: unknown = null): Promise<LoadResult> {
+	return load({
+		locals: { auth: vi.fn().mockResolvedValue(session) }
+	} as unknown as Parameters<typeof load>[0]) as Promise<LoadResult>;
+}
+
+async function loadEventTypes(): Promise<ListedEventType[]> {
+	return (await loadHome()).eventTypes;
 }
 
 beforeEach(() => {
@@ -43,49 +49,57 @@ beforeEach(() => {
 });
 
 describe('home page load', () => {
-	test('never exposes a meeting location or video chat provider', () => {
+	test('never exposes a meeting location or video chat provider', async () => {
 		withMeetings({
 			...baseMeeting,
 			location: '1 Main St, Suite 200',
 			video_chat_provider: 'google-service'
 		});
 
-		const [et] = loadEventTypes();
+		const [et] = await loadEventTypes();
 		expect(et).not.toHaveProperty('location');
 		expect(et).not.toHaveProperty('video_chat_provider');
 		expect(JSON.stringify(et)).not.toContain('Main St');
 	});
 
-	test('normalizes a scalar duration into a list', () => {
+	test('normalizes a scalar duration into a list', async () => {
 		withMeetings({ ...baseMeeting, duration_minutes: 30 });
 
-		expect(loadEventTypes()[0].durations).toEqual([30]);
+		expect((await loadEventTypes())[0].durations).toEqual([30]);
 	});
 
-	test('sorts offered lengths ascending regardless of config order', () => {
+	test('sorts offered lengths ascending regardless of config order', async () => {
 		withMeetings({ ...baseMeeting, duration_minutes: [60, 15, 30] });
 
-		expect(loadEventTypes()[0].durations).toEqual([15, 30, 60]);
+		expect((await loadEventTypes())[0].durations).toEqual([15, 30, 60]);
 	});
 
-	test('de-duplicates repeated lengths', () => {
+	test('de-duplicates repeated lengths', async () => {
 		withMeetings({ ...baseMeeting, duration_minutes: [60, 30, 60] });
 
-		expect(loadEventTypes()[0].durations).toEqual([30, 60]);
+		expect((await loadEventTypes())[0].durations).toEqual([30, 60]);
 	});
 
-	test('hides private meetings', () => {
+	test('hides private meetings', async () => {
 		withMeetings(
 			{ ...baseMeeting, name: 'public-chat', slug: 'public-chat' },
 			{ ...baseMeeting, name: 'secret', slug: 'secret', visibility: 'unlisted' }
 		);
 
-		expect(loadEventTypes().map((et) => et.slug)).toEqual(['public-chat']);
+		expect((await loadEventTypes()).map((et) => et.slug)).toEqual(['public-chat']);
 	});
 
-	test('treats an unset visibility as public', () => {
+	test('treats an unset visibility as public', async () => {
 		withMeetings(baseMeeting);
 
-		expect(loadEventTypes()).toHaveLength(1);
+		expect(await loadEventTypes()).toHaveLength(1);
+	});
+
+	test('flags a signed-in host so the page can offer the admin nav', async () => {
+		expect((await loadHome({ user: { name: 'host' } })).isAdmin).toBe(true);
+	});
+
+	test('leaves a guest unflagged', async () => {
+		expect((await loadHome()).isAdmin).toBe(false);
 	});
 });
