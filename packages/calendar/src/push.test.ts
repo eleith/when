@@ -56,7 +56,15 @@ const cfgWithCalDav: WhenConfiguration = {
 			password: 'secret'
 		}
 	],
-	calendars: [{ name: 'work', type: 'caldav', provider: 'work-dav-service', url: caldavCfg.url }],
+	calendars: [
+		{
+			name: 'work',
+			type: 'caldav',
+			provider: 'work-dav-service',
+			url: caldavCfg.url,
+			sync: { refresh_every_minutes: 10 }
+		}
+	],
 	meetings: [
 		{
 			...validConfig.meetings[0],
@@ -157,7 +165,8 @@ test('pushAppointment fails cleanly when the google service is not connected', a
 				name: 'g',
 				type: 'google',
 				provider: 'google-service-2',
-				google_calendar_id: 'gcal'
+				google_calendar_id: 'gcal',
+				sync: { refresh_every_minutes: 10 }
 			}
 		],
 		meetings: [{ ...validConfig.meetings[0], booking_calendar: 'g' }]
@@ -199,7 +208,8 @@ test('pushAppointment succeeds on Google calendar', async () => {
 				name: 'g',
 				type: 'google',
 				provider: 'google-service-2',
-				google_calendar_id: 'gcal'
+				google_calendar_id: 'gcal',
+				sync: { refresh_every_minutes: 10 }
 			}
 		],
 		meetings: [{ ...validConfig.meetings[0], booking_calendar: 'g' }]

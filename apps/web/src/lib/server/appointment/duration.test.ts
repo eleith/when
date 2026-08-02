@@ -1,14 +1,13 @@
 import { expect, test } from 'vitest';
 import type { Meeting } from '@when/config';
 import { resolveDuration } from './duration';
+import { validConfig } from '$lib/server/__fixtures__/valid-config';
 
 const base: Meeting = {
+	...validConfig.meetings[0],
 	name: 'Chat',
-	duration_minutes: 30,
 	slug: 'chat',
-	booking_approval: 'instant',
-	booking_calendar: 'cal',
-	schedule: 'standard'
+	booking_calendar: 'cal'
 };
 
 function fd(entries: Record<string, string>): FormData {

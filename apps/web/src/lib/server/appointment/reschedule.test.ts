@@ -176,14 +176,14 @@ describe('classifyReschedule', () => {
 		).toEqual({ kind: 'error', code: 'minimum_notice' });
 	});
 
-	test('missing minimum_notice on event type defaults to 0', () => {
+	test('zero minimum notice allows a reschedule right up to the start', () => {
 		const justBeforeStart = new Date('2026-05-01T14:59:00Z');
 		expect(
 			classifyReschedule({
 				rescheduleId: 'appt-1',
 				token: 'tok-good',
 				existing,
-				eventType: { name: 'chat' },
+				eventType: { name: 'chat', notice_minutes: 0 },
 				now: justBeforeStart
 			})
 		).toEqual({

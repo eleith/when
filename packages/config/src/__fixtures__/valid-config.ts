@@ -47,7 +47,8 @@ export const validConfig: WhenConfiguration = {
 			name: 'my-google-cal',
 			type: 'google',
 			provider: 'google-service',
-			google_calendar_id: 'gc-calid'
+			google_calendar_id: 'gc-calid',
+			sync: { refresh_every_minutes: 10 }
 		}
 	],
 	schedules: [
@@ -63,7 +64,15 @@ export const validConfig: WhenConfiguration = {
 			slug: '30-min',
 			booking_approval: 'instant',
 			booking_calendar: 'my-google-cal',
-			schedule: 'standard'
+			schedule: 'standard',
+			visibility: 'public',
+			additional_busy_calendars: [],
+			booking_style: 'insert',
+			notice_minutes: 120,
+			booking_window_days: 60,
+			padding_before_minutes: 0,
+			padding_after_minutes: 0,
+			daily_booking_limit: null
 		}
 	],
 	database: {

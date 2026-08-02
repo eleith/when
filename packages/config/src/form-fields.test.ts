@@ -1,14 +1,13 @@
 import { expect, test } from 'vitest';
 import { DEFAULT_FORM_FIELDS, parseGuestAnswers, resolveFormFields } from './form-fields.js';
 import type { Meeting } from './schema.js';
+import { validConfig } from './__fixtures__/valid-config.js';
 
 const baseMeeting: Meeting = {
+	...validConfig.meetings[0],
 	name: 'et',
-	duration_minutes: 30,
 	slug: 'chat',
-	booking_approval: 'instant',
-	booking_calendar: 'cal',
-	schedule: 'standard'
+	booking_calendar: 'cal'
 };
 
 test('resolveFormFields falls back to the default form when unset', () => {

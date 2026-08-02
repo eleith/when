@@ -294,7 +294,8 @@ test('Google Meet video_chat_provider with CalDAV booking calendar flagged', () 
 		name: 'caldav-cal',
 		type: 'caldav',
 		provider: 'nextcloud-service',
-		url: 'https://cloud.example.com/cal/'
+		url: 'https://cloud.example.com/cal/',
+		sync: { refresh_every_minutes: 10 }
 	});
 	bad.meetings[0].booking_calendar = 'caldav-cal';
 	bad.meetings[0].video_chat_provider = 'google-service'; // google-service is of type google

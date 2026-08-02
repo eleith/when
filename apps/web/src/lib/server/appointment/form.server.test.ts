@@ -1,14 +1,13 @@
 import { describe, expect, test } from 'vitest';
 import type { Meeting, FormField } from '@when/config';
 import { parseAndValidateAppointmentForm, resolveTimezone, validateReason } from './form.server';
+import { validConfig } from '$lib/server/__fixtures__/valid-config';
 
 const baseEvent: Meeting = {
+	...validConfig.meetings[0],
 	name: 'Chat',
-	duration_minutes: 30,
 	slug: 'chat',
-	booking_approval: 'instant',
-	booking_calendar: 'cal',
-	schedule: 'standard'
+	booking_calendar: 'cal'
 };
 
 function eventWith(form_fields: FormField[], location?: Meeting['location']): Meeting {

@@ -13,12 +13,9 @@ import { load } from './+page.server';
 type LoadResult = Exclude<Awaited<ReturnType<typeof load>>, void>;
 
 const baseMeeting: Meeting = {
+	...validConfig.meetings[0],
 	name: 'chat',
-	slug: 'chat',
-	duration_minutes: 30,
-	booking_approval: 'instant',
-	booking_calendar: 'my-google-cal',
-	schedule: 'standard'
+	slug: 'chat'
 };
 
 function withMeetings(...meetings: Meeting[]) {

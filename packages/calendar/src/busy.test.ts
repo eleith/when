@@ -10,7 +10,8 @@ const workCal: Calendar = {
 	name: 'work',
 	type: 'caldav',
 	provider: 'work-dav',
-	url: 'https://cal.example.com/work/'
+	url: 'https://cal.example.com/work/',
+	sync: { refresh_every_minutes: 10 }
 };
 
 const davServices: ConnectedProvider[] = [

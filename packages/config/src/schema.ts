@@ -88,11 +88,11 @@ export const SmtpSchema = Type.Object({
 }, { $id: 'Smtp', additionalProperties: false, title: 'Smtp', description: 'SMTP server used to send appointment emails. Required — the appointment system relies on it.' });
 
 export const CalendarSyncSchema = Type.Object({
-	refresh_every_minutes: Type.Optional(Type.Integer({
+	refresh_every_minutes: Type.Integer({
 		description: 'Minutes between the worker\'s busy-time refreshes for this calendar.',
 		minimum: 1,
 		default: 10
-	}))
+	})
 }, { $id: 'CalendarSync', additionalProperties: false, title: 'CalendarSync', description: 'Per-calendar sync cadence.' });
 
 export const GoogleProviderSchema = Type.Object({
@@ -129,7 +129,7 @@ export const GoogleCalendarSchema = Type.Object({
 	type: Type.Literal('google', { description: 'Calendar type: must be google.' }),
 	provider: Type.String({ minLength: 1, description: 'Name of the google provider to connect with.' }),
 	google_calendar_id: Type.String({ minLength: 1, description: 'The specific Google calendar ID (e.g. primary or an email address).' }),
-	sync: Type.Optional(Ref(CalendarSyncSchema, { description: 'Sync settings for this calendar.' }))
+	sync: Ref(CalendarSyncSchema, { default: {}, description: 'Sync settings for this calendar.' })
 }, { $id: 'GoogleCalendar', additionalProperties: false, title: 'GoogleCalendar', description: 'Google Calendar integration configuration.' });
 
 export const CalDavCalendarSchema = Type.Union([
@@ -138,14 +138,14 @@ export const CalDavCalendarSchema = Type.Union([
 		type: Type.Literal('caldav', { description: 'Calendar type: must be caldav.' }),
 		provider: Type.String({ minLength: 1, description: 'Name of the caldav or nextcloud provider to connect with.' }),
 		path: Type.String({ minLength: 1, description: 'Relative path joined to the service base URL.' }),
-		sync: Type.Optional(Ref(CalendarSyncSchema, { description: 'Sync settings for this calendar.' }))
+		sync: Ref(CalendarSyncSchema, { default: {}, description: 'Sync settings for this calendar.' })
 	}, { additionalProperties: false }),
 	Type.Object({
 		name: Type.String({ minLength: 1, description: 'Unique name for this calendar, referenced by meetings.' }),
 		type: Type.Literal('caldav', { description: 'Calendar type: must be caldav.' }),
 		provider: Type.String({ minLength: 1, description: 'Name of the caldav or nextcloud provider to connect with.' }),
 		url: Type.String({ format: 'uri', description: 'Full calendar URL endpoint overriding the service base URL.' }),
-		sync: Type.Optional(Ref(CalendarSyncSchema, { description: 'Sync settings for this calendar.' }))
+		sync: Ref(CalendarSyncSchema, { default: {}, description: 'Sync settings for this calendar.' })
 	}, { additionalProperties: false })
 ], { $id: 'CalDavCalendar', title: 'CalDavCalendar', description: 'CalDAV Calendar integration configuration.' });
 
@@ -226,21 +226,21 @@ export const MeetingSchema = Type.Object({
 	], { default: 30, description: 'Duration of the meeting in minutes: a single value, or a list of offered lengths the guest chooses from (default: 30). The first listed length is the default selection.' }),
 	description: Type.Optional(Type.String({ description: 'Brief description of the meeting.' })),
 	slug: Type.String({ pattern: '^[a-z0-9][a-z0-9-]*$', description: 'URL slug for the booking page (e.g. "chat" for /schedule/chat). Defaults to a slug derived from the meeting name.' }),
-	visibility: Type.Optional(Type.Union([Type.Literal('public'), Type.Literal('unlisted')], { default: 'public', description: 'Whether this meeting is listed on the homepage. "unlisted" only hides it from that list — anyone with the /schedule/<slug> link can still book it.' })),
+	visibility: Type.Union([Type.Literal('public'), Type.Literal('unlisted')], { default: 'public', description: 'Whether this meeting is listed on the homepage. "unlisted" only hides it from that list — anyone with the /schedule/<slug> link can still book it.' }),
 	booking_approval: Type.Union([Type.Literal('instant'), Type.Literal('request')], { default: 'request', description: 'The approval flow (default: "request"). "instant" confirms instantly; "request" requires host approval.' }),
-	additional_busy_calendars: Type.Optional(Type.Array(Type.String({ minLength: 1 }), { default: [], description: 'Further calendar names to check for conflicts (busy times) to block slots. The booking_calendar is always checked and never needs listing here.' })),
+	additional_busy_calendars: Type.Array(Type.String({ minLength: 1 }), { default: [], description: 'Further calendar names to check for conflicts (busy times) to block slots. The booking_calendar is always checked and never needs listing here.' }),
 	booking_calendar: Type.String({ minLength: 1, description: 'Calendar name where confirmed bookings will be written. Defaults to the first calendar.' }),
 	schedule: Type.String({ minLength: 1, description: 'Name of the schedule to use for availability. Defaults to the first schedule.' }),
-	booking_style: Type.Optional(Type.Union([Type.Literal('insert'), Type.Literal('select')], { default: 'insert', description: 'The booking UI interaction style.' })),
+	booking_style: Type.Union([Type.Literal('insert'), Type.Literal('select')], { default: 'insert', description: 'The booking UI interaction style.' }),
 	location: Type.Optional(Ref(LocationSchema, { description: 'Static location of the meeting.' })),
 	note: Type.Optional(Type.String({ minLength: 1, description: 'A note shown to guests after booking.' })),
 	video_chat_provider: Type.Optional(Type.String({ minLength: 1, description: 'Name of the provider to generate dynamic links.' })),
 	start_times_every_minutes: Type.Optional(Type.Integer({ minimum: 1, description: 'Time step in minutes; booking slots will snap to this boundary. Defaults to the meeting\'s duration_minutes.' })),
-	notice_minutes: Type.Optional(Type.Integer({ minimum: 0, default: 120, description: 'Minimum lead time required for bookings in minutes (default: 120).' })),
-	booking_window_days: Type.Optional(Type.Integer({ minimum: 1, default: 60, description: 'Maximum number of days in the future that are open for booking (default: 60).' })),
-	padding_before_minutes: Type.Optional(Type.Integer({ minimum: 0, default: 0, description: 'Minutes of padding time required before each appointment (default: 0).' })),
-	padding_after_minutes: Type.Optional(Type.Integer({ minimum: 0, default: 0, description: 'Minutes of padding time required after each appointment (default: 0).' })),
-	daily_booking_limit: Type.Optional(Type.Union([Type.Integer({ minimum: 1 }), Type.Null()], { default: null, description: 'Maximum number of appointments allowed in a single day. null means unlimited (default: null).' })),
+	notice_minutes: Type.Integer({ minimum: 0, default: 120, description: 'Minimum lead time required for bookings in minutes (default: 120).' }),
+	booking_window_days: Type.Integer({ minimum: 1, default: 60, description: 'Maximum number of days in the future that are open for booking (default: 60).' }),
+	padding_before_minutes: Type.Integer({ minimum: 0, default: 0, description: 'Minutes of padding time required before each appointment (default: 0).' }),
+	padding_after_minutes: Type.Integer({ minimum: 0, default: 0, description: 'Minutes of padding time required after each appointment (default: 0).' }),
+	daily_booking_limit: Type.Union([Type.Integer({ minimum: 1 }), Type.Null()], { default: null, description: 'Maximum number of appointments allowed in a single day. null means unlimited (default: null).' }),
 	form_fields: Type.Optional(Type.Array(Ref(FormFieldSchema), { description: 'Custom form fields for the booking process.' }))
 }, { $id: 'Meeting', additionalProperties: false, title: 'Meeting', description: 'Definition of a bookable meeting.' });
 
@@ -283,7 +283,7 @@ export const WhenConfigurationSchema = Type.Object({
 	auth: Ref(AuthSchema, { description: 'Admin authentication configuration.' }),
 	user: Ref(UserSchema, { description: 'Details about the schedule owner.' }),
 	smtp: Ref(SmtpSchema, { description: 'SMTP email server settings.' }),
-	providers: Type.Optional(Type.Array(Ref(ProviderSchema), { default: [], description: 'Credentials for third-party providers.' })),
+	providers: Type.Array(Ref(ProviderSchema), { default: [], description: 'Credentials for third-party providers.' }),
 	calendars: Type.Array(Ref(CalendarSchema), { description: 'Connected conflict/destination calendars.' }),
 	schedules: Type.Array(Ref(ScheduleSchema), { minItems: 1, description: 'List of schedules for availability.' }),
 	meetings: Type.Array(Ref(MeetingSchema), { minItems: 1, description: 'Bookable meeting types.' }),

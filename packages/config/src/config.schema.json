@@ -242,6 +242,7 @@
 							"type": "string"
 						},
 						"sync": {
+							"default": {},
 							"description": "Sync settings for this calendar.",
 							"$ref": "#/$defs/CalendarSync"
 						}
@@ -273,6 +274,7 @@
 							"type": "string"
 						},
 						"sync": {
+							"default": {},
 							"description": "Sync settings for this calendar.",
 							"$ref": "#/$defs/CalendarSync"
 						}
@@ -514,6 +516,7 @@
 					"type": "string"
 				},
 				"sync": {
+					"default": {},
 					"description": "Sync settings for this calendar.",
 					"$ref": "#/$defs/CalendarSync"
 				}

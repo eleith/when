@@ -2,15 +2,13 @@ import { describe, expect, test } from 'vitest';
 import { toPublicEventType, toPublicAppointment } from './sanitize';
 import type { Meeting } from '@when/config';
 import type { Appointment } from '@when/db';
+import { validConfig } from '$lib/server/__fixtures__/valid-config';
 
 const baseEventType: Meeting = {
-	name: '30-min-chat',
-	duration_minutes: 30,
+	...validConfig.meetings[0],
 	slug: 'chat',
-	booking_approval: 'instant',
 	booking_calendar: 'main',
-	location: 'https://meet.example.com/jane',
-	schedule: 'standard'
+	location: 'https://meet.example.com/jane'
 };
 
 const baseRow: Appointment = {
