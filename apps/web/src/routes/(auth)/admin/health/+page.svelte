@@ -59,10 +59,14 @@
 	<title>Health — When</title>
 </svelte:head>
 
-{#snippet notice(target: string, kind: 'provider' | 'calendar' | 'worker' | 'smtp')}
-	{#if form?.notice?.for === target && pendingTarget !== target}
-		{@const outcome = form.notice}
-		{@const ok = outcome.status === 'up'}
+{#snippet notice(
+	target: string,
+	kind: 'provider' | 'calendar' | 'worker' | 'smtp',
+	problem: string | null = null
+)}
+	{@const outcome = form?.notice?.for === target ? form.notice : null}
+	{#if pendingTarget !== target && (outcome || problem)}
+		{@const ok = outcome?.status === 'up'}
 		<aside class="banner banner-{ok ? 'success' : 'error'}" role="alert">
 			<span class="banner-icon">
 				{#if ok}
@@ -72,7 +76,9 @@
 				{/if}
 			</span>
 			<p class="banner-text">
-				{#if outcome.status === 'up' && kind === 'smtp'}
+				{#if !outcome}
+					down: {problem}
+				{:else if outcome.status === 'up' && kind === 'smtp'}
 					up: test email sent to {outcome.detail}
 				{:else if outcome.status === 'up' && kind === 'calendar'}
 					up: {outcome.detail}
@@ -100,7 +106,11 @@
 			{#each data.providers as provider (provider.name)}
 				{@const unconnected = provider.usesOAuth && !provider.connectedAt}
 				<li class="card">
-					{@render notice(`provider:${provider.name}`, 'provider')}
+					{@render notice(
+						`provider:${provider.name}`,
+						'provider',
+						provider.observed.state === 'failing' ? provider.observed.error : null
+					)}
 
 					<div class="body">
 						<h2 class="name">{provider.name}</h2>
@@ -116,9 +126,7 @@
 							{#if unconnected}
 								<dd>Not connected</dd>
 							{:else if provider.observed.state === 'failing'}
-								<dd class="failed">
-									down ({timeAgo(provider.observed.at)}): {provider.observed.error}
-								</dd>
+								<dd class="failed">down ({timeAgo(provider.observed.at)})</dd>
 							{:else if provider.observed.state === 'working'}
 								<dd class="ok">up ({timeAgo(provider.observed.at)})</dd>
 							{:else}
@@ -212,7 +220,11 @@
 		<ul class="list">
 			{#each data.calendars as calendar (calendar.name)}
 				<li class="card">
-					{@render notice(`calendar:${calendar.name}`, 'calendar')}
+					{@render notice(
+						`calendar:${calendar.name}`,
+						'calendar',
+						calendar.health === 'bad' ? (calendar.reason ?? 'not syncing') : null
+					)}
 
 					<div class="body">
 						<h2 class="name">{calendar.name}</h2>
@@ -226,7 +238,7 @@
 
 							<dt>Status</dt>
 							{#if calendar.health === 'bad'}
-								<dd class="failed">down: {calendar.reason ?? 'not syncing'}</dd>
+								<dd class="failed">down</dd>
 							{:else if calendar.health === 'good'}
 								<dd class="ok">up ({timeAgo(calendar.lastSyncedAt)})</dd>
 							{:else}
@@ -293,7 +305,11 @@
 	<h2 class="section">Email</h2>
 
 	<div class="card">
-		{@render notice('smtp', 'smtp')}
+		{@render notice(
+			'smtp',
+			'smtp',
+			data.smtp.observed.state === 'failing' ? data.smtp.observed.error : null
+		)}
 
 		<div class="body">
 			<h3 class="name">{data.smtp.host}</h3>
@@ -301,9 +317,7 @@
 			<dl class="fields">
 				<dt>Status</dt>
 				{#if data.smtp.observed.state === 'failing'}
-					<dd class="failed">
-						down ({timeAgo(data.smtp.observed.at)}): {data.smtp.observed.error}
-					</dd>
+					<dd class="failed">down ({timeAgo(data.smtp.observed.at)})</dd>
 				{:else if data.smtp.observed.state === 'working'}
 					<dd class="ok">up ({timeAgo(data.smtp.observed.at)})</dd>
 				{:else}

@@ -1,13 +1,12 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import IconWarning from 'virtual:icons/ph/warning';
+	import AdminAlert from '$lib/components/AdminAlert.svelte';
 	import IconCaretLeft from 'virtual:icons/ph/caret-left';
 	import IconCaretRight from 'virtual:icons/ph/caret-right';
 
 	let { data, children } = $props();
 
 	let currentPath = $derived(page.url.pathname);
-	let badCalendars = $derived(data.calendars.filter((c) => c.health === 'bad'));
 
 	// Purged is reachable from the dashboard, not from the tabs.
 	let showTabs = $derived(currentPath !== '/admin/appointments/purged');
@@ -20,26 +19,9 @@
 
 <div class="appointments-layout" class:has-bottom-bar={showTabs}>
 	{#if data.conflictCount > 0}
-		<div class="review-banner" role="alert">
-			<IconWarning class="review-icon" aria-hidden="true" />
-			<span>
-				{data.conflictCount} possible conflict{#if data.conflictCount !== 1}s{/if} — please review.
-			</span>
-		</div>
-	{/if}
-
-	{#if badCalendars.length > 0}
-		<div class="review-banner" role="alert">
-			<IconWarning class="review-icon" aria-hidden="true" />
-			<div class="health-banner-body">
-				<strong>Calendar sync problem.</strong>
-				<ul class="health-list">
-					{#each badCalendars as c (c.id)}
-						<li><span class="health-cal">{c.id}</span> — {c.reason ?? 'not syncing'}</li>
-					{/each}
-				</ul>
-			</div>
-		</div>
+		<AdminAlert>
+			{data.conflictCount} possible conflict{#if data.conflictCount !== 1}s{/if}
+		</AdminAlert>
 	{/if}
 
 	<div class="card appointments-card">
@@ -246,37 +228,6 @@
 	}
 
 	/* ---- review banner ---- */
-	.review-banner {
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-		padding: var(--space-3) var(--space-4);
-		border-radius: var(--radius-md);
-		background: color-mix(in srgb, var(--color-warning) 12%, transparent);
-		color: var(--color-warning);
-		font-weight: 600;
-		font-size: var(--font-size-sm);
-	}
-
-	.review-banner:has(.health-banner-body) {
-		align-items: flex-start;
-	}
-
-	.health-banner-body {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-1);
-	}
-
-	.health-list {
-		margin: 0;
-		padding-left: var(--space-4);
-		font-weight: 500;
-	}
-
-	.health-cal {
-		font-weight: 700;
-	}
 
 	/* Mobile: the tabs become the bottom nav. The bulk action bar sits at a higher z-index
 	   with an opaque background, so it covers these without either knowing about the other. */

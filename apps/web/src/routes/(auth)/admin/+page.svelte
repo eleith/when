@@ -2,7 +2,7 @@
 	import IconArrowRight from 'virtual:icons/ph/arrow-right';
 	import IconCalendarBlank from 'virtual:icons/ph/calendar-blank';
 	import IconClock from 'virtual:icons/ph/clock';
-	import IconWarning from 'virtual:icons/ph/warning';
+	import AdminAlert from '$lib/components/AdminAlert.svelte';
 
 	let { data } = $props();
 
@@ -42,19 +42,12 @@
 	{#if data.conflictCount > 0 || data.failing.length > 0}
 		<section class="alerts">
 			{#if data.conflictCount > 0}
-				<a href="/admin/appointments/upcoming" class="alert">
-					<IconWarning aria-hidden="true" />
-					<span>
-						{data.conflictCount} possible conflict{#if data.conflictCount !== 1}s{/if} — review in upcoming
-					</span>
-					<span class="alert-arrow"><IconArrowRight aria-hidden="true" /></span>
-				</a>
+				<AdminAlert href="/admin/appointments/upcoming">
+					{data.conflictCount} possible conflict{#if data.conflictCount !== 1}s{/if}
+				</AdminAlert>
 			{/if}
 			{#each data.failing as f (f.name)}
-				<div class="alert" role="alert">
-					<IconWarning aria-hidden="true" />
-					<span>{f.name}: {f.reason}</span>
-				</div>
+				<AdminAlert href="/admin/health">{f.name}: {f.reason}</AdminAlert>
 			{/each}
 		</section>
 	{/if}
@@ -196,29 +189,6 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-3);
-	}
-
-	.alert {
-		display: flex;
-		align-items: center;
-		gap: var(--space-3);
-		padding: var(--space-3) var(--space-4);
-		border-radius: var(--radius-md);
-		background: color-mix(in srgb, var(--color-warning) 12%, transparent);
-		color: var(--color-warning);
-		font-size: var(--font-size-sm);
-		font-weight: 500;
-		text-decoration: none;
-	}
-
-	a.alert:hover {
-		background: color-mix(in srgb, var(--color-warning) 18%, transparent);
-	}
-
-	.alert-arrow {
-		margin-left: auto;
-		flex-shrink: 0;
-		font-size: var(--font-size-base);
 	}
 
 	/* ---- stats ---- */
