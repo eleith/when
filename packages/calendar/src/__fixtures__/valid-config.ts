@@ -1,6 +1,7 @@
 import type { WhenConfiguration } from '@when/config';
 
 export const validConfig: WhenConfiguration = {
+	version: 1,
 	auth: {
 		credentials: {
 			username: 'admin',

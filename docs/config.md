@@ -11,7 +11,17 @@ Point your editor at that schema for inline autocomplete and validation:
 # yaml-language-server: $schema=./config.schema.json
 ```
 
-The required top-level keys are: `auth`, `user`, `smtp`, `calendars`, `schedules`, `meetings`. Optional top-level keys include `providers`, `database`, `url`, and `prometheus`.
+The required top-level keys are: `auth`, `user`, `smtp`, `calendars`, `schedules`, `meetings`. Optional top-level keys include `version`, `providers`, `database`, `url`, and `prometheus`.
+
+## `version`
+
+The shape of this file, not the app's release. It defaults to `1` and you never need to
+write it; it exists so a future change to the config layout can be detected rather than
+guessed at. Only `1` is accepted today.
+
+```yaml
+version: 1
+```
 
 ## Environment variable interpolation
 

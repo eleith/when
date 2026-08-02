@@ -7,6 +7,12 @@
 	"type": "object",
 	"required": ["auth", "user", "smtp", "calendars", "schedules", "meetings"],
 	"properties": {
+		"version": {
+			"default": 1,
+			"description": "Shape version of this file. Always 1 today; a future breaking change to the config layout would increment it.",
+			"const": 1,
+			"type": "number"
+		},
 		"auth": {
 			"description": "Admin authentication configuration.",
 			"$ref": "#/$defs/Auth"

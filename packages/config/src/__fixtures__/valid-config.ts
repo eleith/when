@@ -1,6 +1,7 @@
 import type { WhenConfiguration } from '../schema.js';
 
 export const validConfig: WhenConfiguration = {
+	version: 1,
 	auth: {
 		credentials: {
 			username: 'admin',

@@ -14,6 +14,18 @@ test('valid config passes schema validation', () => {
 	expect(cfg.meetings[0].name).toBe('30-min-chat');
 });
 
+test('a config that omits version still loads, defaulted to 1', () => {
+	const raw = clone(validConfig) as unknown as Record<string, unknown>;
+	delete raw.version;
+	expect(validateConfig(raw).version).toBe(1);
+});
+
+test('an unknown version is rejected', () => {
+	const bad = clone(validConfig) as unknown as Record<string, unknown>;
+	bad.version = 2;
+	expect(() => validateConfig(bad)).toThrow(ConfigError);
+});
+
 test('validateStructure accepts unset secret env refs that validateConfig rejects', () => {
 	const raw = clone(validConfig) as WhenConfiguration;
 	raw.auth = { credentials: { username: 'admin', password: '${WHEN_UNSET_PW_TEST}' } };

@@ -6,6 +6,9 @@
 # what you need. Secrets are `${ENV_VAR}` references — set those in your
 # environment (docker loads them from `.env`).
 
+# Shape of this file. Defaults to 1 and only changes if the config layout does.
+# version: 1
+
 # --- Admin sign-in: exactly one of `credentials` or `oidc` ---
 auth:
   credentials:

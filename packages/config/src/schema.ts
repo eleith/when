@@ -279,6 +279,7 @@ export const PrometheusConfigSchema = Type.Object({
 }, { $id: 'PrometheusConfig', additionalProperties: false, title: 'PrometheusConfig', description: 'Prometheus metrics collection settings.' });
 
 export const WhenConfigurationSchema = Type.Object({
+	version: Type.Literal(1, { default: 1, description: 'Shape version of this file. Always 1 today; a future breaking change to the config layout would increment it.' }),
 	auth: Ref(AuthSchema, { description: 'Admin authentication configuration.' }),
 	user: Ref(UserSchema, { description: 'Details about the schedule owner.' }),
 	smtp: Ref(SmtpSchema, { description: 'SMTP email server settings.' }),
