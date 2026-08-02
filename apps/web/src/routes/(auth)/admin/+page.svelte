@@ -103,7 +103,7 @@
 					service{#if data.serviceCount !== 1}s{/if}
 				</span>
 			</a>
-			<a href="/admin/health" class="stat-card">
+			<a href="/admin/health#calendars" class="stat-card">
 				<span class="stat-value">{data.calendarCount}</span>
 				<span class="stat-label">
 					calendar{#if data.calendarCount !== 1}s{/if}

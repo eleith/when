@@ -97,7 +97,7 @@
 <section class="services">
 	<h1 class="title">Health</h1>
 
-	<h2 class="section">Providers</h2>
+	<h2 class="section" id="providers">Providers</h2>
 
 	{#if data.providers.length === 0}
 		<p class="empty">No providers are configured in when.yaml.</p>
@@ -212,7 +212,7 @@
 		</ul>
 	{/if}
 
-	<h2 class="section">Calendars</h2>
+	<h2 class="section" id="calendars">Calendars</h2>
 
 	{#if data.calendars.length === 0}
 		<p class="empty">No calendars are configured in when.yaml.</p>
@@ -280,7 +280,7 @@
 		</ul>
 	{/if}
 
-	<h2 class="section">Worker</h2>
+	<h2 class="section" id="worker">Worker</h2>
 
 	<div class="card">
 		{@render notice('worker', 'worker')}
@@ -302,7 +302,7 @@
 		</div>
 	</div>
 
-	<h2 class="section">Email</h2>
+	<h2 class="section" id="email">Email</h2>
 
 	<div class="card">
 		{@render notice(
@@ -414,6 +414,7 @@
 	}
 
 	.section {
+		scroll-margin-top: var(--space-6);
 		margin: var(--space-8) 0 var(--space-5);
 		font-size: var(--font-size-sm);
 		font-weight: 500;
