@@ -12,8 +12,10 @@ export interface OAuthState {
 // sameSite must be 'lax', not 'strict': the browser arrives at the callback from
 // accounts.google.com, and a strict cookie would not be sent on that navigation.
 export function stateCookieOptions(dev: boolean): CookieOptions {
+	// The page that sets it lives at /admin/health; the callback Google returns to is at
+	// /admin/services/google/callback, so the cookie has to span both.
 	return {
-		path: '/admin/services',
+		path: '/admin',
 		httpOnly: true,
 		sameSite: 'lax',
 		secure: !dev,

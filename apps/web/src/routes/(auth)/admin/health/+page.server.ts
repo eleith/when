@@ -7,16 +7,18 @@ import {
 	findGoogleProvider
 } from '$lib/server/providers/google-connect';
 import { discoverCalendars, listProviders, probeProvider } from '$lib/server/providers/status';
+import { listCalendars, probeCalendar } from '$lib/server/calendar/status';
 import { sendTestEmail, smtpSummary } from '$lib/server/email/status';
 import { workerReachable } from '$lib/server/worker';
-import { STATE_COOKIE, stateCookieOptions } from './state-cookie';
+import { STATE_COOKIE, stateCookieOptions } from '$lib/server/providers/state-cookie';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async () => {
 	const config = getConfig();
 	return {
-		crumb: 'Services',
+		crumb: 'Health',
 		providers: await listProviders(config, getDb()),
+		calendars: await listCalendars(config, getDb()),
 		smtp: await smtpSummary(config, getDb()),
 		worker: { url: config.url.worker }
 	};
@@ -24,6 +26,7 @@ export const load: PageServerLoad = async () => {
 
 type NoticeStatus = 'up' | 'down' | 'disconnected' | 'unknown';
 
+// Targets are namespaced: a provider and a calendar may share a name.
 function notice(target: string, status: NoticeStatus, detail?: string) {
 	return { notice: { for: target, status, detail } };
 }
@@ -35,7 +38,7 @@ export const actions: Actions = {
 		const config = getConfig();
 		const service = findGoogleProvider(config, name);
 		if (!service) {
-			return fail(404, notice(name, 'unknown'));
+			return fail(404, notice(`provider:${name}`, 'unknown'));
 		}
 
 		const state = crypto.randomUUID();
@@ -47,23 +50,31 @@ export const actions: Actions = {
 	disconnect: async ({ request }) => {
 		const name = String((await request.formData()).get('provider') ?? '');
 		if (!findGoogleProvider(getConfig(), name)) {
-			return fail(404, notice(name, 'unknown'));
+			return fail(404, notice(`provider:${name}`, 'unknown'));
 		}
 
 		const result = await disconnectGoogle(getDb(), name);
 		if (result.revoked) {
-			return notice(name, 'disconnected');
+			return notice(`provider:${name}`, 'disconnected');
 		}
 
-		return notice(name, 'disconnected', result.reason);
+		return notice(`provider:${name}`, 'disconnected', result.reason);
 	},
 
-	calendars: async ({ request }) => {
+	discover: async ({ request }) => {
 		const name = String((await request.formData()).get('provider') ?? '');
 		const result = await discoverCalendars(getConfig(), name);
 		return result.ok
 			? { discovered: { provider: name, field: result.field, calendars: result.calendars } }
-			: notice(name, 'down', result.message);
+			: notice(`provider:${name}`, 'down', result.message);
+	},
+
+	testCalendar: async ({ request }) => {
+		const name = String((await request.formData()).get('calendar') ?? '');
+		const result = await probeCalendar(getConfig(), name);
+		return result.ok
+			? notice(`calendar:${name}`, 'up', result.message)
+			: notice(`calendar:${name}`, 'down', result.message);
 	},
 
 	worker: async () => {
@@ -80,9 +91,11 @@ export const actions: Actions = {
 		return result.ok ? notice('smtp', 'up', to) : notice('smtp', 'down', result.message);
 	},
 
-	test: async ({ request }) => {
+	testProvider: async ({ request }) => {
 		const name = String((await request.formData()).get('provider') ?? '');
 		const result = await probeProvider(getConfig(), name);
-		return result.ok ? notice(name, 'up') : notice(name, 'down', result.message);
+		return result.ok
+			? notice(`provider:${name}`, 'up')
+			: notice(`provider:${name}`, 'down', result.message);
 	}
 };

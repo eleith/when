@@ -20,7 +20,7 @@
 		</p>
 	{/if}
 
-	<a class="back" href="/admin/services">Back to services</a>
+	<a class="back" href="/admin/health">Back to health</a>
 </section>
 
 <style>

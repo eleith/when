@@ -183,7 +183,7 @@ You author `when.yaml` yourself — start from `config/when.example.yml`, which
 documents every option (and carries a `$schema` header for editor autocomplete).
 `when-cli` is an operator's toolkit for the parts a text editor can't do: it validates
 the file and reaches your services over the network. It is read-only — connecting a
-Google service happens at `/admin/services`, which is also where the token is stored.
+Google provider happens at `/admin/health`, which is also where the token is stored.
 Run it with `pnpm cli` on the host, or against a deployment with
 `docker compose -f apps/web/docker-compose.yml run --rm when-cli <args>`.
 
@@ -209,7 +209,7 @@ Every command takes `-c/--config <path>` (defaults to the standard config locati
 
   `provider list` reads the stored status and touches no network. `provider test` and
   `provider calendars` run in the worker, which holds the credentials and records the
-  result — so a manual check shows up on `/admin/services` the same as the worker's own,
+  result — so a manual check shows up on `/admin/health` the same as the worker's own,
   and needs a running worker.
 
   ```sh
@@ -227,7 +227,7 @@ Every command takes `-c/--config <path>` (defaults to the standard config locati
   pnpm cli calendar test <name>
   ```
 
-  No command takes a refresh token. The worker reads the one `/admin/services` stored.
+  No command takes a refresh token. The worker reads the one `/admin/health` stored.
 
 - **Database** — report the schema state, or apply pending migrations. Web and the worker
   both migrate at boot; this is the way in when neither will start.

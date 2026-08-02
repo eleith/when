@@ -104,13 +104,13 @@
 	<div class="stats-group">
 		<h2 class="section-label">Setup</h2>
 		<div class="stats-row">
-			<a href="/admin/services" class="stat-card">
+			<a href="/admin/health" class="stat-card">
 				<span class="stat-value">{data.serviceCount}</span>
 				<span class="stat-label">
 					service{#if data.serviceCount !== 1}s{/if}
 				</span>
 			</a>
-			<a href="/admin/calendars" class="stat-card">
+			<a href="/admin/health" class="stat-card">
 				<span class="stat-value">{data.calendarCount}</span>
 				<span class="stat-label">
 					calendar{#if data.calendarCount !== 1}s{/if}

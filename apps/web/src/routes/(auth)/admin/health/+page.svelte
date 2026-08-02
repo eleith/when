@@ -18,7 +18,9 @@
 	let listing = $state<{ field: string; calendars: DiscoveredCalendar[] } | null>(null);
 
 	let pending = $state('');
-	let pendingTarget = $derived(pending.includes(':') ? pending.split(':')[1] : pending);
+	let pendingTarget = $derived(
+		pending.includes(':') ? pending.slice(pending.indexOf(':') + 1) : pending
+	);
 
 	// These round-trips reach a provider through the worker, so claim the button on submit
 	// rather than leaving the click with no feedback.
@@ -34,7 +36,7 @@
 
 	function listCalendars(provider: string): SubmitFunction {
 		return () => {
-			pending = `calendars:${provider}`;
+			pending = `discover:provider:${provider}`;
 			listingProvider = provider;
 			listing = null;
 			return async ({ result, update }) => {
@@ -54,12 +56,13 @@
 </script>
 
 <svelte:head>
-	<title>Services — When</title>
+	<title>Health — When</title>
 </svelte:head>
 
-{#snippet notice(target: string, kind: 'provider' | 'worker' | 'smtp')}
+{#snippet notice(target: string, kind: 'provider' | 'calendar' | 'worker' | 'smtp')}
 	{#if form?.notice?.for === target && pendingTarget !== target}
 		{@const outcome = form.notice}
+		{@const name = target.slice(target.indexOf(':') + 1)}
 		{@const ok = outcome.status === 'up' || outcome.status === 'disconnected'}
 		<aside class="banner banner-{ok ? 'success' : 'error'}" role="alert">
 			<span class="banner-icon">
@@ -71,13 +74,15 @@
 			</span>
 			<p class="banner-text">
 				{#if outcome.status === 'unknown'}
-					no google provider named "{target}"
+					no google provider named "{name}"
 				{:else if outcome.status === 'disconnected' && outcome.detail}
 					disconnected, but Google did not confirm the revoke: {outcome.detail}
 				{:else if outcome.status === 'disconnected'}
 					disconnected, access revoked
 				{:else if outcome.status === 'up' && kind === 'smtp'}
 					up: test email sent to {outcome.detail}
+				{:else if outcome.status === 'up' && kind === 'calendar'}
+					up: {outcome.detail}
 				{:else if outcome.status === 'up'}
 					up
 				{:else if kind === 'worker'}
@@ -91,9 +96,9 @@
 {/snippet}
 
 <section class="services">
-	<h1 class="title">Services</h1>
+	<h1 class="title">Health</h1>
 
-	<h2 class="section">Calendar &amp; video</h2>
+	<h2 class="section">Providers</h2>
 
 	{#if data.providers.length === 0}
 		<p class="empty">No providers are configured in when.yaml.</p>
@@ -102,7 +107,7 @@
 			{#each data.providers as provider (provider.name)}
 				{@const unconnected = provider.usesOAuth && !provider.connectedAt}
 				<li class="card">
-					{@render notice(provider.name, 'provider')}
+					{@render notice(`provider:${provider.name}`, 'provider')}
 
 					<div class="body">
 						<h2 class="name">{provider.name}</h2>
@@ -166,13 +171,13 @@
 								<form
 									method="POST"
 									action="?/disconnect"
-									use:enhance={run(`disconnect:${provider.name}`)}
+									use:enhance={run(`disconnect:provider:${provider.name}`)}
 								>
 									<input type="hidden" name="provider" value={provider.name} />
 									<button
 										type="submit"
 										class="button danger"
-										disabled={pending === `disconnect:${provider.name}`}
+										disabled={pending === `disconnect:provider:${provider.name}`}
 									>
 										Disconnect
 									</button>
@@ -181,24 +186,28 @@
 						</div>
 						{#if !unconnected}
 							<div class="actions-check">
-								<form method="POST" action="?/calendars" use:enhance={listCalendars(provider.name)}>
+								<form method="POST" action="?/discover" use:enhance={listCalendars(provider.name)}>
 									<input type="hidden" name="provider" value={provider.name} />
 									<button
 										type="submit"
 										class="button"
-										disabled={pending === `calendars:${provider.name}`}
+										disabled={pending === `discover:provider:${provider.name}`}
 									>
 										List calendars
 									</button>
 								</form>
-								<form method="POST" action="?/test" use:enhance={run(`test:${provider.name}`)}>
+								<form
+									method="POST"
+									action="?/testProvider"
+									use:enhance={run(`test:provider:${provider.name}`)}
+								>
 									<input type="hidden" name="provider" value={provider.name} />
 									<button
 										type="submit"
 										class="button"
-										disabled={pending === `test:${provider.name}`}
+										disabled={pending === `test:provider:${provider.name}`}
 									>
-										{#if pending === `test:${provider.name}`}
+										{#if pending === `test:provider:${provider.name}`}
 											<span class="spinner"><IconSpinner aria-hidden="true" /></span>
 										{/if}
 										Test
@@ -206,6 +215,70 @@
 								</form>
 							</div>
 						{/if}
+					</div>
+				</li>
+			{/each}
+		</ul>
+	{/if}
+
+	<h2 class="section">Calendars</h2>
+
+	{#if data.calendars.length === 0}
+		<p class="empty">No calendars are configured in when.yaml.</p>
+	{:else}
+		<ul class="list">
+			{#each data.calendars as calendar (calendar.name)}
+				<li class="card">
+					{@render notice(`calendar:${calendar.name}`, 'calendar')}
+
+					<div class="body">
+						<h2 class="name">{calendar.name}</h2>
+
+						<dl class="fields">
+							<dt>Type</dt>
+							<dd>{calendar.type}</dd>
+
+							<dt>Provider</dt>
+							<dd>{calendar.provider}</dd>
+
+							<dt>Status</dt>
+							{#if calendar.health === 'bad'}
+								<dd class="failed">down: {calendar.reason ?? 'not syncing'}</dd>
+							{:else if calendar.health === 'good'}
+								<dd class="ok">up ({timeAgo(calendar.lastSyncedAt)})</dd>
+							{:else}
+								<dd>not observed</dd>
+							{/if}
+
+							<dt>Refreshes</dt>
+							<dd>every {calendar.refreshEveryMinutes} min</dd>
+
+							<dt>{calendar.target.label}</dt>
+							<dd><code>{calendar.target.value}</code></dd>
+						</dl>
+					</div>
+
+					<div class="actions">
+						<div class="actions-change"></div>
+						<div class="actions-check">
+							<form
+								method="POST"
+								action="?/testCalendar"
+								use:enhance={run(`test:calendar:${calendar.name}`)}
+							>
+								<input type="hidden" name="calendar" value={calendar.name} />
+								<button
+									type="submit"
+									class="button"
+									disabled={pending === `test:calendar:${calendar.name}`}
+								>
+									{#if pending === `test:calendar:${calendar.name}`}
+										<span class="spinner"><IconSpinner aria-hidden="true" /></span>
+									{/if}
+									Test
+								</button>
+							</form>
+						</div>
 					</div>
 				</li>
 			{/each}

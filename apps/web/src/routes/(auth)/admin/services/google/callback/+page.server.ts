@@ -1,7 +1,11 @@
 import { dev } from '$app/environment';
 import { getConfig, getDb } from '$lib/server/state';
 import { completeGoogleConnect, findGoogleProvider } from '$lib/server/providers/google-connect';
-import { STATE_COOKIE, parseOAuthState, stateCookieOptions } from '../../state-cookie';
+import {
+	STATE_COOKIE,
+	parseOAuthState,
+	stateCookieOptions
+} from '$lib/server/providers/state-cookie';
 import type { PageServerLoad } from './$types';
 
 const crumb = 'Google authorization';

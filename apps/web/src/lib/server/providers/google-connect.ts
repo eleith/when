@@ -9,6 +9,8 @@ import {
 } from '@when/calendar';
 import { saveProviderRefreshToken, getProviderRefreshToken, deleteProviderToken } from '@when/db';
 
+// Registered with Google as the redirect URI, so it stays put even though the page it
+// returns to moved to /admin/health.
 export const CALLBACK_PATH = '/admin/services/google/callback';
 
 export function googleRedirectUri(appUrl: string): string {

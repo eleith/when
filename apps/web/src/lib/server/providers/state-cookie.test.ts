@@ -31,7 +31,7 @@ describe('stateCookieOptions', () => {
 
 	test('is scoped to the services routes and short-lived', () => {
 		const opts = stateCookieOptions(false);
-		expect(opts.path).toBe('/admin/services');
+		expect(opts.path).toBe('/admin');
 		expect(opts.httpOnly).toBe(true);
 		expect(opts.maxAge).toBe(600);
 	});
