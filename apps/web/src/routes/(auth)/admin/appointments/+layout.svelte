@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import AdminAlert from '$lib/components/AdminAlert.svelte';
+	import AdminPage from '$lib/components/AdminPage.svelte';
 	import IconCaretLeft from 'virtual:icons/ph/caret-left';
 	import IconCaretRight from 'virtual:icons/ph/caret-right';
 
@@ -17,83 +18,93 @@
 	let nextHref = $derived(currentPage < pageCount ? `?page=${currentPage + 1}` : null);
 </script>
 
-<div class="appointments-layout" class:has-bottom-bar={showTabs}>
-	{#if data.conflictCount > 0}
-		<AdminAlert>
-			{data.conflictCount} possible conflict{#if data.conflictCount !== 1}s{/if}
-		</AdminAlert>
-	{/if}
+<AdminPage>
+	{#snippet crumb()}
+		{#if currentPath === '/admin/appointments/upcoming'}Upcoming
+		{:else if currentPath === '/admin/appointments/pending'}Pending
+		{:else if currentPath === '/admin/appointments/past'}Past
+		{:else if currentPath === '/admin/appointments/purged'}Purged
+		{/if}
+	{/snippet}
 
-	<div class="card appointments-card">
-		<h1 class="visibility-hidden">When Admin</h1>
-		{#if showTabs}
-			<div class="card-header">
-				<div class="tabs-strip">
-					<a
-						href="/admin/appointments/upcoming"
-						class="sub-tab"
-						class:active={currentPath === '/admin/appointments/upcoming'}
-					>
-						Upcoming
-						{#if data.upcomingCount > 0}
-							<span class="tab-badge">{data.upcomingCount}</span>
-						{/if}
-					</a>
-					<a
-						href="/admin/appointments/pending"
-						class="sub-tab"
-						class:active={currentPath === '/admin/appointments/pending'}
-					>
-						Pending
-						{#if data.pendingCount > 0}
-							<span class="tab-badge tab-badge-pending">{data.pendingCount}</span>
-						{/if}
-					</a>
-					<a
-						href="/admin/appointments/past"
-						class="sub-tab"
-						class:active={currentPath === '/admin/appointments/past'}
-					>
-						Past
-					</a>
-				</div>
-			</div>
+	<div class="appointments-layout" class:has-bottom-bar={showTabs}>
+		{#if data.conflictCount > 0}
+			<AdminAlert>
+				{data.conflictCount} possible conflict{#if data.conflictCount !== 1}s{/if}
+			</AdminAlert>
 		{/if}
 
-		<div class="card-content">
-			{@render children()}
+		<div class="card appointments-card">
+			<h1 class="visibility-hidden">When Admin</h1>
+			{#if showTabs}
+				<div class="card-header">
+					<div class="tabs-strip">
+						<a
+							href="/admin/appointments/upcoming"
+							class="sub-tab"
+							class:active={currentPath === '/admin/appointments/upcoming'}
+						>
+							Upcoming
+							{#if data.upcomingCount > 0}
+								<span class="tab-badge">{data.upcomingCount}</span>
+							{/if}
+						</a>
+						<a
+							href="/admin/appointments/pending"
+							class="sub-tab"
+							class:active={currentPath === '/admin/appointments/pending'}
+						>
+							Pending
+							{#if data.pendingCount > 0}
+								<span class="tab-badge tab-badge-pending">{data.pendingCount}</span>
+							{/if}
+						</a>
+						<a
+							href="/admin/appointments/past"
+							class="sub-tab"
+							class:active={currentPath === '/admin/appointments/past'}
+						>
+							Past
+						</a>
+					</div>
+				</div>
+			{/if}
+
+			<div class="card-content">
+				{@render children()}
+			</div>
+
+			{#if pageCount > 1}
+				<div class="card-footer">
+					<div class="pagination">
+						{#if prevHref}
+							<a href={prevHref} class="pagination-link" aria-label="Previous page">
+								<IconCaretLeft aria-hidden="true" />
+								<span>Previous</span>
+							</a>
+						{:else}
+							<span class="pagination-link disabled">
+								<IconCaretLeft aria-hidden="true" />
+								<span>Previous</span>
+							</span>
+						{/if}
+						{#if nextHref}
+							<a href={nextHref} class="pagination-link" aria-label="Next page">
+								<span>Next</span>
+								<IconCaretRight aria-hidden="true" />
+							</a>
+						{:else}
+							<span class="pagination-link disabled">
+								<span>Next</span>
+								<IconCaretRight aria-hidden="true" />
+							</span>
+						{/if}
+					</div>
+				</div>
+			{/if}
 		</div>
-
-		{#if pageCount > 1}
-			<div class="card-footer">
-				<div class="pagination">
-					{#if prevHref}
-						<a href={prevHref} class="pagination-link" aria-label="Previous page">
-							<IconCaretLeft aria-hidden="true" />
-							<span>Previous</span>
-						</a>
-					{:else}
-						<span class="pagination-link disabled">
-							<IconCaretLeft aria-hidden="true" />
-							<span>Previous</span>
-						</span>
-					{/if}
-					{#if nextHref}
-						<a href={nextHref} class="pagination-link" aria-label="Next page">
-							<span>Next</span>
-							<IconCaretRight aria-hidden="true" />
-						</a>
-					{:else}
-						<span class="pagination-link disabled">
-							<span>Next</span>
-							<IconCaretRight aria-hidden="true" />
-						</span>
-					{/if}
-				</div>
-			</div>
-		{/if}
 	</div>
-</div>
+</AdminPage>
 
 <style>
 	.appointments-layout {

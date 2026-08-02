@@ -1,10 +1,13 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte';
 	import AdminNav from '$lib/components/AdminNav.svelte';
 
-	let { children } = $props();
+	// Owns both the full-bleed nav and the centered content column. Pages render this
+	// rather than a layout so each route can name its own crumb.
+	let { crumb = null, children }: { crumb?: Snippet | null; children: Snippet } = $props();
 </script>
 
-<AdminNav />
+<AdminNav {crumb} />
 
 <div class="admin-container">
 	<main class="admin-main">

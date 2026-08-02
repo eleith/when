@@ -3,6 +3,7 @@
 	import IconCalendarBlank from 'virtual:icons/ph/calendar-blank';
 	import IconClock from 'virtual:icons/ph/clock';
 	import AdminAlert from '$lib/components/AdminAlert.svelte';
+	import AdminPage from '$lib/components/AdminPage.svelte';
 
 	let { data } = $props();
 
@@ -36,146 +37,148 @@
 	<title>Dashboard — When</title>
 </svelte:head>
 
-<div class="dashboard">
-	<h1 class="visibility-hidden">Dashboard</h1>
+<AdminPage>
+	<div class="dashboard">
+		<h1 class="visibility-hidden">Dashboard</h1>
 
-	{#if data.conflictCount > 0 || data.failing.length > 0}
-		<section class="alerts">
-			{#if data.conflictCount > 0}
-				<AdminAlert href="/admin/appointments/upcoming">
-					{data.conflictCount} possible conflict{#if data.conflictCount !== 1}s{/if}
-				</AdminAlert>
+		{#if data.conflictCount > 0 || data.failing.length > 0}
+			<section class="alerts">
+				{#if data.conflictCount > 0}
+					<AdminAlert href="/admin/appointments/upcoming">
+						{data.conflictCount} possible conflict{#if data.conflictCount !== 1}s{/if}
+					</AdminAlert>
+				{/if}
+				{#each data.failing as f (f.name)}
+					<AdminAlert href="/admin/health">{f.name}: {f.reason}</AdminAlert>
+				{/each}
+			</section>
+		{/if}
+
+		<div class="stats-group">
+			<h2 class="section-label">Right now</h2>
+			<div class="stats-row">
+				<a href="/admin/appointments/upcoming" class="stat-card">
+					<span class="stat-value">{data.upcomingCount}</span>
+					<span class="stat-label">upcoming meetings</span>
+				</a>
+				<a href="/admin/appointments/pending" class="stat-card">
+					<span class="stat-value pending-value">{data.pendingCount}</span>
+					<span class="stat-label">pending meetings</span>
+				</a>
+			</div>
+		</div>
+
+		<div class="stats-group">
+			<h2 class="section-label">This week</h2>
+			<div class="stats-row">
+				<div class="stat-card">
+					<span class="stat-value">{fmtHours(data.confirmedMinutesThisWeek)}</span>
+					<span class="stat-label">scheduled</span>
+				</div>
+				<div class="stat-card">
+					<span class="stat-value">{data.totalThisMonth}</span>
+					<span class="stat-label">total this month</span>
+				</div>
+			</div>
+		</div>
+
+		<div class="stats-group">
+			<h2 class="section-label">Lifetime</h2>
+			<div class="stats-row">
+				<a href="/admin/appointments/past" class="stat-card">
+					<span class="stat-value">{data.lifetimeMeetings}</span>
+					<span class="stat-label">total meetings</span>
+				</a>
+				<div class="stat-card">
+					<span class="stat-value">{fmtHours(data.lifetimeMinutes)}</span>
+					<span class="stat-label">total meeting time</span>
+				</div>
+			</div>
+		</div>
+
+		<div class="stats-group">
+			<h2 class="section-label">Setup</h2>
+			<div class="stats-row">
+				<a href="/admin/health" class="stat-card">
+					<span class="stat-value">{data.serviceCount}</span>
+					<span class="stat-label">
+						service{#if data.serviceCount !== 1}s{/if}
+					</span>
+				</a>
+				<a href="/admin/health#calendars" class="stat-card">
+					<span class="stat-value">{data.calendarCount}</span>
+					<span class="stat-label">
+						calendar{#if data.calendarCount !== 1}s{/if}
+					</span>
+				</a>
+			</div>
+		</div>
+
+		<div class="previews">
+			{#if data.upcoming.length > 0}
+				<section class="card preview-card">
+					<div class="card-header">
+						<h2 class="card-title">
+							<IconCalendarBlank aria-hidden="true" />
+							Upcoming
+						</h2>
+						{#if data.upcomingCount > 0}
+							<a href="/admin/appointments/upcoming" class="header-link">
+								view all <IconArrowRight aria-hidden="true" />
+							</a>
+						{/if}
+					</div>
+					<div class="card-body">
+						<ul class="preview-list">
+							{#each data.upcoming as a (a.id)}
+								<li>
+									<a href="/appointment/{a.id}" class="preview-item">
+										<span class="preview-time">{fmt(a.start_time)}</span>
+										<span class="preview-name">{a.guest_name}</span>
+										<span class="preview-type">{a.event_type_name}</span>
+									</a>
+								</li>
+							{/each}
+						</ul>
+					</div>
+				</section>
 			{/if}
-			{#each data.failing as f (f.name)}
-				<AdminAlert href="/admin/health">{f.name}: {f.reason}</AdminAlert>
-			{/each}
-		</section>
-	{/if}
 
-	<div class="stats-group">
-		<h2 class="section-label">Right now</h2>
-		<div class="stats-row">
-			<a href="/admin/appointments/upcoming" class="stat-card">
-				<span class="stat-value">{data.upcomingCount}</span>
-				<span class="stat-label">upcoming meetings</span>
-			</a>
-			<a href="/admin/appointments/pending" class="stat-card">
-				<span class="stat-value pending-value">{data.pendingCount}</span>
-				<span class="stat-label">pending meetings</span>
-			</a>
+			{#if data.pending.length > 0}
+				<section class="card preview-card">
+					<div class="card-header">
+						<h2 class="card-title">
+							<IconClock aria-hidden="true" />
+							Pending review
+						</h2>
+						{#if data.pendingCount > 0}
+							<a href="/admin/appointments/pending" class="header-link">
+								review all <IconArrowRight aria-hidden="true" />
+							</a>
+						{/if}
+					</div>
+					<div class="card-body">
+						<ul class="preview-list">
+							{#each data.pending as a (a.id)}
+								<li>
+									<a href="/appointment/{a.id}" class="preview-item">
+										<span class="preview-time">{fmt(a.start_time)}</span>
+										<span class="preview-name">{a.guest_name}</span>
+										<span class="preview-type">{a.event_type_name}</span>
+									</a>
+								</li>
+							{/each}
+						</ul>
+					</div>
+				</section>
+			{/if}
+		</div>
+
+		<div class="purged-link">
+			<a href="/admin/appointments/purged">View purged appointments</a>
 		</div>
 	</div>
-
-	<div class="stats-group">
-		<h2 class="section-label">This week</h2>
-		<div class="stats-row">
-			<div class="stat-card">
-				<span class="stat-value">{fmtHours(data.confirmedMinutesThisWeek)}</span>
-				<span class="stat-label">scheduled</span>
-			</div>
-			<div class="stat-card">
-				<span class="stat-value">{data.totalThisMonth}</span>
-				<span class="stat-label">total this month</span>
-			</div>
-		</div>
-	</div>
-
-	<div class="stats-group">
-		<h2 class="section-label">Lifetime</h2>
-		<div class="stats-row">
-			<a href="/admin/appointments/past" class="stat-card">
-				<span class="stat-value">{data.lifetimeMeetings}</span>
-				<span class="stat-label">total meetings</span>
-			</a>
-			<div class="stat-card">
-				<span class="stat-value">{fmtHours(data.lifetimeMinutes)}</span>
-				<span class="stat-label">total meeting time</span>
-			</div>
-		</div>
-	</div>
-
-	<div class="stats-group">
-		<h2 class="section-label">Setup</h2>
-		<div class="stats-row">
-			<a href="/admin/health" class="stat-card">
-				<span class="stat-value">{data.serviceCount}</span>
-				<span class="stat-label">
-					service{#if data.serviceCount !== 1}s{/if}
-				</span>
-			</a>
-			<a href="/admin/health#calendars" class="stat-card">
-				<span class="stat-value">{data.calendarCount}</span>
-				<span class="stat-label">
-					calendar{#if data.calendarCount !== 1}s{/if}
-				</span>
-			</a>
-		</div>
-	</div>
-
-	<div class="previews">
-		{#if data.upcoming.length > 0}
-			<section class="card preview-card">
-				<div class="card-header">
-					<h2 class="card-title">
-						<IconCalendarBlank aria-hidden="true" />
-						Upcoming
-					</h2>
-					{#if data.upcomingCount > 0}
-						<a href="/admin/appointments/upcoming" class="header-link">
-							view all <IconArrowRight aria-hidden="true" />
-						</a>
-					{/if}
-				</div>
-				<div class="card-body">
-					<ul class="preview-list">
-						{#each data.upcoming as a (a.id)}
-							<li>
-								<a href="/appointment/{a.id}" class="preview-item">
-									<span class="preview-time">{fmt(a.start_time)}</span>
-									<span class="preview-name">{a.guest_name}</span>
-									<span class="preview-type">{a.event_type_name}</span>
-								</a>
-							</li>
-						{/each}
-					</ul>
-				</div>
-			</section>
-		{/if}
-
-		{#if data.pending.length > 0}
-			<section class="card preview-card">
-				<div class="card-header">
-					<h2 class="card-title">
-						<IconClock aria-hidden="true" />
-						Pending review
-					</h2>
-					{#if data.pendingCount > 0}
-						<a href="/admin/appointments/pending" class="header-link">
-							review all <IconArrowRight aria-hidden="true" />
-						</a>
-					{/if}
-				</div>
-				<div class="card-body">
-					<ul class="preview-list">
-						{#each data.pending as a (a.id)}
-							<li>
-								<a href="/appointment/{a.id}" class="preview-item">
-									<span class="preview-time">{fmt(a.start_time)}</span>
-									<span class="preview-name">{a.guest_name}</span>
-									<span class="preview-type">{a.event_type_name}</span>
-								</a>
-							</li>
-						{/each}
-					</ul>
-				</div>
-			</section>
-		{/if}
-	</div>
-
-	<div class="purged-link">
-		<a href="/admin/appointments/purged">View purged appointments</a>
-	</div>
-</div>
+</AdminPage>
 
 <style>
 	.dashboard {

@@ -1,4 +1,6 @@
 <script lang="ts">
+	import AdminPage from '$lib/components/AdminPage.svelte';
+
 	let { data } = $props();
 </script>
 
@@ -6,22 +8,26 @@
 	<title>Google Authorization — When</title>
 </svelte:head>
 
-<section class="callback">
-	{#if data.error}
-		<h1 class="title">Could not connect</h1>
-		{#if data.service}
-			<p class="lede">{data.service} was not connected.</p>
-		{/if}
-		<p class="reason">{data.error}</p>
-	{:else}
-		<h1 class="title">Connected</h1>
-		<p class="lede">
-			{data.service} is authorized. Calendar sync picks it up on the next pass.
-		</p>
-	{/if}
+<AdminPage>
+	{#snippet crumb()}Google authorization{/snippet}
 
-	<a class="back" href="/admin/health">Back to health</a>
-</section>
+	<section class="callback">
+		{#if data.error}
+			<h1 class="title">Could not connect</h1>
+			{#if data.service}
+				<p class="lede">{data.service} was not connected.</p>
+			{/if}
+			<p class="reason">{data.error}</p>
+		{:else}
+			<h1 class="title">Connected</h1>
+			<p class="lede">
+				{data.service} is authorized. Calendar sync picks it up on the next pass.
+			</p>
+		{/if}
+
+		<a class="back" href="/admin/health">Back to health</a>
+	</section>
+</AdminPage>
 
 <style>
 	.callback {

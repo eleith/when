@@ -8,7 +8,6 @@ import type { Actions, PageServerLoad } from './$types';
 export const load: PageServerLoad = async () => {
 	const config = getConfig();
 	return {
-		crumb: 'Health',
 		providers: await listProviders(config, getDb()),
 		calendars: await listCalendars(config, getDb()),
 		smtp: await smtpSummary(config, getDb()),

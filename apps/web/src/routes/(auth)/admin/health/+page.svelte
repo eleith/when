@@ -3,6 +3,7 @@
 	import IconWarningCircle from 'virtual:icons/ph/warning-circle';
 	import IconSpinner from 'virtual:icons/ph/spinner';
 	import { enhance } from '$app/forms';
+	import AdminPage from '$lib/components/AdminPage.svelte';
 	import { timeAgo } from '$lib/datetime';
 	import type { SubmitFunction } from './$types';
 
@@ -94,268 +95,276 @@
 	{/if}
 {/snippet}
 
-<section class="services">
-	<h1 class="title">Health</h1>
+<AdminPage>
+	{#snippet crumb()}Health{/snippet}
 
-	<h2 class="section" id="providers">Providers</h2>
+	<section class="services">
+		<h1 class="title">Health</h1>
 
-	{#if data.providers.length === 0}
-		<p class="empty">No providers are configured in when.yaml.</p>
-	{:else}
-		<ul class="list">
-			{#each data.providers as provider (provider.name)}
-				{@const unconnected = provider.usesOAuth && !provider.connectedAt}
-				<li class="card">
-					{@render notice(
-						`provider:${provider.name}`,
-						'provider',
-						provider.observed.state === 'failing' ? provider.observed.error : null
-					)}
+		<h2 class="section" id="providers">Providers</h2>
 
-					<div class="body">
-						<h2 class="name">{provider.name}</h2>
+		{#if data.providers.length === 0}
+			<p class="empty">No providers are configured in when.yaml.</p>
+		{:else}
+			<ul class="list">
+				{#each data.providers as provider (provider.name)}
+					{@const unconnected = provider.usesOAuth && !provider.connectedAt}
+					<li class="card">
+						{@render notice(
+							`provider:${provider.name}`,
+							'provider',
+							provider.observed.state === 'failing' ? provider.observed.error : null
+						)}
 
-						<dl class="fields">
-							<dt>Type</dt>
-							<dd>{provider.type}</dd>
+						<div class="body">
+							<h2 class="name">{provider.name}</h2>
 
-							<dt>Calendars</dt>
-							<dd>{provider.calendars.length}</dd>
+							<dl class="fields">
+								<dt>Type</dt>
+								<dd>{provider.type}</dd>
 
-							<dt>Status</dt>
-							{#if unconnected}
-								<dd>Not connected</dd>
-							{:else if provider.observed.state === 'failing'}
-								<dd class="failed">down ({timeAgo(provider.observed.at)})</dd>
-							{:else if provider.observed.state === 'working'}
-								<dd class="ok">up ({timeAgo(provider.observed.at)})</dd>
-							{:else}
-								<dd>not observed</dd>
-							{/if}
+								<dt>Calendars</dt>
+								<dd>{provider.calendars.length}</dd>
 
-							<dt>{provider.endpoint.label}</dt>
-							<dd><code>{provider.endpoint.url}</code></dd>
-						</dl>
-
-						{#if listingProvider === provider.name}
-							<div class="found">
-								<h3 class="found-title">Available calendars</h3>
-								{#if !listing}
-									<p class="found-loading">
-										<span class="spinner"><IconSpinner aria-hidden="true" /></span>
-										Asking {provider.name}…
-									</p>
-								{:else if listing.calendars.length === 0}
-									<p class="found-empty">This provider exposes no calendars.</p>
+								<dt>Status</dt>
+								{#if unconnected}
+									<dd>Not connected</dd>
+								{:else if provider.observed.state === 'failing'}
+									<dd class="failed">down ({timeAgo(provider.observed.at)})</dd>
+								{:else if provider.observed.state === 'working'}
+									<dd class="ok">up ({timeAgo(provider.observed.at)})</dd>
 								{:else}
-									<ul class="found-list">
-										{#each listing.calendars as calendar (calendar.id)}
-											<li class="found-item">
-												<span class="found-name">{calendar.name}</span>
-												<code class="found-value">{listing.field}: {calendar.id}</code>
-											</li>
-										{/each}
-									</ul>
+									<dd>not observed</dd>
 								{/if}
-							</div>
-						{/if}
-					</div>
 
-					<div class="actions">
-						<div class="actions-change">
-							{#if unconnected}
-								<form method="POST" action="/admin/services/google/connect">
-									<input type="hidden" name="provider" value={provider.name} />
-									<button type="submit" class="button primary">Connect</button>
-								</form>
-							{:else if provider.connectedAt}
-								<form method="POST" action="/admin/services/google/disconnect">
-									<input type="hidden" name="provider" value={provider.name} />
-									<button type="submit" class="button danger">Disconnect</button>
-								</form>
+								<dt>{provider.endpoint.label}</dt>
+								<dd><code>{provider.endpoint.url}</code></dd>
+							</dl>
+
+							{#if listingProvider === provider.name}
+								<div class="found">
+									<h3 class="found-title">Available calendars</h3>
+									{#if !listing}
+										<p class="found-loading">
+											<span class="spinner"><IconSpinner aria-hidden="true" /></span>
+											Asking {provider.name}…
+										</p>
+									{:else if listing.calendars.length === 0}
+										<p class="found-empty">This provider exposes no calendars.</p>
+									{:else}
+										<ul class="found-list">
+											{#each listing.calendars as calendar (calendar.id)}
+												<li class="found-item">
+													<span class="found-name">{calendar.name}</span>
+													<code class="found-value">{listing.field}: {calendar.id}</code>
+												</li>
+											{/each}
+										</ul>
+									{/if}
+								</div>
 							{/if}
 						</div>
-						{#if !unconnected}
-							<div class="actions-check">
-								<form method="POST" action="?/discover" use:enhance={listCalendars(provider.name)}>
-									<input type="hidden" name="provider" value={provider.name} />
-									<button
-										type="submit"
-										class="button"
-										disabled={pending === `discover:provider:${provider.name}`}
+
+						<div class="actions">
+							<div class="actions-change">
+								{#if unconnected}
+									<form method="POST" action="/admin/services/google/connect">
+										<input type="hidden" name="provider" value={provider.name} />
+										<button type="submit" class="button primary">Connect</button>
+									</form>
+								{:else if provider.connectedAt}
+									<form method="POST" action="/admin/services/google/disconnect">
+										<input type="hidden" name="provider" value={provider.name} />
+										<button type="submit" class="button danger">Disconnect</button>
+									</form>
+								{/if}
+							</div>
+							{#if !unconnected}
+								<div class="actions-check">
+									<form
+										method="POST"
+										action="?/discover"
+										use:enhance={listCalendars(provider.name)}
 									>
-										List calendars
-									</button>
-								</form>
+										<input type="hidden" name="provider" value={provider.name} />
+										<button
+											type="submit"
+											class="button"
+											disabled={pending === `discover:provider:${provider.name}`}
+										>
+											List calendars
+										</button>
+									</form>
+									<form
+										method="POST"
+										action="?/testProvider"
+										use:enhance={run(`test:provider:${provider.name}`)}
+									>
+										<input type="hidden" name="provider" value={provider.name} />
+										<button
+											type="submit"
+											class="button"
+											disabled={pending === `test:provider:${provider.name}`}
+										>
+											{#if pending === `test:provider:${provider.name}`}
+												<span class="spinner"><IconSpinner aria-hidden="true" /></span>
+											{/if}
+											Test
+										</button>
+									</form>
+								</div>
+							{/if}
+						</div>
+					</li>
+				{/each}
+			</ul>
+		{/if}
+
+		<h2 class="section" id="calendars">Calendars</h2>
+
+		{#if data.calendars.length === 0}
+			<p class="empty">No calendars are configured in when.yaml.</p>
+		{:else}
+			<ul class="list">
+				{#each data.calendars as calendar (calendar.name)}
+					<li class="card">
+						{@render notice(
+							`calendar:${calendar.name}`,
+							'calendar',
+							calendar.health === 'bad' ? (calendar.reason ?? 'not syncing') : null
+						)}
+
+						<div class="body">
+							<h2 class="name">{calendar.name}</h2>
+
+							<dl class="fields">
+								<dt>Type</dt>
+								<dd>{calendar.type}</dd>
+
+								<dt>Provider</dt>
+								<dd>{calendar.provider}</dd>
+
+								<dt>Status</dt>
+								{#if calendar.health === 'bad'}
+									<dd class="failed">down</dd>
+								{:else if calendar.health === 'good'}
+									<dd class="ok">up ({timeAgo(calendar.lastSyncedAt)})</dd>
+								{:else}
+									<dd>not observed</dd>
+								{/if}
+
+								<dt>Refreshes</dt>
+								<dd>every {calendar.refreshEveryMinutes} min</dd>
+
+								<dt>{calendar.target.label}</dt>
+								<dd><code>{calendar.target.value}</code></dd>
+							</dl>
+						</div>
+
+						<div class="actions">
+							<div class="actions-change"></div>
+							<div class="actions-check">
 								<form
 									method="POST"
-									action="?/testProvider"
-									use:enhance={run(`test:provider:${provider.name}`)}
+									action="?/testCalendar"
+									use:enhance={run(`test:calendar:${calendar.name}`)}
 								>
-									<input type="hidden" name="provider" value={provider.name} />
+									<input type="hidden" name="calendar" value={calendar.name} />
 									<button
 										type="submit"
 										class="button"
-										disabled={pending === `test:provider:${provider.name}`}
+										disabled={pending === `test:calendar:${calendar.name}`}
 									>
-										{#if pending === `test:provider:${provider.name}`}
+										{#if pending === `test:calendar:${calendar.name}`}
 											<span class="spinner"><IconSpinner aria-hidden="true" /></span>
 										{/if}
 										Test
 									</button>
 								</form>
 							</div>
-						{/if}
-					</div>
-				</li>
-			{/each}
-		</ul>
-	{/if}
-
-	<h2 class="section" id="calendars">Calendars</h2>
-
-	{#if data.calendars.length === 0}
-		<p class="empty">No calendars are configured in when.yaml.</p>
-	{:else}
-		<ul class="list">
-			{#each data.calendars as calendar (calendar.name)}
-				<li class="card">
-					{@render notice(
-						`calendar:${calendar.name}`,
-						'calendar',
-						calendar.health === 'bad' ? (calendar.reason ?? 'not syncing') : null
-					)}
-
-					<div class="body">
-						<h2 class="name">{calendar.name}</h2>
-
-						<dl class="fields">
-							<dt>Type</dt>
-							<dd>{calendar.type}</dd>
-
-							<dt>Provider</dt>
-							<dd>{calendar.provider}</dd>
-
-							<dt>Status</dt>
-							{#if calendar.health === 'bad'}
-								<dd class="failed">down</dd>
-							{:else if calendar.health === 'good'}
-								<dd class="ok">up ({timeAgo(calendar.lastSyncedAt)})</dd>
-							{:else}
-								<dd>not observed</dd>
-							{/if}
-
-							<dt>Refreshes</dt>
-							<dd>every {calendar.refreshEveryMinutes} min</dd>
-
-							<dt>{calendar.target.label}</dt>
-							<dd><code>{calendar.target.value}</code></dd>
-						</dl>
-					</div>
-
-					<div class="actions">
-						<div class="actions-change"></div>
-						<div class="actions-check">
-							<form
-								method="POST"
-								action="?/testCalendar"
-								use:enhance={run(`test:calendar:${calendar.name}`)}
-							>
-								<input type="hidden" name="calendar" value={calendar.name} />
-								<button
-									type="submit"
-									class="button"
-									disabled={pending === `test:calendar:${calendar.name}`}
-								>
-									{#if pending === `test:calendar:${calendar.name}`}
-										<span class="spinner"><IconSpinner aria-hidden="true" /></span>
-									{/if}
-									Test
-								</button>
-							</form>
 						</div>
-					</div>
-				</li>
-			{/each}
-		</ul>
-	{/if}
+					</li>
+				{/each}
+			</ul>
+		{/if}
 
-	<h2 class="section" id="worker">Worker</h2>
+		<h2 class="section" id="worker">Worker</h2>
 
-	<div class="card">
-		{@render notice('worker', 'worker')}
+		<div class="card">
+			{@render notice('worker', 'worker')}
 
-		<div class="body">
-			<h3 class="name">{data.worker.url}</h3>
-			<p class="worker-note">Runs calendar refreshes, appointment pushes and email.</p>
+			<div class="body">
+				<h3 class="name">{data.worker.url}</h3>
+				<p class="worker-note">Runs calendar refreshes, appointment pushes and email.</p>
+			</div>
+
+			<div class="actions">
+				<form method="POST" action="?/worker" class="worker-form" use:enhance={run('worker')}>
+					<button type="submit" class="button" disabled={pending === 'worker'}>
+						{#if pending === 'worker'}
+							<span class="spinner"><IconSpinner aria-hidden="true" /></span>
+						{/if}
+						Test
+					</button>
+				</form>
+			</div>
 		</div>
 
-		<div class="actions">
-			<form method="POST" action="?/worker" class="worker-form" use:enhance={run('worker')}>
-				<button type="submit" class="button" disabled={pending === 'worker'}>
-					{#if pending === 'worker'}
-						<span class="spinner"><IconSpinner aria-hidden="true" /></span>
+		<h2 class="section" id="email">Email</h2>
+
+		<div class="card">
+			{@render notice(
+				'smtp',
+				'smtp',
+				data.smtp.observed.state === 'failing' ? data.smtp.observed.error : null
+			)}
+
+			<div class="body">
+				<h3 class="name">{data.smtp.host}</h3>
+
+				<dl class="fields">
+					<dt>Status</dt>
+					{#if data.smtp.observed.state === 'failing'}
+						<dd class="failed">down ({timeAgo(data.smtp.observed.at)})</dd>
+					{:else if data.smtp.observed.state === 'working'}
+						<dd class="ok">up ({timeAgo(data.smtp.observed.at)})</dd>
+					{:else}
+						<dd>not observed</dd>
 					{/if}
-					Test
-				</button>
-			</form>
+
+					<dt>Port</dt>
+					<dd>{data.smtp.port}</dd>
+
+					<dt>Username</dt>
+					<dd>{data.smtp.user}</dd>
+
+					<dt>Sends as</dt>
+					<dd><code>{data.smtp.sender}</code></dd>
+				</dl>
+			</div>
+
+			<div class="actions">
+				<form method="POST" action="?/email" class="email-form" use:enhance={run('smtp')}>
+					<label class="email-label" for="test-recipient">Send a test email to</label>
+					<input
+						id="test-recipient"
+						class="email-input"
+						type="email"
+						name="to"
+						value={data.smtp.defaultRecipient}
+						required
+					/>
+					<button type="submit" class="button" disabled={pending === 'smtp'}>
+						{#if pending === 'smtp'}
+							<span class="spinner"><IconSpinner aria-hidden="true" /></span>
+						{/if}
+						Send
+					</button>
+				</form>
+			</div>
 		</div>
-	</div>
-
-	<h2 class="section" id="email">Email</h2>
-
-	<div class="card">
-		{@render notice(
-			'smtp',
-			'smtp',
-			data.smtp.observed.state === 'failing' ? data.smtp.observed.error : null
-		)}
-
-		<div class="body">
-			<h3 class="name">{data.smtp.host}</h3>
-
-			<dl class="fields">
-				<dt>Status</dt>
-				{#if data.smtp.observed.state === 'failing'}
-					<dd class="failed">down ({timeAgo(data.smtp.observed.at)})</dd>
-				{:else if data.smtp.observed.state === 'working'}
-					<dd class="ok">up ({timeAgo(data.smtp.observed.at)})</dd>
-				{:else}
-					<dd>not observed</dd>
-				{/if}
-
-				<dt>Port</dt>
-				<dd>{data.smtp.port}</dd>
-
-				<dt>Username</dt>
-				<dd>{data.smtp.user}</dd>
-
-				<dt>Sends as</dt>
-				<dd><code>{data.smtp.sender}</code></dd>
-			</dl>
-		</div>
-
-		<div class="actions">
-			<form method="POST" action="?/email" class="email-form" use:enhance={run('smtp')}>
-				<label class="email-label" for="test-recipient">Send a test email to</label>
-				<input
-					id="test-recipient"
-					class="email-input"
-					type="email"
-					name="to"
-					value={data.smtp.defaultRecipient}
-					required
-				/>
-				<button type="submit" class="button" disabled={pending === 'smtp'}>
-					{#if pending === 'smtp'}
-						<span class="spinner"><IconSpinner aria-hidden="true" /></span>
-					{/if}
-					Send
-				</button>
-			</form>
-		</div>
-	</div>
-</section>
+	</section>
+</AdminPage>
 
 <style>
 	.services {

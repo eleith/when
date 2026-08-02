@@ -1,14 +1,16 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte';
 	import { page } from '$app/state';
 	import IconCalendarBlank from 'virtual:icons/ph/calendar-blank';
 	import IconSignOut from 'virtual:icons/ph/sign-out';
+
+	// Each admin route renders this nav itself and names its own crumb.
+	let { crumb = null }: { crumb?: Snippet | null } = $props();
 
 	let currentPath = $derived(page.url.pathname + page.url.search);
 	let pathname = $derived(page.url.pathname);
 
 	let isHome = $derived(pathname === '/admin' || pathname === '/admin/');
-
-	let currentCrumb = $derived(page.data.crumb ?? null);
 
 	let homeHref = $derived(isHome ? null : '/admin');
 </script>
@@ -30,9 +32,9 @@
 						</span>
 					{/if}
 				</li>
-				{#if currentCrumb}
+				{#if crumb}
 					<li class="crumb-item">
-						<span aria-current="page">{currentCrumb}</span>
+						<span aria-current="page">{@render crumb()}</span>
 					</li>
 				{/if}
 			</ol>

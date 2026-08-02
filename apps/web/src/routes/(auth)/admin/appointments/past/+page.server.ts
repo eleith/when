@@ -30,7 +30,6 @@ export const load: PageServerLoad = async ({ url }) => {
 	const appointments = rows.map((r) => toAppointmentView(r, cfg, now));
 
 	return {
-		crumb: 'Past',
 		appointments,
 		page,
 		pageCount

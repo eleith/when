@@ -4,10 +4,7 @@ declare global {
 	namespace App {
 		// interface Error {}
 		// interface Locals {}
-		interface PageData {
-			// Breadcrumb label for the admin nav; each route names itself.
-			crumb?: string;
-		}
+		// interface PageData {}
 		// interface PageState {}
 		// interface Platform {}
 	}
