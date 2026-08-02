@@ -157,6 +157,7 @@
 			"anyOf": [
 				{
 					"additionalProperties": false,
+					"title": "Single sign-on (oidc)",
 					"type": "object",
 					"required": ["oidc"],
 					"properties": {
@@ -172,6 +173,7 @@
 				},
 				{
 					"additionalProperties": false,
+					"title": "Username and password (credentials)",
 					"type": "object",
 					"required": ["credentials"],
 					"properties": {
@@ -214,10 +216,11 @@
 		},
 		"CalDavCalendar": {
 			"title": "CalDavCalendar",
-			"description": "CalDAV Calendar integration configuration.",
+			"description": "CalDAV Calendar integration configuration. Give exactly one of `path` (joined to the provider base URL) or `url` (a full endpoint).",
 			"anyOf": [
 				{
 					"additionalProperties": false,
+					"title": "CalDAV calendar by path",
 					"type": "object",
 					"required": ["name", "type", "provider", "path"],
 					"properties": {
@@ -250,6 +253,7 @@
 				},
 				{
 					"additionalProperties": false,
+					"title": "CalDAV calendar by url",
 					"type": "object",
 					"required": ["name", "type", "provider", "url"],
 					"properties": {

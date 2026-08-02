@@ -36,11 +36,11 @@ export const AuthSchema = Type.Union([
 	Type.Object({
 		oidc: Ref(OidcAuthSchema, { description: 'OIDC authentication provider configuration.' }),
 		credentials: Type.Optional(Type.Null({ description: 'Disabled when OIDC is active.' }))
-	}, { additionalProperties: false }),
+	}, { additionalProperties: false, title: 'Single sign-on (oidc)' }),
 	Type.Object({
 		credentials: Ref(CredentialsAuthSchema, { description: 'Credentials authentication configuration.' }),
 		oidc: Type.Optional(Type.Null({ description: 'Disabled when Credentials auth is active.' }))
-	}, { additionalProperties: false })
+	}, { additionalProperties: false, title: 'Username and password (credentials)' })
 ], {
 	$id: 'Auth',
 	title: 'Auth',
@@ -139,15 +139,15 @@ export const CalDavCalendarSchema = Type.Union([
 		provider: Type.String({ minLength: 1, description: 'Name of the caldav or nextcloud provider to connect with.' }),
 		path: Type.String({ minLength: 1, description: 'Relative path joined to the service base URL.' }),
 		sync: Ref(CalendarSyncSchema, { default: {}, description: 'Sync settings for this calendar.' })
-	}, { additionalProperties: false }),
+	}, { additionalProperties: false, title: 'CalDAV calendar by path' }),
 	Type.Object({
 		name: Type.String({ minLength: 1, description: 'Unique name for this calendar, referenced by meetings.' }),
 		type: Type.Literal('caldav', { description: 'Calendar type: must be caldav.' }),
 		provider: Type.String({ minLength: 1, description: 'Name of the caldav or nextcloud provider to connect with.' }),
 		url: Type.String({ format: 'uri', description: 'Full calendar URL endpoint overriding the service base URL.' }),
 		sync: Ref(CalendarSyncSchema, { default: {}, description: 'Sync settings for this calendar.' })
-	}, { additionalProperties: false })
-], { $id: 'CalDavCalendar', title: 'CalDavCalendar', description: 'CalDAV Calendar integration configuration.' });
+	}, { additionalProperties: false, title: 'CalDAV calendar by url' })
+], { $id: 'CalDavCalendar', title: 'CalDavCalendar', description: 'CalDAV Calendar integration configuration. Give exactly one of `path` (joined to the provider base URL) or `url` (a full endpoint).' });
 
 export const CalendarSchema = Type.Union([
 	Ref(GoogleCalendarSchema),
