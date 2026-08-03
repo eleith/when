@@ -7,6 +7,7 @@ import type { AppointmentEmailKind } from '@when/jobs';
 import { resolveAppointmentVideoChat } from './video-chat';
 
 export interface CreateAppointmentInput {
+	slug: string;
 	eventType: Meeting;
 	start: string;
 	end: string;
@@ -50,7 +51,7 @@ export async function createAppointment(
 			.insertInto('appointments')
 			.values({
 				id,
-				event_type_id: eventType.name,
+				event_type_id: input.slug,
 				start_time: input.start,
 				end_time: input.end,
 				guest_name: input.guest.name,
@@ -67,12 +68,12 @@ export async function createAppointment(
 				external_event_id: null,
 				external_calendar_id: null,
 				meeting_snapshot: JSON.stringify({
-					name: eventType.name,
+					title: eventType.title,
 					duration_minutes: Temporal.Instant.from(input.start)
 						.until(Temporal.Instant.from(input.end))
 						.total('minutes'),
 					description: eventType.description,
-					slug: eventType.slug
+					slug: input.slug
 				})
 			})
 			.returningAll()

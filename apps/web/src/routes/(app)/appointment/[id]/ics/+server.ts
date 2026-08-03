@@ -28,7 +28,7 @@ export const GET: RequestHandler = async ({ params, url }) => {
 		}
 
 		const cfg = getConfig();
-		const eventType = cfg.meetings.find((e) => e.name === row.event_type_id);
+		const eventType = cfg.meetings[row.event_type_id];
 		if (!eventType) {
 			icsDownloadsTotal.inc({ status: 'not_found' });
 			error(404);
@@ -38,7 +38,7 @@ export const GET: RequestHandler = async ({ params, url }) => {
 
 		const ics = buildIcs({
 			appointment: row,
-			eventTypeName: eventType?.name ?? row.event_type_id,
+			eventTypeName: eventType?.title ?? row.event_type_id,
 			hostName: cfg.user.name,
 			hostEmail: senderEmail(cfg),
 			cancelUrl,

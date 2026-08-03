@@ -30,7 +30,7 @@ const mockAppt: Appointment = {
 	calendar_synced_revision: null,
 	has_possible_conflict: 0,
 	ics_sequence: 0,
-	meeting_snapshot: JSON.stringify(validConfig.meetings[0]),
+	meeting_snapshot: JSON.stringify(validConfig.meetings['30-min-chat']),
 	created_at: '',
 	updated_at: ''
 };
@@ -130,7 +130,7 @@ describe('/appointment/[id] server load', () => {
 		} as unknown as Parameters<typeof load>[0])) as Exclude<Awaited<ReturnType<typeof load>>, void>;
 
 		expect(result.appointment.id).toBe('appt-1');
-		expect(result.eventType.name).toBe('30-min-chat');
+		expect(result.eventType.slug).toBe('30-min-chat');
 		expect(result.actions.cancel.allowed).toBe(true);
 	});
 
@@ -174,8 +174,8 @@ describe('/appointment/[id] server load', () => {
 		} as unknown as Parameters<typeof load>[0])) as Exclude<Awaited<ReturnType<typeof load>>, void>;
 
 		expect(result.appointment.id).toBe('appt-deleted');
-		// Should parse and return details from mockAppt.event_type_snapshot
-		expect(result.eventType.name).toBe('30-min-chat');
+		// Should parse and return details from mockAppt.meeting_snapshot
+		expect(result.eventType.title).toBe('30 minute chat');
 		// Actions must be locked down to disabled
 		expect(result.actions.cancel.allowed).toBe(false);
 		expect(result.actions.reschedule.allowed).toBe(false);

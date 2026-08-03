@@ -54,42 +54,42 @@ smtp:
   # from: 'bookings@example.com'
 
 # --- Providers and the calendars they serve ---
-# Calendars are conflict sources (busy times) and booking destinations. Their
-# names must be unique across every provider, since meetings reference them
-# by name alone.
+# Each provider is named by its key. Calendars are conflict sources (busy times)
+# and booking destinations; their keys must be unique across every provider,
+# since meetings reference them by name alone.
 providers:
-  - name: 'caldav-service'
+  caldav-service:
     type: 'caldav'
     url: 'https://caldav.example.com/dav/' # DAV base URL
     username: 'you'
     password: '${CALDAV_PASSWORD}'
     calendars:
-      - name: 'main'
+      main:
         href: 'calendars/you/main/' # joined to the provider url, or give a full URL instead
         # sync:
         #   refresh_every_minutes: 10 # busy-time refresh cadence (default 10)
   # Google (connect it from /admin afterwards to store the refresh token):
-  # - name: 'google-service'
+  # google-service:
   #   type: 'google'
   #   client_id: '...apps.googleusercontent.com'
   #   client_secret: '${GOOGLE_CLIENT_SECRET}'
   #   calendars:
-  #     - name: 'personal'
+  #     personal:
   #       id: 'primary'
   # Nextcloud (a CalDAV-compatible provider, also usable for Talk video links):
-  # - name: 'nextcloud-service'
+  # nextcloud-service:
   #   type: 'nextcloud'
   #   url: 'https://cloud.example.com'
   #   username: 'you'
   #   password: '${NEXTCLOUD_PASSWORD}'
   #   calendars:
-  #     - name: 'shared'
+  #     shared:
   #       href: 'calendars/you/shared/'
 
 # --- Weekly availability (times are in user.timezone) ---
 # `weekly` is a list of rules; availability is the union of all rules.
 schedules:
-  - name: 'standard'
+  standard:
     weekly:
       - days: [mon, tue, wed, thu, fri]
         from: '09:00'
@@ -105,13 +105,13 @@ schedules:
       # weekly may be omitted entirely = Monday–Friday 09:00–17:00
 
 # --- Bookable meeting types ---
+# The key is the URL slug: /schedule/30-min-chat
 meetings:
-  - name: '30-minute chat'
+  30-min-chat:
+    title: '30-minute chat'
     duration_minutes: 30 # the default length offered (default 30)
     # additional_duration_minutes: [15, 60] # further lengths the guest may pick
     require_approval: true # true (host approves each booking) or false (instant)
-    # slug defaults to a slug of the name ("30-minute-chat")
-    # slug: 'chat'
     # description: 'A quick introductory call.'
     # visibility: 'public' # 'public' (listed) or 'private' (hidden)
     schedule: 'standard'

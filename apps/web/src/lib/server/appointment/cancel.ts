@@ -18,7 +18,7 @@ export async function cancelAppointment(
 	ctx: AppointmentContext,
 	input: CancelAppointmentInput
 ): Promise<CancelAppointmentResult> {
-	const eventType = ctx.cfg.meetings.find((e) => e.name === input.appointment.event_type_id);
+	const eventType = ctx.cfg.meetings[input.appointment.event_type_id];
 
 	const gate = resolveAppointmentActions({
 		row: input.appointment,

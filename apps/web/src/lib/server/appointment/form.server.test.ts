@@ -4,9 +4,8 @@ import { parseAndValidateAppointmentForm, resolveTimezone, validateReason } from
 import { validConfig } from '$lib/server/__fixtures__/valid-config';
 
 const baseEvent: Meeting = {
-	...validConfig.meetings[0],
-	name: 'Chat',
-	slug: 'chat',
+	...validConfig.meetings['30-min-chat'],
+	title: 'Chat',
 	booking_calendar: 'cal'
 };
 

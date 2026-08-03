@@ -4,9 +4,8 @@ import type { Meeting } from './schema.js';
 import { validConfig } from './__fixtures__/valid-config.js';
 
 const baseMeeting: Meeting = {
-	...validConfig.meetings[0],
-	name: 'et',
-	slug: 'chat',
+	...validConfig.meetings['30-min-chat'],
+	title: 'et',
 	booking_calendar: 'cal'
 };
 

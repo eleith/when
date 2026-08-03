@@ -4,12 +4,11 @@ import type { NextcloudProvider } from '@when/config';
 
 describe('NextcloudTalkAdapter', () => {
 	const mockService: NextcloudProvider = {
-		name: 'my-nextcloud',
 		type: 'nextcloud',
 		url: 'https://cloud.example.com/',
 		username: 'user',
 		password: 'password',
-		calendars: []
+		calendars: {}
 	};
 
 	beforeEach(() => {

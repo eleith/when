@@ -96,41 +96,36 @@ export const CalendarSyncSchema = Type.Object({
 }, { $id: 'CalendarSync', additionalProperties: false, title: 'CalendarSync', description: 'Per-calendar sync cadence.' });
 
 export const GoogleCalendarSchema = Type.Object({
-	name: Type.String({ minLength: 1, description: 'Unique name for this calendar, referenced by meetings. Must be unique across every provider.' }),
 	id: Type.String({ minLength: 1, description: 'The specific Google calendar ID (e.g. primary or an email address).' }),
 	sync: Ref(CalendarSyncSchema, { default: {}, description: 'Sync settings for this calendar.' })
 }, { $id: 'GoogleCalendar', additionalProperties: false, title: 'GoogleCalendar', description: 'A calendar on a Google provider.' });
 
 export const CalDavCalendarSchema = Type.Object({
-	name: Type.String({ minLength: 1, description: 'Unique name for this calendar, referenced by meetings. Must be unique across every provider.' }),
 	href: Type.String({ minLength: 1, pattern: '^(https?://[^\\s]+|(?!//)(?![a-zA-Z][a-zA-Z0-9+.-]*:)[^\\s]+)$', description: 'Where the calendar lives: a path joined to the provider url, or a full http(s) URL of its own.' }),
 	sync: Ref(CalendarSyncSchema, { default: {}, description: 'Sync settings for this calendar.' })
 }, { $id: 'CalDavCalendar', additionalProperties: false, title: 'CalDavCalendar', description: 'A calendar on a CalDAV or Nextcloud provider.' });
 
 export const GoogleProviderSchema = Type.Object({
-	name: Type.String({ minLength: 1, description: 'Unique name for the provider.' }),
 	type: Type.Literal('google', { description: 'Provider type: must be google.' }),
 	client_id: Type.String({ minLength: 1, description: 'Google OAuth client ID.' }),
 	client_secret: Type.String({ minLength: 1, description: 'Google OAuth client secret.' }),
-	calendars: Type.Array(Ref(GoogleCalendarSchema), { default: [], description: 'Calendars served by this provider.' })
+	calendars: Type.Record(Type.String({ pattern: '^[a-z0-9][a-z0-9-]*$' }), Ref(GoogleCalendarSchema, { default: {} }), { additionalProperties: false, default: {}, description: 'Calendars served by this provider, keyed by the name meetings reference.' })
 }, { $id: 'GoogleProvider', additionalProperties: false, title: 'GoogleProvider', description: 'Google API provider credentials. The refresh token is not configured here — connect the provider from the admin and it is stored in the database.' });
 
 export const NextcloudProviderSchema = Type.Object({
-	name: Type.String({ minLength: 1, description: 'Unique name for the provider.' }),
 	type: Type.Literal('nextcloud', { description: 'Provider type: must be nextcloud.' }),
 	url: Type.String({ format: 'uri', description: 'Base URL of your Nextcloud instance (e.g. https://nextcloud.example.com/).' }),
 	username: Type.String({ minLength: 1, description: 'Nextcloud username or app username.' }),
 	password: Type.String({ minLength: 1, description: 'Nextcloud password or app-specific password.' }),
-	calendars: Type.Array(Ref(CalDavCalendarSchema), { default: [], description: 'Calendars served by this provider.' })
+	calendars: Type.Record(Type.String({ pattern: '^[a-z0-9][a-z0-9-]*$' }), Ref(CalDavCalendarSchema, { default: {} }), { additionalProperties: false, default: {}, description: 'Calendars served by this provider, keyed by the name meetings reference.' })
 }, { $id: 'NextcloudProvider', additionalProperties: false, title: 'NextcloudProvider', description: 'Nextcloud provider credentials for CalDAV calendar and Talk video chat integrations.' });
 
 export const CalDavProviderSchema = Type.Object({
-	name: Type.String({ minLength: 1, description: 'Unique name for the provider.' }),
 	type: Type.Literal('caldav', { description: 'Provider type: must be caldav.' }),
 	url: Type.String({ format: 'uri', description: 'Base URL of your CalDAV endpoint (e.g. https://cloud.example.com/remote.php/dav/).' }),
 	username: Type.String({ minLength: 1, description: 'CalDAV username.' }),
 	password: Type.String({ minLength: 1, description: 'CalDAV password.' }),
-	calendars: Type.Array(Ref(CalDavCalendarSchema), { default: [], description: 'Calendars served by this provider.' })
+	calendars: Type.Record(Type.String({ pattern: '^[a-z0-9][a-z0-9-]*$' }), Ref(CalDavCalendarSchema, { default: {} }), { additionalProperties: false, default: {}, description: 'Calendars served by this provider, keyed by the name meetings reference.' })
 }, { $id: 'CalDavProvider', additionalProperties: false, title: 'CalDavProvider', description: 'CalDAV provider credentials for generic calendar sync.' });
 
 export const ProviderSchema = Type.Union([
@@ -166,7 +161,6 @@ export const WeeklyAvailabilitySchema = Type.Array(
 );
 
 export const ScheduleSchema = Type.Object({
-	name: Type.String({ minLength: 1, description: 'Unique name for the schedule, referenced by meetings.' }),
 	weekly: Ref(WeeklyAvailabilitySchema, { description: 'Weekly working hours as availability rules. Defaults to Monday-Friday 09:00-17:00 when omitted.' })
 }, { $id: 'Schedule', additionalProperties: false, title: 'Schedule', description: 'Schedule defining weekly working hours.' });
 
@@ -221,11 +215,10 @@ export const FormFieldSchema = Type.Union([
 ], { $id: 'FormField', title: 'FormField', description: 'Custom question form fields for bookings.' });
 
 export const MeetingSchema = Type.Object({
-	name: Type.String({ minLength: 1, description: 'Unique name of the meeting (e.g. 30-minute chat).' }),
+	title: Type.String({ minLength: 1, description: 'Name shown to guests (e.g. 30-minute chat).' }),
 	duration_minutes: Type.Integer({ minimum: 1, default: 30, description: 'Length of the meeting in minutes (default: 30). This is the default selection when more lengths are offered.' }),
 	additional_duration_minutes: Type.Array(Type.Integer({ minimum: 1 }), { default: [], description: 'Further lengths the guest may choose from, shown after duration_minutes.' }),
 	description: Type.Optional(Type.String({ description: 'Brief description of the meeting.' })),
-	slug: Type.String({ pattern: '^[a-z0-9][a-z0-9-]*$', description: 'URL slug for the booking page (e.g. "chat" for /schedule/chat). Defaults to a slug derived from the meeting name.' }),
 	visibility: Type.Union([Type.Literal('public'), Type.Literal('unlisted')], { default: 'public', description: 'Whether this meeting is listed on the homepage. "unlisted" only hides it from that list — anyone with the /schedule/<slug> link can still book it.' }),
 	require_approval: Type.Boolean({ default: true, description: 'Whether the host must approve a booking before it is confirmed (default: true). False confirms instantly.' }),
 	additional_busy_calendars: Type.Array(Type.String({ minLength: 1 }), { default: [], description: 'Further calendar names to check for conflicts (busy times) to block slots. The booking_calendar is always checked and never needs listing here.' }),
@@ -283,9 +276,9 @@ export const WhenConfigurationSchema = Type.Object({
 	auth: Ref(AuthSchema, { description: 'Admin authentication configuration.' }),
 	user: Ref(UserSchema, { description: 'Details about the schedule owner.' }),
 	smtp: Ref(SmtpSchema, { description: 'SMTP email server settings.' }),
-	providers: Type.Array(Ref(ProviderSchema), { default: [], description: 'Third-party services and the calendars they serve.' }),
-	schedules: Type.Array(Ref(ScheduleSchema), { minItems: 1, description: 'List of schedules for availability.' }),
-	meetings: Type.Array(Ref(MeetingSchema), { minItems: 1, description: 'Bookable meeting types.' }),
+	providers: Type.Record(Type.String({ pattern: '^[a-z0-9][a-z0-9-]*$' }), Ref(ProviderSchema, { default: {} }), { additionalProperties: false, default: {}, description: 'Third-party services and the calendars they serve, keyed by name.' }),
+	schedules: Type.Record(Type.String({ pattern: '^[a-z0-9][a-z0-9-]*$' }), Ref(ScheduleSchema, { default: {} }), { additionalProperties: false, minProperties: 1, description: 'Availability schedules, keyed by the name meetings reference.' }),
+	meetings: Type.Record(Type.String({ pattern: '^[a-z0-9][a-z0-9-]*$' }), Ref(MeetingSchema, { default: {} }), { additionalProperties: false, minProperties: 1, description: 'Bookable meetings, keyed by the slug their booking page uses (/schedule/<key>).' }),
 	database: Ref(DatabaseConfigSchema, { default: {}, description: 'Local SQLite database file paths.' }),
 	url: Ref(UrlSchema, { default: {}, description: 'Server and client URL configuration.' }),
 	prometheus: Ref(PrometheusConfigSchema, { default: {}, description: 'Prometheus metrics settings.' })

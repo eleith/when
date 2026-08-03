@@ -43,8 +43,8 @@ const SLOT = '2099-05-01T15:00:00Z';
 
 function loadEvent(search: string, session: unknown = null): Parameters<typeof load>[0] {
 	return {
-		url: new URL(`http://localhost/schedule/30-min${search}`),
-		params: { slug: '30-min' },
+		url: new URL(`http://localhost/schedule/30-min-chat${search}`),
+		params: { slug: '30-min-chat' },
 		locals: { auth: vi.fn().mockResolvedValue(session) }
 	} as unknown as Parameters<typeof load>[0];
 }
@@ -52,7 +52,7 @@ function loadEvent(search: string, session: unknown = null): Parameters<typeof l
 function bookEvent(fd: FormData): Parameters<typeof actions.book>[0] {
 	return {
 		request: { formData: async () => fd },
-		params: { slug: '30-min' },
+		params: { slug: '30-min-chat' },
 		cookies: { set: vi.fn() }
 	} as unknown as Parameters<typeof actions.book>[0];
 }
@@ -83,36 +83,40 @@ describe('/schedule/[slug] load — deep-link canonicalization', () => {
 	test('strips unknown params by redirecting to the clean url', async () => {
 		const r = await caught(() => load(loadEvent('?foo=bar')));
 		expect(r.status).toBe(307);
-		expect(r.location).toBe('/schedule/30-min');
+		expect(r.location).toBe('/schedule/30-min-chat');
 	});
 
 	test('strips the default duration (durations[0]) from the query', async () => {
 		const r = await caught(() => load(loadEvent('?duration=30')));
 		expect(r.status).toBe(307);
-		expect(r.location).toBe('/schedule/30-min');
+		expect(r.location).toBe('/schedule/30-min-chat');
 	});
 
 	test('slot wins over date — a request with both redirects to slot only', async () => {
 		const r = await caught(() => load(loadEvent(`?slot=${SLOT}&date=2099-05-01`)));
 		expect(r.status).toBe(307);
-		expect(r.location).toBe(`/schedule/30-min?slot=${encodeURIComponent(SLOT)}`);
+		expect(r.location).toBe(`/schedule/30-min-chat?slot=${encodeURIComponent(SLOT)}`);
 	});
 
 	test('keeps a non-default duration but strips junk alongside it', async () => {
 		h.cfg.current = {
 			...validConfig,
-			meetings: [
-				{ ...validConfig.meetings[0], duration_minutes: 30, additional_duration_minutes: [60] }
-			]
+			meetings: {
+				'30-min-chat': {
+					...validConfig.meetings['30-min-chat'],
+					duration_minutes: 30,
+					additional_duration_minutes: [60]
+				}
+			}
 		};
 		const r = await caught(() => load(loadEvent('?duration=60&foo=bar')));
 		expect(r.status).toBe(307);
-		expect(r.location).toBe('/schedule/30-min?duration=60');
+		expect(r.location).toBe('/schedule/30-min-chat?duration=60');
 	});
 
 	test('returns page data unchanged when the query is already canonical', async () => {
 		const result = (await load(loadEvent(`?slot=${SLOT}`))) as LoadResult;
-		expect(result.eventType.name).toBe('30-min-chat');
+		expect(result.eventType.slug).toBe('30-min-chat');
 		expect(result.isAdmin).toBe(false);
 		expect(h.loadAvailability).toHaveBeenCalledOnce();
 	});

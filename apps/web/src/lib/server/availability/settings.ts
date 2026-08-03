@@ -6,7 +6,7 @@ export function resolveAvailabilitySettingsById(
 	cfg: WhenConfiguration,
 	meetingName: string
 ): AvailabilitySettings {
-	const et = cfg.meetings.find((e) => e.name === meetingName);
+	const et = cfg.meetings[meetingName];
 	if (!et) throw new Error(`unknown meeting name: ${meetingName}`);
 	return resolveAvailabilitySettings(cfg, et);
 }
@@ -15,7 +15,7 @@ export function resolveAvailabilitySettings(
 	cfg: WhenConfiguration,
 	et: Meeting
 ): AvailabilitySettings {
-	const a = cfg.schedules.find((p) => p.name === et.schedule);
+	const a = cfg.schedules[et.schedule];
 	if (!a) throw new Error(`unknown schedule name: ${et.schedule}`);
 	const durations = durationsOf(et);
 	return {

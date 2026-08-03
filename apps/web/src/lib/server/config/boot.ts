@@ -28,10 +28,10 @@ export async function bootConfig(path: string = resolveConfigPath()): Promise<Wh
 			{
 				path,
 				auth: 'oidc' in cfg.auth ? 'oidc' : 'credentials',
-				calendars: allCalendars(cfg).map((c) => ({ name: c.calendar.name, type: c.provider.type })),
-				meetings: cfg.meetings.map((e) => ({
-					name: e.name,
-					slug: e.slug,
+				calendars: allCalendars(cfg).map((c) => ({ name: c.name, type: c.provider.type })),
+				meetings: Object.entries(cfg.meetings).map(([slug, e]) => ({
+					slug,
+					title: e.title,
 					flow: e.require_approval ? 'request' : 'instant'
 				}))
 			},

@@ -4,18 +4,18 @@ import type { Provider } from '@when/config';
 import { connectProvider, connectProviders } from './adapter.js';
 
 const google: Provider = {
-	name: 'gg',
 	type: 'google',
 	client_id: 'cid',
-	client_secret: 'csec'
+	client_secret: 'csec',
+	calendars: {}
 } as Provider;
 
 const dav: Provider = {
-	name: 'dav',
 	type: 'caldav',
 	url: 'https://d.example/',
 	username: 'u',
-	password: 'p'
+	password: 'p',
+	calendars: {}
 } as Provider;
 
 let db: ReturnType<typeof openDb>;
@@ -27,7 +27,7 @@ beforeEach(async () => {
 
 describe('connectProvider', () => {
 	test('attaches the token to a google service', () => {
-		expect(connectProvider(google, 'rt-1')).toMatchObject({ name: 'gg', refresh_token: 'rt-1' });
+		expect(connectProvider(google, 'rt-1')).toMatchObject({ refresh_token: 'rt-1' });
 	});
 
 	test('marks a google service with no token as unconnected', () => {
@@ -43,21 +43,21 @@ describe('connectProviders', () => {
 	test('joins each service with the token the store holds', async () => {
 		await saveProviderRefreshToken(db, 'gg', 'rt-1');
 
-		const connected = await connectProviders([google, dav], db);
+		const connected = await connectProviders({ gg: google, dav }, db);
 
-		expect(connected[0]).toMatchObject({ name: 'gg', refresh_token: 'rt-1' });
-		expect(connected[1]).toEqual(dav);
+		expect(connected.gg).toMatchObject({ refresh_token: 'rt-1' });
+		expect(connected.dav).toEqual(dav);
 	});
 
 	test('yields a null token for a service that was never connected', async () => {
-		const [connected] = await connectProviders([google], db);
+		const { gg: connected } = await connectProviders({ gg: google }, db);
 		expect(connected).toMatchObject({ refresh_token: null });
 	});
 
 	test('does not borrow another service token', async () => {
 		await saveProviderRefreshToken(db, 'other', 'not-mine');
 
-		const [connected] = await connectProviders([google], db);
+		const { gg: connected } = await connectProviders({ gg: google }, db);
 
 		expect(connected).toMatchObject({ refresh_token: null });
 	});

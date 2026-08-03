@@ -14,21 +14,19 @@ vi.mock('./adapters/caldav.js', () => ({
 }));
 
 const google = (refresh_token: string | null): ConnectedProvider => ({
-	name: 'gg',
 	type: 'google',
 	client_id: 'cid',
 	client_secret: 'csec',
-	calendars: [],
+	calendars: {},
 	refresh_token
 });
 
 const dav: ConnectedProvider = {
-	name: 'dav',
 	type: 'caldav',
 	url: 'https://d.example/',
 	username: 'u',
 	password: 'p',
-	calendars: []
+	calendars: {}
 };
 
 beforeEach(() => {
@@ -85,7 +83,7 @@ describe('google', () => {
 describe('caldav', () => {
 	test('verifies against the configured credentials', async () => {
 		await getProviderAdapter(dav).verify();
-		expect(verifyCalDavProvider).toHaveBeenCalledWith(expect.objectContaining({ name: 'dav' }));
+		expect(verifyCalDavProvider).toHaveBeenCalledWith(expect.objectContaining({ type: 'caldav' }));
 	});
 
 	test('maps discovered calendars, using the path as the id', async () => {

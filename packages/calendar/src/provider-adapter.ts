@@ -51,7 +51,7 @@ class GoogleProviderAdapter implements ProviderAdapter {
 
 	private accessToken(): Promise<string> {
 		if (!this.provider.refresh_token) {
-			throw new Error(`Google provider "${this.provider.name}" is not connected`);
+			throw new Error('Google provider is not connected');
 		}
 		return getGoogleAccessToken({
 			client_id: this.provider.client_id,

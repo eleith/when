@@ -7,7 +7,7 @@ import { expandBusy } from './expand.js';
 export async function fetchBusyIntervals(
 	cal: ResolvedCalendar,
 	window: ExpandWindow,
-	opts: { services?: ConnectedProvider[]; excludeUids?: Set<string> } = {}
+	opts: { services?: Record<string, ConnectedProvider>; excludeUids?: Set<string> } = {}
 ): Promise<Interval[]> {
 	const adapter = getCalendarAdapter(cal, opts.services);
 	const events = await adapter.fetchBusy(window);

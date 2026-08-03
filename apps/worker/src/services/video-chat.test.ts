@@ -14,23 +14,15 @@ beforeEach(() => {
 
 const mockConfig = {
 	url: { app: 'https://when.example.com' },
-	providers: [
-		{
-			name: 'nc-service',
+	providers: {
+		'nc-service': {
 			type: 'nextcloud',
 			url: 'https://cloud.example.com',
 			username: 'user',
 			password: 'pwd'
 		}
-	],
-	calendars: [],
-	meetings: [
-		{
-			name: 'chat',
-			slug: 'chat',
-			video_chat_provider: 'nc-service'
-		}
-	]
+	},
+	meetings: { chat: { video_chat_provider: 'nc-service' } }
 } as unknown as WhenConfiguration;
 
 async function makeDb() {
@@ -212,14 +204,9 @@ describe('deleteStandaloneVideoChat', () => {
 		try {
 			const configWithVc = {
 				...mockConfig,
-				meetings: [
-					{
-						name: 'chat',
-						slug: 'chat',
-						booking_calendar: 'g-cal',
-						video_chat_provider: 'nc-service'
-					}
-				]
+				meetings: {
+					chat: { booking_calendar: 'g-cal', video_chat_provider: 'nc-service' }
+				}
 			} as unknown as WhenConfiguration;
 
 			await db
@@ -255,7 +242,7 @@ describe('deleteStandaloneVideoChat', () => {
 
 			await deleteStandaloneVideoChat(db, 'c2', configWithVc);
 
-			expect(getVideoChatAdapter).toHaveBeenCalledWith(mockConfig.providers![0]);
+			expect(getVideoChatAdapter).toHaveBeenCalledWith(mockConfig.providers['nc-service']);
 			expect(mockAdapter.deleteRoom).toHaveBeenCalledWith(
 				'https://cloud.example.com/call/room-abc'
 			);

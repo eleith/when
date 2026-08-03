@@ -40,18 +40,18 @@ export async function listProviders(
 	const connected = new Map(connections.map((c) => [c.providerName, c]));
 	const observedByName = new Map(providerStatus.map((s) => [s.name, s]));
 
-	return config.providers.map((provider) => {
+	return Object.entries(config.providers).map(([name, provider]) => {
 		const { usesOAuth } = getProviderAdapter(connectProvider(provider, null));
-		const calendars = provider.calendars.map((cal) => cal.name);
+		const calendars = Object.keys(provider.calendars);
 
 		return {
-			name: provider.name,
+			name,
 			type: provider.type,
-			connectedAt: connected.get(provider.name)?.connectedAt ?? null,
+			connectedAt: connected.get(name)?.connectedAt ?? null,
 			calendars,
 			endpoint: endpointOf(provider, usesOAuth, config.url.app),
 			usesOAuth,
-			observed: observedFrom(observedByName.get(provider.name))
+			observed: observedFrom(observedByName.get(name))
 		};
 	});
 }

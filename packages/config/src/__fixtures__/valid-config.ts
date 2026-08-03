@@ -34,27 +34,26 @@ export const validConfig: WhenConfiguration = {
 		user: 'mailer',
 		pass: 'secret'
 	},
-	providers: [
-		{
-			name: 'google-service',
+	providers: {
+		'google-service': {
 			type: 'google',
 			client_id: 'gc-id',
 			client_secret: 'gc-secret',
-			calendars: [{ name: 'my-google-cal', id: 'gc-calid', sync: { refresh_every_minutes: 10 } }]
+			calendars: {
+				'my-google-cal': { id: 'gc-calid', sync: { refresh_every_minutes: 10 } }
+			}
 		}
-	],
-	schedules: [
-		{
-			name: 'standard',
+	},
+	schedules: {
+		standard: {
 			weekly: [{ days: ['mon', 'tue', 'wed', 'thu', 'fri'], from: '09:00', to: '17:00' }]
 		}
-	],
-	meetings: [
-		{
-			name: '30-min-chat',
+	},
+	meetings: {
+		'30-min-chat': {
+			title: '30 minute chat',
 			duration_minutes: 30,
 			additional_duration_minutes: [],
-			slug: '30-min',
 			require_approval: false,
 			booking_calendar: 'my-google-cal',
 			schedule: 'standard',
@@ -67,7 +66,7 @@ export const validConfig: WhenConfiguration = {
 			padding_after_minutes: 0,
 			daily_booking_limit: null
 		}
-	],
+	},
 	database: {
 		app: './data/when.sqlite',
 		queue: './data/openworkflow.sqlite'

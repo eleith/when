@@ -26,7 +26,7 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 	const session = await locals.auth();
 	const isAdmin = !!session;
 	const cfg = getConfig();
-	const eventType = cfg.meetings.find((e) => e.slug === params.slug);
+	const eventType = cfg.meetings[params.slug];
 	if (!eventType) error(404, `No meeting with slug "${params.slug}"`);
 
 	// Strip malformed/unknown deep-link params up front by redirecting to the canonical URL.
@@ -54,10 +54,14 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 		redirect(307, query ? `${url.pathname}?${query}` : url.pathname);
 	}
 
-	const { slotsByDuration, workingWindows, busyBlocks } = await loadAvailability(cfg, eventType);
+	const { slotsByDuration, workingWindows, busyBlocks } = await loadAvailability(
+		cfg,
+		params.slug,
+		eventType
+	);
 
 	return {
-		eventType: toPublicEventType(eventType, isAdmin),
+		eventType: toPublicEventType(params.slug, eventType, isAdmin),
 		formFields: resolveFormFields(eventType),
 		availability: { slotsByDuration, workingWindows, busyBlocks },
 		reschedule: null,
@@ -68,7 +72,7 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 export const actions: Actions = {
 	book: async ({ request, params, cookies }) => {
 		const cfg = getConfig();
-		const eventType = cfg.meetings.find((e) => e.slug === params.slug);
+		const eventType = cfg.meetings[params.slug];
 		if (!eventType) error(404);
 
 		const form = await request.formData();
@@ -76,20 +80,20 @@ export const actions: Actions = {
 
 		const start = parseSlot(slotStr);
 		if (!start) {
-			bookingAttemptsTotal.inc({ event_type_id: eventType.name, status: 'invalid_input' });
+			bookingAttemptsTotal.inc({ event_type_id: params.slug, status: 'invalid_input' });
 			return fail(400, { error: 'Please pick a time slot.' });
 		}
 
 		const parsed = parseAndValidateAppointmentForm(eventType, form);
 		if (!parsed.ok) {
-			bookingAttemptsTotal.inc({ event_type_id: eventType.name, status: 'invalid_input' });
+			bookingAttemptsTotal.inc({ event_type_id: params.slug, status: 'invalid_input' });
 			return fail(400, { fieldErrors: parsed.errors });
 		}
 		const { name, email, answers, location: resolvedLocation } = parsed.data;
 
 		const duration = resolveDuration(eventType, form);
 		if (duration === null) {
-			bookingAttemptsTotal.inc({ event_type_id: eventType.name, status: 'invalid_input' });
+			bookingAttemptsTotal.inc({ event_type_id: params.slug, status: 'invalid_input' });
 			return fail(400, { error: 'Please pick a valid meeting length.' });
 		}
 
@@ -99,13 +103,7 @@ export const actions: Actions = {
 		const nowInstant = Temporal.Instant.fromEpochMilliseconds(systemClock.nowMs());
 		const rangeEnd = nowInstant.add({ hours: 24 * settings.maximum_lookahead });
 
-		const blocks = await loadAppointmentBlocks(
-			getDb(),
-			eventType.name,
-			nowInstant,
-			rangeEnd,
-			userTz
-		);
+		const blocks = await loadAppointmentBlocks(getDb(), params.slug, nowInstant, rangeEnd, userTz);
 		const remoteBusy = await slotDayBusy(getDb(), busyCalendarsFor(eventType), slotStr, userTz);
 		const slots = computeSlots({
 			settings: { ...settings, duration },
@@ -118,7 +116,7 @@ export const actions: Actions = {
 			perDayCount: blocks.perDayCount
 		});
 		if (!slots.some((s) => s.toString() === slotStr)) {
-			bookingAttemptsTotal.inc({ event_type_id: eventType.name, status: 'slot_taken' });
+			bookingAttemptsTotal.inc({ event_type_id: params.slug, status: 'slot_taken' });
 			return fail(409, { error: 'That time is no longer available. Please pick another.' });
 		}
 
@@ -127,6 +125,7 @@ export const actions: Actions = {
 		let created;
 		try {
 			created = await createAppointment(appointmentContext(), {
+				slug: params.slug,
 				eventType,
 				start: start.toString(),
 				end: end.toString(),
@@ -140,19 +139,19 @@ export const actions: Actions = {
 				initiator: 'guest'
 			});
 		} catch (err) {
-			bookingAttemptsTotal.inc({ event_type_id: eventType.name, status: 'database_error' });
+			bookingAttemptsTotal.inc({ event_type_id: params.slug, status: 'database_error' });
 			logger.error(
-				{ err, eventTypeId: eventType.name, slot: slotStr },
+				{ err, eventTypeId: params.slug, slot: slotStr },
 				'failed to insert appointment'
 			);
 			return fail(500, { error: 'Could not save the appointment. Please try again.' });
 		}
 		if (!created.ok) {
-			bookingAttemptsTotal.inc({ event_type_id: eventType.name, status: 'slot_taken' });
+			bookingAttemptsTotal.inc({ event_type_id: params.slug, status: 'slot_taken' });
 			return fail(409, { error: 'That time was just taken. Please pick another.' });
 		}
 
-		bookingAttemptsTotal.inc({ event_type_id: eventType.name, status: 'success' });
+		bookingAttemptsTotal.inc({ event_type_id: params.slug, status: 'success' });
 
 		cookies.set('submitted', 'request', {
 			path: '/',

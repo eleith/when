@@ -34,17 +34,17 @@ export async function listCalendars(
 	const lastSynced = new Map(syncStatus.map((s) => [s.name, s.last_ok_at]));
 
 	return allCalendars(config).map((resolved) => {
-		const { calendar, provider } = resolved;
-		const status = statuses.get(calendar.name);
+		const { calendar } = resolved;
+		const status = statuses.get(resolved.name);
 		return {
-			name: calendar.name,
+			name: resolved.name,
 			type: resolved.type,
-			provider: provider.name,
+			provider: resolved.providerName,
 			target: calendarTarget(resolved),
 			refreshEveryMinutes: calendar.sync.refresh_every_minutes,
 			health: status?.health ?? 'unknown',
 			reason: status?.reason ?? null,
-			lastSyncedAt: lastSynced.get(calendar.name) ?? null
+			lastSyncedAt: lastSynced.get(resolved.name) ?? null
 		};
 	});
 }

@@ -7,7 +7,7 @@ export function eventTypeName(
 	eventType: Meeting | undefined,
 	appointment: Pick<Appointment, 'event_type_id'>
 ): string {
-	return eventType?.name ?? appointment.event_type_id;
+	return eventType?.title ?? appointment.event_type_id;
 }
 
 export function guestLabel(a: Pick<Appointment, 'guest_name' | 'guest_email'>): string {

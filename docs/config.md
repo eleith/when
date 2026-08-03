@@ -104,8 +104,8 @@ smtp:
 
 ## `providers`
 
-External services and the calendars they serve. Three `type`s are supported: `google`,
-`caldav`, and `nextcloud`.
+External services and the calendars they serve, each keyed by the name you refer to it
+by. Three `type`s are supported: `google`, `caldav`, and `nextcloud`.
 
 A calendar is declared inside the provider that serves it, so it needs no `provider`
 reference and no `type` of its own — both are implied by where it sits. Calendars are
@@ -113,34 +113,34 @@ conflict sources (busy times) and/or appointment destinations.
 
 ```yaml
 providers:
-  - name: 'my-google-service'
+  my-google-service:
     type: 'google'
     client_id: '${GOOGLE_CLIENT_ID}'
     client_secret: '${GOOGLE_CLIENT_SECRET}'
     calendars:
-      - name: 'personal' # referenced by meetings
+      personal: # referenced by meetings
         id: 'primary' # the Google calendar ID
         sync:
           refresh_every_minutes: 10 # minutes between busy-time refreshes (default 10)
-  - name: 'my-caldav-service'
+  my-caldav-service:
     type: 'caldav'
     url: 'https://cloud.example.com/remote.php/dav/'
     username: 'jane'
     password: '${CALDAV_PASSWORD}'
     calendars:
-      - name: 'work'
+      work:
         href: 'calendars/jane/work/' # joined to the provider url
-      - name: 'shared'
+      shared:
         href: 'https://other.example.com/dav/shared/' # ...or a full URL of its own
-  - name: 'my-nextcloud-service'
+  my-nextcloud-service:
     type: 'nextcloud'
     url: 'https://nextcloud.example.com/'
     username: 'jane'
     password: '${NEXTCLOUD_PASSWORD}'
-    calendars: []
+    calendars: {}
 ```
 
-**Calendar names must be unique across every provider**, since meetings reference them by
+**Calendar keys must be unique across every provider**, since meetings reference them by
 name alone. A CalDAV or Nextcloud calendar names its location with `href`, which is either joined to
 the provider's `url` or a full URL of its own. `sync.refresh_every_minutes` is optional
 everywhere. A Google provider carries no refresh token in `when.yaml` — connect it from
@@ -148,13 +148,13 @@ everywhere. A Google provider carries no refresh token in `when.yaml` — connec
 
 ## `schedules`
 
-A list of weekly schedules defining availability slots. `weekly` is a list of
-rules, each naming the `days` it applies to and a `from`/`to` window (24-hour
+Weekly schedules defining availability slots, keyed by the name meetings refer to.
+`weekly` is a list of rules, each naming the `days` it applies to and a `from`/`to` window (24-hour
 `HH:MM`, in `user.timezone`). Availability is the union of all rules.
 
 ```yaml
 schedules:
-  - name: 'standard' # unique name referenced by meetings
+  standard: # the key is the name meetings reference
     weekly: # optional; defaults to Monday–Friday 09:00–17:00 when omitted
       - days: [mon, tue, wed, thu]
         from: '09:00'
@@ -171,14 +171,17 @@ schedules:
 
 ## `meetings`
 
-The meetings people can book. `name`, `schedule`, and `booking_calendar` are required — every meeting names where it books and when. `duration_minutes` (30), `require_approval` (true), `show_slots` (false), and `slug` (a slug of `name`) all default; everything else is optional.
+The meetings people can book. **The key is the URL slug** — `30-min-chat` is booked at
+`/schedule/30-min-chat`. `title`, `schedule`, and `booking_calendar` are required — every
+meeting names what it is, where it books, and when. `duration_minutes` (30),
+`require_approval` (true), and `show_slots` (false) all default; everything else is optional.
 
 ```yaml
 meetings:
-  - name: '30-minute chat'
+  chat: # URL slug: /schedule/chat
+    title: '30-minute chat'
     duration_minutes: 30 # the default length offered (default 30)
     additional_duration_minutes: [15, 60] # further lengths the guest may pick
-    slug: 'chat' # URL slug: /schedule/chat (defaults to a slug of the name)
     description: 'A quick intro call.'
     visibility: 'public' # 'public' (default) or 'unlisted' (kept off the homepage; the link still works)
     require_approval: true # true (default, host approves each booking) or false (instant)

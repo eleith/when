@@ -16,7 +16,7 @@ export type { PushOptions, PushResult, DeleteResult };
  */
 export async function pushAppointment(
 	cfg: WhenConfiguration,
-	services: ConnectedProvider[],
+	services: Record<string, ConnectedProvider>,
 	appointment: Appointment,
 	destinationCalendarId: string,
 	opts: PushOptions
@@ -24,16 +24,15 @@ export async function pushAppointment(
 	const cal = findCalendar(cfg, destinationCalendarId);
 	if (!cal) return { ok: false, reason: `unknown destination calendar "${destinationCalendarId}"` };
 
-	const eventType = cfg.meetings.find((e) => e.name === appointment.event_type_id);
-	const eventTypeName = eventType?.name ?? appointment.event_type_id;
+	const eventTypeName = cfg.meetings[appointment.event_type_id]?.title ?? appointment.event_type_id;
 
 	try {
 		const adapter = getCalendarAdapter(cal, services);
 		return await adapter.pushAppointment(cfg, appointment, eventTypeName, opts);
 	} catch (err) {
 		logger.error(
-			{ err, calendarId: cal.calendar.name, appointmentId: appointment.id },
-			` push failed`
+			{ err, calendarId: cal.name, appointmentId: appointment.id },
+			`${cal.type} push failed`
 		);
 		return { ok: false, reason: String(err) };
 	}
@@ -45,7 +44,7 @@ export async function pushAppointment(
  */
 export async function deleteAppointmentFromCalendar(
 	cfg: WhenConfiguration,
-	services: ConnectedProvider[],
+	services: Record<string, ConnectedProvider>,
 	externalCalendarId: string,
 	externalEventId: string
 ): Promise<DeleteResult> {
@@ -56,7 +55,7 @@ export async function deleteAppointmentFromCalendar(
 		const adapter = getCalendarAdapter(cal, services);
 		return await adapter.deleteAppointment(externalEventId);
 	} catch (err) {
-		logger.error({ err, calendarId: cal.calendar.name, externalEventId }, ` delete failed`);
+		logger.error({ err, calendarId: cal.name, externalEventId }, `${cal.type} delete failed`);
 		return { ok: false, reason: String(err) };
 	}
 }

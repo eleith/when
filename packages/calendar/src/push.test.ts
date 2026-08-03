@@ -35,35 +35,30 @@ const baseAppointment: Appointment = {
 	guest_timezone: 'America/New_York'
 };
 
-const davServices: ConnectedProvider[] = [
-	{
-		name: 'work-dav-service',
+const davServices: Record<string, ConnectedProvider> = {
+	'work-dav-service': {
 		type: 'caldav',
 		url: caldavCfg.url,
 		username: 'jane',
 		password: 'secret',
-		calendars: []
+		calendars: {}
 	}
-];
+};
 
 const cfgWithCalDav: WhenConfiguration = {
 	...validConfig,
-	providers: [
-		{
-			name: 'work-dav-service',
+	providers: {
+		'work-dav-service': {
 			type: 'caldav',
 			url: caldavCfg.url,
 			username: 'jane',
 			password: 'secret',
-			calendars: [{ name: 'work', href: caldavCfg.url, sync: { refresh_every_minutes: 10 } }]
+			calendars: { work: { href: caldavCfg.url, sync: { refresh_every_minutes: 10 } } }
 		}
-	],
-	meetings: [
-		{
-			...validConfig.meetings[0],
-			booking_calendar: 'work'
-		}
-	]
+	},
+	meetings: {
+		'30-min-chat': { ...validConfig.meetings['30-min-chat'], booking_calendar: 'work' }
+	}
 };
 
 beforeEach(() => {
@@ -145,28 +140,28 @@ test('pushAppointment routes to CalDAV PUT and returns external ids', async () =
 test('pushAppointment fails cleanly when the google service is not connected', async () => {
 	const cfgGoogle: WhenConfiguration = {
 		...validConfig,
-		providers: [
-			{
-				name: 'google-service-2',
+		providers: {
+			'google-service-2': {
 				type: 'google',
 				client_id: 'gid',
 				client_secret: 'gsec',
-				calendars: [{ name: 'g', id: 'gcal', sync: { refresh_every_minutes: 10 } }]
+				calendars: { g: { id: 'gcal', sync: { refresh_every_minutes: 10 } } }
 			}
-		],
-		meetings: [{ ...validConfig.meetings[0], booking_calendar: 'g' }]
+		},
+		meetings: {
+			'30-min-chat': { ...validConfig.meetings['30-min-chat'], booking_calendar: 'g' }
+		}
 	};
 
-	const disconnected: ConnectedProvider[] = [
-		{
-			name: 'google-service-2',
+	const disconnected: Record<string, ConnectedProvider> = {
+		'google-service-2': {
 			type: 'google',
 			client_id: 'gid',
 			client_secret: 'gsec',
-			calendars: [],
+			calendars: {},
 			refresh_token: null
 		}
-	];
+	};
 	const fetchSpy = vi.spyOn(globalThis, 'fetch');
 
 	const result = await pushAppointment(cfgGoogle, disconnected, baseAppointment, 'g', {
@@ -181,16 +176,17 @@ test('pushAppointment fails cleanly when the google service is not connected', a
 test('pushAppointment succeeds on Google calendar', async () => {
 	const cfgGoogle: WhenConfiguration = {
 		...validConfig,
-		providers: [
-			{
-				name: 'google-service-2',
+		providers: {
+			'google-service-2': {
 				type: 'google',
 				client_id: 'gid',
 				client_secret: 'gsec',
-				calendars: [{ name: 'g', id: 'gcal', sync: { refresh_every_minutes: 10 } }]
+				calendars: { g: { id: 'gcal', sync: { refresh_every_minutes: 10 } } }
 			}
-		],
-		meetings: [{ ...validConfig.meetings[0], booking_calendar: 'g' }]
+		},
+		meetings: {
+			'30-min-chat': { ...validConfig.meetings['30-min-chat'], booking_calendar: 'g' }
+		}
 	};
 
 	let reqCount = 0;
@@ -207,16 +203,15 @@ test('pushAppointment succeeds on Google calendar', async () => {
 		return new Response('Not found', { status: 404 });
 	});
 
-	const connectedGoogle: ConnectedProvider[] = [
-		{
-			name: 'google-service-2',
+	const connectedGoogle: Record<string, ConnectedProvider> = {
+		'google-service-2': {
 			type: 'google',
 			client_id: 'gid',
 			client_secret: 'gsec',
-			calendars: [],
+			calendars: {},
 			refresh_token: 'gtoken'
 		}
-	];
+	};
 	const result = await pushAppointment(cfgGoogle, connectedGoogle, baseAppointment, 'g', {
 		cancelUrl: 'https://when.example.com/appointment/appt-xyz?token=tok'
 	});

@@ -7,7 +7,7 @@ describe('appointmentPending', () => {
 	test('guest (request received) + host (review request), no ics', () => {
 		const withType = {
 			...sampleInput,
-			eventType: { name: '30 Minute Chat', duration_minutes: 30 } as Meeting
+			eventType: { title: '30 Minute Chat', duration_minutes: 30 } as Meeting
 		};
 		const [guest, host] = appointmentPending(withType);
 

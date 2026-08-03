@@ -21,19 +21,18 @@ vi.mock('@when/calendar', async (importOriginal) => {
 });
 
 const service: GoogleProvider = {
-	name: 'gg',
 	type: 'google',
 	client_id: 'cid',
 	client_secret: 'csec',
-	calendars: []
+	calendars: {}
 };
 
 const config = {
 	url: { app: 'https://book.example.com' },
-	providers: [
-		service,
-		{ name: 'dav', type: 'caldav', url: 'https://d.example/', username: 'u', password: 'p' }
-	]
+	providers: {
+		gg: service,
+		dav: { type: 'caldav', url: 'https://d.example/', username: 'u', password: 'p' }
+	}
 } as unknown as WhenConfiguration;
 
 let db: ReturnType<typeof openDb>;
@@ -97,7 +96,13 @@ describe('completeGoogleConnect', () => {
 	test('stores the token after verifying it works', async () => {
 		exchangeReturns('rt-new');
 
-		const result = await completeGoogleConnect(db, service, 'code-1', 'https://book.example.com');
+		const result = await completeGoogleConnect(
+			db,
+			'gg',
+			service,
+			'code-1',
+			'https://book.example.com'
+		);
 
 		expect(result.ok).toBe(true);
 		expect(getGoogleAccessToken).toHaveBeenCalled();
@@ -107,7 +112,7 @@ describe('completeGoogleConnect', () => {
 	test('exchanges against the same redirect uri it consented with', async () => {
 		exchangeReturns('rt-new');
 
-		await completeGoogleConnect(db, service, 'code-1', 'https://book.example.com');
+		await completeGoogleConnect(db, 'gg', service, 'code-1', 'https://book.example.com');
 
 		expect(exchangeGoogleAuthCode).toHaveBeenCalledWith(
 			'cid',
@@ -120,7 +125,13 @@ describe('completeGoogleConnect', () => {
 	test('stores nothing when google returns no refresh token', async () => {
 		exchangeReturns('');
 
-		const result = await completeGoogleConnect(db, service, 'code-1', 'https://book.example.com');
+		const result = await completeGoogleConnect(
+			db,
+			'gg',
+			service,
+			'code-1',
+			'https://book.example.com'
+		);
 
 		expect(result).toMatchObject({ ok: false });
 		expect(await getProviderRefreshToken(db, 'gg')).toBeNull();
@@ -129,7 +140,13 @@ describe('completeGoogleConnect', () => {
 	test('stores nothing when the exchange fails', async () => {
 		vi.mocked(exchangeGoogleAuthCode).mockRejectedValue(new Error('invalid_grant'));
 
-		const result = await completeGoogleConnect(db, service, 'bad', 'https://book.example.com');
+		const result = await completeGoogleConnect(
+			db,
+			'gg',
+			service,
+			'bad',
+			'https://book.example.com'
+		);
 
 		expect(result).toMatchObject({ ok: false, reason: 'invalid_grant' });
 		expect(await getProviderRefreshToken(db, 'gg')).toBeNull();
@@ -139,7 +156,13 @@ describe('completeGoogleConnect', () => {
 		exchangeReturns('rt-dud');
 		vi.mocked(getGoogleAccessToken).mockRejectedValue(new Error('Google token refresh failed'));
 
-		const result = await completeGoogleConnect(db, service, 'code-1', 'https://book.example.com');
+		const result = await completeGoogleConnect(
+			db,
+			'gg',
+			service,
+			'code-1',
+			'https://book.example.com'
+		);
 
 		expect(result).toMatchObject({ ok: false });
 		expect(await getProviderRefreshToken(db, 'gg')).toBeNull();
@@ -149,7 +172,7 @@ describe('completeGoogleConnect', () => {
 		await saveProviderRefreshToken(db, 'gg', 'rt-working');
 		vi.mocked(exchangeGoogleAuthCode).mockRejectedValue(new Error('invalid_grant'));
 
-		await completeGoogleConnect(db, service, 'bad', 'https://book.example.com');
+		await completeGoogleConnect(db, 'gg', service, 'bad', 'https://book.example.com');
 
 		expect(await getProviderRefreshToken(db, 'gg')).toBe('rt-working');
 	});
@@ -164,7 +187,7 @@ describe('connecting over an existing token', () => {
 			expires_in: 3600
 		});
 
-		await completeGoogleConnect(db, service, 'code-1', 'https://book.example.com');
+		await completeGoogleConnect(db, 'gg', service, 'code-1', 'https://book.example.com');
 
 		expect(await getProviderRefreshToken(db, 'gg')).toBe('rt-new');
 	});
@@ -179,7 +202,7 @@ describe('connecting over an existing token', () => {
 			expires_in: 3600
 		});
 
-		await completeGoogleConnect(db, service, 'code-1', 'https://book.example.com');
+		await completeGoogleConnect(db, 'gg', service, 'code-1', 'https://book.example.com');
 
 		expect(revokeGoogleToken).not.toHaveBeenCalled();
 	});

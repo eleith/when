@@ -19,25 +19,25 @@ smtp:
   pass: 'e2e-smtp-password'
 
 providers:
-  - name: 'fixture-service'
+  fixture-service:
     type: 'caldav'
     url: 'http://caldav.example.test/dav/'
     username: 'e2e'
     password: 'e2e-caldav-password'
     calendars:
-      - name: 'main'
+      main:
         href: 'calendars/e2e/main/'
 
 schedules:
-  - name: 'standard'
+  standard:
     weekly:
       - days: [mon, tue, wed, thu, fri]
         from: '09:00'
         to: '17:00'
 
 meetings:
-  - name: '30-minute chat'
-    slug: 'chat'
+  chat:
+    title: '30-minute chat'
     duration_minutes: 30
     require_approval: true
     description: 'A quick introductory call.'

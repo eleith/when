@@ -11,20 +11,21 @@ const window = { start: inst('2026-04-01T00:00:00Z'), end: inst('2026-05-01T00:0
 const silent: Logger = pino({ level: 'silent' });
 
 const workDav = {
-	name: 'work-dav',
 	type: 'caldav' as const,
 	url: 'https://cal.example.com/work/',
 	username: 'jane',
 	password: 'secret',
-	calendars: [
-		{ name: 'work', href: 'https://cal.example.com/work/', sync: { refresh_every_minutes: 10 } }
-	]
+	calendars: {
+		work: { href: 'https://cal.example.com/work/', sync: { refresh_every_minutes: 10 } }
+	}
 };
 
 const workCal: ResolvedCalendar = {
 	type: 'caldav',
+	name: 'work',
+	providerName: 'work-dav',
 	provider: workDav,
-	calendar: workDav.calendars[0]
+	calendar: workDav.calendars.work
 };
 
 const oneEvent = (uid: string) => `<?xml version="1.0"?>
@@ -47,14 +48,13 @@ END:VCALENDAR</C:calendar-data>
 const defaultTestConfig = {
 	url: { app: 'https://when.example.com' },
 	user: { name: 'Jane', email: 'jane@example.com' },
-	providers: [workDav],
-	schedules: [
-		{
-			name: 'standard',
+	providers: { 'work-dav': workDav },
+	schedules: {
+		standard: {
 			weekly: [{ days: ['mon', 'tue', 'wed', 'thu', 'fri'], from: '09:00', to: '17:00' }]
 		}
-	],
-	meetings: []
+	},
+	meetings: {}
 };
 
 async function ctxWithDb(configOverrides: Partial<WhenConfiguration> = {}): Promise<WorkerContext> {
@@ -200,26 +200,26 @@ test('refreshCalendar drops our own published event', async () => {
 
 test('busyCalendarIds unions and dedupes across meetings', () => {
 	const config = {
-		meetings: [
-			{ booking_calendar: 'a', additional_busy_calendars: ['b'] },
-			{ booking_calendar: 'a', additional_busy_calendars: ['b', 'c'] },
-			{ booking_calendar: 'a', additional_busy_calendars: [] }
-		]
+		meetings: {
+			one: { booking_calendar: 'a', additional_busy_calendars: ['b'] },
+			two: { booking_calendar: 'a', additional_busy_calendars: ['b', 'c'] },
+			three: { booking_calendar: 'a', additional_busy_calendars: [] }
+		}
 	} as unknown as WhenConfiguration;
 	expect(busyCalendarIds(config).sort()).toEqual(['a', 'b', 'c']);
 });
 
 test('busyCalendarIds refreshes a booking calendar no meeting lists as busy', () => {
 	const config = {
-		meetings: [{ booking_calendar: 'personal', additional_busy_calendars: [] }]
+		meetings: { chat: { booking_calendar: 'personal', additional_busy_calendars: [] } }
 	} as unknown as WhenConfiguration;
 	expect(busyCalendarIds(config)).toEqual(['personal']);
 });
 
 test('busyCalendarIds ignores a configured calendar no meeting references', () => {
 	const config = {
-		calendars: [{ name: 'personal' }, { name: 'unused' }],
-		meetings: [{ booking_calendar: 'personal', additional_busy_calendars: [] }]
+		providers: { p: { calendars: { personal: {}, unused: {} } } },
+		meetings: { chat: { booking_calendar: 'personal', additional_busy_calendars: [] } }
 	} as unknown as WhenConfiguration;
 	expect(busyCalendarIds(config)).toEqual(['personal']);
 });
@@ -227,27 +227,27 @@ test('busyCalendarIds ignores a configured calendar no meeting references', () =
 test('refreshWindow uses the max lookahead among meetings using the calendar', () => {
 	const now = inst('2026-04-15T00:00:00Z');
 	const config = {
-		schedules: [{ name: 'standard' }],
-		meetings: [
-			{
+		schedules: { standard: {} },
+		meetings: {
+			one: {
 				booking_calendar: 'primary',
 				additional_busy_calendars: ['work'],
 				booking_window_days: 30,
 				schedule: 'standard'
 			},
-			{
+			two: {
 				booking_calendar: 'primary',
 				additional_busy_calendars: ['work'],
 				booking_window_days: 90,
 				schedule: 'standard'
 			},
-			{
+			three: {
 				booking_calendar: 'primary',
 				additional_busy_calendars: ['other'],
 				booking_window_days: 120,
 				schedule: 'standard'
 			}
-		]
+		}
 	} as unknown as WhenConfiguration;
 	const w = refreshWindow(config, 'work', now);
 	expect(w.end.toString()).toBe(now.add({ hours: 24 * 90 }).toString());
@@ -256,15 +256,15 @@ test('refreshWindow uses the max lookahead among meetings using the calendar', (
 test('refreshWindow uses the default lookahead for a calendar no meeting references', () => {
 	const now = inst('2026-04-15T00:00:00Z');
 	const config = {
-		schedules: [{ name: 'standard' }],
-		meetings: [
-			{
+		schedules: { standard: {} },
+		meetings: {
+			one: {
 				booking_calendar: 'primary',
 				additional_busy_calendars: ['work'],
 				booking_window_days: 30,
 				schedule: 'standard'
 			}
-		]
+		}
 	} as unknown as WhenConfiguration;
 	const w = refreshWindow(config, 'unreferenced', now);
 	expect(w.end.toString()).toBe(now.add({ hours: 24 * 60 }).toString());
@@ -272,14 +272,14 @@ test('refreshWindow uses the default lookahead for a calendar no meeting referen
 
 test('refreshCalendars mirrors a booking calendar no meeting lists as busy', async () => {
 	const ctx = await ctxWithDb({
-		meetings: [
-			{
+		meetings: {
+			one: {
 				booking_calendar: 'work',
 				additional_busy_calendars: [],
 				booking_window_days: 60,
 				schedule: 'standard'
 			}
-		]
+		}
 	} as unknown as Partial<WhenConfiguration>);
 	try {
 		vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(oneEvent('r1'), { status: 207 }));
@@ -300,16 +300,16 @@ test('refreshCalendars refreshes known busy calendars and skips unknown ids', as
 	await runMigrations(db);
 	const ctx: WorkerContext = {
 		config: {
-			schedules: [{ name: 'standard' }],
+			schedules: { standard: {} },
 			providers: defaultTestConfig.providers,
-			meetings: [
-				{
+			meetings: {
+				one: {
 					booking_calendar: 'work',
 					additional_busy_calendars: ['ghost'],
 					booking_window_days: 60,
 					schedule: 'standard'
 				}
-			]
+			}
 		} as unknown as WhenConfiguration,
 		logger: silent,
 		db,
@@ -341,21 +341,21 @@ test('refreshCalendars skips a calendar refreshed within its interval, refreshes
 	await runMigrations(db);
 	const ctx: WorkerContext = {
 		config: {
-			schedules: [{ name: 'standard' }],
-			providers: [
-				{
+			schedules: { standard: {} },
+			providers: {
+				'work-dav': {
 					...workDav,
-					calendars: [{ ...workDav.calendars[0], sync: { refresh_every_minutes: 30 } }]
+					calendars: { work: { ...workDav.calendars.work, sync: { refresh_every_minutes: 30 } } }
 				}
-			],
-			meetings: [
-				{
+			},
+			meetings: {
+				one: {
 					booking_calendar: 'work',
 					additional_busy_calendars: [],
 					booking_window_days: 60,
 					schedule: 'standard'
 				}
-			]
+			}
 		} as unknown as WhenConfiguration,
 		logger: silent,
 		db,

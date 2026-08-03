@@ -20,21 +20,19 @@ const client = { runWorkflow: vi.fn() };
 
 const config = {
 	url: { app: 'https://book.example.com', worker: 'http://when-worker:9000' },
-	providers: [
-		{
-			name: 'gg',
+	providers: {
+		gg: {
 			type: 'google',
 			client_id: 'cid',
 			client_secret: 'csec',
-			calendars: [{ name: 'work', id: 'primary', sync: { refresh_every_minutes: 10 } }]
+			calendars: { work: { id: 'primary', sync: { refresh_every_minutes: 10 } } }
 		},
-		{
-			name: 'dav',
+		dav: {
 			type: 'caldav',
-			calendars: [{ name: 'home', href: 'calendars/u/home/', sync: { refresh_every_minutes: 30 } }]
+			calendars: { home: { href: 'calendars/u/home/', sync: { refresh_every_minutes: 30 } } }
 		}
-	],
-	meetings: []
+	},
+	meetings: {}
 } as unknown as WhenConfiguration;
 
 let db: ReturnType<typeof openDb>;

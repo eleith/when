@@ -13,9 +13,10 @@ async function makeDb() {
 	return db;
 }
 
-const eventType = validConfig.meetings[0];
+const eventType = validConfig.meetings['30-min-chat'];
 
 const input = {
+	slug: '30-min-chat',
 	start: '2099-01-01T15:00:00Z',
 	end: '2099-01-01T15:30:00Z',
 	guest: {
@@ -67,7 +68,7 @@ describe('createAppointment', () => {
 			const result = await createAppointment(
 				{
 					db,
-					cfg: { ...validConfig, meetings: [reqType] as typeof validConfig.meetings },
+					cfg: { ...validConfig, meetings: { '30-min-chat': reqType } },
 					clock: systemClock
 				},
 				{ ...input, eventType: reqType }
@@ -94,7 +95,7 @@ describe('createAppointment', () => {
 			const result = await createAppointment(
 				{
 					db,
-					cfg: { ...validConfig, meetings: [reqType] as typeof validConfig.meetings },
+					cfg: { ...validConfig, meetings: { '30-min-chat': reqType } },
 					clock: systemClock
 				},
 				{ ...input, eventType: reqType, initiator: 'host' }
@@ -121,7 +122,7 @@ describe('createAppointment', () => {
 				.insertInto('appointments')
 				.values({
 					id: 'existing',
-					event_type_id: eventType.name,
+					event_type_id: '30-min-chat',
 					start_time: input.start,
 					end_time: input.end,
 					guest_name: 'Other',

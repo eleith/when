@@ -52,7 +52,7 @@ export const sampleConfig = {
 	},
 	smtp: { host: 'smtp.test', port: 587, user: 'mailer', pass: 'secret' },
 	url: { app: 'https://when.example.com' },
-	meetings: []
+	meetings: {}
 } as unknown as WhenConfiguration;
 
 export const sampleLinks: AppointmentLinks = {

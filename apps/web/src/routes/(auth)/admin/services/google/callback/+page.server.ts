@@ -37,8 +37,14 @@ export const load: PageServerLoad = async ({ url, cookies }) => {
 		};
 	}
 
-	const result = await completeGoogleConnect(getDb(), service, code, config.url.app);
+	const result = await completeGoogleConnect(
+		getDb(),
+		pending.service,
+		service,
+		code,
+		config.url.app
+	);
 	return result.ok
-		? { service: service.name, error: null }
-		: { service: service.name, error: result.reason };
+		? { service: pending.service, error: null }
+		: { service: pending.service, error: result.reason };
 };

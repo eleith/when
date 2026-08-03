@@ -150,10 +150,12 @@ function decodeXmlEntities(s: string): string {
 }
 
 export class CalDavAdapter implements CalendarAdapter {
+	private name: string;
 	private cal: CalDavCalendar;
 	private service?: CalDavProvider | NextcloudProvider;
 
-	constructor(cal: CalDavCalendar, service?: CalDavProvider | NextcloudProvider) {
+	constructor(name: string, cal: CalDavCalendar, service?: CalDavProvider | NextcloudProvider) {
+		this.name = name;
 		this.cal = cal;
 		this.service = service;
 	}
@@ -161,7 +163,7 @@ export class CalDavAdapter implements CalendarAdapter {
 	private get adapterCfg(): CalDavConfig {
 		if (!this.service) {
 			throw new Error(
-				`CalDAV provider for calendar "${this.cal.name}" was not provided to CalDavAdapter`
+				`CalDAV provider for calendar "${this.name}" was not provided to CalDavAdapter`
 			);
 		}
 		const calUrl = URL.canParse(this.cal.href)
@@ -196,7 +198,7 @@ export class CalDavAdapter implements CalendarAdapter {
 
 		const uid = originId(appointment);
 		await putCalDavEvent(this.adapterCfg, uid, ics);
-		return { ok: true, externalEventId: uid, externalCalendarId: this.cal.name };
+		return { ok: true, externalEventId: uid, externalCalendarId: this.name };
 	}
 
 	async deleteAppointment(externalEventId: string): Promise<DeleteResult> {

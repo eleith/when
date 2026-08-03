@@ -7,14 +7,14 @@ export const load: PageServerLoad = async ({ locals }) => {
 	const isAdmin = !!session;
 	const cfg = getConfig();
 
-	const eventTypes = cfg.meetings
-		.filter((e) => e.visibility === 'public')
-		.map((e) => ({
-			id: e.name,
-			name: e.name,
-			slug: e.slug,
+	const eventTypes = Object.entries(cfg.meetings)
+		.filter(([, e]) => e.visibility === 'public')
+		.map(([slug, e]) => ({
+			id: slug,
+			name: e.title,
+			slug,
 			description: e.description ?? null,
-			// Ascending for the card rail's span; config order marks the booking default, unused here.
+			// Ascending for the card rail's span.
 			durations: durationsOf(e).toSorted((a, b) => a - b)
 		}));
 

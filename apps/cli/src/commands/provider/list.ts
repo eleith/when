@@ -5,17 +5,21 @@ import { loadConfigFromCtx } from '../../utils/command.ts';
 import { openAppDb, type AppDatabase } from '../../utils/db.ts';
 import { pass, fail } from '../../utils/report.ts';
 
-export async function runProviderList(providers: Provider[], db: AppDatabase): Promise<void> {
-	if (providers.length === 0) {
+export async function runProviderList(
+	providers: Record<string, Provider>,
+	db: AppDatabase
+): Promise<void> {
+	const entries = Object.entries(providers);
+	if (entries.length === 0) {
 		console.log('No providers configured.');
 		return;
 	}
 
 	const observed = new Map((await listServiceStatus(db, 'provider')).map((s) => [s.name, s]));
 
-	for (const provider of providers) {
-		const label = `${provider.name} (${provider.type})`;
-		const status = observed.get(provider.name);
+	for (const [name, provider] of entries) {
+		const label = `${name} (${provider.type})`;
+		const status = observed.get(name);
 		if (!status) console.log(`${label} — not yet observed`);
 		else if (status.error)
 			fail(`${label} — failing since ${status.failing_since}: ${status.error}`);

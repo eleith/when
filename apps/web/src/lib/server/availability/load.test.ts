@@ -18,19 +18,20 @@ import { loadAvailability, isSlotBookable } from './load';
 
 // A day whose whole 09:00–17:00 UTC window sits ahead of "now" (00:00 UTC).
 const DAY = '2030-06-03';
+const CHAT = '30-min-chat';
 // 16:30 fits a 30-min meeting (ends 17:00) but not a 60-min one (ends 17:30, past the window).
 const EDGE_START = `${DAY}T16:30:00Z`;
 
 function makeConfig(durations: number[]): WhenConfiguration {
 	const cfg: WhenConfiguration = JSON.parse(JSON.stringify(validConfig));
 	cfg.user.timezone = 'UTC';
-	cfg.schedules[0].weekly = [
+	cfg.schedules.standard.weekly = [
 		{ days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'], from: '09:00', to: '17:00' }
 	];
-	cfg.meetings[0].duration_minutes = durations[0];
-	cfg.meetings[0].additional_duration_minutes = durations.slice(1);
-	cfg.meetings[0].notice_minutes = 0;
-	cfg.meetings[0].booking_window_days = 7;
+	cfg.meetings[CHAT].duration_minutes = durations[0];
+	cfg.meetings[CHAT].additional_duration_minutes = durations.slice(1);
+	cfg.meetings[CHAT].notice_minutes = 0;
+	cfg.meetings[CHAT].booking_window_days = 7;
 	return cfg;
 }
 
@@ -47,7 +48,7 @@ describe('loadAvailability per-duration slots', () => {
 
 	test('precomputes one slot set per offered length', async () => {
 		const cfg = makeConfig([30, 60]);
-		const { durations, slotsByDuration } = await loadAvailability(cfg, cfg.meetings[0]);
+		const { durations, slotsByDuration } = await loadAvailability(cfg, CHAT, cfg.meetings[CHAT]);
 		expect(durations).toEqual([30, 60]);
 		expect(Object.keys(slotsByDuration)).toEqual(['30', '60']);
 		expect(slotsByDuration[30][DAY].length).toBeGreaterThan(0);
@@ -56,32 +57,32 @@ describe('loadAvailability per-duration slots', () => {
 
 	test('a start that fits the short length but not the long one is only in the short set', async () => {
 		const cfg = makeConfig([30, 60]);
-		const { slotsByDuration } = await loadAvailability(cfg, cfg.meetings[0]);
+		const { slotsByDuration } = await loadAvailability(cfg, CHAT, cfg.meetings[CHAT]);
 		expect(slotsByDuration[30][DAY]).toContain(EDGE_START);
 		expect(slotsByDuration[60][DAY]).not.toContain(EDGE_START);
 	});
 
 	test('isSlotBookable answers per chosen length', async () => {
 		const cfg = makeConfig([30, 60]);
-		const et = cfg.meetings[0];
-		expect(await isSlotBookable(cfg, et, EDGE_START, 30)).toBe(true);
-		expect(await isSlotBookable(cfg, et, EDGE_START, 60)).toBe(false);
+		const et = cfg.meetings[CHAT];
+		expect(await isSlotBookable(cfg, CHAT, et, EDGE_START, 30)).toBe(true);
+		expect(await isSlotBookable(cfg, CHAT, et, EDGE_START, 60)).toBe(false);
 	});
 
 	test('the busy lookup covers the booking calendar, not only the listed ones', async () => {
 		const cfg = makeConfig([30]);
-		cfg.meetings[0].booking_calendar = 'personal';
-		cfg.meetings[0].additional_busy_calendars = ['work'];
+		cfg.meetings[CHAT].booking_calendar = 'personal';
+		cfg.meetings[CHAT].additional_busy_calendars = ['work'];
 		vi.mocked(getBusyIntervals).mockClear();
 
-		await loadAvailability(cfg, cfg.meetings[0]);
+		await loadAvailability(cfg, CHAT, cfg.meetings[CHAT]);
 
 		expect(vi.mocked(getBusyIntervals).mock.calls[0][1]).toEqual(['personal', 'work']);
 	});
 
 	test('a single-length meeting keys the map by that one length', async () => {
 		const cfg = makeConfig([30]);
-		const { durations, slotsByDuration } = await loadAvailability(cfg, cfg.meetings[0]);
+		const { durations, slotsByDuration } = await loadAvailability(cfg, CHAT, cfg.meetings[CHAT]);
 		expect(durations).toEqual([30]);
 		expect(Object.keys(slotsByDuration)).toEqual(['30']);
 	});
@@ -101,7 +102,7 @@ describe('loadAvailability across meeting types', () => {
 	// A second meeting type sharing the schedule, so both offer the same slots.
 	function withTwoTypes(): WhenConfiguration {
 		const cfg = makeConfig([30]);
-		cfg.meetings.push({ ...cfg.meetings[0], name: 'lunch', slug: 'lunch' });
+		cfg.meetings.lunch = { ...cfg.meetings[CHAT] };
 		return cfg;
 	}
 
@@ -129,18 +130,18 @@ describe('loadAvailability across meeting types', () => {
 		const cfg = withTwoTypes();
 		await book('lunch', `${DAY}T10:00:00Z`, `${DAY}T10:30:00Z`);
 
-		const { slotsByDuration } = await loadAvailability(cfg, cfg.meetings[0]);
+		const { slotsByDuration } = await loadAvailability(cfg, CHAT, cfg.meetings[CHAT]);
 		expect(slotsByDuration[30][DAY]).not.toContain(`${DAY}T10:00:00Z`);
-		expect(await isSlotBookable(cfg, cfg.meetings[0], `${DAY}T10:00:00Z`, 30)).toBe(false);
+		expect(await isSlotBookable(cfg, CHAT, cfg.meetings[CHAT], `${DAY}T10:00:00Z`, 30)).toBe(false);
 	});
 
 	test('daily_booking_limit still counts only its own meeting type', async () => {
 		const cfg = withTwoTypes();
-		cfg.meetings[0].daily_booking_limit = 1;
+		cfg.meetings[CHAT].daily_booking_limit = 1;
 		await book('lunch', `${DAY}T10:00:00Z`, `${DAY}T10:30:00Z`);
 
 		// The lunch booking blocks its own slot but does not consume the chat quota.
-		const { slotsByDuration } = await loadAvailability(cfg, cfg.meetings[0]);
+		const { slotsByDuration } = await loadAvailability(cfg, CHAT, cfg.meetings[CHAT]);
 		expect(slotsByDuration[30][DAY].length).toBeGreaterThan(0);
 		expect(slotsByDuration[30][DAY]).not.toContain(`${DAY}T10:00:00Z`);
 	});
@@ -151,7 +152,9 @@ describe('loadAvailability across meeting types', () => {
 		await book('lunch', `${DAY}T11:00:00Z`, `${DAY}T11:30:00Z`);
 
 		const own = `${DAY}T10:00:00Z`;
-		expect(await isSlotBookable(cfg, cfg.meetings[0], own, 30, own)).toBe(true);
-		expect(await isSlotBookable(cfg, cfg.meetings[0], `${DAY}T11:00:00Z`, 30, own)).toBe(false);
+		expect(await isSlotBookable(cfg, CHAT, cfg.meetings[CHAT], own, 30, own)).toBe(true);
+		expect(await isSlotBookable(cfg, CHAT, cfg.meetings[CHAT], `${DAY}T11:00:00Z`, 30, own)).toBe(
+			false
+		);
 	});
 });

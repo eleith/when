@@ -5,8 +5,7 @@ import type { Appointment } from '@when/db';
 import { validConfig } from '$lib/server/__fixtures__/valid-config';
 
 const baseEventType: Meeting = {
-	...validConfig.meetings[0],
-	slug: 'chat',
+	...validConfig.meetings['30-min-chat'],
 	booking_calendar: 'main',
 	location: 'https://meet.example.com/jane'
 };
@@ -40,17 +39,17 @@ const baseRow: Appointment = {
 
 describe('toPublicEventType', () => {
 	test('hides location for non-admins', () => {
-		const res = toPublicEventType(baseEventType, false);
+		const res = toPublicEventType('chat', baseEventType, false);
 		expect(res.location).toBeUndefined();
 	});
 
 	test('shows location for admins', () => {
-		const res = toPublicEventType(baseEventType, true);
+		const res = toPublicEventType('chat', baseEventType, true);
 		expect(res.location).toBe('https://meet.example.com/jane');
 	});
 
 	test('applies default padding and notice values', () => {
-		const res = toPublicEventType(baseEventType, false);
+		const res = toPublicEventType('chat', baseEventType, false);
 		expect(res.padding_before_minutes).toBe(0);
 		expect(res.padding_after_minutes).toBe(0);
 		expect(res.notice_minutes).toBe(120);
@@ -58,6 +57,7 @@ describe('toPublicEventType', () => {
 
 	test('passes through explicit padding and notice values', () => {
 		const res = toPublicEventType(
+			'chat',
 			{
 				...baseEventType,
 				padding_before_minutes: 15,
@@ -72,12 +72,12 @@ describe('toPublicEventType', () => {
 	});
 
 	test('maps show_slots', () => {
-		const res = toPublicEventType({ ...baseEventType, show_slots: true }, false);
+		const res = toPublicEventType('chat', { ...baseEventType, show_slots: true }, false);
 		expect(res.show_slots).toBe(true);
 	});
 
 	test('passes through require_approval', () => {
-		const res = toPublicEventType(baseEventType, false);
+		const res = toPublicEventType('chat', baseEventType, false);
 		expect(res.require_approval).toBe(false);
 	});
 });

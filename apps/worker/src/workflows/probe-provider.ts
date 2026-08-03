@@ -11,7 +11,7 @@ import { getWorkerContext, type WorkerContext } from '../services/context.js';
 import { implementObservedWorkflow } from '../services/metrics.js';
 
 async function connectedAdapter(ctx: WorkerContext, name: string): Promise<ProviderAdapter> {
-	const provider = ctx.config.providers?.find((p) => p.name === name);
+	const provider = ctx.config.providers[name];
 	if (!provider) throw new Error(`No provider named "${name}".`);
 
 	const refreshToken = await getProviderRefreshToken(ctx.db, name);
@@ -26,7 +26,7 @@ async function observed<T>(ctx: WorkerContext, name: string, work: () => Promise
 		return result;
 	} catch (err) {
 		const error = err instanceof Error ? err.message : String(err);
-		if (ctx.config.providers?.some((p) => p.name === name)) {
+		if (name in ctx.config.providers) {
 			await recordServiceOutcome(ctx.db, { kind: 'provider', name }, { at, via: 'test', error });
 		}
 		throw err;

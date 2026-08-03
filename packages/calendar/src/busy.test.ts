@@ -7,25 +7,22 @@ const inst = (s: string): Temporal.Instant => Temporal.Instant.from(s);
 const window = { start: inst('2026-04-01T00:00:00Z'), end: inst('2026-05-01T00:00:00Z') };
 
 const workDav = {
-	name: 'work-dav',
 	type: 'caldav' as const,
 	url: 'https://cal.example.com/work/',
 	username: 'jane',
 	password: 'secret',
-	calendars: []
+	calendars: {}
 };
 
 const workCal: ResolvedCalendar = {
 	type: 'caldav',
+	name: 'work',
+	providerName: 'work-dav',
 	provider: workDav,
-	calendar: {
-		name: 'work',
-		href: 'https://cal.example.com/work/',
-		sync: { refresh_every_minutes: 10 }
-	}
+	calendar: { href: 'https://cal.example.com/work/', sync: { refresh_every_minutes: 10 } }
 };
 
-const davServices: ConnectedProvider[] = [workDav];
+const davServices: Record<string, ConnectedProvider> = { 'work-dav': workDav };
 
 const twoEvents = `<?xml version="1.0"?>
 <multistatus xmlns:C="urn:ietf:params:xml:ns:caldav">
@@ -86,37 +83,40 @@ test('a relative href is joined to the provider url', async () => {
 	const provider = { ...workDav, url: 'https://cal.example.com/dav/' };
 	const relative: ResolvedCalendar = {
 		type: 'caldav',
+		name: 'work',
+		providerName: 'dav',
 		provider,
-		calendar: { name: 'work', href: 'calendars/jane/work/', sync: { refresh_every_minutes: 10 } }
+		calendar: { href: 'calendars/jane/work/', sync: { refresh_every_minutes: 10 } }
 	};
 	const spy = vi
 		.spyOn(globalThis, 'fetch')
 		.mockResolvedValue(new Response(twoEvents, { status: 207 }));
 
-	await fetchBusyIntervals(relative, window, { services: [provider] });
+	await fetchBusyIntervals(relative, window, { services: { dav: provider } });
 
 	expect(String(spy.mock.calls[0][0])).toBe('https://cal.example.com/dav/calendars/jane/work/');
 });
 
 test('a nextcloud provider gets its dav prefix before the join', async () => {
 	const provider = {
-		name: 'nc',
 		type: 'nextcloud' as const,
 		url: 'https://cloud.example.com',
 		username: 'jane',
 		password: 'secret',
-		calendars: []
+		calendars: {}
 	};
 	const relative: ResolvedCalendar = {
 		type: 'caldav',
+		name: 'work',
+		providerName: 'nc',
 		provider,
-		calendar: { name: 'work', href: 'calendars/jane/work/', sync: { refresh_every_minutes: 10 } }
+		calendar: { href: 'calendars/jane/work/', sync: { refresh_every_minutes: 10 } }
 	};
 	const spy = vi
 		.spyOn(globalThis, 'fetch')
 		.mockResolvedValue(new Response(twoEvents, { status: 207 }));
 
-	await fetchBusyIntervals(relative, window, { services: [provider] });
+	await fetchBusyIntervals(relative, window, { services: { nc: provider } });
 
 	expect(String(spy.mock.calls[0][0])).toBe(
 		'https://cloud.example.com/remote.php/dav/calendars/jane/work/'

@@ -28,20 +28,28 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 	if (!row || !(await isViewAllowed(getDb(), row, token, now))) error(404);
 
 	const cfg = getConfig();
-	const eventType = cfg.meetings.find((e) => e.name === row.event_type_id);
+	const eventType = cfg.meetings[row.event_type_id];
 	if (!eventType) error(404, 'This meeting type no longer exists.');
 
-	const ctx = classifyReschedule({ rescheduleId: row.id, token, existing: row, eventType, now });
+	const ctx = classifyReschedule({
+		rescheduleId: row.id,
+		token,
+		existing: row,
+		slug: row.event_type_id,
+		eventType,
+		now
+	});
 	const rescheduleError = ctx.kind === 'error' ? ctx.code : null;
 
 	const { slotsByDuration, workingWindows, busyBlocks } = await loadAvailability(
 		cfg,
+		row.event_type_id,
 		eventType,
 		row.start_time
 	);
 
 	return {
-		eventType: toPublicEventType(eventType, isAdmin),
+		eventType: toPublicEventType(row.event_type_id, eventType, isAdmin),
 		formFields: resolveFormFields(eventType),
 		availability: { slotsByDuration, workingWindows, busyBlocks },
 		reschedule: {
@@ -71,7 +79,7 @@ export const actions: Actions = {
 		}
 
 		const cfg = getConfig();
-		const eventType = cfg.meetings.find((e) => e.name === found.event_type_id);
+		const eventType = cfg.meetings[found.event_type_id];
 		if (!eventType) return fail(409, { error: 'This meeting type no longer exists.' });
 
 		const parsed = parseAndValidateAppointmentForm(eventType, form);
@@ -87,7 +95,14 @@ export const actions: Actions = {
 		if (duration === null) return fail(400, { error: 'Please pick a valid meeting length.' });
 
 		// Re-validate the slot is currently bookable, ignoring the appointment's own current slot.
-		const bookable = await isSlotBookable(cfg, eventType, slotStr, duration, found.start_time);
+		const bookable = await isSlotBookable(
+			cfg,
+			found.event_type_id,
+			eventType,
+			slotStr,
+			duration,
+			found.start_time
+		);
 		if (!bookable) {
 			return fail(409, { error: 'That time is no longer available. Please pick another.' });
 		}

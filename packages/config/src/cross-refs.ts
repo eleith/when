@@ -1,4 +1,4 @@
-import type { WhenConfiguration, Provider, Schedule, Meeting, FormField } from './schema.js';
+import type { WhenConfiguration, Schedule, Meeting, FormField } from './schema.js';
 import type { ConfigIssue } from './load.js';
 
 interface ServiceRegistry {
@@ -14,7 +14,7 @@ interface CalendarRegistry {
 export function checkCrossRefs(cfg: WhenConfiguration): ConfigIssue[] {
 	const issues: ConfigIssue[] = [];
 
-	const serviceRegistry = validateServices(cfg.providers, issues);
+	const serviceRegistry = providerRegistry(cfg.providers);
 	const calendarRegistry = validateCalendars(cfg, issues);
 	const scheduleNames = validateSchedules(cfg.schedules, issues);
 
@@ -23,53 +23,34 @@ export function checkCrossRefs(cfg: WhenConfiguration): ConfigIssue[] {
 	return issues;
 }
 
-function validateServices(
-	services: WhenConfiguration['providers'],
-	issues: ConfigIssue[]
-): ServiceRegistry {
-	const serviceNames = new Set<string>();
-	const serviceTypes = new Map<string, string>();
-
-	(services ?? []).forEach((srv, i) => {
-		checkServiceDuplicateName(srv, i, serviceNames, issues);
-		serviceNames.add(srv.name);
-		serviceTypes.set(srv.name, srv.type);
-	});
-
-	return { names: serviceNames, types: serviceTypes };
-}
-
-function checkServiceDuplicateName(
-	srv: Provider,
-	i: number,
-	serviceNames: Set<string>,
-	issues: ConfigIssue[]
-): void {
-	if (serviceNames.has(srv.name)) {
-		issues.push({
-			path: `/providers/${i}/name`,
-			message: `duplicate provider name "${srv.name}"`
-		});
+function providerRegistry(providers: WhenConfiguration['providers']): ServiceRegistry {
+	const names = new Set<string>();
+	const types = new Map<string, string>();
+	for (const [name, provider] of Object.entries(providers)) {
+		names.add(name);
+		types.set(name, provider.type);
 	}
+	return { names, types };
 }
 
-// Names must be unique across every provider, since meetings reference them unqualified.
+// Calendar keys are unique within a provider by construction, but meetings reference
+// them unqualified, so they must not collide across providers either.
 function validateCalendars(cfg: WhenConfiguration, issues: ConfigIssue[]): CalendarRegistry {
 	const names = new Set<string>();
 	const types = new Map<string, string>();
 
-	cfg.providers.forEach((provider, p) => {
-		provider.calendars.forEach((calendar, c) => {
-			if (names.has(calendar.name)) {
+	for (const [providerName, provider] of Object.entries(cfg.providers)) {
+		for (const name of Object.keys(provider.calendars)) {
+			if (names.has(name)) {
 				issues.push({
-					path: `/providers/${p}/calendars/${c}/name`,
-					message: `duplicate calendar name "${calendar.name}"`
+					path: `/providers/${providerName}/calendars/${name}`,
+					message: `calendar "${name}" is already defined on another provider`
 				});
 			}
-			names.add(calendar.name);
-			types.set(calendar.name, provider.type);
-		});
-	});
+			names.add(name);
+			types.set(name, provider.type);
+		}
+	}
 
 	return { names, types };
 }
@@ -78,39 +59,22 @@ function validateSchedules(
 	schedules: WhenConfiguration['schedules'],
 	issues: ConfigIssue[]
 ): Set<string> {
-	const scheduleNames = new Set<string>();
-	schedules.forEach((sch, i) => {
-		checkScheduleDuplicateName(sch, i, scheduleNames, issues);
-		checkScheduleWindows(sch, i, issues);
-		scheduleNames.add(sch.name);
-	});
-	return scheduleNames;
+	for (const [name, schedule] of Object.entries(schedules)) {
+		checkScheduleWindows(name, schedule, issues);
+	}
+	return new Set(Object.keys(schedules));
 }
 
 // HH:MM strings are zero-padded, so lexical order matches chronological order.
-function checkScheduleWindows(sch: Schedule, i: number, issues: ConfigIssue[]): void {
+function checkScheduleWindows(name: string, sch: Schedule, issues: ConfigIssue[]): void {
 	sch.weekly.forEach((rule, j) => {
 		if (rule.from >= rule.to) {
 			issues.push({
-				path: `/schedules/${i}/weekly/${j}`,
-				message: `schedule "${sch.name}" has an empty window (${rule.from}-${rule.to}); "from" must be earlier than "to"`
+				path: `/schedules/${name}/weekly/${j}`,
+				message: `schedule "${name}" has an empty window (${rule.from}-${rule.to}); "from" must be earlier than "to"`
 			});
 		}
 	});
-}
-
-function checkScheduleDuplicateName(
-	sch: Schedule,
-	i: number,
-	scheduleNames: Set<string>,
-	issues: ConfigIssue[]
-): void {
-	if (scheduleNames.has(sch.name)) {
-		issues.push({
-			path: `/schedules/${i}/name`,
-			message: `duplicate schedule name "${sch.name}"`
-		});
-	}
 }
 
 function validateMeetings(
@@ -120,59 +84,23 @@ function validateMeetings(
 	scheduleNames: Set<string>,
 	issues: ConfigIssue[]
 ): void {
-	const seenMeetingNames = new Set<string>();
-	const seenSlugs = new Set<string>();
-
-	cfg.meetings.forEach((meeting, i) => {
-		checkMeetingDuplicateName(meeting, i, seenMeetingNames, issues);
-		checkMeetingDuplicateSlug(meeting, i, seenSlugs, issues);
-		checkMeetingCalendarReferences(meeting, i, calendarRegistry, issues);
-		checkMeetingScheduleReference(meeting, i, scheduleNames, issues);
-		checkMeetingVideoChatService(meeting, i, serviceRegistry, calendarRegistry.types, issues);
-		checkFormFields(meeting, i, issues);
-
-		seenMeetingNames.add(meeting.name);
-		seenSlugs.add(meeting.slug);
-	});
-}
-
-function checkMeetingDuplicateName(
-	meeting: Meeting,
-	i: number,
-	seenMeetingNames: Set<string>,
-	issues: ConfigIssue[]
-): void {
-	if (seenMeetingNames.has(meeting.name)) {
-		issues.push({
-			path: `/meetings/${i}/name`,
-			message: `duplicate meeting name "${meeting.name}"`
-		});
-	}
-}
-
-function checkMeetingDuplicateSlug(
-	meeting: Meeting,
-	i: number,
-	seenSlugs: Set<string>,
-	issues: ConfigIssue[]
-): void {
-	if (seenSlugs.has(meeting.slug)) {
-		issues.push({
-			path: `/meetings/${i}/slug`,
-			message: `duplicate meeting slug "${meeting.slug}"`
-		});
+	for (const [key, meeting] of Object.entries(cfg.meetings)) {
+		checkMeetingCalendarReferences(key, meeting, calendarRegistry, issues);
+		checkMeetingScheduleReference(key, meeting, scheduleNames, issues);
+		checkMeetingVideoChatService(key, meeting, serviceRegistry, calendarRegistry.types, issues);
+		checkFormFields(key, meeting, issues);
 	}
 }
 
 function checkMeetingCalendarReferences(
+	key: string,
 	meeting: Meeting,
-	i: number,
 	calendarRegistry: CalendarRegistry,
 	issues: ConfigIssue[]
 ): void {
 	if (!calendarRegistry.names.has(meeting.booking_calendar)) {
 		issues.push({
-			path: `/meetings/${i}/booking_calendar`,
+			path: `/meetings/${key}/booking_calendar`,
 			message: `references unknown calendar name "${meeting.booking_calendar}"`
 		});
 	}
@@ -180,7 +108,7 @@ function checkMeetingCalendarReferences(
 	meeting.additional_busy_calendars.forEach((cid, j) => {
 		if (!calendarRegistry.names.has(cid)) {
 			issues.push({
-				path: `/meetings/${i}/additional_busy_calendars/${j}`,
+				path: `/meetings/${key}/additional_busy_calendars/${j}`,
 				message: `references unknown calendar name "${cid}"`
 			});
 		}
@@ -188,34 +116,34 @@ function checkMeetingCalendarReferences(
 }
 
 function checkMeetingScheduleReference(
+	key: string,
 	meeting: Meeting,
-	i: number,
 	scheduleNames: Set<string>,
 	issues: ConfigIssue[]
 ): void {
 	if (!scheduleNames.has(meeting.schedule)) {
 		issues.push({
-			path: `/meetings/${i}/schedule`,
+			path: `/meetings/${key}/schedule`,
 			message: `references unknown schedule name "${meeting.schedule}"`
 		});
 	}
 }
 
 function checkMeetingVideoChatService(
+	key: string,
 	meeting: Meeting,
-	i: number,
 	serviceRegistry: ServiceRegistry,
 	calendarTypes: Map<string, string>,
 	issues: ConfigIssue[]
 ): void {
 	if (meeting.video_chat_provider) {
-		validateVideoChatService(meeting, i, serviceRegistry, calendarTypes, issues);
+		validateVideoChatService(key, meeting, serviceRegistry, calendarTypes, issues);
 	}
 }
 
 function validateVideoChatService(
+	key: string,
 	meeting: Meeting,
-	i: number,
 	serviceRegistry: ServiceRegistry,
 	calendarTypes: Map<string, string>,
 	issues: ConfigIssue[]
@@ -223,30 +151,30 @@ function validateVideoChatService(
 	const serviceType = serviceRegistry.types.get(meeting.video_chat_provider!);
 	if (!serviceType) {
 		issues.push({
-			path: `/meetings/${i}/video_chat_provider`,
+			path: `/meetings/${key}/video_chat_provider`,
 			message: `references unknown provider "${meeting.video_chat_provider}"`
 		});
 	} else if (serviceType !== 'google' && serviceType !== 'nextcloud') {
 		issues.push({
-			path: `/meetings/${i}/video_chat_provider`,
+			path: `/meetings/${key}/video_chat_provider`,
 			message: `provider "${meeting.video_chat_provider}" has type "${serviceType}", but video chat is only supported for "google" and "nextcloud" providers`
 		});
 	} else if (serviceType === 'google') {
 		const destCalType = calendarTypes.get(meeting.booking_calendar);
 		if (destCalType && destCalType !== 'google') {
 			issues.push({
-				path: `/meetings/${i}/video_chat_provider`,
+				path: `/meetings/${key}/video_chat_provider`,
 				message: `Google Meet dynamic video chat is only supported when the booking calendar is a Google Calendar (calendar "${meeting.booking_calendar}" is of type "${destCalType}")`
 			});
 		}
 	}
 }
 
-function checkFormFields(meeting: Meeting, i: number, issues: ConfigIssue[]): void {
+function checkFormFields(key: string, meeting: Meeting, issues: ConfigIssue[]): void {
 	const fields = meeting.form_fields;
 	if (!fields) return;
 
-	const base = `/meetings/${i}/form_fields`;
+	const base = `/meetings/${key}/form_fields`;
 	const seenNames = new Set<string>();
 	const typeCounts = new Map<string, number>();
 

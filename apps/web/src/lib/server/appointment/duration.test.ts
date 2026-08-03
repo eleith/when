@@ -4,9 +4,8 @@ import { resolveDuration } from './duration';
 import { validConfig } from '$lib/server/__fixtures__/valid-config';
 
 const base: Meeting = {
-	...validConfig.meetings[0],
-	name: 'Chat',
-	slug: 'chat',
+	...validConfig.meetings['30-min-chat'],
+	title: 'Chat',
 	booking_calendar: 'cal'
 };
 

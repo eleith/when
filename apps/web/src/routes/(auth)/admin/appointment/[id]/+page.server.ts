@@ -65,7 +65,7 @@ export const actions: Actions = {
 		if (!row) return fail(404, { error: 'Appointment not found.' });
 
 		const cfg = getConfig();
-		const eventType = cfg.meetings.find((e) => e.name === row.event_type_id);
+		const eventType = cfg.meetings[row.event_type_id];
 
 		if (eventType) {
 			const check = await isChainTerminal(db, row.id, systemClock.now());

@@ -11,17 +11,16 @@ import { runPurgeAppointment } from './purge-appointment.js';
 const config = {
 	user: { name: 'Jane', email: 'jane@example.com', timezone: 'America/New_York' },
 	url: { app: 'https://when.example.com' },
-	providers: [
-		{
-			name: 'work-dav',
+	providers: {
+		'work-dav': {
 			type: 'caldav',
 			url: 'https://cal.example.com/work/',
 			username: 'u',
 			password: 'p',
-			calendars: [{ name: 'work', href: 'https://cal.example.com/work/' }]
+			calendars: { work: { href: 'https://cal.example.com/work/' } }
 		}
-	],
-	meetings: []
+	},
+	meetings: {}
 } as unknown as WhenConfiguration;
 
 function makeStep() {

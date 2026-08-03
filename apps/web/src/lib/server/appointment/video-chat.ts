@@ -7,7 +7,7 @@ export function resolveAppointmentVideoChat(
 	if (!meeting.video_chat_provider) {
 		return null;
 	}
-	const service = config.providers?.find((s) => s.name === meeting.video_chat_provider);
+	const service = config.providers[meeting.video_chat_provider!];
 	if (service?.type === 'google') {
 		return 'google-meet';
 	}

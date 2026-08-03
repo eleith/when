@@ -51,7 +51,7 @@ export const load: PageServerLoad = async ({ params, url, locals, cookies }) => 
 	if (!isAdmin && !(await isViewAllowed(getDb(), row, token, now))) error(404);
 
 	const cfg = getConfig();
-	const eventType = cfg.meetings.find((e) => e.name === row.event_type_id);
+	const eventType = cfg.meetings[row.event_type_id];
 
 	let resolvedEventType = eventType;
 	if (!resolvedEventType && isAdmin && row.meeting_snapshot) {
@@ -83,7 +83,7 @@ export const load: PageServerLoad = async ({ params, url, locals, cookies }) => 
 	const bookedUrl = `${url.origin}/appointment/${row.id}${tokenEnc ? `?token=${tokenEnc}` : ''}`;
 	const icsUrl = `${url.origin}/appointment/${row.id}/ics${tokenEnc ? `?token=${tokenEnc}` : ''}`;
 
-	const eventName = resolvedEventType?.name ?? row.event_type_id;
+	const eventName = resolvedEventType?.title ?? row.event_type_id;
 	const calendarLinks =
 		row.status === 'confirmed'
 			? buildAddToCalendarLinks(
@@ -118,7 +118,7 @@ export const load: PageServerLoad = async ({ params, url, locals, cookies }) => 
 
 	return {
 		appointment: toPublicAppointment(row, isAdmin),
-		eventType: toPublicEventType(resolvedEventType, isAdmin),
+		eventType: toPublicEventType(row.event_type_id, resolvedEventType, isAdmin),
 		calendarLinks,
 		actions,
 		flash: flash ?? null,

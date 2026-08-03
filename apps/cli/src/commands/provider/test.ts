@@ -22,7 +22,7 @@ export const testCommand = define({
 			resolved.config,
 			testProvider,
 			{ name: resolved.name },
-			`${provider.name} (${provider.type})`,
+			`${resolved.name} (${provider.type})`,
 			() => 'authenticated'
 		);
 	}

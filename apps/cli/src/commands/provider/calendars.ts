@@ -19,8 +19,8 @@ export const calendarsCommand = define({
 		const provider = requireProvider(resolved.config.providers, resolved.name);
 		if (!provider) return;
 
-		const label = `${provider.name} (${provider.type})`;
-		const run = await runInWorker(resolved.config, listProviderCalendars, { name: provider.name });
+		const label = `${resolved.name} (${provider.type})`;
+		const run = await runInWorker(resolved.config, listProviderCalendars, { name: resolved.name });
 		if (!run.ok) {
 			fail(`${label} — ${run.message}`);
 			return;

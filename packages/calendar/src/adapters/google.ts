@@ -261,10 +261,12 @@ export async function deleteGoogleEvent(cfg: GoogleConfig, externalEventId: stri
 }
 
 export class GoogleAdapter implements CalendarAdapter {
+	private name: string;
 	private cal: GoogleCalendar;
 	private service?: ConnectedGoogleProvider;
 
-	constructor(cal: GoogleCalendar, service?: ConnectedGoogleProvider) {
+	constructor(name: string, cal: GoogleCalendar, service?: ConnectedGoogleProvider) {
+		this.name = name;
 		this.cal = cal;
 		this.service = service;
 	}
@@ -272,11 +274,11 @@ export class GoogleAdapter implements CalendarAdapter {
 	private get googleCfg(): GoogleConfig {
 		if (!this.service) {
 			throw new Error(
-				`Google provider for calendar "${this.cal.name}" was not provided to GoogleAdapter`
+				`Google provider for calendar "${this.name}" was not provided to GoogleAdapter`
 			);
 		}
 		if (!this.service.refresh_token) {
-			throw new Error(`Google provider for calendar "${this.cal.name}" is not connected`);
+			throw new Error(`Google provider for calendar "${this.name}" is not connected`);
 		}
 		return {
 			client_id: this.service.client_id,
@@ -304,7 +306,7 @@ export class GoogleAdapter implements CalendarAdapter {
 		return {
 			ok: true,
 			externalEventId: result.externalEventId,
-			externalCalendarId: this.cal.name,
+			externalCalendarId: this.name,
 			videoChatUrl: result.videoChatUrl
 		};
 	}

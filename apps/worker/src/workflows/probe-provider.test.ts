@@ -12,10 +12,10 @@ vi.mock('@when/calendar', async (importOriginal) => {
 });
 
 const config = {
-	providers: [
-		{ name: 'dav', type: 'caldav', url: 'https://dav.example.com/', username: 'u', password: 'p' },
-		{ name: 'gcal', type: 'google', client_id: 'cid', client_secret: 'csec' }
-	]
+	providers: {
+		dav: { type: 'caldav', url: 'https://dav.example.com/', username: 'u', password: 'p' },
+		gcal: { type: 'google', client_id: 'cid', client_secret: 'csec' }
+	}
 } as unknown as WhenConfiguration;
 
 const adapter = {

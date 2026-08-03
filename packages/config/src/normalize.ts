@@ -3,25 +3,18 @@
 // source schema for strict types); the generated editor schema relaxes them, so
 // the definition + field names are listed here as the single source of truth.
 export const DERIVED_OPTIONAL: Record<string, string[]> = {
-	Meeting: ['slug'],
 	Schedule: ['weekly']
 };
 
 export function withDerivedDefaults(config: unknown): unknown {
 	if (!isRecord(config)) return config;
+	if (!isRecord(config.schedules)) return config;
 
-	const result = { ...config };
-	if (Array.isArray(config.schedules)) {
-		result.schedules = config.schedules.map((schedule) =>
-			isRecord(schedule) ? deriveScheduleDefaults(schedule) : schedule
-		);
+	const schedules: Record<string, unknown> = {};
+	for (const [name, schedule] of Object.entries(config.schedules)) {
+		schedules[name] = isRecord(schedule) ? deriveScheduleDefaults(schedule) : schedule;
 	}
-	if (Array.isArray(config.meetings)) {
-		result.meetings = config.meetings.map((meeting) =>
-			isRecord(meeting) ? deriveMeetingDefaults(meeting) : meeting
-		);
-	}
-	return result;
+	return { ...config, schedules };
 }
 
 // Fill an omitted week with a Monday–Friday 09:00–17:00 rule.
@@ -32,19 +25,6 @@ function deriveScheduleDefaults(schedule: Record<string, unknown>): Record<strin
 
 function businessWeek(): Array<Record<string, unknown>> {
 	return [{ days: ['mon', 'tue', 'wed', 'thu', 'fri'], from: '09:00', to: '17:00' }];
-}
-
-function deriveMeetingDefaults(meeting: Record<string, unknown>): Record<string, unknown> {
-	if (meeting.slug !== undefined || typeof meeting.name !== 'string') return meeting;
-	return { ...meeting, slug: slugify(meeting.name) };
-}
-
-function slugify(name: string): string {
-	return name
-		.trim()
-		.toLowerCase()
-		.replace(/[^a-z0-9]+/g, '-')
-		.replace(/^-+|-+$/g, '');
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

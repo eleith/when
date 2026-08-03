@@ -20,6 +20,7 @@ export interface Availability {
 
 export async function loadAvailability(
 	cfg: WhenConfiguration,
+	slug: string,
 	eventType: Meeting,
 	excludeStart: string | null = null
 ): Promise<Availability> {
@@ -30,7 +31,7 @@ export async function loadAvailability(
 
 	const blocks = await loadAppointmentBlocks(
 		getDb(),
-		eventType.name,
+		slug,
 		nowInstant,
 		rangeEnd,
 		userTz,
@@ -86,12 +87,13 @@ export async function loadAvailability(
 // appointment's own current slot so a reschedule can land on its existing time window.
 export async function isSlotBookable(
 	cfg: WhenConfiguration,
+	slug: string,
 	eventType: Meeting,
 	slot: string,
 	duration: number,
 	excludeStart: string | null = null
 ): Promise<boolean> {
-	const { slotsByDuration } = await loadAvailability(cfg, eventType, excludeStart);
+	const { slotsByDuration } = await loadAvailability(cfg, slug, eventType, excludeStart);
 	return Object.values(slotsByDuration[duration] ?? {})
 		.flat()
 		.includes(slot);

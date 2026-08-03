@@ -4,39 +4,37 @@ import type { WhenConfiguration } from '@when/config';
 
 describe('getVideoChatAdapter', () => {
 	const mockConfig: WhenConfiguration = {
-		providers: [
-			{
-				name: 'nc-service',
+		providers: {
+			'nc-service': {
 				type: 'nextcloud',
 				url: 'https://cloud.example.com',
 				username: 'user',
 				password: 'pwd',
-				calendars: []
+				calendars: {}
 			},
-			{
-				name: 'google-service',
+			'google-service': {
 				type: 'google',
 				client_id: 'gc-id',
 				client_secret: 'gc-secret',
-				calendars: []
+				calendars: {}
 			}
-		],
-		schedules: [],
-		meetings: [],
+		},
+		schedules: {},
+		meetings: {},
 		auth: { credentials: { username: 'admin', password: 'pwd' } },
 		user: { name: 'J', timezone: 'UTC', email: 'j@example.com' },
 		smtp: { host: 'smtp', port: 25, user: 'u', pass: 'p' }
 	} as unknown as WhenConfiguration;
 
 	test('returns NextcloudTalkAdapter for nextcloud service', () => {
-		const srv = mockConfig.providers![0];
+		const srv = mockConfig.providers['nc-service'];
 		const adapter = getVideoChatAdapter(srv);
 		expect(adapter).toBeDefined();
 		expect(adapter.constructor.name).toBe('NextcloudTalkAdapter');
 	});
 
 	test('returns native meet adapter for google service', () => {
-		const srv = mockConfig.providers![1];
+		const srv = mockConfig.providers['google-service'];
 		const adapter = getVideoChatAdapter(srv);
 		expect(adapter).toBeDefined();
 		expect(adapter.constructor.name).toBe('GoogleMeetAdapter');
@@ -44,12 +42,11 @@ describe('getVideoChatAdapter', () => {
 
 	test('throws for unsupported service type', () => {
 		const srv = {
-			name: 'broken-service',
 			type: 'caldav' as const,
 			url: 'https://cal.example.com',
 			username: 'u',
 			password: 'p',
-			calendars: []
+			calendars: {}
 		};
 		expect(() => getVideoChatAdapter(srv)).toThrow('Unsupported video chat provider type: caldav');
 	});

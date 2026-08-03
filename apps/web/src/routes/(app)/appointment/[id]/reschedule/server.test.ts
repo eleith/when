@@ -120,7 +120,12 @@ describe('/appointment/[id]/reschedule load', () => {
 		const result = (await load(loadEvent())) as LoadResult;
 		expect(result.reschedule.appt).toEqual({ id: 'appt-1' });
 		expect(result.reschedule.error).toBeNull();
-		expect(h.loadAvailability).toHaveBeenCalledWith(expect.anything(), expect.anything(), CURRENT);
+		expect(h.loadAvailability).toHaveBeenCalledWith(
+			expect.anything(),
+			'30-min-chat',
+			expect.anything(),
+			CURRENT
+		);
 	});
 
 	test('surfaces a classify error and nulls the appointment', async () => {
@@ -161,6 +166,7 @@ describe('/appointment/[id]/reschedule book action', () => {
 		expect((await book(form()))?.status).toBe(409);
 		expect(h.isSlotBookable).toHaveBeenCalledWith(
 			expect.anything(),
+			'30-min-chat',
 			expect.anything(),
 			NEW_SLOT,
 			30,

@@ -23,7 +23,8 @@ export interface ClassifyRescheduleInput {
 	rescheduleId: string | null;
 	token: string | null;
 	existing: Appointment | undefined;
-	eventType: Pick<Meeting, 'name' | 'notice_minutes'>;
+	slug: string;
+	eventType: Pick<Meeting, 'notice_minutes'>;
 	now: Date;
 }
 
@@ -53,7 +54,7 @@ export async function rescheduleAppointment(
 	ctx: AppointmentContext,
 	input: RescheduleAppointmentInput
 ): Promise<RescheduleAppointmentResult> {
-	const eventType = ctx.cfg.meetings.find((e) => e.name === input.appointment.event_type_id);
+	const eventType = ctx.cfg.meetings[input.appointment.event_type_id];
 
 	const gate = resolveAppointmentActions({
 		row: input.appointment,
@@ -87,10 +88,10 @@ export async function rescheduleAppointment(
 				newStatus,
 				eventTypeSnapshot: eventType
 					? JSON.stringify({
-							name: eventType.name,
+							title: eventType.title,
 							duration_minutes: eventType.duration_minutes,
 							description: eventType.description,
-							slug: eventType.slug
+							slug: input.appointment.event_type_id
 						})
 					: '{}',
 				reason: input.reason,
@@ -121,6 +122,7 @@ export function classifyReschedule({
 	rescheduleId,
 	token,
 	existing,
+	slug,
 	eventType,
 	now
 }: ClassifyRescheduleInput): RescheduleContext {
@@ -129,7 +131,7 @@ export function classifyReschedule({
 	if (!token || !existing || existing.cancel_token !== token) {
 		return { kind: 'error', code: 'token' };
 	}
-	if (existing.event_type_id !== eventType.name) {
+	if (existing.event_type_id !== slug) {
 		return { kind: 'error', code: 'event_type' };
 	}
 	if (!isViewable(existing, now)) {

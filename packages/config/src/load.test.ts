@@ -11,7 +11,7 @@ function clone<T>(v: T): T {
 test('valid config passes schema validation', () => {
 	const cfg = validateConfig(clone(validConfig));
 	expect(cfg.user.name).toBe('Jane Doe');
-	expect(cfg.meetings[0].name).toBe('30-min-chat');
+	expect(cfg.meetings['30-min-chat'].title).toBe('30 minute chat');
 });
 
 test('a config that omits version still loads, defaulted to 1', () => {
@@ -93,7 +93,7 @@ test('invalid email format fails', () => {
 
 test('invalid time fails pattern', () => {
 	const bad = clone(validConfig);
-	bad.schedules[0].weekly[0].from = '25:00';
+	bad.schedules.standard.weekly[0].from = '25:00';
 	expect(() => validateConfig(bad)).toThrow(ConfigError);
 });
 
@@ -129,27 +129,27 @@ test('empty meetings array fails', () => {
 
 test('location accepts string value', () => {
 	const good = clone(validConfig);
-	good.meetings[0].location = 'Meeting Room A';
+	good.meetings['30-min-chat'].location = 'Meeting Room A';
 	const cfg = validateConfig(good);
-	expect(cfg.meetings[0].location).toBe('Meeting Room A');
+	expect(cfg.meetings['30-min-chat'].location).toBe('Meeting Room A');
 });
 
 test('location rejects non-string value', () => {
 	const bad = clone(validConfig);
-	bad.meetings[0].location = 123 as never;
+	bad.meetings['30-min-chat'].location = 123 as never;
 	expect(() => validateConfig(bad)).toThrow(ConfigError);
 });
 
 test('video_chat_service accepts valid service name', () => {
 	const good = clone(validConfig);
-	good.meetings[0].video_chat_provider = 'google-service';
+	good.meetings['30-min-chat'].video_chat_provider = 'google-service';
 	const cfg = validateConfig(good);
-	expect(cfg.meetings[0].video_chat_provider).toBe('google-service');
+	expect(cfg.meetings['30-min-chat'].video_chat_provider).toBe('google-service');
 });
 
 test('video_chat_service rejects non-string value', () => {
 	const bad = clone(validConfig);
-	bad.meetings[0].video_chat_provider = 123 as never;
+	bad.meetings['30-min-chat'].video_chat_provider = 123 as never;
 	expect(() => validateConfig(bad)).toThrow(ConfigError);
 });
 
@@ -193,34 +193,38 @@ test('smtp.port defaults to 587 when omitted', () => {
 });
 
 test('meeting duration_minutes defaults to 30 when omitted', () => {
-	const raw = clone(validConfig) as unknown as { meetings: { duration_minutes?: number }[] };
-	delete raw.meetings[0].duration_minutes;
-	expect(validateConfig(raw).meetings[0].duration_minutes).toBe(30);
+	const raw = clone(validConfig) as unknown as {
+		meetings: Record<string, { duration_minutes?: number }>;
+	};
+	delete raw.meetings['30-min-chat'].duration_minutes;
+	expect(validateConfig(raw).meetings['30-min-chat'].duration_minutes).toBe(30);
 });
 
 test('a meeting offers further lengths through additional_duration_minutes', () => {
 	const raw = clone(validConfig) as unknown as {
-		meetings: { duration_minutes: number; additional_duration_minutes: number[] }[];
+		meetings: Record<string, { duration_minutes: number; additional_duration_minutes: number[] }>;
 	};
-	raw.meetings[0].duration_minutes = 15;
-	raw.meetings[0].additional_duration_minutes = [30, 60];
-	const meeting = validateConfig(raw).meetings[0];
+	raw.meetings['30-min-chat'].duration_minutes = 15;
+	raw.meetings['30-min-chat'].additional_duration_minutes = [30, 60];
+	const meeting = validateConfig(raw).meetings['30-min-chat'];
 	expect(meeting.duration_minutes).toBe(15);
 	expect(meeting.additional_duration_minutes).toEqual([30, 60]);
 });
 
 test('additional_duration_minutes defaults to an empty list', () => {
 	const raw = clone(validConfig) as unknown as {
-		meetings: { additional_duration_minutes?: number[] }[];
+		meetings: Record<string, { additional_duration_minutes?: number[] }>;
 	};
-	delete raw.meetings[0].additional_duration_minutes;
-	expect(validateConfig(raw).meetings[0].additional_duration_minutes).toEqual([]);
+	delete raw.meetings['30-min-chat'].additional_duration_minutes;
+	expect(validateConfig(raw).meetings['30-min-chat'].additional_duration_minutes).toEqual([]);
 });
 
 test('meeting require_approval defaults to true when omitted', () => {
-	const raw = clone(validConfig) as unknown as { meetings: { require_approval?: boolean }[] };
-	delete raw.meetings[0].require_approval;
-	expect(validateConfig(raw).meetings[0].require_approval).toBe(true);
+	const raw = clone(validConfig) as unknown as {
+		meetings: Record<string, { require_approval?: boolean }>;
+	};
+	delete raw.meetings['30-min-chat'].require_approval;
+	expect(validateConfig(raw).meetings['30-min-chat'].require_approval).toBe(true);
 });
 
 test('user timezone defaults to the TZ env var when omitted', () => {
@@ -249,69 +253,61 @@ test('user timezone defaults to UTC when omitted and TZ is unset', () => {
 	}
 });
 
-test('meeting slug is derived from the name when omitted', () => {
-	const raw = clone(validConfig) as unknown as { meetings: { name: string; slug?: string }[] };
-	raw.meetings[0].name = 'Quick Intro Call';
-	delete raw.meetings[0].slug;
-	expect(validateConfig(raw).meetings[0].slug).toBe('quick-intro-call');
-});
-
 test('a meeting must name its schedule and booking_calendar', () => {
 	const raw = clone(validConfig) as unknown as {
-		meetings: { schedule?: string; booking_calendar?: string }[];
+		meetings: Record<string, { schedule?: string; booking_calendar?: string }>;
 	};
-	delete raw.meetings[0].schedule;
-	delete raw.meetings[0].booking_calendar;
+	delete raw.meetings['30-min-chat'].schedule;
+	delete raw.meetings['30-min-chat'].booking_calendar;
 	expect(() => validateConfig(raw)).toThrow(ConfigError);
 });
 
 test('schedule weekly defaults to Monday-Friday business hours when omitted', () => {
-	const raw = clone(validConfig) as unknown as { schedules: { weekly?: unknown }[] };
-	delete raw.schedules[0].weekly;
-	expect(validateConfig(raw).schedules[0].weekly).toEqual([
+	const raw = clone(validConfig) as unknown as { schedules: Record<string, { weekly?: unknown }> };
+	delete raw.schedules.standard.weekly;
+	expect(validateConfig(raw).schedules.standard.weekly).toEqual([
 		{ days: ['mon', 'tue', 'wed', 'thu', 'fri'], from: '09:00', to: '17:00' }
 	]);
 });
 
 test('schedule with no time windows fails validation', () => {
 	const bad = clone(validConfig);
-	bad.schedules[0].weekly = [];
+	bad.schedules.standard.weekly = [];
 	try {
 		validateConfig(bad);
 		throw new Error('expected ConfigError');
 	} catch (err) {
 		expect(err).toBeInstanceOf(ConfigError);
-		expect((err as ConfigError).issues.some((issue) => issue.path === '/schedules/0/weekly')).toBe(
-			true
-		);
+		expect(
+			(err as ConfigError).issues.some((issue) => issue.path === '/schedules/standard/weekly')
+		).toBe(true);
 	}
 });
 
 test('meeting note accepts valid string note', () => {
 	const good = clone(validConfig);
-	good.meetings[0].note = 'Please read the notes before scheduling.';
+	good.meetings['30-min-chat'].note = 'Please read the notes before scheduling.';
 	const cfg = validateConfig(good);
-	expect(cfg.meetings[0].note).toBe('Please read the notes before scheduling.');
+	expect(cfg.meetings['30-min-chat'].note).toBe('Please read the notes before scheduling.');
 });
 
 test('meeting note with empty string fails validation', () => {
 	const bad = clone(validConfig);
-	bad.meetings[0].note = '' as never;
+	bad.meetings['30-min-chat'].note = '' as never;
 	expect(() => validateConfig(bad)).toThrow(ConfigError);
 });
 
 function withHref(href: string) {
 	const raw = clone(validConfig) as unknown as Record<string, unknown>;
-	raw.providers = [
-		{
-			name: 'dav',
+	raw.providers = {
+		dav: {
 			type: 'caldav',
 			url: 'https://cal.example.com/dav/',
 			username: 'u',
 			password: 'p',
-			calendars: [{ name: 'my-google-cal', href }]
+			calendars: { 'my-google-cal': { href } }
 		}
-	];
+	};
 	return raw;
 }
 

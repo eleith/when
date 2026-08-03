@@ -128,7 +128,6 @@ test('fetchCalDavBusy throws on non-2xx response', async () => {
 });
 
 const davService = {
-	name: 'dav',
 	type: 'caldav',
 	url: 'https://host/dav/',
 	username: 'u',
@@ -181,7 +180,6 @@ test('discoverCalDavCalendars targets the Nextcloud dav base', async () => {
 	const urls: string[] = [];
 	mockPropfind(calDavXml('/remote.php/dav'), urls);
 	const nc = {
-		name: 'nc',
 		type: 'nextcloud',
 		url: 'https://cloud.example.com/',
 		username: 'u',

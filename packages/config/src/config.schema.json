@@ -26,27 +26,39 @@
 			"$ref": "#/$defs/Smtp"
 		},
 		"providers": {
-			"default": [],
-			"description": "Third-party services and the calendars they serve.",
-			"type": "array",
-			"items": {
-				"$ref": "#/$defs/Provider"
+			"additionalProperties": false,
+			"default": {},
+			"description": "Third-party services and the calendars they serve, keyed by name.",
+			"type": "object",
+			"patternProperties": {
+				"^[a-z0-9][a-z0-9-]*$": {
+					"default": {},
+					"$ref": "#/$defs/Provider"
+				}
 			}
 		},
 		"schedules": {
-			"minItems": 1,
-			"description": "List of schedules for availability.",
-			"type": "array",
-			"items": {
-				"$ref": "#/$defs/Schedule"
+			"additionalProperties": false,
+			"minProperties": 1,
+			"description": "Availability schedules, keyed by the name meetings reference.",
+			"type": "object",
+			"patternProperties": {
+				"^[a-z0-9][a-z0-9-]*$": {
+					"default": {},
+					"$ref": "#/$defs/Schedule"
+				}
 			}
 		},
 		"meetings": {
-			"minItems": 1,
-			"description": "Bookable meeting types.",
-			"type": "array",
-			"items": {
-				"$ref": "#/$defs/Meeting"
+			"additionalProperties": false,
+			"minProperties": 1,
+			"description": "Bookable meetings, keyed by the slug their booking page uses (/schedule/<key>).",
+			"type": "object",
+			"patternProperties": {
+				"^[a-z0-9][a-z0-9-]*$": {
+					"default": {},
+					"$ref": "#/$defs/Meeting"
+				}
 			}
 		},
 		"database": {
@@ -212,13 +224,8 @@
 			"title": "CalDavCalendar",
 			"description": "A calendar on a CalDAV or Nextcloud provider.",
 			"type": "object",
-			"required": ["name", "href"],
+			"required": ["href"],
 			"properties": {
-				"name": {
-					"minLength": 1,
-					"description": "Unique name for this calendar, referenced by meetings. Must be unique across every provider.",
-					"type": "string"
-				},
 				"href": {
 					"minLength": 1,
 					"pattern": "^(https?://[^\\s]+|(?!//)(?![a-zA-Z][a-zA-Z0-9+.-]*:)[^\\s]+)$",
@@ -237,13 +244,8 @@
 			"title": "CalDavProvider",
 			"description": "CalDAV provider credentials for generic calendar sync.",
 			"type": "object",
-			"required": ["name", "type", "url", "username", "password"],
+			"required": ["type", "url", "username", "password"],
 			"properties": {
-				"name": {
-					"minLength": 1,
-					"description": "Unique name for the provider.",
-					"type": "string"
-				},
 				"type": {
 					"description": "Provider type: must be caldav.",
 					"const": "caldav",
@@ -265,11 +267,15 @@
 					"type": "string"
 				},
 				"calendars": {
-					"default": [],
-					"description": "Calendars served by this provider.",
-					"type": "array",
-					"items": {
-						"$ref": "#/$defs/CalDavCalendar"
+					"additionalProperties": false,
+					"default": {},
+					"description": "Calendars served by this provider, keyed by the name meetings reference.",
+					"type": "object",
+					"patternProperties": {
+						"^[a-z0-9][a-z0-9-]*$": {
+							"default": {},
+							"$ref": "#/$defs/CalDavCalendar"
+						}
 					}
 				}
 			}
@@ -516,13 +522,8 @@
 			"title": "GoogleCalendar",
 			"description": "A calendar on a Google provider.",
 			"type": "object",
-			"required": ["name", "id"],
+			"required": ["id"],
 			"properties": {
-				"name": {
-					"minLength": 1,
-					"description": "Unique name for this calendar, referenced by meetings. Must be unique across every provider.",
-					"type": "string"
-				},
 				"id": {
 					"minLength": 1,
 					"description": "The specific Google calendar ID (e.g. primary or an email address).",
@@ -540,13 +541,8 @@
 			"title": "GoogleProvider",
 			"description": "Google API provider credentials. The refresh token is not configured here — connect the provider from the admin and it is stored in the database.",
 			"type": "object",
-			"required": ["name", "type", "client_id", "client_secret"],
+			"required": ["type", "client_id", "client_secret"],
 			"properties": {
-				"name": {
-					"minLength": 1,
-					"description": "Unique name for the provider.",
-					"type": "string"
-				},
 				"type": {
 					"description": "Provider type: must be google.",
 					"const": "google",
@@ -563,11 +559,15 @@
 					"type": "string"
 				},
 				"calendars": {
-					"default": [],
-					"description": "Calendars served by this provider.",
-					"type": "array",
-					"items": {
-						"$ref": "#/$defs/GoogleCalendar"
+					"additionalProperties": false,
+					"default": {},
+					"description": "Calendars served by this provider, keyed by the name meetings reference.",
+					"type": "object",
+					"patternProperties": {
+						"^[a-z0-9][a-z0-9-]*$": {
+							"default": {},
+							"$ref": "#/$defs/GoogleCalendar"
+						}
 					}
 				}
 			}
@@ -593,11 +593,11 @@
 			"title": "Meeting",
 			"description": "Definition of a bookable meeting.",
 			"type": "object",
-			"required": ["name", "booking_calendar", "schedule"],
+			"required": ["title", "booking_calendar", "schedule"],
 			"properties": {
-				"name": {
+				"title": {
 					"minLength": 1,
-					"description": "Unique name of the meeting (e.g. 30-minute chat).",
+					"description": "Name shown to guests (e.g. 30-minute chat).",
 					"type": "string"
 				},
 				"duration_minutes": {
@@ -617,11 +617,6 @@
 				},
 				"description": {
 					"description": "Brief description of the meeting.",
-					"type": "string"
-				},
-				"slug": {
-					"pattern": "^[a-z0-9][a-z0-9-]*$",
-					"description": "URL slug for the booking page (e.g. \"chat\" for /schedule/chat). Defaults to a slug derived from the meeting name.",
 					"type": "string"
 				},
 				"visibility": {
@@ -739,13 +734,8 @@
 			"title": "NextcloudProvider",
 			"description": "Nextcloud provider credentials for CalDAV calendar and Talk video chat integrations.",
 			"type": "object",
-			"required": ["name", "type", "url", "username", "password"],
+			"required": ["type", "url", "username", "password"],
 			"properties": {
-				"name": {
-					"minLength": 1,
-					"description": "Unique name for the provider.",
-					"type": "string"
-				},
 				"type": {
 					"description": "Provider type: must be nextcloud.",
 					"const": "nextcloud",
@@ -767,11 +757,15 @@
 					"type": "string"
 				},
 				"calendars": {
-					"default": [],
-					"description": "Calendars served by this provider.",
-					"type": "array",
-					"items": {
-						"$ref": "#/$defs/CalDavCalendar"
+					"additionalProperties": false,
+					"default": {},
+					"description": "Calendars served by this provider, keyed by the name meetings reference.",
+					"type": "object",
+					"patternProperties": {
+						"^[a-z0-9][a-z0-9-]*$": {
+							"default": {},
+							"$ref": "#/$defs/CalDavCalendar"
+						}
 					}
 				}
 			}
@@ -838,13 +832,7 @@
 			"title": "Schedule",
 			"description": "Schedule defining weekly working hours.",
 			"type": "object",
-			"required": ["name"],
 			"properties": {
-				"name": {
-					"minLength": 1,
-					"description": "Unique name for the schedule, referenced by meetings.",
-					"type": "string"
-				},
 				"weekly": {
 					"description": "Weekly working hours as availability rules. Defaults to Monday-Friday 09:00-17:00 when omitted.",
 					"$ref": "#/$defs/WeeklyAvailability"

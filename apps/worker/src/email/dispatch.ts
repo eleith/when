@@ -47,7 +47,7 @@ function build(i: AppointmentEmailInput, kind: AppointmentEmailKind): EmailMessa
 }
 
 export async function dispatch(input: DispatchInput, cfg: WhenConfiguration): Promise<Envelope[]> {
-	const eventType = cfg.meetings.find((e) => e.name === input.appointment.event_type_id);
+	const eventType = cfg.meetings[input.appointment.event_type_id];
 	const logo = await fetchBrandLogo(cfg);
 
 	const actionLog = parseActionLog(input.appointment.action_log);

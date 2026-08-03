@@ -12,13 +12,9 @@ import { load } from './+page.server';
 
 type LoadResult = Exclude<Awaited<ReturnType<typeof load>>, void>;
 
-const baseMeeting: Meeting = {
-	...validConfig.meetings[0],
-	name: 'chat',
-	slug: 'chat'
-};
+const baseMeeting: Meeting = validConfig.meetings['30-min-chat'];
 
-function withMeetings(...meetings: Meeting[]) {
+function withMeetings(meetings: Record<string, Meeting>) {
 	h.cfg.current = { ...validConfig, meetings };
 }
 
@@ -48,9 +44,11 @@ beforeEach(() => {
 describe('home page load', () => {
 	test('never exposes a meeting location or video chat provider', async () => {
 		withMeetings({
-			...baseMeeting,
-			location: '1 Main St, Suite 200',
-			video_chat_provider: 'google-service'
+			chat: {
+				...baseMeeting,
+				location: '1 Main St, Suite 200',
+				video_chat_provider: 'google-service'
+			}
 		});
 
 		const [et] = await loadEventTypes();
@@ -60,34 +58,38 @@ describe('home page load', () => {
 	});
 
 	test('normalizes a scalar duration into a list', async () => {
-		withMeetings({ ...baseMeeting, duration_minutes: 30 });
+		withMeetings({ chat: { ...baseMeeting, duration_minutes: 30 } });
 
 		expect((await loadEventTypes())[0].durations).toEqual([30]);
 	});
 
 	test('sorts offered lengths ascending regardless of config order', async () => {
-		withMeetings({ ...baseMeeting, duration_minutes: 60, additional_duration_minutes: [15, 30] });
+		withMeetings({
+			chat: { ...baseMeeting, duration_minutes: 60, additional_duration_minutes: [15, 30] }
+		});
 
 		expect((await loadEventTypes())[0].durations).toEqual([15, 30, 60]);
 	});
 
 	test('de-duplicates repeated lengths', async () => {
-		withMeetings({ ...baseMeeting, duration_minutes: 60, additional_duration_minutes: [30, 60] });
+		withMeetings({
+			chat: { ...baseMeeting, duration_minutes: 60, additional_duration_minutes: [30, 60] }
+		});
 
 		expect((await loadEventTypes())[0].durations).toEqual([30, 60]);
 	});
 
 	test('hides private meetings', async () => {
-		withMeetings(
-			{ ...baseMeeting, name: 'public-chat', slug: 'public-chat' },
-			{ ...baseMeeting, name: 'secret', slug: 'secret', visibility: 'unlisted' }
-		);
+		withMeetings({
+			'public-chat': baseMeeting,
+			secret: { ...baseMeeting, visibility: 'unlisted' }
+		});
 
 		expect((await loadEventTypes()).map((et) => et.slug)).toEqual(['public-chat']);
 	});
 
 	test('treats an unset visibility as public', async () => {
-		withMeetings(baseMeeting);
+		withMeetings({ chat: baseMeeting });
 
 		expect(await loadEventTypes()).toHaveLength(1);
 	});

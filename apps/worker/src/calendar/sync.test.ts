@@ -11,17 +11,16 @@ const silent: Logger = pino({ level: 'silent' });
 const config = {
 	user: { name: 'Jane', email: 'jane@example.com', timezone: 'America/New_York' },
 	url: { app: 'https://when.example.com' },
-	providers: [
-		{
-			name: 'work-dav',
+	providers: {
+		'work-dav': {
 			type: 'caldav',
 			url: 'https://cal.example.com/work/',
 			username: 'u',
 			password: 'p',
-			calendars: [{ name: 'work', href: 'https://cal.example.com/work/' }]
+			calendars: { work: { href: 'https://cal.example.com/work/' } }
 		}
-	],
-	meetings: [{ name: 'chat', slug: 'chat', booking_calendar: 'work', duration_minutes: 30 }]
+	},
+	meetings: { chat: { title: 'chat', booking_calendar: 'work', duration_minutes: 30 } }
 } as unknown as WhenConfiguration;
 
 const appt = (over: Record<string, unknown>) => ({

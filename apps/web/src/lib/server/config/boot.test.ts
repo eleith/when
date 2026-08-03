@@ -31,5 +31,5 @@ test('valid config loads and returns typed object', async () => {
 	await writeFile(cfgPath, stringify(validConfig));
 	const cfg = await bootConfig(cfgPath);
 	expect(cfg.user.name).toBe('Jane Doe');
-	expect(cfg.meetings[0].slug).toBe('30-min');
+	expect(cfg.meetings['30-min-chat'].title).toBe('30 minute chat');
 });

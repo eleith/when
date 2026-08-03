@@ -29,24 +29,22 @@ const adapter = {
 
 const config = {
 	url: { app: 'https://book.example.com', worker: 'http://when-worker:9000' },
-	providers: [
-		{
-			name: 'gg',
+	providers: {
+		gg: {
 			type: 'google',
 			client_id: 'cid',
 			client_secret: 'csec',
-			calendars: [{ name: 'work', id: 'primary' }]
+			calendars: { work: { id: 'primary' } }
 		},
-		{
-			name: 'dav',
+		dav: {
 			type: 'caldav',
 			url: 'https://d.example/',
 			username: 'u',
 			password: 'p',
-			calendars: [{ name: 'home', href: 'https://d.example/home/' }]
+			calendars: { home: { href: 'https://d.example/home/' } }
 		}
-	],
-	meetings: []
+	},
+	meetings: {}
 } as unknown as WhenConfiguration;
 
 let db: ReturnType<typeof openDb>;

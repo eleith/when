@@ -29,24 +29,24 @@ smtp:
   user: "smtp_user"
   pass: "smtp_pass"
 providers:
-  - name: "work-dav"
+  work-dav:
     type: "caldav"
     url: "https://example.com"
     username: "u"
     password: "p"
     calendars:
-      - name: "work"
+      work:
         href: "https://example.com"
 schedules:
-  - name: "standard"
+  standard:
     weekly:
       - days: [mon]
         from: "09:00"
         to: "17:00"
 meetings:
-  - name: "chat"
+  chat:
+    title: "chat"
     duration_minutes: 30
-    slug: "chat"
     require_approval: false
     booking_calendar: "work"
     schedule: "standard"
@@ -80,24 +80,24 @@ smtp:
   user: "smtp_user"
   pass: "smtp_pass"
 providers:
-  - name: "work-dav"
+  work-dav:
     type: "caldav"
     url: "https://example.com"
     username: "u"
     password: "p"
     calendars:
-      - name: "work"
+      work:
         href: "https://example.com"
 schedules:
-  - name: "standard"
+  standard:
     weekly:
       - days: [mon]
         from: "09:00"
         to: "17:00"
 meetings:
-  - name: "chat"
+  chat:
+    title: "chat"
     duration_minutes: 30
-    slug: "chat"
     require_approval: false
     booking_calendar: "work"
     schedule: "standard"
@@ -210,7 +210,9 @@ url:
 
 		await validateCommand.run!(ctx);
 
-		const details = errorSpy.mock.calls.map((c) => String(c[0])).filter((l) => l.startsWith('   '));
+		const details = errorSpy.mock.calls
+			.map((c: unknown[]) => String(c[0]))
+			.filter((l: string) => l.startsWith('   '));
 		expect(details.length).toBeGreaterThan(0);
 		for (const line of details) {
 			expect(line).toMatch(/^ {3}\d+:\d+ {2}/);

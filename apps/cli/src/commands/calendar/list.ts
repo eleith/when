@@ -9,7 +9,7 @@ export function runCalendarList(config: WhenConfiguration): void {
 		return;
 	}
 	for (const c of calendars) {
-		console.log(`${c.calendar.name}  (${c.provider.type})`);
+		console.log(`${c.name}  (${c.provider.type})`);
 	}
 }
 

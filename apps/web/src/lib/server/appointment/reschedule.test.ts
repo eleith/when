@@ -37,7 +37,7 @@ const existing: Appointment = {
 	updated_at: ''
 };
 
-const eventType = { name: 'chat', notice_minutes: 60 };
+const eventType = { notice_minutes: 60 };
 
 describe('classifyReschedule', () => {
 	test('fresh when no rescheduleId', () => {
@@ -46,6 +46,7 @@ describe('classifyReschedule', () => {
 				rescheduleId: null,
 				token: null,
 				existing: undefined,
+				slug: 'chat',
 				eventType,
 				now
 			})
@@ -57,6 +58,7 @@ describe('classifyReschedule', () => {
 			rescheduleId: 'appt-1',
 			token: 'tok-good',
 			existing,
+			slug: 'chat',
 			eventType,
 			now
 		});
@@ -71,6 +73,7 @@ describe('classifyReschedule', () => {
 				rescheduleId: 'appt-1',
 				token: 'tok-good',
 				existing: undefined,
+				slug: 'chat',
 				eventType,
 				now
 			})
@@ -83,6 +86,7 @@ describe('classifyReschedule', () => {
 				rescheduleId: 'appt-1',
 				token: 'tok-bad',
 				existing,
+				slug: 'chat',
 				eventType,
 				now
 			})
@@ -95,6 +99,7 @@ describe('classifyReschedule', () => {
 				rescheduleId: 'appt-1',
 				token: null,
 				existing,
+				slug: 'chat',
 				eventType,
 				now
 			})
@@ -107,7 +112,8 @@ describe('classifyReschedule', () => {
 				rescheduleId: 'appt-1',
 				token: 'tok-good',
 				existing,
-				eventType: { name: 'other', notice_minutes: 60 },
+				slug: 'other',
+				eventType,
 				now
 			})
 		).toEqual({ kind: 'error', code: 'event_type' });
@@ -120,6 +126,7 @@ describe('classifyReschedule', () => {
 				rescheduleId: 'appt-1',
 				token: 'tok-good',
 				existing,
+				slug: 'chat',
 				eventType,
 				now: past
 			})
@@ -132,6 +139,7 @@ describe('classifyReschedule', () => {
 				rescheduleId: 'appt-1',
 				token: 'tok-good',
 				existing: { ...existing, status: 'cancelled' },
+				slug: 'chat',
 				eventType,
 				now
 			})
@@ -144,6 +152,7 @@ describe('classifyReschedule', () => {
 				rescheduleId: 'appt-1',
 				token: 'tok-good',
 				existing: { ...existing, status: 'declined' },
+				slug: 'chat',
 				eventType,
 				now
 			})
@@ -157,6 +166,7 @@ describe('classifyReschedule', () => {
 				rescheduleId: 'appt-1',
 				token: 'tok-good',
 				existing,
+				slug: 'chat',
 				eventType,
 				now: close
 			})
@@ -170,6 +180,7 @@ describe('classifyReschedule', () => {
 				rescheduleId: 'appt-1',
 				token: 'tok-good',
 				existing,
+				slug: 'chat',
 				eventType,
 				now: after
 			})
@@ -183,7 +194,8 @@ describe('classifyReschedule', () => {
 				rescheduleId: 'appt-1',
 				token: 'tok-good',
 				existing,
-				eventType: { name: 'chat', notice_minutes: 0 },
+				slug: 'chat',
+				eventType: { notice_minutes: 0 },
 				now: justBeforeStart
 			})
 		).toEqual({
@@ -400,14 +412,9 @@ describe('rescheduleAppointment', () => {
 
 	const reapprovalCfg: WhenConfiguration = {
 		...validConfig,
-		meetings: [
-			{
-				...validConfig.meetings[0],
-				name: 'confirm-me',
-				slug: 'confirm-me',
-				require_approval: true
-			}
-		]
+		meetings: {
+			'confirm-me': { ...validConfig.meetings['30-min-chat'], require_approval: true }
+		}
 	};
 
 	test('guest moving a confirmed requires-confirmation appointment reverts to pending, keeps the event', async () => {

@@ -33,7 +33,7 @@ async function handleBulkDelete(ids: string[]): Promise<Response | null> {
 				continue;
 			}
 
-			const eventType = cfg.meetings.find((e) => e.name === row.event_type_id);
+			const eventType = cfg.meetings[row.event_type_id];
 			if (eventType) {
 				const check = await isChainTerminal(db, row.id, now);
 				if (!check.terminal) {

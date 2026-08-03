@@ -11,7 +11,7 @@ export async function runTestCalendar(input: TestCalendarInput): Promise<TestCal
 	if (!cal) throw new Error(`No calendar named "${input.name}".`);
 
 	const now = Temporal.Now.instant();
-	const window = refreshWindow(ctx.config, cal.calendar.name, now);
+	const window = refreshWindow(ctx.config, cal.name, now);
 	const result = await refreshCalendar(ctx, cal, window, { now, via: 'test' });
 	if (!result.ok) throw new Error(result.error);
 

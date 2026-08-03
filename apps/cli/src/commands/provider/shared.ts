@@ -17,8 +17,11 @@ export async function providersAndName(
 	return { config, name: nameArg };
 }
 
-export function requireProvider(providers: Provider[], name: string): Provider | null {
-	const provider = providers.find((s) => s.name === name);
+export function requireProvider(
+	providers: Record<string, Provider>,
+	name: string
+): Provider | null {
+	const provider = providers[name];
 	if (!provider) {
 		fail(`no provider named "${name}"`);
 		return null;

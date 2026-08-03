@@ -3,8 +3,7 @@ import { parseActionLog, type ActionLogEntry, type Appointment } from '@when/db'
 
 export interface PublicEventType extends Pick<
 	Meeting,
-	| 'name'
-	| 'slug'
+	| 'title'
 	| 'require_approval'
 	| 'description'
 	| 'location'
@@ -14,8 +13,9 @@ export interface PublicEventType extends Pick<
 	| 'padding_after_minutes'
 	| 'notice_minutes'
 > {
-	duration_minutes: number; // the default (first) length
-	durations: number[]; // all offered lengths, in config order
+	slug: string; // the meeting's config key, which is its booking page URL
+	duration_minutes: number; // the default length
+	durations: number[]; // every offered length, default first
 }
 
 export interface PublicAppointment {
@@ -32,10 +32,14 @@ export interface PublicAppointment {
 	action_log: ActionLogEntry[];
 }
 
-export function toPublicEventType(eventType: Meeting, isAdmin: boolean): PublicEventType {
+export function toPublicEventType(
+	slug: string,
+	eventType: Meeting,
+	isAdmin: boolean
+): PublicEventType {
 	return {
-		name: eventType.name,
-		slug: eventType.slug,
+		slug,
+		title: eventType.title,
 		duration_minutes: durationsOf(eventType)[0],
 		durations: durationsOf(eventType),
 		description: eventType.description,

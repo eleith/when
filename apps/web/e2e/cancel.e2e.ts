@@ -9,7 +9,7 @@ test('a guest with the cancel token sees the appointment', async ({ page }) => {
 	await page.goto(`/appointment/${appointment.id}?token=${appointment.cancel_token}`);
 
 	await expect(page.getByRole('heading', { name: 'Pending', exact: true })).toBeVisible();
-	await expect(page.getByRole('heading', { name: CHAT_MEETING.name })).toBeVisible();
+	await expect(page.getByRole('heading', { name: CHAT_MEETING.title })).toBeVisible();
 });
 
 test('a guest cancels a confirmed appointment', async ({ page }) => {

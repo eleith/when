@@ -54,25 +54,35 @@ function connectProvider(service: Provider, refreshToken: string | null): Connec
 
 // Every configured service joined with whatever credential the store holds for it.
 async function connectProviders(
-	services: Provider[],
+	providers: WhenConfiguration['providers'],
 	db: ReturnType<typeof openDb>
-): Promise<ConnectedProvider[]> {
-	return Promise.all(
-		services.map(async (service) =>
-			connectProvider(service, await getProviderRefreshToken(db, service.name))
+): Promise<Record<string, ConnectedProvider>> {
+	const entries = await Promise.all(
+		Object.entries(providers).map(
+			async ([name, provider]) =>
+				[name, connectProvider(provider, await getProviderRefreshToken(db, name))] as const
 		)
 	);
+	return Object.fromEntries(entries);
 }
 
 function getCalendarAdapter(
 	resolved: ResolvedCalendar,
-	services?: ConnectedProvider[]
+	services?: Record<string, ConnectedProvider>
 ): CalendarAdapter {
-	const connected = services?.find((s) => s.name === resolved.provider.name);
+	const connected = services?.[resolved.providerName];
 	if (resolved.type === 'google') {
-		return new GoogleAdapter(resolved.calendar, connected as ConnectedGoogleProvider | undefined);
+		return new GoogleAdapter(
+			resolved.name,
+			resolved.calendar,
+			connected as ConnectedGoogleProvider | undefined
+		);
 	}
-	return new CalDavAdapter(resolved.calendar, connected as CalDavProvider | undefined);
+	return new CalDavAdapter(
+		resolved.name,
+		resolved.calendar,
+		connected as CalDavProvider | undefined
+	);
 }
 
 export type {

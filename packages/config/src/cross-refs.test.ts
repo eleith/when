@@ -15,7 +15,7 @@ const validForm: FormField[] = [
 
 function withForm(fields: FormField[]) {
 	const cfg = clone(validConfig);
-	cfg.meetings[0].form_fields = fields;
+	cfg.meetings['30-min-chat'].form_fields = fields;
 	return cfg;
 }
 
@@ -35,64 +35,29 @@ test('valid cross-refs pass', () => {
 
 test('unknown booking_calendar flagged', () => {
 	const bad = clone(validConfig);
-	bad.meetings[0].booking_calendar = 'does-not-exist';
+	bad.meetings['30-min-chat'].booking_calendar = 'does-not-exist';
 	try {
 		validateConfig(bad);
 		throw new Error('expected ConfigError');
 	} catch (err) {
 		expect(err).toBeInstanceOf(ConfigError);
 		const issues = (err as ConfigError).issues;
-		expect(issues[0].path).toBe('/meetings/0/booking_calendar');
+		expect(issues[0].path).toBe('/meetings/30-min-chat/booking_calendar');
 		expect(issues[0].message).toContain('does-not-exist');
 	}
 });
 
 test('unknown additional_busy_calendars entry flagged with index', () => {
 	const bad = clone(validConfig);
-	bad.meetings[0].additional_busy_calendars = ['my-google-cal', 'missing-cal'];
+	bad.meetings['30-min-chat'].additional_busy_calendars = ['my-google-cal', 'missing-cal'];
 	try {
 		validateConfig(bad);
 		throw new Error('expected ConfigError');
 	} catch (err) {
 		const issues = (err as ConfigError).issues;
-		expect(issues.some((i) => i.path === '/meetings/0/additional_busy_calendars/1')).toBe(true);
-	}
-});
-
-test('duplicate calendar name flagged', () => {
-	const bad = clone(validConfig) as unknown as Record<string, unknown>;
-	const calendars = (bad.providers as Record<string, unknown>[])[0].calendars as unknown[];
-	calendars.push({ ...(calendars[0] as object) });
-	try {
-		validateConfig(bad);
-		throw new Error('expected ConfigError');
-	} catch (err) {
-		const issues = (err as ConfigError).issues;
-		expect(issues.some((i) => i.message.includes('duplicate calendar name'))).toBe(true);
-	}
-});
-
-test('duplicate meeting name flagged', () => {
-	const bad = clone(validConfig);
-	bad.meetings.push({ ...bad.meetings[0], slug: 'other-slug' });
-	try {
-		validateConfig(bad);
-		throw new Error('expected ConfigError');
-	} catch (err) {
-		const issues = (err as ConfigError).issues;
-		expect(issues.some((i) => i.message.includes('duplicate meeting name'))).toBe(true);
-	}
-});
-
-test('duplicate slug flagged', () => {
-	const bad = clone(validConfig);
-	bad.meetings.push({ ...bad.meetings[0], name: 'other-name' });
-	try {
-		validateConfig(bad);
-		throw new Error('expected ConfigError');
-	} catch (err) {
-		const issues = (err as ConfigError).issues;
-		expect(issues.some((i) => i.message.includes('duplicate meeting slug'))).toBe(true);
+		expect(issues.some((i) => i.path === '/meetings/30-min-chat/additional_busy_calendars/1')).toBe(
+			true
+		);
 	}
 });
 
@@ -126,7 +91,7 @@ test('duplicate form field name flagged with index', () => {
 	const issues = issuesFor(
 		withForm([...validForm, { name: 'notes', type: 'text', label: 'Dup', required: false }])
 	);
-	expect(issues.some((i) => i.path === '/meetings/0/form_fields/3/name')).toBe(true);
+	expect(issues.some((i) => i.path === '/meetings/30-min-chat/form_fields/3/name')).toBe(true);
 });
 
 test('valid show_when passes', () => {
@@ -174,7 +139,9 @@ test('show_when referencing a later field is flagged', () => {
 	);
 	expect(
 		issues.some(
-			(i) => i.path === '/meetings/0/form_fields/0/show_when/0/field' && i.message.includes('how')
+			(i) =>
+				i.path === '/meetings/30-min-chat/form_fields/0/show_when/0/field' &&
+				i.message.includes('how')
 		)
 	).toBe(true);
 });
@@ -195,7 +162,8 @@ test('show_when equals value outside the choice options is flagged', () => {
 	);
 	expect(
 		issues.some(
-			(i) => i.path === '/meetings/0/form_fields/4/show_when/0' && i.message.includes('fax')
+			(i) =>
+				i.path === '/meetings/30-min-chat/form_fields/4/show_when/0' && i.message.includes('fax')
 		)
 	).toBe(true);
 });
@@ -246,7 +214,7 @@ test('event_location appearing twice flagged', () => {
 
 test('choice field without choices rejected by the schema', () => {
 	const cfg = clone(validConfig) as unknown as Record<string, unknown>;
-	(cfg.meetings as Record<string, unknown>[])[0].form_fields = [
+	(cfg.meetings as Record<string, Record<string, unknown>>)['30-min-chat'].form_fields = [
 		...validForm,
 		{ name: 'how', type: 'choice', label: 'How?', required: true }
 	];
@@ -255,7 +223,7 @@ test('choice field without choices rejected by the schema', () => {
 
 test('choices on a plain field rejected by the schema', () => {
 	const cfg = clone(validConfig) as unknown as Record<string, unknown>;
-	(cfg.meetings as Record<string, unknown>[])[0].form_fields = [
+	(cfg.meetings as Record<string, Record<string, unknown>>)['30-min-chat'].form_fields = [
 		...validForm,
 		{ name: 'topic', type: 'text', label: 'Topic?', required: false, choices: ['a', 'b'] }
 	];
@@ -278,108 +246,88 @@ test('event_location keeps its optional choices', () => {
 
 test('a calendar name repeated across providers is flagged', () => {
 	const bad = clone(validConfig) as unknown as Record<string, unknown>;
-	(bad.providers as Record<string, unknown>[]).push({
-		name: 'second-service',
+	(bad.providers as Record<string, unknown>)['second-service'] = {
 		type: 'caldav',
 		url: 'https://cloud.example.com/dav/',
 		username: 'jane',
 		password: 'pwd',
-		calendars: [{ name: 'my-google-cal', href: 'cal/' }]
-	});
+		calendars: { 'my-google-cal': { href: 'cal/' } }
+	};
 	const issues = issuesFor(bad);
 	expect(
 		issues.some(
 			(i) =>
-				i.path === '/providers/1/calendars/0/name' && i.message.includes('duplicate calendar name')
+				i.path === '/providers/second-service/calendars/my-google-cal' &&
+				i.message.includes('already defined on another provider')
 		)
-	).toBe(true);
-});
-
-test('duplicate provider name flagged', () => {
-	const bad = clone(validConfig);
-	bad.providers.push({ ...bad.providers[0] });
-	const issues = issuesFor(bad);
-	expect(
-		issues.some((i) => i.path === '/providers/1/name' && i.message.includes('duplicate provider'))
 	).toBe(true);
 });
 
 test('unknown video_chat_provider reference in meeting flagged', () => {
 	const bad = clone(validConfig);
-	bad.meetings[0].video_chat_provider = 'non-existent';
+	bad.meetings['30-min-chat'].video_chat_provider = 'non-existent';
 	const issues = issuesFor(bad);
 	expect(
 		issues.some(
-			(i) => i.path === '/meetings/0/video_chat_provider' && i.message.includes('unknown provider')
+			(i) =>
+				i.path === '/meetings/30-min-chat/video_chat_provider' &&
+				i.message.includes('unknown provider')
 		)
 	).toBe(true);
 });
 
 test('Google Meet video_chat_provider with CalDAV booking calendar flagged', () => {
 	const bad = clone(validConfig);
-	bad.providers.push({
-		name: 'nextcloud-service',
+	bad.providers['nextcloud-service'] = {
 		type: 'nextcloud',
 		url: 'https://cloud.example.com',
 		username: 'jane',
 		password: 'pwd',
-		calendars: [
-			{
-				name: 'caldav-cal',
-				href: 'https://cloud.example.com/cal/',
-				sync: { refresh_every_minutes: 10 }
-			}
-		]
-	});
-	bad.meetings[0].booking_calendar = 'caldav-cal';
-	bad.meetings[0].video_chat_provider = 'google-service'; // google-service is of type google
+		calendars: {
+			'caldav-cal': { href: 'https://cloud.example.com/cal/', sync: { refresh_every_minutes: 10 } }
+		}
+	};
+	bad.meetings['30-min-chat'].booking_calendar = 'caldav-cal';
+	bad.meetings['30-min-chat'].video_chat_provider = 'google-service'; // google-service is of type google
 
 	const issues = issuesFor(bad);
 	expect(
 		issues.some(
 			(i) =>
-				i.path === '/meetings/0/video_chat_provider' &&
+				i.path === '/meetings/30-min-chat/video_chat_provider' &&
 				i.message.includes('Google Meet dynamic video chat is only supported')
-		)
-	).toBe(true);
-});
-
-test('duplicate schedule name flagged', () => {
-	const bad = clone(validConfig);
-	bad.schedules.push({ ...bad.schedules[0] });
-	const issues = issuesFor(bad);
-	expect(
-		issues.some(
-			(i) => i.path === '/schedules/1/name' && i.message.includes('duplicate schedule name')
 		)
 	).toBe(true);
 });
 
 test('empty window (from >= to) flagged', () => {
 	const bad = clone(validConfig);
-	bad.schedules[0].weekly[0].to = bad.schedules[0].weekly[0].from;
+	bad.schedules.standard.weekly[0].to = bad.schedules.standard.weekly[0].from;
 	const issues = issuesFor(bad);
 	expect(
-		issues.some((i) => i.path === '/schedules/0/weekly/0' && i.message.includes('empty window'))
+		issues.some(
+			(i) => i.path === '/schedules/standard/weekly/0' && i.message.includes('empty window')
+		)
 	).toBe(true);
 });
 
 test('unknown schedule reference in meeting flagged', () => {
 	const bad = clone(validConfig);
-	bad.meetings[0].schedule = 'non-existent';
+	bad.meetings['30-min-chat'].schedule = 'non-existent';
 	const issues = issuesFor(bad);
 	expect(
 		issues.some(
-			(i) => i.path === '/meetings/0/schedule' && i.message.includes('unknown schedule name')
+			(i) =>
+				i.path === '/meetings/30-min-chat/schedule' && i.message.includes('unknown schedule name')
 		)
 	).toBe(true);
 });
 
 test("a step shorter than the longest length is the writer's call, not an error", () => {
 	const cfg = clone(validConfig);
-	cfg.meetings[0].show_slots = true;
-	cfg.meetings[0].duration_minutes = 15;
-	cfg.meetings[0].additional_duration_minutes = [30, 60];
-	cfg.meetings[0].start_times_every_minutes = 15;
+	cfg.meetings['30-min-chat'].show_slots = true;
+	cfg.meetings['30-min-chat'].duration_minutes = 15;
+	cfg.meetings['30-min-chat'].additional_duration_minutes = [30, 60];
+	cfg.meetings['30-min-chat'].start_times_every_minutes = 15;
 	expect(() => validateConfig(cfg)).not.toThrow();
 });

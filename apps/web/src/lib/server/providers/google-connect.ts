@@ -18,7 +18,7 @@ export function googleRedirectUri(appUrl: string): string {
 }
 
 export function findGoogleProvider(config: WhenConfiguration, name: string): GoogleProvider | null {
-	const provider = config.providers?.find((s) => s.name === name);
+	const provider = config.providers[name];
 	return provider?.type === 'google' ? provider : null;
 }
 
@@ -41,6 +41,7 @@ export type ConnectResult = { ok: true } | { ok: false; reason: string };
 // revokes before minting instead of after.
 export async function completeGoogleConnect(
 	db: Kysely<Database>,
+	name: string,
 	provider: GoogleProvider,
 	code: string,
 	appUrl: string
@@ -67,7 +68,7 @@ export async function completeGoogleConnect(
 			google_calendar_id: ''
 		});
 
-		await saveProviderRefreshToken(db, provider.name, refresh_token);
+		await saveProviderRefreshToken(db, name, refresh_token);
 		return { ok: true };
 	} catch (err) {
 		return { ok: false, reason: err instanceof Error ? err.message : String(err) };

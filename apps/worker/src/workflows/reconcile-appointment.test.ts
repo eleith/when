@@ -18,18 +18,16 @@ const input: ReconcileAppointmentInput = {
 
 const testConfig = {
 	...sampleInput.cfg,
-	calendars: [],
-	providers: [],
-	meetings: [
-		{
-			name: '30-min',
+	providers: {},
+	meetings: {
+		'30-min': {
+			title: '30 minute meeting',
 			duration_minutes: 30,
-			slug: '30-min',
 			require_approval: false,
 			booking_calendar: 'cal',
 			schedule: 'standard'
 		}
-	]
+	}
 } as unknown as WhenConfiguration;
 
 function makeStep() {

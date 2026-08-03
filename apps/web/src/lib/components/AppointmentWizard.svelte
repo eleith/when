@@ -127,7 +127,7 @@
 </script>
 
 <svelte:head>
-	<title>{data.eventType.name} — {data.user.name}</title>
+	<title>{data.eventType.title} — {data.user.name}</title>
 </svelte:head>
 
 <header class="page-banner">
@@ -141,7 +141,7 @@
 		</div>
 	</a>
 	<div class="banner-event">
-		<h1 class="banner-event-name">{data.eventType.name}</h1>
+		<h1 class="banner-event-name">{data.eventType.title}</h1>
 		{#if data.eventType.description}
 			<p class="banner-event-meta">{data.eventType.description}</p>
 		{/if}
@@ -186,7 +186,7 @@
 			<WizardContext
 				appearance={data.user.appearance}
 				providerName={data.user.name}
-				eventName={data.eventType.name}
+				eventName={data.eventType.title}
 				eventDescription={data.eventType.description}
 			/>
 

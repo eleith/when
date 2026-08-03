@@ -23,12 +23,12 @@ export async function createStandaloneVideoChat(
 		return row as Appointment;
 	}
 
-	const meeting = config.meetings.find((m) => m.name === row.event_type_id);
+	const meeting = config.meetings[row.event_type_id];
 	if (!meeting || !meeting.video_chat_provider) {
 		return row as Appointment;
 	}
 
-	const service = config.providers.find((s) => s.name === meeting.video_chat_provider);
+	const service = config.providers[meeting.video_chat_provider!];
 	if (!service) {
 		throw new Error(`Video chat provider "${meeting.video_chat_provider}" not found`);
 	}
@@ -80,12 +80,12 @@ export async function deleteStandaloneVideoChat(
 		return;
 	}
 
-	const meeting = config.meetings.find((e) => e.name === row.event_type_id);
+	const meeting = config.meetings[row.event_type_id];
 	if (!meeting || !meeting.video_chat_provider) {
 		return;
 	}
 
-	const service = config.providers.find((s) => s.name === meeting.video_chat_provider);
+	const service = config.providers[meeting.video_chat_provider!];
 	if (!service || service.type !== 'nextcloud') {
 		return;
 	}

@@ -13,7 +13,7 @@ import { calendarSyncDuration } from '../services/metrics.js';
 import { deleteStandaloneVideoChat } from '../services/video-chat.js';
 
 export async function reconcileAppointment(ctx: WorkerContext, row: Appointment): Promise<void> {
-	const meeting = ctx.config.meetings.find((e) => e.name === row.event_type_id);
+	const meeting = ctx.config.meetings[row.event_type_id];
 	const targetId = row.external_calendar_id ?? meeting?.booking_calendar ?? null;
 	const calendarConfig = targetId ? findCalendar(ctx.config, targetId) : undefined;
 	const providerType = calendarConfig?.type ?? 'unknown';
@@ -123,7 +123,7 @@ async function recordPushOutcome(
 		}
 	);
 
-	const provider = findCalendar(ctx.config, calendarName)?.provider.name;
+	const provider = findCalendar(ctx.config, calendarName)?.providerName;
 	if (provider) {
 		await recordServiceOutcome(
 			ctx.db,

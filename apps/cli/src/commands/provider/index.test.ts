@@ -34,32 +34,32 @@ smtp:
   user: "smtp_user"
   pass: "smtp_pass"
 providers:
-  - name: "gcal"
+  gcal:
     type: "google"
     client_id: "cid"
     client_secret: "csecret"
-  - name: "dav"
+  dav:
     type: "caldav"
     url: "https://dav.example.com/remote.php/dav/"
     username: "u"
     password: "p"
     calendars:
-      - name: "work"
+      work:
         href: "https://dav.example.com/remote.php/dav/calendars/u/work/"
-  - name: "gcal-envref"
+  gcal-envref:
     type: "google"
     client_id: "cid2"
     client_secret: "\${WHEN_TEST_SVC_SECRET}"
 schedules:
-  - name: "standard"
+  standard:
     weekly:
       - days: [mon]
         from: "09:00"
         to: "17:00"
 meetings:
-  - name: "chat"
+  chat:
+    title: "chat"
     duration_minutes: 30
-    slug: "chat"
     require_approval: false
     booking_calendar: "work"
     schedule: "standard"

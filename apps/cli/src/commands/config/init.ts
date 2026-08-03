@@ -21,23 +21,23 @@ smtp:
   user: smtp-user
   pass: \${WHEN_SMTP_PASS}
 providers:
-  - name: my-caldav
+  my-caldav:
     type: caldav
     url: https://dav.example.com/
     username: dav-user
     password: \${WHEN_SERVICE_MY_CALDAV_PASSWORD}
     calendars:
-      - name: primary
+      primary:
         href: calendars/dav-user/primary/
 schedules:
-  - name: standard
+  standard:
     weekly:
       - days: [mon, tue, wed, thu, fri]
         from: '09:00'
         to: '17:00'
 meetings:
-  - name: 30 minute meeting
-    slug: 30-min
+  30-min:
+    title: 30 minute meeting
     duration_minutes: 30
     booking_calendar: primary
     schedule: standard

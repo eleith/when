@@ -23,7 +23,7 @@ export type RefreshResult = { ok: true; busyCount: number } | { ok: false; error
 
 export function busyCalendarIds(config: WhenConfiguration): string[] {
 	const ids = new Set<string>();
-	for (const meeting of config.meetings) {
+	for (const meeting of Object.values(config.meetings)) {
 		for (const name of busyCalendarsFor(meeting)) ids.add(name);
 	}
 	return [...ids];
@@ -35,7 +35,7 @@ export function refreshWindow(
 	now: Temporal.Instant
 ): ExpandWindow {
 	let days = 0;
-	for (const meeting of config.meetings) {
+	for (const meeting of Object.values(config.meetings)) {
 		if (!busyCalendarsFor(meeting).includes(calendarId)) continue;
 		const lookahead = meeting.booking_window_days;
 		days = Math.max(days, lookahead);
@@ -53,17 +53,17 @@ export async function refreshCalendar(
 	const at = (opts.now ?? window.start).toString();
 	const via = opts.via ?? 'refresh';
 	try {
-		const excludeUids = new Set(await listOwnEventIds(ctx.db, cal.calendar.name));
+		const excludeUids = new Set(await listOwnEventIds(ctx.db, cal.name));
 		const services = await connectProviders(ctx.config.providers, ctx.db);
 		const intervals = await fetchBusyIntervals(cal, window, { excludeUids, services });
 		await replaceCalendarBusy(
 			ctx.db,
-			cal.calendar.name,
+			cal.name,
 			intervals.map((i) => ({ start: i.start.toString(), end: i.end.toString() }))
 		);
 		await recordRefreshOutcome(ctx, cal, { at, via });
 		calendarRefreshTotal.inc({
-			calendar_id: cal.calendar.name,
+			calendar_id: cal.name,
 			provider_type: cal.provider.type,
 			status: 'success'
 		});
@@ -72,14 +72,14 @@ export async function refreshCalendar(
 		const error = err instanceof Error ? err.message : String(err);
 		ctx.logger.error(
 			{
-				calendarId: cal.calendar.name,
+				calendarId: cal.name,
 				error
 			},
 			'calendar refresh failed; keeping stale busy times'
 		);
 		await recordRefreshOutcome(ctx, cal, { at, via, error });
 		calendarRefreshTotal.inc({
-			calendar_id: cal.calendar.name,
+			calendar_id: cal.name,
 			provider_type: cal.provider.type,
 			status: 'failure'
 		});
@@ -93,8 +93,8 @@ async function recordRefreshOutcome(
 	cal: ResolvedCalendar,
 	outcome: ServiceOutcome
 ): Promise<void> {
-	await recordServiceOutcome(ctx.db, { kind: 'calendar', name: cal.calendar.name }, outcome);
-	await recordServiceOutcome(ctx.db, { kind: 'provider', name: cal.provider.name }, outcome);
+	await recordServiceOutcome(ctx.db, { kind: 'calendar', name: cal.name }, outcome);
+	await recordServiceOutcome(ctx.db, { kind: 'provider', name: cal.providerName }, outcome);
 }
 
 export async function refreshCalendars(

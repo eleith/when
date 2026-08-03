@@ -25,24 +25,24 @@ smtp:
   user: "smtp_user"
   pass: "smtp_pass"
 providers:
-  - name: "dav"
+  dav:
     type: "caldav"
     url: "https://dav.example.com/"
     username: "u"
     password: "p"
     calendars:
-      - name: "work"
+      work:
         href: "https://dav.example.com/calendars/u/work/"
 schedules:
-  - name: "standard"
+  standard:
     weekly:
       - days: [mon]
         from: "09:00"
         to: "17:00"
 meetings:
-  - name: "chat"
+  chat:
+    title: "chat"
     duration_minutes: 30
-    slug: "chat"
     require_approval: false
     booking_calendar: "work"
     schedule: "standard"

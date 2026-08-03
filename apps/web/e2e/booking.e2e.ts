@@ -5,7 +5,7 @@ import { pickFirstBookableDay, pickSlotFromEndOfDay } from './support/wizard.ts'
 
 test('a guest books a meeting from the home page', async ({ page }) => {
 	await page.goto('/');
-	await page.getByRole('link', { name: CHAT_MEETING.name }).click();
+	await page.getByRole('link', { name: CHAT_MEETING.title }).click();
 
 	await expect(page.getByRole('heading', { name: 'Step 1 of 3: Pick a day' })).toBeVisible();
 	await pickFirstBookableDay(page);
@@ -23,14 +23,14 @@ test('a guest books a meeting from the home page', async ({ page }) => {
 
 	await page.waitForURL(/\/appointment\/[^/?]+\?token=.+/);
 	await expect(page.getByRole('heading', { name: 'Appointment requested' })).toBeVisible();
-	await expect(page.getByRole('heading', { name: CHAT_MEETING.name })).toBeVisible();
+	await expect(page.getByRole('heading', { name: CHAT_MEETING.title })).toBeVisible();
 
 	// The page confirms a booking happened; only the row says it is the booking the
 	// guest asked for, at the time they picked.
 	const id = new URL(page.url()).pathname.split('/').at(-1)!;
 	const row = await readAppointment(id);
 	expect(row).toMatchObject({
-		event_type_id: CHAT_MEETING.name,
+		event_type_id: CHAT_MEETING.slug,
 		guest_name: 'E2E Guest',
 		guest_email: 'e2e-guest@example.test',
 		status: 'pending'

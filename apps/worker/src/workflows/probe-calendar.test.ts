@@ -6,24 +6,18 @@ import { createLogger } from '../services/logger.js';
 import { runTestCalendar } from './probe-calendar.js';
 
 const config = {
-	providers: [
-		{
-			name: 'work-dav',
+	providers: {
+		'work-dav': {
 			type: 'caldav',
 			url: 'https://cal.example.com/',
 			username: 'u',
 			password: 'p',
-			calendars: [{ name: 'work', href: 'https://cal.example.com/work/' }]
+			calendars: { work: { href: 'https://cal.example.com/work/' } }
 		}
-	],
-	meetings: [
-		{
-			name: 'chat',
-			booking_calendar: 'work',
-			additional_busy_calendars: [],
-			booking_window_days: 14
-		}
-	]
+	},
+	meetings: {
+		chat: { booking_calendar: 'work', additional_busy_calendars: [], booking_window_days: 14 }
+	}
 } as unknown as WhenConfiguration;
 
 const emptyReport = `<?xml version="1.0"?><multistatus xmlns:C="urn:ietf:params:xml:ns:caldav"></multistatus>`;

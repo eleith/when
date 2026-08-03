@@ -5,10 +5,10 @@ import { APP_DB_PATH } from './database.ts';
 const MINUTE_MS = 60_000;
 const DAY_MS = 24 * 60 * MINUTE_MS;
 
-// `event_type_id` holds the meeting's name, not its slug.
+// The meeting's key is both its URL slug and its `event_type_id`.
 export const CHAT_MEETING = {
-	name: '30-minute chat',
 	slug: 'chat',
+	title: '30-minute chat',
 	durationMinutes: 30
 };
 
@@ -39,7 +39,7 @@ export async function seedAppointment(options: SeedAppointmentOptions = {}): Pro
 			.insertInto('appointments')
 			.values({
 				id,
-				event_type_id: CHAT_MEETING.name,
+				event_type_id: CHAT_MEETING.slug,
 				start_time: start.toISOString(),
 				end_time: new Date(start.getTime() + durationMinutes * MINUTE_MS).toISOString(),
 				guest_name: options.guestName ?? `Guest ${id.slice(4, 12)}`,
