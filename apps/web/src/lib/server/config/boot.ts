@@ -32,7 +32,7 @@ export async function bootConfig(path: string = resolveConfigPath()): Promise<Wh
 				meetings: cfg.meetings.map((e) => ({
 					name: e.name,
 					slug: e.slug,
-					flow: e.booking_approval
+					flow: e.require_approval ? 'request' : 'instant'
 				}))
 			},
 			'config loaded'

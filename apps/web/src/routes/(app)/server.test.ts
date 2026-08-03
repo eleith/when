@@ -66,13 +66,13 @@ describe('home page load', () => {
 	});
 
 	test('sorts offered lengths ascending regardless of config order', async () => {
-		withMeetings({ ...baseMeeting, duration_minutes: [60, 15, 30] });
+		withMeetings({ ...baseMeeting, duration_minutes: 60, additional_duration_minutes: [15, 30] });
 
 		expect((await loadEventTypes())[0].durations).toEqual([15, 30, 60]);
 	});
 
 	test('de-duplicates repeated lengths', async () => {
-		withMeetings({ ...baseMeeting, duration_minutes: [60, 30, 60] });
+		withMeetings({ ...baseMeeting, duration_minutes: 60, additional_duration_minutes: [30, 60] });
 
 		expect((await loadEventTypes())[0].durations).toEqual([30, 60]);
 	});

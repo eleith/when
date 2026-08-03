@@ -32,10 +32,7 @@ export async function createAppointment(
 	const id = newAppointmentId();
 	const cancelToken = newCancelToken();
 	const eventType = input.eventType;
-	const status =
-		eventType.booking_approval === 'request' && input.initiator !== 'host'
-			? 'pending'
-			: 'confirmed';
+	const status = eventType.require_approval && input.initiator !== 'host' ? 'pending' : 'confirmed';
 	const now = ctx.clock.now().toISOString();
 	const initialLog = createActionLog([
 		{

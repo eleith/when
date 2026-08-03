@@ -109,8 +109,9 @@ schedules:
 # --- Bookable meeting types ---
 meetings:
   - name: '30-minute chat'
-    duration_minutes: 30 # default 30; or a list like [15, 30, 60] to let the guest pick the length
-    booking_approval: 'request' # 'request' (host approves) or 'instant'
+    duration_minutes: 30 # the default length offered (default 30)
+    # additional_duration_minutes: [15, 60] # further lengths the guest may pick
+    require_approval: true # true (host approves each booking) or false (instant)
     # slug defaults to a slug of the name ("30-minute-chat")
     # slug: 'chat'
     # description: 'A quick introductory call.'
@@ -126,7 +127,7 @@ meetings:
     # padding_before_minutes: 0
     # padding_after_minutes: 0
     # daily_booking_limit: null # null = unlimited
-    # booking_style: 'insert' # booking UI style: 'insert' or 'select'
+    # show_slots: false # true draws the slots as buttons; false is a bare drag timeline
     # start_times_every_minutes: 15 # slot step (defaults to duration_minutes)
     # form_fields: # extra questions asked at booking
     #   - name: 'topic'

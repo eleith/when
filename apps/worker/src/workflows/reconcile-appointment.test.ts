@@ -25,7 +25,7 @@ const testConfig = {
 			name: '30-min',
 			duration_minutes: 30,
 			slug: '30-min',
-			booking_approval: 'instant',
+			require_approval: false,
 			booking_calendar: 'cal',
 			schedule: 'standard'
 		}

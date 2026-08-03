@@ -29,12 +29,13 @@ test('throws on unknown meeting name', () => {
 	expect(() => resolveAvailabilitySettingsById(validConfig, 'nope')).toThrow(/unknown meeting/);
 });
 
-test('a duration array uses the first length and defaults granularity to the shortest', () => {
+test('the default length leads and granularity falls back to the shortest offered', () => {
 	const cfg: WhenConfiguration = JSON.parse(JSON.stringify(validConfig));
 	delete cfg.meetings[0].start_times_every_minutes;
-	cfg.meetings[0].duration_minutes = [30, 15, 60];
+	cfg.meetings[0].duration_minutes = 30;
+	cfg.meetings[0].additional_duration_minutes = [15, 60];
 	const settings = resolveAvailabilitySettingsById(cfg, '30-min-chat');
-	expect(settings.duration).toBe(30); // first listed = default
+	expect(settings.duration).toBe(30);
 	expect(settings.slot_granularity).toBe(15); // shortest offered
 });
 

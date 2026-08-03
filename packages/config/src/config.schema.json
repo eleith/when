@@ -628,22 +628,19 @@
 					"type": "string"
 				},
 				"duration_minutes": {
+					"minimum": 1,
 					"default": 30,
-					"description": "Duration of the meeting in minutes: a single value, or a list of offered lengths the guest chooses from (default: 30). The first listed length is the default selection.",
-					"anyOf": [
-						{
-							"minimum": 1,
-							"type": "integer"
-						},
-						{
-							"minItems": 1,
-							"type": "array",
-							"items": {
-								"minimum": 1,
-								"type": "integer"
-							}
-						}
-					]
+					"description": "Length of the meeting in minutes (default: 30). This is the default selection when more lengths are offered.",
+					"type": "integer"
+				},
+				"additional_duration_minutes": {
+					"default": [],
+					"description": "Further lengths the guest may choose from, shown after duration_minutes.",
+					"type": "array",
+					"items": {
+						"minimum": 1,
+						"type": "integer"
+					}
 				},
 				"description": {
 					"description": "Brief description of the meeting.",
@@ -668,19 +665,10 @@
 						}
 					]
 				},
-				"booking_approval": {
-					"default": "request",
-					"description": "The approval flow (default: \"request\"). \"instant\" confirms instantly; \"request\" requires host approval.",
-					"anyOf": [
-						{
-							"const": "instant",
-							"type": "string"
-						},
-						{
-							"const": "request",
-							"type": "string"
-						}
-					]
+				"require_approval": {
+					"default": true,
+					"description": "Whether the host must approve a booking before it is confirmed (default: true). False confirms instantly.",
+					"type": "boolean"
 				},
 				"additional_busy_calendars": {
 					"default": [],
@@ -701,19 +689,10 @@
 					"description": "Name of the schedule to use for availability.",
 					"type": "string"
 				},
-				"booking_style": {
-					"default": "insert",
-					"description": "The booking UI interaction style.",
-					"anyOf": [
-						{
-							"const": "insert",
-							"type": "string"
-						},
-						{
-							"const": "select",
-							"type": "string"
-						}
-					]
+				"show_slots": {
+					"default": false,
+					"description": "Render the bookable slots as buttons (default: false). When false the timeline is bare and dragging snaps to the same slots.",
+					"type": "boolean"
 				},
 				"location": {
 					"description": "Static location of the meeting.",

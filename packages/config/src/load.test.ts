@@ -198,26 +198,29 @@ test('meeting duration_minutes defaults to 30 when omitted', () => {
 	expect(validateConfig(raw).meetings[0].duration_minutes).toBe(30);
 });
 
-test('meeting duration_minutes accepts a list of lengths', () => {
+test('a meeting offers further lengths through additional_duration_minutes', () => {
 	const raw = clone(validConfig) as unknown as {
-		meetings: { duration_minutes: number | number[] }[];
+		meetings: { duration_minutes: number; additional_duration_minutes: number[] }[];
 	};
-	raw.meetings[0].duration_minutes = [15, 30, 60];
-	expect(validateConfig(raw).meetings[0].duration_minutes).toEqual([15, 30, 60]);
+	raw.meetings[0].duration_minutes = 15;
+	raw.meetings[0].additional_duration_minutes = [30, 60];
+	const meeting = validateConfig(raw).meetings[0];
+	expect(meeting.duration_minutes).toBe(15);
+	expect(meeting.additional_duration_minutes).toEqual([30, 60]);
 });
 
-test('meeting duration_minutes rejects an empty list', () => {
-	const bad = clone(validConfig) as unknown as {
-		meetings: { duration_minutes: number | number[] }[];
+test('additional_duration_minutes defaults to an empty list', () => {
+	const raw = clone(validConfig) as unknown as {
+		meetings: { additional_duration_minutes?: number[] }[];
 	};
-	bad.meetings[0].duration_minutes = [];
-	expect(() => validateConfig(bad)).toThrow();
+	delete raw.meetings[0].additional_duration_minutes;
+	expect(validateConfig(raw).meetings[0].additional_duration_minutes).toEqual([]);
 });
 
-test('meeting booking_approval defaults to request when omitted', () => {
-	const raw = clone(validConfig) as unknown as { meetings: { booking_approval?: string }[] };
-	delete raw.meetings[0].booking_approval;
-	expect(validateConfig(raw).meetings[0].booking_approval).toBe('request');
+test('meeting require_approval defaults to true when omitted', () => {
+	const raw = clone(validConfig) as unknown as { meetings: { require_approval?: boolean }[] };
+	delete raw.meetings[0].require_approval;
+	expect(validateConfig(raw).meetings[0].require_approval).toBe(true);
 });
 
 test('user timezone defaults to the TZ env var when omitted', () => {

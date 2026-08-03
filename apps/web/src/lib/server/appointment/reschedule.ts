@@ -69,7 +69,7 @@ export async function rescheduleAppointment(
 		input.initiator === 'host'
 			? 'confirmed'
 			: input.initiator === 'guest' &&
-				  eventType?.booking_approval === 'request' &&
+				  eventType?.require_approval &&
 				  input.appointment.status === 'confirmed'
 				? 'pending'
 				: input.appointment.status;

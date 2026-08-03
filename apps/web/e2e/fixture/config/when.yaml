@@ -39,7 +39,7 @@ meetings:
   - name: '30-minute chat'
     slug: 'chat'
     duration_minutes: 30
-    booking_approval: 'request'
+    require_approval: true
     description: 'A quick introductory call.'
     schedule: 'standard'
     booking_calendar: 'main'

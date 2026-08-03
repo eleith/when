@@ -173,7 +173,7 @@ time, and reversible by the host.
   is sent — re-delivery is the host's call, since the address may itself be the leak path.
 
 What a leaked *live* link still permits: cancelling, or moving the appointment — which on a
-`booking_approval: request` meeting drops it back to `pending` and re-arms host approval. Both
+`require_approval: true` meeting drops it back to `pending` and re-arms host approval. Both
 are written to the action log, both are visible to the host, and both are recoverable. That is
 accepted as proportionate. View-only tokens and emailed confirmation before destructive actions
 were both considered and rejected: they tax every honest guest, and neither is available at all

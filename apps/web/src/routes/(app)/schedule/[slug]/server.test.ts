@@ -101,7 +101,9 @@ describe('/schedule/[slug] load — deep-link canonicalization', () => {
 	test('keeps a non-default duration but strips junk alongside it', async () => {
 		h.cfg.current = {
 			...validConfig,
-			meetings: [{ ...validConfig.meetings[0], duration_minutes: [30, 60] }]
+			meetings: [
+				{ ...validConfig.meetings[0], duration_minutes: 30, additional_duration_minutes: [60] }
+			]
 		};
 		const r = await caught(() => load(loadEvent('?duration=60&foo=bar')));
 		expect(r.status).toBe(307);

@@ -24,7 +24,7 @@
 		fieldsDisabled: boolean;
 		form: { error?: string; fieldErrors?: Record<string, string> } | null;
 		formAction: string;
-		bookingApproval: PublicEventType['booking_approval'];
+		requireApproval: PublicEventType['require_approval'];
 	}
 
 	let {
@@ -35,7 +35,7 @@
 		fieldsDisabled,
 		form,
 		formAction,
-		bookingApproval
+		requireApproval
 	}: Props = $props();
 
 	// read-only views of the shared flow; the back button goes through flow.goBack
@@ -148,7 +148,7 @@
 		{/if}
 
 		<button type="submit" class="submit-btn">
-			{#if rescheduleAppt}Confirm Reschedule{:else if bookingApproval === 'request'}Request{:else}Schedule{/if}
+			{#if rescheduleAppt}Confirm Reschedule{:else if requireApproval}Request{:else}Schedule{/if}
 		</button>
 	</form>
 </div>

@@ -63,7 +63,7 @@ describe('createAppointment', () => {
 	test('requires_confirmation flow inserts a pending appointment', async () => {
 		const db = await makeDb();
 		try {
-			const reqType = { ...eventType, booking_approval: 'request' as const };
+			const reqType = { ...eventType, require_approval: true };
 			const result = await createAppointment(
 				{
 					db,
@@ -90,7 +90,7 @@ describe('createAppointment', () => {
 	test('requires_confirmation flow inserts a confirmed appointment if created by host', async () => {
 		const db = await makeDb();
 		try {
-			const reqType = { ...eventType, booking_approval: 'request' as const };
+			const reqType = { ...eventType, require_approval: true };
 			const result = await createAppointment(
 				{
 					db,

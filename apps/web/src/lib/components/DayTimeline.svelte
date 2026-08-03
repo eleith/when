@@ -12,7 +12,7 @@
 		workingWindows: { start: string; end: string }[];
 		busyBlocks: { start: string; end: string }[];
 		eventType: TimelineEventType;
-		bookingStyle?: 'insert' | 'select';
+		showSlots?: boolean;
 		originalSlot?: string | null;
 		onEditDate?: (() => void) | null;
 	}
@@ -22,7 +22,7 @@
 		workingWindows,
 		busyBlocks,
 		eventType,
-		bookingStyle = 'insert',
+		showSlots = false,
 		originalSlot = null,
 		onEditDate = null
 	}: Props = $props();
@@ -107,7 +107,7 @@
 	}
 
 	function handleTrackPointerDown(e: PointerEvent) {
-		if (bookingStyle === 'select') return;
+		if (showSlots) return;
 		if (!trackEl) return;
 		const percent = pointToPercent(e.clientY);
 		const current = timeline?.slots.find((s) => s.iso === selectedSlot);
@@ -242,7 +242,7 @@
 						</div>
 					{/each}
 
-					{#if bookingStyle === 'select'}
+					{#if showSlots}
 						{#each timeline.slots as s (s.iso)}
 							{#if !s.isOriginal}
 								<button

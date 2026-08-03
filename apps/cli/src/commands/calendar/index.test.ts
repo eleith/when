@@ -55,7 +55,7 @@ meetings:
   - name: "chat"
     duration_minutes: 30
     slug: "chat"
-    booking_approval: "instant"
+    require_approval: false
     booking_calendar: "work"
     schedule: "standard"
 database:

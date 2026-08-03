@@ -210,7 +210,7 @@
 								workingWindows={data.availability.workingWindows}
 								busyBlocks={data.availability.busyBlocks}
 								eventType={data.eventType}
-								bookingStyle={data.eventType.booking_style}
+								showSlots={data.eventType.show_slots}
 								originalSlot={rescheduleAppt?.start_time ?? null}
 								onEditDate={flow.goBack}
 							/>
@@ -228,7 +228,7 @@
 							{fieldsDisabled}
 							{form}
 							{formAction}
-							bookingApproval={data.eventType.booking_approval}
+							requireApproval={data.eventType.require_approval}
 						/>
 					{/if}
 				</div>
@@ -236,7 +236,7 @@
 				<WizardActions
 					{flow}
 					isReschedule={!!rescheduleAppt}
-					bookingApproval={data.eventType.booking_approval}
+					requireApproval={data.eventType.require_approval}
 				/>
 			</div>
 		</div>

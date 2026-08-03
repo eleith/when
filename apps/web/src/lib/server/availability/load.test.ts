@@ -27,7 +27,8 @@ function makeConfig(durations: number[]): WhenConfiguration {
 	cfg.schedules[0].weekly = [
 		{ days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'], from: '09:00', to: '17:00' }
 	];
-	cfg.meetings[0].duration_minutes = durations;
+	cfg.meetings[0].duration_minutes = durations[0];
+	cfg.meetings[0].additional_duration_minutes = durations.slice(1);
 	cfg.meetings[0].notice_minutes = 0;
 	cfg.meetings[0].booking_window_days = 7;
 	return cfg;

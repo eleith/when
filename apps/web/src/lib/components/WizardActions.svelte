@@ -8,10 +8,10 @@
 	interface Props {
 		flow: AppointmentFlow;
 		isReschedule: boolean;
-		bookingApproval: PublicEventType['booking_approval'];
+		requireApproval: PublicEventType['require_approval'];
 	}
 
-	let { flow, isReschedule, bookingApproval }: Props = $props();
+	let { flow, isReschedule, requireApproval }: Props = $props();
 
 	// read-only views of the shared flow; navigation goes through flow.* below
 	let step = $derived(flow.step);
@@ -39,7 +39,7 @@
 	{:else}
 		<button type="button" class="button button-secondary" onclick={flow.goBack}> Back </button>
 		<button type="submit" form="appointment-form" class="button" disabled={!selectedSlot}>
-			{#if isReschedule}Confirm Reschedule{:else if bookingApproval === 'request'}Request{:else}Schedule{/if}
+			{#if isReschedule}Confirm Reschedule{:else if requireApproval}Request{:else}Schedule{/if}
 		</button>
 	{/if}
 </div>

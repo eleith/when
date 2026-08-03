@@ -204,7 +204,7 @@ function checkMeetingScheduleReference(
 }
 
 function checkMeetingBookingStyle(meeting: Meeting, i: number, issues: ConfigIssue[]): void {
-	if (meeting.booking_style === 'select') {
+	if (meeting.show_slots) {
 		validateSelectBookingStyle(meeting, i, issues);
 	}
 }
@@ -230,7 +230,7 @@ function validateSelectBookingStyle(meeting: Meeting, i: number, issues: ConfigI
 	if (step < longest) {
 		issues.push({
 			path: `/meetings/${i}/start_times_every_minutes`,
-			message: `in "select" booking style, start_times_every_minutes (${step}) must be greater than or equal to the longest meeting duration (${longest}) to prevent overlapping slot buttons`
+			message: `with show_slots, start_times_every_minutes (${step}) must be greater than or equal to the longest meeting duration (${longest}) or the slot buttons overlap`
 		});
 	}
 }

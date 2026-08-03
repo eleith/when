@@ -375,9 +375,9 @@ test('unknown schedule reference in meeting flagged', () => {
 	).toBe(true);
 });
 
-test('select booking style with start_times_every_minutes less than duration_minutes is flagged', () => {
+test('show_slots with start_times_every_minutes less than duration_minutes is flagged', () => {
 	const bad = clone(validConfig);
-	bad.meetings[0].booking_style = 'select';
+	bad.meetings[0].show_slots = true;
 	bad.meetings[0].start_times_every_minutes = 15;
 	bad.meetings[0].duration_minutes = 30;
 	const issues = issuesFor(bad);
@@ -390,18 +390,19 @@ test('select booking style with start_times_every_minutes less than duration_min
 	).toBe(true);
 });
 
-test('select booking style with start_times_every_minutes equal or greater than duration_minutes passes', () => {
+test('show_slots with start_times_every_minutes equal or greater than duration_minutes passes', () => {
 	const good = clone(validConfig);
-	good.meetings[0].booking_style = 'select';
+	good.meetings[0].show_slots = true;
 	good.meetings[0].start_times_every_minutes = 30;
 	good.meetings[0].duration_minutes = 30;
 	expect(() => validateConfig(good)).not.toThrow();
 });
 
-test('select booking style with a duration array guards against the longest length', () => {
+test('show_slots with a duration array guards against the longest length', () => {
 	const bad = clone(validConfig);
-	bad.meetings[0].booking_style = 'select';
-	bad.meetings[0].duration_minutes = [15, 30, 60];
+	bad.meetings[0].show_slots = true;
+	bad.meetings[0].duration_minutes = 15;
+	bad.meetings[0].additional_duration_minutes = [30, 60];
 	bad.meetings[0].start_times_every_minutes = 30; // < longest (60)
 	const issues = issuesFor(bad);
 	expect(
@@ -411,10 +412,11 @@ test('select booking style with a duration array guards against the longest leng
 	).toBe(true);
 });
 
-test('select booking style with a duration array passes when the step covers the longest', () => {
+test('show_slots with a duration array passes when the step covers the longest', () => {
 	const good = clone(validConfig);
-	good.meetings[0].booking_style = 'select';
-	good.meetings[0].duration_minutes = [15, 30, 60];
+	good.meetings[0].show_slots = true;
+	good.meetings[0].duration_minutes = 15;
+	good.meetings[0].additional_duration_minutes = [30, 60];
 	good.meetings[0].start_times_every_minutes = 60;
 	expect(() => validateConfig(good)).not.toThrow();
 });

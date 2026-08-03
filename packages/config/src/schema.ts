@@ -229,18 +229,16 @@ export const FormFieldSchema = Type.Union([
 
 export const MeetingSchema = Type.Object({
 	name: Type.String({ minLength: 1, description: 'Unique name of the meeting (e.g. 30-minute chat).' }),
-	duration_minutes: Type.Union([
-		Type.Integer({ minimum: 1 }),
-		Type.Array(Type.Integer({ minimum: 1 }), { minItems: 1 })
-	], { default: 30, description: 'Duration of the meeting in minutes: a single value, or a list of offered lengths the guest chooses from (default: 30). The first listed length is the default selection.' }),
+	duration_minutes: Type.Integer({ minimum: 1, default: 30, description: 'Length of the meeting in minutes (default: 30). This is the default selection when more lengths are offered.' }),
+	additional_duration_minutes: Type.Array(Type.Integer({ minimum: 1 }), { default: [], description: 'Further lengths the guest may choose from, shown after duration_minutes.' }),
 	description: Type.Optional(Type.String({ description: 'Brief description of the meeting.' })),
 	slug: Type.String({ pattern: '^[a-z0-9][a-z0-9-]*$', description: 'URL slug for the booking page (e.g. "chat" for /schedule/chat). Defaults to a slug derived from the meeting name.' }),
 	visibility: Type.Union([Type.Literal('public'), Type.Literal('unlisted')], { default: 'public', description: 'Whether this meeting is listed on the homepage. "unlisted" only hides it from that list — anyone with the /schedule/<slug> link can still book it.' }),
-	booking_approval: Type.Union([Type.Literal('instant'), Type.Literal('request')], { default: 'request', description: 'The approval flow (default: "request"). "instant" confirms instantly; "request" requires host approval.' }),
+	require_approval: Type.Boolean({ default: true, description: 'Whether the host must approve a booking before it is confirmed (default: true). False confirms instantly.' }),
 	additional_busy_calendars: Type.Array(Type.String({ minLength: 1 }), { default: [], description: 'Further calendar names to check for conflicts (busy times) to block slots. The booking_calendar is always checked and never needs listing here.' }),
 	booking_calendar: Type.String({ minLength: 1, description: 'Calendar name where confirmed bookings will be written.' }),
 	schedule: Type.String({ minLength: 1, description: 'Name of the schedule to use for availability.' }),
-	booking_style: Type.Union([Type.Literal('insert'), Type.Literal('select')], { default: 'insert', description: 'The booking UI interaction style.' }),
+	show_slots: Type.Boolean({ default: false, description: 'Render the bookable slots as buttons (default: false). When false the timeline is bare and dragging snaps to the same slots.' }),
 	location: Type.Optional(Ref(LocationSchema, { description: 'Static location of the meeting.' })),
 	note: Type.Optional(Type.String({ minLength: 1, description: 'A note shown to guests after booking.' })),
 	video_chat_provider: Type.Optional(Type.String({ minLength: 1, description: 'Name of the provider to generate dynamic links.' })),

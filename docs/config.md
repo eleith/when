@@ -11,7 +11,7 @@ Point your editor at that schema for inline autocomplete and validation:
 # yaml-language-server: $schema=./config.schema.json
 ```
 
-The required top-level keys are: `auth`, `user`, `smtp`, `calendars`, `schedules`, `meetings`. Optional top-level keys include `version`, `providers`, `database`, `url`, and `prometheus`.
+The required top-level keys are: `auth`, `user`, `smtp`, `providers`, `schedules`, `meetings`. Optional top-level keys include `version`, `database`, `url`, and `prometheus`.
 
 ## `version`
 
@@ -171,16 +171,17 @@ schedules:
 
 ## `meetings`
 
-The meetings people can book. `name`, `schedule`, and `booking_calendar` are required — every meeting names where it books and when. `duration_minutes` (30), `booking_approval` (`request`), and `slug` (a slug of `name`) all default; everything else is optional.
+The meetings people can book. `name`, `schedule`, and `booking_calendar` are required — every meeting names where it books and when. `duration_minutes` (30), `require_approval` (true), `show_slots` (false), and `slug` (a slug of `name`) all default; everything else is optional.
 
 ```yaml
 meetings:
   - name: '30-minute chat'
-    duration_minutes: 30 # minutes (default 30); or a list like [15, 30, 60] to let the guest choose the length
+    duration_minutes: 30 # the default length offered (default 30)
+    additional_duration_minutes: [15, 60] # further lengths the guest may pick
     slug: 'chat' # URL slug: /schedule/chat (defaults to a slug of the name)
     description: 'A quick intro call.'
     visibility: 'public' # 'public' (default) or 'unlisted' (kept off the homepage; the link still works)
-    booking_approval: 'request' # 'request' (default, requires host approval) or 'instant'
+    require_approval: true # true (default, host approves each booking) or false (instant)
     additional_busy_calendars: ['personal'] # further calendars to check for conflicts; booking_calendar is always checked (default [])
     booking_calendar: 'work' # required: where the appointment is written
     schedule: 'standard' # required: references a schedules name

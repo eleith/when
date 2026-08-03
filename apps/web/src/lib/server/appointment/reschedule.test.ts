@@ -405,7 +405,7 @@ describe('rescheduleAppointment', () => {
 				...validConfig.meetings[0],
 				name: 'confirm-me',
 				slug: 'confirm-me',
-				booking_approval: 'request'
+				require_approval: true
 			}
 		]
 	};

@@ -21,18 +21,29 @@ test('single-length meeting: defaults to the only length when none submitted', (
 });
 
 test('array meeting: defaults to the first length when none submitted', () => {
-	expect(resolveDuration({ ...base, duration_minutes: [45, 15, 60] }, fd({}))).toBe(45);
+	expect(
+		resolveDuration(
+			{ ...base, duration_minutes: 45, additional_duration_minutes: [15, 60] },
+			fd({})
+		)
+	).toBe(45);
 });
 
 test('array meeting: accepts a submitted length that is offered', () => {
-	expect(resolveDuration({ ...base, duration_minutes: [15, 30, 60] }, fd({ duration: '60' }))).toBe(
-		60
-	);
+	expect(
+		resolveDuration(
+			{ ...base, duration_minutes: 15, additional_duration_minutes: [30, 60] },
+			fd({ duration: '60' })
+		)
+	).toBe(60);
 });
 
 test('returns null when a submitted length is not offered', () => {
 	expect(
-		resolveDuration({ ...base, duration_minutes: [15, 30] }, fd({ duration: '45' }))
+		resolveDuration(
+			{ ...base, duration_minutes: 15, additional_duration_minutes: [30] },
+			fd({ duration: '45' })
+		)
 	).toBeNull();
 	expect(resolveDuration(base, fd({ duration: '999' }))).toBeNull();
 });

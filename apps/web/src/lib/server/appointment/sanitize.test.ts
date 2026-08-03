@@ -71,14 +71,14 @@ describe('toPublicEventType', () => {
 		expect(res.notice_minutes).toBe(60);
 	});
 
-	test('maps booking_style', () => {
-		const res = toPublicEventType({ ...baseEventType, booking_style: 'select' }, false);
-		expect(res.booking_style).toBe('select');
+	test('maps show_slots', () => {
+		const res = toPublicEventType({ ...baseEventType, show_slots: true }, false);
+		expect(res.show_slots).toBe(true);
 	});
 
-	test('passes through booking_approval', () => {
+	test('passes through require_approval', () => {
 		const res = toPublicEventType(baseEventType, false);
-		expect(res.booking_approval).toBe('instant');
+		expect(res.require_approval).toBe(false);
 	});
 });
 

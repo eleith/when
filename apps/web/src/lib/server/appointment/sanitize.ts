@@ -5,11 +5,11 @@ export interface PublicEventType extends Pick<
 	Meeting,
 	| 'name'
 	| 'slug'
-	| 'booking_approval'
+	| 'require_approval'
 	| 'description'
 	| 'location'
 	| 'visibility'
-	| 'booking_style'
+	| 'show_slots'
 	| 'padding_before_minutes'
 	| 'padding_after_minutes'
 	| 'notice_minutes'
@@ -40,9 +40,9 @@ export function toPublicEventType(eventType: Meeting, isAdmin: boolean): PublicE
 		durations: durationsOf(eventType),
 		description: eventType.description,
 		visibility: eventType.visibility,
-		booking_approval: eventType.booking_approval,
+		require_approval: eventType.require_approval,
 		location: isAdmin ? eventType.location : undefined,
-		booking_style: eventType.booking_style,
+		show_slots: eventType.show_slots,
 		padding_before_minutes: eventType.padding_before_minutes,
 		padding_after_minutes: eventType.padding_after_minutes,
 		notice_minutes: eventType.notice_minutes
