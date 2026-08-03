@@ -271,10 +271,12 @@ export class GoogleAdapter implements CalendarAdapter {
 
 	private get googleCfg(): GoogleConfig {
 		if (!this.service) {
-			throw new Error(`Google provider for calendar "" was not provided to GoogleAdapter`);
+			throw new Error(
+				`Google provider for calendar "${this.cal.name}" was not provided to GoogleAdapter`
+			);
 		}
 		if (!this.service.refresh_token) {
-			throw new Error(`Google provider for calendar "" is not connected`);
+			throw new Error(`Google provider for calendar "${this.cal.name}" is not connected`);
 		}
 		return {
 			client_id: this.service.client_id,

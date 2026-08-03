@@ -160,7 +160,9 @@ export class CalDavAdapter implements CalendarAdapter {
 
 	private get adapterCfg(): CalDavConfig {
 		if (!this.service) {
-			throw new Error(`CalDAV provider for calendar "" was not provided to CalDavAdapter`);
+			throw new Error(
+				`CalDAV provider for calendar "${this.cal.name}" was not provided to CalDavAdapter`
+			);
 		}
 		let calUrl: string;
 		if ('url' in this.cal && this.cal.url) {
