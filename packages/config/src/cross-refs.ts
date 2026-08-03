@@ -1,6 +1,5 @@
 import type { WhenConfiguration, Provider, Schedule, Meeting, FormField } from './schema.js';
 import type { ConfigIssue } from './load.js';
-import { durationsOf } from './durations.js';
 
 interface ServiceRegistry {
 	names: Set<string>;
@@ -129,7 +128,6 @@ function validateMeetings(
 		checkMeetingDuplicateSlug(meeting, i, seenSlugs, issues);
 		checkMeetingCalendarReferences(meeting, i, calendarRegistry, issues);
 		checkMeetingScheduleReference(meeting, i, scheduleNames, issues);
-		checkMeetingBookingStyle(meeting, i, issues);
 		checkMeetingVideoChatService(meeting, i, serviceRegistry, calendarRegistry.types, issues);
 		checkFormFields(meeting, i, issues);
 
@@ -203,12 +201,6 @@ function checkMeetingScheduleReference(
 	}
 }
 
-function checkMeetingBookingStyle(meeting: Meeting, i: number, issues: ConfigIssue[]): void {
-	if (meeting.show_slots) {
-		validateSelectBookingStyle(meeting, i, issues);
-	}
-}
-
 function checkMeetingVideoChatService(
 	meeting: Meeting,
 	i: number,
@@ -218,20 +210,6 @@ function checkMeetingVideoChatService(
 ): void {
 	if (meeting.video_chat_provider) {
 		validateVideoChatService(meeting, i, serviceRegistry, calendarTypes, issues);
-	}
-}
-
-function validateSelectBookingStyle(meeting: Meeting, i: number, issues: ConfigIssue[]): void {
-	const durations = durationsOf(meeting);
-	// The step defaults to the shortest length (as the app does); the longest length
-	// is what must fit between buttons so they can't overlap.
-	const step = meeting.start_times_every_minutes ?? Math.min(...durations);
-	const longest = Math.max(...durations);
-	if (step < longest) {
-		issues.push({
-			path: `/meetings/${i}/start_times_every_minutes`,
-			message: `with show_slots, start_times_every_minutes (${step}) must be greater than or equal to the longest meeting duration (${longest}) or the slot buttons overlap`
-		});
 	}
 }
 

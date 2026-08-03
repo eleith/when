@@ -375,48 +375,11 @@ test('unknown schedule reference in meeting flagged', () => {
 	).toBe(true);
 });
 
-test('show_slots with start_times_every_minutes less than duration_minutes is flagged', () => {
-	const bad = clone(validConfig);
-	bad.meetings[0].show_slots = true;
-	bad.meetings[0].start_times_every_minutes = 15;
-	bad.meetings[0].duration_minutes = 30;
-	const issues = issuesFor(bad);
-	expect(
-		issues.some(
-			(i) =>
-				i.path === '/meetings/0/start_times_every_minutes' &&
-				i.message.includes('must be greater than or equal')
-		)
-	).toBe(true);
-});
-
-test('show_slots with start_times_every_minutes equal or greater than duration_minutes passes', () => {
-	const good = clone(validConfig);
-	good.meetings[0].show_slots = true;
-	good.meetings[0].start_times_every_minutes = 30;
-	good.meetings[0].duration_minutes = 30;
-	expect(() => validateConfig(good)).not.toThrow();
-});
-
-test('show_slots with a duration array guards against the longest length', () => {
-	const bad = clone(validConfig);
-	bad.meetings[0].show_slots = true;
-	bad.meetings[0].duration_minutes = 15;
-	bad.meetings[0].additional_duration_minutes = [30, 60];
-	bad.meetings[0].start_times_every_minutes = 30; // < longest (60)
-	const issues = issuesFor(bad);
-	expect(
-		issues.some(
-			(i) => i.path === '/meetings/0/start_times_every_minutes' && i.message.includes('60')
-		)
-	).toBe(true);
-});
-
-test('show_slots with a duration array passes when the step covers the longest', () => {
-	const good = clone(validConfig);
-	good.meetings[0].show_slots = true;
-	good.meetings[0].duration_minutes = 15;
-	good.meetings[0].additional_duration_minutes = [30, 60];
-	good.meetings[0].start_times_every_minutes = 60;
-	expect(() => validateConfig(good)).not.toThrow();
+test("a step shorter than the longest length is the writer's call, not an error", () => {
+	const cfg = clone(validConfig);
+	cfg.meetings[0].show_slots = true;
+	cfg.meetings[0].duration_minutes = 15;
+	cfg.meetings[0].additional_duration_minutes = [30, 60];
+	cfg.meetings[0].start_times_every_minutes = 15;
+	expect(() => validateConfig(cfg)).not.toThrow();
 });
