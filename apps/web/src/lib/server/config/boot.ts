@@ -1,7 +1,13 @@
 import { access } from 'node:fs/promises';
 import { logger } from '../logger';
 
-import { ConfigError, loadConfig, MissingEnvVarsError, resolveConfigPath } from '@when/config';
+import {
+	allCalendars,
+	ConfigError,
+	loadConfig,
+	MissingEnvVarsError,
+	resolveConfigPath
+} from '@when/config';
 import type { WhenConfiguration } from '@when/config';
 
 export async function bootConfig(path: string = resolveConfigPath()): Promise<WhenConfiguration> {
@@ -22,7 +28,7 @@ export async function bootConfig(path: string = resolveConfigPath()): Promise<Wh
 			{
 				path,
 				auth: 'oidc' in cfg.auth ? 'oidc' : 'credentials',
-				calendars: cfg.calendars.map((c) => ({ name: c.name, type: c.type })),
+				calendars: allCalendars(cfg).map((c) => ({ name: c.calendar.name, type: c.provider.type })),
 				meetings: cfg.meetings.map((e) => ({
 					name: e.name,
 					slug: e.slug,

@@ -1,11 +1,11 @@
-import type { Calendar } from '@when/config';
+import type { ResolvedCalendar } from '@when/config';
 import type { Interval } from './types.js';
 import type { ExpandWindow } from './expand.js';
 import { getCalendarAdapter, type ConnectedProvider } from './adapter.js';
 import { expandBusy } from './expand.js';
 
 export async function fetchBusyIntervals(
-	cal: Calendar,
+	cal: ResolvedCalendar,
 	window: ExpandWindow,
 	opts: { services?: ConnectedProvider[]; excludeUids?: Set<string> } = {}
 ): Promise<Interval[]> {

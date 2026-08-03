@@ -20,21 +20,18 @@ const client = { runWorkflow: vi.fn() };
 
 const config = {
 	url: { app: 'https://book.example.com', worker: 'http://when-worker:9000' },
-	providers: [{ name: 'gg', type: 'google', client_id: 'cid', client_secret: 'csec' }],
-	calendars: [
+	providers: [
 		{
-			name: 'work',
+			name: 'gg',
 			type: 'google',
-			provider: 'gg',
-			google_calendar_id: 'primary',
-			sync: { refresh_every_minutes: 10 }
+			client_id: 'cid',
+			client_secret: 'csec',
+			calendars: [{ name: 'work', id: 'primary', sync: { refresh_every_minutes: 10 } }]
 		},
 		{
-			name: 'home',
+			name: 'dav',
 			type: 'caldav',
-			provider: 'dav',
-			path: 'calendars/u/home/',
-			sync: { refresh_every_minutes: 30 }
+			calendars: [{ name: 'home', path: 'calendars/u/home/', sync: { refresh_every_minutes: 30 } }]
 		}
 	],
 	meetings: []
@@ -59,7 +56,7 @@ describe('listCalendars', () => {
 	test('names the config field each calendar points through', async () => {
 		const [work, home] = await listCalendars(config, db);
 
-		expect(work.target).toEqual({ label: 'google_calendar_id', value: 'primary' });
+		expect(work.target).toEqual({ label: 'id', value: 'primary' });
 		expect(home.target).toEqual({ label: 'path', value: 'calendars/u/home/' });
 	});
 

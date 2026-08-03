@@ -10,6 +10,8 @@ export { loadConfig, reloadConfig, watchConfig, configChanged } from './store.js
 export type { ReloadResult } from './store.js';
 export { interpolate, MissingEnvVarsError } from './interpolate.js';
 export { checkCrossRefs } from './cross-refs.js';
+export { allCalendars, findCalendar, calendarNames } from './calendars.js';
+export type { ResolvedCalendar } from './calendars.js';
 export { locateInYaml } from './locate.js';
 export type { SourceLocation } from './locate.js';
 export { resolveConfigPath, resolveDeploymentRoot, resolvePublicDir } from './paths.js';

@@ -24,17 +24,15 @@ smtp:
   port: 587
   user: "smtp_user"
   pass: "smtp_pass"
-calendars:
-  - name: "work"
-    type: "caldav"
-    provider: "dav"
-    url: "https://dav.example.com/calendars/u/work/"
 providers:
   - name: "dav"
     type: "caldav"
     url: "https://dav.example.com/"
     username: "u"
     password: "p"
+    calendars:
+      - name: "work"
+        url: "https://dav.example.com/calendars/u/work/"
 schedules:
   - name: "standard"
     weekly:

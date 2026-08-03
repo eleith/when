@@ -95,64 +95,56 @@ export const CalendarSyncSchema = Type.Object({
 	})
 }, { $id: 'CalendarSync', additionalProperties: false, title: 'CalendarSync', description: 'Per-calendar sync cadence.' });
 
+export const GoogleCalendarSchema = Type.Object({
+	name: Type.String({ minLength: 1, description: 'Unique name for this calendar, referenced by meetings. Must be unique across every provider.' }),
+	id: Type.String({ minLength: 1, description: 'The specific Google calendar ID (e.g. primary or an email address).' }),
+	sync: Ref(CalendarSyncSchema, { default: {}, description: 'Sync settings for this calendar.' })
+}, { $id: 'GoogleCalendar', additionalProperties: false, title: 'GoogleCalendar', description: 'A calendar on a Google provider.' });
+
+export const CalDavCalendarSchema = Type.Union([
+	Type.Object({
+		name: Type.String({ minLength: 1, description: 'Unique name for this calendar, referenced by meetings. Must be unique across every provider.' }),
+		path: Type.String({ minLength: 1, description: 'Relative path joined to the provider base URL.' }),
+		sync: Ref(CalendarSyncSchema, { default: {}, description: 'Sync settings for this calendar.' })
+	}, { additionalProperties: false, title: 'CalDAV calendar by path' }),
+	Type.Object({
+		name: Type.String({ minLength: 1, description: 'Unique name for this calendar, referenced by meetings. Must be unique across every provider.' }),
+		url: Type.String({ format: 'uri', description: 'Full calendar URL endpoint replacing the provider base URL.' }),
+		sync: Ref(CalendarSyncSchema, { default: {}, description: 'Sync settings for this calendar.' })
+	}, { additionalProperties: false, title: 'CalDAV calendar by url' })
+], { $id: 'CalDavCalendar', title: 'CalDavCalendar', description: 'A calendar on a CalDAV or Nextcloud provider. Give exactly one of `path` (joined to the provider base URL) or `url` (a full endpoint).' });
+
 export const GoogleProviderSchema = Type.Object({
-	name: Type.String({ minLength: 1, description: 'Unique name for the provider, referenced by calendars.' }),
+	name: Type.String({ minLength: 1, description: 'Unique name for the provider.' }),
 	type: Type.Literal('google', { description: 'Provider type: must be google.' }),
 	client_id: Type.String({ minLength: 1, description: 'Google OAuth client ID.' }),
-	client_secret: Type.String({ minLength: 1, description: 'Google OAuth client secret.' })
+	client_secret: Type.String({ minLength: 1, description: 'Google OAuth client secret.' }),
+	calendars: Type.Array(Ref(GoogleCalendarSchema), { default: [], description: 'Calendars served by this provider.' })
 }, { $id: 'GoogleProvider', additionalProperties: false, title: 'GoogleProvider', description: 'Google API provider credentials. The refresh token is not configured here — connect the provider from the admin and it is stored in the database.' });
 
 export const NextcloudProviderSchema = Type.Object({
-	name: Type.String({ minLength: 1, description: 'Unique name for the provider, referenced by calendars.' }),
+	name: Type.String({ minLength: 1, description: 'Unique name for the provider.' }),
 	type: Type.Literal('nextcloud', { description: 'Provider type: must be nextcloud.' }),
 	url: Type.String({ format: 'uri', description: 'Base URL of your Nextcloud instance (e.g. https://nextcloud.example.com/).' }),
 	username: Type.String({ minLength: 1, description: 'Nextcloud username or app username.' }),
-	password: Type.String({ minLength: 1, description: 'Nextcloud password or app-specific password.' })
+	password: Type.String({ minLength: 1, description: 'Nextcloud password or app-specific password.' }),
+	calendars: Type.Array(Ref(CalDavCalendarSchema), { default: [], description: 'Calendars served by this provider.' })
 }, { $id: 'NextcloudProvider', additionalProperties: false, title: 'NextcloudProvider', description: 'Nextcloud provider credentials for CalDAV calendar and Talk video chat integrations.' });
 
 export const CalDavProviderSchema = Type.Object({
-	name: Type.String({ minLength: 1, description: 'Unique name for the provider, referenced by calendars.' }),
+	name: Type.String({ minLength: 1, description: 'Unique name for the provider.' }),
 	type: Type.Literal('caldav', { description: 'Provider type: must be caldav.' }),
 	url: Type.String({ format: 'uri', description: 'Base URL of your CalDAV endpoint (e.g. https://cloud.example.com/remote.php/dav/).' }),
 	username: Type.String({ minLength: 1, description: 'CalDAV username.' }),
-	password: Type.String({ minLength: 1, description: 'CalDAV password.' })
+	password: Type.String({ minLength: 1, description: 'CalDAV password.' }),
+	calendars: Type.Array(Ref(CalDavCalendarSchema), { default: [], description: 'Calendars served by this provider.' })
 }, { $id: 'CalDavProvider', additionalProperties: false, title: 'CalDavProvider', description: 'CalDAV provider credentials for generic calendar sync.' });
 
 export const ProviderSchema = Type.Union([
 	Ref(GoogleProviderSchema),
 	Ref(NextcloudProviderSchema),
 	Ref(CalDavProviderSchema)
-], { $id: 'Provider', title: 'Provider', description: 'External API provider configuration.' });
-
-export const GoogleCalendarSchema = Type.Object({
-	name: Type.String({ minLength: 1, description: 'Unique name for this calendar, referenced by meetings.' }),
-	type: Type.Literal('google', { description: 'Calendar type: must be google.' }),
-	provider: Type.String({ minLength: 1, description: 'Name of the google provider to connect with.' }),
-	google_calendar_id: Type.String({ minLength: 1, description: 'The specific Google calendar ID (e.g. primary or an email address).' }),
-	sync: Ref(CalendarSyncSchema, { default: {}, description: 'Sync settings for this calendar.' })
-}, { $id: 'GoogleCalendar', additionalProperties: false, title: 'GoogleCalendar', description: 'Google Calendar integration configuration.' });
-
-export const CalDavCalendarSchema = Type.Union([
-	Type.Object({
-		name: Type.String({ minLength: 1, description: 'Unique name for this calendar, referenced by meetings.' }),
-		type: Type.Literal('caldav', { description: 'Calendar type: must be caldav.' }),
-		provider: Type.String({ minLength: 1, description: 'Name of the caldav or nextcloud provider to connect with.' }),
-		path: Type.String({ minLength: 1, description: 'Relative path joined to the service base URL.' }),
-		sync: Ref(CalendarSyncSchema, { default: {}, description: 'Sync settings for this calendar.' })
-	}, { additionalProperties: false, title: 'CalDAV calendar by path' }),
-	Type.Object({
-		name: Type.String({ minLength: 1, description: 'Unique name for this calendar, referenced by meetings.' }),
-		type: Type.Literal('caldav', { description: 'Calendar type: must be caldav.' }),
-		provider: Type.String({ minLength: 1, description: 'Name of the caldav or nextcloud provider to connect with.' }),
-		url: Type.String({ format: 'uri', description: 'Full calendar URL endpoint overriding the service base URL.' }),
-		sync: Ref(CalendarSyncSchema, { default: {}, description: 'Sync settings for this calendar.' })
-	}, { additionalProperties: false, title: 'CalDAV calendar by url' })
-], { $id: 'CalDavCalendar', title: 'CalDavCalendar', description: 'CalDAV Calendar integration configuration. Give exactly one of `path` (joined to the provider base URL) or `url` (a full endpoint).' });
-
-export const CalendarSchema = Type.Union([
-	Ref(GoogleCalendarSchema),
-	Ref(CalDavCalendarSchema)
-], { $id: 'Calendar', title: 'Calendar', description: 'External calendar configuration.' });
+], { $id: 'Provider', title: 'Provider', description: 'An external service and the calendars it serves.' });
 
 // Canonical weekday tokens in ISO order (Temporal's dayOfWeek: mon=1 … sun=7).
 export const WEEKDAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
@@ -300,8 +292,7 @@ export const WhenConfigurationSchema = Type.Object({
 	auth: Ref(AuthSchema, { description: 'Admin authentication configuration.' }),
 	user: Ref(UserSchema, { description: 'Details about the schedule owner.' }),
 	smtp: Ref(SmtpSchema, { description: 'SMTP email server settings.' }),
-	providers: Type.Array(Ref(ProviderSchema), { default: [], description: 'Credentials for third-party providers.' }),
-	calendars: Type.Array(Ref(CalendarSchema), { description: 'Connected conflict/destination calendars.' }),
+	providers: Type.Array(Ref(ProviderSchema), { default: [], description: 'Third-party services and the calendars they serve.' }),
 	schedules: Type.Array(Ref(ScheduleSchema), { minItems: 1, description: 'List of schedules for availability.' }),
 	meetings: Type.Array(Ref(MeetingSchema), { minItems: 1, description: 'Bookable meeting types.' }),
 	database: Ref(DatabaseConfigSchema, { default: {}, description: 'Local SQLite database file paths.' }),
@@ -324,7 +315,7 @@ export type Provider = Static<typeof ProviderSchema>;
 export type GoogleProvider = Static<typeof GoogleProviderSchema>;
 export type NextcloudProvider = Static<typeof NextcloudProviderSchema>;
 export type CalDavProvider = Static<typeof CalDavProviderSchema>;
-export type Calendar = Static<typeof CalendarSchema>;
+export type Calendar = Static<typeof GoogleCalendarSchema> | Static<typeof CalDavCalendarSchema>;
 export type GoogleCalendar = Static<typeof GoogleCalendarSchema>;
 export type CalendarSync = Static<typeof CalendarSyncSchema>;
 export type CalDavCalendar = Static<typeof CalDavCalendarSchema>;

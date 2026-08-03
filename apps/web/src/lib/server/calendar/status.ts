@@ -1,5 +1,5 @@
 import type { Kysely } from 'kysely';
-import type { Calendar, WhenConfiguration } from '@when/config';
+import { allCalendars, type ResolvedCalendar, type WhenConfiguration } from '@when/config';
 import type { Database } from '@when/db';
 import { getOpenWorkflow, testCalendar } from '@when/jobs';
 import { workerReachable } from '$lib/server/worker';
@@ -33,28 +33,27 @@ export async function listCalendars(
 	const statuses = new Map(computed.map((s) => [s.id, s]));
 	const lastSynced = new Map(syncStatus.map((s) => [s.name, s.last_ok_at]));
 
-	return config.calendars.map((cal) => {
-		const status = statuses.get(cal.name);
+	return allCalendars(config).map((resolved) => {
+		const { calendar, provider } = resolved;
+		const status = statuses.get(calendar.name);
 		return {
-			name: cal.name,
-			type: cal.type,
-			provider: cal.provider,
-			target: targetOf(cal),
-			refreshEveryMinutes: cal.sync.refresh_every_minutes,
+			name: calendar.name,
+			type: resolved.type,
+			provider: provider.name,
+			target: targetOf(resolved),
+			refreshEveryMinutes: calendar.sync.refresh_every_minutes,
 			health: status?.health ?? 'unknown',
 			reason: status?.reason ?? null,
-			lastSyncedAt: lastSynced.get(cal.name) ?? null
+			lastSyncedAt: lastSynced.get(calendar.name) ?? null
 		};
 	});
 }
 
-// Which config field points this calendar at the provider, and what it holds.
-function targetOf(cal: Calendar): CalendarView['target'] {
-	if ('google_calendar_id' in cal) {
-		return { label: 'google_calendar_id', value: cal.google_calendar_id };
-	}
-	if ('path' in cal) return { label: 'path', value: cal.path };
-	return { label: 'url', value: cal.url };
+// Which config field points this calendar at its provider, and what it holds.
+function targetOf(resolved: ResolvedCalendar): CalendarView['target'] {
+	if (resolved.type === 'google') return { label: 'id', value: resolved.calendar.id };
+	if ('path' in resolved.calendar) return { label: 'path', value: resolved.calendar.path };
+	return { label: 'url', value: resolved.calendar.url };
 }
 
 export async function probeCalendar(

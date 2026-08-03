@@ -30,12 +30,21 @@ const adapter = {
 const config = {
 	url: { app: 'https://book.example.com', worker: 'http://when-worker:9000' },
 	providers: [
-		{ name: 'gg', type: 'google', client_id: 'cid', client_secret: 'csec' },
-		{ name: 'dav', type: 'caldav', url: 'https://d.example/', username: 'u', password: 'p' }
-	],
-	calendars: [
-		{ name: 'work', type: 'google', provider: 'gg', google_calendar_id: 'primary' },
-		{ name: 'home', type: 'caldav', provider: 'dav', url: 'https://d.example/home/' }
+		{
+			name: 'gg',
+			type: 'google',
+			client_id: 'cid',
+			client_secret: 'csec',
+			calendars: [{ name: 'work', id: 'primary' }]
+		},
+		{
+			name: 'dav',
+			type: 'caldav',
+			url: 'https://d.example/',
+			username: 'u',
+			password: 'p',
+			calendars: [{ name: 'home', url: 'https://d.example/home/' }]
+		}
 	],
 	meetings: []
 } as unknown as WhenConfiguration;

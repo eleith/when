@@ -4,6 +4,7 @@ import { toAppointmentView } from '$lib/server/appointments';
 import { evaluateCalendarStatuses } from '$lib/server/calendar/health';
 import { signOutAction } from '$lib/server/auth';
 import { countAppointments, listAppointmentsPage, listServiceStatus } from '@when/db';
+import { allCalendars } from '@when/config';
 import { sql } from 'kysely';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -114,7 +115,7 @@ export const load: PageServerLoad = async () => {
 	return {
 		// The services page cards: every provider, plus smtp and the worker.
 		serviceCount: cfg.providers.length + 2,
-		calendarCount: cfg.calendars.length,
+		calendarCount: allCalendars(cfg).length,
 		failing,
 		conflictCount,
 		upcomingCount,

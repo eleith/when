@@ -8,7 +8,8 @@ describe('NextcloudTalkAdapter', () => {
 		type: 'nextcloud',
 		url: 'https://cloud.example.com/',
 		username: 'user',
-		password: 'password'
+		password: 'password',
+		calendars: []
 	};
 
 	beforeEach(() => {

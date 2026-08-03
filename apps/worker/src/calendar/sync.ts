@@ -1,4 +1,5 @@
 import { connectProviders, deleteAppointmentFromCalendar, pushAppointment } from '@when/calendar';
+import { findCalendar } from '@when/config';
 import {
 	listOutOfSyncAppointments,
 	markSynced,
@@ -14,7 +15,7 @@ import { deleteStandaloneVideoChat } from '../services/video-chat.js';
 export async function reconcileAppointment(ctx: WorkerContext, row: Appointment): Promise<void> {
 	const meeting = ctx.config.meetings.find((e) => e.name === row.event_type_id);
 	const targetId = row.external_calendar_id ?? meeting?.booking_calendar ?? null;
-	const calendarConfig = ctx.config.calendars.find((c) => c.name === targetId);
+	const calendarConfig = targetId ? findCalendar(ctx.config, targetId) : undefined;
 	const providerType = calendarConfig?.type ?? 'unknown';
 	const timer = calendarSyncDuration.startTimer({ provider_type: providerType });
 
@@ -122,7 +123,7 @@ async function recordPushOutcome(
 		}
 	);
 
-	const provider = ctx.config.calendars.find((c) => c.name === calendarName)?.provider;
+	const provider = findCalendar(ctx.config, calendarName)?.provider.name;
 	if (provider) {
 		await recordServiceOutcome(
 			ctx.db,

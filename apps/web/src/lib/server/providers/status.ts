@@ -42,9 +42,7 @@ export async function listProviders(
 
 	return config.providers.map((provider) => {
 		const { usesOAuth } = getProviderAdapter(connectProvider(provider, null));
-		const calendars = config.calendars
-			.filter((cal) => cal.provider === provider.name)
-			.map((cal) => cal.name);
+		const calendars = provider.calendars.map((cal) => cal.name);
 
 		return {
 			name: provider.name,

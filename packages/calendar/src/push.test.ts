@@ -41,7 +41,8 @@ const davServices: ConnectedProvider[] = [
 		type: 'caldav',
 		url: caldavCfg.url,
 		username: 'jane',
-		password: 'secret'
+		password: 'secret',
+		calendars: []
 	}
 ];
 
@@ -53,16 +54,8 @@ const cfgWithCalDav: WhenConfiguration = {
 			type: 'caldav',
 			url: caldavCfg.url,
 			username: 'jane',
-			password: 'secret'
-		}
-	],
-	calendars: [
-		{
-			name: 'work',
-			type: 'caldav',
-			provider: 'work-dav-service',
-			url: caldavCfg.url,
-			sync: { refresh_every_minutes: 10 }
+			password: 'secret',
+			calendars: [{ name: 'work', url: caldavCfg.url, sync: { refresh_every_minutes: 10 } }]
 		}
 	],
 	meetings: [
@@ -157,16 +150,8 @@ test('pushAppointment fails cleanly when the google service is not connected', a
 				name: 'google-service-2',
 				type: 'google',
 				client_id: 'gid',
-				client_secret: 'gsec'
-			}
-		],
-		calendars: [
-			{
-				name: 'g',
-				type: 'google',
-				provider: 'google-service-2',
-				google_calendar_id: 'gcal',
-				sync: { refresh_every_minutes: 10 }
+				client_secret: 'gsec',
+				calendars: [{ name: 'g', id: 'gcal', sync: { refresh_every_minutes: 10 } }]
 			}
 		],
 		meetings: [{ ...validConfig.meetings[0], booking_calendar: 'g' }]
@@ -178,6 +163,7 @@ test('pushAppointment fails cleanly when the google service is not connected', a
 			type: 'google',
 			client_id: 'gid',
 			client_secret: 'gsec',
+			calendars: [],
 			refresh_token: null
 		}
 	];
@@ -200,16 +186,8 @@ test('pushAppointment succeeds on Google calendar', async () => {
 				name: 'google-service-2',
 				type: 'google',
 				client_id: 'gid',
-				client_secret: 'gsec'
-			}
-		],
-		calendars: [
-			{
-				name: 'g',
-				type: 'google',
-				provider: 'google-service-2',
-				google_calendar_id: 'gcal',
-				sync: { refresh_every_minutes: 10 }
+				client_secret: 'gsec',
+				calendars: [{ name: 'g', id: 'gcal', sync: { refresh_every_minutes: 10 } }]
 			}
 		],
 		meetings: [{ ...validConfig.meetings[0], booking_calendar: 'g' }]
@@ -235,6 +213,7 @@ test('pushAppointment succeeds on Google calendar', async () => {
 			type: 'google',
 			client_id: 'gid',
 			client_secret: 'gsec',
+			calendars: [],
 			refresh_token: 'gtoken'
 		}
 	];

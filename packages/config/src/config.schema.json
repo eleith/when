@@ -5,7 +5,7 @@
 	"title": "When configuration",
 	"description": "Canonical schema for the When self-hosted scheduling app's when.yaml.",
 	"type": "object",
-	"required": ["auth", "user", "smtp", "calendars", "schedules", "meetings"],
+	"required": ["auth", "user", "smtp", "schedules", "meetings"],
 	"properties": {
 		"version": {
 			"default": 1,
@@ -27,17 +27,10 @@
 		},
 		"providers": {
 			"default": [],
-			"description": "Credentials for third-party providers.",
+			"description": "Third-party services and the calendars they serve.",
 			"type": "array",
 			"items": {
 				"$ref": "#/$defs/Provider"
-			}
-		},
-		"calendars": {
-			"description": "Connected conflict/destination calendars.",
-			"type": "array",
-			"items": {
-				"$ref": "#/$defs/Calendar"
 			}
 		},
 		"schedules": {
@@ -216,32 +209,22 @@
 		},
 		"CalDavCalendar": {
 			"title": "CalDavCalendar",
-			"description": "CalDAV Calendar integration configuration. Give exactly one of `path` (joined to the provider base URL) or `url` (a full endpoint).",
+			"description": "A calendar on a CalDAV or Nextcloud provider. Give exactly one of `path` (joined to the provider base URL) or `url` (a full endpoint).",
 			"anyOf": [
 				{
 					"additionalProperties": false,
 					"title": "CalDAV calendar by path",
 					"type": "object",
-					"required": ["name", "type", "provider", "path"],
+					"required": ["name", "path"],
 					"properties": {
 						"name": {
 							"minLength": 1,
-							"description": "Unique name for this calendar, referenced by meetings.",
-							"type": "string"
-						},
-						"type": {
-							"description": "Calendar type: must be caldav.",
-							"const": "caldav",
-							"type": "string"
-						},
-						"provider": {
-							"minLength": 1,
-							"description": "Name of the caldav or nextcloud provider to connect with.",
+							"description": "Unique name for this calendar, referenced by meetings. Must be unique across every provider.",
 							"type": "string"
 						},
 						"path": {
 							"minLength": 1,
-							"description": "Relative path joined to the service base URL.",
+							"description": "Relative path joined to the provider base URL.",
 							"type": "string"
 						},
 						"sync": {
@@ -255,26 +238,16 @@
 					"additionalProperties": false,
 					"title": "CalDAV calendar by url",
 					"type": "object",
-					"required": ["name", "type", "provider", "url"],
+					"required": ["name", "url"],
 					"properties": {
 						"name": {
 							"minLength": 1,
-							"description": "Unique name for this calendar, referenced by meetings.",
-							"type": "string"
-						},
-						"type": {
-							"description": "Calendar type: must be caldav.",
-							"const": "caldav",
-							"type": "string"
-						},
-						"provider": {
-							"minLength": 1,
-							"description": "Name of the caldav or nextcloud provider to connect with.",
+							"description": "Unique name for this calendar, referenced by meetings. Must be unique across every provider.",
 							"type": "string"
 						},
 						"url": {
 							"format": "uri",
-							"description": "Full calendar URL endpoint overriding the service base URL.",
+							"description": "Full calendar URL endpoint replacing the provider base URL.",
 							"type": "string"
 						},
 						"sync": {
@@ -295,7 +268,7 @@
 			"properties": {
 				"name": {
 					"minLength": 1,
-					"description": "Unique name for the provider, referenced by calendars.",
+					"description": "Unique name for the provider.",
 					"type": "string"
 				},
 				"type": {
@@ -317,20 +290,16 @@
 					"minLength": 1,
 					"description": "CalDAV password.",
 					"type": "string"
+				},
+				"calendars": {
+					"default": [],
+					"description": "Calendars served by this provider.",
+					"type": "array",
+					"items": {
+						"$ref": "#/$defs/CalDavCalendar"
+					}
 				}
 			}
-		},
-		"Calendar": {
-			"title": "Calendar",
-			"description": "External calendar configuration.",
-			"anyOf": [
-				{
-					"$ref": "#/$defs/GoogleCalendar"
-				},
-				{
-					"$ref": "#/$defs/CalDavCalendar"
-				}
-			]
 		},
 		"CalendarSync": {
 			"additionalProperties": false,
@@ -572,26 +541,16 @@
 		"GoogleCalendar": {
 			"additionalProperties": false,
 			"title": "GoogleCalendar",
-			"description": "Google Calendar integration configuration.",
+			"description": "A calendar on a Google provider.",
 			"type": "object",
-			"required": ["name", "type", "provider", "google_calendar_id"],
+			"required": ["name", "id"],
 			"properties": {
 				"name": {
 					"minLength": 1,
-					"description": "Unique name for this calendar, referenced by meetings.",
+					"description": "Unique name for this calendar, referenced by meetings. Must be unique across every provider.",
 					"type": "string"
 				},
-				"type": {
-					"description": "Calendar type: must be google.",
-					"const": "google",
-					"type": "string"
-				},
-				"provider": {
-					"minLength": 1,
-					"description": "Name of the google provider to connect with.",
-					"type": "string"
-				},
-				"google_calendar_id": {
+				"id": {
 					"minLength": 1,
 					"description": "The specific Google calendar ID (e.g. primary or an email address).",
 					"type": "string"
@@ -612,7 +571,7 @@
 			"properties": {
 				"name": {
 					"minLength": 1,
-					"description": "Unique name for the provider, referenced by calendars.",
+					"description": "Unique name for the provider.",
 					"type": "string"
 				},
 				"type": {
@@ -629,6 +588,14 @@
 					"minLength": 1,
 					"description": "Google OAuth client secret.",
 					"type": "string"
+				},
+				"calendars": {
+					"default": [],
+					"description": "Calendars served by this provider.",
+					"type": "array",
+					"items": {
+						"$ref": "#/$defs/GoogleCalendar"
+					}
 				}
 			}
 		},
@@ -824,7 +791,7 @@
 			"properties": {
 				"name": {
 					"minLength": 1,
-					"description": "Unique name for the provider, referenced by calendars.",
+					"description": "Unique name for the provider.",
 					"type": "string"
 				},
 				"type": {
@@ -846,6 +813,14 @@
 					"minLength": 1,
 					"description": "Nextcloud password or app-specific password.",
 					"type": "string"
+				},
+				"calendars": {
+					"default": [],
+					"description": "Calendars served by this provider.",
+					"type": "array",
+					"items": {
+						"$ref": "#/$defs/CalDavCalendar"
+					}
 				}
 			}
 		},
@@ -893,7 +868,7 @@
 		},
 		"Provider": {
 			"title": "Provider",
-			"description": "External API provider configuration.",
+			"description": "An external service and the calendars it serves.",
 			"anyOf": [
 				{
 					"$ref": "#/$defs/GoogleProvider"

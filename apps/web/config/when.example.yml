@@ -53,40 +53,40 @@ smtp:
   # from defaults to noreply@<your url.app domain>
   # from: 'bookings@example.com'
 
-# --- Credentials for calendar/video providers referenced by calendars below ---
+# --- Providers and the calendars they serve ---
+# Calendars are conflict sources (busy times) and booking destinations. Their
+# names must be unique across every provider, since meetings reference them
+# by name alone.
 providers:
   - name: 'caldav-service'
     type: 'caldav'
     url: 'https://caldav.example.com/dav/' # DAV base URL
     username: 'you'
     password: '${CALDAV_PASSWORD}'
+    calendars:
+      - name: 'main'
+        path: 'calendars/you/main/' # joined to the provider's base url
+        # ...or point at a full endpoint instead of a path:
+        # url: 'https://caldav.example.com/dav/calendars/you/main/'
+        # sync:
+        #   refresh_every_minutes: 10 # busy-time refresh cadence (default 10)
   # Google (connect it from /admin afterwards to store the refresh token):
   # - name: 'google-service'
   #   type: 'google'
   #   client_id: '...apps.googleusercontent.com'
   #   client_secret: '${GOOGLE_CLIENT_SECRET}'
+  #   calendars:
+  #     - name: 'personal'
+  #       id: 'primary'
   # Nextcloud (a CalDAV-compatible provider, also usable for Talk video links):
   # - name: 'nextcloud-service'
   #   type: 'nextcloud'
   #   url: 'https://cloud.example.com'
   #   username: 'you'
   #   password: '${NEXTCLOUD_PASSWORD}'
-
-# --- Calendars: conflict sources (busy times) and booking destinations ---
-calendars:
-  - name: 'main'
-    type: 'caldav'
-    provider: 'caldav-service'
-    path: 'calendars/you/main/' # joined to the provider's base url
-    # ...or point at a full endpoint instead of a path:
-    # url: 'https://caldav.example.com/dav/calendars/you/main/'
-    # sync:
-    #   refresh_every_minutes: 10 # busy-time refresh cadence (default 10)
-  # A Google calendar references a google provider by name:
-  # - name: 'personal'
-  #   type: 'google'
-  #   provider: 'google-service'
-  #   google_calendar_id: 'primary'
+  #   calendars:
+  #     - name: 'shared'
+  #       path: 'calendars/you/shared/'
 
 # --- Weekly availability (times are in user.timezone) ---
 # `weekly` is a list of rules; availability is the union of all rules.

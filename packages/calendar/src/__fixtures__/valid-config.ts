@@ -39,16 +39,8 @@ export const validConfig: WhenConfiguration = {
 			name: 'google-service',
 			type: 'google',
 			client_id: 'gc-id',
-			client_secret: 'gc-secret'
-		}
-	],
-	calendars: [
-		{
-			name: 'my-google-cal',
-			type: 'google',
-			provider: 'google-service',
-			google_calendar_id: 'gc-calid',
-			sync: { refresh_every_minutes: 10 }
+			client_secret: 'gc-secret',
+			calendars: [{ name: 'my-google-cal', id: 'gc-calid', sync: { refresh_every_minutes: 10 } }]
 		}
 	],
 	schedules: [

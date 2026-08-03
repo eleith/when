@@ -12,11 +12,9 @@ const config = {
 			type: 'caldav',
 			url: 'https://cal.example.com/',
 			username: 'u',
-			password: 'p'
+			password: 'p',
+			calendars: [{ name: 'work', url: 'https://cal.example.com/work/' }]
 		}
-	],
-	calendars: [
-		{ name: 'work', type: 'caldav', provider: 'work-dav', url: 'https://cal.example.com/work/' }
 	],
 	meetings: [
 		{

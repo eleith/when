@@ -24,12 +24,9 @@ providers:
     url: 'http://caldav.example.test/dav/'
     username: 'e2e'
     password: 'e2e-caldav-password'
-
-calendars:
-  - name: 'main'
-    type: 'caldav'
-    provider: 'fixture-service'
-    path: 'calendars/e2e/main/'
+    calendars:
+      - name: 'main'
+        path: 'calendars/e2e/main/'
 
 schedules:
   - name: 'standard'

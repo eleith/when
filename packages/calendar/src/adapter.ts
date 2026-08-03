@@ -1,10 +1,8 @@
 import type {
-	Calendar,
-	CalDavCalendar,
-	GoogleCalendar,
 	Provider,
 	CalDavProvider,
 	GoogleProvider,
+	ResolvedCalendar,
 	WhenConfiguration
 } from '@when/config';
 import { getProviderRefreshToken, type Appointment, type openDb } from '@when/db';
@@ -66,17 +64,15 @@ async function connectProviders(
 	);
 }
 
-function getCalendarAdapter(cal: Calendar, services?: ConnectedProvider[]): CalendarAdapter {
-	const type = cal.type;
-	if (type === 'caldav') {
-		const service = services?.find((s) => s.name === (cal as CalDavCalendar).provider);
-		return new CalDavAdapter(cal as CalDavCalendar, service as CalDavProvider | undefined);
+function getCalendarAdapter(
+	resolved: ResolvedCalendar,
+	services?: ConnectedProvider[]
+): CalendarAdapter {
+	const connected = services?.find((s) => s.name === resolved.provider.name);
+	if (resolved.type === 'google') {
+		return new GoogleAdapter(resolved.calendar, connected as ConnectedGoogleProvider | undefined);
 	}
-	if (type === 'google') {
-		const service = services?.find((s) => s.name === (cal as GoogleCalendar).provider);
-		return new GoogleAdapter(cal as GoogleCalendar, service as ConnectedGoogleProvider | undefined);
-	}
-	throw new Error(`Unsupported calendar type: ${type}`);
+	return new CalDavAdapter(resolved.calendar, connected as CalDavProvider | undefined);
 }
 
 export type {

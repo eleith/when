@@ -1,11 +1,4 @@
-import type {
-	WhenConfiguration,
-	Provider,
-	Calendar,
-	Schedule,
-	Meeting,
-	FormField
-} from './schema.js';
+import type { WhenConfiguration, Provider, Schedule, Meeting, FormField } from './schema.js';
 import type { ConfigIssue } from './load.js';
 import { durationsOf } from './durations.js';
 
@@ -23,7 +16,7 @@ export function checkCrossRefs(cfg: WhenConfiguration): ConfigIssue[] {
 	const issues: ConfigIssue[] = [];
 
 	const serviceRegistry = validateServices(cfg.providers, issues);
-	const calendarRegistry = validateCalendars(cfg.calendars, serviceRegistry.names, issues);
+	const calendarRegistry = validateCalendars(cfg, issues);
 	const scheduleNames = validateSchedules(cfg.schedules, issues);
 
 	validateMeetings(cfg, serviceRegistry, calendarRegistry, scheduleNames, issues);
@@ -61,51 +54,25 @@ function checkServiceDuplicateName(
 	}
 }
 
-function validateCalendars(
-	calendars: WhenConfiguration['calendars'],
-	serviceNames: Set<string>,
-	issues: ConfigIssue[]
-): CalendarRegistry {
-	const calendarNames = new Set<string>();
-	const calendarTypes = new Map<string, string>();
+// Names must be unique across every provider, since meetings reference them unqualified.
+function validateCalendars(cfg: WhenConfiguration, issues: ConfigIssue[]): CalendarRegistry {
+	const names = new Set<string>();
+	const types = new Map<string, string>();
 
-	calendars.forEach((cal, i) => {
-		checkCalendarDuplicateName(cal, i, calendarNames, issues);
-		checkCalendarServiceReference(cal, i, serviceNames, issues);
-
-		calendarNames.add(cal.name);
-		calendarTypes.set(cal.name, cal.type);
+	cfg.providers.forEach((provider, p) => {
+		provider.calendars.forEach((calendar, c) => {
+			if (names.has(calendar.name)) {
+				issues.push({
+					path: `/providers/${p}/calendars/${c}/name`,
+					message: `duplicate calendar name "${calendar.name}"`
+				});
+			}
+			names.add(calendar.name);
+			types.set(calendar.name, provider.type);
+		});
 	});
 
-	return { names: calendarNames, types: calendarTypes };
-}
-
-function checkCalendarDuplicateName(
-	cal: Calendar,
-	i: number,
-	calendarNames: Set<string>,
-	issues: ConfigIssue[]
-): void {
-	if (calendarNames.has(cal.name)) {
-		issues.push({
-			path: `/calendars/${i}/name`,
-			message: `duplicate calendar name "${cal.name}"`
-		});
-	}
-}
-
-function checkCalendarServiceReference(
-	cal: Calendar,
-	i: number,
-	serviceNames: Set<string>,
-	issues: ConfigIssue[]
-): void {
-	if (!serviceNames.has(cal.provider)) {
-		issues.push({
-			path: `/calendars/${i}/provider`,
-			message: `references unknown provider "${cal.provider}"`
-		});
-	}
+	return { names, types };
 }
 
 function validateSchedules(

@@ -1,5 +1,6 @@
 import { define } from 'gunshi';
 import { testCalendar } from '@when/jobs';
+import { findCalendar } from '@when/config';
 import { loadConfigFromCtx } from '../../utils/command.ts';
 import { reportWorkerRun } from '../../utils/worker.ts';
 import { fail } from '../../utils/report.ts';
@@ -21,7 +22,7 @@ export const testCommand = define({
 		const config = await loadConfigFromCtx(ctx.values?.config);
 		if (!config) return;
 
-		const cal = config.calendars.find((c) => c.name === name);
+		const cal = findCalendar(config, name);
 		if (!cal) {
 			fail(`no calendar named "${name}"`);
 			return;

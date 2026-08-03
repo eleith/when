@@ -10,16 +10,17 @@ describe('getVideoChatAdapter', () => {
 				type: 'nextcloud',
 				url: 'https://cloud.example.com',
 				username: 'user',
-				password: 'pwd'
+				password: 'pwd',
+				calendars: []
 			},
 			{
 				name: 'google-service',
 				type: 'google',
 				client_id: 'gc-id',
-				client_secret: 'gc-secret'
+				client_secret: 'gc-secret',
+				calendars: []
 			}
 		],
-		calendars: [],
 		schedules: [],
 		meetings: [],
 		auth: { credentials: { username: 'admin', password: 'pwd' } },
@@ -47,7 +48,8 @@ describe('getVideoChatAdapter', () => {
 			type: 'caldav' as const,
 			url: 'https://cal.example.com',
 			username: 'u',
-			password: 'p'
+			password: 'p',
+			calendars: []
 		};
 		expect(() => getVideoChatAdapter(srv)).toThrow('Unsupported video chat provider type: caldav');
 	});

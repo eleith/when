@@ -104,9 +104,12 @@ smtp:
 
 ## `providers`
 
-External APIs and auth credentials. Calendars reference these providers by `name`.
+External services and the calendars they serve. Three `type`s are supported: `google`,
+`caldav`, and `nextcloud`.
 
-Three `type`s are supported: `google`, `caldav`, and `nextcloud`.
+A calendar is declared inside the provider that serves it, so it needs no `provider`
+reference and no `type` of its own — both are implied by where it sits. Calendars are
+conflict sources (busy times) and/or appointment destinations.
 
 ```yaml
 providers:
@@ -114,39 +117,34 @@ providers:
     type: 'google'
     client_id: '${GOOGLE_CLIENT_ID}'
     client_secret: '${GOOGLE_CLIENT_SECRET}'
+    calendars:
+      - name: 'personal' # referenced by meetings
+        id: 'primary' # the Google calendar ID
+        sync:
+          refresh_every_minutes: 10 # minutes between busy-time refreshes (default 10)
   - name: 'my-caldav-service'
     type: 'caldav'
     url: 'https://cloud.example.com/remote.php/dav/'
     username: 'jane'
     password: '${CALDAV_PASSWORD}'
+    calendars:
+      - name: 'work'
+        path: 'calendars/jane/work/' # joined to the provider url
+      - name: 'shared'
+        url: 'https://other.example.com/dav/shared/' # ...or a full endpoint instead
   - name: 'my-nextcloud-service'
     type: 'nextcloud'
     url: 'https://nextcloud.example.com/'
     username: 'jane'
     password: '${NEXTCLOUD_PASSWORD}'
+    calendars: []
 ```
 
-## `calendars`
-
-One or more external calendars, used as conflict sources (busy times) and/or appointment destinations.
-
-```yaml
-calendars:
-  - name: 'work' # referenced by meetings
-    type: 'caldav'
-    provider: 'my-caldav-service'
-    url: 'https://cloud.example.com/remote.php/dav/calendars/jane/work/'
-    sync:
-      refresh_every_minutes: 10 # minutes between busy-time refreshes (default 10)
-  - name: 'personal'
-    type: 'google'
-    provider: 'my-google-service'
-    google_calendar_id: 'primary'
-    sync:
-      refresh_every_minutes: 10
-```
-
-`sync.refresh_every_minutes` is optional on either type. A Google provider carries no refresh token in `when.yaml` — connect it from `/admin` and the token is stored in the database.
+**Calendar names must be unique across every provider**, since meetings reference them by
+name alone. A CalDAV or Nextcloud calendar gives exactly one of `path` (joined to the
+provider's `url`) or `url` (a full endpoint). `sync.refresh_every_minutes` is optional
+everywhere. A Google provider carries no refresh token in `when.yaml` — connect it from
+`/admin` and the token is stored in the database.
 
 ## `schedules`
 

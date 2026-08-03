@@ -17,15 +17,8 @@ const config = {
 			type: 'caldav',
 			url: 'https://cal.example.com/work/',
 			username: 'u',
-			password: 'p'
-		}
-	],
-	calendars: [
-		{
-			name: 'work',
-			type: 'caldav',
-			provider: 'work-dav',
-			url: 'https://cal.example.com/work/'
+			password: 'p',
+			calendars: [{ name: 'work', url: 'https://cal.example.com/work/' }]
 		}
 	],
 	meetings: [{ name: 'chat', slug: 'chat', booking_calendar: 'work', duration_minutes: 30 }]

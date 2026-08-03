@@ -1,28 +1,31 @@
 import { expect, test, vi, beforeEach } from 'vitest';
-import type { Calendar } from '@when/config';
+import type { ResolvedCalendar } from '@when/config';
 import { fetchBusyIntervals } from './busy.js';
 import type { ConnectedProvider } from './adapter.js';
 
 const inst = (s: string): Temporal.Instant => Temporal.Instant.from(s);
 const window = { start: inst('2026-04-01T00:00:00Z'), end: inst('2026-05-01T00:00:00Z') };
 
-const workCal: Calendar = {
-	name: 'work',
-	type: 'caldav',
-	provider: 'work-dav',
+const workDav = {
+	name: 'work-dav',
+	type: 'caldav' as const,
 	url: 'https://cal.example.com/work/',
-	sync: { refresh_every_minutes: 10 }
+	username: 'jane',
+	password: 'secret',
+	calendars: []
 };
 
-const davServices: ConnectedProvider[] = [
-	{
-		name: 'work-dav',
-		type: 'caldav',
+const workCal: ResolvedCalendar = {
+	type: 'caldav',
+	provider: workDav,
+	calendar: {
+		name: 'work',
 		url: 'https://cal.example.com/work/',
-		username: 'jane',
-		password: 'secret'
+		sync: { refresh_every_minutes: 10 }
 	}
-];
+};
+
+const davServices: ConnectedProvider[] = [workDav];
 
 const twoEvents = `<?xml version="1.0"?>
 <multistatus xmlns:C="urn:ietf:params:xml:ns:caldav">

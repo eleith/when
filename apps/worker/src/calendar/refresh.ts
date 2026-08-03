@@ -1,4 +1,4 @@
-import type { Calendar, WhenConfiguration } from '@when/config';
+import { findCalendar, type ResolvedCalendar, type WhenConfiguration } from '@when/config';
 import type { ExpandWindow } from '@when/calendar';
 import { busyCalendarsFor, connectProviders, fetchBusyIntervals } from '@when/calendar';
 import {
@@ -46,25 +46,25 @@ export function refreshWindow(
 
 export async function refreshCalendar(
 	ctx: WorkerContext,
-	cal: Calendar,
+	cal: ResolvedCalendar,
 	window: ExpandWindow,
 	opts: RefreshOptions = {}
 ): Promise<RefreshResult> {
 	const at = (opts.now ?? window.start).toString();
 	const via = opts.via ?? 'refresh';
 	try {
-		const excludeUids = new Set(await listOwnEventIds(ctx.db, cal.name));
+		const excludeUids = new Set(await listOwnEventIds(ctx.db, cal.calendar.name));
 		const services = await connectProviders(ctx.config.providers, ctx.db);
 		const intervals = await fetchBusyIntervals(cal, window, { excludeUids, services });
 		await replaceCalendarBusy(
 			ctx.db,
-			cal.name,
+			cal.calendar.name,
 			intervals.map((i) => ({ start: i.start.toString(), end: i.end.toString() }))
 		);
 		await recordRefreshOutcome(ctx, cal, { at, via });
 		calendarRefreshTotal.inc({
-			calendar_id: cal.name,
-			provider_type: cal.type,
+			calendar_id: cal.calendar.name,
+			provider_type: cal.provider.type,
 			status: 'success'
 		});
 		return { ok: true, busyCount: intervals.length };
@@ -72,15 +72,15 @@ export async function refreshCalendar(
 		const error = err instanceof Error ? err.message : String(err);
 		ctx.logger.error(
 			{
-				calendarId: cal.name,
+				calendarId: cal.calendar.name,
 				error
 			},
 			'calendar refresh failed; keeping stale busy times'
 		);
 		await recordRefreshOutcome(ctx, cal, { at, via, error });
 		calendarRefreshTotal.inc({
-			calendar_id: cal.name,
-			provider_type: cal.type,
+			calendar_id: cal.calendar.name,
+			provider_type: cal.provider.type,
 			status: 'failure'
 		});
 		return { ok: false, error };
@@ -90,11 +90,11 @@ export async function refreshCalendar(
 // A provider backing no calendars has no other source of status.
 async function recordRefreshOutcome(
 	ctx: WorkerContext,
-	cal: Calendar,
+	cal: ResolvedCalendar,
 	outcome: ServiceOutcome
 ): Promise<void> {
-	await recordServiceOutcome(ctx.db, { kind: 'calendar', name: cal.name }, outcome);
-	await recordServiceOutcome(ctx.db, { kind: 'provider', name: cal.provider }, outcome);
+	await recordServiceOutcome(ctx.db, { kind: 'calendar', name: cal.calendar.name }, outcome);
+	await recordServiceOutcome(ctx.db, { kind: 'provider', name: cal.provider.name }, outcome);
 }
 
 export async function refreshCalendars(
@@ -105,7 +105,7 @@ export async function refreshCalendars(
 	const statuses = await listServiceStatus(ctx.db, 'calendar');
 	const lastSuccess = new Map(statuses.map((s) => [s.name, s.last_ok_at]));
 	for (const id of busyCalendarIds(ctx.config)) {
-		const cal = ctx.config.calendars.find((c) => c.name === id);
+		const cal = findCalendar(ctx.config, id);
 		if (!cal) {
 			ctx.logger.warn({ calendarId: id }, 'busy calendar id not found in calendars; skipping');
 			continue;
@@ -117,9 +117,9 @@ export async function refreshCalendars(
 	}
 }
 
-function isDue(lastSuccess: string | null, cal: Calendar, now: Temporal.Instant): boolean {
+function isDue(lastSuccess: string | null, cal: ResolvedCalendar, now: Temporal.Instant): boolean {
 	if (!lastSuccess) return true;
-	const interval = cal.sync.refresh_every_minutes;
+	const interval = cal.calendar.sync.refresh_every_minutes;
 	const nextDue = Temporal.Instant.from(lastSuccess).add({ minutes: interval });
 	return Temporal.Instant.compare(now, nextDue) >= 0;
 }

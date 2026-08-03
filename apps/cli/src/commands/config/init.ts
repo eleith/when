@@ -26,11 +26,9 @@ providers:
     url: https://dav.example.com/
     username: dav-user
     password: \${WHEN_SERVICE_MY_CALDAV_PASSWORD}
-calendars:
-  - name: primary
-    type: caldav
-    provider: my-caldav
-    path: calendars/dav-user/primary/
+    calendars:
+      - name: primary
+        path: calendars/dav-user/primary/
 schedules:
   - name: standard
     weekly:

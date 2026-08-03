@@ -1,5 +1,5 @@
 import type { ServiceStatus } from '@when/db';
-import type { WhenConfiguration } from '@when/config';
+import { findCalendar, type WhenConfiguration } from '@when/config';
 
 const STALE_GRACE_MINUTES = 30;
 const STARTUP_GRACE_MINUTES = 15;
@@ -25,8 +25,7 @@ export function evaluateCalendarStatuses(
 		}
 
 		if (s.last_ok_at) {
-			const intervalMinutes =
-				config.calendars.find((c) => c.name === id)?.sync.refresh_every_minutes ?? 10;
+			const intervalMinutes = findCalendar(config, id)?.calendar.sync.refresh_every_minutes ?? 10;
 			const staleAfter = Temporal.Instant.from(s.last_ok_at).add({
 				minutes: intervalMinutes + STALE_GRACE_MINUTES
 			});

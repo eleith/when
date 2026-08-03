@@ -34,20 +34,17 @@ providers:
     url: "https://dav.example.com/"
     username: "u"
     password: "p"
+    calendars:
+      - name: "work"
+        url: "https://dav.example.com/calendars/u/work/"
   - name: "dav-envref"
     type: "caldav"
     url: "https://dav.example.com/"
     username: "u"
     password: "\${WHEN_CAL_SECRET}"
-calendars:
-  - name: "work"
-    type: "caldav"
-    provider: "dav"
-    url: "https://dav.example.com/calendars/u/work/"
-  - name: "envref"
-    type: "caldav"
-    provider: "dav-envref"
-    url: "https://dav.example.com/calendars/u/envref/"
+    calendars:
+      - name: "envref"
+        url: "https://dav.example.com/calendars/u/envref/"
 schedules:
   - name: "standard"
     weekly:

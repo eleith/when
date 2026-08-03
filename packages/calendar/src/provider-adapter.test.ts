@@ -18,6 +18,7 @@ const google = (refresh_token: string | null): ConnectedProvider => ({
 	type: 'google',
 	client_id: 'cid',
 	client_secret: 'csec',
+	calendars: [],
 	refresh_token
 });
 
@@ -26,7 +27,8 @@ const dav: ConnectedProvider = {
 	type: 'caldav',
 	url: 'https://d.example/',
 	username: 'u',
-	password: 'p'
+	password: 'p',
+	calendars: []
 };
 
 beforeEach(() => {

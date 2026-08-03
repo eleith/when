@@ -24,7 +24,8 @@ const service: GoogleProvider = {
 	name: 'gg',
 	type: 'google',
 	client_id: 'cid',
-	client_secret: 'csec'
+	client_secret: 'csec',
+	calendars: []
 };
 
 const config = {

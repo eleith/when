@@ -1,6 +1,6 @@
 import { expect, test, vi, beforeEach } from 'vitest';
 import pino from 'pino';
-import type { Calendar, WhenConfiguration } from '@when/config';
+import type { ResolvedCalendar, WhenConfiguration } from '@when/config';
 import { openDb, runMigrations, replaceCalendarBusy, recordServiceOutcome } from '@when/db';
 import type { Logger } from '../services/logger.js';
 import type { WorkerContext } from '../services/context.js';
@@ -10,12 +10,21 @@ const inst = (s: string) => Temporal.Instant.from(s);
 const window = { start: inst('2026-04-01T00:00:00Z'), end: inst('2026-05-01T00:00:00Z') };
 const silent: Logger = pino({ level: 'silent' });
 
-const workCal: Calendar = {
-	name: 'work',
-	type: 'caldav',
-	provider: 'work-dav',
+const workDav = {
+	name: 'work-dav',
+	type: 'caldav' as const,
 	url: 'https://cal.example.com/work/',
-	sync: { refresh_every_minutes: 10 }
+	username: 'jane',
+	password: 'secret',
+	calendars: [
+		{ name: 'work', url: 'https://cal.example.com/work/', sync: { refresh_every_minutes: 10 } }
+	]
+};
+
+const workCal: ResolvedCalendar = {
+	type: 'caldav',
+	provider: workDav,
+	calendar: workDav.calendars[0]
 };
 
 const oneEvent = (uid: string) => `<?xml version="1.0"?>
@@ -38,16 +47,7 @@ END:VCALENDAR</C:calendar-data>
 const defaultTestConfig = {
 	url: { app: 'https://when.example.com' },
 	user: { name: 'Jane', email: 'jane@example.com' },
-	providers: [
-		{
-			name: 'work-dav',
-			type: 'caldav',
-			url: 'https://cal.example.com/work/',
-			username: 'jane',
-			password: 'secret'
-		}
-	],
-	calendars: [workCal],
+	providers: [workDav],
 	schedules: [
 		{
 			name: 'standard',
@@ -302,7 +302,6 @@ test('refreshCalendars refreshes known busy calendars and skips unknown ids', as
 		config: {
 			schedules: [{ name: 'standard' }],
 			providers: defaultTestConfig.providers,
-			calendars: [workCal],
 			meetings: [
 				{
 					booking_calendar: 'work',
@@ -343,8 +342,12 @@ test('refreshCalendars skips a calendar refreshed within its interval, refreshes
 	const ctx: WorkerContext = {
 		config: {
 			schedules: [{ name: 'standard' }],
-			providers: defaultTestConfig.providers,
-			calendars: [{ ...workCal, sync: { refresh_every_minutes: 30 } }],
+			providers: [
+				{
+					...workDav,
+					calendars: [{ ...workDav.calendars[0], sync: { refresh_every_minutes: 30 } }]
+				}
+			],
 			meetings: [
 				{
 					booking_calendar: 'work',

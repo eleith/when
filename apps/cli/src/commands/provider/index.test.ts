@@ -43,15 +43,13 @@ providers:
     url: "https://dav.example.com/remote.php/dav/"
     username: "u"
     password: "p"
+    calendars:
+      - name: "work"
+        url: "https://dav.example.com/remote.php/dav/calendars/u/work/"
   - name: "gcal-envref"
     type: "google"
     client_id: "cid2"
     client_secret: "\${WHEN_TEST_SVC_SECRET}"
-calendars:
-  - name: "work"
-    type: "caldav"
-    provider: "dav"
-    url: "https://dav.example.com/remote.php/dav/calendars/u/work/"
 schedules:
   - name: "standard"
     weekly:

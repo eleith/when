@@ -34,11 +34,9 @@ providers:
     url: "https://example.com"
     username: "u"
     password: "p"
-calendars:
-  - name: "work"
-    type: "caldav"
-    provider: "work-dav"
-    url: "https://example.com"
+    calendars:
+      - name: "work"
+        url: "https://example.com"
 schedules:
   - name: "standard"
     weekly:
@@ -87,11 +85,9 @@ providers:
     url: "https://example.com"
     username: "u"
     password: "p"
-calendars:
-  - name: "work"
-    type: "caldav"
-    provider: "work-dav"
-    url: "https://example.com"
+    calendars:
+      - name: "work"
+        url: "https://example.com"
 schedules:
   - name: "standard"
     weekly:

@@ -60,8 +60,9 @@ test('unknown additional_busy_calendars entry flagged with index', () => {
 });
 
 test('duplicate calendar name flagged', () => {
-	const bad = clone(validConfig);
-	bad.calendars.push({ ...bad.calendars[0] });
+	const bad = clone(validConfig) as unknown as Record<string, unknown>;
+	const calendars = (bad.providers as Record<string, unknown>[])[0].calendars as unknown[];
+	calendars.push({ ...(calendars[0] as object) });
 	try {
 		validateConfig(bad);
 		throw new Error('expected ConfigError');
@@ -275,18 +276,28 @@ test('event_location keeps its optional choices', () => {
 	expect(() => validateConfig(freeText)).not.toThrow();
 });
 
-test('unknown provider in calendar flagged', () => {
-	const bad = clone(validConfig);
-	bad.calendars[0].provider = 'non-existent';
+test('a calendar name repeated across providers is flagged', () => {
+	const bad = clone(validConfig) as unknown as Record<string, unknown>;
+	(bad.providers as Record<string, unknown>[]).push({
+		name: 'second-service',
+		type: 'caldav',
+		url: 'https://cloud.example.com/dav/',
+		username: 'jane',
+		password: 'pwd',
+		calendars: [{ name: 'my-google-cal', path: 'cal/' }]
+	});
 	const issues = issuesFor(bad);
 	expect(
-		issues.some((i) => i.path === '/calendars/0/provider' && i.message.includes('unknown provider'))
+		issues.some(
+			(i) =>
+				i.path === '/providers/1/calendars/0/name' && i.message.includes('duplicate calendar name')
+		)
 	).toBe(true);
 });
 
 test('duplicate provider name flagged', () => {
 	const bad = clone(validConfig);
-	bad.providers!.push({ ...bad.providers![0] });
+	bad.providers.push({ ...bad.providers[0] });
 	const issues = issuesFor(bad);
 	expect(
 		issues.some((i) => i.path === '/providers/1/name' && i.message.includes('duplicate provider'))
@@ -306,19 +317,19 @@ test('unknown video_chat_provider reference in meeting flagged', () => {
 
 test('Google Meet video_chat_provider with CalDAV booking calendar flagged', () => {
 	const bad = clone(validConfig);
-	bad.providers!.push({
+	bad.providers.push({
 		name: 'nextcloud-service',
 		type: 'nextcloud',
 		url: 'https://cloud.example.com',
 		username: 'jane',
-		password: 'pwd'
-	});
-	bad.calendars.push({
-		name: 'caldav-cal',
-		type: 'caldav',
-		provider: 'nextcloud-service',
-		url: 'https://cloud.example.com/cal/',
-		sync: { refresh_every_minutes: 10 }
+		password: 'pwd',
+		calendars: [
+			{
+				name: 'caldav-cal',
+				url: 'https://cloud.example.com/cal/',
+				sync: { refresh_every_minutes: 10 }
+			}
+		]
 	});
 	bad.meetings[0].booking_calendar = 'caldav-cal';
 	bad.meetings[0].video_chat_provider = 'google-service'; // google-service is of type google
