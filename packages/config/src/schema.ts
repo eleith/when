@@ -103,7 +103,7 @@ export const GoogleCalendarSchema = Type.Object({
 
 export const CalDavCalendarSchema = Type.Object({
 	name: Type.String({ minLength: 1, description: 'Unique name for this calendar, referenced by meetings. Must be unique across every provider.' }),
-	href: Type.String({ minLength: 1, description: 'Where the calendar lives: a path joined to the provider url, or a full URL of its own.' }),
+	href: Type.String({ minLength: 1, pattern: '^(https?://[^\\s]+|(?!//)(?![a-zA-Z][a-zA-Z0-9+.-]*:)[^\\s]+)$', description: 'Where the calendar lives: a path joined to the provider url, or a full http(s) URL of its own.' }),
 	sync: Ref(CalendarSyncSchema, { default: {}, description: 'Sync settings for this calendar.' })
 }, { $id: 'CalDavCalendar', additionalProperties: false, title: 'CalDavCalendar', description: 'A calendar on a CalDAV or Nextcloud provider.' });
 

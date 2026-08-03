@@ -221,7 +221,8 @@
 				},
 				"href": {
 					"minLength": 1,
-					"description": "Where the calendar lives: a path joined to the provider url, or a full URL of its own.",
+					"pattern": "^(https?://[^\\s]+|(?!//)(?![a-zA-Z][a-zA-Z0-9+.-]*:)[^\\s]+)$",
+					"description": "Where the calendar lives: a path joined to the provider url, or a full http(s) URL of its own.",
 					"type": "string"
 				},
 				"sync": {

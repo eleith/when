@@ -299,3 +299,32 @@ test('meeting note with empty string fails validation', () => {
 	bad.meetings[0].note = '' as never;
 	expect(() => validateConfig(bad)).toThrow(ConfigError);
 });
+
+function withHref(href: string) {
+	const raw = clone(validConfig) as unknown as Record<string, unknown>;
+	raw.providers = [
+		{
+			name: 'dav',
+			type: 'caldav',
+			url: 'https://cal.example.com/dav/',
+			username: 'u',
+			password: 'p',
+			calendars: [{ name: 'my-google-cal', href }]
+		}
+	];
+	return raw;
+}
+
+test.for(['calendars/you/main/', '/calendars/you/main/', 'https://cal.example.com/x/'])(
+	'a calendar href accepts %s',
+	(href) => {
+		expect(() => validateConfig(withHref(href))).not.toThrow();
+	}
+);
+
+test.for(['htps://cal.example.com/x/', '//cal.example.com/x/', 'has space/'])(
+	'a calendar href rejects %s',
+	(href) => {
+		expect(() => validateConfig(withHref(href))).toThrow(ConfigError);
+	}
+);
