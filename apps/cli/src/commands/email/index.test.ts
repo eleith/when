@@ -32,7 +32,7 @@ providers:
     password: "p"
     calendars:
       - name: "work"
-        url: "https://dav.example.com/calendars/u/work/"
+        href: "https://dav.example.com/calendars/u/work/"
 schedules:
   - name: "standard"
     weekly:

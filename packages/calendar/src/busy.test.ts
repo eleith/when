@@ -20,7 +20,7 @@ const workCal: ResolvedCalendar = {
 	provider: workDav,
 	calendar: {
 		name: 'work',
-		url: 'https://cal.example.com/work/',
+		href: 'https://cal.example.com/work/',
 		sync: { refresh_every_minutes: 10 }
 	}
 };
@@ -80,4 +80,55 @@ test('propagates a provider failure to the caller', async () => {
 	await expect(fetchBusyIntervals(workCal, window, { services: davServices })).rejects.toThrow(
 		/500/
 	);
+});
+
+test('a relative href is joined to the provider url', async () => {
+	const provider = { ...workDav, url: 'https://cal.example.com/dav/' };
+	const relative: ResolvedCalendar = {
+		type: 'caldav',
+		provider,
+		calendar: { name: 'work', href: 'calendars/jane/work/', sync: { refresh_every_minutes: 10 } }
+	};
+	const spy = vi
+		.spyOn(globalThis, 'fetch')
+		.mockResolvedValue(new Response(twoEvents, { status: 207 }));
+
+	await fetchBusyIntervals(relative, window, { services: [provider] });
+
+	expect(String(spy.mock.calls[0][0])).toBe('https://cal.example.com/dav/calendars/jane/work/');
+});
+
+test('a nextcloud provider gets its dav prefix before the join', async () => {
+	const provider = {
+		name: 'nc',
+		type: 'nextcloud' as const,
+		url: 'https://cloud.example.com',
+		username: 'jane',
+		password: 'secret',
+		calendars: []
+	};
+	const relative: ResolvedCalendar = {
+		type: 'caldav',
+		provider,
+		calendar: { name: 'work', href: 'calendars/jane/work/', sync: { refresh_every_minutes: 10 } }
+	};
+	const spy = vi
+		.spyOn(globalThis, 'fetch')
+		.mockResolvedValue(new Response(twoEvents, { status: 207 }));
+
+	await fetchBusyIntervals(relative, window, { services: [provider] });
+
+	expect(String(spy.mock.calls[0][0])).toBe(
+		'https://cloud.example.com/remote.php/dav/calendars/jane/work/'
+	);
+});
+
+test('an absolute href is used as given', async () => {
+	const spy = vi
+		.spyOn(globalThis, 'fetch')
+		.mockResolvedValue(new Response(twoEvents, { status: 207 }));
+
+	await fetchBusyIntervals(workCal, window, { services: davServices });
+
+	expect(String(spy.mock.calls[0][0])).toBe('https://cal.example.com/work/');
 });

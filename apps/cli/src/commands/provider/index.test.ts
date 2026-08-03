@@ -45,7 +45,7 @@ providers:
     password: "p"
     calendars:
       - name: "work"
-        url: "https://dav.example.com/remote.php/dav/calendars/u/work/"
+        href: "https://dav.example.com/remote.php/dav/calendars/u/work/"
   - name: "gcal-envref"
     type: "google"
     client_id: "cid2"

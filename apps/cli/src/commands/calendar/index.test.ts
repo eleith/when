@@ -36,7 +36,7 @@ providers:
     password: "p"
     calendars:
       - name: "work"
-        url: "https://dav.example.com/calendars/u/work/"
+        href: "https://dav.example.com/calendars/u/work/"
   - name: "dav-envref"
     type: "caldav"
     url: "https://dav.example.com/"
@@ -44,7 +44,7 @@ providers:
     password: "\${WHEN_CAL_SECRET}"
     calendars:
       - name: "envref"
-        url: "https://dav.example.com/calendars/u/envref/"
+        href: "https://dav.example.com/calendars/u/envref/"
 schedules:
   - name: "standard"
     weekly:

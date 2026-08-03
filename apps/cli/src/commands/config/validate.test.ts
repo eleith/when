@@ -36,7 +36,7 @@ providers:
     password: "p"
     calendars:
       - name: "work"
-        url: "https://example.com"
+        href: "https://example.com"
 schedules:
   - name: "standard"
     weekly:
@@ -87,7 +87,7 @@ providers:
     password: "p"
     calendars:
       - name: "work"
-        url: "https://example.com"
+        href: "https://example.com"
 schedules:
   - name: "standard"
     weekly:

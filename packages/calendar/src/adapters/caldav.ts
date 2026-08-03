@@ -164,19 +164,9 @@ export class CalDavAdapter implements CalendarAdapter {
 				`CalDAV provider for calendar "${this.cal.name}" was not provided to CalDavAdapter`
 			);
 		}
-		let calUrl: string;
-		if ('url' in this.cal && this.cal.url) {
-			calUrl = this.cal.url;
-		} else if ('path' in this.cal && this.cal.path) {
-			let baseUrl = this.service.url.replace(/\/$/, '');
-			if (this.service.type === 'nextcloud') {
-				baseUrl = baseUrl + '/remote.php/dav';
-			}
-			const relativePath = this.cal.path.replace(/^\//, '');
-			calUrl = `${baseUrl}/${relativePath}`;
-		} else {
-			throw new Error(`CalDAV calendar "${this.cal.name}" has neither path nor url defined.`);
-		}
+		const calUrl = URL.canParse(this.cal.href)
+			? this.cal.href
+			: `${davBaseUrl(this.service)}${this.cal.href.replace(/^\//, '')}`;
 		return {
 			url: calUrl,
 			username: this.service.username,

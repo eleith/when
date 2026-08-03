@@ -208,56 +208,28 @@
 			}
 		},
 		"CalDavCalendar": {
+			"additionalProperties": false,
 			"title": "CalDavCalendar",
-			"description": "A calendar on a CalDAV or Nextcloud provider. Give exactly one of `path` (joined to the provider base URL) or `url` (a full endpoint).",
-			"anyOf": [
-				{
-					"additionalProperties": false,
-					"title": "CalDAV calendar by path",
-					"type": "object",
-					"required": ["name", "path"],
-					"properties": {
-						"name": {
-							"minLength": 1,
-							"description": "Unique name for this calendar, referenced by meetings. Must be unique across every provider.",
-							"type": "string"
-						},
-						"path": {
-							"minLength": 1,
-							"description": "Relative path joined to the provider base URL.",
-							"type": "string"
-						},
-						"sync": {
-							"default": {},
-							"description": "Sync settings for this calendar.",
-							"$ref": "#/$defs/CalendarSync"
-						}
-					}
+			"description": "A calendar on a CalDAV or Nextcloud provider.",
+			"type": "object",
+			"required": ["name", "href"],
+			"properties": {
+				"name": {
+					"minLength": 1,
+					"description": "Unique name for this calendar, referenced by meetings. Must be unique across every provider.",
+					"type": "string"
 				},
-				{
-					"additionalProperties": false,
-					"title": "CalDAV calendar by url",
-					"type": "object",
-					"required": ["name", "url"],
-					"properties": {
-						"name": {
-							"minLength": 1,
-							"description": "Unique name for this calendar, referenced by meetings. Must be unique across every provider.",
-							"type": "string"
-						},
-						"url": {
-							"format": "uri",
-							"description": "Full calendar URL endpoint replacing the provider base URL.",
-							"type": "string"
-						},
-						"sync": {
-							"default": {},
-							"description": "Sync settings for this calendar.",
-							"$ref": "#/$defs/CalendarSync"
-						}
-					}
+				"href": {
+					"minLength": 1,
+					"description": "Where the calendar lives: a path joined to the provider url, or a full URL of its own.",
+					"type": "string"
+				},
+				"sync": {
+					"default": {},
+					"description": "Sync settings for this calendar.",
+					"$ref": "#/$defs/CalendarSync"
 				}
-			]
+			}
 		},
 		"CalDavProvider": {
 			"additionalProperties": false,

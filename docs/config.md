@@ -129,9 +129,9 @@ providers:
     password: '${CALDAV_PASSWORD}'
     calendars:
       - name: 'work'
-        path: 'calendars/jane/work/' # joined to the provider url
+        href: 'calendars/jane/work/' # joined to the provider url
       - name: 'shared'
-        url: 'https://other.example.com/dav/shared/' # ...or a full endpoint instead
+        href: 'https://other.example.com/dav/shared/' # ...or a full URL of its own
   - name: 'my-nextcloud-service'
     type: 'nextcloud'
     url: 'https://nextcloud.example.com/'
@@ -141,8 +141,8 @@ providers:
 ```
 
 **Calendar names must be unique across every provider**, since meetings reference them by
-name alone. A CalDAV or Nextcloud calendar gives exactly one of `path` (joined to the
-provider's `url`) or `url` (a full endpoint). `sync.refresh_every_minutes` is optional
+name alone. A CalDAV or Nextcloud calendar names its location with `href`, which is either joined to
+the provider's `url` or a full URL of its own. `sync.refresh_every_minutes` is optional
 everywhere. A Google provider carries no refresh token in `when.yaml` — connect it from
 `/admin` and the token is stored in the database.
 

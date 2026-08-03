@@ -43,7 +43,7 @@ const config = {
 			url: 'https://d.example/',
 			username: 'u',
 			password: 'p',
-			calendars: [{ name: 'home', url: 'https://d.example/home/' }]
+			calendars: [{ name: 'home', href: 'https://d.example/home/' }]
 		}
 	],
 	meetings: []

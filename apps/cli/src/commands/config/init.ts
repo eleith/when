@@ -28,7 +28,7 @@ providers:
     password: \${WHEN_SERVICE_MY_CALDAV_PASSWORD}
     calendars:
       - name: primary
-        path: calendars/dav-user/primary/
+        href: calendars/dav-user/primary/
 schedules:
   - name: standard
     weekly:

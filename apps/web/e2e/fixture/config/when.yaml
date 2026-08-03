@@ -26,7 +26,7 @@ providers:
     password: 'e2e-caldav-password'
     calendars:
       - name: 'main'
-        path: 'calendars/e2e/main/'
+        href: 'calendars/e2e/main/'
 
 schedules:
   - name: 'standard'

@@ -40,7 +40,7 @@ export function calendarNames(cfg: Pick<WhenConfiguration, 'providers'>): string
 
 /** The config field that points a calendar at its provider, and what it holds. */
 export function calendarTarget(resolved: ResolvedCalendar): { field: string; value: string } {
-	if (resolved.type === 'google') return { field: 'id', value: resolved.calendar.id };
-	if ('path' in resolved.calendar) return { field: 'path', value: resolved.calendar.path };
-	return { field: 'url', value: resolved.calendar.url };
+	return resolved.type === 'google'
+		? { field: 'id', value: resolved.calendar.id }
+		: { field: 'href', value: resolved.calendar.href };
 }

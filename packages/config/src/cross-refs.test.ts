@@ -284,7 +284,7 @@ test('a calendar name repeated across providers is flagged', () => {
 		url: 'https://cloud.example.com/dav/',
 		username: 'jane',
 		password: 'pwd',
-		calendars: [{ name: 'my-google-cal', path: 'cal/' }]
+		calendars: [{ name: 'my-google-cal', href: 'cal/' }]
 	});
 	const issues = issuesFor(bad);
 	expect(
@@ -326,7 +326,7 @@ test('Google Meet video_chat_provider with CalDAV booking calendar flagged', () 
 		calendars: [
 			{
 				name: 'caldav-cal',
-				url: 'https://cloud.example.com/cal/',
+				href: 'https://cloud.example.com/cal/',
 				sync: { refresh_every_minutes: 10 }
 			}
 		]

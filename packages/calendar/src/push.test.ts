@@ -55,7 +55,7 @@ const cfgWithCalDav: WhenConfiguration = {
 			url: caldavCfg.url,
 			username: 'jane',
 			password: 'secret',
-			calendars: [{ name: 'work', url: caldavCfg.url, sync: { refresh_every_minutes: 10 } }]
+			calendars: [{ name: 'work', href: caldavCfg.url, sync: { refresh_every_minutes: 10 } }]
 		}
 	],
 	meetings: [

@@ -101,18 +101,11 @@ export const GoogleCalendarSchema = Type.Object({
 	sync: Ref(CalendarSyncSchema, { default: {}, description: 'Sync settings for this calendar.' })
 }, { $id: 'GoogleCalendar', additionalProperties: false, title: 'GoogleCalendar', description: 'A calendar on a Google provider.' });
 
-export const CalDavCalendarSchema = Type.Union([
-	Type.Object({
-		name: Type.String({ minLength: 1, description: 'Unique name for this calendar, referenced by meetings. Must be unique across every provider.' }),
-		path: Type.String({ minLength: 1, description: 'Relative path joined to the provider base URL.' }),
-		sync: Ref(CalendarSyncSchema, { default: {}, description: 'Sync settings for this calendar.' })
-	}, { additionalProperties: false, title: 'CalDAV calendar by path' }),
-	Type.Object({
-		name: Type.String({ minLength: 1, description: 'Unique name for this calendar, referenced by meetings. Must be unique across every provider.' }),
-		url: Type.String({ format: 'uri', description: 'Full calendar URL endpoint replacing the provider base URL.' }),
-		sync: Ref(CalendarSyncSchema, { default: {}, description: 'Sync settings for this calendar.' })
-	}, { additionalProperties: false, title: 'CalDAV calendar by url' })
-], { $id: 'CalDavCalendar', title: 'CalDavCalendar', description: 'A calendar on a CalDAV or Nextcloud provider. Give exactly one of `path` (joined to the provider base URL) or `url` (a full endpoint).' });
+export const CalDavCalendarSchema = Type.Object({
+	name: Type.String({ minLength: 1, description: 'Unique name for this calendar, referenced by meetings. Must be unique across every provider.' }),
+	href: Type.String({ minLength: 1, description: 'Where the calendar lives: a path joined to the provider url, or a full URL of its own.' }),
+	sync: Ref(CalendarSyncSchema, { default: {}, description: 'Sync settings for this calendar.' })
+}, { $id: 'CalDavCalendar', additionalProperties: false, title: 'CalDavCalendar', description: 'A calendar on a CalDAV or Nextcloud provider.' });
 
 export const GoogleProviderSchema = Type.Object({
 	name: Type.String({ minLength: 1, description: 'Unique name for the provider.' }),

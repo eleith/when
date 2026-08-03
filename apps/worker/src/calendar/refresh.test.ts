@@ -17,7 +17,7 @@ const workDav = {
 	username: 'jane',
 	password: 'secret',
 	calendars: [
-		{ name: 'work', url: 'https://cal.example.com/work/', sync: { refresh_every_minutes: 10 } }
+		{ name: 'work', href: 'https://cal.example.com/work/', sync: { refresh_every_minutes: 10 } }
 	]
 };
 

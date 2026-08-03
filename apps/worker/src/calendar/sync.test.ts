@@ -18,7 +18,7 @@ const config = {
 			url: 'https://cal.example.com/work/',
 			username: 'u',
 			password: 'p',
-			calendars: [{ name: 'work', url: 'https://cal.example.com/work/' }]
+			calendars: [{ name: 'work', href: 'https://cal.example.com/work/' }]
 		}
 	],
 	meetings: [{ name: 'chat', slug: 'chat', booking_calendar: 'work', duration_minutes: 30 }]

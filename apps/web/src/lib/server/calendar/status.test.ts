@@ -31,7 +31,7 @@ const config = {
 		{
 			name: 'dav',
 			type: 'caldav',
-			calendars: [{ name: 'home', path: 'calendars/u/home/', sync: { refresh_every_minutes: 30 } }]
+			calendars: [{ name: 'home', href: 'calendars/u/home/', sync: { refresh_every_minutes: 30 } }]
 		}
 	],
 	meetings: []
@@ -57,7 +57,7 @@ describe('listCalendars', () => {
 		const [work, home] = await listCalendars(config, db);
 
 		expect(work.target).toEqual({ field: 'id', value: 'primary' });
-		expect(home.target).toEqual({ field: 'path', value: 'calendars/u/home/' });
+		expect(home.target).toEqual({ field: 'href', value: 'calendars/u/home/' });
 	});
 
 	test('reaches no provider', async () => {
