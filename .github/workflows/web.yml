@@ -14,6 +14,17 @@ on:
     tags:
       - 'web/v*'
 
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/web.yml'
+      - 'apps/web/**'
+      - 'packages/**'
+      - 'package.json'
+      - 'pnpm-workspace.yaml'
+      - 'pnpm-lock.yaml'
+
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -85,6 +96,8 @@ jobs:
 
   build-push:
     needs: [check, e2e]
+    # Gates only on a pull request: no image is built or pushed.
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     permissions:
       contents: read

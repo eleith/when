@@ -12,6 +12,17 @@ on:
       - 'pnpm-lock.yaml'
       - 'pnpm-workspace.yaml'
 
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/jobs.yml'
+      - 'packages/jobs/**'
+      - 'packages/config/**'
+      - 'packages/db/**'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+
 jobs:
   test-and-build:
     runs-on: ubuntu-latest
