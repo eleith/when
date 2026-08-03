@@ -3,6 +3,7 @@ import { LineCounter, isNode, parseDocument } from 'yaml';
 export interface SourceLocation {
 	line: number;
 	column: number;
+	missing: string | null;
 }
 
 function segments(pointer: string): (string | number)[] {
@@ -24,7 +25,8 @@ export function locateInYaml(text: string, pointer: string): SourceLocation | nu
 		const node = depth === 0 ? doc.contents : doc.getIn(path.slice(0, depth), true);
 		if (!isNode(node) || !node.range) continue;
 		const { line, col } = lineCounter.linePos(node.range[0]);
-		return { line, column: col };
+		const tail = path.slice(depth).join('/');
+		return { line, column: col, missing: tail === '' ? null : tail };
 	}
 	return null;
 }

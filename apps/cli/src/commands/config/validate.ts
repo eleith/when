@@ -44,7 +44,6 @@ export const validateCommand = define({
 	}
 });
 
-// Issues arrive as JSON Pointers; show where each one lands in the file instead.
 function reportIssues(path: string, issues: readonly ConfigIssue[]): void {
 	const text = readFileSync(path, 'utf8');
 	const located = issues.map((issue) => ({
@@ -54,8 +53,12 @@ function reportIssues(path: string, issues: readonly ConfigIssue[]): void {
 	const width = Math.max(...located.map((l) => (l.at ? `${l.at.line}:${l.at.column}`.length : 0)));
 
 	for (const { at, message } of located) {
-		if (!at) detail(message);
-		else detail(`${`${at.line}:${at.column}`.padEnd(width)}  ${message}`);
+		if (!at) {
+			detail(message);
+			continue;
+		}
+		const where = `${at.line}:${at.column}`.padEnd(width);
+		detail(`${where}  ${at.missing ? `${at.missing}: ` : ''}${message}`);
 	}
 }
 
