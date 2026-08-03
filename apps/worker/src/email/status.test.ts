@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest';
 import { openDb, runMigrations, listServiceStatus } from '@when/db';
-import type { WorkerContext } from '../services/context.ts';
-import { recordSendOutcome } from './status.ts';
+import type { WorkerContext } from '../services/context.js';
+import { recordSendOutcome } from './status.js';
 
 async function freshCtx(): Promise<WorkerContext> {
 	const db = openDb(':memory:');
