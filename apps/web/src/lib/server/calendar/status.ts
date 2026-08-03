@@ -1,5 +1,5 @@
 import type { Kysely } from 'kysely';
-import { allCalendars, type ResolvedCalendar, type WhenConfiguration } from '@when/config';
+import { allCalendars, calendarTarget, type WhenConfiguration } from '@when/config';
 import type { Database } from '@when/db';
 import { getOpenWorkflow, testCalendar } from '@when/jobs';
 import { workerReachable } from '$lib/server/worker';
@@ -12,7 +12,7 @@ export interface CalendarView {
 	name: string;
 	type: 'google' | 'caldav';
 	provider: string;
-	target: { label: string; value: string };
+	target: { field: string; value: string };
 	refreshEveryMinutes: number;
 	health: 'good' | 'bad' | 'unknown';
 	reason: string | null;
@@ -40,20 +40,13 @@ export async function listCalendars(
 			name: calendar.name,
 			type: resolved.type,
 			provider: provider.name,
-			target: targetOf(resolved),
+			target: calendarTarget(resolved),
 			refreshEveryMinutes: calendar.sync.refresh_every_minutes,
 			health: status?.health ?? 'unknown',
 			reason: status?.reason ?? null,
 			lastSyncedAt: lastSynced.get(calendar.name) ?? null
 		};
 	});
-}
-
-// Which config field points this calendar at its provider, and what it holds.
-function targetOf(resolved: ResolvedCalendar): CalendarView['target'] {
-	if (resolved.type === 'google') return { label: 'id', value: resolved.calendar.id };
-	if ('path' in resolved.calendar) return { label: 'path', value: resolved.calendar.path };
-	return { label: 'url', value: resolved.calendar.url };
 }
 
 export async function probeCalendar(

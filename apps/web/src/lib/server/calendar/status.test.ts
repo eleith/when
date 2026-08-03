@@ -56,8 +56,8 @@ describe('listCalendars', () => {
 	test('names the config field each calendar points through', async () => {
 		const [work, home] = await listCalendars(config, db);
 
-		expect(work.target).toEqual({ label: 'id', value: 'primary' });
-		expect(home.target).toEqual({ label: 'path', value: 'calendars/u/home/' });
+		expect(work.target).toEqual({ field: 'id', value: 'primary' });
+		expect(home.target).toEqual({ field: 'path', value: 'calendars/u/home/' });
 	});
 
 	test('reaches no provider', async () => {

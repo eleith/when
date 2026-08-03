@@ -37,3 +37,10 @@ export function findCalendar(
 export function calendarNames(cfg: Pick<WhenConfiguration, 'providers'>): string[] {
 	return allCalendars(cfg).map((entry) => entry.calendar.name);
 }
+
+/** The config field that points a calendar at its provider, and what it holds. */
+export function calendarTarget(resolved: ResolvedCalendar): { field: string; value: string } {
+	if (resolved.type === 'google') return { field: 'id', value: resolved.calendar.id };
+	if ('path' in resolved.calendar) return { field: 'path', value: resolved.calendar.path };
+	return { field: 'url', value: resolved.calendar.url };
+}

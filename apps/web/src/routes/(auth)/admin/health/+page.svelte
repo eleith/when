@@ -256,7 +256,7 @@
 								<dt>Refreshes</dt>
 								<dd>every {calendar.refreshEveryMinutes} min</dd>
 
-								<dt>{calendar.target.label}</dt>
+								<dt>{calendar.target.field}</dt>
 								<dd><code>{calendar.target.value}</code></dd>
 							</dl>
 						</div>
