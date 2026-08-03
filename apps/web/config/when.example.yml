@@ -115,10 +115,8 @@ meetings:
     # slug: 'chat'
     # description: 'A quick introductory call.'
     # visibility: 'public' # 'public' (listed) or 'private' (hidden)
-    # schedule defaults to the first schedule above
-    # schedule: 'standard'
-    # booking_calendar defaults to the first calendar above
-    # booking_calendar: 'main'
+    schedule: 'standard'
+    booking_calendar: 'main'
     # additional_busy_calendars: ['personal'] # further calendars to check; booking_calendar is always checked
     # location: 'Suite 200, 123 Main St' # a static address, phone, or link
     # video_chat_provider: 'google-service' # generate a video link per booking

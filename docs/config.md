@@ -173,7 +173,7 @@ schedules:
 
 ## `meetings`
 
-The meetings people can book. Only `name` is required: `duration_minutes` (30), `booking_approval` (`request`), `slug` (a slug of `name`), and `schedule`/`booking_calendar` (the first schedule/calendar) all default. Everything else is optional.
+The meetings people can book. `name`, `schedule`, and `booking_calendar` are required — every meeting names where it books and when. `duration_minutes` (30), `booking_approval` (`request`), and `slug` (a slug of `name`) all default; everything else is optional.
 
 ```yaml
 meetings:
@@ -184,8 +184,8 @@ meetings:
     visibility: 'public' # 'public' (default) or 'unlisted' (kept off the homepage; the link still works)
     booking_approval: 'request' # 'request' (default, requires host approval) or 'instant'
     additional_busy_calendars: ['personal'] # further calendars to check for conflicts; booking_calendar is always checked (default [])
-    booking_calendar: 'work' # where the appointment is written (defaults to the first calendar)
-    schedule: 'standard' # references a schedules name (defaults to the first schedule)
+    booking_calendar: 'work' # required: where the appointment is written
+    schedule: 'standard' # required: references a schedules name
     location: 'Office Room 101' # a static URL, address, or phone number (optional)
     video_chat_provider: 'my-nextcloud-service' # references a nextcloud or google provider name to generate dynamic meeting links (optional)
     note: 'Please review materials prior to the call.' # a host note shown to guests (optional)

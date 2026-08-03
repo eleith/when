@@ -44,6 +44,8 @@ meetings:
     duration_minutes: 30
     booking_approval: 'request'
     description: 'A quick introductory call.'
+    schedule: 'standard'
+    booking_calendar: 'main'
 
 url:
   app: 'http://localhost:4183'
