@@ -3,7 +3,7 @@ import { sql } from 'kysely';
 import { openDb } from './index.js';
 import { migrationStatus, runMigrations } from './migrate.js';
 
-test('runMigrations creates appointments and oauth_tokens', async () => {
+test('runMigrations creates the application tables', async () => {
 	const db = openDb(':memory:');
 	try {
 		const applied = await runMigrations(db);
@@ -13,12 +13,7 @@ test('runMigrations creates appointments and oauth_tokens', async () => {
 			SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'kysely_%'
 		`.execute(db);
 		const tableNames = tables.rows.map((r) => r.name).sort();
-		expect(tableNames).toEqual([
-			'appointments',
-			'external_calendar_busy',
-			'oauth_tokens',
-			'service_status'
-		]);
+		expect(tableNames).toEqual(['appointments', 'external_calendar_busy', 'service_status']);
 
 		const indexes = await sql<{ name: string }>`
 			SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='appointments'

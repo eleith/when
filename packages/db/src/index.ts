@@ -9,7 +9,6 @@ export * from './types.js';
 export * from './appointments.js';
 export * from './calendar-busy.js';
 export * from './service-status.js';
-export * from './provider-tokens.js';
 export * from './migrate.js';
 export * from './migrations/index.js';
 

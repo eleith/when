@@ -25,6 +25,7 @@ import { renameEventTypeSnapshotToMeetingSnapshot } from './0023_rename_event_ty
 import { rekeyOauthTokens } from './0024_rekey_oauth_tokens.js';
 import { renameServiceName } from './0025_rename_service_name.js';
 import { serviceStatus } from './0026_service_status.js';
+import { dropOauthTokens } from './0027_drop_oauth_tokens.js';
 
 // Registered in order; keys are the migration names Kysely's Migrator records.
 export const migrations: Record<string, Migration> = {
@@ -53,5 +54,6 @@ export const migrations: Record<string, Migration> = {
 	'0023_rename_event_type_snapshot_to_meeting_snapshot': renameEventTypeSnapshotToMeetingSnapshot,
 	'0024_rekey_oauth_tokens': rekeyOauthTokens,
 	'0025_rename_service_name': renameServiceName,
-	'0026_service_status': serviceStatus
+	'0026_service_status': serviceStatus,
+	'0027_drop_oauth_tokens': dropOauthTokens
 };

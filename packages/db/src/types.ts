@@ -38,13 +38,6 @@ export interface AppointmentsTable {
 	updated_at: ColumnType<string, string | undefined, string>;
 }
 
-export interface OauthTokensTable {
-	provider_name: string;
-	refresh_token: string;
-	connected_at: ColumnType<string, string | undefined, string>;
-	updated_at: ColumnType<string, string | undefined, string>;
-}
-
 export interface ExternalCalendarBusyTable {
 	id: Generated<number>;
 	calendar_id: string;
@@ -64,7 +57,6 @@ export interface ServiceStatusTable {
 
 export interface Database {
 	appointments: AppointmentsTable;
-	oauth_tokens: OauthTokensTable;
 	external_calendar_busy: ExternalCalendarBusyTable;
 	service_status: ServiceStatusTable;
 }
@@ -77,10 +69,6 @@ export type ExternalCalendarBusy = Selectable<ExternalCalendarBusyTable>;
 export type NewExternalCalendarBusy = Insertable<ExternalCalendarBusyTable>;
 
 export type ServiceStatus = Selectable<ServiceStatusTable>;
-
-export type OauthToken = Selectable<OauthTokensTable>;
-export type NewOauthToken = Insertable<OauthTokensTable>;
-export type OauthTokenUpdate = Updateable<OauthTokensTable>;
 
 export interface ActionLogEntry {
 	action:
