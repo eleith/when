@@ -108,7 +108,7 @@
 		{:else}
 			<ul class="list">
 				{#each data.providers as provider (provider.name)}
-					{@const unconnected = provider.usesOAuth && !provider.connectedAt}
+					{@const unconnected = provider.usesOAuth && !provider.connected}
 					<li class="card">
 						{@render notice(
 							`provider:${provider.name}`,
@@ -172,7 +172,7 @@
 										<input type="hidden" name="provider" value={provider.name} />
 										<button type="submit" class="button primary">Connect</button>
 									</form>
-								{:else if provider.connectedAt}
+								{:else if provider.connected}
 									<form method="POST" action="/admin/services/google/disconnect">
 										<input type="hidden" name="provider" value={provider.name} />
 										<button type="submit" class="button danger">Disconnect</button>

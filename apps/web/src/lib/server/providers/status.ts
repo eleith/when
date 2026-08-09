@@ -2,7 +2,7 @@ import type { Kysely } from 'kysely';
 import type { Provider, WhenConfiguration } from '@when/config';
 import type { Database } from '@when/db';
 import { getProviderAdapter, type ProviderCalendar } from '@when/calendar';
-import { listProviderConnections, listServiceStatus } from '@when/db';
+import { listServiceStatus } from '@when/db';
 import { getOpenWorkflow, listProviderCalendars, testProvider } from '@when/jobs';
 import { observedFrom, type ObservedView } from '$lib/server/observed';
 import { workerReachable } from '$lib/server/worker';
@@ -13,7 +13,7 @@ const PROBE_TIMEOUT_MS = 30_000;
 export interface ProviderView {
 	name: string;
 	type: 'google' | 'caldav' | 'nextcloud';
-	connectedAt: string | null;
+	connected: boolean;
 	calendars: string[];
 	endpoint: { label: string; url: string };
 	usesOAuth: boolean;
@@ -32,12 +32,7 @@ export async function listProviders(
 	config: WhenConfiguration,
 	db: Kysely<Database>
 ): Promise<ProviderView[]> {
-	const [connections, providerStatus] = await Promise.all([
-		listProviderConnections(db),
-		listServiceStatus(db, 'provider')
-	]);
-
-	const connected = new Map(connections.map((c) => [c.providerName, c]));
+	const providerStatus = await listServiceStatus(db, 'provider');
 	const observedByName = new Map(providerStatus.map((s) => [s.name, s]));
 
 	return Object.entries(config.providers).map(([name, provider]) => {
@@ -47,7 +42,9 @@ export async function listProviders(
 		return {
 			name,
 			type: provider.type,
-			connectedAt: connected.get(name)?.connectedAt ?? null,
+			// Only an OAuth provider has a connection to be in; the rest carry their
+			// credentials in when.yaml and are never in a half-configured state.
+			connected: provider.type === 'google' && provider.refresh_token !== '',
 			calendars,
 			endpoint: endpointOf(provider, usesOAuth, config.url.app),
 			usesOAuth,

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { openDb, runMigrations, saveProviderRefreshToken, recordServiceOutcome } from '@when/db';
+import { openDb, runMigrations, recordServiceOutcome } from '@when/db';
 import { getProviderAdapter } from '@when/calendar';
 import { getOpenWorkflow, testProvider } from '@when/jobs';
 import type { WhenConfiguration } from '@when/config';
@@ -18,8 +18,9 @@ vi.mock('@when/jobs', async (importOriginal) => {
 const handle = { result: vi.fn() };
 const client = { runWorkflow: vi.fn() };
 
-// Provider behaviour is the adapter's; these tests cover what web adds — joining the
-// stored token, mapping failures, and never reaching a provider on load.
+// Provider behaviour is the adapter's; these tests cover what web adds — reading
+// connection state off the config, mapping failures, and never reaching a provider
+// on load.
 const adapter = {
 	calendarIdField: 'google_calendar_id',
 	usesOAuth: true,
@@ -34,6 +35,7 @@ const config = {
 			type: 'google',
 			client_id: 'cid',
 			client_secret: 'csec',
+			refresh_token: '',
 			calendars: { work: { id: 'primary' } }
 		},
 		dav: {
@@ -45,6 +47,14 @@ const config = {
 		}
 	},
 	meetings: {}
+} as unknown as WhenConfiguration;
+
+const connectedConfig = {
+	...config,
+	providers: {
+		...config.providers,
+		gg: { ...config.providers.gg, refresh_token: 'rt-1' }
+	}
 } as unknown as WhenConfiguration;
 
 let db: ReturnType<typeof openDb>;
@@ -83,16 +93,25 @@ describe('listProviders', () => {
 		expect(adapter.listCalendars).not.toHaveBeenCalled();
 	});
 
-	test('carries connection state for a connected google service', async () => {
-		await saveProviderRefreshToken(db, 'gg', 'rt-1');
-		const [google] = await listProviders(config, db);
-		expect(google.connectedAt).toBeTruthy();
+	test('reads a google service as connected once when.yaml carries a token', async () => {
+		const [google] = await listProviders(connectedConfig, db);
+		expect(google.connected).toBe(true);
+	});
+
+	// The view crosses to the browser, so the credential it derives from must not ride along.
+	test('never sends the refresh token to the client', async () => {
+		const [google] = await listProviders(connectedConfig, db);
 		expect(JSON.stringify(google)).not.toContain('rt-1');
 	});
 
-	test('leaves connection state null for services that never store one', async () => {
+	test('reads a google service with an empty token as not connected', async () => {
+		const [google] = await listProviders(config, db);
+		expect(google.connected).toBe(false);
+	});
+
+	test('never reports a service that keeps its credentials in config as connected', async () => {
 		const [, dav] = await listProviders(config, db);
-		expect(dav.connectedAt).toBeNull();
+		expect(dav.connected).toBe(false);
 	});
 
 	test('shows the redirect URI to register for google', async () => {
