@@ -7,7 +7,7 @@ import {
 	getGoogleAccessToken,
 	revokeGoogleToken
 } from '@when/calendar';
-import { saveProviderRefreshToken, getProviderRefreshToken, deleteProviderToken } from '@when/db';
+import { getProviderRefreshToken, deleteProviderToken } from '@when/db';
 
 // Registered with Google as the redirect URI, so it stays put even though the page it
 // returns to moved to /admin/health.
@@ -30,18 +30,19 @@ export function consentUrl(provider: GoogleProvider, appUrl: string, state: stri
 	});
 }
 
-export type ConnectResult = { ok: true } | { ok: false; reason: string };
+export type ConnectResult = { ok: true; refreshToken: string } | { ok: false; reason: string };
 
-// Exchanges the one-time code, proves the resulting token actually works, and only then
-// stores it — a token that cannot mint an access token is worse than none, because the
-// provider would read as connected.
-//
-// Connecting always starts from disconnected — the admin offers no reconnect — so there is
-// never a live token to retire here. Re-establishing is disconnect then connect, which
-// revokes before minting instead of after.
-export async function completeGoogleConnect(
-	db: Kysely<Database>,
-	name: string,
+// The env var this app suggests for a provider's token, following the convention
+// .env.example documents: the provider key, upper-cased, dashes as underscores.
+export function refreshTokenEnvVar(providerName: string): string {
+	return `WHEN_PROVIDER_${providerName.toUpperCase().replaceAll('-', '_')}_REFRESH_TOKEN`;
+}
+
+// Exchanges the one-time code and proves the resulting token actually works before
+// handing it back to be shown. Nothing is stored: the token's home is the operator's
+// env file, and a token that cannot mint an access token must not reach it — pasted
+// into .env it would fail later, far from the flow that produced it.
+export async function exchangeGoogleConnect(
 	provider: GoogleProvider,
 	code: string,
 	appUrl: string
@@ -68,8 +69,7 @@ export async function completeGoogleConnect(
 			google_calendar_id: ''
 		});
 
-		await saveProviderRefreshToken(db, name, refresh_token);
-		return { ok: true };
+		return { ok: true, refreshToken: refresh_token };
 	} catch (err) {
 		return { ok: false, reason: err instanceof Error ? err.message : String(err) };
 	}

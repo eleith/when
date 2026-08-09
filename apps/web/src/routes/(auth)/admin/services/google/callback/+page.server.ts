@@ -1,6 +1,10 @@
 import { dev } from '$app/environment';
-import { getConfig, getDb } from '$lib/server/state';
-import { completeGoogleConnect, findGoogleProvider } from '$lib/server/providers/google-connect';
+import { getConfig } from '$lib/server/state';
+import {
+	exchangeGoogleConnect,
+	findGoogleProvider,
+	refreshTokenEnvVar
+} from '$lib/server/providers/google-connect';
 import {
 	STATE_COOKIE,
 	parseOAuthState,
@@ -8,43 +12,39 @@ import {
 } from '$lib/server/providers/state-cookie';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ url, cookies }) => {
+function failed(service: string | null, error: string) {
+	return { service, envVar: null, refreshToken: null, error };
+}
+
+export const load: PageServerLoad = async ({ url, cookies, setHeaders }) => {
+	// This page renders a live credential, so it must never sit in a cache along the way.
+	setHeaders({ 'cache-control': 'no-store' });
+
 	const pending = parseOAuthState(cookies.get(STATE_COOKIE));
 	cookies.delete(STATE_COOKIE, stateCookieOptions(dev));
 
 	const denied = url.searchParams.get('error');
-	if (denied) {
-		return { service: pending?.service ?? null, error: `Google returned "${denied}".` };
-	}
+	if (denied) return failed(pending?.service ?? null, `Google returned "${denied}".`);
 
 	const code = url.searchParams.get('code');
-	if (!code) return { service: null, error: 'Google sent no authorization code.' };
+	if (!code) return failed(null, 'Google sent no authorization code.');
 
 	// The nonce proves this callback belongs to a connect we started, in this browser.
 	if (!pending || pending.state !== url.searchParams.get('state')) {
-		return {
-			service: null,
-			error: 'This authorization did not match a pending connection.'
-		};
+		return failed(null, 'This authorization did not match a pending connection.');
 	}
 
 	const config = getConfig();
 	const service = findGoogleProvider(config, pending.service);
-	if (!service) {
-		return {
-			service: pending.service,
-			error: `No google service named "${pending.service}".`
-		};
-	}
+	if (!service) return failed(pending.service, `No google service named "${pending.service}".`);
 
-	const result = await completeGoogleConnect(
-		getDb(),
-		pending.service,
-		service,
-		code,
-		config.url.app
-	);
-	return result.ok
-		? { service: pending.service, error: null }
-		: { service: pending.service, error: result.reason };
+	const result = await exchangeGoogleConnect(service, code, config.url.app);
+	if (!result.ok) return failed(pending.service, result.reason);
+
+	return {
+		service: pending.service,
+		envVar: refreshTokenEnvVar(pending.service),
+		refreshToken: result.refreshToken,
+		error: null
+	};
 };
