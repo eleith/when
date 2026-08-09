@@ -1,7 +1,6 @@
 import { sql, type Kysely, type Migration } from 'kysely';
 
-// The refresh token moved into when.yaml, sourced from an env var like every other
-// secret, so nothing reads this table any more.
+// The refresh token moved into when.yaml; nothing reads this table now.
 export const dropOauthTokens: Migration = {
 	async up(db: Kysely<unknown>): Promise<void> {
 		await db.schema.dropTable('oauth_tokens').execute();

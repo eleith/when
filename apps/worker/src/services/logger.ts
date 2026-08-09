@@ -23,13 +23,11 @@ export const loggerOptions: LoggerOptions = {
 			'*.access_token',
 			'*.refresh_token',
 			'*.cancel_token',
-			// A wildcard spans one level, so a provider's secrets sit a level deeper
-			// than these: they live under providers.<name>, keyed by the operator.
+			// A wildcard spans one level; provider secrets sit one deeper.
 			'*.*.password',
 			'*.*.client_secret',
 			'*.*.refresh_token',
-			// Named by its path rather than a bare `token`, which would censor unrelated
-			// fields that merely share the word.
+			// Pathed, not a bare `token`, which would censor unrelated fields.
 			'prometheus.token',
 			'*.prometheus.token'
 		],

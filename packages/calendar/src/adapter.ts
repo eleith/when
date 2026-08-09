@@ -33,8 +33,6 @@ interface CalendarAdapter {
 	deleteAppointment(externalEventId: string): Promise<DeleteResult>;
 }
 
-// A resolved calendar already carries the provider it belongs to, credentials and all,
-// so the discriminated union hands each adapter exactly the provider shape it takes.
 function getCalendarAdapter(resolved: ResolvedCalendar): CalendarAdapter {
 	return resolved.type === 'google'
 		? new GoogleAdapter(resolved.name, resolved.calendar, resolved.provider)

@@ -17,7 +17,7 @@ function failed(service: string | null, error: string) {
 }
 
 export const load: PageServerLoad = async ({ url, cookies, setHeaders }) => {
-	// This page renders a live credential, so it must never sit in a cache along the way.
+	// Renders a live credential; never cache it.
 	setHeaders({ 'cache-control': 'no-store' });
 
 	const pending = parseOAuthState(cookies.get(STATE_COOKIE));

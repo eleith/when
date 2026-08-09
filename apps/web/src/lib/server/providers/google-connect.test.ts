@@ -140,8 +140,6 @@ describe('exchangeGoogleConnect', () => {
 		expect(result).toMatchObject({ ok: false, reason: 'invalid_grant' });
 	});
 
-	// A dud shown to the operator would be pasted into .env and fail much later, so it
-	// has to be caught here rather than surfaced as a working connection.
 	test('yields no token when the new one cannot mint an access token', async () => {
 		exchangeReturns('rt-dud');
 		vi.mocked(getGoogleAccessToken).mockRejectedValue(new Error('Google token refresh failed'));
@@ -160,8 +158,6 @@ describe('disconnectGoogle', () => {
 		expect(revokeGoogleToken).toHaveBeenCalledWith('rt-1');
 	});
 
-	// The env file is the operator's to edit, so a failed revoke can only be reported —
-	// there is no local copy left to clear on their behalf.
 	test('reports a revoke google refused', async () => {
 		vi.mocked(revokeGoogleToken).mockRejectedValue(new Error('invalid_token'));
 

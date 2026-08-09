@@ -18,9 +18,7 @@ vi.mock('@when/jobs', async (importOriginal) => {
 const handle = { result: vi.fn() };
 const client = { runWorkflow: vi.fn() };
 
-// Provider behaviour is the adapter's; these tests cover what web adds — reading
-// connection state off the config, mapping failures, and never reaching a provider
-// on load.
+// Provider behaviour is the adapter's; these cover what web adds on top.
 const adapter = {
 	calendarIdField: 'google_calendar_id',
 	usesOAuth: true,
@@ -98,7 +96,6 @@ describe('listProviders', () => {
 		expect(google.connected).toBe(true);
 	});
 
-	// The view crosses to the browser, so the credential it derives from must not ride along.
 	test('never sends the refresh token to the client', async () => {
 		const [google] = await listProviders(connectedConfig, db);
 		expect(JSON.stringify(google)).not.toContain('rt-1');

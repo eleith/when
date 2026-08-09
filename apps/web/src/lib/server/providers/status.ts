@@ -42,8 +42,7 @@ export async function listProviders(
 		return {
 			name,
 			type: provider.type,
-			// Only an OAuth provider has a connection to be in; the rest carry their
-			// credentials in when.yaml and are never in a half-configured state.
+			// Only an OAuth provider can be unconnected.
 			connected: provider.type === 'google' && provider.refresh_token !== '',
 			calendars,
 			endpoint: endpointOf(provider, usesOAuth, config.url.app),

@@ -29,16 +29,12 @@ export function consentUrl(provider: GoogleProvider, appUrl: string, state: stri
 
 export type ConnectResult = { ok: true; refreshToken: string } | { ok: false; reason: string };
 
-// The env var this app suggests for a provider's token, following the convention
-// .env.example documents: the provider key, upper-cased, dashes as underscores.
+// The naming convention .env.example documents.
 export function refreshTokenEnvVar(providerName: string): string {
 	return `WHEN_PROVIDER_${providerName.toUpperCase().replaceAll('-', '_')}_REFRESH_TOKEN`;
 }
 
-// Exchanges the one-time code and proves the resulting token actually works before
-// handing it back to be shown. Nothing is stored: the token's home is the operator's
-// env file, and a token that cannot mint an access token must not reach it — pasted
-// into .env it would fail later, far from the flow that produced it.
+// Verified first: a dud pasted into .env would fail far from here.
 export async function exchangeGoogleConnect(
 	provider: GoogleProvider,
 	code: string,
@@ -77,9 +73,7 @@ export interface DisconnectResult {
 	reason?: string;
 }
 
-// Ends the grant at Google. The token itself lives in the operator's env file, which
-// this app cannot write, so clearing it stays their step — all this does is make sure
-// the credential is dead before they go remove it.
+// Kills the grant only; the app cannot write .env, so clearing it is theirs to do.
 export async function disconnectGoogle(provider: GoogleProvider): Promise<DisconnectResult> {
 	if (!provider.refresh_token) return { revoked: true };
 

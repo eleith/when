@@ -41,8 +41,6 @@ describe('getCalendarAdapter', () => {
 		expect(getCalendarAdapter(davCal)).toBeDefined();
 	});
 
-	// The refresh token reaches the adapter from when.yaml, so an empty one is the
-	// unconnected state and must fail before any request goes out.
 	test('refuses a google calendar whose provider has no refresh token', async () => {
 		const adapter = getCalendarAdapter(googleCal(''));
 		await expect(adapter.fetchBusy(window)).rejects.toThrow('not connected');
