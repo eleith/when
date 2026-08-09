@@ -109,8 +109,9 @@ export const GoogleProviderSchema = Type.Object({
 	type: Type.Literal('google', { description: 'Provider type: must be google.' }),
 	client_id: Type.String({ minLength: 1, description: 'Google OAuth client ID.' }),
 	client_secret: Type.String({ minLength: 1, description: 'Google OAuth client secret.' }),
+	refresh_token: Type.String({ default: '', description: 'Google OAuth refresh token. Connect the provider from /admin, which shows the token for you to store in an env var and reference here. Empty means not connected.' }),
 	calendars: Type.Record(Type.String({ pattern: '^[a-z0-9][a-z0-9-]*$' }), Ref(GoogleCalendarSchema, { default: {} }), { additionalProperties: false, default: {}, description: 'Calendars served by this provider, keyed by the name meetings reference.' })
-}, { $id: 'GoogleProvider', additionalProperties: false, title: 'GoogleProvider', description: 'Google API provider credentials. The refresh token is not configured here — connect the provider from the admin and it is stored in the database.' });
+}, { $id: 'GoogleProvider', additionalProperties: false, title: 'GoogleProvider', description: 'Google API provider credentials.' });
 
 export const NextcloudProviderSchema = Type.Object({
 	type: Type.Literal('nextcloud', { description: 'Provider type: must be nextcloud.' }),

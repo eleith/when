@@ -39,6 +39,7 @@ export const validConfig: WhenConfiguration = {
 			type: 'google',
 			client_id: 'gc-id',
 			client_secret: 'gc-secret',
+			refresh_token: 'gc-refresh-token',
 			calendars: {
 				'my-google-cal': { id: 'gc-calid', sync: { refresh_every_minutes: 10 } }
 			}

@@ -73,6 +73,9 @@ providers:
   #   type: 'google'
   #   client_id: '...apps.googleusercontent.com'
   #   client_secret: '${WHEN_PROVIDER_GOOGLE_SERVICE_CLIENT_SECRET}'
+  #   # Optional — omit it and the provider simply reads as not connected. Keeping the
+  #   # line with its `:-` fallback means connecting later is one edit to .env, not two.
+  #   refresh_token: '${WHEN_PROVIDER_GOOGLE_SERVICE_REFRESH_TOKEN:-}'
   #   calendars:
   #     personal:
   #       id: 'primary'

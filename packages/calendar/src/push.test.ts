@@ -145,6 +145,7 @@ test('pushAppointment fails cleanly when the google service is not connected', a
 				type: 'google',
 				client_id: 'gid',
 				client_secret: 'gsec',
+				refresh_token: '',
 				calendars: { g: { id: 'gcal', sync: { refresh_every_minutes: 10 } } }
 			}
 		},
@@ -181,6 +182,7 @@ test('pushAppointment succeeds on Google calendar', async () => {
 				type: 'google',
 				client_id: 'gid',
 				client_secret: 'gsec',
+				refresh_token: 'gtoken',
 				calendars: { g: { id: 'gcal', sync: { refresh_every_minutes: 10 } } }
 			}
 		},

@@ -24,6 +24,7 @@ const service: GoogleProvider = {
 	type: 'google',
 	client_id: 'cid',
 	client_secret: 'csec',
+	refresh_token: '',
 	calendars: {}
 };
 
