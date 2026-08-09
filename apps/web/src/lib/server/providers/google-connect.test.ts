@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { openDb, runMigrations, getProviderRefreshToken, saveProviderRefreshToken } from '@when/db';
 import { exchangeGoogleAuthCode, getGoogleAccessToken, revokeGoogleToken } from '@when/calendar';
 import type { GoogleProvider, WhenConfiguration } from '@when/config';
 import {
@@ -37,11 +36,7 @@ const config = {
 	}
 } as unknown as WhenConfiguration;
 
-let db: ReturnType<typeof openDb>;
-
-beforeEach(async () => {
-	db = openDb(':memory:');
-	await runMigrations(db);
+beforeEach(() => {
 	vi.mocked(exchangeGoogleAuthCode).mockReset();
 	vi.mocked(getGoogleAccessToken).mockReset().mockResolvedValue('access');
 	vi.mocked(revokeGoogleToken).mockReset().mockResolvedValue(undefined);
@@ -158,27 +153,25 @@ describe('exchangeGoogleConnect', () => {
 });
 
 describe('disconnectGoogle', () => {
-	test('revokes at google and clears the stored token', async () => {
-		await saveProviderRefreshToken(db, 'gg', 'rt-1');
+	const connected: GoogleProvider = { ...service, refresh_token: 'rt-1' };
 
-		expect(await disconnectGoogle(db, 'gg')).toEqual({ revoked: true });
-
+	test('revokes the token when.yaml configured', async () => {
+		expect(await disconnectGoogle(connected)).toEqual({ revoked: true });
 		expect(revokeGoogleToken).toHaveBeenCalledWith('rt-1');
-		expect(await getProviderRefreshToken(db, 'gg')).toBeNull();
 	});
 
-	test('clears the token even when the revoke fails', async () => {
-		await saveProviderRefreshToken(db, 'gg', 'rt-1');
+	// The env file is the operator's to edit, so a failed revoke can only be reported —
+	// there is no local copy left to clear on their behalf.
+	test('reports a revoke google refused', async () => {
 		vi.mocked(revokeGoogleToken).mockRejectedValue(new Error('invalid_token'));
 
-		const result = await disconnectGoogle(db, 'gg');
+		const result = await disconnectGoogle(connected);
 
 		expect(result).toMatchObject({ revoked: false, reason: 'invalid_token' });
-		expect(await getProviderRefreshToken(db, 'gg')).toBeNull();
 	});
 
-	test('is a no-op for a service that was never connected', async () => {
-		expect(await disconnectGoogle(db, 'gg')).toEqual({ revoked: true });
+	test('is a no-op for a provider with no configured token', async () => {
+		expect(await disconnectGoogle(service)).toEqual({ revoked: true });
 		expect(revokeGoogleToken).not.toHaveBeenCalled();
 	});
 });

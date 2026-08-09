@@ -1,13 +1,10 @@
-import type { Kysely } from 'kysely';
 import type { GoogleProvider, WhenConfiguration } from '@when/config';
-import type { Database } from '@when/db';
 import {
 	buildGoogleAuthUrl,
 	exchangeGoogleAuthCode,
 	getGoogleAccessToken,
 	revokeGoogleToken
 } from '@when/calendar';
-import { getProviderRefreshToken, deleteProviderToken } from '@when/db';
 
 // Registered with Google as the redirect URI, so it stays put even though the page it
 // returns to moved to /admin/health.
@@ -80,18 +77,14 @@ export interface DisconnectResult {
 	reason?: string;
 }
 
-// Removes the stored credential and ends it at Google. The row goes either way — a
-// revoke that fails must not leave the provider stuck in a connected-but-unwanted state.
-export async function disconnectGoogle(
-	db: Kysely<Database>,
-	providerName: string
-): Promise<DisconnectResult> {
-	const token = await getProviderRefreshToken(db, providerName);
-	await deleteProviderToken(db, providerName);
-	if (!token) return { revoked: true };
+// Ends the grant at Google. The token itself lives in the operator's env file, which
+// this app cannot write, so clearing it stays their step — all this does is make sure
+// the credential is dead before they go remove it.
+export async function disconnectGoogle(provider: GoogleProvider): Promise<DisconnectResult> {
+	if (!provider.refresh_token) return { revoked: true };
 
 	try {
-		await revokeGoogleToken(token);
+		await revokeGoogleToken(provider.refresh_token);
 		return { revoked: true };
 	} catch (err) {
 		return { revoked: false, reason: err instanceof Error ? err.message : String(err) };
