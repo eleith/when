@@ -336,7 +336,7 @@
 					<dd>{data.smtp.port}</dd>
 
 					<dt>Username</dt>
-					<dd>{data.smtp.user}</dd>
+					<dd>{data.smtp.username}</dd>
 
 					<dt>Sends as</dt>
 					<dd><code>{data.smtp.sender}</code></dd>

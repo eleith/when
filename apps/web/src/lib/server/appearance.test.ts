@@ -17,7 +17,7 @@ test.for([
 	"</STYLE><img src=x onerror='alert(1)'>",
 	"'; } :root { display: none } /*"
 ])('a font name of %s stays inside the style element', (font_name) => {
-	const html = themeStyleTag({ ...base, font_name, font_url: '/custom.woff2' });
+	const html = themeStyleTag({ ...base, font_name, font_path: '/custom.woff2' });
 
 	const counts = styleTagCounts(html);
 	expect(counts.closed).toBe(counts.opened);
@@ -28,7 +28,7 @@ test.for([
 test('a font url cannot break out of the url() it sits in', () => {
 	const html = themeStyleTag({
 		...base,
-		font_url: "/f.woff2') } </style><script>alert(1)</script><style>a{"
+		font_path: "/f.woff2') } </style><script>alert(1)</script><style>a{"
 	});
 
 	const counts = styleTagCounts(html);
@@ -37,7 +37,7 @@ test('a font url cannot break out of the url() it sits in', () => {
 });
 
 test('an apostrophe in a real font name is escaped, not dropped', () => {
-	const html = themeStyleTag({ ...base, font_name: "Amy's Font", font_url: '/amy.woff2' });
+	const html = themeStyleTag({ ...base, font_name: "Amy's Font", font_path: '/amy.woff2' });
 
 	expect(html).toContain("'Amy\\'s Font'");
 	expect(styleTagCounts(html)).toEqual({ opened: 1, closed: 1 });

@@ -18,14 +18,14 @@ user:
 smtp:
   host: smtp.example.com
   port: 587
-  user: smtp-user
-  pass: \${WHEN_SMTP_PASS}
+  username: smtp-user
+  password: \${WHEN_SMTP_PASSWORD}
 providers:
   my-caldav:
     type: caldav
     url: https://dav.example.com/
     username: dav-user
-    password: \${WHEN_SERVICE_MY_CALDAV_PASSWORD}
+    password: \${WHEN_PROVIDER_MY_CALDAV_PASSWORD}
     calendars:
       primary:
         href: calendars/dav-user/primary/

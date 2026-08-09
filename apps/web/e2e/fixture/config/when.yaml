@@ -15,8 +15,8 @@ user:
 
 smtp:
   host: 'smtp.example.test'
-  user: 'e2e@example.test'
-  pass: 'e2e-smtp-password'
+  username: 'e2e@example.test'
+  password: 'e2e-smtp-password'
 
 providers:
   fixture-service:

@@ -15,10 +15,10 @@ export const validConfig: WhenConfiguration = {
 		appearance: {
 			title: 'if not now, when?',
 			description: 'find some time and we can meet',
-			app_icon_url: '/assets/images/app-icon.svg',
-			avatar_url: '/assets/images/avatar.svg',
-			favicon_url: '/assets/images/favicon.svg',
-			opengraph_url: '/assets/images/opengraph.png',
+			app_icon_path: '/assets/images/app-icon.svg',
+			avatar_path: '/assets/images/avatar.svg',
+			favicon_path: '/assets/images/favicon.svg',
+			opengraph_path: '/assets/images/opengraph.png',
 			primary_light_color: '#4f46e5',
 			primary_dark_color: '#818cf8',
 			background_light_color: '#f5f5f5',
@@ -31,8 +31,8 @@ export const validConfig: WhenConfiguration = {
 	smtp: {
 		host: 'smtp.example.com',
 		port: 587,
-		user: 'mailer',
-		pass: 'secret'
+		username: 'mailer',
+		password: 'secret'
 	},
 	providers: {
 		'google-service': {
@@ -76,5 +76,5 @@ export const validConfig: WhenConfiguration = {
 		internal: 'http://localhost:3000',
 		worker: 'http://when-worker:9000'
 	},
-	prometheus: { enabled: false, secret: '' }
+	prometheus: { enabled: false, token: '' }
 };

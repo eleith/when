@@ -8,7 +8,13 @@ function cfg(over: {
 	host?: string;
 }): Pick<WhenConfiguration, 'smtp' | 'url'> {
 	return {
-		smtp: { host: over.host ?? 'smtp.test', port: 587, user: 'u', pass: 'p', from: over.from },
+		smtp: {
+			host: over.host ?? 'smtp.test',
+			port: 587,
+			username: 'u',
+			password: 'p',
+			from: over.from
+		},
 		url: { app: over.app ?? 'https://book.acme.com', internal: '' }
 	} as Pick<WhenConfiguration, 'smtp' | 'url'>;
 }

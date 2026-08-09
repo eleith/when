@@ -11,9 +11,9 @@ export const GET: RequestHandler = async ({ request, fetch }) => {
 		error(404);
 	}
 
-	const token = config.prometheus.secret;
+	const token = config.prometheus.token;
 	if (!token) {
-		return new Response('Prometheus secret not configured', { status: 500 });
+		return new Response('prometheus.token not configured', { status: 500 });
 	}
 
 	const auth = request.headers.get('authorization');

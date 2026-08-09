@@ -5,7 +5,7 @@ import type { WorkerContext } from './context.js';
 
 function cfg(overrides: Record<string, unknown> = {}): WhenConfiguration {
 	return {
-		smtp: { host: 'smtp.example.com', port: 587, user: 'u', pass: 'p' },
+		smtp: { host: 'smtp.example.com', port: 587, username: 'u', password: 'p' },
 		database: { app: '/data/app.sqlite', queue: '/data/queue.sqlite' },
 		user: { name: 'A', email: 'a@example.com', timezone: 'UTC' },
 		...overrides
@@ -35,7 +35,7 @@ test('applies a soft change in place without restarting', () => {
 test('restarts when a restart-required key (smtp) changes', () => {
 	const old = cfg();
 	const ctx = fakeCtx(old);
-	const next = cfg({ smtp: { host: 'new.example.com', port: 587, user: 'u', pass: 'p' } });
+	const next = cfg({ smtp: { host: 'new.example.com', port: 587, username: 'u', password: 'p' } });
 	const onRestart = vi.fn();
 
 	applyConfig({ ok: true, config: next }, ctx, onRestart);

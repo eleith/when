@@ -12,10 +12,10 @@ function cssString(value: string): string {
 }
 
 function fontFaceRule(appearance: Appearance): string {
-	if (!appearance.font_url) return '';
+	if (!appearance.font_path) return '';
 	return `@font-face {
 			font-family: ${cssString(appearance.font_name)};
-			src: url(${cssString(appearance.font_url)}) format('woff2');
+			src: url(${cssString(appearance.font_path)}) format('woff2');
 			font-display: swap;
 		}`;
 }

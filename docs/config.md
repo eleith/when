@@ -13,6 +13,23 @@ Point your editor at that schema for inline autocomplete and validation:
 
 The required top-level keys are: `auth`, `user`, `smtp`, `providers`, `schedules`, `meetings`. Optional top-level keys include `version`, `database`, `url`, and `prometheus`.
 
+`providers`, `schedules`, and `meetings` are **maps keyed by name, not lists**. The key _is_
+the name — a provider has no `name:` field, a schedule has no `name:`, and a meeting has
+neither `name:` nor `slug:` (its key is the slug, and `title:` holds the text guests see).
+There is likewise **no top-level `calendars:`**: a calendar is declared inside the
+`calendars:` map of the provider that serves it, which is what gives it its type and
+credentials.
+
+```yaml
+# not this                          # this
+providers:                          providers:
+  - name: cloud                       cloud:
+    type: caldav                        type: caldav
+calendars:                              calendars:
+  - name: work                            work:
+    provider: cloud                         href: 'calendars/jane/work/'
+```
+
 ## `version`
 
 The shape of this file, not the app's release. It defaults to `1` and you never need to
@@ -32,7 +49,7 @@ supplies a fallback.
 ```yaml
 auth:
   oidc:
-    client_secret: '${OIDC_CLIENT_SECRET}'
+    client_secret: '${WHEN_OIDC_CLIENT_SECRET}'
 ```
 
 ## `auth`
@@ -51,7 +68,7 @@ auth:
   oidc:
     issuer: 'https://auth.example.com'
     client_id: 'when'
-    client_secret: '${OIDC_CLIENT_SECRET}'
+    client_secret: '${WHEN_OIDC_CLIENT_SECRET}'
 ```
 
 Both are supported in production. Which one fits depends on who can reach the sign-in page:
@@ -79,15 +96,21 @@ user:
   appearance:
     title: 'Schedule a time with me'
     description: 'A little bit about me.'
-    logo_url: '/public/logo.png'
-    avatar_url: '/public/my-avatar.jpg'
-    favicon_url: '/public/favicon.ico'
-    font_name: 'Outfit' # custom CSS font family
+    app_icon_path: '/public/logo.png'
+    avatar_path: '/public/my-avatar.jpg'
+    favicon_path: '/public/favicon.svg'
+    opengraph_path: '/public/share-card.png'
+    font_name: 'Outfit' # bundled: Noto Sans, Lato, Outfit, Inter
+    font_path: '/public/my-font.woff2' # a woff2 registered as font_name, for a non-bundled family
     primary_light_color: '#166534' # brand hue, light mode
     primary_dark_color: '#34d399' # brand hue, dark mode
+    background_light_color: '#f5f5f5'
+    background_dark_color: '#0a0a0a'
+    text_light_color: '#171717'
+    text_dark_color: '#ededed'
 ```
 
-`appearance` and all of its fields are optional; defaults are applied when omitted. `logo_url` and `favicon_url` default to a bundled spiral-calendar mark (`/assets/images/logo.svg`, `/assets/images/favicon.svg`), and `avatar_url` defaults to `/assets/images/avatar.svg` — a placeholder avatar generated from `user.name`. `primary_light_color` and `primary_dark_color` set the brand hue for light and dark modes, and a muted tonal scale is derived from each; the `background_*_color` and `text_*_color` fields likewise override the light/dark surface and text colors. To override any of them, place custom assets in `./public/` (a sibling of `config/` and `data/`, overridable with `WHEN_PUBLIC_DIR`) and reference them as `/public/...`.
+`appearance` and all of its fields are optional; defaults are applied when omitted. `app_icon_path` and `favicon_path` default to a bundled spiral-calendar mark (`/assets/images/app-icon.svg`, `/assets/images/favicon.svg`), `avatar_path` defaults to `/assets/images/avatar.svg` — a placeholder avatar generated from `user.name` — and `opengraph_path` defaults to `/assets/images/opengraph.png`, a share card generated from the rest of the appearance. Every `*_path` here is a root-relative path to an asset this app serves; remote URLs are rejected. `primary_light_color` and `primary_dark_color` set the brand hue for light and dark modes, and a muted tonal scale is derived from each; the `background_*_color` and `text_*_color` fields likewise override the light/dark surface and text colors. To override any of them, place custom assets in `./public/` (a sibling of `config/` and `data/`, overridable with `WHEN_PUBLIC_DIR`) and reference them as `/public/...`.
 
 ## `smtp`
 
@@ -98,9 +121,14 @@ relies on it.
 smtp:
   host: 'smtp.example.com'
   port: 587 # defaults to 587
-  user: '${SMTP_USER}'
-  pass: '${SMTP_PASS}'
+  username: 'you@example.com'
+  password: '${WHEN_SMTP_PASSWORD}'
+  from: 'bookings@example.com' # optional; defaults to noreply@<your url.app domain>
 ```
+
+`from` is the address on every email and the organizer on guest-facing calendar invites, so
+the host's own address is never exposed. It must be one your SMTP server may send from. The
+display name always comes from `user.name`.
 
 ## `providers`
 
@@ -115,8 +143,8 @@ conflict sources (busy times) and/or appointment destinations.
 providers:
   my-google-service:
     type: 'google'
-    client_id: '${GOOGLE_CLIENT_ID}'
-    client_secret: '${GOOGLE_CLIENT_SECRET}'
+    client_id: '${WHEN_PROVIDER_GOOGLE_SERVICE_CLIENT_ID}'
+    client_secret: '${WHEN_PROVIDER_GOOGLE_SERVICE_CLIENT_SECRET}'
     calendars:
       personal: # referenced by meetings
         id: 'primary' # the Google calendar ID
@@ -126,7 +154,7 @@ providers:
     type: 'caldav'
     url: 'https://cloud.example.com/remote.php/dav/'
     username: 'jane'
-    password: '${CALDAV_PASSWORD}'
+    password: '${WHEN_PROVIDER_CALDAV_SERVICE_PASSWORD}'
     calendars:
       work:
         href: 'calendars/jane/work/' # joined to the provider url
@@ -136,7 +164,7 @@ providers:
     type: 'nextcloud'
     url: 'https://nextcloud.example.com/'
     username: 'jane'
-    password: '${NEXTCLOUD_PASSWORD}'
+    password: '${WHEN_PROVIDER_NEXTCLOUD_SERVICE_PASSWORD}'
     calendars: {}
 ```
 
@@ -272,5 +300,5 @@ Configuration for Prometheus metrics collection.
 ```yaml
 prometheus:
   enabled: false # Whether metrics collection and endpoint are active (default: false)
-  secret: '${METRICS_TOKEN:-}' # Bearer token for scraping metrics (default: ${METRICS_TOKEN})
+  token: '${WHEN_METRICS_TOKEN:-}' # Bearer token for scraping metrics (default: ${WHEN_METRICS_TOKEN})
 ```

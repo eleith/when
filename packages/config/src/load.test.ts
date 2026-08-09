@@ -105,14 +105,14 @@ test.for([
 	'logo.png'
 ])('an appearance asset outside this origin fails: %s', (value) => {
 	const bad = clone(validConfig);
-	bad.user.appearance.avatar_url = value;
+	bad.user.appearance.avatar_path = value;
 	expect(() => validateConfig(bad)).toThrow(ConfigError);
 });
 
 test('a root-relative appearance asset passes', () => {
 	const cfg = clone(validConfig);
-	cfg.user.appearance.avatar_url = '/public/avatar.png';
-	expect(validateConfig(cfg).user.appearance.avatar_url).toBe('/public/avatar.png');
+	cfg.user.appearance.avatar_path = '/public/avatar.png';
+	expect(validateConfig(cfg).user.appearance.avatar_path).toBe('/public/avatar.png');
 });
 
 test('unknown top-level field fails', () => {

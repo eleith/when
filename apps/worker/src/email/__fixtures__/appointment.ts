@@ -50,7 +50,7 @@ export const sampleConfig = {
 			text_dark_color: '#ededed'
 		}
 	},
-	smtp: { host: 'smtp.test', port: 587, user: 'mailer', pass: 'secret' },
+	smtp: { host: 'smtp.test', port: 587, username: 'mailer', password: 'secret' },
 	url: { app: 'https://when.example.com' },
 	meetings: {}
 } as unknown as WhenConfiguration;

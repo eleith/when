@@ -26,18 +26,18 @@ before any app code runs, so it can only travel in that direction. If you do set
 keep them identical; a mismatch means correct links in emails and 403s on every form.
 
 Everything else is a **secret referenced from `when.yaml`** via `${ENV_VAR}`
-interpolation — the variable _names_ are whatever your config uses (`config/when.example.yml`
-uses simple names like `${SMTP_PASSWORD}`). The table below lists the names used by the
-skeleton `config init` writes; `<NAME>` is the service's name upper-cased. You set these
-values yourself.
+interpolation — the variable _names_ are whatever your config uses. The table below lists
+the names both `config init` and `config/when.example.yml` write; `<NAME>` is the
+provider's key upper-cased, with `-` as `_` (so the `caldav-service` provider reads
+`WHEN_PROVIDER_CALDAV_SERVICE_PASSWORD`). You set these values yourself.
 
-| Variable                                                                         | Needed when            | Notes                                                                                                                                      |
-| -------------------------------------------------------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `WHEN_ADMIN_PASSWORD`                                                            | credentials auth       | Plain text password of the admin (defaults to this if omitted in config).                                                                  |
-| `WHEN_OIDC_CLIENT_SECRET`                                                        | OIDC auth              | OIDC provider client secret.                                                                                                               |
-| `WHEN_SERVICE_CALDAV_<NAME>_PASSWORD` / `WHEN_SERVICE_NEXTCLOUD_<NAME>_PASSWORD` | a CalDAV/Nextcloud cal | CalDAV / Nextcloud service password.                                                                                                       |
-| `WHEN_SMTP_PASS`                                                                 | always                 | SMTP password — SMTP is required.                                                                                                          |
-| `WHEN_SERVICE_GOOGLE_<NAME>_CLIENT_SECRET`                                       | a Google service       | Client secret from Google Cloud. The refresh token is not an env var — connect the service from `/admin` and it is stored in the database. |
+| Variable                             | Needed when             | Notes                                                                                                                                       |
+| ------------------------------------ | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `WHEN_ADMIN_PASSWORD`                | credentials auth        | Plain text password of the admin (defaults to this if omitted in config).                                                                   |
+| `WHEN_OIDC_CLIENT_SECRET`            | OIDC auth               | OIDC provider client secret.                                                                                                                |
+| `WHEN_SMTP_PASSWORD`                 | always                  | SMTP password — SMTP is required.                                                                                                           |
+| `WHEN_PROVIDER_<NAME>_PASSWORD`      | a CalDAV/Nextcloud provider | CalDAV / Nextcloud provider password.                                                                                                   |
+| `WHEN_PROVIDER_<NAME>_CLIENT_SECRET` | a Google provider       | Client secret from Google Cloud. The refresh token is not an env var — connect the provider from `/admin` and it is stored in the database. |
 
 The worker also honors a few operational variables:
 
@@ -124,7 +124,7 @@ appointment links carry their access token in the query string, and anything wea
 `strict-origin-when-cross-origin` leaks a working credential in the `Referer` of an outbound
 click.
 
-The app's policy allows no remote origin at all. Every `appearance.*_url` is a root-relative
+The app's policy allows no remote origin at all. Every `appearance.*_path` is a root-relative
 path this app serves, so custom branding goes in `./public/` and is referenced at `/public/…`.
 
 ### Ports

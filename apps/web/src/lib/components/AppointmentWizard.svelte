@@ -132,8 +132,8 @@
 
 <header class="page-banner">
 	<a href="/" class="banner-link">
-		{#if data.user.appearance.avatar_url}
-			<img src={data.user.appearance.avatar_url} alt={data.user.name} class="banner-avatar" />
+		{#if data.user.appearance.avatar_path}
+			<img src={data.user.appearance.avatar_path} alt={data.user.name} class="banner-avatar" />
 		{/if}
 		<div class="banner-text">
 			<span class="banner-title">{data.user.appearance.title}</span>

@@ -26,7 +26,7 @@ vi.mock('nodemailer', () => ({
 const configForPort = (port: number) =>
 	({
 		user: { name: 'Jane Doe', email: 'owner@acme.test' },
-		smtp: { host: 'smtp.test', port, user: 'u', pass: 'p' }
+		smtp: { host: 'smtp.test', port, username: 'u', password: 'p' }
 	}) as unknown as WhenConfiguration;
 
 function mailerForPort(port: number) {

@@ -15,8 +15,8 @@
 <aside class="sidebar">
 	<section class="section">
 		<a href="/" class="provider">
-			{#if appearance.avatar_url}
-				<img src={appearance.avatar_url} alt={providerName} class="avatar" />
+			{#if appearance.avatar_path}
+				<img src={appearance.avatar_path} alt={providerName} class="avatar" />
 			{/if}
 		</a>
 	</section>

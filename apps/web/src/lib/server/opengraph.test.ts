@@ -64,12 +64,12 @@ async function freshRenderOpengraph(): Promise<typeof renderOpengraph> {
 	return (await import('./opengraph')).renderOpengraph;
 }
 
-test('registers a custom font_url font', async () => {
+test('registers a custom font_path font', async () => {
 	const render = await freshRenderOpengraph();
 	const appearance = {
 		...validConfig.user.appearance,
 		font_name: 'Custom',
-		font_url: '/public/custom.woff2'
+		font_path: '/public/custom.woff2'
 	};
 	const customFetch: typeof fetch = async (input) => {
 		const url = typeof input === 'string' ? input : (input as Request).url;
@@ -90,7 +90,7 @@ test('still renders when the custom font cannot be loaded', async () => {
 	const appearance = {
 		...validConfig.user.appearance,
 		font_name: 'Custom',
-		font_url: '/public/missing.woff2'
+		font_path: '/public/missing.woff2'
 	};
 
 	const response = await render(fakeFetch, { appUrl: 'eleith.com', appearance });

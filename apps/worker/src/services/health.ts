@@ -20,10 +20,10 @@ export function createHealthServer(getConfig: () => WhenConfiguration): Server {
 				return;
 			}
 
-			const token = prometheus.secret;
+			const token = prometheus.token;
 			if (!token) {
 				res.statusCode = 500;
-				res.end('METRICS_TOKEN not configured');
+				res.end('prometheus.token not configured');
 				return;
 			}
 

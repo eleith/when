@@ -13,7 +13,7 @@ test('replaces multiple vars in the same string', () => {
 
 test('walks nested objects and arrays', () => {
 	const input = {
-		smtp: { pass: '${SMTP_PASS}' },
+		smtp: { password: '${SMTP_PASS}' },
 		calendars: [
 			{ id: 'a', password: '${CAL_A_PASS}' },
 			{ id: 'b', password: '${CAL_B_PASS}' }
@@ -25,7 +25,7 @@ test('walks nested objects and arrays', () => {
 		CAL_B_PASS: 'b-pw'
 	});
 	expect(result).toEqual({
-		smtp: { pass: 's3cret' },
+		smtp: { password: 's3cret' },
 		calendars: [
 			{ id: 'a', password: 'a-pw' },
 			{ id: 'b', password: 'b-pw' }

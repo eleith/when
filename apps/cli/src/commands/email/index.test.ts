@@ -22,8 +22,8 @@ user:
 smtp:
   host: "smtp.example.com"
   port: 587
-  user: "smtp_user"
-  pass: "smtp_pass"
+  username: "smtp_user"
+  password: "smtp_pass"
 providers:
   dav:
     type: "caldav"

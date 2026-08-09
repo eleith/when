@@ -6,7 +6,7 @@ import { register } from '$lib/server/metrics';
 const mockConfig = {
 	prometheus: {
 		enabled: true,
-		secret: 'metrics-secret'
+		token: 'metrics-secret'
 	},
 	url: {
 		worker: 'http://when-worker:9000'

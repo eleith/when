@@ -65,14 +65,14 @@ calendars:
 user:
   appearance:
     font_name: "My Font"
-    font_url: "https://example.com/my-font.woff2"
+    font_path: "https://example.com/my-font.woff2"
 `;
 		writeFileSync(tempPath, initialYaml);
 
 		const editor = new ConfigEditor(tempPath);
-		editor.delete('user.appearance.font_url');
+		editor.delete('user.appearance.font_path');
 
-		expect(editor.get('user.appearance.font_url')).toBeUndefined();
+		expect(editor.get('user.appearance.font_path')).toBeUndefined();
 		expect(editor.get('user.appearance.font_name')).toBe('My Font');
 
 		// deleting a missing key is a no-op, not an error

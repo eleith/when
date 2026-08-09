@@ -23,7 +23,7 @@ describe('getVideoChatAdapter', () => {
 		meetings: {},
 		auth: { credentials: { username: 'admin', password: 'pwd' } },
 		user: { name: 'J', timezone: 'UTC', email: 'j@example.com' },
-		smtp: { host: 'smtp', port: 25, user: 'u', pass: 'p' }
+		smtp: { host: 'smtp', port: 25, username: 'u', password: 'p' }
 	} as unknown as WhenConfiguration;
 
 	test('returns NextcloudTalkAdapter for nextcloud service', () => {

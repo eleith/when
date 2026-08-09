@@ -13,8 +13,8 @@
 {/if}
 
 <main class="landing">
-	{#if data.user.appearance.avatar_url}
-		<img src={data.user.appearance.avatar_url} alt={data.user.name} class="avatar" />
+	{#if data.user.appearance.avatar_path}
+		<img src={data.user.appearance.avatar_path} alt={data.user.name} class="avatar" />
 	{/if}
 	<h1>{data.user.appearance.title}</h1>
 	<p class="subtitle">{data.user.appearance.description}</p>

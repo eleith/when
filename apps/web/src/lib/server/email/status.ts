@@ -11,7 +11,7 @@ const RESULT_TIMEOUT_MS = 30_000;
 export interface SmtpView {
 	host: string;
 	port: number;
-	user: string;
+	username: string;
 	sender: string;
 	defaultRecipient: string;
 	observed: ObservedView;
@@ -27,7 +27,7 @@ export async function smtpSummary(
 	return {
 		host: config.smtp.host,
 		port: config.smtp.port,
-		user: config.smtp.user,
+		username: config.smtp.username,
 		sender: senderEmail(config),
 		defaultRecipient: config.user.email,
 		observed: observedFrom(status)

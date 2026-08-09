@@ -18,7 +18,7 @@ auth:
   # oidc:
   #   issuer: 'https://accounts.example.com'
   #   client_id: 'when'
-  #   client_secret: '${OIDC_CLIENT_SECRET}'
+  #   client_secret: '${WHEN_OIDC_CLIENT_SECRET}'
 
 # --- The schedule owner ---
 user:
@@ -30,12 +30,12 @@ user:
   # appearance:
   #   title: 'if not now, when?'
   #   description: 'find some time and we can meet'
-  #   app_icon_url: '/assets/images/app-icon.svg'
-  #   avatar_url: '/assets/images/avatar.svg'
-  #   favicon_url: '/assets/images/favicon.svg'
-  #   opengraph_url: '/assets/images/opengraph.png'
+  #   app_icon_path: '/assets/images/app-icon.svg'
+  #   avatar_path: '/assets/images/avatar.svg'
+  #   favicon_path: '/assets/images/favicon.svg'
+  #   opengraph_path: '/assets/images/opengraph.png'
   #   font_name: 'Noto Sans' # bundled: Noto Sans, Lato, Outfit, Inter
-  #   font_url: 'https://example.com/font.woff2' # for a non-bundled font_name
+  #   font_path: '/public/my-font.woff2' # a woff2 you serve, for a non-bundled font_name
   #   primary_light_color: '#166534'
   #   primary_dark_color: '#34d399'
   #   background_light_color: '#f5f5f5'
@@ -46,8 +46,8 @@ user:
 # --- SMTP, used to send appointment emails (required) ---
 smtp:
   host: 'smtp.example.com'
-  user: 'you@example.com'
-  pass: '${SMTP_PASSWORD}'
+  username: 'you@example.com'
+  password: '${WHEN_SMTP_PASSWORD}'
   # port defaults to 587
   # port: 465
   # from defaults to noreply@<your url.app domain>
@@ -62,7 +62,7 @@ providers:
     type: 'caldav'
     url: 'https://caldav.example.com/dav/' # DAV base URL
     username: 'you'
-    password: '${CALDAV_PASSWORD}'
+    password: '${WHEN_PROVIDER_CALDAV_SERVICE_PASSWORD}'
     calendars:
       main:
         href: 'calendars/you/main/' # joined to the provider url, or give a full URL instead
@@ -72,7 +72,7 @@ providers:
   # google-service:
   #   type: 'google'
   #   client_id: '...apps.googleusercontent.com'
-  #   client_secret: '${GOOGLE_CLIENT_SECRET}'
+  #   client_secret: '${WHEN_PROVIDER_GOOGLE_SERVICE_CLIENT_SECRET}'
   #   calendars:
   #     personal:
   #       id: 'primary'
@@ -81,7 +81,7 @@ providers:
   #   type: 'nextcloud'
   #   url: 'https://cloud.example.com'
   #   username: 'you'
-  #   password: '${NEXTCLOUD_PASSWORD}'
+  #   password: '${WHEN_PROVIDER_NEXTCLOUD_SERVICE_PASSWORD}'
   #   calendars:
   #     shared:
   #       href: 'calendars/you/shared/'
@@ -113,7 +113,7 @@ meetings:
     # additional_duration_minutes: [15, 60] # further lengths the guest may pick
     require_approval: true # true (host approves each booking) or false (instant)
     # description: 'A quick introductory call.'
-    # visibility: 'public' # 'public' (listed) or 'private' (hidden)
+    # visibility: 'public' # 'public' (listed) or 'unlisted' (off the homepage; the link still works)
     schedule: 'standard'
     booking_calendar: 'main'
     # additional_busy_calendars: ['personal'] # further calendars to check; booking_calendar is always checked
@@ -157,4 +157,4 @@ meetings:
 # --- Prometheus metrics (off by default) ---
 # prometheus:
 #   enabled: false
-#   secret: '${METRICS_TOKEN}' # bearer token for scraping /metrics
+#   token: '${WHEN_METRICS_TOKEN}' # bearer token for scraping /metrics

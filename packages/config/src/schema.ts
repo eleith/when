@@ -50,12 +50,12 @@ export const AuthSchema = Type.Union([
 export const AppearanceSchema = Type.Object({
 	title: Type.String({ default: 'if not now, when?', description: 'Title of the booking page.' }),
 	description: Type.String({ default: 'find some time and we can meet', description: 'Subtext or introduction shown on the booking page.' }),
-	app_icon_url: Ref(LocalPathSchema, { default: '/assets/images/app-icon.svg', description: 'Path to the app icon (default: the bundled /assets/images/app-icon.svg, a calendar).' }),
-	avatar_url: Ref(LocalPathSchema, { default: '/assets/images/avatar.svg', description: 'Path to the avatar image (default: /assets/images/avatar.svg, generated from the owner\'s name).' }),
-	favicon_url: Ref(LocalPathSchema, { default: '/assets/images/favicon.svg', description: 'Path to the favicon image (default: the bundled /assets/images/favicon.svg).' }),
-	opengraph_url: Ref(LocalPathSchema, { default: '/assets/images/opengraph.png', description: 'Path to the share (opengraph) image (default: /assets/images/opengraph.png, generated from the appearance).' }),
-	font_name: Type.String({ minLength: 1, default: 'Noto Sans', description: 'Font family for the booking page and share card: one of the bundled families (Noto Sans, Lato, Outfit, Inter) or the family name of a custom `font_url` font.' }),
-	font_url: Type.Optional(Ref(LocalPathSchema, { description: 'Path to the custom font file (woff2), registered as `font_name`.' })),
+	app_icon_path: Ref(LocalPathSchema, { default: '/assets/images/app-icon.svg', description: 'Path to the app icon (default: the bundled /assets/images/app-icon.svg, a calendar).' }),
+	avatar_path: Ref(LocalPathSchema, { default: '/assets/images/avatar.svg', description: 'Path to the avatar image (default: /assets/images/avatar.svg, generated from the owner\'s name).' }),
+	favicon_path: Ref(LocalPathSchema, { default: '/assets/images/favicon.svg', description: 'Path to the favicon image (default: the bundled /assets/images/favicon.svg).' }),
+	opengraph_path: Ref(LocalPathSchema, { default: '/assets/images/opengraph.png', description: 'Path to the share (opengraph) image (default: /assets/images/opengraph.png, generated from the appearance).' }),
+	font_name: Type.String({ minLength: 1, default: 'Noto Sans', description: 'Font family for the booking page and share card: one of the bundled families (Noto Sans, Lato, Outfit, Inter) or the family name of a custom `font_path` font.' }),
+	font_path: Type.Optional(Ref(LocalPathSchema, { description: 'Path to the custom font file (woff2), registered as `font_name`.' })),
 	primary_light_color: Ref(HexColorSchema, { default: '#166534', description: 'Primary brand color for light mode.' }),
 	primary_dark_color: Ref(HexColorSchema, { default: '#34d399', description: 'Primary brand color for dark mode.' }),
 	background_light_color: Ref(HexColorSchema, { default: '#f5f5f5', description: 'Background color for light mode.' }),
@@ -79,8 +79,8 @@ export const UserSchema = Type.Object({
 export const SmtpSchema = Type.Object({
 	host: Type.String({ minLength: 1, description: 'SMTP server host name.' }),
 	port: Type.Integer({ minimum: 1, maximum: 65535, default: 587, description: 'SMTP server port number (default: 587; e.g. 587 or 465).' }),
-	user: Type.String({ minLength: 1, description: 'SMTP username.' }),
-	pass: Type.String({ minLength: 1, description: 'SMTP password.' }),
+	username: Type.String({ minLength: 1, description: 'SMTP username.' }),
+	password: Type.String({ minLength: 1, description: 'SMTP password.' }),
 	from: Type.Optional(Type.String({
 		description: 'Email address used as the From on all emails and as the organizer on guest-facing calendar invites, so the host\'s own address is never exposed. Must be an address your SMTP server is allowed to send from. Defaults to noreply@<your url.app domain>. The display name always comes from user.name.',
 		minLength: 1
@@ -237,7 +237,7 @@ export const MeetingSchema = Type.Object({
 	form_fields: Type.Optional(Type.Array(Ref(FormFieldSchema), { minItems: 1, maxItems: 10, description: 'Custom form fields for the booking process.' }))
 }, { $id: 'Meeting', additionalProperties: false, title: 'Meeting', description: 'Definition of a bookable meeting.' });
 
-export const DatabaseConfigSchema = Type.Object({
+export const DatabaseSchema = Type.Object({
 	app: Type.String({
 		description: 'Application database (appointments, oauth tokens).',
 		minLength: 1,
@@ -248,7 +248,7 @@ export const DatabaseConfigSchema = Type.Object({
 		minLength: 1,
 		default: './data/openworkflow.sqlite'
 	})
-}, { $id: 'DatabaseConfig', additionalProperties: false, title: 'DatabaseConfig', description: 'On-disk SQLite paths. Relative paths resolve against the config directory\'s parent (the deployment root that holds config/ and data/ as siblings), so web and worker (which load the same when.yaml) open the same files.' });
+}, { $id: 'Database', additionalProperties: false, title: 'Database', description: 'On-disk SQLite paths. Relative paths resolve against the config directory\'s parent (the deployment root that holds config/ and data/ as siblings), so web and worker (which load the same when.yaml) open the same files.' });
 
 export const UrlSchema = Type.Object({
 	app: Type.String({
@@ -266,10 +266,10 @@ export const UrlSchema = Type.Object({
 	})
 }, { $id: 'Url', additionalProperties: false, title: 'Url', description: 'Public URLs for the app.' });
 
-export const PrometheusConfigSchema = Type.Object({
+export const PrometheusSchema = Type.Object({
 	enabled: Type.Boolean({ description: 'Whether metrics collection and endpoint are active.', default: false }),
-	secret: Type.String({ description: 'Bearer token for scraping metrics. Defaults to METRICS_TOKEN env var.', default: '${METRICS_TOKEN:-}' })
-}, { $id: 'PrometheusConfig', additionalProperties: false, title: 'PrometheusConfig', description: 'Prometheus metrics collection settings.' });
+	token: Type.String({ description: 'Bearer token for scraping metrics. Defaults to the WHEN_METRICS_TOKEN environment variable.', default: '${WHEN_METRICS_TOKEN:-}' })
+}, { $id: 'Prometheus', additionalProperties: false, title: 'Prometheus', description: 'Prometheus metrics collection settings.' });
 
 export const WhenConfigurationSchema = Type.Object({
 	version: Type.Literal(1, { default: 1, description: 'Shape version of this file. Always 1 today; a future breaking change to the config layout would increment it.' }),
@@ -279,9 +279,9 @@ export const WhenConfigurationSchema = Type.Object({
 	providers: Type.Record(Type.String({ pattern: '^[a-z0-9][a-z0-9-]*$' }), Ref(ProviderSchema, { default: {} }), { additionalProperties: false, default: {}, description: 'Third-party services and the calendars they serve, keyed by name.' }),
 	schedules: Type.Record(Type.String({ pattern: '^[a-z0-9][a-z0-9-]*$' }), Ref(ScheduleSchema, { default: {} }), { additionalProperties: false, minProperties: 1, description: 'Availability schedules, keyed by the name meetings reference.' }),
 	meetings: Type.Record(Type.String({ pattern: '^[a-z0-9][a-z0-9-]*$' }), Ref(MeetingSchema, { default: {} }), { additionalProperties: false, minProperties: 1, description: 'Bookable meetings, keyed by the slug their booking page uses (/schedule/<key>).' }),
-	database: Ref(DatabaseConfigSchema, { default: {}, description: 'Local SQLite database file paths.' }),
+	database: Ref(DatabaseSchema, { default: {}, description: 'Local SQLite database file paths.' }),
 	url: Ref(UrlSchema, { default: {}, description: 'Server and client URL configuration.' }),
-	prometheus: Ref(PrometheusConfigSchema, { default: {}, description: 'Prometheus metrics settings.' })
+	prometheus: Ref(PrometheusSchema, { default: {}, description: 'Prometheus metrics settings.' })
 }, {
 	additionalProperties: false,
 	title: 'When configuration',
@@ -311,6 +311,6 @@ export type Meeting = Static<typeof MeetingSchema>;
 export type FormField = Static<typeof FormFieldSchema>;
 export type FieldCondition = Static<typeof FieldConditionSchema>;
 export type Location = Static<typeof LocationSchema>;
-export type PrometheusConfig = Static<typeof PrometheusConfigSchema>;
-export type DatabaseConfig = Static<typeof DatabaseConfigSchema>;
+export type Prometheus = Static<typeof PrometheusSchema>;
+export type Database = Static<typeof DatabaseSchema>;
 export type Url = Static<typeof UrlSchema>;

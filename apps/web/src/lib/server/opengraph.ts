@@ -35,9 +35,9 @@ async function buildRenderer(fetchFn: typeof fetch, appearance: Appearance): Pro
 		await registerBundledFamily(renderer, fetchFn, family);
 	} else {
 		await registerBundledFamily(renderer, fetchFn, FALLBACK_FONT_NAME);
-		if (appearance.font_url) {
+		if (appearance.font_path) {
 			try {
-				const res = await fetchFn(appearance.font_url);
+				const res = await fetchFn(appearance.font_path);
 				if (res.ok) {
 					await renderer.registerFont({
 						name: appearance.font_name,
@@ -119,8 +119,8 @@ export async function renderOpengraph(
 	const text = appearance.text_light_color;
 
 	const [appIcon, avatar, renderer] = await Promise.all([
-		loadImage(fetchFn, appearance.app_icon_url),
-		loadImage(fetchFn, appearance.avatar_url),
+		loadImage(fetchFn, appearance.app_icon_path),
+		loadImage(fetchFn, appearance.avatar_path),
 		getRenderer(fetchFn, appearance)
 	]);
 

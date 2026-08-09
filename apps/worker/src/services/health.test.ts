@@ -12,7 +12,7 @@ beforeEach(async () => {
 	mockConfig = {
 		prometheus: {
 			enabled: false,
-			secret: 'test-token'
+			token: 'test-token'
 		}
 	} as unknown as WhenConfiguration;
 

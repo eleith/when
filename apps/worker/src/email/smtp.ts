@@ -25,7 +25,7 @@ export function createMailer(config: WhenConfiguration, logger: Logger): Mailer 
 		port: config.smtp.port,
 		secure: isSecurePort(config.smtp.port),
 		requireTLS: !isSecurePort(config.smtp.port),
-		auth: { user: config.smtp.user, pass: config.smtp.pass }
+		auth: { user: config.smtp.username, pass: config.smtp.password }
 	});
 
 	const from = `${config.user.name} <${senderEmail(config)}>`;

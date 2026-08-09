@@ -11,7 +11,7 @@ vi.mock('@when/jobs', async (importOriginal) => {
 });
 
 const config = {
-	smtp: { host: 'smtp.example.com', port: 587, user: 'postmaster' },
+	smtp: { host: 'smtp.example.com', port: 587, username: 'postmaster' },
 	user: { email: 'jane@example.com' },
 	url: { app: 'https://book.example.com', worker: 'http://when-worker:9000' }
 } as unknown as WhenConfiguration;
@@ -36,7 +36,7 @@ describe('smtpSummary', () => {
 		expect(await smtpSummary(config, db)).toMatchObject({
 			host: 'smtp.example.com',
 			port: 587,
-			user: 'postmaster'
+			username: 'postmaster'
 		});
 		expect(getOpenWorkflow).not.toHaveBeenCalled();
 	});
@@ -50,7 +50,7 @@ describe('smtpSummary', () => {
 	});
 
 	test('never exposes the smtp password', async () => {
-		const withPassword = { ...config, smtp: { ...config.smtp, pass: 'hunter2' } };
+		const withPassword = { ...config, smtp: { ...config.smtp, password: 'hunter2' } };
 		const view = await smtpSummary(withPassword as WhenConfiguration, db);
 		expect(JSON.stringify(view)).not.toContain('hunter2');
 	});

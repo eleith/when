@@ -87,7 +87,7 @@ test('configChanged flags a changed subtree and ignores key order', () => {
 
 	const reordered = {
 		...validConfig,
-		smtp: { pass: 'secret', user: 'mailer', port: 587, host: 'smtp.example.com' }
+		smtp: { password: 'secret', username: 'mailer', port: 587, host: 'smtp.example.com' }
 	};
 	expect(configChanged(validConfig, reordered, ['smtp'])).toBe(false);
 });

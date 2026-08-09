@@ -64,7 +64,7 @@
 		"database": {
 			"default": {},
 			"description": "Local SQLite database file paths.",
-			"$ref": "#/$defs/DatabaseConfig"
+			"$ref": "#/$defs/Database"
 		},
 		"url": {
 			"default": {},
@@ -74,7 +74,7 @@
 		"prometheus": {
 			"default": {},
 			"description": "Prometheus metrics settings.",
-			"$ref": "#/$defs/PrometheusConfig"
+			"$ref": "#/$defs/Prometheus"
 		}
 	},
 	"$defs": {
@@ -94,22 +94,22 @@
 					"description": "Subtext or introduction shown on the booking page.",
 					"type": "string"
 				},
-				"app_icon_url": {
+				"app_icon_path": {
 					"default": "/assets/images/app-icon.svg",
 					"description": "Path to the app icon (default: the bundled /assets/images/app-icon.svg, a calendar).",
 					"$ref": "#/$defs/LocalPath"
 				},
-				"avatar_url": {
+				"avatar_path": {
 					"default": "/assets/images/avatar.svg",
 					"description": "Path to the avatar image (default: /assets/images/avatar.svg, generated from the owner's name).",
 					"$ref": "#/$defs/LocalPath"
 				},
-				"favicon_url": {
+				"favicon_path": {
 					"default": "/assets/images/favicon.svg",
 					"description": "Path to the favicon image (default: the bundled /assets/images/favicon.svg).",
 					"$ref": "#/$defs/LocalPath"
 				},
-				"opengraph_url": {
+				"opengraph_path": {
 					"default": "/assets/images/opengraph.png",
 					"description": "Path to the share (opengraph) image (default: /assets/images/opengraph.png, generated from the appearance).",
 					"$ref": "#/$defs/LocalPath"
@@ -117,10 +117,10 @@
 				"font_name": {
 					"minLength": 1,
 					"default": "Noto Sans",
-					"description": "Font family for the booking page and share card: one of the bundled families (Noto Sans, Lato, Outfit, Inter) or the family name of a custom `font_url` font.",
+					"description": "Font family for the booking page and share card: one of the bundled families (Noto Sans, Lato, Outfit, Inter) or the family name of a custom `font_path` font.",
 					"type": "string"
 				},
-				"font_url": {
+				"font_path": {
 					"description": "Path to the custom font file (woff2), registered as `font_name`.",
 					"$ref": "#/$defs/LocalPath"
 				},
@@ -314,9 +314,9 @@
 				}
 			}
 		},
-		"DatabaseConfig": {
+		"Database": {
 			"additionalProperties": false,
-			"title": "DatabaseConfig",
+			"title": "Database",
 			"description": "On-disk SQLite paths. Relative paths resolve against the config directory's parent (the deployment root that holds config/ and data/ as siblings), so web and worker (which load the same when.yaml) open the same files.",
 			"type": "object",
 			"properties": {
@@ -794,9 +794,9 @@
 				}
 			}
 		},
-		"PrometheusConfig": {
+		"Prometheus": {
 			"additionalProperties": false,
-			"title": "PrometheusConfig",
+			"title": "Prometheus",
 			"description": "Prometheus metrics collection settings.",
 			"type": "object",
 			"properties": {
@@ -805,9 +805,9 @@
 					"default": false,
 					"type": "boolean"
 				},
-				"secret": {
-					"description": "Bearer token for scraping metrics. Defaults to METRICS_TOKEN env var.",
-					"default": "${METRICS_TOKEN:-}",
+				"token": {
+					"description": "Bearer token for scraping metrics. Defaults to the WHEN_METRICS_TOKEN environment variable.",
+					"default": "${WHEN_METRICS_TOKEN:-}",
 					"type": "string"
 				}
 			}
@@ -844,7 +844,7 @@
 			"title": "Smtp",
 			"description": "SMTP server used to send appointment emails. Required — the appointment system relies on it.",
 			"type": "object",
-			"required": ["host", "user", "pass"],
+			"required": ["host", "username", "password"],
 			"properties": {
 				"host": {
 					"minLength": 1,
@@ -858,12 +858,12 @@
 					"description": "SMTP server port number (default: 587; e.g. 587 or 465).",
 					"type": "integer"
 				},
-				"user": {
+				"username": {
 					"minLength": 1,
 					"description": "SMTP username.",
 					"type": "string"
 				},
-				"pass": {
+				"password": {
 					"minLength": 1,
 					"description": "SMTP password.",
 					"type": "string"

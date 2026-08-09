@@ -7,12 +7,12 @@ export const load: LayoutServerLoad = ({ cookies }) => {
 		appearance: {
 			primary_light_color: cfg.user.appearance.primary_light_color,
 			primary_dark_color: cfg.user.appearance.primary_dark_color,
-			app_icon_url: cfg.user.appearance.app_icon_url,
-			favicon_url: cfg.user.appearance.favicon_url,
+			app_icon_path: cfg.user.appearance.app_icon_path,
+			favicon_path: cfg.user.appearance.favicon_path,
 			title: cfg.user.appearance.title,
 			description: cfg.user.appearance.description
 		},
-		ogImage: `${cfg.url.app}${cfg.user.appearance.opengraph_url}`,
+		ogImage: `${cfg.url.app}${cfg.user.appearance.opengraph_path}`,
 		preferredTimezone: cookies.get('tz') ?? null
 	};
 };

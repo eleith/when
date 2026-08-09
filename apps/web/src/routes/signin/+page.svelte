@@ -26,7 +26,7 @@
 <div class="signin-container">
 	<main class="signin-card">
 		<header class="signin-header">
-			<img src={data.appearance.app_icon_url} alt="" class="signin-icon" />
+			<img src={data.appearance.app_icon_path} alt="" class="signin-icon" />
 			<h1 class="signin-title">Sign in to When</h1>
 			<p class="signin-subtitle">Appointment Scheduling Portal</p>
 		</header>
