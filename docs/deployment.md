@@ -31,13 +31,14 @@ the names both `config init` and `config/when.example.yml` write; `<NAME>` is th
 provider's key upper-cased, with `-` as `_` (so the `caldav-service` provider reads
 `WHEN_PROVIDER_CALDAV_SERVICE_PASSWORD`). You set these values yourself.
 
-| Variable                             | Needed when             | Notes                                                                                                                                       |
-| ------------------------------------ | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| `WHEN_ADMIN_PASSWORD`                | credentials auth        | Plain text password of the admin (defaults to this if omitted in config).                                                                   |
-| `WHEN_OIDC_CLIENT_SECRET`            | OIDC auth               | OIDC provider client secret.                                                                                                                |
-| `WHEN_SMTP_PASSWORD`                 | always                  | SMTP password — SMTP is required.                                                                                                           |
-| `WHEN_PROVIDER_<NAME>_PASSWORD`      | a CalDAV/Nextcloud provider | CalDAV / Nextcloud provider password.                                                                                                   |
-| `WHEN_PROVIDER_<NAME>_CLIENT_SECRET` | a Google provider       | Client secret from Google Cloud. The refresh token is not an env var — connect the provider from `/admin` and it is stored in the database. |
+| Variable                             | Needed when                 | Notes                                                                                         |
+| ------------------------------------ | --------------------------- | --------------------------------------------------------------------------------------------- |
+| `WHEN_ADMIN_PASSWORD`                | credentials auth            | Plain text password of the admin (defaults to this if omitted in config).                     |
+| `WHEN_OIDC_CLIENT_SECRET`            | OIDC auth                   | OIDC provider client secret.                                                                  |
+| `WHEN_SMTP_PASSWORD`                 | always                      | SMTP password — SMTP is required.                                                             |
+| `WHEN_PROVIDER_<NAME>_PASSWORD`      | a CalDAV/Nextcloud provider | CalDAV / Nextcloud provider password.                                                         |
+| `WHEN_PROVIDER_<NAME>_CLIENT_SECRET` | a Google provider           | Client secret from Google Cloud.                                                              |
+| `WHEN_PROVIDER_<NAME>_REFRESH_TOKEN` | a connected Google provider | Refresh token. You do not invent this one — `/admin` shows it after you authorize. See below. |
 
 The worker also honors a few operational variables:
 
@@ -144,7 +145,7 @@ thing in front of it.
 State is two SQLite files under the data directory the compose file mounts
 (`./data` → `/app/data`):
 
-- `when.sqlite` — appointments and OAuth tokens (shared by web + worker).
+- `when.sqlite` — appointments, mirrored busy times, and service status (shared by web + worker).
 - `openworkflow.sqlite` — the background job queue (owned by the worker).
 
 Branding overrides live in a separate `public/` directory mounted alongside
@@ -166,6 +167,37 @@ If you run the built server under something else, make sure a clean exit restart
 unit with `Restart=on-failure` will _not_, and the app will simply stop after an `auth` or
 `database` edit. Use `Restart=always`.
 
+## Connecting a Google provider
+
+Google needs a browser round-trip, so this one credential cannot come from `when.yaml`
+alone. The flow ends by handing it to you rather than storing it:
+
+1. Configure the provider's `client_id` and `client_secret`, and register
+   `<your app url>/admin/services/google/callback` as an authorized redirect URI in Google
+   Cloud. `/admin/health` shows the exact URI to paste.
+2. Press **Connect** on `/admin/health` and complete Google's consent screen.
+3. The callback shows the refresh token **once**. Put it in `.env` as
+   `WHEN_PROVIDER_<NAME>_REFRESH_TOKEN`, and reference it from the provider's
+   `refresh_token` field in `when.yaml`.
+4. Recreate the containers: `docker compose -f apps/web/docker-compose.yml up -d`.
+
+That last step is the one that catches people. **`docker compose restart` is not enough.**
+Compose reads `.env` when it _creates_ a container, so restarting the container you already
+have keeps the environment it was born with. Only `up -d` recreates it. Under systemd or
+another supervisor, the equivalent is whatever re-reads your environment file — a plain
+service restart may not.
+
+Because `when.yaml` is watched but `.env` is not, editing the config first is the wrong
+order: the watcher reloads, the env var is still unset, and interpolation fails with
+`when.yaml references unset environment variables`. The reload is rejected and the old
+config kept, which looks like nothing happening. Two ways to avoid it — keep the
+`refresh_token` line in `when.yaml` from the start using the `:-` fallback form that
+`config/when.example.yml` ships (then connecting is a single `.env` edit), or edit both
+files and recreate in one go.
+
+To disconnect, press **Disconnect**: it revokes the grant at Google and then tells you to
+clear the env var yourself. Emptying the value is enough to read as not connected.
+
 ## Operating endpoints
 
 Web app:
@@ -183,7 +215,7 @@ You author `when.yaml` yourself — start from `config/when.example.yml`, which
 documents every option (and carries a `$schema` header for editor autocomplete).
 `when-cli` is an operator's toolkit for the parts a text editor can't do: it validates
 the file and reaches your services over the network. It is read-only — connecting a
-Google provider happens at `/admin/health`, which is also where the token is stored.
+Google provider happens at `/admin/health`, which shows you the token to save.
 Run it with `pnpm cli` on the host, or against a deployment with
 `docker compose -f apps/web/docker-compose.yml run --rm when-cli <args>`.
 

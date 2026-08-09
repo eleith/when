@@ -240,7 +240,7 @@ export const MeetingSchema = Type.Object({
 
 export const DatabaseSchema = Type.Object({
 	app: Type.String({
-		description: 'Application database (appointments, oauth tokens).',
+		description: 'Application database (appointments, mirrored busy times, service status).',
 		minLength: 1,
 		default: './data/when.sqlite'
 	}),

@@ -145,6 +145,7 @@ providers:
     type: 'google'
     client_id: '${WHEN_PROVIDER_GOOGLE_SERVICE_CLIENT_ID}'
     client_secret: '${WHEN_PROVIDER_GOOGLE_SERVICE_CLIENT_SECRET}'
+    refresh_token: '${WHEN_PROVIDER_GOOGLE_SERVICE_REFRESH_TOKEN:-}' # from /admin; empty = not connected
     calendars:
       personal: # referenced by meetings
         id: 'primary' # the Google calendar ID
@@ -171,8 +172,15 @@ providers:
 **Calendar keys must be unique across every provider**, since meetings reference them by
 name alone. A CalDAV or Nextcloud calendar names its location with `href`, which is either joined to
 the provider's `url` or a full URL of its own. `sync.refresh_every_minutes` is optional
-everywhere. A Google provider carries no refresh token in `when.yaml` — connect it from
-`/admin` and the token is stored in the database.
+everywhere.
+
+A Google provider's `refresh_token` is the one credential you cannot write from scratch:
+Google only issues it through a browser consent round-trip. Connect the provider from
+`/admin`, which shows the token once, then store it in an env var and reference it here
+like any other secret. It is optional and defaults to empty — an empty token simply reads
+as not connected, so a provider works up to the point of actually reaching Google. See
+[deployment](deployment.md) for the full flow, including the container recreate that a new
+env var needs.
 
 ## `schedules`
 
@@ -274,7 +282,7 @@ deployment root that holds `config/` and `data/` as siblings — so the web and 
 
 ```yaml
 database:
-  app: './data/when.sqlite' # appointments, OAuth tokens (default)
+  app: './data/when.sqlite' # appointments, busy times, service status (default)
   queue: './data/openworkflow.sqlite' # background job queue (default)
 ```
 

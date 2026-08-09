@@ -321,7 +321,7 @@
 			"type": "object",
 			"properties": {
 				"app": {
-					"description": "Application database (appointments, oauth tokens).",
+					"description": "Application database (appointments, mirrored busy times, service status).",
 					"minLength": 1,
 					"default": "./data/when.sqlite",
 					"type": "string"

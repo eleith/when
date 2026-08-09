@@ -68,7 +68,7 @@ providers:
         href: 'calendars/you/main/' # joined to the provider url, or give a full URL instead
         # sync:
         #   refresh_every_minutes: 10 # busy-time refresh cadence (default 10)
-  # Google (connect it from /admin afterwards to store the refresh token):
+  # Google (connect it from /admin, which shows the refresh token to save):
   # google-service:
   #   type: 'google'
   #   client_id: '...apps.googleusercontent.com'
