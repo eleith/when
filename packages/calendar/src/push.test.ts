@@ -1,7 +1,6 @@
 import { expect, test, vi, beforeEach } from 'vitest';
 import { deleteCalDavEvent, putCalDavEvent } from './adapters/caldav.js';
 import { deleteAppointmentFromCalendar, pushAppointment } from './push.js';
-import type { ConnectedProvider } from './adapter.js';
 import type { Appointment } from '@when/db';
 import type { WhenConfiguration } from '@when/config';
 import { validConfig } from './__fixtures__/valid-config.js';
@@ -33,16 +32,6 @@ const baseAppointment: Appointment = {
 	created_at: '',
 	updated_at: '',
 	guest_timezone: 'America/New_York'
-};
-
-const davServices: Record<string, ConnectedProvider> = {
-	'work-dav-service': {
-		type: 'caldav',
-		url: caldavCfg.url,
-		username: 'jane',
-		password: 'secret',
-		calendars: {}
-	}
 };
 
 const cfgWithCalDav: WhenConfiguration = {
@@ -125,7 +114,7 @@ test('pushAppointment routes to CalDAV PUT and returns external ids', async () =
 		return new Response('', { status: 201 });
 	});
 
-	const result = await pushAppointment(cfgWithCalDav, davServices, baseAppointment, 'work', {
+	const result = await pushAppointment(cfgWithCalDav, baseAppointment, 'work', {
 		cancelUrl: 'https://when.example.com/appointment/appt-xyz?token=tok'
 	});
 	expect(result.ok).toBe(true);
@@ -154,18 +143,9 @@ test('pushAppointment fails cleanly when the google service is not connected', a
 		}
 	};
 
-	const disconnected: Record<string, ConnectedProvider> = {
-		'google-service-2': {
-			type: 'google',
-			client_id: 'gid',
-			client_secret: 'gsec',
-			calendars: {},
-			refresh_token: null
-		}
-	};
 	const fetchSpy = vi.spyOn(globalThis, 'fetch');
 
-	const result = await pushAppointment(cfgGoogle, disconnected, baseAppointment, 'g', {
+	const result = await pushAppointment(cfgGoogle, baseAppointment, 'g', {
 		cancelUrl: 'https://when.example.com/appointment/appt-xyz?token=tok'
 	});
 
@@ -205,16 +185,7 @@ test('pushAppointment succeeds on Google calendar', async () => {
 		return new Response('Not found', { status: 404 });
 	});
 
-	const connectedGoogle: Record<string, ConnectedProvider> = {
-		'google-service-2': {
-			type: 'google',
-			client_id: 'gid',
-			client_secret: 'gsec',
-			calendars: {},
-			refresh_token: 'gtoken'
-		}
-	};
-	const result = await pushAppointment(cfgGoogle, connectedGoogle, baseAppointment, 'g', {
+	const result = await pushAppointment(cfgGoogle, baseAppointment, 'g', {
 		cancelUrl: 'https://when.example.com/appointment/appt-xyz?token=tok'
 	});
 
@@ -227,7 +198,7 @@ test('pushAppointment succeeds on Google calendar', async () => {
 });
 
 test('pushAppointment fails on unknown destination calendar id', async () => {
-	const result = await pushAppointment(cfgWithCalDav, davServices, baseAppointment, 'nope', {
+	const result = await pushAppointment(cfgWithCalDav, baseAppointment, 'nope', {
 		cancelUrl: 'https://when.example.com/appointment/appt-xyz?token=tok'
 	});
 	expect(result.ok).toBe(false);
@@ -237,7 +208,7 @@ test('pushAppointment surfaces network failures as ok:false', async () => {
 	vi.spyOn(globalThis, 'fetch').mockResolvedValue(
 		new Response('', { status: 500, statusText: 'Internal Server Error' })
 	);
-	const result = await pushAppointment(cfgWithCalDav, davServices, baseAppointment, 'work', {
+	const result = await pushAppointment(cfgWithCalDav, baseAppointment, 'work', {
 		cancelUrl: 'https://when.example.com/appointment/appt-xyz?token=tok'
 	});
 	expect(result.ok).toBe(false);
@@ -245,22 +216,12 @@ test('pushAppointment surfaces network failures as ok:false', async () => {
 
 test('deleteAppointmentFromCalendar returns ok on success', async () => {
 	vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 204 }));
-	const result = await deleteAppointmentFromCalendar(
-		cfgWithCalDav,
-		davServices,
-		'work',
-		'appt-xyz'
-	);
+	const result = await deleteAppointmentFromCalendar(cfgWithCalDav, 'work', 'appt-xyz');
 	expect(result.ok).toBe(true);
 });
 
 test('deleteAppointmentFromCalendar returns ok on 404 (already gone)', async () => {
 	vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('', { status: 404 }));
-	const result = await deleteAppointmentFromCalendar(
-		cfgWithCalDav,
-		davServices,
-		'work',
-		'appt-xyz'
-	);
+	const result = await deleteAppointmentFromCalendar(cfgWithCalDav, 'work', 'appt-xyz');
 	expect(result.ok).toBe(true);
 });

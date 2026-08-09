@@ -1,7 +1,7 @@
 import type { Kysely } from 'kysely';
 import type { Provider, WhenConfiguration } from '@when/config';
 import type { Database } from '@when/db';
-import { connectProvider, getProviderAdapter, type ProviderCalendar } from '@when/calendar';
+import { getProviderAdapter, type ProviderCalendar } from '@when/calendar';
 import { listProviderConnections, listServiceStatus } from '@when/db';
 import { getOpenWorkflow, listProviderCalendars, testProvider } from '@when/jobs';
 import { observedFrom, type ObservedView } from '$lib/server/observed';
@@ -41,7 +41,7 @@ export async function listProviders(
 	const observedByName = new Map(providerStatus.map((s) => [s.name, s]));
 
 	return Object.entries(config.providers).map(([name, provider]) => {
-		const { usesOAuth } = getProviderAdapter(connectProvider(provider, null));
+		const { usesOAuth } = getProviderAdapter(provider);
 		const calendars = Object.keys(provider.calendars);
 
 		return {

@@ -1,5 +1,4 @@
-import type { CalDavProvider, NextcloudProvider } from '@when/config';
-import type { ConnectedGoogleProvider, ConnectedProvider } from './adapter.js';
+import type { CalDavProvider, GoogleProvider, NextcloudProvider, Provider } from '@when/config';
 import { getGoogleAccessToken, listGoogleCalendars } from './adapters/google.js';
 import { verifyCalDavProvider, discoverCalDavCalendars } from './adapters/caldav.js';
 
@@ -27,9 +26,9 @@ class GoogleProviderAdapter implements ProviderAdapter {
 	readonly calendarIdField = 'google_calendar_id';
 	readonly usesOAuth = true;
 
-	private provider: ConnectedGoogleProvider;
+	private provider: GoogleProvider;
 
-	constructor(provider: ConnectedGoogleProvider) {
+	constructor(provider: GoogleProvider) {
 		this.provider = provider;
 	}
 
@@ -82,7 +81,7 @@ class CalDavProviderAdapter implements ProviderAdapter {
 	}
 }
 
-export function getProviderAdapter(service: ConnectedProvider): ProviderAdapter {
+export function getProviderAdapter(service: Provider): ProviderAdapter {
 	return service.type === 'google'
 		? new GoogleProviderAdapter(service)
 		: new CalDavProviderAdapter(service);

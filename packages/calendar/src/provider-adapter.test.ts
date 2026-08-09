@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { getProviderAdapter } from './provider-adapter.js';
 import { getGoogleAccessToken, listGoogleCalendars } from './adapters/google.js';
 import { verifyCalDavProvider, discoverCalDavCalendars } from './adapters/caldav.js';
-import type { ConnectedProvider } from './adapter.js';
+import type { Provider } from '@when/config';
 
 vi.mock('./adapters/google.js', () => ({
 	getGoogleAccessToken: vi.fn(),
@@ -13,7 +13,7 @@ vi.mock('./adapters/caldav.js', () => ({
 	discoverCalDavCalendars: vi.fn()
 }));
 
-const google = (refresh_token: string | null): ConnectedProvider => ({
+const google = (refresh_token: string): Provider => ({
 	type: 'google',
 	client_id: 'cid',
 	client_secret: 'csec',
@@ -21,7 +21,7 @@ const google = (refresh_token: string | null): ConnectedProvider => ({
 	refresh_token
 });
 
-const dav: ConnectedProvider = {
+const dav: Provider = {
 	type: 'caldav',
 	url: 'https://d.example/',
 	username: 'u',
@@ -46,7 +46,7 @@ describe('google', () => {
 	});
 
 	test('refuses to reach google when no token is stored', async () => {
-		await expect(getProviderAdapter(google(null)).verify()).rejects.toThrow(/not connected/);
+		await expect(getProviderAdapter(google('')).verify()).rejects.toThrow(/not connected/);
 		expect(getGoogleAccessToken).not.toHaveBeenCalled();
 	});
 
@@ -76,7 +76,7 @@ describe('google', () => {
 	});
 
 	test('is an oauth service', () => {
-		expect(getProviderAdapter(google(null)).usesOAuth).toBe(true);
+		expect(getProviderAdapter(google('')).usesOAuth).toBe(true);
 	});
 });
 

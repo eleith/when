@@ -4,14 +4,8 @@ import { logger } from '../logger.js';
 import type { BusyEvent } from '../types.js';
 import type { Appointment } from '@when/db';
 import type { FetchBusyOptions } from './caldav.js';
-import type {
-	CalendarAdapter,
-	PushOptions,
-	PushResult,
-	DeleteResult,
-	ConnectedGoogleProvider
-} from '../adapter.js';
-import type { WhenConfiguration, GoogleCalendar } from '@when/config';
+import type { CalendarAdapter, PushOptions, PushResult, DeleteResult } from '../adapter.js';
+import type { WhenConfiguration, GoogleCalendar, GoogleProvider } from '@when/config';
 import type { ExpandWindow } from '../expand.js';
 
 export interface GoogleConfig {
@@ -263,20 +257,15 @@ export async function deleteGoogleEvent(cfg: GoogleConfig, externalEventId: stri
 export class GoogleAdapter implements CalendarAdapter {
 	private name: string;
 	private cal: GoogleCalendar;
-	private service?: ConnectedGoogleProvider;
+	private service: GoogleProvider;
 
-	constructor(name: string, cal: GoogleCalendar, service?: ConnectedGoogleProvider) {
+	constructor(name: string, cal: GoogleCalendar, service: GoogleProvider) {
 		this.name = name;
 		this.cal = cal;
 		this.service = service;
 	}
 
 	private get googleCfg(): GoogleConfig {
-		if (!this.service) {
-			throw new Error(
-				`Google provider for calendar "${this.name}" was not provided to GoogleAdapter`
-			);
-		}
 		if (!this.service.refresh_token) {
 			throw new Error(`Google provider for calendar "${this.name}" is not connected`);
 		}

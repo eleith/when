@@ -1,4 +1,4 @@
-import { connectProviders, deleteAppointmentFromCalendar, pushAppointment } from '@when/calendar';
+import { deleteAppointmentFromCalendar, pushAppointment } from '@when/calendar';
 import { findCalendar } from '@when/config';
 import {
 	listOutOfSyncAppointments,
@@ -33,8 +33,7 @@ export async function reconcileAppointment(ctx: WorkerContext, row: Appointment)
 				baseUrl: ctx.config.url.app,
 				appointment: row
 			}).booked;
-			const services = await connectProviders(ctx.config.providers, ctx.db);
-			const pushed = await pushAppointment(ctx.config, services, row, target, { cancelUrl });
+			const pushed = await pushAppointment(ctx.config, row, target, { cancelUrl });
 			if (pushed.ok) {
 				await markSynced(ctx.db, row.id, revision, {
 					external_event_id: pushed.externalEventId,
@@ -73,10 +72,8 @@ export async function reconcileAppointment(ctx: WorkerContext, row: Appointment)
 			await deleteStandaloneVideoChat(ctx.db, row.id, ctx.config);
 		}
 		if (shouldRemove && row.external_event_id && row.external_calendar_id) {
-			const services = await connectProviders(ctx.config.providers, ctx.db);
 			const deleted = await deleteAppointmentFromCalendar(
 				ctx.config,
-				services,
 				row.external_calendar_id,
 				row.external_event_id
 			);

@@ -25,8 +25,8 @@ export { pushAppointment, deleteAppointmentFromCalendar } from './push.js';
 export type { PushOptions, PushResult, DeleteResult } from './push.js';
 
 // Adapters and shared calendar types.
-export { getCalendarAdapter, connectProvider, connectProviders } from './adapter.js';
-export type { CalendarAdapter, ConnectedProvider, ConnectedGoogleProvider } from './adapter.js';
+export { getCalendarAdapter } from './adapter.js';
+export type { CalendarAdapter } from './adapter.js';
 export { getProviderAdapter } from './provider-adapter.js';
 export type { ProviderAdapter, ProviderCalendar } from './provider-adapter.js';
 export type { BusyEvent, Interval } from './types.js';

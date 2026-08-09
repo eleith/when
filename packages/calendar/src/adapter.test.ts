@@ -1,64 +1,50 @@
-import { beforeEach, describe, expect, test } from 'vitest';
-import { openDb, runMigrations, saveProviderRefreshToken } from '@when/db';
-import type { Provider } from '@when/config';
-import { connectProvider, connectProviders } from './adapter.js';
+import { describe, expect, test } from 'vitest';
+import type { ResolvedCalendar } from '@when/config';
+import { getCalendarAdapter } from './adapter.js';
 
-const google: Provider = {
+const googleCal = (refresh_token: string): ResolvedCalendar => ({
 	type: 'google',
-	client_id: 'cid',
-	client_secret: 'csec',
-	calendars: {}
-} as Provider;
+	name: 'personal',
+	providerName: 'gg',
+	provider: {
+		type: 'google',
+		client_id: 'cid',
+		client_secret: 'csec',
+		refresh_token,
+		calendars: {}
+	},
+	calendar: { id: 'primary', sync: { refresh_every_minutes: 10 } }
+});
 
-const dav: Provider = {
+const davCal: ResolvedCalendar = {
 	type: 'caldav',
-	url: 'https://d.example/',
-	username: 'u',
-	password: 'p',
-	calendars: {}
-} as Provider;
+	name: 'work',
+	providerName: 'dav',
+	provider: {
+		type: 'caldav',
+		url: 'https://d.example/',
+		username: 'u',
+		password: 'p',
+		calendars: {}
+	},
+	calendar: { href: 'calendars/u/work/', sync: { refresh_every_minutes: 10 } }
+};
 
-let db: ReturnType<typeof openDb>;
+const window = {
+	start: Temporal.Instant.from('2026-04-01T00:00:00Z'),
+	end: Temporal.Instant.from('2026-05-01T00:00:00Z')
+};
 
-beforeEach(async () => {
-	db = openDb(':memory:');
-	await runMigrations(db);
-});
-
-describe('connectProvider', () => {
-	test('attaches the token to a google service', () => {
-		expect(connectProvider(google, 'rt-1')).toMatchObject({ refresh_token: 'rt-1' });
+describe('getCalendarAdapter', () => {
+	test('builds each adapter from the provider its calendar already carries', () => {
+		expect(getCalendarAdapter(googleCal('rt-1'))).toBeDefined();
+		expect(getCalendarAdapter(davCal)).toBeDefined();
 	});
 
-	test('marks a google service with no token as unconnected', () => {
-		expect(connectProvider(google, null)).toMatchObject({ refresh_token: null });
-	});
-
-	test('leaves a service that keeps its credentials in config untouched', () => {
-		expect(connectProvider(dav, 'rt-1')).toEqual(dav);
-	});
-});
-
-describe('connectProviders', () => {
-	test('joins each service with the token the store holds', async () => {
-		await saveProviderRefreshToken(db, 'gg', 'rt-1');
-
-		const connected = await connectProviders({ gg: google, dav }, db);
-
-		expect(connected.gg).toMatchObject({ refresh_token: 'rt-1' });
-		expect(connected.dav).toEqual(dav);
-	});
-
-	test('yields a null token for a service that was never connected', async () => {
-		const { gg: connected } = await connectProviders({ gg: google }, db);
-		expect(connected).toMatchObject({ refresh_token: null });
-	});
-
-	test('does not borrow another service token', async () => {
-		await saveProviderRefreshToken(db, 'other', 'not-mine');
-
-		const { gg: connected } = await connectProviders({ gg: google }, db);
-
-		expect(connected).toMatchObject({ refresh_token: null });
+	// The refresh token reaches the adapter from when.yaml, so an empty one is the
+	// unconnected state and must fail before any request goes out.
+	test('refuses a google calendar whose provider has no refresh token', async () => {
+		const adapter = getCalendarAdapter(googleCal(''));
+		await expect(adapter.fetchBusy(window)).rejects.toThrow('not connected');
 	});
 });

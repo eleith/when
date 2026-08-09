@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { getProviderAdapter } from '@when/calendar';
-import { openDb, runMigrations, listServiceStatus, saveProviderRefreshToken } from '@when/db';
+import { openDb, runMigrations, listServiceStatus } from '@when/db';
 import type { WhenConfiguration } from '@when/config';
 import { setWorkerContext, type WorkerContext } from '../services/context.js';
 import { createLogger } from '../services/logger.js';
@@ -14,7 +14,7 @@ vi.mock('@when/calendar', async (importOriginal) => {
 const config = {
 	providers: {
 		dav: { type: 'caldav', url: 'https://dav.example.com/', username: 'u', password: 'p' },
-		gcal: { type: 'google', client_id: 'cid', client_secret: 'csec' }
+		gcal: { type: 'google', client_id: 'cid', client_secret: 'csec', refresh_token: 'cfg-rt' }
 	}
 } as unknown as WhenConfiguration;
 
@@ -77,12 +77,10 @@ test('discovery returns the calendars and counts as an observation', async () =>
 	expect(status.via).toBe('test');
 });
 
-test('the worker reads the stored refresh token, so no caller has to pass one', async () => {
-	await saveProviderRefreshToken(db, 'gcal', 'stored-rt');
-
+test('the worker probes with the refresh token when.yaml configured', async () => {
 	await runTestProvider({ name: 'gcal' });
 
 	expect(getProviderAdapter).toHaveBeenCalledWith(
-		expect.objectContaining({ refresh_token: 'stored-rt' })
+		expect.objectContaining({ refresh_token: 'cfg-rt' })
 	);
 });

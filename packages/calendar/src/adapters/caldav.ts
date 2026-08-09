@@ -152,20 +152,15 @@ function decodeXmlEntities(s: string): string {
 export class CalDavAdapter implements CalendarAdapter {
 	private name: string;
 	private cal: CalDavCalendar;
-	private service?: CalDavProvider | NextcloudProvider;
+	private service: CalDavProvider | NextcloudProvider;
 
-	constructor(name: string, cal: CalDavCalendar, service?: CalDavProvider | NextcloudProvider) {
+	constructor(name: string, cal: CalDavCalendar, service: CalDavProvider | NextcloudProvider) {
 		this.name = name;
 		this.cal = cal;
 		this.service = service;
 	}
 
 	private get adapterCfg(): CalDavConfig {
-		if (!this.service) {
-			throw new Error(
-				`CalDAV provider for calendar "${this.name}" was not provided to CalDavAdapter`
-			);
-		}
 		const calUrl = URL.canParse(this.cal.href)
 			? this.cal.href
 			: `${davBaseUrl(this.service)}${this.cal.href.replace(/^\//, '')}`;

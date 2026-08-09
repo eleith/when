@@ -1,5 +1,5 @@
-import { connectProvider, getProviderAdapter, type ProviderAdapter } from '@when/calendar';
-import { getProviderRefreshToken, recordServiceOutcome } from '@when/db';
+import { getProviderAdapter, type ProviderAdapter } from '@when/calendar';
+import { recordServiceOutcome } from '@when/db';
 import { listProviderCalendars, testProvider } from '@when/jobs';
 import type {
 	ListProviderCalendarsInput,
@@ -10,12 +10,11 @@ import type {
 import { getWorkerContext, type WorkerContext } from '../services/context.js';
 import { implementObservedWorkflow } from '../services/metrics.js';
 
-async function connectedAdapter(ctx: WorkerContext, name: string): Promise<ProviderAdapter> {
+function configuredAdapter(ctx: WorkerContext, name: string): ProviderAdapter {
 	const provider = ctx.config.providers[name];
 	if (!provider) throw new Error(`No provider named "${name}".`);
 
-	const refreshToken = await getProviderRefreshToken(ctx.db, name);
-	return getProviderAdapter(connectProvider(provider, refreshToken));
+	return getProviderAdapter(provider);
 }
 
 async function observed<T>(ctx: WorkerContext, name: string, work: () => Promise<T>): Promise<T> {
@@ -36,7 +35,7 @@ async function observed<T>(ctx: WorkerContext, name: string, work: () => Promise
 export async function runTestProvider(input: TestProviderInput): Promise<TestProviderResult> {
 	const ctx = getWorkerContext();
 	await observed(ctx, input.name, async () => {
-		const adapter = await connectedAdapter(ctx, input.name);
+		const adapter = configuredAdapter(ctx, input.name);
 		await adapter.verify();
 	});
 	return 'authenticated';
@@ -47,7 +46,7 @@ export async function runListProviderCalendars(
 ): Promise<ListProviderCalendarsResult> {
 	const ctx = getWorkerContext();
 	return observed(ctx, input.name, async () => {
-		const adapter = await connectedAdapter(ctx, input.name);
+		const adapter = configuredAdapter(ctx, input.name);
 		return { field: adapter.calendarIdField, calendars: await adapter.listCalendars() };
 	});
 }

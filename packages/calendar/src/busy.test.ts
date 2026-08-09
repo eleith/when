@@ -1,7 +1,6 @@
 import { expect, test, vi, beforeEach } from 'vitest';
 import type { ResolvedCalendar } from '@when/config';
 import { fetchBusyIntervals } from './busy.js';
-import type { ConnectedProvider } from './adapter.js';
 
 const inst = (s: string): Temporal.Instant => Temporal.Instant.from(s);
 const window = { start: inst('2026-04-01T00:00:00Z'), end: inst('2026-05-01T00:00:00Z') };
@@ -21,8 +20,6 @@ const workCal: ResolvedCalendar = {
 	provider: workDav,
 	calendar: { href: 'https://cal.example.com/work/', sync: { refresh_every_minutes: 10 } }
 };
-
-const davServices: Record<string, ConnectedProvider> = { 'work-dav': workDav };
 
 const twoEvents = `<?xml version="1.0"?>
 <multistatus xmlns:C="urn:ietf:params:xml:ns:caldav">
@@ -54,16 +51,13 @@ beforeEach(() => {
 
 test('returns all intervals when nothing is excluded', async () => {
 	vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(twoEvents, { status: 207 }));
-	const intervals = await fetchBusyIntervals(workCal, window, {
-		services: davServices
-	});
+	const intervals = await fetchBusyIntervals(workCal, window);
 	expect(intervals).toHaveLength(2);
 });
 
 test('drops our own event by uid but keeps a genuine event at the same time', async () => {
 	vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(twoEvents, { status: 207 }));
 	const intervals = await fetchBusyIntervals(workCal, window, {
-		services: davServices,
 		excludeUids: new Set(['our-appt-1'])
 	});
 	expect(intervals).toHaveLength(1);
@@ -74,9 +68,7 @@ test('propagates a provider failure to the caller', async () => {
 	vi.spyOn(globalThis, 'fetch').mockResolvedValue(
 		new Response('boom', { status: 500, statusText: 'Internal Server Error' })
 	);
-	await expect(fetchBusyIntervals(workCal, window, { services: davServices })).rejects.toThrow(
-		/500/
-	);
+	await expect(fetchBusyIntervals(workCal, window, {})).rejects.toThrow(/500/);
 });
 
 test('a relative href is joined to the provider url', async () => {
@@ -92,7 +84,7 @@ test('a relative href is joined to the provider url', async () => {
 		.spyOn(globalThis, 'fetch')
 		.mockResolvedValue(new Response(twoEvents, { status: 207 }));
 
-	await fetchBusyIntervals(relative, window, { services: { dav: provider } });
+	await fetchBusyIntervals(relative, window);
 
 	expect(String(spy.mock.calls[0][0])).toBe('https://cal.example.com/dav/calendars/jane/work/');
 });
@@ -116,7 +108,7 @@ test('a nextcloud provider gets its dav prefix before the join', async () => {
 		.spyOn(globalThis, 'fetch')
 		.mockResolvedValue(new Response(twoEvents, { status: 207 }));
 
-	await fetchBusyIntervals(relative, window, { services: { nc: provider } });
+	await fetchBusyIntervals(relative, window);
 
 	expect(String(spy.mock.calls[0][0])).toBe(
 		'https://cloud.example.com/remote.php/dav/calendars/jane/work/'
@@ -128,7 +120,7 @@ test('an absolute href is used as given', async () => {
 		.spyOn(globalThis, 'fetch')
 		.mockResolvedValue(new Response(twoEvents, { status: 207 }));
 
-	await fetchBusyIntervals(workCal, window, { services: davServices });
+	await fetchBusyIntervals(workCal, window, {});
 
 	expect(String(spy.mock.calls[0][0])).toBe('https://cal.example.com/work/');
 });
