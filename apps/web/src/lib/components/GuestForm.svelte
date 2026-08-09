@@ -3,6 +3,7 @@
 	import IconCaretLeft from 'virtual:icons/ph/caret-left';
 	import { formatDateCompact, formatTimeShort, formatTzAbbrev } from '$lib/datetime';
 	import { evaluateVisibility } from '$lib/forms/conditional';
+	import { defaultFieldValue } from '$lib/forms/defaults';
 	import FormFieldControl from '$lib/components/FormFieldControl.svelte';
 	import type { AppointmentFlow } from '$lib/appointmentFlow.svelte';
 	import type { GuestAnswer, FormField } from '@when/config';
@@ -46,12 +47,16 @@
 	// svelte-ignore state_referenced_locally
 	const priorAnswers = rescheduleAppt?.answers ?? [];
 
-	function initialFieldValue(field: FormField): string {
+	function priorFieldValue(field: FormField): string {
 		if (!rescheduleAppt) return '';
 		if (field.type === 'guest_name') return rescheduleAppt.guest_name ?? '';
 		if (field.type === 'guest_email') return rescheduleAppt.guest_email ?? '';
 		if (field.type === 'event_location') return rescheduleAppt.location ?? '';
 		return priorAnswers.find((a) => a.name === field.name)?.value ?? '';
+	}
+
+	function initialFieldValue(field: FormField): string {
+		return priorFieldValue(field) || defaultFieldValue(field);
 	}
 
 	// svelte-ignore state_referenced_locally
