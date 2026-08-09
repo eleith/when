@@ -78,3 +78,15 @@ test('redacts a provider secret nested under its provider name', () => {
 	expect(written).not.toContain('RTOK');
 	expect(written).not.toContain('PASS');
 });
+
+test('redacts the prometheus scrape token', () => {
+	const lines: string[] = [];
+	const log = pino({ ...loggerOptions, transport: undefined }, {
+		write: (line: string) => void lines.push(line)
+	} as unknown as NodeJS.WritableStream);
+
+	log.info({ prometheus: { enabled: true, token: 'SCRAPE' } }, 'boot');
+	log.info({ config: { prometheus: { enabled: true, token: 'SCRAPE' } } }, 'boot');
+
+	expect(lines.join('')).not.toContain('SCRAPE');
+});

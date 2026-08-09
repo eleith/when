@@ -27,7 +27,11 @@ export const loggerOptions: LoggerOptions = {
 			// than these: they live under providers.<name>, keyed by the operator.
 			'*.*.password',
 			'*.*.client_secret',
-			'*.*.refresh_token'
+			'*.*.refresh_token',
+			// Named by its path rather than a bare `token`, which would censor unrelated
+			// fields that merely share the word.
+			'prometheus.token',
+			'*.prometheus.token'
 		],
 		censor: '[REDACTED]'
 	},
