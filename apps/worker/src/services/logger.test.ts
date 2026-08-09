@@ -1,4 +1,5 @@
 import { expect, test } from 'vitest';
+import pino from 'pino';
 import { logger, loggerOptions } from './logger.js';
 
 test('base label is set to app name', () => {
@@ -54,4 +55,26 @@ test('logger exposes expected levels', () => {
 	for (const level of ['trace', 'debug', 'info', 'warn', 'error', 'fatal']) {
 		expect(typeof (logger as unknown as Record<string, unknown>)[level]).toBe('function');
 	}
+});
+
+test('redacts a provider secret nested under its provider name', () => {
+	const lines: string[] = [];
+	const log = pino({ ...loggerOptions, transport: undefined }, {
+		write: (line: string) => void lines.push(line)
+	} as unknown as NodeJS.WritableStream);
+
+	log.info(
+		{
+			providers: {
+				'my-google': { client_secret: 'CSEC', refresh_token: 'RTOK' },
+				'my-dav': { password: 'PASS' }
+			}
+		},
+		'boot'
+	);
+
+	const written = lines.join('');
+	expect(written).not.toContain('CSEC');
+	expect(written).not.toContain('RTOK');
+	expect(written).not.toContain('PASS');
 });
