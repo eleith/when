@@ -85,6 +85,7 @@
 
 	function isUnavailable(percent: number): boolean {
 		if (!timeline) return true;
+		if (!isInBlock(percent, timeline.working)) return true;
 		if (isInBlock(percent, timeline.busy)) return true;
 		if (isInBlock(percent, timeline.buffers)) return true;
 		if (timeline.past && percent <= timeline.past.top + timeline.past.height) return true;
@@ -503,6 +504,7 @@
 		position: absolute;
 		inset: 0;
 		z-index: 1;
+		cursor: default;
 	}
 
 	.working-window {
@@ -527,6 +529,7 @@
 		font-size: var(--font-size-sm);
 		z-index: 4;
 		overflow: hidden;
+		cursor: default;
 	}
 
 	.buffer-block {
@@ -534,6 +537,7 @@
 		left: 0;
 		right: 0;
 		z-index: 3;
+		cursor: default;
 	}
 
 	.closed-bg,
