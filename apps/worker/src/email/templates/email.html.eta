@@ -74,7 +74,7 @@
 				<%= it.previewText %>
 			</div>
 			<div style="display:none;font-size:1px;color:#ffffff;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">
-				&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;
+				&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;
 			</div>
 			<% } %>
 			<table
@@ -99,45 +99,15 @@
 								style="width: 100%; max-width: 600px; font-family: -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;"
 							>
 								<tr>
-									<td style="padding: 0 8px 18px;">
-										<table role="presentation" cellpadding="0" cellspacing="0" border="0">
-											<tr>
-												<% if (it.brand.logoUrl) { %>
-												<td style="padding: 0 12px 0 0; vertical-align: middle;">
-													<img
-														src="<%= it.brand.logoUrl %>"
-														alt="<%= it.brand.name %>"
-														height="36"
-														style="display: block; border: 0; height: 36px; width: auto;"
-													/>
-												</td>
-												<% } %>
-												<td
-													style="vertical-align: middle; font-size: 17px; font-weight: 700; color: <%= it.theme.text %>;"
-												>
-													<%= it.brand.pageTitle %>
-												</td>
-											</tr>
-										</table>
-									</td>
-								</tr>
-								<tr>
 									<td
 										class="sm-px"
-										style="padding: 28px 40px; border-radius: <%= it.theme.cardRadius %> <%= it.theme.cardRadius %> 0 0; background: <%= it.brand.primaryColor %>; color: <%= it.brand.onPrimary %>;"
+										style="padding: 38px 40px 36px; background: <%= it.theme.surface %>; color: <%= it.theme.text %>; border-radius: <%= it.theme.cardRadius %>;"
 									>
 										<h1
-											style="margin: 0; font-size: 23px; font-weight: 700; line-height: 1.3; color: <%= it.brand.onPrimary %>;"
+											style="margin: 0 0 20px; font-size: 24px; font-weight: 700; line-height: 1.3; color: <%= it.theme.text %>;"
 										>
 											<%= it.heading %>
 										</h1>
-									</td>
-								</tr>
-								<tr>
-									<td
-										class="sm-px"
-										style="padding: 36px 40px; background: <%= it.theme.surface %>; color: <%= it.theme.text %>; border-radius: 0 0 <%= it.theme.cardRadius %> <%= it.theme.cardRadius %>;"
-									>
 										<% it.paragraphs.forEach(function (p) { %>
 										<p style="margin: 0 0 16px; font-size: 16px; line-height: 1.6; color: <%= it.theme.bodyText %>; word-break: break-word;">
 											<%= p %>
@@ -158,7 +128,8 @@
 														<% rows.forEach(function (r) { %>
 														<tr>
 															<td
-																style="padding: 9px 16px 9px 0; font-size: 15px; color: <%= it.theme.label %>; vertical-align: top; white-space: nowrap;"
+																width="35%"
+																style="width: 35%; padding: 9px 16px 9px 0; font-size: 15px; color: <%= it.theme.label %>; vertical-align: top; word-break: break-word;"
 															>
 																<%= r.label %>
 															</td>
@@ -176,17 +147,10 @@
 										it.brand.primaryColor, fg: it.brand.onPrimary, bd: it.brand.primaryColor }, secondary: {
 										bg: it.theme.surface, fg: it.theme.text, bd: it.theme.border }, danger: { bg:
 										it.theme.surface, fg: it.theme.dangerText, bd: it.theme.dangerBorder } }; %>
-										<table
-											role="presentation"
-											align="center"
-											cellpadding="0"
-											cellspacing="0"
-											border="0"
-											style="margin: 28px auto 4px;"
-										>
+										<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin: 28px 0 4px;">
 											<tr>
 												<% it.actions.forEach(function (a) { %> <% const v = variants[a.variant]; %>
-												<td class="sm-btn" align="center" style="padding: 0 5px;">
+												<td class="sm-btn" align="center" style="padding: 0 10px 0 0;">
 													<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse: separate;">
 														<tr>
 															<td
@@ -195,7 +159,7 @@
 															>
 																<a
 																	href="<%= a.href %>"
-																	style="display: inline-block; padding: 14px 24px; font-size: 16px; font-weight: 600; text-decoration: none; mso-padding-alt: 0; color: <%= v.fg %>;"
+																	style="display: inline-block; padding: 14px 26px; font-size: 16px; font-weight: 600; text-decoration: none; mso-padding-alt: 0; color: <%= v.fg %>;"
 																	><%= a.label %></a
 																>
 															</td>
@@ -206,6 +170,32 @@
 											</tr>
 										</table>
 										<% } %>
+									</td>
+								</tr>
+								<tr>
+									<td style="padding: 20px 8px 0;">
+										<table role="presentation" cellpadding="0" cellspacing="0" border="0">
+											<tr>
+												<% if (it.brand.logoUrl) { %>
+												<td style="padding: 0 6px 0 0; vertical-align: middle;">
+													<img
+														src="<%= it.brand.logoUrl %>"
+														alt="<%= it.brand.name %>"
+														height="22"
+														style="display: block; border: 0; height: 22px; width: auto;"
+													/>
+												</td>
+												<td style="padding: 0 6px 0 0; vertical-align: middle; font-size: 13px; color: <%= it.theme.border %>;">
+													&middot;
+												</td>
+												<% } %>
+												<td style="vertical-align: middle; font-size: 13px; line-height: 1.5;">
+													<a href="<%= it.brand.appUrl %>" style="color: <%= it.theme.label %>; text-decoration: none;"
+														><%= it.brand.appUrl %></a
+													>
+												</td>
+											</tr>
+										</table>
 									</td>
 								</tr>
 							</table>

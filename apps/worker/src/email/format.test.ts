@@ -22,6 +22,7 @@ describe('format', () => {
 		expect(deriveBrand(sampleConfig)).toEqual({
 			name: 'Acme Scheduling',
 			pageTitle: 'if not now, when?',
+			appUrl: 'https://when.example.com',
 			primaryColor: '#2563eb',
 			onPrimary: '#ffffff',
 			logoUrl: undefined

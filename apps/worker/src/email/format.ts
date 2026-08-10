@@ -44,6 +44,17 @@ export function fmtWhen(start: string, end: string, tz: string): string {
 	}
 }
 
+export function fmtInstant(at: string, tz: string): string {
+	try {
+		const z = Temporal.Instant.from(at).toZonedDateTimeISO(tz);
+		const date = z.toLocaleString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+		const time = z.toLocaleString(undefined, { hour: '2-digit', minute: '2-digit' });
+		return `${date}, ${time} (${tzShort(tz, at)})`;
+	} catch {
+		return at;
+	}
+}
+
 export function whenForGuest(i: AppointmentEmailInput): string {
 	const a = i.appointment;
 	return fmtWhen(a.start_time, a.end_time, a.guest_timezone ?? i.cfg.user.timezone);
@@ -57,6 +68,7 @@ export function whenForHost(i: AppointmentEmailInput): string {
 export interface Brand {
 	name: string;
 	pageTitle: string;
+	appUrl: string;
 	logoUrl?: string;
 	primaryColor: string;
 	onPrimary: string;
@@ -79,6 +91,7 @@ export function deriveBrand(cfg: WhenConfiguration, logoCid?: string): Brand {
 	return {
 		name: cfg.user.name,
 		pageTitle: appearance.title,
+		appUrl: cfg.url.app,
 		logoUrl: logoCid ? `cid:${logoCid}` : undefined,
 		primaryColor,
 		onPrimary: onColor(primaryColor)

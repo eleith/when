@@ -1,5 +1,3 @@
-<%= it.brand.pageTitle %>
-
 <%= it.heading %>
 <% it.paragraphs.forEach((p) => { -%>
 
@@ -18,3 +16,7 @@
 <%= a.label %>: <%= a.href %>
 <% }) -%>
 <% } -%>
+
+--
+<%= it.brand.name %>
+<%= it.brand.appUrl %>

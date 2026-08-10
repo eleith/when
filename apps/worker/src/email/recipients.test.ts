@@ -4,7 +4,13 @@ import { sampleInput } from './__fixtures__/appointment.js';
 import type { EmailContent } from './content.js';
 
 const content: EmailContent = {
-	brand: { name: 'Acme', pageTitle: 'Acme', primaryColor: '#2563eb', onPrimary: '#ffffff' },
+	brand: {
+		name: 'Acme',
+		pageTitle: 'Acme',
+		appUrl: 'https://when.example.com',
+		primaryColor: '#2563eb',
+		onPrimary: '#ffffff'
+	},
 	subject: 'S',
 	heading: 'H',
 	paragraphs: [],

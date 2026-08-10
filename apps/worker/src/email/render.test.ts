@@ -4,7 +4,13 @@ import type { EmailContent } from './content.js';
 import type { Attachment } from './recipients.js';
 
 const base: Omit<EmailContent, 'actions'> = {
-	brand: { name: 'Acme', pageTitle: 'Acme', primaryColor: '#2563eb', onPrimary: '#ffffff' },
+	brand: {
+		name: 'Acme',
+		pageTitle: 'Acme',
+		appUrl: 'https://when.example.com',
+		primaryColor: '#2563eb',
+		onPrimary: '#ffffff'
+	},
 	subject: 'Confirmed appointment',
 	heading: 'Hello & welcome',
 	paragraphs: ['Thanks for scheduling.'],
@@ -16,10 +22,10 @@ const base: Omit<EmailContent, 'actions'> = {
 };
 
 describe('renderHtmlBody', () => {
-	test('no actions: shell + header + heading + body, no buttons', () => {
+	test('no actions: shell + heading + body, no buttons and no brand color', () => {
 		const html = renderHtmlBody({ ...base, actions: [] });
 		expect(html.toLowerCase()).toContain('<!doctype html');
-		expect(html).toContain('#2563eb');
+		expect(html).not.toContain('#2563eb');
 		expect(html).toContain('Hello &amp; welcome');
 		expect(html).toContain('Thanks for scheduling.');
 		expect(html).toContain('30 min chat');
@@ -55,15 +61,43 @@ describe('renderHtmlBody', () => {
 		const html = renderHtmlBody({
 			...base,
 			actions: [],
-			brand: {
-				name: 'Acme',
-				pageTitle: 'Acme',
-				primaryColor: '#2563eb',
-				onPrimary: '#ffffff',
-				logoUrl: 'https://cdn/logo.png'
-			}
+			brand: { ...base.brand, logoUrl: 'https://cdn/logo.png' }
 		});
 		expect(html).toContain('https://cdn/logo.png');
+	});
+});
+
+describe('the brand appears once, on the action', () => {
+	const content: EmailContent = {
+		...base,
+		actions: [{ href: 'https://x/review', label: 'Review request', variant: 'primary' }]
+	};
+	const branded: EmailContent = {
+		...content,
+		brand: { ...base.brand, logoUrl: 'cid:brand-logo' }
+	};
+
+	test('the brand color reaches the button and nothing else', () => {
+		const html = renderHtmlBody(content);
+		expect(html.match(/#2563eb/g)).toHaveLength(2);
+	});
+
+	test('the footer carries the icon, and the name only as its alt text', () => {
+		const html = renderHtmlBody(branded);
+		expect(html).toContain('cid:brand-logo');
+		expect(html).toContain('https://when.example.com');
+		expect(html.match(/Acme/g)).toHaveLength(1);
+	});
+
+	test('drops the separator when there is no icon to pair it with', () => {
+		expect(renderHtmlBody(branded)).toContain('&middot;');
+		expect(renderHtmlBody(content)).not.toContain('&middot;');
+	});
+
+	test('long detail labels wrap instead of forcing the table wider', () => {
+		const html = renderHtmlBody(content);
+		expect(html).not.toContain('white-space: nowrap');
+		expect(html).toContain('width="35%"');
 	});
 });
 
@@ -78,8 +112,6 @@ describe('renderTextBody', () => {
 		});
 		expect(text).toBe(
 			[
-				'Acme',
-				'',
 				'Hello & welcome',
 				'',
 				'Thanks for scheduling.',
@@ -88,7 +120,11 @@ describe('renderTextBody', () => {
 				'When: Mon 9am',
 				'',
 				'Reschedule: https://x/resched',
-				'Cancel: https://x/cancel'
+				'Cancel: https://x/cancel',
+				'',
+				'--',
+				'Acme',
+				'https://when.example.com'
 			].join('\n')
 		);
 	});
