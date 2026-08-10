@@ -2,7 +2,13 @@
 	import IconCaretLeft from 'virtual:icons/ph/caret-left';
 	import IconGlobe from 'virtual:icons/ph/globe';
 	import { formatDate, formatTzShort, tzCity, tzOffset } from '$lib/datetime';
-	import { slotsOnDate, buildDayTimeline, type TimelineEventType } from '$lib/appointment';
+	import { onDestroy } from 'svelte';
+	import {
+		slotsOnDate,
+		buildDayTimeline,
+		type TimelineEventType,
+		type TimelineSlot
+	} from '$lib/appointment';
 	import type { AppointmentFlow } from '$lib/appointmentFlow.svelte';
 	import TimezoneDialog from './TimezoneDialog.svelte';
 	import DurationDialog from './DurationDialog.svelte';
@@ -65,9 +71,12 @@
 	}
 
 	const DRAG_THRESHOLD_PX = 6;
+	const SNAP_MS = 150;
 
 	let trackEl = $state<HTMLElement | null>(null);
 	let dragYPercent = $state<number | null>(null);
+	let clickYPercent = $state<number | null>(null);
+	let snapTimer: ReturnType<typeof setTimeout> | null = null;
 	let isDragging = $state(false);
 	let pointerStartMode: 'on-slot' | 'on-track' | null = null;
 	let pointerStartClientY = 0;
@@ -106,6 +115,32 @@
 		}
 		return best;
 	}
+
+	function snapToClick(percent: number) {
+		const best = nearestSlotAt(percent);
+		if (!best || best.isOriginal) return;
+		if (!selectedSlot) {
+			selectSlot(best.iso);
+			return;
+		}
+		clickYPercent = percent;
+		if (snapTimer) clearTimeout(snapTimer);
+		snapTimer = setTimeout(() => {
+			snapTimer = null;
+			clickYPercent = null;
+			if (best.iso !== selectedSlot) selectSlot(best.iso);
+		}, SNAP_MS);
+	}
+
+	function blockTop(slot: TimelineSlot): number {
+		const y = isDragging && dragYPercent !== null ? dragYPercent : clickYPercent;
+		if (y === null) return slot.top;
+		return Math.max(0, Math.min(100 - slot.height, y - slot.height / 2));
+	}
+
+	onDestroy(() => {
+		if (snapTimer) clearTimeout(snapTimer);
+	});
 
 	function handleTrackPointerDown(e: PointerEvent) {
 		if (showSlots) return;
@@ -152,10 +187,7 @@
 		} else {
 			if (!isDragging) {
 				const percent = pointToPercent(e.clientY);
-				if (!isUnavailable(percent)) {
-					const best = nearestSlotAt(percent);
-					if (best && best.iso !== selectedSlot && !best.isOriginal) selectSlot(best.iso);
-				}
+				if (!isUnavailable(percent)) snapToClick(percent);
 			}
 		}
 
@@ -265,15 +297,11 @@
 								isDragging && dragYPercent !== null ? nearestSlotAt(dragYPercent) : null}
 							{@const overUnavailable =
 								isDragging && dragYPercent !== null && isUnavailable(dragYPercent)}
-							{@const dragTop =
-								isDragging && dragYPercent !== null
-									? Math.max(0, Math.min(100 - s.height, dragYPercent - s.height / 2))
-									: s.top}
 							<div
 								class="slot-block selected"
 								class:dragging={isDragging}
 								class:unavailable={overUnavailable}
-								style:top="{dragTop}%"
+								style:top="{blockTop(s)}%"
 								style:height="{s.height}%"
 							>
 								<span class="slot-text">
