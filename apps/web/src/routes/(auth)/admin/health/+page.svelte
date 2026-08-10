@@ -204,12 +204,13 @@
 										<button
 											type="submit"
 											class="button"
+											class:busy={pending === `test:provider:${provider.name}`}
 											disabled={pending === `test:provider:${provider.name}`}
 										>
+											<span class="label">Test</span>
 											{#if pending === `test:provider:${provider.name}`}
 												<span class="spinner"><IconSpinner aria-hidden="true" /></span>
 											{/if}
-											Test
 										</button>
 									</form>
 								</div>
@@ -273,12 +274,13 @@
 									<button
 										type="submit"
 										class="button"
+										class:busy={pending === `test:calendar:${calendar.name}`}
 										disabled={pending === `test:calendar:${calendar.name}`}
 									>
+										<span class="label">Test</span>
 										{#if pending === `test:calendar:${calendar.name}`}
 											<span class="spinner"><IconSpinner aria-hidden="true" /></span>
 										{/if}
-										Test
 									</button>
 								</form>
 							</div>
@@ -300,11 +302,16 @@
 
 			<div class="actions">
 				<form method="POST" action="?/worker" class="worker-form" use:enhance={run('worker')}>
-					<button type="submit" class="button" disabled={pending === 'worker'}>
+					<button
+						type="submit"
+						class="button"
+						class:busy={pending === 'worker'}
+						disabled={pending === 'worker'}
+					>
+						<span class="label">Test</span>
 						{#if pending === 'worker'}
 							<span class="spinner"><IconSpinner aria-hidden="true" /></span>
 						{/if}
-						Test
 					</button>
 				</form>
 			</div>
@@ -354,11 +361,16 @@
 						value={data.smtp.defaultRecipient}
 						required
 					/>
-					<button type="submit" class="button" disabled={pending === 'smtp'}>
+					<button
+						type="submit"
+						class="button"
+						class:busy={pending === 'smtp'}
+						disabled={pending === 'smtp'}
+					>
+						<span class="label">Send</span>
 						{#if pending === 'smtp'}
 							<span class="spinner"><IconSpinner aria-hidden="true" /></span>
 						{/if}
-						Send
 					</button>
 				</form>
 			</div>
@@ -582,6 +594,9 @@
 	}
 
 	.button {
+		display: inline-grid;
+		grid-template-areas: 'content';
+		place-items: center;
 		padding: var(--space-3) var(--space-5);
 		background: var(--color-surface);
 		border: 1px solid var(--color-border-strong);
@@ -591,8 +606,16 @@
 		cursor: pointer;
 	}
 
+	.button > * {
+		grid-area: content;
+	}
+
 	.button:hover {
 		background: var(--color-surface-active);
+	}
+
+	.busy .label {
+		opacity: 0;
 	}
 
 	.primary {
