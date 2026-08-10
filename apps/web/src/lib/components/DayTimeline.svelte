@@ -218,7 +218,7 @@
 					onpointerup={handleTrackPointerUp}
 					onpointercancel={handleTrackPointerCancel}
 				>
-					<div class="hatch-bg"></div>
+					<div class="closed-bg"></div>
 
 					{#each timeline.working as w, wi (wi)}
 						<div class="working-window" style:top="{w.top}%" style:height="{w.height}%"></div>
@@ -313,6 +313,8 @@
 <style>
 	.timeline-container {
 		width: 100%;
+		--timeline-closed: color-mix(in srgb, var(--when-color-text) 5%, var(--color-surface));
+		--timeline-hatch: color-mix(in srgb, var(--when-color-text) 20%, var(--color-surface));
 	}
 
 	/* ---- timeline day view ---- */
@@ -497,18 +499,10 @@
 		touch-action: pan-y;
 	}
 
-	.hatch-bg {
+	.closed-bg {
 		position: absolute;
 		inset: 0;
-		background-image: repeating-linear-gradient(
-			45deg,
-			var(--color-surface-muted) 0,
-			var(--color-surface-muted) 2px,
-			transparent 2px,
-			transparent 8px
-		);
 		z-index: 1;
-		opacity: 0.5;
 	}
 
 	.working-window {
@@ -521,15 +515,17 @@
 
 	.busy-block {
 		position: absolute;
-		left: 0;
-		right: 0;
+		left: var(--space-4);
+		right: var(--space-4);
 		background: var(--color-border);
+		border: 1px solid var(--color-border-strong);
+		border-radius: var(--radius-sm);
 		display: flex;
-		align-items: flex-start;
+		justify-content: center;
+		align-items: center;
 		padding: var(--space-1) var(--space-2);
+		font-size: var(--font-size-sm);
 		z-index: 4;
-		border-left: 3px solid var(--color-border-strong);
-		border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
 		overflow: hidden;
 	}
 
@@ -538,18 +534,21 @@
 		left: 0;
 		right: 0;
 		z-index: 3;
-		opacity: 0.5;
+	}
+
+	.closed-bg,
+	.buffer-block {
+		background-color: var(--timeline-closed);
 		background-image: repeating-linear-gradient(
 			45deg,
-			var(--color-surface-muted) 0,
-			var(--color-surface-muted) 2px,
-			transparent 2px,
-			transparent 8px
+			var(--timeline-hatch) 0,
+			var(--timeline-hatch) 3px,
+			transparent 3px,
+			transparent 9px
 		);
 	}
 
 	.busy-text {
-		font-size: var(--font-size-xs);
 		font-weight: 600;
 		color: var(--color-text-secondary);
 	}
