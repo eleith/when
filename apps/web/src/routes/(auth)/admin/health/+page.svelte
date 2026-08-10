@@ -29,7 +29,7 @@
 		return () => {
 			pending = key;
 			return async ({ update }) => {
-				await update();
+				await update({ reset: false });
 				pending = '';
 			};
 		};
