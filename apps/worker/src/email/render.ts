@@ -5,8 +5,9 @@ import type { Attachment, EmailMessage, Envelope } from './recipients.js';
 import { emailTheme } from './theme.js';
 
 const views = join(import.meta.dirname, 'templates');
-const htmlEta = new Eta({ views, autoEscape: true, cache: true });
-const textEta = new Eta({ views, autoEscape: false, autoTrim: false, cache: true });
+const cache = process.env.NODE_ENV === 'production';
+const htmlEta = new Eta({ views, autoEscape: true, cache });
+const textEta = new Eta({ views, autoEscape: false, autoTrim: false, cache });
 
 export function renderHtmlBody(content: EmailContent): string {
 	return htmlEta.render('email.html.eta', { ...content, theme: emailTheme });
