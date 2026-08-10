@@ -129,7 +129,7 @@ meetings:
     # padding_after_minutes: 0
     # daily_booking_limit: null # null = unlimited
     # show_slots: false # true draws the slots as buttons; false is a bare drag timeline
-    # start_times_every_minutes: 15 # slot step (defaults to duration_minutes)
+    # start_times_every_minutes: 15 # slot step (default 30; independent of the lengths offered)
     # form_fields: # extra questions asked at booking
     #   - name: 'topic'
     #     type: 'text' # guest_name | guest_email | event_location | text | number | phone | paragraph | choice

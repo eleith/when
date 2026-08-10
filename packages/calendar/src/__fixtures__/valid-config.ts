@@ -61,6 +61,7 @@ export const validConfig: WhenConfiguration = {
 			visibility: 'public',
 			additional_busy_calendars: [],
 			show_slots: false,
+			start_times_every_minutes: 30,
 			notice_minutes: 120,
 			booking_window_days: 60,
 			padding_before_minutes: 0,

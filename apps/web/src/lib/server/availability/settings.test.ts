@@ -9,11 +9,12 @@ test('per-event settings flow through', () => {
 	expect(resolveAvailabilitySettingsById(cfg, '30-min-chat').slot_granularity).toBe(15);
 });
 
-test('per-event setting defaults to duration_minutes if unset', () => {
-	const cfg: WhenConfiguration = JSON.parse(JSON.stringify(validConfig));
-	delete cfg.meetings['30-min-chat'].start_times_every_minutes;
-	cfg.meetings['30-min-chat'].duration_minutes = 45;
-	expect(resolveAvailabilitySettingsById(cfg, '30-min-chat').slot_granularity).toBe(45);
+test('the step defaults to 30 and does not follow duration_minutes', () => {
+	const raw = JSON.parse(JSON.stringify(validConfig));
+	delete raw.meetings['30-min-chat'].start_times_every_minutes;
+	raw.meetings['30-min-chat'].duration_minutes = 45;
+	const cfg = validateConfig(raw);
+	expect(resolveAvailabilitySettingsById(cfg, '30-min-chat').slot_granularity).toBe(30);
 });
 
 // The default is the loader's job, not the consumer's: omitting it in when.yaml is
@@ -29,14 +30,15 @@ test('throws on unknown meeting name', () => {
 	expect(() => resolveAvailabilitySettingsById(validConfig, 'nope')).toThrow(/unknown meeting/);
 });
 
-test('the default length leads and granularity falls back to the shortest offered', () => {
-	const cfg: WhenConfiguration = JSON.parse(JSON.stringify(validConfig));
-	delete cfg.meetings['30-min-chat'].start_times_every_minutes;
-	cfg.meetings['30-min-chat'].duration_minutes = 30;
-	cfg.meetings['30-min-chat'].additional_duration_minutes = [15, 60];
+test('the default length leads and no offered length changes the step', () => {
+	const raw = JSON.parse(JSON.stringify(validConfig));
+	delete raw.meetings['30-min-chat'].start_times_every_minutes;
+	raw.meetings['30-min-chat'].duration_minutes = 30;
+	raw.meetings['30-min-chat'].additional_duration_minutes = [15, 60];
+	const cfg = validateConfig(raw);
 	const settings = resolveAvailabilitySettingsById(cfg, '30-min-chat');
 	expect(settings.duration).toBe(30);
-	expect(settings.slot_granularity).toBe(15); // shortest offered
+	expect(settings.slot_granularity).toBe(30);
 });
 
 test('weekly schedule is expanded from the schedule rules', () => {

@@ -229,7 +229,7 @@ export const MeetingSchema = Type.Object({
 	location: Type.Optional(Ref(LocationSchema, { description: 'Static location of the meeting.' })),
 	note: Type.Optional(Type.String({ minLength: 1, description: 'A note shown to guests after booking.' })),
 	video_chat_provider: Type.Optional(Type.String({ minLength: 1, description: 'Name of the provider to generate dynamic links.' })),
-	start_times_every_minutes: Type.Optional(Type.Integer({ minimum: 1, description: 'Time step in minutes; booking slots will snap to this boundary. Defaults to the meeting\'s duration_minutes. A step shorter than the longest offered length makes the slots overlap, which is only visible with show_slots.' })),
+	start_times_every_minutes: Type.Integer({ minimum: 1, default: 30, description: 'Time step in minutes; booking slots snap to this boundary (default: 30). Independent of the lengths offered: a step shorter than the longest offered length makes the slots overlap, which is only visible with show_slots.' }),
 	notice_minutes: Type.Integer({ minimum: 0, default: 120, description: 'Minimum lead time required for bookings in minutes (default: 120).' }),
 	booking_window_days: Type.Integer({ minimum: 1, default: 60, description: 'Maximum number of days in the future that are open for booking (default: 60).' }),
 	padding_before_minutes: Type.Integer({ minimum: 0, default: 0, description: 'Minutes of padding time required before each appointment (default: 0).' }),

@@ -40,7 +40,7 @@ export function toPublicEventType(
 	return {
 		slug,
 		title: eventType.title,
-		duration_minutes: durationsOf(eventType)[0],
+		duration_minutes: eventType.duration_minutes,
 		durations: durationsOf(eventType),
 		description: eventType.description,
 		visibility: eventType.visibility,

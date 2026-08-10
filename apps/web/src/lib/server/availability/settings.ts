@@ -1,4 +1,4 @@
-import { durationsOf, type Meeting, type WhenConfiguration } from '@when/config';
+import type { Meeting, WhenConfiguration } from '@when/config';
 import { expandWeekly } from './expand-weekly';
 import type { AvailabilitySettings } from './types';
 
@@ -17,10 +17,9 @@ export function resolveAvailabilitySettings(
 ): AvailabilitySettings {
 	const a = cfg.schedules[et.schedule];
 	if (!a) throw new Error(`unknown schedule name: ${et.schedule}`);
-	const durations = durationsOf(et);
 	return {
-		duration: durations[0],
-		slot_granularity: et.start_times_every_minutes ?? Math.min(...durations),
+		duration: et.duration_minutes,
+		slot_granularity: et.start_times_every_minutes,
 		minimum_notice: et.notice_minutes,
 		maximum_lookahead: et.booking_window_days,
 		buffer_before: et.padding_before_minutes,

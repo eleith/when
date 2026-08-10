@@ -683,7 +683,8 @@
 				},
 				"start_times_every_minutes": {
 					"minimum": 1,
-					"description": "Time step in minutes; booking slots will snap to this boundary. Defaults to the meeting's duration_minutes. A step shorter than the longest offered length makes the slots overlap, which is only visible with show_slots.",
+					"default": 30,
+					"description": "Time step in minutes; booking slots snap to this boundary (default: 30). Independent of the lengths offered: a step shorter than the longest offered length makes the slots overlap, which is only visible with show_slots.",
 					"type": "integer"
 				},
 				"notice_minutes": {

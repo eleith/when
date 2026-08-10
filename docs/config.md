@@ -258,7 +258,7 @@ meetings:
             equals: 'phone' # a single value, or a list for "one of"; omit to mean "filled at all"
 
     # Scheduling rules:
-    start_times_every_minutes: 30 # slots snap to this boundary (defaults to duration_minutes)
+    start_times_every_minutes: 30 # slots snap to this boundary (default 30; independent of the lengths offered)
     notice_minutes: 120 # minutes of lead time required (default 120)
     booking_window_days: 60 # days bookable into the future (default 60)
     padding_before_minutes: 0 # minutes padded before a meeting (default 0)
