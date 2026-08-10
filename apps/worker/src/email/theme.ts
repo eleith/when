@@ -8,8 +8,6 @@ export interface EmailTheme {
 	bodyText: string;
 	label: string;
 	border: string;
-	dangerText: string;
-	dangerBorder: string;
 	cardRadius: string;
 }
 
@@ -28,8 +26,6 @@ export function emailTheme(appearance: Appearance): EmailTheme {
 		bodyText: tint(text, pageBg, BODY_TEXT_SHARE),
 		label: tint(text, pageBg, LABEL_SHARE),
 		border: tint(text, pageBg, BORDER_SHARE),
-		dangerText: '#b91c1c',
-		dangerBorder: '#fecaca',
 		cardRadius: '10px'
 	};
 }

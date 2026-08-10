@@ -39,7 +39,7 @@ export function appointmentRescheduledByHost(i: AppointmentEmailInput): EmailMes
 				...(i.rescheduleReason ? [`Reason for rescheduling: ${i.rescheduleReason}`] : [])
 			],
 			rows: guestRows,
-			actions: [{ href: i.links.booked, label: 'View this appointment', variant: 'primary' }],
+			actions: [{ href: i.links.booked, label: 'View this appointment' }],
 			previewText: `Requested for ${guestWhen}.`
 		};
 		const host: EmailContent = {
@@ -63,7 +63,7 @@ export function appointmentRescheduledByHost(i: AppointmentEmailInput): EmailMes
 		heading: `${brand.name} moved this appointment to a new time.`,
 		paragraphs: i.rescheduleReason ? [`Reason for rescheduling: ${i.rescheduleReason}`] : [],
 		rows: guestRows,
-		actions: [{ href: i.links.booked, label: 'View this appointment', variant: 'primary' }],
+		actions: [{ href: i.links.booked, label: 'View this appointment' }],
 		previewText: `Now scheduled for ${guestWhen}.`
 	};
 	const host: EmailContent = {

@@ -29,7 +29,7 @@ export function appointmentConfirmed(i: AppointmentEmailInput): EmailMessage[] {
 			{ label: 'Where', value: a.location },
 			...(a.video_chat ? [{ label: 'Video link', value: a.video_chat }] : [])
 		],
-		actions: [{ href: i.links.booked, label: 'View this appointment', variant: 'primary' }],
+		actions: [{ href: i.links.booked, label: 'View this appointment' }],
 		previewText: `See you on ${guestWhen}.`
 	};
 	const admin: EmailContent = {

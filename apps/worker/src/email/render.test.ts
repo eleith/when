@@ -13,7 +13,6 @@ const theme = emailTheme({
 const base: Omit<EmailContent, 'actions'> = {
 	brand: {
 		name: 'Acme',
-		pageTitle: 'Acme',
 		appUrl: 'https://when.example.com',
 		primaryColor: '#2563eb',
 		onPrimary: '#ffffff'
@@ -45,8 +44,8 @@ describe('renderHtmlBody', () => {
 			{
 				...base,
 				actions: [
-					{ href: 'https://x/resched', label: 'Reschedule', variant: 'secondary' },
-					{ href: 'https://x/cancel', label: 'Cancel', variant: 'danger' }
+					{ href: 'https://x/resched', label: 'Reschedule' },
+					{ href: 'https://x/cancel', label: 'Cancel' }
 				]
 			},
 			theme
@@ -61,7 +60,7 @@ describe('renderHtmlBody', () => {
 		const html = renderHtmlBody(
 			{
 				...base,
-				actions: [{ href: 'https://x/review', label: 'Review request', variant: 'primary' }]
+				actions: [{ href: 'https://x/review', label: 'Review request' }]
 			},
 			theme
 		);
@@ -86,7 +85,7 @@ describe('renderHtmlBody', () => {
 describe('the brand appears once, on the action', () => {
 	const content: EmailContent = {
 		...base,
-		actions: [{ href: 'https://x/review', label: 'Review request', variant: 'primary' }]
+		actions: [{ href: 'https://x/review', label: 'Review request' }]
 	};
 	const branded: EmailContent = {
 		...content,
@@ -122,8 +121,8 @@ describe('renderTextBody', () => {
 		const text = renderTextBody({
 			...base,
 			actions: [
-				{ href: 'https://x/resched', label: 'Reschedule', variant: 'secondary' },
-				{ href: 'https://x/cancel', label: 'Cancel', variant: 'danger' }
+				{ href: 'https://x/resched', label: 'Reschedule' },
+				{ href: 'https://x/cancel', label: 'Cancel' }
 			]
 		});
 		expect(text).toBe(

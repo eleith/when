@@ -39,7 +39,7 @@ export function appointmentRescheduledByGuest(i: AppointmentEmailInput): EmailMe
 				...(i.rescheduleReason ? [`Reason for rescheduling: ${i.rescheduleReason}`] : [])
 			],
 			rows: guestRows,
-			actions: [{ href: i.links.booked, label: 'View this appointment', variant: 'primary' }],
+			actions: [{ href: i.links.booked, label: 'View this appointment' }],
 			previewText: `Requested for ${guestWhen}.`
 		};
 		const host: EmailContent = {
@@ -51,7 +51,7 @@ export function appointmentRescheduledByGuest(i: AppointmentEmailInput): EmailMe
 				...(i.rescheduleReason ? [`Reason for rescheduling: ${i.rescheduleReason}`] : [])
 			],
 			rows: hostRows,
-			actions: [{ href: i.links.manage, label: 'Review request', variant: 'primary' }],
+			actions: [{ href: i.links.manage, label: 'Review request' }],
 			previewText: `Requested for ${hostWhen}.`
 		};
 		return messages(guestMessage(i, guest), hostMessage(i, host));
@@ -63,7 +63,7 @@ export function appointmentRescheduledByGuest(i: AppointmentEmailInput): EmailMe
 		heading: 'Your appointment moved to a new time.',
 		paragraphs: i.rescheduleReason ? [`Reason for rescheduling: ${i.rescheduleReason}`] : [],
 		rows: guestRows,
-		actions: [{ href: i.links.booked, label: 'View this appointment', variant: 'primary' }],
+		actions: [{ href: i.links.booked, label: 'View this appointment' }],
 		previewText: `Now scheduled for ${guestWhen}.`
 	};
 	const host: EmailContent = {

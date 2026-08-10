@@ -21,7 +21,6 @@ describe('format', () => {
 	test('deriveBrand pulls the name and primary color, no image without a cid', () => {
 		expect(deriveBrand(sampleConfig)).toEqual({
 			name: 'Acme Scheduling',
-			pageTitle: 'if not now, when?',
 			appUrl: 'https://when.example.com',
 			primaryColor: '#2563eb',
 			onPrimary: '#ffffff',

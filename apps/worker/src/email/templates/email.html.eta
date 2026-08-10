@@ -142,24 +142,20 @@
 												</td>
 											</tr>
 										</table>
-										<% } %> <% if (it.actions.length) { %> <% /* secondary + danger retained for future
-										actions; only primary is emitted today */ const variants = { primary: { bg:
-										it.brand.primaryColor, fg: it.brand.onPrimary, bd: it.brand.primaryColor }, secondary: {
-										bg: it.theme.surface, fg: it.theme.text, bd: it.theme.border }, danger: { bg:
-										it.theme.surface, fg: it.theme.dangerText, bd: it.theme.dangerBorder } }; %>
+										<% } %> <% if (it.actions.length) { %>
 										<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin: 28px 0 4px;">
 											<tr>
-												<% it.actions.forEach(function (a) { %> <% const v = variants[a.variant]; %>
+												<% it.actions.forEach(function (a) { %>
 												<td class="sm-btn" align="center" style="padding: 0 10px 0 0;">
 													<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse: separate;">
 														<tr>
 															<td
 																align="center"
-																style="border-radius: 6px; background: <%= v.bg %>; border: 1px solid <%= v.bd %>;"
+																style="border-radius: 6px; background: <%= it.brand.primaryColor %>; border: 1px solid <%= it.brand.primaryColor %>;"
 															>
 																<a
 																	href="<%= a.href %>"
-																	style="display: inline-block; padding: 14px 26px; font-size: 16px; font-weight: 600; text-decoration: none; mso-padding-alt: 0; color: <%= v.fg %>;"
+																	style="display: inline-block; padding: 14px 26px; font-size: 16px; font-weight: 600; text-decoration: none; mso-padding-alt: 0; color: <%= it.brand.onPrimary %>;"
 																	><%= a.label %></a
 																>
 															</td>

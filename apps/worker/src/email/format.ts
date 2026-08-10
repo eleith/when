@@ -68,7 +68,6 @@ export function whenForHost(i: AppointmentEmailInput): string {
 
 export interface Brand {
 	name: string;
-	pageTitle: string;
 	appUrl: string;
 	logoUrl?: string;
 	primaryColor: string;
@@ -80,7 +79,6 @@ export function deriveBrand(cfg: WhenConfiguration, logoCid?: string): Brand {
 	const primaryColor = appearance.primary_light_color;
 	return {
 		name: cfg.user.name,
-		pageTitle: appearance.title,
 		appUrl: cfg.url.app,
 		logoUrl: logoCid ? `cid:${logoCid}` : undefined,
 		primaryColor,

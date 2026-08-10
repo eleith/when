@@ -28,7 +28,7 @@ export function appointmentPending(i: AppointmentEmailInput): EmailMessage[] {
 			{ label: 'Where', value: a.location },
 			...(a.video_chat ? [{ label: 'Video link', value: a.video_chat }] : [])
 		],
-		actions: [{ href: i.links.booked, label: 'View this appointment', variant: 'primary' }],
+		actions: [{ href: i.links.booked, label: 'View this appointment' }],
 		previewText: `Requested for ${guestWhen}.`
 	};
 	const host: EmailContent = {
@@ -43,7 +43,7 @@ export function appointmentPending(i: AppointmentEmailInput): EmailMessage[] {
 			...(a.video_chat ? [{ label: 'Video link', value: a.video_chat }] : []),
 			...answerRows(a)
 		],
-		actions: [{ href: i.links.manage, label: 'Review request', variant: 'primary' }],
+		actions: [{ href: i.links.manage, label: 'Review request' }],
 		previewText: `Requested for ${hostWhen}.`
 	};
 

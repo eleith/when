@@ -8,7 +8,7 @@ describe('appointmentRescheduledByHost', () => {
 
 		expect(guest.content.heading).toBe('Acme Scheduling moved this appointment to a new time.');
 		expect(guest.content.actions).toEqual([
-			{ href: sampleInput.links.booked, label: 'View this appointment', variant: 'primary' }
+			{ href: sampleInput.links.booked, label: 'View this appointment' }
 		]);
 		expect(guest.ics?.content).toContain('METHOD:REQUEST');
 

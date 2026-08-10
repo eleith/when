@@ -10,7 +10,7 @@ describe('appointmentRescheduledByGuest', () => {
 		expect(guest.content.subject).toBe('Rescheduled: 30-min with Acme Scheduling');
 		expect(guest.content.heading).toBe('Your appointment moved to a new time.');
 		expect(guest.content.actions).toEqual([
-			{ href: sampleInput.links.booked, label: 'View this appointment', variant: 'primary' }
+			{ href: sampleInput.links.booked, label: 'View this appointment' }
 		]);
 		expect(guest.ics?.content).toContain('METHOD:REQUEST');
 
@@ -32,8 +32,6 @@ describe('appointmentRescheduledByGuest', () => {
 		expect(guest.content.heading).toBe('Your reschedule request was received.');
 		expect(guest.ics).toBeUndefined();
 		expect(host.content.heading).toBe('Reschedule request');
-		expect(host.content.actions).toEqual([
-			{ href: input.links.manage, label: 'Review request', variant: 'primary' }
-		]);
+		expect(host.content.actions).toEqual([{ href: input.links.manage, label: 'Review request' }]);
 	});
 });

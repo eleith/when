@@ -20,7 +20,7 @@ describe('appointmentPending', () => {
 			'Acme Scheduling will review your request and email you to confirm.'
 		);
 		expect(guest.content.actions).toEqual([
-			{ href: sampleInput.links.booked, label: 'View this appointment', variant: 'primary' }
+			{ href: sampleInput.links.booked, label: 'View this appointment' }
 		]);
 		expect(guest.ics).toBeUndefined();
 
@@ -28,7 +28,7 @@ describe('appointmentPending', () => {
 		expect(host.content.subject).toBe('Appointment request: 30 Minute Chat from Jane Doe');
 		expect(host.content.heading).toBe('New appointment request');
 		expect(host.content.actions).toEqual([
-			{ href: sampleInput.links.manage, label: 'Review request', variant: 'primary' }
+			{ href: sampleInput.links.manage, label: 'Review request' }
 		]);
 		expect(host.ics).toBeUndefined();
 	});

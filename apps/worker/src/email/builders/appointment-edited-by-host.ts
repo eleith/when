@@ -187,7 +187,7 @@ export function appointmentEditedByHost(i: AppointmentEmailInput): EmailMessage[
 		heading: guestEmail.heading,
 		paragraphs,
 		rows: guestRows,
-		actions: [{ href: i.links.booked, label: 'View this appointment', variant: 'primary' }],
+		actions: [{ href: i.links.booked, label: 'View this appointment' }],
 		previewText: guestEmail.previewText
 	};
 

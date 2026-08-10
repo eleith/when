@@ -11,7 +11,7 @@ describe('testEmailMessage', () => {
 		expect(msg.content.subject).toContain('Test email');
 		expect(msg.content.heading).toContain('test email from When');
 		expect(msg.content.actions).toEqual([
-			{ href: 'https://when.example.com', label: 'Open your booking page', variant: 'primary' }
+			{ href: 'https://when.example.com', label: 'Open your booking page' }
 		]);
 	});
 

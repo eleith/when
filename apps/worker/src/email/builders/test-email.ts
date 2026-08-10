@@ -29,7 +29,7 @@ export function testEmailMessage(
 			{ label: 'Sends as', value: senderEmail(cfg) },
 			{ label: SAMPLE_QUESTION, value: SAMPLE_ANSWER }
 		],
-		actions: [{ href: brand.appUrl, label: 'Open your booking page', variant: 'primary' }],
+		actions: [{ href: brand.appUrl, label: 'Open your booking page' }],
 		previewText: 'When email test'
 	};
 	return { to, content };

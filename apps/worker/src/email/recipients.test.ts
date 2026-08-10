@@ -6,7 +6,6 @@ import type { EmailContent } from './content.js';
 const content: EmailContent = {
 	brand: {
 		name: 'Acme',
-		pageTitle: 'Acme',
 		appUrl: 'https://when.example.com',
 		primaryColor: '#2563eb',
 		onPrimary: '#ffffff'

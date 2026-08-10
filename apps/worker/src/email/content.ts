@@ -5,12 +5,9 @@ export interface DetailRow {
 	value: string | null;
 }
 
-export type ActionVariant = 'primary' | 'secondary' | 'danger';
-
 export interface EmailAction {
 	href: string;
 	label: string;
-	variant: ActionVariant;
 }
 
 export interface EmailContent {
