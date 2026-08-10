@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest';
 import { testEmailMessage } from './test-email.js';
 import { renderMessage } from '../render.js';
+import { emailTheme } from '../theme.js';
 import { sampleConfig } from '../__fixtures__/appointment.js';
 
 describe('testEmailMessage', () => {
@@ -35,7 +36,11 @@ describe('testEmailMessage', () => {
 			contentType: 'image/png',
 			cid: 'brand-logo'
 		};
-		const envelope = renderMessage(testEmailMessage(sampleConfig, 'me@example.com', logo), logo);
+		const envelope = renderMessage(
+			testEmailMessage(sampleConfig, 'me@example.com', logo),
+			logo,
+			emailTheme(sampleConfig.user.appearance)
+		);
 		expect(envelope.to).toBe('me@example.com');
 		expect(envelope.html).toContain('test email from When');
 		expect(envelope.text).toContain('When can render and send email');

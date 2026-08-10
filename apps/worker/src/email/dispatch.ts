@@ -11,6 +11,7 @@ import { appointmentRescheduledByHost } from './builders/appointment-rescheduled
 import { appointmentEditedByHost } from './builders/appointment-edited-by-host.js';
 import type { EmailMessage, Envelope } from './recipients.js';
 import { renderMessage } from './render.js';
+import { emailTheme } from './theme.js';
 import { appointmentLinks } from '../links.js';
 import { fetchBrandLogo } from './logo.js';
 import type { AppointmentEmailInput } from './types.js';
@@ -63,5 +64,6 @@ export async function dispatch(input: DispatchInput, cfg: WhenConfiguration): Pr
 		rescheduleReason
 	};
 
-	return build(i, input.kind).map((m) => renderMessage(m, logo));
+	const theme = emailTheme(cfg.user.appearance);
+	return build(i, input.kind).map((m) => renderMessage(m, logo, theme));
 }

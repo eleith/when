@@ -3,6 +3,7 @@ import type { TestEmailInput, TestEmailResult } from '@when/jobs';
 import { getWorkerContext } from '../services/context.js';
 import { fetchBrandLogo } from '../email/logo.js';
 import { renderMessage } from '../email/render.js';
+import { emailTheme } from '../email/theme.js';
 import { recordSendOutcome } from '../email/status.js';
 import { testEmailMessage } from '../email/builders/test-email.js';
 import { implementObservedWorkflow } from '../services/metrics.js';
@@ -10,7 +11,8 @@ import { implementObservedWorkflow } from '../services/metrics.js';
 export async function runTestEmail(input: TestEmailInput): Promise<TestEmailResult> {
 	const ctx = getWorkerContext();
 	const logo = await fetchBrandLogo(ctx.config);
-	const envelope = renderMessage(testEmailMessage(ctx.config, input.to, logo), logo);
+	const theme = emailTheme(ctx.config.user.appearance);
+	const envelope = renderMessage(testEmailMessage(ctx.config, input.to, logo), logo, theme);
 	const result = await ctx.mailer.send(envelope);
 	await recordSendOutcome(ctx, result);
 	if (!result.ok) throw new Error(result.reason);

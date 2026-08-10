@@ -29,7 +29,7 @@ describe('format', () => {
 		});
 	});
 
-	test('deriveBrand picks dark text on a light brand color', () => {
+	test('deriveBrand keeps the configured ink on a light brand color', () => {
 		const cfg = {
 			...sampleConfig,
 			user: {
@@ -40,7 +40,18 @@ describe('format', () => {
 				}
 			}
 		} as typeof sampleConfig;
-		expect(deriveBrand(cfg).onPrimary).toBe('#1a1a1a');
+		expect(deriveBrand(cfg).onPrimary).toBe('#171717');
+	});
+
+	test('deriveBrand rejects white on a mid-tone brand color a brightness test would allow', () => {
+		const cfg = {
+			...sampleConfig,
+			user: {
+				...sampleConfig.user,
+				appearance: { ...sampleConfig.user.appearance, primary_light_color: '#0ea5e9' }
+			}
+		} as typeof sampleConfig;
+		expect(deriveBrand(cfg).onPrimary).toBe('#171717');
 	});
 
 	test('deriveBrand references the embedded logo by cid when one was fetched', () => {

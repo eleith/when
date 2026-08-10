@@ -1,5 +1,6 @@
 import { parseGuestAnswers, type Meeting, type WhenConfiguration } from '@when/config';
 import type { Appointment } from '@when/db';
+import { contrastText } from './color.js';
 import type { DetailRow } from './content.js';
 import type { AppointmentEmailInput } from './types.js';
 
@@ -74,17 +75,6 @@ export interface Brand {
 	onPrimary: string;
 }
 
-// Black or white, whichever reads better on the brand color (YIQ luminance).
-function onColor(hex: string): string {
-	const m = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(hex.trim());
-	if (!m) return '#ffffff';
-	const h = m[1].length === 3 ? m[1].replace(/(.)/g, '$1$1') : m[1];
-	const r = parseInt(h.slice(0, 2), 16);
-	const g = parseInt(h.slice(2, 4), 16);
-	const b = parseInt(h.slice(4, 6), 16);
-	return (r * 299 + g * 587 + b * 114) / 1000 >= 140 ? '#1a1a1a' : '#ffffff';
-}
-
 export function deriveBrand(cfg: WhenConfiguration, logoCid?: string): Brand {
 	const appearance = cfg.user.appearance;
 	const primaryColor = appearance.primary_light_color;
@@ -94,6 +84,6 @@ export function deriveBrand(cfg: WhenConfiguration, logoCid?: string): Brand {
 		appUrl: cfg.url.app,
 		logoUrl: logoCid ? `cid:${logoCid}` : undefined,
 		primaryColor,
-		onPrimary: onColor(primaryColor)
+		onPrimary: contrastText(primaryColor, appearance.text_light_color)
 	};
 }
