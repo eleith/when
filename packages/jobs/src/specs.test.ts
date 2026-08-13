@@ -5,7 +5,8 @@ import {
 	testEmail,
 	testProvider,
 	listProviderCalendars,
-	testCalendar
+	testCalendar,
+	generateVideoChat
 } from './specs.js';
 
 test('reconcileAppointment carries the shared workflow name', () => {
@@ -28,8 +29,13 @@ test('the probes carry their shared workflow names', () => {
 	expect(testCalendar.name).toBe('test-calendar');
 });
 
-test('a human is waiting on a probe, so it is not retried', () => {
+test('a human is waiting on a probe or on-demand action, so it is not retried', () => {
 	expect(testProvider.retryPolicy?.maximumAttempts).toBe(1);
 	expect(listProviderCalendars.retryPolicy?.maximumAttempts).toBe(1);
 	expect(testCalendar.retryPolicy?.maximumAttempts).toBe(1);
+	expect(generateVideoChat.retryPolicy?.maximumAttempts).toBe(1);
+});
+
+test('generateVideoChat carries the shared workflow name', () => {
+	expect(generateVideoChat.name).toBe('generate-video-chat');
 });

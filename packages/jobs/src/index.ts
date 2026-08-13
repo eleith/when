@@ -5,7 +5,8 @@ export {
 	testEmail,
 	testProvider,
 	listProviderCalendars,
-	testCalendar
+	testCalendar,
+	generateVideoChat
 } from './specs.js';
 export type {
 	AppointmentEmailKind,
@@ -24,6 +25,8 @@ export type {
 	ListProviderCalendarsResult,
 	TestCalendarInput,
 	TestCalendarResult,
+	GenerateVideoChatInput,
+	GenerateVideoChatResult,
 	WorkflowSpec
 } from './specs.js';
 export {

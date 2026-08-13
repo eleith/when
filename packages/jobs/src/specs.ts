@@ -165,3 +165,22 @@ export const syncCalendars: WorkflowSpec<SyncCalendarsInput, SyncCalendarsResult
 			maximumInterval: '1s'
 		}
 	});
+
+export interface GenerateVideoChatInput {
+	appointmentId: string;
+}
+
+export interface GenerateVideoChatResult {
+	url: string;
+}
+
+export const generateVideoChat: WorkflowSpec<GenerateVideoChatInput, GenerateVideoChatResult> =
+	defineWorkflowSpec<GenerateVideoChatInput, GenerateVideoChatResult>({
+		name: 'generate-video-chat',
+		retryPolicy: {
+			maximumAttempts: 1,
+			initialInterval: '1s',
+			backoffCoefficient: 2,
+			maximumInterval: '1s'
+		}
+	});
