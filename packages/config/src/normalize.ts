@@ -3,18 +3,44 @@
 // source schema for strict types); the generated editor schema relaxes them, so
 // the definition + field names are listed here as the single source of truth.
 export const DERIVED_OPTIONAL: Record<string, string[]> = {
-	Schedule: ['weekly']
+	Schedule: ['weekly'],
+	VideoChatConfig: ['attach']
 };
 
 export function withDerivedDefaults(config: unknown): unknown {
 	if (!isRecord(config)) return config;
-	if (!isRecord(config.schedules)) return config;
 
 	const schedules: Record<string, unknown> = {};
-	for (const [name, schedule] of Object.entries(config.schedules)) {
-		schedules[name] = isRecord(schedule) ? deriveScheduleDefaults(schedule) : schedule;
+	if (isRecord(config.schedules)) {
+		for (const [name, schedule] of Object.entries(config.schedules)) {
+			schedules[name] = isRecord(schedule) ? deriveScheduleDefaults(schedule) : schedule;
+		}
 	}
-	return { ...config, schedules };
+
+	const meetings: Record<string, unknown> = {};
+	if (isRecord(config.meetings)) {
+		for (const [name, meeting] of Object.entries(config.meetings)) {
+			meetings[name] = isRecord(meeting) ? deriveMeetingDefaults(meeting) : meeting;
+		}
+	}
+
+	return {
+		...config,
+		...(isRecord(config.schedules) ? { schedules } : {}),
+		...(isRecord(config.meetings) ? { meetings } : {})
+	};
+}
+
+function deriveMeetingDefaults(meeting: Record<string, unknown>): Record<string, unknown> {
+	if (!isRecord(meeting.video_chat)) return meeting;
+	if (meeting.video_chat.attach !== undefined) return meeting;
+	return {
+		...meeting,
+		video_chat: {
+			...meeting.video_chat,
+			attach: { auto: true }
+		}
+	};
 }
 
 // Fill an omitted week with a Monday–Friday 09:00–17:00 rule.

@@ -676,10 +676,8 @@
 					"description": "A note shown to guests after booking.",
 					"type": "string"
 				},
-				"video_chat_provider": {
-					"minLength": 1,
-					"description": "Name of the provider to generate dynamic links.",
-					"type": "string"
+				"video_chat": {
+					"$ref": "#/$defs/VideoChatConfig"
 				},
 				"start_times_every_minutes": {
 					"minimum": 1,
@@ -938,6 +936,55 @@
 					"default": {},
 					"description": "Appearance overrides for the schedule owner.",
 					"$ref": "#/$defs/Appearance"
+				}
+			}
+		},
+		"VideoChatAttach": {
+			"title": "VideoChatAttach",
+			"description": "Rules for attaching a video chat link to appointments.",
+			"anyOf": [
+				{
+					"additionalProperties": false,
+					"type": "object",
+					"required": ["auto"],
+					"properties": {
+						"auto": {
+							"description": "Whether to generate and attach the video link automatically upon booking.",
+							"type": "boolean"
+						}
+					}
+				},
+				{
+					"additionalProperties": false,
+					"type": "object",
+					"required": ["when"],
+					"properties": {
+						"when": {
+							"minItems": 1,
+							"description": "Conditions that must be met (based on form field answers) to attach a video link automatically.",
+							"type": "array",
+							"items": {
+								"$ref": "#/$defs/FieldCondition"
+							}
+						}
+					}
+				}
+			]
+		},
+		"VideoChatConfig": {
+			"additionalProperties": false,
+			"title": "VideoChatConfig",
+			"description": "Video chat provider and automatic attachment settings.",
+			"type": "object",
+			"required": ["provider"],
+			"properties": {
+				"provider": {
+					"minLength": 1,
+					"description": "Name of the provider declared in providers.",
+					"type": "string"
+				},
+				"attach": {
+					"$ref": "#/$defs/VideoChatAttach"
 				}
 			}
 		},

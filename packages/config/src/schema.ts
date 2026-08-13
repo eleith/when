@@ -215,6 +215,37 @@ export const FormFieldSchema = Type.Union([
 	}, { additionalProperties: false, title: 'Plain field' })
 ], { $id: 'FormField', title: 'FormField', description: 'Custom question form fields for bookings.' });
 
+export const VideoChatAttachSchema = Type.Union([
+	Type.Object({
+		auto: Type.Boolean({
+			description: 'Whether to generate and attach the video link automatically upon booking.'
+		})
+	}, { additionalProperties: false }),
+	Type.Object({
+		when: Type.Array(Ref(FieldConditionSchema), {
+			minItems: 1,
+			description: 'Conditions that must be met (based on form field answers) to attach a video link automatically.'
+		})
+	}, { additionalProperties: false })
+], {
+	$id: 'VideoChatAttach',
+	title: 'VideoChatAttach',
+	description: 'Rules for attaching a video chat link to appointments.'
+});
+
+export const VideoChatConfigSchema = Type.Object({
+	provider: Type.String({
+		minLength: 1,
+		description: 'Name of the provider declared in providers.'
+	}),
+	attach: Type.Optional(Ref(VideoChatAttachSchema))
+}, {
+	$id: 'VideoChatConfig',
+	additionalProperties: false,
+	title: 'VideoChatConfig',
+	description: 'Video chat provider and automatic attachment settings.'
+});
+
 export const MeetingSchema = Type.Object({
 	title: Type.String({ minLength: 1, description: 'Name shown to guests (e.g. 30-minute chat).' }),
 	duration_minutes: Type.Integer({ minimum: 1, default: 30, description: 'Length of the meeting in minutes (default: 30). This is the default selection when more lengths are offered.' }),
@@ -228,7 +259,7 @@ export const MeetingSchema = Type.Object({
 	show_slots: Type.Boolean({ default: false, description: 'Render the bookable slots as buttons (default: false). When false the timeline is bare and dragging snaps to the same slots.' }),
 	location: Type.Optional(Ref(LocationSchema, { description: 'Static location of the meeting.' })),
 	note: Type.Optional(Type.String({ minLength: 1, description: 'A note shown to guests after booking.' })),
-	video_chat_provider: Type.Optional(Type.String({ minLength: 1, description: 'Name of the provider to generate dynamic links.' })),
+	video_chat: Type.Optional(Ref(VideoChatConfigSchema)),
 	start_times_every_minutes: Type.Integer({ minimum: 1, default: 30, description: 'Time step in minutes; booking slots snap to this boundary (default: 30). Independent of the lengths offered: a step shorter than the longest offered length makes the slots overlap, which is only visible with show_slots.' }),
 	notice_minutes: Type.Integer({ minimum: 0, default: 120, description: 'Minimum lead time required for bookings in minutes (default: 120).' }),
 	booking_window_days: Type.Integer({ minimum: 1, default: 60, description: 'Maximum number of days in the future that are open for booking (default: 60).' }),
@@ -309,6 +340,8 @@ export type WeeklyAvailability = Static<typeof WeeklyAvailabilitySchema>;
 export type AvailabilityRule = Static<typeof AvailabilityRuleSchema>;
 export type Weekday = Static<typeof WeekdaySchema>;
 export type Meeting = Static<typeof MeetingSchema>;
+export type VideoChatConfig = Static<typeof VideoChatConfigSchema>;
+export type VideoChatAttach = Static<typeof VideoChatAttachSchema>;
 export type FormField = Static<typeof FormFieldSchema>;
 export type FieldCondition = Static<typeof FieldConditionSchema>;
 export type Location = Static<typeof LocationSchema>;
