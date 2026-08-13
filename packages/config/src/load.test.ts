@@ -140,16 +140,48 @@ test('location rejects non-string value', () => {
 	expect(() => validateConfig(bad)).toThrow(ConfigError);
 });
 
-test('video_chat_service accepts valid service name', () => {
+test('video_chat accepts valid config and defaults attach.auto to true', () => {
 	const good = clone(validConfig);
-	good.meetings['30-min-chat'].video_chat_provider = 'google-service';
+	good.meetings['30-min-chat'].video_chat = { provider: 'google-service' };
 	const cfg = validateConfig(good);
-	expect(cfg.meetings['30-min-chat'].video_chat_provider).toBe('google-service');
+	expect(cfg.meetings['30-min-chat'].video_chat?.provider).toBe('google-service');
+	expect(cfg.meetings['30-min-chat'].video_chat?.attach).toEqual({ auto: true });
 });
 
-test('video_chat_service rejects non-string value', () => {
+test('video_chat accepts explicit attach.auto: false', () => {
+	const good = clone(validConfig);
+	good.meetings['30-min-chat'].video_chat = { provider: 'google-service', attach: { auto: false } };
+	const cfg = validateConfig(good);
+	expect(cfg.meetings['30-min-chat'].video_chat?.attach).toEqual({ auto: false });
+});
+
+test('video_chat accepts valid attach.when condition', () => {
+	const good = clone(validConfig);
+	good.meetings['30-min-chat'].form_fields = [
+		{ name: 'guest_name', label: 'Name', type: 'guest_name', required: true },
+		{
+			name: 'channel',
+			label: 'Channel',
+			type: 'choice',
+			choices: ['in-person', 'video'],
+			required: false
+		}
+	];
+	good.meetings['30-min-chat'].video_chat = {
+		provider: 'google-service',
+		attach: {
+			when: [{ field: 'channel', equals: 'video' }]
+		}
+	};
+	const cfg = validateConfig(good);
+	expect(cfg.meetings['30-min-chat'].video_chat?.attach).toEqual({
+		when: [{ field: 'channel', equals: 'video' }]
+	});
+});
+
+test('video_chat rejects invalid value', () => {
 	const bad = clone(validConfig);
-	bad.meetings['30-min-chat'].video_chat_provider = 123 as never;
+	bad.meetings['30-min-chat'].video_chat = 123 as never;
 	expect(() => validateConfig(bad)).toThrow(ConfigError);
 });
 

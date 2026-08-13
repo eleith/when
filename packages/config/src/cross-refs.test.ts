@@ -263,20 +263,20 @@ test('a calendar name repeated across providers is flagged', () => {
 	).toBe(true);
 });
 
-test('unknown video_chat_provider reference in meeting flagged', () => {
+test('unknown video_chat provider reference in meeting flagged', () => {
 	const bad = clone(validConfig);
-	bad.meetings['30-min-chat'].video_chat_provider = 'non-existent';
+	bad.meetings['30-min-chat'].video_chat = { provider: 'non-existent' };
 	const issues = issuesFor(bad);
 	expect(
 		issues.some(
 			(i) =>
-				i.path === '/meetings/30-min-chat/video_chat_provider' &&
+				i.path === '/meetings/30-min-chat/video_chat/provider' &&
 				i.message.includes('unknown provider')
 		)
 	).toBe(true);
 });
 
-test('Google Meet video_chat_provider with CalDAV booking calendar flagged', () => {
+test('Google Meet video_chat with CalDAV booking calendar flagged', () => {
 	const bad = clone(validConfig);
 	bad.providers['nextcloud-service'] = {
 		type: 'nextcloud',
@@ -288,14 +288,60 @@ test('Google Meet video_chat_provider with CalDAV booking calendar flagged', () 
 		}
 	};
 	bad.meetings['30-min-chat'].booking_calendar = 'caldav-cal';
-	bad.meetings['30-min-chat'].video_chat_provider = 'google-service'; // google-service is of type google
+	bad.meetings['30-min-chat'].video_chat = { provider: 'google-service' }; // google-service is of type google
 
 	const issues = issuesFor(bad);
 	expect(
 		issues.some(
 			(i) =>
-				i.path === '/meetings/30-min-chat/video_chat_provider' &&
+				i.path === '/meetings/30-min-chat/video_chat/provider' &&
 				i.message.includes('Google Meet dynamic video chat is only supported')
+		)
+	).toBe(true);
+});
+
+test('video_chat attach.when referencing unknown form field flagged', () => {
+	const bad = clone(validConfig);
+	bad.meetings['30-min-chat'].video_chat = {
+		provider: 'google-service',
+		attach: {
+			when: [{ field: 'non-existent-field', equals: 'yes' }]
+		}
+	};
+	const issues = issuesFor(bad);
+	expect(
+		issues.some(
+			(i) =>
+				i.path === '/meetings/30-min-chat/video_chat/attach/when/0/field' &&
+				i.message.includes('references unknown form field')
+		)
+	).toBe(true);
+});
+
+test('video_chat attach.when referencing invalid choice value flagged', () => {
+	const bad = clone(validConfig);
+	bad.meetings['30-min-chat'].form_fields = [
+		{ name: 'guest_name', label: 'Name', type: 'guest_name', required: true },
+		{
+			name: 'channel',
+			label: 'Channel',
+			type: 'choice',
+			choices: ['in-person', 'video'],
+			required: false
+		}
+	];
+	bad.meetings['30-min-chat'].video_chat = {
+		provider: 'google-service',
+		attach: {
+			when: [{ field: 'channel', equals: 'phone' }]
+		}
+	};
+	const issues = issuesFor(bad);
+	expect(
+		issues.some(
+			(i) =>
+				i.path === '/meetings/30-min-chat/video_chat/attach/when/0' &&
+				i.message.includes('is not one of "channel" choices')
 		)
 	).toBe(true);
 });

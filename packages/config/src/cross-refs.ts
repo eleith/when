@@ -136,7 +136,7 @@ function checkMeetingVideoChatService(
 	calendarTypes: Map<string, string>,
 	issues: ConfigIssue[]
 ): void {
-	if (meeting.video_chat_provider) {
+	if (meeting.video_chat) {
 		validateVideoChatService(key, meeting, serviceRegistry, calendarTypes, issues);
 	}
 }
@@ -148,25 +148,50 @@ function validateVideoChatService(
 	calendarTypes: Map<string, string>,
 	issues: ConfigIssue[]
 ): void {
-	const serviceType = serviceRegistry.types.get(meeting.video_chat_provider!);
+	const videoChat = meeting.video_chat!;
+	const serviceType = serviceRegistry.types.get(videoChat.provider);
 	if (!serviceType) {
 		issues.push({
-			path: `/meetings/${key}/video_chat_provider`,
-			message: `references unknown provider "${meeting.video_chat_provider}"`
+			path: `/meetings/${key}/video_chat/provider`,
+			message: `references unknown provider "${videoChat.provider}"`
 		});
 	} else if (serviceType !== 'google' && serviceType !== 'nextcloud') {
 		issues.push({
-			path: `/meetings/${key}/video_chat_provider`,
-			message: `provider "${meeting.video_chat_provider}" has type "${serviceType}", but video chat is only supported for "google" and "nextcloud" providers`
+			path: `/meetings/${key}/video_chat/provider`,
+			message: `provider "${videoChat.provider}" has type "${serviceType}", but video chat is only supported for "google" and "nextcloud" providers`
 		});
 	} else if (serviceType === 'google') {
 		const destCalType = calendarTypes.get(meeting.booking_calendar);
 		if (destCalType && destCalType !== 'google') {
 			issues.push({
-				path: `/meetings/${key}/video_chat_provider`,
+				path: `/meetings/${key}/video_chat/provider`,
 				message: `Google Meet dynamic video chat is only supported when the booking calendar is a Google Calendar (calendar "${meeting.booking_calendar}" is of type "${destCalType}")`
 			});
 		}
+	}
+
+	if (videoChat.attach && 'when' in videoChat.attach && videoChat.attach.when) {
+		const fields = meeting.form_fields ?? [];
+		videoChat.attach.when.forEach((cond, k) => {
+			const target = fields.find((f) => f.name === cond.field);
+			if (!target) {
+				issues.push({
+					path: `/meetings/${key}/video_chat/attach/when/${k}/field`,
+					message: `video_chat attach condition references unknown form field "${cond.field}"`
+				});
+				return;
+			}
+			if (cond.equals === undefined || target.type !== 'choice' || !target.choices) return;
+			const values = Array.isArray(cond.equals) ? cond.equals : [cond.equals];
+			for (const value of values) {
+				if (!target.choices.includes(value)) {
+					issues.push({
+						path: `/meetings/${key}/video_chat/attach/when/${k}`,
+						message: `video_chat attach condition value "${value}" is not one of "${cond.field}" choices`
+					});
+				}
+			}
+		});
 	}
 }
 
