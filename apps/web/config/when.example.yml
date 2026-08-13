@@ -121,7 +121,13 @@ meetings:
     booking_calendar: 'main'
     # additional_busy_calendars: ['personal'] # further calendars to check; booking_calendar is always checked
     # location: 'Suite 200, 123 Main St' # a static address, phone, or link
-    # video_chat_provider: 'google-service' # generate a video link per booking
+    # video_chat:
+    #   provider: 'google-service' # generate a video link per booking
+    #   attach:
+    #     auto: true # auto: true (default) or auto: false (admin generates on demand)
+    #     when: # or conditionally attach based on guest form answers
+    #       - field: 'topic'
+    #         equals: 'Video Meeting'
     # note: 'Please add an agenda when you book.'
     # notice_minutes: 120 # minimum lead time (default 120)
     # booking_window_days: 60 # how far ahead bookings open (default 60)

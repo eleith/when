@@ -5,7 +5,8 @@ import { createStandaloneVideoChat, deleteStandaloneVideoChat } from './video-ch
 import { getVideoChatAdapter, type VideoChatAdapter } from '@when/video-chat';
 
 vi.mock('@when/video-chat', () => ({
-	getVideoChatAdapter: vi.fn()
+	getVideoChatAdapter: vi.fn(),
+	isStandaloneVideoChat: vi.fn((p) => p.type !== 'google')
 }));
 
 beforeEach(() => {
@@ -22,7 +23,7 @@ const mockConfig = {
 			password: 'pwd'
 		}
 	},
-	meetings: { chat: { video_chat_provider: 'nc-service' } }
+	meetings: { chat: { video_chat: { provider: 'nc-service', attach: { auto: true } } } }
 } as unknown as WhenConfiguration;
 
 async function makeDb() {
@@ -32,9 +33,14 @@ async function makeDb() {
 }
 
 describe('createStandaloneVideoChat', () => {
-	test('no-op if video_chat is empty', async () => {
+	test('no-op if attach.auto is false', async () => {
 		const db = await makeDb();
 		try {
+			const configAutoFalse = {
+				...mockConfig,
+				meetings: { chat: { video_chat: { provider: 'nc-service', attach: { auto: false } } } }
+			} as unknown as WhenConfiguration;
+
 			await db
 				.insertInto('appointments')
 				.values({
@@ -60,7 +66,7 @@ describe('createStandaloneVideoChat', () => {
 				})
 				.execute();
 
-			const res = await createStandaloneVideoChat(db, 'a1', mockConfig);
+			const res = await createStandaloneVideoChat(db, 'a1', configAutoFalse);
 			expect(res.video_chat).toBeNull();
 			expect(getVideoChatAdapter).not.toHaveBeenCalled();
 		} finally {
@@ -104,7 +110,7 @@ describe('createStandaloneVideoChat', () => {
 		}
 	});
 
-	test('creates Nextcloud Talk room, updates link, bumps calendar_revision', async () => {
+	test('creates standalone video chat room, updates link, bumps calendar_revision', async () => {
 		const db = await makeDb();
 		try {
 			await db
@@ -118,7 +124,7 @@ describe('createStandaloneVideoChat', () => {
 					guest_email: 'booker@example.com',
 					guest_timezone: 'UTC',
 					location: null,
-					video_chat: 'nextcloud-talk',
+					video_chat: null,
 					status: 'confirmed',
 					cancel_token: 'tok',
 					origin_id: 'a3',
@@ -157,7 +163,7 @@ describe('createStandaloneVideoChat', () => {
 });
 
 describe('deleteStandaloneVideoChat', () => {
-	test('no-op if video_chat does not start with http', async () => {
+	test('no-op if video_chat is null', async () => {
 		const db = await makeDb();
 		try {
 			await db
@@ -171,7 +177,7 @@ describe('deleteStandaloneVideoChat', () => {
 					guest_email: 'booker@example.com',
 					guest_timezone: 'UTC',
 					location: null,
-					video_chat: 'nextcloud-talk',
+					video_chat: null,
 					status: 'cancelled',
 					cancel_token: 'tok',
 					origin_id: 'c1',
@@ -192,20 +198,20 @@ describe('deleteStandaloneVideoChat', () => {
 				.selectAll()
 				.where('id', '=', 'c1')
 				.executeTakeFirstOrThrow();
-			expect(row.video_chat).toBe('nextcloud-talk');
+			expect(row.video_chat).toBeNull();
 			expect(getVideoChatAdapter).not.toHaveBeenCalled();
 		} finally {
 			await db.destroy();
 		}
 	});
 
-	test('deletes Nextcloud Talk room, sets video_chat to null', async () => {
+	test('deletes standalone room and sets video_chat to null', async () => {
 		const db = await makeDb();
 		try {
 			const configWithVc = {
 				...mockConfig,
 				meetings: {
-					chat: { booking_calendar: 'g-cal', video_chat_provider: 'nc-service' }
+					chat: { booking_calendar: 'g-cal', video_chat: { provider: 'nc-service' } }
 				}
 			} as unknown as WhenConfiguration;
 

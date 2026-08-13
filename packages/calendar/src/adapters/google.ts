@@ -140,6 +140,7 @@ export interface GooglePushOptions {
 	cancelUrl: string;
 	eventTypeName: string;
 	hostName: string;
+	createMeet?: boolean;
 }
 
 /**
@@ -166,16 +167,7 @@ export async function putGoogleEvent(
 
 	const guest = guestContact(appointment);
 	let conferenceData = undefined;
-	if (appointment.video_chat === 'google-meet') {
-		conferenceData = {
-			createRequest: {
-				requestId: appointment.id,
-				conferenceSolutionKey: {
-					type: 'hangoutsMeet'
-				}
-			}
-		};
-	} else if (appointment.video_chat && appointment.video_chat.startsWith('http')) {
+	if (appointment.video_chat && appointment.video_chat.startsWith('http')) {
 		conferenceData = {
 			entryPoints: [
 				{
@@ -183,6 +175,15 @@ export async function putGoogleEvent(
 					uri: appointment.video_chat
 				}
 			]
+		};
+	} else if (opts.createMeet) {
+		conferenceData = {
+			createRequest: {
+				requestId: appointment.id,
+				conferenceSolutionKey: {
+					type: 'hangoutsMeet'
+				}
+			}
 		};
 	}
 
@@ -287,10 +288,17 @@ export class GoogleAdapter implements CalendarAdapter {
 		eventTypeName: string,
 		opts: PushOptions
 	): Promise<PushResult> {
+		const meeting = cfg.meetings[appointment.event_type_id];
+		const videoChatProv = meeting?.video_chat
+			? cfg.providers[meeting.video_chat.provider]
+			: undefined;
+		const isGoogleMeet = videoChatProv?.type === 'google';
+
 		const result = await putGoogleEvent(this.googleCfg, appointment, {
 			cancelUrl: opts.cancelUrl,
 			eventTypeName,
-			hostName: cfg.user.name
+			hostName: cfg.user.name,
+			createMeet: isGoogleMeet
 		});
 		return {
 			ok: true,

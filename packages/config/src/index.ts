@@ -19,5 +19,6 @@ export { resolveFormFields, DEFAULT_FORM_FIELDS, parseGuestAnswers } from './for
 export type { GuestAnswer } from './form-fields.js';
 export { senderEmail } from './sender.js';
 export { durationsOf } from './durations.js';
+export { shouldAttachVideoChat } from './video-chat.js';
 export { ConfigEditor } from './editor.js';
 export * from './schema.js';

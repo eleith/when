@@ -42,18 +42,18 @@ beforeEach(() => {
 });
 
 describe('home page load', () => {
-	test('never exposes a meeting location or video chat provider', async () => {
+	test('never exposes a meeting location or video chat configuration', async () => {
 		withMeetings({
 			chat: {
 				...baseMeeting,
 				location: '1 Main St, Suite 200',
-				video_chat_provider: 'google-service'
+				video_chat: { provider: 'google-service' }
 			}
 		});
 
 		const [et] = await loadEventTypes();
 		expect(et).not.toHaveProperty('location');
-		expect(et).not.toHaveProperty('video_chat_provider');
+		expect(et).not.toHaveProperty('video_chat');
 		expect(JSON.stringify(et)).not.toContain('Main St');
 	});
 

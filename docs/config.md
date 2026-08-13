@@ -225,7 +225,13 @@ meetings:
     booking_calendar: 'work' # required: where the appointment is written
     schedule: 'standard' # required: references a schedules name
     location: 'Office Room 101' # a static URL, address, or phone number (optional)
-    video_chat_provider: 'my-nextcloud-service' # references a nextcloud or google provider name to generate dynamic meeting links (optional)
+    video_chat: # provider and dynamic link attachment rules (optional)
+      provider: 'my-nextcloud-service' # references a nextcloud or google provider name
+      attach: # rules for attaching link (optional; defaults to auto: true)
+        auto: true # auto: true (automatic) or auto: false (admin generates on demand)
+        # when: # or attach conditionally based on guest form answers
+        #   - field: 'loc'
+        #     equals: 'Video Call'
     note: 'Please review materials prior to the call.' # a host note shown to guests (optional)
     form_fields: # custom booking questions (optional)
       - name: 'name'
@@ -271,7 +277,7 @@ meetings:
 Rather than rigid location structures, meetings are customized using:
 
 - **Fixed Location**: A static string configured via `location`.
-- **Dynamic Video Chat**: Setup under `video_chat_provider` referencing the provider name (e.g. `my-nextcloud-service` or `my-google-service`). Dynamic links (like Nextcloud Talk rooms or Google Meet URLs) are generated automatically.
+- **Dynamic Video Chat**: Configured under `video_chat` with `provider` (e.g. `my-nextcloud-service` or `my-google-service`) and optional `attach` rules (`auto: true|false` or `when: [...]` conditions based on form answers). Dynamic links (like Nextcloud Talk rooms or Google Meet URLs) are generated automatically upon booking or on-demand by the host.
 - **Custom Questions**: Configured via `form_fields`. Every form **must** include exactly one `guest_name` field (with `required: true`). Optional special field types include `guest_email` and `event_location`. General text fields, numbers, phone numbers, paragraphs, and choices are also supported. A field may be shown conditionally with `show_when`: a list of `{ field, equals }` conditions (all must hold) referencing earlier fields. Omit `equals` to require only that the referenced field is filled, or give it a list to accept any of several values. A field hidden by `show_when` is never required and its answer is not recorded.
 
 ## `database`

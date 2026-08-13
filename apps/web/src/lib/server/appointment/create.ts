@@ -4,7 +4,6 @@ import type { AppointmentContext } from './context';
 import type { GuestAnswer, Meeting } from '@when/config';
 import { createActionLog, type Appointment } from '@when/db';
 import type { AppointmentEmailKind } from '@when/jobs';
-import { resolveAppointmentVideoChat } from './video-chat';
 
 export interface CreateAppointmentInput {
 	slug: string;
@@ -43,8 +42,6 @@ export async function createAppointment(
 		}
 	]);
 
-	const dbVideoChat = resolveAppointmentVideoChat(eventType, ctx.cfg);
-
 	let appointment: Appointment;
 	try {
 		appointment = await ctx.db
@@ -60,7 +57,7 @@ export async function createAppointment(
 				guest_timezone: input.guest.timezone,
 				location: input.location,
 				note: eventType.note ?? null,
-				video_chat: dbVideoChat,
+				video_chat: null,
 				status,
 				origin_id: id,
 				cancel_token: cancelToken,

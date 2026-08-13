@@ -1,5 +1,9 @@
 import { describe, expect, test } from 'vitest';
-import { getVideoChatAdapter } from './adapter.js';
+import {
+	getVideoChatAdapter,
+	isCalendarIntegratedVideoChat,
+	isStandaloneVideoChat
+} from './adapter.js';
 import type { WhenConfiguration } from '@when/config';
 
 describe('getVideoChatAdapter', () => {
@@ -31,13 +35,22 @@ describe('getVideoChatAdapter', () => {
 		const adapter = getVideoChatAdapter(srv);
 		expect(adapter).toBeDefined();
 		expect(adapter.constructor.name).toBe('NextcloudTalkAdapter');
+		expect(isStandaloneVideoChat(srv)).toBe(true);
+		expect(isCalendarIntegratedVideoChat(srv)).toBe(false);
 	});
 
-	test('returns native meet adapter for google service', () => {
+	test('returns native meet adapter for google service', async () => {
 		const srv = mockConfig.providers['google-service'];
 		const adapter = getVideoChatAdapter(srv);
 		expect(adapter).toBeDefined();
 		expect(adapter.constructor.name).toBe('GoogleMeetAdapter');
+		expect(isCalendarIntegratedVideoChat(srv)).toBe(true);
+		expect(isStandaloneVideoChat(srv)).toBe(false);
+
+		const createRes = await adapter.createRoom('Room');
+		expect(createRes.ok).toBe(false);
+		const deleteRes = await adapter.deleteRoom('http://meet');
+		expect(deleteRes.ok).toBe(true);
 	});
 
 	test('throws for unsupported service type', () => {

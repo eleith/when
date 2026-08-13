@@ -33,6 +33,14 @@ function getVideoChatAdapter(provider: Provider): VideoChatAdapter {
 	return new AdapterClass(provider);
 }
 
+function isCalendarIntegratedVideoChat(provider: Provider): boolean {
+	return provider.type === 'google';
+}
+
+function isStandaloneVideoChat(provider: Provider): boolean {
+	return !isCalendarIntegratedVideoChat(provider);
+}
+
 export type { CreateRoomResult, VideoChatResult, VideoChatDeleteResult, VideoChatAdapter };
 
-export { getVideoChatAdapter };
+export { getVideoChatAdapter, isCalendarIntegratedVideoChat, isStandaloneVideoChat };
