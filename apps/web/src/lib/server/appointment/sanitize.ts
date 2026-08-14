@@ -16,6 +16,7 @@ export interface PublicEventType extends Pick<
 	slug: string; // the meeting's config key, which is its booking page URL
 	duration_minutes: number; // the default length
 	durations: number[]; // every offered length, default first
+	has_video_chat?: boolean;
 }
 
 export interface PublicAppointment {
@@ -46,6 +47,7 @@ export function toPublicEventType(
 		visibility: eventType.visibility,
 		require_approval: eventType.require_approval,
 		location: isAdmin ? eventType.location : undefined,
+		has_video_chat: isAdmin ? !!eventType.video_chat : undefined,
 		show_slots: eventType.show_slots,
 		padding_before_minutes: eventType.padding_before_minutes,
 		padding_after_minutes: eventType.padding_after_minutes,

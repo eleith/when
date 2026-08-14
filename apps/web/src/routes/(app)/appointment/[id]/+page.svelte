@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Dialog } from 'bits-ui';
+	import { enhance } from '$app/forms';
 	import { tick } from 'svelte';
 	import IconArrowRight from 'virtual:icons/ph/arrow-right';
 	import IconCalendarBlank from 'virtual:icons/ph/calendar-blank';
@@ -12,6 +13,7 @@
 	import IconNote from 'virtual:icons/ph/note';
 	import IconPencilSimple from 'virtual:icons/ph/pencil-simple';
 	import IconVideo from 'virtual:icons/ph/video-conference';
+	import IconSpinner from 'virtual:icons/ph/spinner';
 	import AppointmentActions from '$lib/components/AppointmentActions.svelte';
 	import AppointmentLog from '$lib/components/AppointmentLog.svelte';
 	import AppointmentQuestions from '$lib/components/AppointmentQuestions.svelte';
@@ -24,6 +26,7 @@
 	let editNoteDialogOpen = $state(false);
 	let editLocationDialogOpen = $state(false);
 	let editVideoChatDialogOpen = $state(false);
+	let generatingVideoChat = $state(false);
 	let cancelReason = $state('I can no longer attend');
 	let editNoteValue = $state('');
 	let editLocationValue = $state('');
@@ -690,6 +693,38 @@
 						This link will be included in the calendar invitation and email notifications sent to
 						the guest.
 					</p>
+
+					{#if data.eventType.has_video_chat}
+						<form
+							method="POST"
+							action="/admin/appointment/{data.appointment.id}?/generateVideoChat"
+							class="generate-video-form"
+							use:enhance={() => {
+								generatingVideoChat = true;
+								return async ({ result, update }) => {
+									generatingVideoChat = false;
+									await update();
+									if (result.type === 'success') {
+										editVideoChatDialogOpen = false;
+									}
+								};
+							}}
+						>
+							<button type="submit" class="generate-video-btn" disabled={generatingVideoChat}>
+								{#if generatingVideoChat}
+									<span class="spinner"><IconSpinner aria-hidden="true" /></span>
+									<span>Generating link...</span>
+								{:else}
+									<span class="btn-icon"><IconVideo aria-hidden="true" /></span>
+									<span>Generate Video Link</span>
+								{/if}
+							</button>
+						</form>
+
+						<div class="dialog-divider">
+							<span>or enter a custom URL</span>
+						</div>
+					{/if}
 
 					<form method="POST" action="/admin/appointment/{data.appointment.id}?/edit">
 						<input
@@ -1376,5 +1411,65 @@
 
 	:global(.questions-section[open] + .log-section) {
 		border-top: none;
+	}
+
+	.generate-video-form {
+		width: 100%;
+		margin-top: var(--space-1);
+	}
+
+	.generate-video-btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: var(--space-2);
+		width: 100%;
+		padding: var(--space-3) var(--space-4);
+		background: var(--when-color-primary);
+		color: var(--when-color-text-on-primary);
+		border: 1px solid var(--when-color-primary);
+		border-radius: var(--radius);
+		font-size: var(--font-size-md);
+		font-weight: 600;
+		font-family: inherit;
+		cursor: pointer;
+		transition: opacity var(--transition);
+	}
+
+	.generate-video-btn:hover:not(:disabled) {
+		opacity: 0.9;
+	}
+
+	.generate-video-btn:disabled {
+		opacity: 0.7;
+		cursor: not-allowed;
+	}
+
+	.dialog-divider {
+		display: flex;
+		align-items: center;
+		text-align: center;
+		margin: var(--space-4) 0;
+		color: var(--color-text-secondary);
+		font-size: var(--font-size-xs);
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+	}
+
+	.dialog-divider::before,
+	.dialog-divider::after {
+		content: '';
+		flex: 1;
+		border-bottom: 1px solid var(--color-border);
+	}
+
+	.dialog-divider span {
+		padding: 0 var(--space-3);
+	}
+
+	.btn-icon {
+		display: inline-flex;
+		align-items: center;
+		font-size: var(--font-size-lg);
 	}
 </style>
