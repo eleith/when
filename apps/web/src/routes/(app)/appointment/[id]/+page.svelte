@@ -3,7 +3,6 @@
 	import { deserialize } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
 	import { tick } from 'svelte';
-	import IconArrowRight from 'virtual:icons/ph/arrow-right';
 	import IconCalendarBlank from 'virtual:icons/ph/calendar-blank';
 	import AdminNav from '$lib/components/AdminNav.svelte';
 	import IconClock from 'virtual:icons/ph/clock';
@@ -121,7 +120,6 @@
 		if (data.clockStatus === 'concluded') return 'quiet';
 		return 'info';
 	});
-	let canRebook = $derived(status === 'declined' || status === 'cancelled' || status === 'expired');
 	let displayTz = $derived(data.isAdmin ? data.hostTz : data.guestTz);
 	let counterpartTz = $derived(data.isAdmin ? data.guestTz : data.hostTz);
 	let counterpartName = $derived(data.isAdmin ? data.appointment.guest_name : data.user.name);
@@ -504,15 +502,6 @@
 			</section>
 		{/if}
 	</article>
-
-	{#if !data.isAdmin && canRebook}
-		<section class="rebook">
-			<a class="rebook-btn" href="/schedule/{data.eventType.slug}">
-				Pick another time
-				<span class="action-arrow"><IconArrowRight aria-hidden="true" /></span>
-			</a>
-		</section>
-	{/if}
 </main>
 
 <Dialog.Root bind:open={cancelDialogOpen}>
@@ -1081,35 +1070,6 @@
 		color: var(--color-danger-strong);
 	}
 
-	/* ---- rebook CTA (declined / cancelled) ---- */
-	.rebook {
-		margin-top: var(--space-8);
-		display: flex;
-		justify-content: center;
-	}
-
-	.rebook-btn {
-		display: inline-flex;
-		align-items: center;
-		gap: var(--space-2);
-		padding: var(--space-4) var(--space-7);
-		background: var(--when-color-primary);
-		color: var(--when-color-text-on-primary);
-		border-radius: var(--radius);
-		font-size: var(--font-size-md);
-		font-weight: 600;
-		text-decoration: none;
-		transition: opacity var(--transition);
-	}
-
-	.rebook-btn:hover {
-		opacity: 0.9;
-	}
-
-	.rebook-btn:hover .action-arrow {
-		transform: translateX(2px);
-	}
-
 	@media (max-width: 768px) {
 		.page {
 			padding: var(--space-5) var(--space-5) var(--space-9);
@@ -1138,12 +1098,6 @@
 			background: var(--color-surface);
 			border-top: 1px solid var(--color-border);
 			box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08);
-		}
-
-		.rebook-btn {
-			width: 100%;
-			justify-content: center;
-			min-height: 56px;
 		}
 
 		.card-section.detail-list {
