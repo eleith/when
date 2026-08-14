@@ -134,7 +134,12 @@
 																<%= r.label %>
 															</td>
 															<td style="padding: 9px 0; font-size: 16px; color: <%= it.theme.text %>; word-break: break-word;">
+																<% const href = r.href || (/^https?:\/\//i.test(r.value ? r.value.trim() : '') ? r.value.trim() : null); %>
+																<% if (href) { %>
+																<a href="<%= href %>" style="color: <%= it.brand.primaryColor %>; text-decoration: underline;"><%= r.value %></a>
+																<% } else { %>
 																<%= r.value %>
+																<% } %>
 															</td>
 														</tr>
 														<% }) %>
@@ -174,12 +179,14 @@
 											<tr>
 												<% if (it.brand.logoUrl) { %>
 												<td style="padding: 0 6px 0 0; vertical-align: middle;">
-													<img
-														src="<%= it.brand.logoUrl %>"
-														alt="<%= it.brand.name %>"
-														height="22"
-														style="display: block; border: 0; height: 22px; width: auto;"
-													/>
+													<a href="<%= it.brand.appUrl %>" style="display: block; text-decoration: none;">
+														<img
+															src="<%= it.brand.logoUrl %>"
+															alt="<%= it.brand.name %>"
+															height="22"
+															style="display: block; border: 0; height: 22px; width: auto;"
+														/>
+													</a>
 												</td>
 												<td style="padding: 0 6px 0 0; vertical-align: middle; font-size: 13px; color: <%= it.theme.border %>;">
 													&middot;

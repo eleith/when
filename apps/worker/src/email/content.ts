@@ -3,6 +3,7 @@ import type { Brand } from './format.js';
 export interface DetailRow {
 	label: string;
 	value: string | null;
+	href?: string;
 }
 
 export interface EmailAction {

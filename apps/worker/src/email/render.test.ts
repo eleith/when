@@ -69,7 +69,7 @@ describe('renderHtmlBody', () => {
 		expect(html).toContain('#2563eb');
 	});
 
-	test('uses the logo image when configured', () => {
+	test('uses the logo image when configured and links to app url', () => {
 		const html = renderHtmlBody(
 			{
 				...base,
@@ -79,6 +79,29 @@ describe('renderHtmlBody', () => {
 			theme
 		);
 		expect(html).toContain('https://cdn/logo.png');
+		expect(html).toContain('href="https://when.example.com"');
+	});
+
+	test('hyperlinks URLs in table detail rows', () => {
+		const html = renderHtmlBody(
+			{
+				...base,
+				actions: [],
+				rows: [
+					{ label: 'Video link', value: 'https://meet.google.com/abc-defg-hij' },
+					{ label: 'Custom', value: 'Google', href: 'https://google.com' },
+					{ label: 'Plain', value: 'Some location' }
+				]
+			},
+			theme
+		);
+		expect(html).toContain(
+			'<a href="https://meet.google.com/abc-defg-hij" style="color: #2563eb; text-decoration: underline;">https://meet.google.com/abc-defg-hij</a>'
+		);
+		expect(html).toContain(
+			'<a href="https://google.com" style="color: #2563eb; text-decoration: underline;">Google</a>'
+		);
+		expect(html).toContain('Some location');
 	});
 });
 
