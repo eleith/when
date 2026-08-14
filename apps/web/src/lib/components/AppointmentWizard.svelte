@@ -77,12 +77,15 @@
 	let formAction = $derived.by(() => {
 		if (data.isAdmin) {
 			if (rescheduleAppt) {
-				return `/admin/appointment/${rescheduleAppt.id}/reschedule?/book`;
+				return `/admin/appointment/${rescheduleAppt.id}/reschedule`;
 			} else {
-				return `/admin/schedule/${data.eventType.slug}?/book`;
+				return `/admin/schedule/${data.eventType.slug}`;
 			}
 		}
-		return '?/book';
+		if (rescheduleAppt) {
+			return `/appointment/${rescheduleAppt.id}/reschedule`;
+		}
+		return `/schedule/${data.eventType.slug}`;
 	});
 
 	let previousAppointmentHref = $derived(

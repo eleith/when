@@ -74,12 +74,12 @@ function loadEvent(token = 'tok-1', session: unknown = null): Parameters<typeof 
 	} as unknown as Parameters<typeof load>[0];
 }
 
-function bookEvent(fd: FormData): Parameters<typeof actions.book>[0] {
+function bookEvent(fd: FormData): Parameters<typeof actions.default>[0] {
 	return {
 		request: { formData: async () => fd },
 		params: { id: 'appt-1' },
 		cookies: { set: vi.fn() }
-	} as unknown as Parameters<typeof actions.book>[0];
+	} as unknown as Parameters<typeof actions.default>[0];
 }
 
 async function caught(fn: () => unknown): Promise<Thrown> {
@@ -100,7 +100,7 @@ function form(overrides: Record<string, string> = {}): FormData {
 }
 
 async function book(fd: FormData): Promise<Failure> {
-	return (await actions.book(bookEvent(fd))) as Failure;
+	return (await actions.default(bookEvent(fd))) as Failure;
 }
 
 beforeEach(() => {
@@ -181,7 +181,7 @@ describe('/appointment/[id]/reschedule book action', () => {
 			ok: true,
 			appointment: { id: 'appt-2', cancel_token: 'tok-2' }
 		});
-		const r = await caught(() => actions.book(bookEvent(form())));
+		const r = await caught(() => actions.default(bookEvent(form())));
 		expect(r.status).toBe(303);
 		expect(r.location).toBe('/appointment/appt-2?token=tok-2');
 	});

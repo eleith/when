@@ -9,7 +9,7 @@ import { appointmentContext } from '$lib/server/appointment/context';
 import type { Actions } from './$types';
 
 export const actions: Actions = {
-	book: async ({ request, params }) => {
+	default: async ({ request, params }) => {
 		const form = await request.formData();
 		const slotStr = String(form.get('slot') ?? '');
 

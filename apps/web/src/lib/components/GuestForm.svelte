@@ -1,5 +1,6 @@
 <!-- Step 3: the guest fills in their details. Owns all guest-field state and posts the booking. -->
 <script lang="ts">
+	import { enhance } from '$app/forms';
 	import IconCaretLeft from 'virtual:icons/ph/caret-left';
 	import { formatDateCompact, formatTimeShort, formatTzAbbrev } from '$lib/datetime';
 	import { evaluateVisibility } from '$lib/forms/conditional';
@@ -108,6 +109,7 @@
 		id="appointment-form"
 		method="POST"
 		action={formAction}
+		use:enhance
 		oninput={trackFieldValue}
 		onchange={trackFieldValue}
 	>

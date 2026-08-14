@@ -49,12 +49,12 @@ function loadEvent(search: string, session: unknown = null): Parameters<typeof l
 	} as unknown as Parameters<typeof load>[0];
 }
 
-function bookEvent(fd: FormData): Parameters<typeof actions.book>[0] {
+function bookEvent(fd: FormData): Parameters<typeof actions.default>[0] {
 	return {
 		request: { formData: async () => fd },
 		params: { slug: '30-min-chat' },
 		cookies: { set: vi.fn() }
-	} as unknown as Parameters<typeof actions.book>[0];
+	} as unknown as Parameters<typeof actions.default>[0];
 }
 
 async function caught(fn: () => unknown): Promise<Thrown> {
@@ -134,7 +134,7 @@ describe('/schedule/[slug] book action', () => {
 	};
 
 	test('rejects a missing slot with 400', async () => {
-		const result = (await actions.book(bookEvent(new FormData()))) as Failure;
+		const result = (await actions.default(bookEvent(new FormData()))) as Failure;
 		expect(result?.status).toBe(400);
 	});
 
@@ -144,26 +144,26 @@ describe('/schedule/[slug] book action', () => {
 			h.parseForm.mockReturnValue(validGuest);
 			const fd = new FormData();
 			fd.set('slot', slot);
-			expect(((await actions.book(bookEvent(fd))) as Failure)?.status).toBe(400);
+			expect(((await actions.default(bookEvent(fd))) as Failure)?.status).toBe(400);
 		}
 	);
 
 	test('rejects invalid form fields with 400', async () => {
 		h.parseForm.mockReturnValue({ ok: false, errors: { name: 'required' } });
-		expect(((await actions.book(bookEvent(validForm()))) as Failure)?.status).toBe(400);
+		expect(((await actions.default(bookEvent(validForm()))) as Failure)?.status).toBe(400);
 	});
 
 	test('rejects an invalid duration with 400', async () => {
 		h.parseForm.mockReturnValue(validGuest);
 		h.resolveDuration.mockReturnValue(null);
-		expect(((await actions.book(bookEvent(validForm()))) as Failure)?.status).toBe(400);
+		expect(((await actions.default(bookEvent(validForm()))) as Failure)?.status).toBe(400);
 	});
 
 	test('re-validates availability and 409s when the slot is gone', async () => {
 		h.parseForm.mockReturnValue(validGuest);
 		h.resolveDuration.mockReturnValue(30);
 		h.computeSlots.mockReturnValue([]);
-		const result = (await actions.book(bookEvent(validForm()))) as Failure;
+		const result = (await actions.default(bookEvent(validForm()))) as Failure;
 		expect(result?.status).toBe(409);
 		expect(h.createAppointment).not.toHaveBeenCalled();
 	});
@@ -176,7 +176,7 @@ describe('/schedule/[slug] book action', () => {
 			ok: true,
 			appointment: { id: 'new-1', cancel_token: 'tok new' }
 		});
-		const r = await caught(() => actions.book(bookEvent(validForm())));
+		const r = await caught(() => actions.default(bookEvent(validForm())));
 		expect(r.status).toBe(303);
 		expect(r.location).toBe('/appointment/new-1?token=tok%20new');
 	});
@@ -186,7 +186,7 @@ describe('/schedule/[slug] book action', () => {
 		h.resolveDuration.mockReturnValue(30);
 		h.computeSlots.mockReturnValue([Temporal.Instant.from(SLOT)]);
 		h.createAppointment.mockResolvedValue({ ok: false });
-		expect(((await actions.book(bookEvent(validForm()))) as Failure)?.status).toBe(409);
+		expect(((await actions.default(bookEvent(validForm()))) as Failure)?.status).toBe(409);
 	});
 
 	test('500s when the insert throws', async () => {
@@ -194,6 +194,6 @@ describe('/schedule/[slug] book action', () => {
 		h.resolveDuration.mockReturnValue(30);
 		h.computeSlots.mockReturnValue([Temporal.Instant.from(SLOT)]);
 		h.createAppointment.mockRejectedValue(new Error('db down'));
-		expect(((await actions.book(bookEvent(validForm()))) as Failure)?.status).toBe(500);
+		expect(((await actions.default(bookEvent(validForm()))) as Failure)?.status).toBe(500);
 	});
 });

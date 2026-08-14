@@ -70,7 +70,7 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 };
 
 export const actions: Actions = {
-	book: async ({ request, params, cookies }) => {
+	default: async ({ request, params, cookies }) => {
 		const cfg = getConfig();
 		const eventType = cfg.meetings[params.slug];
 		if (!eventType) error(404);

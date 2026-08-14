@@ -17,7 +17,7 @@ import { appointmentContext } from '$lib/server/appointment/context';
 import type { Actions } from './$types';
 
 export const actions: Actions = {
-	book: async ({ request, params }) => {
+	default: async ({ request, params }) => {
 		const cfg = getConfig();
 		const eventType = cfg.meetings[params.slug];
 		if (!eventType) error(404);

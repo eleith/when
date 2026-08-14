@@ -62,7 +62,7 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 };
 
 export const actions: Actions = {
-	book: async ({ request, params, cookies }) => {
+	default: async ({ request, params, cookies }) => {
 		const form = await request.formData();
 		const slotStr = String(form.get('slot') ?? '');
 		const token = String(form.get('token') ?? '').trim();
