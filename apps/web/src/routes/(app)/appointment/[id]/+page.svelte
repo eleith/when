@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Dialog } from 'bits-ui';
-	import { enhance } from '$app/forms';
+	import { deserialize } from '$app/forms';
+	import { invalidateAll } from '$app/navigation';
 	import { tick } from 'svelte';
 	import IconArrowRight from 'virtual:icons/ph/arrow-right';
 	import IconCalendarBlank from 'virtual:icons/ph/calendar-blank';
@@ -35,6 +36,26 @@
 	let noteTextareaEl = $state<HTMLTextAreaElement | null>(null);
 	let locationInputEl = $state<HTMLInputElement | null>(null);
 	let videoChatInputEl = $state<HTMLInputElement | null>(null);
+
+	async function handleGenerateVideoChat() {
+		generatingVideoChat = true;
+		try {
+			const fd = new FormData();
+			const res = await fetch(`/admin/appointment/${data.appointment.id}?/generateVideoChat`, {
+				method: 'POST',
+				body: fd
+			});
+			const result = deserialize(await res.text());
+			if (result.type === 'success') {
+				editVideoChatDialogOpen = false;
+				await invalidateAll();
+			}
+		} catch (err) {
+			console.error('Failed to generate video chat:', err);
+		} finally {
+			generatingVideoChat = false;
+		}
+	}
 
 	$effect(() => {
 		if (cancelDialogOpen) {
@@ -684,77 +705,103 @@
 					<Dialog.Title>
 						{#snippet child({ props: titleProps })}
 							<h2 {...titleProps} class="cancel-dialog-title">
-								{#if data.appointment.video_chat}Edit Video Link{:else}Add Video Link{/if}
+								{#if data.actions.generateVideoChat.allowed}
+									{#if data.appointment.video_chat}Video Link{:else}Generate Video Link{/if}
+								{:else if data.appointment.video_chat}Edit Video Link{:else}Add Video Link{/if}
 							</h2>
 						{/snippet}
 					</Dialog.Title>
 
 					<p class="cancel-dialog-desc">
-						This link will be included in the calendar invitation and email notifications sent to
-						the guest.
+						{#if data.actions.generateVideoChat.allowed}
+							{#if data.appointment.video_chat}
+								This video link was generated with your meeting provider.
+							{:else}
+								Generate a video link with your meeting provider to include in the invitation and
+								emails.
+							{/if}
+						{:else}
+							This link will be included in the calendar invitation and email notifications sent to
+							the guest.
+						{/if}
 					</p>
 
 					{#if data.actions.generateVideoChat.allowed}
-						<form
-							method="POST"
-							action="/admin/appointment/{data.appointment.id}?/generateVideoChat"
-							class="generate-video-form"
-							use:enhance={() => {
-								generatingVideoChat = true;
-								return async ({ result, update }) => {
-									generatingVideoChat = false;
-									await update();
-									if (result.type === 'success') {
-										editVideoChatDialogOpen = false;
-									}
-								};
-							}}
-						>
-							<button type="submit" class="generate-video-btn" disabled={generatingVideoChat}>
-								{#if generatingVideoChat}
-									<span class="spinner"><IconSpinner aria-hidden="true" /></span>
-									<span>Generating link...</span>
-								{:else}
-									<span class="btn-icon"><IconVideo aria-hidden="true" /></span>
-									<span>Generate Video Link</span>
-								{/if}
-							</button>
-						</form>
-
-						<div class="dialog-divider">
-							<span>or enter a custom URL</span>
-						</div>
-					{/if}
-
-					<form method="POST" action="/admin/appointment/{data.appointment.id}?/edit">
-						<input
-							type="url"
-							name="video_chat"
-							class="cancel-reason-input"
-							placeholder="e.g., https://zoom.us/j/..."
-							bind:value={editVideoChatValue}
-							bind:this={videoChatInputEl}
-						/>
-						<div class="cancel-dialog-actions edit-note-actions">
-							<button type="submit" class="cancel-confirm-btn">Save</button>
-							{#if data.appointment.video_chat}
-								<button
-									type="submit"
-									class="delete-note-btn"
-									onclick={() => {
-										editVideoChatValue = '';
-									}}
+						{#if data.appointment.video_chat}
+							<div class="video-preview-box">
+								<a
+									href={data.appointment.video_chat}
+									target="_blank"
+									rel="noopener noreferrer"
+									class="video-preview-link"
 								>
-									Delete
+									{data.appointment.video_chat}
+								</a>
+							</div>
+
+							<form method="POST" action="/admin/appointment/{data.appointment.id}?/edit">
+								<input type="hidden" name="video_chat" value="" />
+								<div class="cancel-dialog-actions edit-note-actions">
+									<button type="submit" class="delete-note-btn">Remove</button>
+									<Dialog.Close>
+										{#snippet child({ props: closeProps })}
+											<button {...closeProps} type="button" class="cancel-cancel-btn">Close</button>
+										{/snippet}
+									</Dialog.Close>
+								</div>
+							</form>
+						{:else}
+							<div class="cancel-dialog-actions edit-note-actions">
+								<button
+									type="button"
+									class="cancel-confirm-btn"
+									class:busy={generatingVideoChat}
+									disabled={generatingVideoChat}
+									onclick={handleGenerateVideoChat}
+								>
+									<span class="label">Generate</span>
+									{#if generatingVideoChat}
+										<span class="spinner"><IconSpinner aria-hidden="true" /></span>
+									{/if}
 								</button>
-							{/if}
-							<Dialog.Close>
-								{#snippet child({ props: closeProps })}
-									<button {...closeProps} type="button" class="cancel-cancel-btn">Close</button>
-								{/snippet}
-							</Dialog.Close>
-						</div>
-					</form>
+								<Dialog.Close>
+									{#snippet child({ props: closeProps })}
+										<button {...closeProps} type="button" class="cancel-cancel-btn">Close</button>
+									{/snippet}
+								</Dialog.Close>
+							</div>
+						{/if}
+					{:else}
+						<form method="POST" action="/admin/appointment/{data.appointment.id}?/edit">
+							<input
+								type="url"
+								name="video_chat"
+								class="cancel-reason-input"
+								placeholder="e.g., https://zoom.us/j/..."
+								bind:value={editVideoChatValue}
+								bind:this={videoChatInputEl}
+							/>
+							<div class="cancel-dialog-actions edit-note-actions">
+								<button type="submit" class="cancel-confirm-btn">Save</button>
+								{#if data.appointment.video_chat}
+									<button
+										type="submit"
+										class="delete-note-btn"
+										onclick={() => {
+											editVideoChatValue = '';
+										}}
+									>
+										Delete
+									</button>
+								{/if}
+								<Dialog.Close>
+									{#snippet child({ props: closeProps })}
+										<button {...closeProps} type="button" class="cancel-cancel-btn">Close</button>
+									{/snippet}
+								</Dialog.Close>
+							</div>
+						</form>
+					{/if}
 				</div>
 			{/snippet}
 		</Dialog.Content>
@@ -1388,6 +1435,32 @@
 		background: var(--color-danger-bg);
 	}
 
+	.edit-note-actions .cancel-confirm-btn {
+		background: var(--when-color-primary);
+		border-color: var(--when-color-primary);
+		display: inline-grid;
+		grid-template-areas: 'content';
+		place-items: center;
+	}
+
+	.edit-note-actions .cancel-confirm-btn > * {
+		grid-area: content;
+	}
+
+	.edit-note-actions .cancel-confirm-btn.busy .label {
+		opacity: 0;
+	}
+
+	.edit-note-actions .cancel-confirm-btn:hover:not(:disabled) {
+		background: var(--when-color-primary);
+		opacity: 0.9;
+	}
+
+	.edit-note-actions .cancel-confirm-btn:disabled {
+		opacity: 0.7;
+		cursor: not-allowed;
+	}
+
 	.edit-note-actions .cancel-cancel-btn {
 		margin-left: auto;
 	}
@@ -1413,58 +1486,19 @@
 		border-top: none;
 	}
 
-	.generate-video-form {
-		width: 100%;
-		margin-top: var(--space-1);
-	}
-
-	.generate-video-btn {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		gap: var(--space-2);
-		width: 100%;
+	.video-preview-box {
 		padding: var(--space-3) var(--space-4);
-		background: var(--when-color-primary);
-		color: var(--when-color-text-on-primary);
-		border: 1px solid var(--when-color-primary);
+		background: var(--color-surface-muted);
+		border: 1px solid var(--color-border);
 		border-radius: var(--radius);
+		margin-bottom: var(--space-4);
+		word-break: break-all;
+	}
+
+	.video-preview-link {
+		color: var(--when-color-primary);
+		text-decoration: underline;
 		font-size: var(--font-size-md);
-		font-weight: 600;
-		font-family: inherit;
-		cursor: pointer;
-		transition: opacity var(--transition);
-	}
-
-	.generate-video-btn:hover:not(:disabled) {
-		opacity: 0.9;
-	}
-
-	.generate-video-btn:disabled {
-		opacity: 0.7;
-		cursor: not-allowed;
-	}
-
-	.dialog-divider {
-		display: flex;
-		align-items: center;
-		text-align: center;
-		margin: var(--space-4) 0;
-		color: var(--color-text-secondary);
-		font-size: var(--font-size-xs);
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-	}
-
-	.dialog-divider::before,
-	.dialog-divider::after {
-		content: '';
-		flex: 1;
-		border-bottom: 1px solid var(--color-border);
-	}
-
-	.dialog-divider span {
-		padding: 0 var(--space-3);
 	}
 
 	.btn-icon {

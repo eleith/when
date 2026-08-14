@@ -6,6 +6,8 @@ import { createLogger } from '../services/logger.js';
 import { runGenerateVideoChat } from './generate-video-chat.js';
 import { getVideoChatAdapter, type VideoChatAdapter } from '@when/video-chat';
 
+import { sampleConfig } from '../email/__fixtures__/appointment.js';
+
 vi.mock('@when/video-chat', () => ({
 	getVideoChatAdapter: vi.fn(),
 	isCalendarIntegratedVideoChat: vi.fn((p) => p.type === 'google'),
@@ -13,13 +15,15 @@ vi.mock('@when/video-chat', () => ({
 }));
 
 const mockConfig = {
+	...sampleConfig,
 	url: { app: 'https://when.example.com' },
 	providers: {
 		'nc-service': {
 			type: 'nextcloud',
 			url: 'https://cloud.example.com',
 			username: 'user',
-			password: 'pwd'
+			password: 'pwd',
+			calendars: {}
 		}
 	},
 	meetings: {
@@ -32,16 +36,18 @@ const mockConfig = {
 } as unknown as WhenConfiguration;
 
 let db: WorkerContext['db'];
+let mailerSend: ReturnType<typeof vi.fn>;
 
 describe('runGenerateVideoChat', () => {
 	beforeEach(async () => {
 		db = openDb(':memory:');
 		await runMigrations(db);
+		mailerSend = vi.fn().mockResolvedValue({ ok: true });
 		setWorkerContext({
 			config: mockConfig,
 			logger: createLogger(),
 			db,
-			mailer: { send: vi.fn() }
+			mailer: { send: mailerSend }
 		});
 	});
 
@@ -129,6 +135,7 @@ describe('runGenerateVideoChat', () => {
 
 		const logs = parseActionLog(row.action_log);
 		expect(logs.some((l) => l.action === 'edit' && l.actor === 'host')).toBe(true);
+		expect(mailerSend).toHaveBeenCalledTimes(2); // guest and host email
 	});
 
 	test('throws if appointment is not found', async () => {

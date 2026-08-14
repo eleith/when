@@ -7,7 +7,10 @@ import { appendJobLog } from '../services/job-log.js';
 import { parseGuestAnswers } from '@when/config';
 import { shouldAttachVideoChat } from '@when/video-chat';
 import { recordSendOutcome } from '../email/status.js';
-import { createStandaloneVideoChat } from '../services/video-chat.js';
+import {
+	createStandaloneVideoChat,
+	deleteStandaloneVideoChatByUrl
+} from '../services/video-chat.js';
 import { reconcileAppointment as syncCalendarForAppointment } from '../calendar/sync.js';
 import { implementObservedWorkflow, emailsTotal } from '../services/metrics.js';
 
@@ -37,9 +40,24 @@ export async function runReconcileAppointment(
 		.where('id', '=', input.appointmentId)
 		.executeTakeFirstOrThrow();
 
-	// 1. Resolve Standalone Video Chat (e.g. Nextcloud Talk) if auto-attach conditions are met
+	// 1. Cleanup removed standalone video chat if specified
+	if (input.cleanupVideoChatUrl) {
+		await step.run({ name: 'cleanup-video-chat' }, () =>
+			deleteStandaloneVideoChatByUrl(
+				ctx.config,
+				resolvedRow.event_type_id,
+				input.cleanupVideoChatUrl!
+			)
+		);
+	}
+
+	// 2. Resolve Standalone Video Chat (e.g. Nextcloud Talk) ONLY on initial booking/confirmation
+	const isInitialCreation =
+		input.emailKind === 'confirmed' ||
+		input.emailKind === 'pending' ||
+		input.emailKind === 'booked';
 	const meeting = ctx.config.meetings[resolvedRow.event_type_id];
-	if (meeting?.video_chat) {
+	if (isInitialCreation && meeting?.video_chat && !resolvedRow.video_chat) {
 		const answers = parseGuestAnswers(resolvedRow.guest_answers);
 		if (shouldAttachVideoChat(meeting, ctx.config, answers)) {
 			resolvedRow = await step.run({ name: 'resolve-video-chat' }, () =>
@@ -48,7 +66,7 @@ export async function runReconcileAppointment(
 		}
 	}
 
-	// 2. Sync Calendar (which also handles Google Meet generation)
+	// 3. Sync Calendar (which also handles Google Meet generation if initially requested)
 	await step.run({ name: 'sync-calendar' }, () => syncCalendarForAppointment(ctx, resolvedRow));
 
 	// 3. Send email if requested

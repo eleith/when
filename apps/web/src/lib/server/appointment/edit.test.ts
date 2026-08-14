@@ -168,6 +168,13 @@ describe('editAppointment', () => {
 			}
 
 			expect(enqueueAppointmentReconciliation).toHaveBeenCalledTimes(3);
+			expect(vi.mocked(enqueueAppointmentReconciliation).mock.calls[0][3]).toBeNull();
+			expect(vi.mocked(enqueueAppointmentReconciliation).mock.calls[1][3]).toBe(
+				'https://zoom.us/j/12345'
+			);
+			expect(vi.mocked(enqueueAppointmentReconciliation).mock.calls[2][3]).toBe(
+				'https://zoom.us/j/67890'
+			);
 		} finally {
 			await db.destroy();
 		}

@@ -158,4 +158,54 @@ describe('runReconcileAppointment', () => {
 		expect(await readEmailJobStates(db)).toEqual(['failed']);
 		await db.destroy();
 	});
+
+	test('does not auto-generate video chat on edited-by-host even if video_chat is null', async () => {
+		const db = await seedDb();
+		const { mailer, send } = makeMailer();
+		send.mockResolvedValue({ ok: true });
+		recordingFetch(201);
+
+		setWorkerContext({ config: testConfig, db, logger: createLogger(), mailer });
+
+		const { step, names } = makeStep();
+		const result = await runReconcileAppointment(
+			{ appointmentId: 'appt-1', emailKind: 'edited-by-host' },
+			step
+		);
+
+		expect(result).toBe('reconciled');
+		expect(names).not.toContain('resolve-video-chat');
+		expect(names).toContain('sync-calendar');
+		await db.destroy();
+	});
+
+	test('executes cleanup-video-chat step when cleanupVideoChatUrl is provided', async () => {
+		const db = await seedDb();
+		const { mailer, send } = makeMailer();
+		send.mockResolvedValue({ ok: true });
+		const { calls } = recordingFetch(200);
+
+		setWorkerContext({ config: testConfig, db, logger: createLogger(), mailer });
+
+		const { step, names } = makeStep();
+		const result = await runReconcileAppointment(
+			{
+				appointmentId: 'appt-1',
+				emailKind: 'edited-by-host',
+				cleanupVideoChatUrl: 'https://cloud.example.com/call/old-tok'
+			},
+			step
+		);
+
+		expect(result).toBe('reconciled');
+		expect(names).toContain('cleanup-video-chat');
+		expect(
+			calls.some(
+				(c) =>
+					c.method === 'DELETE' &&
+					c.url.includes('/ocs/v2.php/apps/spreed/api/v4/room/old-tok')
+			)
+		).toBe(true);
+		await db.destroy();
+	});
 });

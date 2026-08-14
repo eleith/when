@@ -172,7 +172,7 @@ export async function putGoogleEvent(
 	const method = isUpdate ? 'PUT' : 'POST';
 
 	const guest = guestContact(appointment);
-	let conferenceData = undefined;
+	let conferenceData: Record<string, unknown> | undefined = undefined;
 	if (appointment.video_chat && appointment.video_chat.startsWith('http')) {
 		conferenceData = {
 			entryPoints: [
@@ -191,6 +191,8 @@ export async function putGoogleEvent(
 				}
 			}
 		};
+	} else if (isUpdate) {
+		conferenceData = {};
 	}
 
 	const payload = {
@@ -300,8 +302,10 @@ export class GoogleAdapter implements CalendarAdapter {
 			: undefined;
 		const isGoogleMeet = videoChatProv?.type === 'google';
 		const answers = parseGuestAnswers(appointment.guest_answers);
+		const isInitialBooking = !appointment.external_event_id && !appointment.video_chat;
 		const shouldAttach =
-			opts.attachVideoChat ?? (meeting ? shouldAttachVideoChat(meeting, cfg, answers) : false);
+			opts.attachVideoChat ??
+			(isInitialBooking && meeting ? shouldAttachVideoChat(meeting, cfg, answers) : false);
 
 		const result = await putGoogleEvent(this.googleCfg, appointment, {
 			cancelUrl: opts.cancelUrl,

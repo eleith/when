@@ -71,6 +71,38 @@ export async function createStandaloneVideoChat(
 		.executeTakeFirstOrThrow()) as Appointment;
 }
 
+export async function deleteStandaloneVideoChatByUrl(
+	config: WhenConfiguration,
+	eventTypeId: string,
+	videoChatUrl: string
+): Promise<void> {
+	if (!videoChatUrl) {
+		return;
+	}
+
+	const meeting = config.meetings[eventTypeId];
+	if (!meeting || !meeting.video_chat) {
+		return;
+	}
+
+	const service = config.providers[meeting.video_chat.provider];
+	if (!service || !isStandaloneVideoChat(service)) {
+		return;
+	}
+
+	try {
+		const adapter = getVideoChatAdapter(service);
+		const deleteResult = await adapter.deleteRoom(videoChatUrl);
+		if (!deleteResult.ok) {
+			console.warn(`Failed to delete video chat room: ${deleteResult.reason}`);
+		}
+	} catch (err) {
+		console.warn(
+			`Error deleting video chat room: ${err instanceof Error ? err.message : String(err)}`
+		);
+	}
+}
+
 export async function deleteStandaloneVideoChat(
 	db: Kysely<Database>,
 	appointmentId: string,
@@ -86,27 +118,7 @@ export async function deleteStandaloneVideoChat(
 		return;
 	}
 
-	const meeting = config.meetings[row.event_type_id];
-	if (!meeting || !meeting.video_chat) {
-		return;
-	}
-
-	const service = config.providers[meeting.video_chat.provider];
-	if (!service || !isStandaloneVideoChat(service)) {
-		return;
-	}
-
-	try {
-		const adapter = getVideoChatAdapter(service);
-		const deleteResult = await adapter.deleteRoom(row.video_chat);
-		if (!deleteResult.ok) {
-			console.warn(`Failed to delete video chat room: ${deleteResult.reason}`);
-		}
-	} catch (err) {
-		console.warn(
-			`Error deleting video chat room: ${err instanceof Error ? err.message : String(err)}`
-		);
-	}
+	await deleteStandaloneVideoChatByUrl(config, row.event_type_id, row.video_chat);
 
 	const now = Temporal.Now.instant().toString();
 	const removeEntry: ActionLogEntry = {

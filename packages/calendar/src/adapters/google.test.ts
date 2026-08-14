@@ -325,4 +325,3 @@ describe('GoogleAdapter.pushAppointment', () => {
 		expect(res.videoChatUrl).toBe('https://meet.google.com/xyz');
 	});
 });
-

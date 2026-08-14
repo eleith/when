@@ -120,7 +120,10 @@ export async function editAppointment(
 		return { ok: false, reason: 'conflict' };
 	}
 
-	await enqueueAppointmentReconciliation(ctx.db, updated.id, 'edited-by-host');
+	const videoChatWasReplaced = video_chatChange === 'removed' || video_chatChange === 'updated';
+	const cleanupVideoChatUrl = videoChatWasReplaced ? appointment.video_chat : null;
+
+	await enqueueAppointmentReconciliation(ctx.db, updated.id, 'edited-by-host', cleanupVideoChatUrl);
 
 	return { ok: true, appointment: updated };
 }

@@ -25,6 +25,7 @@ export type AppointmentEmailKind =
 export interface ReconcileAppointmentInput {
 	appointmentId: string;
 	emailKind?: AppointmentEmailKind;
+	cleanupVideoChatUrl?: string | null;
 }
 
 // 'reconciled' = completed successfully; 'failed' = failed after retries.

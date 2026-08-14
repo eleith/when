@@ -14,7 +14,8 @@ import type { Appointment, Database } from '@when/db';
 export async function enqueueAppointmentReconciliation(
 	db: Kysely<Database>,
 	appointmentId: string,
-	emailKind?: AppointmentEmailKind
+	emailKind?: AppointmentEmailKind,
+	cleanupVideoChatUrl?: string | null
 ): Promise<Appointment> {
 	const appointment = await db
 		.selectFrom('appointments')
@@ -24,7 +25,7 @@ export async function enqueueAppointmentReconciliation(
 
 	await getOpenWorkflow().runWorkflow(
 		reconcileAppointment,
-		{ appointmentId, emailKind },
+		{ appointmentId, emailKind, cleanupVideoChatUrl },
 		// Bumping by ics_sequence ensures reschedules get distinct runs and aren't swallowed by queue dedup.
 		{
 			idempotencyKey: emailKind
