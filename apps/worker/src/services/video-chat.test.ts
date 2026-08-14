@@ -33,47 +33,6 @@ async function makeDb() {
 }
 
 describe('createStandaloneVideoChat', () => {
-	test('no-op if attach.auto is false', async () => {
-		const db = await makeDb();
-		try {
-			const configAutoFalse = {
-				...mockConfig,
-				meetings: { chat: { video_chat: { provider: 'nc-service', attach: { auto: false } } } }
-			} as unknown as WhenConfiguration;
-
-			await db
-				.insertInto('appointments')
-				.values({
-					id: 'a1',
-					event_type_id: 'chat',
-					start_time: '2026-05-01T15:00:00Z',
-					end_time: '2026-05-01T15:30:00Z',
-					guest_name: 'Booker',
-					guest_email: 'booker@example.com',
-					guest_timezone: 'UTC',
-					location: null,
-					video_chat: null,
-					status: 'confirmed',
-					cancel_token: 'tok',
-					origin_id: 'a1',
-					calendar_revision: 1,
-					ics_sequence: 0,
-					has_possible_conflict: 0,
-					meeting_snapshot: null,
-					guest_answers: null,
-					created_at: '',
-					updated_at: ''
-				})
-				.execute();
-
-			const res = await createStandaloneVideoChat(db, 'a1', configAutoFalse);
-			expect(res.video_chat).toBeNull();
-			expect(getVideoChatAdapter).not.toHaveBeenCalled();
-		} finally {
-			await db.destroy();
-		}
-	});
-
 	test('no-op if video_chat is already a URL', async () => {
 		const db = await makeDb();
 		try {
@@ -110,7 +69,7 @@ describe('createStandaloneVideoChat', () => {
 		}
 	});
 
-	test('creates standalone video chat room, updates link, bumps calendar_revision', async () => {
+	test('creates standalone video chat room, updates link, bumps calendar_revision and logs edit', async () => {
 		const db = await makeDb();
 		try {
 			await db
@@ -153,9 +112,11 @@ describe('createStandaloneVideoChat', () => {
 			expect(res.calendar_revision).toBe(2);
 
 			const logs = parseActionLog(res.action_log);
-			expect(logs.length).toBe(1);
-			expect(logs[0].action).toBe('video_chat');
-			expect(logs[0].payload?.metadata?.state).toBe('done');
+			expect(logs.length).toBe(2);
+			expect(logs[0].action).toBe('edit');
+			expect(logs[0].payload?.metadata?.changes).toEqual(['video_chat_added']);
+			expect(logs[1].action).toBe('video_chat');
+			expect(logs[1].payload?.metadata?.state).toBe('done');
 		} finally {
 			await db.destroy();
 		}
@@ -205,7 +166,7 @@ describe('deleteStandaloneVideoChat', () => {
 		}
 	});
 
-	test('deletes standalone room and sets video_chat to null', async () => {
+	test('deletes standalone room and sets video_chat to null and logs removal', async () => {
 		const db = await makeDb();
 		try {
 			const configWithVc = {
@@ -259,6 +220,13 @@ describe('deleteStandaloneVideoChat', () => {
 				.where('id', '=', 'c2')
 				.executeTakeFirstOrThrow();
 			expect(row.video_chat).toBeNull();
+
+			const logs = parseActionLog(row.action_log);
+			expect(logs.length).toBe(2);
+			expect(logs[0].action).toBe('edit');
+			expect(logs[0].payload?.metadata?.changes).toEqual(['video_chat_removed']);
+			expect(logs[1].action).toBe('video_chat');
+			expect(logs[1].payload?.metadata?.state).toBe('done');
 		} finally {
 			await db.destroy();
 		}

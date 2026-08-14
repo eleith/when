@@ -4,6 +4,7 @@ import type { ReconcileAppointmentInput, ReconcileAppointmentResult } from '@whe
 import { dispatch } from '../email/dispatch.js';
 import { getWorkerContext } from '../services/context.js';
 import { appendJobLog } from '../services/job-log.js';
+import { parseGuestAnswers, shouldAttachVideoChat } from '@when/config';
 import { recordSendOutcome } from '../email/status.js';
 import { createStandaloneVideoChat } from '../services/video-chat.js';
 import { reconcileAppointment as syncCalendarForAppointment } from '../calendar/sync.js';
@@ -29,10 +30,22 @@ export async function runReconcileAppointment(
 ): Promise<ReconcileAppointmentResult> {
 	const ctx = getWorkerContext();
 
-	// 1. Resolve Standalone Video Chat (Nextcloud Talk)
-	const resolvedRow = await step.run({ name: 'resolve-video-chat' }, () =>
-		createStandaloneVideoChat(ctx.db, input.appointmentId, ctx.config)
-	);
+	let resolvedRow = await ctx.db
+		.selectFrom('appointments')
+		.selectAll()
+		.where('id', '=', input.appointmentId)
+		.executeTakeFirstOrThrow();
+
+	// 1. Resolve Standalone Video Chat (e.g. Nextcloud Talk) if auto-attach conditions are met
+	const meeting = ctx.config.meetings[resolvedRow.event_type_id];
+	if (meeting?.video_chat) {
+		const answers = parseGuestAnswers(resolvedRow.guest_answers);
+		if (shouldAttachVideoChat(meeting, ctx.config, answers)) {
+			resolvedRow = await step.run({ name: 'resolve-video-chat' }, () =>
+				createStandaloneVideoChat(ctx.db, input.appointmentId, ctx.config)
+			);
+		}
+	}
 
 	// 2. Sync Calendar (which also handles Google Meet generation)
 	await step.run({ name: 'sync-calendar' }, () => syncCalendarForAppointment(ctx, resolvedRow));

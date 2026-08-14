@@ -1,7 +1,7 @@
 import { getVideoChatAdapter, isStandaloneVideoChat } from '@when/video-chat';
 import type { Kysely } from 'kysely';
-import type { Database, Appointment } from '@when/db';
-import { parseGuestAnswers, shouldAttachVideoChat, type WhenConfiguration } from '@when/config';
+import { appendActionLogSql, type Database, type Appointment, type ActionLogEntry } from '@when/db';
+import type { WhenConfiguration } from '@when/config';
 import { appendJobLog } from './job-log.js';
 
 export async function createStandaloneVideoChat(
@@ -33,11 +33,6 @@ export async function createStandaloneVideoChat(
 		return row as Appointment;
 	}
 
-	const answers = parseGuestAnswers(row.guest_answers);
-	if (!shouldAttachVideoChat(meeting, config, answers)) {
-		return row as Appointment;
-	}
-
 	const now = Temporal.Now.instant().toString();
 	const adapter = getVideoChatAdapter(service);
 	const roomName = `Meeting: ${row.guest_name}`;
@@ -47,11 +42,21 @@ export async function createStandaloneVideoChat(
 		throw new Error(`Failed to create video chat room: ${result.reason}`);
 	}
 
+	const editEntry: ActionLogEntry = {
+		action: 'edit',
+		actor: 'host',
+		at: now,
+		payload: {
+			metadata: { changes: ['video_chat_added'] }
+		}
+	};
+
 	await db
 		.updateTable('appointments')
 		.set({
 			video_chat: result.url,
 			calendar_revision: row.calendar_revision + 1,
+			action_log: appendActionLogSql(editEntry),
 			updated_at: now
 		})
 		.where('id', '=', appointmentId)
@@ -104,10 +109,20 @@ export async function deleteStandaloneVideoChat(
 	}
 
 	const now = Temporal.Now.instant().toString();
+	const removeEntry: ActionLogEntry = {
+		action: 'edit',
+		actor: 'host',
+		at: now,
+		payload: {
+			metadata: { changes: ['video_chat_removed'] }
+		}
+	};
+
 	await db
 		.updateTable('appointments')
 		.set({
 			video_chat: null,
+			action_log: appendActionLogSql(removeEntry),
 			updated_at: now
 		})
 		.where('id', '=', appointmentId)

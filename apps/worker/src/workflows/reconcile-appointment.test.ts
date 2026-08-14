@@ -18,14 +18,23 @@ const input: ReconcileAppointmentInput = {
 
 const testConfig = {
 	...sampleInput.cfg,
-	providers: {},
+	providers: {
+		'nc-service': {
+			type: 'nextcloud',
+			url: 'https://cloud.example.com',
+			username: 'user',
+			password: 'pwd',
+			calendars: {}
+		}
+	},
 	meetings: {
 		'30-min': {
 			title: '30 minute meeting',
 			duration_minutes: 30,
 			require_approval: false,
 			booking_calendar: 'cal',
-			schedule: 'standard'
+			schedule: 'standard',
+			video_chat: { provider: 'nc-service', attach: { auto: true } }
 		}
 	}
 } as unknown as WhenConfiguration;
@@ -52,6 +61,12 @@ function recordingFetch(status = 204) {
 	vi.spyOn(globalThis, 'fetch').mockImplementation(
 		async (url: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) => {
 			calls.push({ method: (init?.method as string) ?? 'GET', url: String(url) });
+			if (String(url).includes('/ocs/v2.php/apps/spreed/api/v4/room')) {
+				return new Response(
+					JSON.stringify({ ocs: { data: { token: 'call-tok', name: 'room' } } }),
+					{ status: 201, headers: { 'content-type': 'application/json' } }
+				);
+			}
 			return new Response(null, { status });
 		}
 	);

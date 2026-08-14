@@ -3,11 +3,10 @@ import {
 	type GenerateVideoChatInput,
 	type GenerateVideoChatResult
 } from '@when/jobs';
-import { parseActionLog, type ActionLogEntry } from '@when/db';
-import { getVideoChatAdapter, isCalendarIntegratedVideoChat } from '@when/video-chat';
+import { isCalendarIntegratedVideoChat } from '@when/video-chat';
 import { getWorkerContext } from '../services/context.js';
+import { createStandaloneVideoChat } from '../services/video-chat.js';
 import { reconcileAppointment as syncCalendarForAppointment } from '../calendar/sync.js';
-import { appendJobLog } from '../services/job-log.js';
 import { implementObservedWorkflow } from '../services/metrics.js';
 
 export async function runGenerateVideoChat(
@@ -38,9 +37,6 @@ export async function runGenerateVideoChat(
 		throw new Error(`Video chat provider "${meeting.video_chat.provider}" not found`);
 	}
 
-	let generatedUrl: string | null;
-	const now = Temporal.Now.instant().toString();
-
 	if (isCalendarIntegratedVideoChat(service)) {
 		await syncCalendarForAppointment(ctx, row);
 		const refreshed = await ctx.db
@@ -48,56 +44,17 @@ export async function runGenerateVideoChat(
 			.selectAll()
 			.where('id', '=', row.id)
 			.executeTakeFirstOrThrow();
-		generatedUrl = refreshed.video_chat;
-	} else {
-		const adapter = getVideoChatAdapter(service);
-		const roomName = `Meeting: ${row.guest_name}`;
-		const result = await adapter.createRoom(roomName);
-		if (!result.ok) {
-			throw new Error(`Failed to create video chat room: ${result.reason}`);
+		if (!refreshed.video_chat) {
+			throw new Error('Failed to generate video chat URL');
 		}
-		generatedUrl = result.url;
-		await ctx.db
-			.updateTable('appointments')
-			.set({
-				video_chat: generatedUrl,
-				calendar_revision: row.calendar_revision + 1,
-				updated_at: now
-			})
-			.where('id', '=', row.id)
-			.execute();
-		await appendJobLog(ctx.db, row.id, 'video_chat', 'done', now);
+		return { url: refreshed.video_chat };
 	}
 
-	if (!generatedUrl) {
+	const updated = await createStandaloneVideoChat(ctx.db, row.id, ctx.config);
+	if (!updated.video_chat) {
 		throw new Error('Failed to generate video chat URL');
 	}
-
-	const actionEntry: ActionLogEntry = {
-		action: 'edit',
-		actor: 'host',
-		at: now,
-		payload: {
-			field: 'video_chat',
-			from: row.video_chat,
-			to: generatedUrl
-		}
-	};
-	const fresh = await ctx.db
-		.selectFrom('appointments')
-		.select('action_log')
-		.where('id', '=', row.id)
-		.executeTakeFirstOrThrow();
-
-	await ctx.db
-		.updateTable('appointments')
-		.set({
-			action_log: JSON.stringify([...parseActionLog(fresh.action_log), actionEntry])
-		})
-		.where('id', '=', row.id)
-		.execute();
-
-	return { url: generatedUrl };
+	return { url: updated.video_chat };
 }
 
 export function registerGenerateVideoChatWorkflow(): void {
