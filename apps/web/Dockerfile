@@ -32,9 +32,8 @@ RUN --mount=type=cache,id=pnpm-store,target=/home/app/store pnpm install --froze
 # pointless). Drop the root-owned .svelte-kit left by the install-time `prepare`
 # (svelte-kit sync) so `vite dev` regenerates it. No build:packages — @when/* run
 # from source via the dev vite.config (development condition + noExternal).
-RUN mkdir -p /m/apps/web/data \
-    && rm -rf /m/apps/web/.svelte-kit \
-    && chmod 777 /m/apps/web /m/apps/web/node_modules
+RUN mkdir -p /m/apps/web/data /m/apps/web/.svelte-kit /m/apps/web/node_modules/.vite /m/apps/web/node_modules/.vite-temp \
+    && chmod -R 777 /m/apps/web
 WORKDIR /m/apps/web
 EXPOSE 5173
 CMD ["pnpm", "run", "dev", "--host", "0.0.0.0"]

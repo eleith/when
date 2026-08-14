@@ -58,6 +58,7 @@
 		"@when/config": "workspace:*",
 		"@when/db": "workspace:*",
 		"@when/jobs": "workspace:*",
+		"@when/video-chat": "workspace:*",
 		"bits-ui": "2.18.1",
 		"kysely": "0.28.17",
 		"mrmime": "2.0.1",
