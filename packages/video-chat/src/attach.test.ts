@@ -11,13 +11,13 @@ const mockConfig = {
 	meetings: {}
 } as unknown as WhenConfiguration;
 
-const baseMeeting: Meeting = {
+const baseMeeting = {
 	title: 'Chat',
 	duration_minutes: 30,
 	require_approval: false,
 	booking_calendar: 'my-cal',
 	schedule: 'standard'
-};
+} as unknown as Meeting;
 
 describe('shouldAttachVideoChat', () => {
 	test('returns false when meeting has no video_chat', () => {
@@ -67,12 +67,12 @@ describe('shouldAttachVideoChat', () => {
 		};
 
 		const inPersonAnswers: GuestAnswer[] = [
-			{ id: '1', name: 'location_choice', label: 'Location', type: 'select', value: 'in_person' }
+			{ name: 'location_choice', label: 'Location', type: 'choice', value: 'in_person' }
 		];
 		expect(shouldAttachVideoChat(meeting, mockConfig, inPersonAnswers)).toBe(false);
 
 		const onlineAnswers: GuestAnswer[] = [
-			{ id: '1', name: 'location_choice', label: 'Location', type: 'select', value: 'online' }
+			{ name: 'location_choice', label: 'Location', type: 'choice', value: 'online' }
 		];
 		expect(shouldAttachVideoChat(meeting, mockConfig, onlineAnswers)).toBe(true);
 	});
@@ -91,13 +91,13 @@ describe('shouldAttachVideoChat', () => {
 
 		expect(
 			shouldAttachVideoChat(meeting, mockConfig, [
-				{ id: '1', name: 'location_choice', label: 'Loc', type: 'select', value: 'video' }
+				{ name: 'location_choice', label: 'Loc', type: 'choice', value: 'video' }
 			])
 		).toBe(true);
 
 		expect(
 			shouldAttachVideoChat(meeting, mockConfig, [
-				{ id: '1', name: 'location_choice', label: 'Loc', type: 'select', value: 'phone' }
+				{ name: 'location_choice', label: 'Loc', type: 'choice', value: 'phone' }
 			])
 		).toBe(false);
 	});

@@ -225,7 +225,7 @@ describe('GoogleAdapter.pushAppointment', () => {
 		const { GoogleAdapter } = await import('./google.js');
 		const adapter = new GoogleAdapter(
 			'primary',
-			{ id: 'cal' },
+			{ id: 'cal', sync: { refresh_every_minutes: 5 } },
 			{
 				type: 'google',
 				client_id: 'i',
@@ -272,7 +272,7 @@ describe('GoogleAdapter.pushAppointment', () => {
 		const { GoogleAdapter } = await import('./google.js');
 		const adapter = new GoogleAdapter(
 			'primary',
-			{ id: 'cal' },
+			{ id: 'cal', sync: { refresh_every_minutes: 5 } },
 			{
 				type: 'google',
 				client_id: 'i',
