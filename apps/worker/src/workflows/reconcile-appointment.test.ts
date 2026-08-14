@@ -202,8 +202,7 @@ describe('runReconcileAppointment', () => {
 		expect(
 			calls.some(
 				(c) =>
-					c.method === 'DELETE' &&
-					c.url.includes('/ocs/v2.php/apps/spreed/api/v4/room/old-tok')
+					c.method === 'DELETE' && c.url.includes('/ocs/v2.php/apps/spreed/api/v4/room/old-tok')
 			)
 		).toBe(true);
 		await db.destroy();

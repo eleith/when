@@ -93,10 +93,7 @@ export async function runGenerateVideoChat(
 
 	// Dispatch 'edited-by-host' email notifications
 	try {
-		const envelopes = await dispatch(
-			{ kind: 'edited-by-host', appointment: finalRow },
-			ctx.config
-		);
+		const envelopes = await dispatch({ kind: 'edited-by-host', appointment: finalRow }, ctx.config);
 		for (const envelope of envelopes) {
 			const recipientType = envelope.to === ctx.config.user.email ? 'host' : 'guest';
 			try {
