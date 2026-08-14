@@ -178,7 +178,7 @@
 										<table role="presentation" cellpadding="0" cellspacing="0" border="0">
 											<tr>
 												<% if (it.brand.logoUrl) { %>
-												<td style="padding: 0 6px 0 0; vertical-align: middle;">
+												<td style="padding: 0 8px 0 0; vertical-align: middle;">
 													<a href="<%= it.brand.appUrl %>" style="display: block; text-decoration: none;">
 														<img
 															src="<%= it.brand.logoUrl %>"
@@ -187,9 +187,6 @@
 															style="display: block; border: 0; height: 22px; width: auto;"
 														/>
 													</a>
-												</td>
-												<td style="padding: 0 6px 0 0; vertical-align: middle; font-size: 13px; color: <%= it.theme.border %>;">
-													&middot;
 												</td>
 												<% } %>
 												<td style="vertical-align: middle; font-size: 13px; line-height: 1.5;">

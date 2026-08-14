@@ -127,8 +127,8 @@ describe('the brand appears once, on the action', () => {
 		expect(html.match(/Acme/g)).toHaveLength(1);
 	});
 
-	test('drops the separator when there is no icon to pair it with', () => {
-		expect(renderHtmlBody(branded, theme)).toContain('&middot;');
+	test('the footer does not include a dot separator', () => {
+		expect(renderHtmlBody(branded, theme)).not.toContain('&middot;');
 		expect(renderHtmlBody(content, theme)).not.toContain('&middot;');
 	});
 
