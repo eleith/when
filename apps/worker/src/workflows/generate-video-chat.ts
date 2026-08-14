@@ -38,7 +38,7 @@ export async function runGenerateVideoChat(
 	}
 
 	if (isCalendarIntegratedVideoChat(service)) {
-		await syncCalendarForAppointment(ctx, row);
+		await syncCalendarForAppointment(ctx, row, { attachVideoChat: true });
 		const refreshed = await ctx.db
 			.selectFrom('appointments')
 			.selectAll()

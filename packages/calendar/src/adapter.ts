@@ -7,6 +7,7 @@ import type { BusyEvent } from './types.js';
 
 interface PushOptions {
 	cancelUrl: string;
+	attachVideoChat?: boolean;
 }
 
 interface PushResult {

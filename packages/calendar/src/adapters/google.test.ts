@@ -1,4 +1,4 @@
-import { expect, test, vi, beforeEach } from 'vitest';
+import { describe, expect, test, vi, beforeEach } from 'vitest';
 import {
 	getGoogleAccessToken,
 	buildGoogleAuthUrl,
@@ -219,3 +219,110 @@ test('revokeGoogleToken throws when google rejects the revoke', async () => {
 
 	await expect(revokeGoogleToken('rt-1')).rejects.toThrow(/revoke failed/);
 });
+
+describe('GoogleAdapter.pushAppointment', () => {
+	test('omits Meet creation when attach.auto is false', async () => {
+		const { GoogleAdapter } = await import('./google.js');
+		const adapter = new GoogleAdapter(
+			'primary',
+			{ id: 'cal' },
+			{
+				type: 'google',
+				client_id: 'i',
+				client_secret: 's',
+				refresh_token: 'r',
+				calendars: {}
+			}
+		);
+
+		const configAutoFalse = {
+			user: { name: 'Jane' },
+			providers: {
+				'g-service': { type: 'google' }
+			},
+			meetings: {
+				chat: {
+					title: 'Chat',
+					video_chat: { provider: 'g-service', attach: { auto: false } }
+				}
+			}
+		} as unknown as import('@when/config').WhenConfiguration;
+
+		let capturedPayload: Record<string, unknown> | undefined;
+		vi.spyOn(globalThis, 'fetch').mockImplementation(
+			async (url: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) => {
+				if (String(url).includes('oauth2.googleapis.com/token')) {
+					return new Response(JSON.stringify({ access_token: 't', expires_in: 3600 }), {
+						status: 200
+					});
+				}
+				capturedPayload = JSON.parse(String(init?.body));
+				return new Response(JSON.stringify({ id: 'evt-1' }), { status: 200 });
+			}
+		);
+
+		await adapter.pushAppointment(configAutoFalse, baseAppointment, 'Chat', {
+			cancelUrl: 'https://when.example.com/appointment/appt-1?token=tok'
+		});
+
+		expect(capturedPayload?.conferenceData).toBeUndefined();
+	});
+
+	test('creates Meet when attachVideoChat is true even if attach.auto is false', async () => {
+		const { GoogleAdapter } = await import('./google.js');
+		const adapter = new GoogleAdapter(
+			'primary',
+			{ id: 'cal' },
+			{
+				type: 'google',
+				client_id: 'i',
+				client_secret: 's',
+				refresh_token: 'r',
+				calendars: {}
+			}
+		);
+
+		const configAutoFalse = {
+			user: { name: 'Jane' },
+			providers: {
+				'g-service': { type: 'google' }
+			},
+			meetings: {
+				chat: {
+					title: 'Chat',
+					video_chat: { provider: 'g-service', attach: { auto: false } }
+				}
+			}
+		} as unknown as import('@when/config').WhenConfiguration;
+
+		let capturedPayload: Record<string, unknown> | undefined;
+		vi.spyOn(globalThis, 'fetch').mockImplementation(
+			async (url: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) => {
+				if (String(url).includes('oauth2.googleapis.com/token')) {
+					return new Response(JSON.stringify({ access_token: 't', expires_in: 3600 }), {
+						status: 200
+					});
+				}
+				capturedPayload = JSON.parse(String(init?.body));
+				return new Response(
+					JSON.stringify({
+						id: 'evt-1',
+						conferenceData: {
+							entryPoints: [{ entryPointType: 'video', uri: 'https://meet.google.com/xyz' }]
+						}
+					}),
+					{ status: 200 }
+				);
+			}
+		);
+
+		const res = await adapter.pushAppointment(configAutoFalse, baseAppointment, 'Chat', {
+			cancelUrl: 'https://when.example.com/appointment/appt-1?token=tok',
+			attachVideoChat: true
+		});
+
+		expect(capturedPayload?.conferenceData).toBeDefined();
+		expect(res.videoChatUrl).toBe('https://meet.google.com/xyz');
+	});
+});
+

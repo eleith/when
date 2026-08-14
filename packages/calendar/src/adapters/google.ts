@@ -5,7 +5,13 @@ import type { BusyEvent } from '../types.js';
 import type { Appointment } from '@when/db';
 import type { FetchBusyOptions } from './caldav.js';
 import type { CalendarAdapter, PushOptions, PushResult, DeleteResult } from '../adapter.js';
-import type { WhenConfiguration, GoogleCalendar, GoogleProvider } from '@when/config';
+import {
+	parseGuestAnswers,
+	shouldAttachVideoChat,
+	type WhenConfiguration,
+	type GoogleCalendar,
+	type GoogleProvider
+} from '@when/config';
 import type { ExpandWindow } from '../expand.js';
 
 export interface GoogleConfig {
@@ -293,12 +299,15 @@ export class GoogleAdapter implements CalendarAdapter {
 			? cfg.providers[meeting.video_chat.provider]
 			: undefined;
 		const isGoogleMeet = videoChatProv?.type === 'google';
+		const answers = parseGuestAnswers(appointment.guest_answers);
+		const shouldAttach =
+			opts.attachVideoChat ?? (meeting ? shouldAttachVideoChat(meeting, cfg, answers) : false);
 
 		const result = await putGoogleEvent(this.googleCfg, appointment, {
 			cancelUrl: opts.cancelUrl,
 			eventTypeName,
 			hostName: cfg.user.name,
-			createMeet: isGoogleMeet
+			createMeet: isGoogleMeet && shouldAttach
 		});
 		return {
 			ok: true,
