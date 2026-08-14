@@ -73,7 +73,8 @@ export const load: PageServerLoad = async ({ params, url, locals, cookies }) => 
 			cancel: { allowed: false, reason: 'terminal_status' },
 			reschedule: { allowed: false, reason: 'terminal_status' },
 			accept: { allowed: false, reason: 'terminal_status' },
-			decline: { allowed: false, reason: 'terminal_status' }
+			decline: { allowed: false, reason: 'terminal_status' },
+			generateVideoChat: { allowed: false, reason: 'terminal_status' }
 		};
 	}
 

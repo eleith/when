@@ -694,7 +694,7 @@
 						the guest.
 					</p>
 
-					{#if data.eventType.has_video_chat}
+					{#if data.actions.generateVideoChat.allowed}
 						<form
 							method="POST"
 							action="/admin/appointment/{data.appointment.id}?/generateVideoChat"

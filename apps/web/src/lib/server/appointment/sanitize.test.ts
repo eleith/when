@@ -80,21 +80,6 @@ describe('toPublicEventType', () => {
 		const res = toPublicEventType('chat', baseEventType, false);
 		expect(res.require_approval).toBe(false);
 	});
-
-	test('sets has_video_chat for admins based on meeting video_chat config', () => {
-		const eventWithVideo = {
-			...baseEventType,
-			video_chat: { provider: 'google-service' }
-		};
-		const adminRes = toPublicEventType('chat', eventWithVideo, true);
-		expect(adminRes.has_video_chat).toBe(true);
-
-		const guestRes = toPublicEventType('chat', eventWithVideo, false);
-		expect(guestRes.has_video_chat).toBeUndefined();
-
-		const noVideoRes = toPublicEventType('chat', baseEventType, true);
-		expect(noVideoRes.has_video_chat).toBe(false);
-	});
 });
 
 describe('toPublicAppointment', () => {

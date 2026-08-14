@@ -2,7 +2,12 @@ import type { Meeting } from '@when/config';
 import type { Appointment, AppointmentStatus } from '@when/db';
 import { isCancelAllowed, isRescheduleAllowed } from './access';
 
-export type ActionReason = 'past_start' | 'minimum_notice' | 'terminal_status' | 'wrong_viewer';
+export type ActionReason =
+	| 'past_start'
+	| 'minimum_notice'
+	| 'terminal_status'
+	| 'wrong_viewer'
+	| 'not_configured';
 
 export type ActionGate = { allowed: true } | { allowed: false; reason: ActionReason };
 
@@ -11,6 +16,7 @@ export interface AppointmentActions {
 	reschedule: ActionGate;
 	accept: ActionGate;
 	decline: ActionGate;
+	generateVideoChat: ActionGate;
 }
 
 export type Viewer = 'guest' | 'host';
@@ -19,7 +25,7 @@ export interface ResolveAppointmentActionsInput {
 	row: Pick<Appointment, 'status' | 'start_time'>;
 	viewer: Viewer;
 	now: Date;
-	eventType: Pick<Meeting, 'notice_minutes'> | undefined;
+	eventType: Pick<Meeting, 'notice_minutes' | 'video_chat'> | undefined;
 }
 
 const ALLOWED: ActionGate = { allowed: true };
@@ -60,6 +66,17 @@ function resolveHostDecision(
 	return ALLOWED;
 }
 
+function resolveGenerateVideoChat(
+	row: Pick<Appointment, 'status'>,
+	viewer: Viewer,
+	videoChat: Meeting['video_chat'] | undefined
+): ActionGate {
+	if (viewer !== 'host') return { allowed: false, reason: 'wrong_viewer' };
+	if (!isActiveStatus(row.status)) return { allowed: false, reason: 'terminal_status' };
+	if (!videoChat) return { allowed: false, reason: 'not_configured' };
+	return ALLOWED;
+}
+
 export function resolveAppointmentActions({
 	row,
 	viewer,
@@ -72,6 +89,7 @@ export function resolveAppointmentActions({
 		cancel: resolveCancel(row, now),
 		reschedule: resolveReschedule(row, now, minimumNotice),
 		accept: decision,
-		decline: decision
+		decline: decision,
+		generateVideoChat: resolveGenerateVideoChat(row, viewer, eventType?.video_chat)
 	};
 }

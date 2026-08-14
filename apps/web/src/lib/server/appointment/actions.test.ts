@@ -197,3 +197,55 @@ describe('accept / decline', () => {
 		expect(a.accept).toEqual({ allowed: false, reason: 'wrong_viewer' });
 	});
 });
+
+describe('generateVideoChat', () => {
+	const eventTypeWithVideo = { notice_minutes: 0, video_chat: { provider: 'g-service' } };
+
+	test('allowed for host + active status + configured video_chat', () => {
+		const confirmed = resolveAppointmentActions({
+			row: row('confirmed'),
+			viewer: 'host',
+			now: before,
+			eventType: eventTypeWithVideo
+		});
+		expect(confirmed.generateVideoChat).toEqual({ allowed: true });
+
+		const pending = resolveAppointmentActions({
+			row: row('pending'),
+			viewer: 'host',
+			now: before,
+			eventType: eventTypeWithVideo
+		});
+		expect(pending.generateVideoChat).toEqual({ allowed: true });
+	});
+
+	test('wrong_viewer for guest', () => {
+		const a = resolveAppointmentActions({
+			row: row('confirmed'),
+			viewer: 'guest',
+			now: before,
+			eventType: eventTypeWithVideo
+		});
+		expect(a.generateVideoChat).toEqual({ allowed: false, reason: 'wrong_viewer' });
+	});
+
+	test('terminal_status for cancelled / declined / expired / rescheduled / purged', () => {
+		const a = resolveAppointmentActions({
+			row: row('cancelled'),
+			viewer: 'host',
+			now: before,
+			eventType: eventTypeWithVideo
+		});
+		expect(a.generateVideoChat).toEqual({ allowed: false, reason: 'terminal_status' });
+	});
+
+	test('not_configured when meeting type has no video_chat', () => {
+		const a = resolveAppointmentActions({
+			row: row('confirmed'),
+			viewer: 'host',
+			now: before,
+			eventType: eventTypeNoNotice
+		});
+		expect(a.generateVideoChat).toEqual({ allowed: false, reason: 'not_configured' });
+	});
+});
