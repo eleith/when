@@ -35,19 +35,22 @@ const mockConfig = {
 	}
 } as unknown as WhenConfiguration;
 
+import type { Mailer } from '../email/smtp.js';
+
 let db: WorkerContext['db'];
-let mailerSend: ReturnType<typeof vi.fn>;
+let mailerSend = vi.fn();
 
 describe('runGenerateVideoChat', () => {
 	beforeEach(async () => {
 		db = openDb(':memory:');
 		await runMigrations(db);
 		mailerSend = vi.fn().mockResolvedValue({ ok: true });
+		const mailer: Mailer = { send: mailerSend };
 		setWorkerContext({
 			config: mockConfig,
 			logger: createLogger(),
 			db,
-			mailer: { send: mailerSend }
+			mailer
 		});
 	});
 

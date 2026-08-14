@@ -52,10 +52,7 @@ export async function runReconcileAppointment(
 	}
 
 	// 2. Resolve Standalone Video Chat (e.g. Nextcloud Talk) ONLY on initial booking/confirmation
-	const isInitialCreation =
-		input.emailKind === 'confirmed' ||
-		input.emailKind === 'pending' ||
-		input.emailKind === 'booked';
+	const isInitialCreation = input.emailKind === 'confirmed' || input.emailKind === 'pending';
 	const meeting = ctx.config.meetings[resolvedRow.event_type_id];
 	if (isInitialCreation && meeting?.video_chat && !resolvedRow.video_chat) {
 		const answers = parseGuestAnswers(resolvedRow.guest_answers);
