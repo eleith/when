@@ -1,5 +1,4 @@
-import type { GuestAnswer } from './form-fields.js';
-import type { Meeting, WhenConfiguration } from './schema.js';
+import type { GuestAnswer, Meeting, WhenConfiguration } from '@when/config';
 
 /**
  * Determines whether a meeting is configured to attach video chat automatically

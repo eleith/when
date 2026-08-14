@@ -11,3 +11,4 @@ export type {
 } from './adapter.js';
 export { NextcloudTalkAdapter } from './adapters/nextcloud-talk.js';
 export { GoogleMeetAdapter } from './adapters/google-meet.js';
+export { shouldAttachVideoChat } from './attach.js';

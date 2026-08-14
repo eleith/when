@@ -7,11 +7,11 @@ import type { FetchBusyOptions } from './caldav.js';
 import type { CalendarAdapter, PushOptions, PushResult, DeleteResult } from '../adapter.js';
 import {
 	parseGuestAnswers,
-	shouldAttachVideoChat,
 	type WhenConfiguration,
 	type GoogleCalendar,
 	type GoogleProvider
 } from '@when/config';
+import { shouldAttachVideoChat } from '@when/video-chat';
 import type { ExpandWindow } from '../expand.js';
 
 export interface GoogleConfig {

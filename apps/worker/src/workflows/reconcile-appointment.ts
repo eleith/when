@@ -4,7 +4,8 @@ import type { ReconcileAppointmentInput, ReconcileAppointmentResult } from '@whe
 import { dispatch } from '../email/dispatch.js';
 import { getWorkerContext } from '../services/context.js';
 import { appendJobLog } from '../services/job-log.js';
-import { parseGuestAnswers, shouldAttachVideoChat } from '@when/config';
+import { parseGuestAnswers } from '@when/config';
+import { shouldAttachVideoChat } from '@when/video-chat';
 import { recordSendOutcome } from '../email/status.js';
 import { createStandaloneVideoChat } from '../services/video-chat.js';
 import { reconcileAppointment as syncCalendarForAppointment } from '../calendar/sync.js';

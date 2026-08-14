@@ -331,6 +331,9 @@ importers:
       '@when/db':
         specifier: workspace:*
         version: link:../db
+      '@when/video-chat':
+        specifier: workspace:*
+        version: link:../video-chat
       ts-ics:
         specifier: 2.4.4
         version: 2.4.4
