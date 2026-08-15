@@ -1,7 +1,5 @@
 <script lang="ts">
-	import IconArrowRight from 'virtual:icons/ph/arrow-right';
-	import IconCalendarBlank from 'virtual:icons/ph/calendar-blank';
-	import IconClock from 'virtual:icons/ph/clock';
+	import IconWarning from 'virtual:icons/ph/warning';
 	import AdminAlert from '$lib/components/AdminAlert.svelte';
 	import AdminPage from '$lib/components/AdminPage.svelte';
 
@@ -54,44 +52,130 @@
 			</section>
 		{/if}
 
-		<div class="stats-group">
-			<h2 class="section-label">Right now</h2>
-			<div class="stats-row">
-				<a href="/admin/appointments/upcoming" class="stat-card">
-					<span class="stat-value">{data.upcomingCount}</span>
-					<span class="stat-label">upcoming meetings</span>
-				</a>
-				<a href="/admin/appointments/pending" class="stat-card">
-					<span class="stat-value pending-value">{data.pendingCount}</span>
-					<span class="stat-label">pending meetings</span>
-				</a>
+		{#if data.upcoming.length > 0 || data.pending.length > 0}
+			<div class="previews">
+				{#if data.upcoming.length > 0}
+					<section class="card preview-card">
+						<div class="card-header">
+							<h2 class="card-title">Upcoming</h2>
+						</div>
+						<div class="card-body">
+							<ul class="preview-list">
+								{#each data.upcoming as a (a.id)}
+									<li class="preview-row" class:past={a.is_past}>
+										<div class="details-guest">
+											<div class="guest-info">
+												<a href="/appointment/{a.id}" class="row-link">{a.guest_name}</a>
+												<span class="guest-email" class:no-email={!a.guest_email}>
+													{a.guest_email ?? 'No email'}
+												</span>
+											</div>
+										</div>
+										<div class="details-event">
+											<span class="event-tag">{a.event_type_name}</span>
+										</div>
+										<div class="details-time">
+											<span class="time-text">{fmt(a.start_time)}</span>
+										</div>
+										<div class="details-status">
+											<div class="status-wrapper">
+												<span class="status-badge status-{a.display_status}">
+													{#if a.display_status === 'in_progress'}
+														in progress
+													{:else}
+														{a.display_status}
+													{/if}
+												</span>
+												{#if a.possible_conflict}
+													<span
+														class="conflict-chip"
+														title="This time overlaps a busy event on a conflict calendar"
+													>
+														<IconWarning class="conflict-icon" aria-hidden="true" />
+														Conflict
+													</span>
+												{/if}
+											</div>
+										</div>
+									</li>
+								{/each}
+							</ul>
+						</div>
+					</section>
+				{/if}
+
+				{#if data.pending.length > 0}
+					<section class="card preview-card">
+						<div class="card-header">
+							<h2 class="card-title">Pending review</h2>
+						</div>
+						<div class="card-body">
+							<ul class="preview-list">
+								{#each data.pending as a (a.id)}
+									<li class="preview-row" class:past={a.is_past}>
+										<div class="details-guest">
+											<div class="guest-info">
+												<a href="/appointment/{a.id}" class="row-link">{a.guest_name}</a>
+												<span class="guest-email" class:no-email={!a.guest_email}>
+													{a.guest_email ?? 'No email'}
+												</span>
+											</div>
+										</div>
+										<div class="details-event">
+											<span class="event-tag">{a.event_type_name}</span>
+										</div>
+										<div class="details-time">
+											<span class="time-text">{fmt(a.start_time)}</span>
+										</div>
+										<div class="details-status">
+											<div class="status-wrapper">
+												<span class="status-badge status-{a.display_status}">
+													{#if a.display_status === 'in_progress'}
+														in progress
+													{:else}
+														{a.display_status}
+													{/if}
+												</span>
+												{#if a.possible_conflict}
+													<span
+														class="conflict-chip"
+														title="This time overlaps a busy event on a conflict calendar"
+													>
+														<IconWarning class="conflict-icon" aria-hidden="true" />
+														Conflict
+													</span>
+												{/if}
+											</div>
+										</div>
+									</li>
+								{/each}
+							</ul>
+						</div>
+					</section>
+				{/if}
 			</div>
-		</div>
+
+			<hr class="section-divider" />
+		{/if}
 
 		<div class="stats-group">
-			<h2 class="section-label">This week</h2>
+			<h2 class="section-label">Statistics</h2>
 			<div class="stats-row">
 				<div class="stat-card">
 					<span class="stat-value">{fmtHours(data.confirmedMinutesThisWeek)}</span>
-					<span class="stat-label">scheduled</span>
+					<span class="stat-label">scheduled this week</span>
 				</div>
 				<div class="stat-card">
 					<span class="stat-value">{data.totalThisMonth}</span>
 					<span class="stat-label">total this month</span>
 				</div>
-			</div>
-		</div>
-
-		<div class="stats-group">
-			<h2 class="section-label">Lifetime</h2>
-			<div class="stats-row">
 				<a href="/admin/appointments/past" class="stat-card">
 					<span class="stat-value">{data.lifetimeMeetings}</span>
-					<span class="stat-label">total meetings</span>
+					<span class="stat-label">lifetime meetings</span>
 				</a>
 				<div class="stat-card">
 					<span class="stat-value">{fmtHours(data.lifetimeMinutes)}</span>
-					<span class="stat-label">total meeting time</span>
+					<span class="stat-label">lifetime meeting time</span>
 				</div>
 			</div>
 		</div>
@@ -114,66 +198,6 @@
 			</div>
 		</div>
 
-		<div class="previews">
-			{#if data.upcoming.length > 0}
-				<section class="card preview-card">
-					<div class="card-header">
-						<h2 class="card-title">
-							<IconCalendarBlank aria-hidden="true" />
-							Upcoming
-						</h2>
-						{#if data.upcomingCount > 0}
-							<a href="/admin/appointments/upcoming" class="header-link">
-								view all <IconArrowRight aria-hidden="true" />
-							</a>
-						{/if}
-					</div>
-					<div class="card-body">
-						<ul class="preview-list">
-							{#each data.upcoming as a (a.id)}
-								<li>
-									<a href="/appointment/{a.id}" class="preview-item">
-										<span class="preview-time">{fmt(a.start_time)}</span>
-										<span class="preview-name">{a.guest_name}</span>
-										<span class="preview-type">{a.event_type_name}</span>
-									</a>
-								</li>
-							{/each}
-						</ul>
-					</div>
-				</section>
-			{/if}
-
-			{#if data.pending.length > 0}
-				<section class="card preview-card">
-					<div class="card-header">
-						<h2 class="card-title">
-							<IconClock aria-hidden="true" />
-							Pending review
-						</h2>
-						{#if data.pendingCount > 0}
-							<a href="/admin/appointments/pending" class="header-link">
-								review all <IconArrowRight aria-hidden="true" />
-							</a>
-						{/if}
-					</div>
-					<div class="card-body">
-						<ul class="preview-list">
-							{#each data.pending as a (a.id)}
-								<li>
-									<a href="/appointment/{a.id}" class="preview-item">
-										<span class="preview-time">{fmt(a.start_time)}</span>
-										<span class="preview-name">{a.guest_name}</span>
-										<span class="preview-type">{a.event_type_name}</span>
-									</a>
-								</li>
-							{/each}
-						</ul>
-					</div>
-				</section>
-			{/if}
-		</div>
-
 		{#if data.purgedCount > 0}
 			<div class="purged-link">
 				<a href="/admin/appointments/purged">View purged appointments</a>
@@ -194,6 +218,13 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-3);
+	}
+
+	/* ---- divider ---- */
+	.section-divider {
+		border: 0;
+		border-top: 1px solid var(--color-border);
+		margin: 0;
 	}
 
 	/* ---- stats ---- */
@@ -258,10 +289,9 @@
 
 	/* ---- previews ---- */
 	.previews {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
+		display: flex;
+		flex-direction: column;
 		gap: var(--space-4);
-		align-items: start;
 	}
 
 	.card {
@@ -278,30 +308,15 @@
 		padding: var(--space-3) var(--space-4);
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
 	}
 
 	.card-title {
-		font-size: var(--font-size-base);
+		font-size: var(--font-size-md);
 		font-weight: 600;
 		color: var(--when-color-text);
 		display: flex;
 		align-items: center;
 		gap: var(--space-2);
-	}
-
-	.header-link {
-		font-size: var(--font-size-sm);
-		color: var(--color-text-secondary);
-		text-decoration: none;
-		display: flex;
-		align-items: center;
-		gap: var(--space-1);
-		transition: color var(--transition);
-	}
-
-	.header-link:hover {
-		color: var(--when-color-text);
 	}
 
 	.card-body {
@@ -310,43 +325,176 @@
 
 	.preview-list {
 		list-style: none;
-		padding: 0;
 		margin: 0;
+		padding: 0;
 	}
 
-	.preview-item {
-		display: flex;
-		align-items: baseline;
-		gap: var(--space-3);
-		padding: var(--space-3) var(--space-4);
-		text-decoration: none;
-		color: var(--when-color-text);
+	.preview-row {
+		position: relative;
+		display: grid;
+		grid-template-columns: 2fr 1.2fr 2.2fr 1.5fr;
+		align-items: center;
+		gap: var(--space-4);
+		padding: var(--space-4) var(--space-5);
+		border-bottom: 1px solid var(--color-border);
+		font-size: var(--font-size-md);
 		transition: background var(--transition);
 	}
 
-	.preview-item:hover {
-		background: var(--surface-hover);
+	.preview-row:last-child {
+		border-bottom: none;
 	}
 
-	.preview-list > li + li {
-		border-top: 1px solid var(--color-border);
+	.preview-row:hover,
+	.preview-row:focus-within {
+		background: var(--when-color-surface-page);
 	}
 
-	.preview-time {
-		font-size: var(--font-size-sm);
+	.details-guest,
+	.details-event,
+	.details-time,
+	.details-status {
+		min-width: 0;
+	}
+
+	/* rows styling for past events */
+	.preview-row.past {
+		color: var(--color-text-muted);
+	}
+
+	.preview-row.past .row-link {
 		color: var(--color-text-secondary);
-		flex-shrink: 0;
-	}
-
-	.preview-name {
-		font-size: var(--font-size-sm);
 		font-weight: 500;
 	}
 
-	.preview-type {
+	.preview-row.past .event-tag {
+		background: var(--color-surface-muted);
+		color: var(--color-text-muted);
+	}
+
+	/* cell specifics */
+	.guest-info {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-1);
+	}
+
+	.row-link {
+		color: var(--when-color-text);
+		text-decoration: none;
+		font-weight: 600;
+		font-size: var(--font-size-lg);
+	}
+
+	.row-link::after {
+		content: '';
+		position: absolute;
+		inset: 0;
+	}
+
+	.row-link:focus-visible {
+		outline: 2px solid var(--when-color-primary);
+		outline-offset: -2px;
+	}
+
+	.guest-email {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-1);
 		font-size: var(--font-size-sm);
 		color: var(--color-text-muted);
-		margin-left: auto;
+	}
+
+	.guest-email.no-email {
+		font-style: italic;
+	}
+
+	.event-tag {
+		display: inline-block;
+		font-size: var(--font-size-sm);
+		font-weight: 600;
+		background: var(--color-surface-muted);
+		color: var(--color-text-secondary);
+		padding: var(--space-1) var(--space-3);
+		border-radius: var(--radius-sm);
+	}
+
+	.time-text {
+		font-weight: 500;
+		font-size: var(--font-size-base);
+		white-space: nowrap;
+	}
+
+	.status-wrapper {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-2);
+	}
+
+	.conflict-chip {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-1);
+		font-size: var(--font-size-sm);
+		font-weight: 600;
+		padding: var(--space-1) var(--space-2);
+		border-radius: var(--radius-sm);
+		background: color-mix(in srgb, var(--color-warning) 12%, transparent);
+		color: var(--color-warning);
+		white-space: nowrap;
+	}
+
+	:global(.conflict-icon) {
+		width: 14px;
+		height: 14px;
+		color: var(--color-warning);
+		flex-shrink: 0;
+	}
+
+	.status-badge {
+		display: inline-flex;
+		align-items: center;
+		font-size: var(--font-size-sm);
+		font-weight: 600;
+		text-transform: capitalize;
+		padding: var(--space-1) var(--space-3);
+		border-radius: var(--radius-sm);
+	}
+
+	.status-confirmed {
+		background: var(--color-info-bg);
+		color: var(--color-info-strong);
+	}
+
+	.status-in_progress {
+		background: var(--color-success-bg);
+		color: var(--color-success-strong);
+	}
+
+	.status-pending {
+		background: var(--color-warning-bg);
+		color: var(--color-warning-strong);
+	}
+
+	.status-concluded,
+	.status-rescheduled {
+		background: var(--color-quiet-bg);
+		color: var(--color-quiet-strong);
+	}
+
+	.status-declined,
+	.status-cancelled,
+	.status-expired {
+		background: var(--color-danger-bg);
+		color: var(--color-danger-strong);
+	}
+
+	@media (prefers-color-scheme: dark) {
+		.status-declined,
+		.status-cancelled,
+		.status-expired {
+			color: var(--color-danger);
+		}
 	}
 
 	/* ---- purged link ---- */
@@ -374,8 +522,33 @@
 			gap: var(--space-4);
 		}
 
-		.previews {
-			grid-template-columns: 1fr;
+		.preview-row {
+			grid-template-columns: minmax(0, 1fr) auto;
+			gap: var(--space-1) var(--space-3);
+			align-items: start;
+			padding: var(--space-3) var(--space-4);
+		}
+
+		.details-guest {
+			grid-column: 1;
+			grid-row: 1;
+		}
+
+		.details-status {
+			grid-column: 2;
+			grid-row: 1;
+			justify-self: end;
+		}
+
+		.details-time {
+			grid-column: 1;
+			grid-row: 2;
+		}
+
+		.details-event {
+			grid-column: 2;
+			grid-row: 2;
+			justify-self: end;
 		}
 	}
 </style>
