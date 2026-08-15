@@ -174,9 +174,11 @@
 			{/if}
 		</div>
 
-		<div class="purged-link">
-			<a href="/admin/appointments/purged">View purged appointments</a>
-		</div>
+		{#if data.purgedCount > 0}
+			<div class="purged-link">
+				<a href="/admin/appointments/purged">View purged appointments</a>
+			</div>
+		{/if}
 	</div>
 </AdminPage>
 

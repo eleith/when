@@ -81,8 +81,10 @@ export const load: PageServerLoad = async () => {
 			.executeTakeFirst(),
 		db
 			.selectFrom('appointments')
-			.select(sql<number>`count(*)`.as('cnt'))
-			.where('status', 'not in', ['purged'])
+			.select([
+				sql<number>`count(case when status != 'purged' then 1 end)`.as('lifetimeMeetings'),
+				sql<number>`count(case when status = 'purged' then 1 end)`.as('purgedCount')
+			])
 			.executeTakeFirst(),
 		db
 			.selectFrom('appointments')
@@ -98,8 +100,9 @@ export const load: PageServerLoad = async () => {
 	const conflictCount = Number(conflictResult?.cnt ?? 0);
 	const confirmedMinutesThisWeek = Number(confirmedWeekRes?.minutes ?? 0);
 	const totalThisMonth = Number(totalMonthRes?.cnt ?? 0);
-	const lifetimeMeetings = Number(lifetimeRes?.cnt ?? 0);
+	const lifetimeMeetings = Number(lifetimeRes?.lifetimeMeetings ?? 0);
 	const lifetimeMinutes = Number(lifetimeMinRes?.minutes ?? 0);
+	const purgedCount = Number(lifetimeRes?.purgedCount ?? 0);
 
 	const calendars = evaluateCalendarStatuses(syncStatus, cfg, Temporal.Now.instant());
 
@@ -125,7 +128,8 @@ export const load: PageServerLoad = async () => {
 		confirmedMinutesThisWeek,
 		totalThisMonth,
 		lifetimeMeetings,
-		lifetimeMinutes
+		lifetimeMinutes,
+		purgedCount
 	};
 };
 
