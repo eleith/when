@@ -11,6 +11,13 @@
 	import type { GuestAnswer, FormField } from '@when/config';
 	import type { PublicEventType } from '$lib/server/appointment/sanitize';
 
+	const RESCHEDULE_FIELD: FormField = {
+		name: 'reschedule_reason',
+		label: 'Reason for rescheduling',
+		type: 'paragraph',
+		required: true
+	};
+
 	interface RescheduleAppt {
 		id: string;
 		guest_name: string;
@@ -67,29 +74,12 @@
 	let fieldValues = $state<Record<string, string>>(
 		Object.fromEntries(formFields.map((f) => [f.name, initialFieldValue(f)]))
 	);
+	let rescheduleReasonValue = $state('');
 
 	const visibleFields = $derived(evaluateVisibility(formFields, (name) => fieldValues[name] ?? ''));
 
-	function trackFieldValue(event: Event) {
-		const target = event.target as
-			| HTMLInputElement
-			| HTMLSelectElement
-			| HTMLTextAreaElement
-			| null;
-		if (target?.name) fieldValues[target.name] = target.value;
-	}
-
-	let rescheduleReasonValue = $state('');
-	let rescheduleReasonEl = $state<HTMLTextAreaElement | null>(null);
-	let rescheduleTouched = $state(false);
-	let rescheduleError = $derived(
-		rescheduleTouched && !rescheduleReasonValue.trim()
-			? 'Please provide a reason for rescheduling.'
-			: null
-	);
-
 	let isFormValid = $derived.by(() => {
-		if (rescheduleAppt && !rescheduleReasonValue.trim()) {
+		if (rescheduleAppt && validateFieldValue(RESCHEDULE_FIELD, rescheduleReasonValue)) {
 			return false;
 		}
 		if (fieldsDisabled) {
@@ -98,20 +88,13 @@
 		for (const field of formFields) {
 			if (!visibleFields.get(field.name)) continue;
 			const val = fieldValues[field.name] ?? '';
-			const err = validateFieldValue(field, val);
-			if (err) return false;
+			if (validateFieldValue(field, val)) return false;
 		}
 		return true;
 	});
 
 	$effect(() => {
 		onvaliditychange?.(isFormValid);
-	});
-
-	// The name field self-focuses via FormFieldControl; in the admin reschedule case
-	// there is no editable name field, so focus the reason box instead.
-	$effect(() => {
-		if (fieldsDisabled) rescheduleReasonEl?.focus();
 	});
 </script>
 
@@ -134,14 +117,7 @@
 		<p class="form-error" role="alert">{form.error}</p>
 	{/if}
 
-	<form
-		id="appointment-form"
-		method="POST"
-		action={formAction}
-		use:enhance
-		oninput={trackFieldValue}
-		onchange={trackFieldValue}
-	>
+	<form id="appointment-form" method="POST" action={formAction} use:enhance>
 		<input type="hidden" name="slot" value={selectedSlot} />
 		<input type="hidden" name="timezone" value={userTz} />
 		<input type="hidden" name="duration" value={flow.duration} />
@@ -154,8 +130,7 @@
 			{#if visibleFields.get(field.name)}
 				<FormFieldControl
 					{field}
-					value={initialFieldValue(field)}
-					liveValue={fieldValues[field.name] ?? ''}
+					bind:value={fieldValues[field.name]}
 					disabled={fieldsDisabled}
 					error={form?.fieldErrors?.[field.name]}
 					focusOnMount={field.type === 'guest_name' && !fieldsDisabled}
@@ -167,28 +142,13 @@
 			<div class="field-separator-container">
 				<hr class="wizard-separator" />
 			</div>
-			<div class="field">
-				<label for="reschedule_reason">
-					Reason for rescheduling<span class="required" aria-hidden="true">(required)</span>
-				</label>
-				<textarea
-					id="reschedule_reason"
-					name="reschedule_reason"
-					rows="3"
-					maxlength="500"
-					placeholder="e.g. scheduling conflict, double booked..."
-					required
-					bind:value={rescheduleReasonValue}
-					bind:this={rescheduleReasonEl}
-					aria-invalid={rescheduleError ? 'true' : undefined}
-					aria-describedby={rescheduleError ? 'reschedule_reason-error' : undefined}
-					onblur={() => (rescheduleTouched = true)}
-				></textarea>
-				<span class="field-count">{(rescheduleReasonValue ?? '').length}/500</span>
-				{#if rescheduleError}
-					<p id="reschedule_reason-error" class="error" role="alert">{rescheduleError}</p>
-				{/if}
-			</div>
+			<FormFieldControl
+				field={RESCHEDULE_FIELD}
+				bind:value={rescheduleReasonValue}
+				error={form?.fieldErrors?.reschedule_reason}
+				focusOnMount={fieldsDisabled}
+				placeholder="e.g. scheduling conflict, double booked..."
+			/>
 		{/if}
 
 		<button type="submit" class="submit-btn" disabled={!isFormValid}>
@@ -252,68 +212,6 @@
 		margin-bottom: var(--space-6);
 	}
 
-	.field {
-		margin-bottom: var(--space-5);
-	}
-
-	.field label {
-		display: block;
-		font-size: var(--font-size-sm);
-		font-weight: 600;
-		margin-bottom: var(--space-2);
-		color: var(--color-text-secondary);
-	}
-
-	.required {
-		font-weight: 400;
-		font-size: var(--font-size-xs);
-		color: var(--color-text-muted);
-		margin-left: var(--space-2);
-	}
-
-	.field textarea {
-		width: 100%;
-		padding: var(--space-4) var(--space-4);
-		border: 1px solid var(--color-border-strong);
-		border-radius: var(--radius);
-		font-size: var(--font-size-md);
-		box-sizing: border-box;
-		transition: border-color var(--transition);
-		background: var(--color-surface);
-		color: var(--when-color-text);
-	}
-
-	.field textarea:focus {
-		outline: none;
-		border-color: var(--when-color-primary);
-		box-shadow: var(--shadow-focus);
-	}
-
-	.field textarea[aria-invalid='true'],
-	.field textarea:user-invalid {
-		border-color: var(--color-danger);
-	}
-
-	.field textarea[aria-invalid='true']:focus,
-	.field textarea:user-invalid:focus {
-		border-color: var(--color-danger);
-		box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.2);
-	}
-
-	.field-count {
-		display: block;
-		margin-top: var(--space-1);
-		text-align: right;
-		font-size: var(--font-size-xs);
-		color: var(--color-text-muted);
-	}
-
-	.error {
-		margin: var(--space-2) 0 0;
-		font-size: var(--font-size-sm);
-		color: var(--color-danger);
-	}
-
 	/* Hidden control so pressing Enter in a field submits; the visible submit is the wizard CTA. */
 	.submit-btn {
 		display: none;
@@ -327,14 +225,6 @@
 		border: 0;
 		border-top: 1px dashed var(--color-border-strong);
 		margin: 0;
-	}
-
-	textarea:disabled {
-		background: var(--color-surface-muted);
-		border-color: var(--color-border);
-		color: var(--color-text-muted);
-		cursor: not-allowed;
-		opacity: 0.7;
 	}
 
 	@media (max-width: 768px) {

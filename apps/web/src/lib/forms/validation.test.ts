@@ -12,7 +12,7 @@ describe('validateFieldValue', () => {
 
 	test('validates email format', () => {
 		const field: FormField = { name: 'email', label: 'Email', type: 'guest_email', required: true };
-		expect(validateFieldValue(field, '')).toBe('This field is required.');
+		expect(validateFieldValue(field, '')).toBe('Please enter your email.');
 		expect(validateFieldValue(field, 'notanemail')).toBe('That email address looks invalid.');
 		expect(validateFieldValue(field, 'test@example.com')).toBeNull();
 	});

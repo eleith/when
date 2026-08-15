@@ -1,43 +1,61 @@
 <!-- One labelled guest-input, rendered per configured form field type. -->
 <script lang="ts">
 	import type { FormField } from '@when/config';
-	import { PHONE_PATTERN, validateFieldValue } from '$lib/forms/validation.js';
+	import {
+		PHONE_PATTERN,
+		LIMIT_SHORT,
+		LIMIT_LONG,
+		LIMIT_EMAIL,
+		LIMIT_REASON,
+		validateFieldValue
+	} from '$lib/forms/validation.js';
 
 	interface Props {
 		field: FormField;
-		value: string;
-		liveValue?: string;
+		value?: string;
 		disabled?: boolean;
 		error?: string;
 		focusOnMount?: boolean;
+		placeholder?: string;
+		maxlength?: number;
 	}
 
 	let {
 		field,
-		value,
-		liveValue = '',
+		value = $bindable(''),
 		disabled = false,
 		error,
-		focusOnMount = false
+		focusOnMount = false,
+		placeholder,
+		maxlength: customMaxlength
 	}: Props = $props();
 
-	let container = $state<HTMLDivElement | null>(null);
+	let inputEl = $state<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | null>(null);
 	let touched = $state(false);
 
 	$effect(() => {
-		if (focusOnMount) container?.querySelector<HTMLElement>('input, select, textarea')?.focus();
+		if (focusOnMount) inputEl?.focus();
 	});
 
 	let isRequired = $derived((field.required || field.type === 'guest_name') && !disabled);
 
-	let clientError = $derived(
-		touched && !disabled ? validateFieldValue(field, liveValue || value || '') : null
-	);
+	let clientError = $derived(touched && !disabled ? validateFieldValue(field, value) : null);
 	let displayError = $derived(error || clientError);
 	let errorId = $derived(`${field.name}-error`);
+
+	let maxLen = $derived.by(() => {
+		if (customMaxlength) return customMaxlength;
+		if (field.type === 'guest_name') return LIMIT_SHORT;
+		if (field.type === 'guest_email') return LIMIT_EMAIL;
+		if (field.type === 'phone') return 25;
+		if (field.type === 'paragraph') {
+			return field.name === 'reschedule_reason' ? LIMIT_REASON : LIMIT_LONG;
+		}
+		return LIMIT_SHORT;
+	});
 </script>
 
-<div class="field" bind:this={container}>
+<div class="field">
 	<label for={field.name}>
 		{field.label}{#if isRequired}
 			<span class="required" aria-hidden="true">(required)</span>{/if}
@@ -50,8 +68,9 @@
 			required={!disabled}
 			{disabled}
 			autocomplete="name"
-			maxlength="200"
-			{value}
+			maxlength={maxLen}
+			bind:value
+			bind:this={inputEl}
 			aria-invalid={displayError ? 'true' : undefined}
 			aria-describedby={displayError ? errorId : undefined}
 			onblur={() => (touched = true)}
@@ -64,8 +83,9 @@
 			required={field.required && !disabled}
 			{disabled}
 			autocomplete="email"
-			maxlength="254"
-			{value}
+			maxlength={maxLen}
+			bind:value
+			bind:this={inputEl}
 			aria-invalid={displayError ? 'true' : undefined}
 			aria-describedby={displayError ? errorId : undefined}
 			onblur={() => (touched = true)}
@@ -77,7 +97,8 @@
 			type="number"
 			required={field.required && !disabled}
 			{disabled}
-			{value}
+			bind:value
+			bind:this={inputEl}
 			aria-invalid={displayError ? 'true' : undefined}
 			aria-describedby={displayError ? errorId : undefined}
 			onblur={() => (touched = true)}
@@ -92,8 +113,9 @@
 			required={field.required && !disabled}
 			{disabled}
 			pattern={PHONE_PATTERN}
-			maxlength="25"
-			{value}
+			maxlength={maxLen}
+			bind:value
+			bind:this={inputEl}
 			aria-invalid={displayError ? 'true' : undefined}
 			aria-describedby={displayError ? errorId : undefined}
 			onblur={() => (touched = true)}
@@ -105,14 +127,16 @@
 			rows="3"
 			required={field.required && !disabled}
 			{disabled}
-			maxlength="1000"
-			{value}
+			maxlength={maxLen}
+			{placeholder}
+			bind:value
+			bind:this={inputEl}
 			aria-invalid={displayError ? 'true' : undefined}
 			aria-describedby={displayError ? errorId : undefined}
 			onblur={() => (touched = true)}
 		></textarea>
 		{#if !disabled}
-			<span class="count">{liveValue.length}/1000</span>
+			<span class="count">{value.length}/{maxLen}</span>
 		{/if}
 	{:else if field.type === 'choice' || (field.type === 'event_location' && field.choices)}
 		<select
@@ -120,13 +144,15 @@
 			name={field.name}
 			required={field.required && !disabled}
 			{disabled}
+			bind:value
+			bind:this={inputEl}
 			aria-invalid={displayError ? 'true' : undefined}
 			aria-describedby={displayError ? errorId : undefined}
 			onblur={() => (touched = true)}
 		>
 			{#if !field.required}<option value="">Select an option</option>{/if}
 			{#each field.choices ?? [] as choice (choice)}
-				<option value={choice} selected={choice === value}>{choice}</option>
+				<option value={choice}>{choice}</option>
 			{/each}
 		</select>
 	{:else}
@@ -136,8 +162,9 @@
 			type="text"
 			required={field.required && !disabled}
 			{disabled}
-			maxlength="200"
-			{value}
+			maxlength={maxLen}
+			bind:value
+			bind:this={inputEl}
 			aria-invalid={displayError ? 'true' : undefined}
 			aria-describedby={displayError ? errorId : undefined}
 			onblur={() => (touched = true)}

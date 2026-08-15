@@ -1,11 +1,13 @@
 import { resolveFormFields, type GuestAnswer, type Meeting } from '@when/config';
-import { PHONE_RE, EMAIL_RE } from '$lib/forms/validation.js';
+import {
+	PHONE_RE,
+	EMAIL_RE,
+	LIMIT_SHORT,
+	LIMIT_LONG,
+	LIMIT_EMAIL,
+	LIMIT_REASON
+} from '$lib/forms/validation.js';
 import { evaluateVisibility } from '$lib/forms/conditional';
-
-const LIMIT_SHORT = 200;
-const LIMIT_LONG = 1000;
-const LIMIT_EMAIL = 254;
-const LIMIT_REASON = 500;
 
 const DEL = 0x7f;
 const FIRST_PRINTABLE = 0x20;
