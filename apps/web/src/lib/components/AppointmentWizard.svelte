@@ -73,6 +73,7 @@
 	let viewDate = $derived(flow.viewDate);
 	let selectedSlot = $derived(flow.selectedSlot);
 	let userTz = $derived(flow.userTz);
+	let isGuestFormValid = $state(false);
 
 	let formAction = $derived.by(() => {
 		if (data.isAdmin) {
@@ -232,6 +233,7 @@
 							{form}
 							{formAction}
 							requireApproval={data.eventType.require_approval}
+							onvaliditychange={(v) => (isGuestFormValid = v)}
 						/>
 					{/if}
 				</div>
@@ -240,6 +242,7 @@
 					{flow}
 					isReschedule={!!rescheduleAppt}
 					requireApproval={data.eventType.require_approval}
+					canSubmit={step === 3 ? isGuestFormValid : true}
 				/>
 			</div>
 		</div>

@@ -6,6 +6,7 @@
 	import { evaluateVisibility } from '$lib/forms/conditional';
 	import { defaultFieldValue } from '$lib/forms/defaults';
 	import FormFieldControl from '$lib/components/FormFieldControl.svelte';
+	import { validateFieldValue } from '$lib/forms/validation.js';
 	import type { AppointmentFlow } from '$lib/appointmentFlow.svelte';
 	import type { GuestAnswer, FormField } from '@when/config';
 	import type { PublicEventType } from '$lib/server/appointment/sanitize';
@@ -27,6 +28,7 @@
 		form: { error?: string; fieldErrors?: Record<string, string> } | null;
 		formAction: string;
 		requireApproval: PublicEventType['require_approval'];
+		onvaliditychange?: (valid: boolean) => void;
 	}
 
 	let {
@@ -37,7 +39,8 @@
 		fieldsDisabled,
 		form,
 		formAction,
-		requireApproval
+		requireApproval,
+		onvaliditychange
 	}: Props = $props();
 
 	// read-only views of the shared flow; the back button goes through flow.goBack
@@ -84,6 +87,26 @@
 			? 'Please provide a reason for rescheduling.'
 			: null
 	);
+
+	let isFormValid = $derived.by(() => {
+		if (rescheduleAppt && !rescheduleReasonValue.trim()) {
+			return false;
+		}
+		if (fieldsDisabled) {
+			return true;
+		}
+		for (const field of formFields) {
+			if (!visibleFields.get(field.name)) continue;
+			const val = fieldValues[field.name] ?? '';
+			const err = validateFieldValue(field, val);
+			if (err) return false;
+		}
+		return true;
+	});
+
+	$effect(() => {
+		onvaliditychange?.(isFormValid);
+	});
 
 	// The name field self-focuses via FormFieldControl; in the admin reschedule case
 	// there is no editable name field, so focus the reason box instead.
@@ -166,7 +189,7 @@
 			</div>
 		{/if}
 
-		<button type="submit" class="submit-btn">
+		<button type="submit" class="submit-btn" disabled={!isFormValid}>
 			{#if rescheduleAppt}Confirm Reschedule{:else if requireApproval}Request{:else}Schedule{/if}
 		</button>
 	</form>

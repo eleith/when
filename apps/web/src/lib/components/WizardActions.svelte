@@ -9,9 +9,10 @@
 		flow: AppointmentFlow;
 		isReschedule: boolean;
 		requireApproval: PublicEventType['require_approval'];
+		canSubmit?: boolean;
 	}
 
-	let { flow, isReschedule, requireApproval }: Props = $props();
+	let { flow, isReschedule, requireApproval, canSubmit = true }: Props = $props();
 
 	// read-only views of the shared flow; navigation goes through flow.* below
 	let step = $derived(flow.step);
@@ -38,7 +39,12 @@
 		</button>
 	{:else}
 		<button type="button" class="button button-secondary" onclick={flow.goBack}> Back </button>
-		<button type="submit" form="appointment-form" class="button" disabled={!selectedSlot}>
+		<button
+			type="submit"
+			form="appointment-form"
+			class="button"
+			disabled={!selectedSlot || !canSubmit}
+		>
 			{#if isReschedule}Confirm Reschedule{:else if requireApproval}Request{:else}Schedule{/if}
 		</button>
 	{/if}
