@@ -78,12 +78,8 @@ async function loadImage(
 }
 
 export interface OpengraphInput {
-	appUrl: string;
+	appUrl?: string;
 	appearance: Appearance;
-}
-
-function formatDisplayUrl(appUrl: string): string {
-	return appUrl.replace(/^https?:\/\//, '').replace(/\/+$/, '');
 }
 
 async function renderPng(fetchFn: typeof fetch, config: WhenConfiguration): Promise<ArrayBuffer> {
@@ -114,7 +110,7 @@ export async function renderOpengraph(
 	fetchFn: typeof fetch,
 	input: OpengraphInput
 ): Promise<Response> {
-	const { appUrl, appearance } = input;
+	const { appearance } = input;
 	const primary = appearance.primary_light_color;
 	const text = appearance.text_light_color;
 
@@ -129,7 +125,6 @@ export async function renderOpengraph(
 			title: appearance.title,
 			description: appearance.description,
 			fontFamily: fontStack(appearance.font_name),
-			url: formatDisplayUrl(appUrl),
 			appIconSrc: appIcon?.src,
 			avatarSrc: avatar?.src,
 			primary,

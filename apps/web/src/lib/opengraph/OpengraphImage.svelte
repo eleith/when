@@ -5,7 +5,6 @@
 		title: string;
 		description: string;
 		fontFamily: string;
-		url: string;
 		appIconSrc?: string;
 		avatarSrc?: string;
 		primary: string;
@@ -19,7 +18,6 @@
 		title,
 		description,
 		fontFamily,
-		url,
 		appIconSrc,
 		avatarSrc,
 		primary,
@@ -40,14 +38,12 @@
 		<span class="desc">{description}</span>
 	</div>
 	<div class="divider"></div>
-	<div class="bottom">
-		<div class="lockup">
-			{#if appIconSrc}
-				<img src={appIconSrc} alt="" />
-			{/if}
-			<span class="url">{url}</span>
+	<div class="bottom"></div>
+	{#if appIconSrc}
+		<div class="app-icon">
+			<div class="app-icon-clip"><img src={appIconSrc} alt="" /></div>
 		</div>
-	</div>
+	{/if}
 	{#if avatarSrc}
 		<div class="avatar">
 			<div class="avatar-clip"><img src={avatarSrc} alt="" /></div>
@@ -69,8 +65,8 @@
 		display: flex;
 		flex-direction: column;
 		align-items: flex-start;
-		height: 390px;
-		padding: 58px 84px 0;
+		height: 330px;
+		padding: 48px 84px 0;
 		background: var(--bg);
 	}
 	.title {
@@ -79,7 +75,7 @@
 		line-height: 1;
 		letter-spacing: -2px;
 		color: var(--text);
-		margin-top: 18px;
+		margin-top: 14px;
 	}
 	.desc {
 		font-size: 30px;
@@ -87,7 +83,7 @@
 		line-height: 1.34;
 		color: var(--muted);
 		max-width: 720px;
-		margin-top: 20px;
+		margin-top: 16px;
 	}
 	.divider {
 		height: 14px;
@@ -96,33 +92,34 @@
 	.bottom {
 		display: flex;
 		flex: 1;
-		align-items: flex-end;
-		justify-content: center;
-		padding-bottom: 28px;
 		background: var(--primary-tint);
 	}
-	.lockup {
+	.app-icon {
 		position: absolute;
+		top: 267px;
 		left: 84px;
-		bottom: 28px;
+		display: flex;
+		padding: 10px;
+		border-radius: 9999px;
+		background: var(--primary);
+	}
+	.app-icon-clip {
 		display: flex;
 		align-items: center;
-		gap: 14px;
+		justify-content: center;
+		width: 120px;
+		height: 120px;
+		border-radius: 9999px;
+		background: var(--bg);
+		overflow: hidden;
 	}
-	.lockup img {
-		width: 40px;
-		height: 40px;
-	}
-	.url {
-		font-size: 22px;
-		font-weight: 600;
-		letter-spacing: 3px;
-		text-transform: uppercase;
-		color: var(--primary);
+	.app-icon-clip img {
+		width: 80px;
+		height: 80px;
 	}
 	.avatar {
 		position: absolute;
-		top: 196px;
+		top: 153px;
 		left: 776px;
 		display: flex;
 		padding: 14px;
