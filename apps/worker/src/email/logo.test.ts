@@ -28,11 +28,13 @@ describe('fetchBrandLogo', () => {
 		expect(fetchSpy).not.toHaveBeenCalled();
 	});
 
-	test('embeds a fetched image as a base64 CID attachment', async () => {
+	test('embeds a fetched image as a base64 CID attachment with filename from URL', async () => {
 		vi.spyOn(globalThis, 'fetch').mockResolvedValue(imageResponse(Buffer.from('PNG'), 'image/png'));
-		const logo = await fetchBrandLogo(cfg({ app_icon_path: 'https://cdn.acme.test/logo.png' }));
+		const logo = await fetchBrandLogo(
+			cfg({ app_icon_path: 'https://cdn.acme.test/brand-icon.png' })
+		);
 		expect(logo).toEqual({
-			filename: 'logo.png',
+			filename: 'brand-icon.png',
 			content: Buffer.from('PNG').toString('base64'),
 			contentType: 'image/png',
 			cid: BRAND_LOGO_CID,
@@ -102,13 +104,13 @@ describe('fetchBrandLogo', () => {
 		}
 	});
 
-	test('caches a negative result: a broken URL is not refetched within the TTL', async () => {
+	test('does not cache a negative result: a broken URL is retried on subsequent calls', async () => {
 		const fetchSpy = vi
 			.spyOn(globalThis, 'fetch')
 			.mockResolvedValue(new Response('', { status: 404 }));
 		const c = cfg({ app_icon_path: 'https://cdn/missing.png' });
 		expect(await fetchBrandLogo(c)).toBeNull();
 		expect(await fetchBrandLogo(c)).toBeNull();
-		expect(fetchSpy).toHaveBeenCalledTimes(1);
+		expect(fetchSpy).toHaveBeenCalledTimes(2);
 	});
 });

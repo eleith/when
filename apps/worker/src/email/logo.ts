@@ -1,3 +1,4 @@
+import { basename } from 'node:path';
 import type { WhenConfiguration } from '@when/config';
 import { logger } from '../services/logger.js';
 import type { Attachment } from './recipients.js';
@@ -5,9 +6,6 @@ import type { Attachment } from './recipients.js';
 export const BRAND_LOGO_CID = 'brand-logo';
 
 const FETCH_TIMEOUT_MS = 5000;
-
-// Brand logos rarely change; cache the result (including negatives, so a broken
-// URL isn't refetched on every email) for this long before revalidating.
 const CACHE_TTL_MS = 60 * 60 * 1000;
 
 interface CacheEntry {
@@ -28,12 +26,7 @@ function resolveImageUrl(cfg: WhenConfiguration): string | undefined {
 	}
 }
 
-function filenameFor(contentType: string): string {
-	const ext = contentType.split('/')[1]?.split(';')[0] ?? 'png';
-	return `logo.${ext}`;
-}
-
-async function load(url: string): Promise<Attachment | null> {
+async function load(url: string, filename = 'logo.png'): Promise<Attachment | null> {
 	try {
 		const res = await fetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
 		if (!res.ok) {
@@ -52,7 +45,7 @@ async function load(url: string): Promise<Attachment | null> {
 		}
 		logger.info({ url, bytes: bytes.length, contentType }, 'brand logo embedded in email');
 		return {
-			filename: filenameFor(contentType),
+			filename,
 			content: bytes.toString('base64'),
 			contentType,
 			cid: BRAND_LOGO_CID,
@@ -80,8 +73,11 @@ export async function fetchBrandLogo(cfg: WhenConfiguration): Promise<Attachment
 	if (cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS) {
 		return cached.value;
 	}
-	const value = await load(url);
-	cache.set(url, { value, fetchedAt: Date.now() });
+	const filename = basename(cfg.user.appearance.app_icon_path);
+	const value = await load(url, filename);
+	if (value) {
+		cache.set(url, { value, fetchedAt: Date.now() });
+	}
 	return value;
 }
 
