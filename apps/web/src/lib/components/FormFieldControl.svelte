@@ -29,8 +29,6 @@
 	});
 
 	let isRequired = $derived((field.required || field.type === 'guest_name') && !disabled);
-	let isFilled = $derived((liveValue || value || '').trim().length > 0);
-	let showRequired = $derived(isRequired && !isFilled);
 
 	let clientError = $derived(
 		touched && !disabled ? validateFieldValue(field, liveValue || value || '') : null
@@ -41,7 +39,8 @@
 
 <div class="field" bind:this={container}>
 	<label for={field.name}>
-		{field.label}{#if showRequired}<span class="required" aria-hidden="true">*</span>{/if}
+		{field.label}{#if isRequired}
+			<span class="required" aria-hidden="true">(required)</span>{/if}
 	</label>
 	{#if field.type === 'guest_name'}
 		<input
@@ -163,8 +162,10 @@
 	}
 
 	.required {
-		color: var(--color-danger);
-		margin-left: 2px;
+		font-weight: 400;
+		font-size: var(--font-size-xs);
+		color: var(--color-text-muted);
+		margin-left: var(--space-2);
 	}
 
 	.field input,

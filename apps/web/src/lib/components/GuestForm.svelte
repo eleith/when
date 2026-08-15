@@ -168,7 +168,9 @@
 				<hr class="wizard-separator" />
 			</div>
 			<div class="field">
-				<label for="reschedule_reason"> Reason for rescheduling </label>
+				<label for="reschedule_reason">
+					Reason for rescheduling<span class="required" aria-hidden="true">(required)</span>
+				</label>
 				<textarea
 					id="reschedule_reason"
 					name="reschedule_reason"
@@ -260,6 +262,13 @@
 		font-weight: 600;
 		margin-bottom: var(--space-2);
 		color: var(--color-text-secondary);
+	}
+
+	.required {
+		font-weight: 400;
+		font-size: var(--font-size-xs);
+		color: var(--color-text-muted);
+		margin-left: var(--space-2);
 	}
 
 	.field textarea {
