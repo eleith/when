@@ -170,6 +170,8 @@
 		}
 	}
 
+	let suppressTransition = $state(false);
+
 	function handleTrackPointerUp(e: PointerEvent) {
 		if (!pointerStartMode) {
 			return;
@@ -179,7 +181,13 @@
 			if (isDragging && dragYPercent !== null) {
 				if (!isUnavailable(dragYPercent)) {
 					const best = nearestSlotAt(dragYPercent);
-					if (best && best.iso !== selectedSlot && !best.isOriginal) selectSlot(best.iso);
+					if (best && !best.isOriginal) {
+						suppressTransition = true;
+						selectSlot(best.iso);
+						setTimeout(() => {
+							suppressTransition = false;
+						}, 50);
+					}
 				}
 			} else {
 				flow.clearSlot();
@@ -187,7 +195,10 @@
 		} else {
 			if (!isDragging) {
 				const percent = pointToPercent(e.clientY);
-				if (!isUnavailable(percent)) snapToClick(percent);
+				if (!isUnavailable(percent)) {
+					suppressTransition = false;
+					snapToClick(percent);
+				}
 			}
 		}
 
@@ -200,6 +211,29 @@
 		pointerStartMode = null;
 		isDragging = false;
 		dragYPercent = null;
+	}
+
+	function handleKeyDown(e: KeyboardEvent) {
+		if (!timeline) return;
+		const available = timeline.slots.filter((s) => !s.isOriginal);
+		if (available.length === 0) return;
+
+		const currentIndex = available.findIndex((s) => s.iso === selectedSlot);
+
+		if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+			e.preventDefault();
+			suppressTransition = false;
+			const next = currentIndex < available.length - 1 ? currentIndex + 1 : 0;
+			selectSlot(available[next].iso);
+		} else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+			e.preventDefault();
+			suppressTransition = false;
+			const prev = currentIndex > 0 ? currentIndex - 1 : available.length - 1;
+			selectSlot(available[prev].iso);
+		} else if (e.key === 'Escape' || e.key === 'Delete' || e.key === 'Backspace') {
+			e.preventDefault();
+			flow.clearSlot();
+		}
 	}
 </script>
 
@@ -234,18 +268,20 @@
 				</button>
 			</div>
 		</div>
-		<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-		<div class="timeline-scroll" tabindex="0">
+		<div class="timeline-scroll">
 			<div class="timeline" style:height="{(timeline.totalMs / 3600000) * 96}px">
 				{#each timeline.labels as { label, top } (label)}
 					<div class="timeline-label" style:top="{top}%">{label}</div>
 					<div class="timeline-gridline" style:top="{top}%"></div>
 				{/each}
 
-				<!-- svelte-ignore a11y_no_static_element_interactions -->
 				<div
 					class="timeline-track"
+					role="radiogroup"
+					aria-label="Available appointment times"
+					tabindex="-1"
 					bind:this={trackEl}
+					onkeydown={handleKeyDown}
 					onpointerdown={handleTrackPointerDown}
 					onpointermove={handleTrackPointerMove}
 					onpointerup={handleTrackPointerUp}
@@ -278,10 +314,13 @@
 					{#if showSlots}
 						{#each timeline.slots as s (s.iso)}
 							{#if !s.isOriginal}
+								{@const isSelected = s.iso === selectedSlot}
 								<button
 									type="button"
+									role="radio"
+									aria-checked={isSelected}
 									class="slot-btn"
-									class:selected={s.iso === selectedSlot}
+									class:selected={isSelected}
 									style:top="{s.top}%"
 									style:height="{s.height}%"
 									onclick={() => selectSlot(s.iso)}
@@ -290,24 +329,50 @@
 								</button>
 							{/if}
 						{/each}
-					{:else if selectedSlot}
-						{@const s = timeline.slots.find((s) => s.iso === selectedSlot)}
-						{#if s}
-							{@const preview =
-								isDragging && dragYPercent !== null ? nearestSlotAt(dragYPercent) : null}
-							{@const overUnavailable =
-								isDragging && dragYPercent !== null && isUnavailable(dragYPercent)}
-							<div
-								class="slot-block selected"
-								class:dragging={isDragging}
-								class:unavailable={overUnavailable}
-								style:top="{blockTop(s)}%"
-								style:height="{s.height}%"
-							>
-								<span class="slot-text">
-									{preview ? preview.time : s.time} – {preview ? preview.endTime : s.endTime}
-								</span>
-							</div>
+					{:else}
+						{#each timeline.slots as s (s.iso)}
+							{#if !s.isOriginal}
+								{@const isSelected = s.iso === selectedSlot}
+								<button
+									type="button"
+									role="radio"
+									aria-checked={isSelected}
+									class="slot-hit-target"
+									class:selected={isSelected}
+									style:top="{s.top}%"
+									style:height="{s.height}%"
+									onclick={() => {
+										suppressTransition = false;
+										selectSlot(s.iso);
+									}}
+								>
+									<span class="visually-hidden">{s.time} – {s.endTime}</span>
+								</button>
+							{/if}
+						{/each}
+
+						{#if selectedSlot}
+							{@const s = timeline.slots.find((s) => s.iso === selectedSlot)}
+							{#if s}
+								{@const isSelectedDragging = isDragging && dragYPercent !== null}
+								{@const preview =
+									isSelectedDragging && dragYPercent !== null ? nearestSlotAt(dragYPercent) : null}
+								{@const overUnavailable =
+									isSelectedDragging && dragYPercent !== null ? isUnavailable(dragYPercent) : false}
+								<div
+									class="slot-block selected"
+									class:dragging={isSelectedDragging}
+									class:no-transition={suppressTransition || isSelectedDragging}
+									class:unavailable={overUnavailable}
+									style:top="{isSelectedDragging ? blockTop(s) : s.top}%"
+									style:height="{s.height}%"
+									aria-hidden="true"
+								>
+									<span class="slot-text">
+										{preview ? preview.time : s.time} – {preview ? preview.endTime : s.endTime}
+									</span>
+								</div>
+							{/if}
 						{/if}
 					{/if}
 
@@ -589,19 +654,40 @@
 		position: absolute;
 		left: var(--space-4);
 		right: var(--space-4);
-		background: var(--color-primary-muted);
-		border: 1px solid var(--color-primary-border);
 		border-radius: var(--radius-sm);
 		display: flex;
 		justify-content: center;
 		align-items: center;
 		padding: var(--space-1) var(--space-2);
 		font-size: var(--font-size-sm);
+	}
+
+	.slot-block.selected {
+		background: var(--color-primary-muted);
+		border: 1px solid var(--color-primary-border);
 		color: var(--when-color-primary);
 		z-index: 5;
 		transition: top var(--transition);
 		cursor: grab;
 		touch-action: none;
+	}
+
+	.slot-block.selected.no-transition {
+		transition: none !important;
+	}
+
+	.slot-block.selected.dragging {
+		transition: none !important;
+		opacity: 0.85;
+		cursor: grabbing;
+		box-shadow: var(--shadow-md, 0 4px 10px rgba(0, 0, 0, 0.15));
+		z-index: 6;
+	}
+
+	.slot-block.selected.unavailable {
+		background: var(--color-danger-bg);
+		border-color: var(--color-danger);
+		color: var(--color-danger);
 	}
 
 	.slot-block.original-appointment {
@@ -610,19 +696,6 @@
 		color: var(--color-text-secondary);
 		cursor: not-allowed;
 		z-index: 4;
-	}
-
-	.slot-block.dragging {
-		transition: none;
-		opacity: 0.85;
-		cursor: grabbing;
-		box-shadow: var(--shadow-md, 0 4px 10px rgba(0, 0, 0, 0.15));
-	}
-
-	.slot-block.unavailable {
-		background: var(--color-danger-bg);
-		border-color: var(--color-danger);
-		color: var(--color-danger);
 	}
 
 	.slot-text {
@@ -635,6 +708,41 @@
 		padding: var(--space-9) var(--space-7);
 	}
 
+	/* Accessible hit target for keyboard and screen-readers in continuous mode */
+	.slot-hit-target {
+		position: absolute;
+		left: var(--space-4);
+		right: var(--space-4);
+		background: transparent;
+		border: 1px solid transparent;
+		border-radius: var(--radius-sm);
+		padding: 0;
+		margin: 0;
+		cursor: pointer;
+		z-index: 4;
+	}
+
+	.slot-hit-target:focus-visible {
+		outline: none;
+		background: var(--color-primary-muted);
+		border-color: var(--when-color-primary);
+		box-shadow: var(--shadow-focus);
+		z-index: 7;
+	}
+
+	.visually-hidden {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		padding: 0;
+		margin: -1px;
+		overflow: hidden;
+		clip: rect(0, 0, 0, 0);
+		white-space: nowrap;
+		border: 0;
+	}
+
+	/* Discrete buttons for show_slots: true */
 	.slot-btn {
 		position: absolute;
 		left: var(--space-4);
