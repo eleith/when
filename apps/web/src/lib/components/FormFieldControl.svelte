@@ -1,7 +1,7 @@
 <!-- One labelled guest-input, rendered per configured form field type. -->
 <script lang="ts">
 	import type { FormField } from '@when/config';
-	import { PHONE_PATTERN } from '$lib/forms/phone';
+	import { PHONE_PATTERN, validateFieldValue } from '$lib/forms/validation.js';
 
 	interface Props {
 		field: FormField;
@@ -22,6 +22,7 @@
 	}: Props = $props();
 
 	let container = $state<HTMLDivElement | null>(null);
+	let touched = $state(false);
 
 	$effect(() => {
 		if (focusOnMount) container?.querySelector<HTMLElement>('input, select, textarea')?.focus();
@@ -30,6 +31,12 @@
 	let isRequired = $derived((field.required || field.type === 'guest_name') && !disabled);
 	let isFilled = $derived((liveValue || value || '').trim().length > 0);
 	let showRequired = $derived(isRequired && !isFilled);
+
+	let clientError = $derived(
+		touched && !disabled ? validateFieldValue(field, liveValue || value || '') : null
+	);
+	let displayError = $derived(error || clientError);
+	let errorId = $derived(`${field.name}-error`);
 </script>
 
 <div class="field" bind:this={container}>
@@ -46,6 +53,9 @@
 			autocomplete="name"
 			maxlength="200"
 			{value}
+			aria-invalid={displayError ? 'true' : undefined}
+			aria-describedby={displayError ? errorId : undefined}
+			onblur={() => (touched = true)}
 		/>
 	{:else if field.type === 'guest_email'}
 		<input
@@ -57,6 +67,9 @@
 			autocomplete="email"
 			maxlength="254"
 			{value}
+			aria-invalid={displayError ? 'true' : undefined}
+			aria-describedby={displayError ? errorId : undefined}
+			onblur={() => (touched = true)}
 		/>
 	{:else if field.type === 'number'}
 		<input
@@ -66,6 +79,9 @@
 			required={field.required && !disabled}
 			{disabled}
 			{value}
+			aria-invalid={displayError ? 'true' : undefined}
+			aria-describedby={displayError ? errorId : undefined}
+			onblur={() => (touched = true)}
 		/>
 	{:else if field.type === 'phone'}
 		<input
@@ -79,6 +95,9 @@
 			pattern={PHONE_PATTERN}
 			maxlength="25"
 			{value}
+			aria-invalid={displayError ? 'true' : undefined}
+			aria-describedby={displayError ? errorId : undefined}
+			onblur={() => (touched = true)}
 		/>
 	{:else if field.type === 'paragraph'}
 		<textarea
@@ -89,12 +108,23 @@
 			{disabled}
 			maxlength="1000"
 			{value}
+			aria-invalid={displayError ? 'true' : undefined}
+			aria-describedby={displayError ? errorId : undefined}
+			onblur={() => (touched = true)}
 		></textarea>
 		{#if !disabled}
 			<span class="count">{liveValue.length}/1000</span>
 		{/if}
 	{:else if field.type === 'choice' || (field.type === 'event_location' && field.choices)}
-		<select id={field.name} name={field.name} required={field.required && !disabled} {disabled}>
+		<select
+			id={field.name}
+			name={field.name}
+			required={field.required && !disabled}
+			{disabled}
+			aria-invalid={displayError ? 'true' : undefined}
+			aria-describedby={displayError ? errorId : undefined}
+			onblur={() => (touched = true)}
+		>
 			{#if !field.required}<option value="">Select an option</option>{/if}
 			{#each field.choices ?? [] as choice (choice)}
 				<option value={choice} selected={choice === value}>{choice}</option>
@@ -109,10 +139,13 @@
 			{disabled}
 			maxlength="200"
 			{value}
+			aria-invalid={displayError ? 'true' : undefined}
+			aria-describedby={displayError ? errorId : undefined}
+			onblur={() => (touched = true)}
 		/>
 	{/if}
-	{#if error}
-		<p class="error" role="alert">{error}</p>
+	{#if displayError}
+		<p id={errorId} class="error" role="alert">{displayError}</p>
 	{/if}
 </div>
 
@@ -154,6 +187,25 @@
 		outline: none;
 		border-color: var(--when-color-primary);
 		box-shadow: var(--shadow-focus);
+	}
+
+	.field input[aria-invalid='true'],
+	.field select[aria-invalid='true'],
+	.field textarea[aria-invalid='true'],
+	.field input:user-invalid,
+	.field select:user-invalid,
+	.field textarea:user-invalid {
+		border-color: var(--color-danger);
+	}
+
+	.field input[aria-invalid='true']:focus,
+	.field select[aria-invalid='true']:focus,
+	.field textarea[aria-invalid='true']:focus,
+	.field input:user-invalid:focus,
+	.field select:user-invalid:focus,
+	.field textarea:user-invalid:focus {
+		border-color: var(--color-danger);
+		box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.2);
 	}
 
 	.count {

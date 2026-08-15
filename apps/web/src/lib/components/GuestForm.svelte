@@ -78,6 +78,12 @@
 
 	let rescheduleReasonValue = $state('');
 	let rescheduleReasonEl = $state<HTMLTextAreaElement | null>(null);
+	let rescheduleTouched = $state(false);
+	let rescheduleError = $derived(
+		rescheduleTouched && !rescheduleReasonValue.trim()
+			? 'Please provide a reason for rescheduling.'
+			: null
+	);
 
 	// The name field self-focuses via FormFieldControl; in the admin reschedule case
 	// there is no editable name field, so focus the reason box instead.
@@ -149,8 +155,14 @@
 					required
 					bind:value={rescheduleReasonValue}
 					bind:this={rescheduleReasonEl}
+					aria-invalid={rescheduleError ? 'true' : undefined}
+					aria-describedby={rescheduleError ? 'reschedule_reason-error' : undefined}
+					onblur={() => (rescheduleTouched = true)}
 				></textarea>
 				<span class="field-count">{(rescheduleReasonValue ?? '').length}/500</span>
+				{#if rescheduleError}
+					<p id="reschedule_reason-error" class="error" role="alert">{rescheduleError}</p>
+				{/if}
 			</div>
 		{/if}
 
@@ -245,12 +257,29 @@
 		box-shadow: var(--shadow-focus);
 	}
 
+	.field textarea[aria-invalid='true'],
+	.field textarea:user-invalid {
+		border-color: var(--color-danger);
+	}
+
+	.field textarea[aria-invalid='true']:focus,
+	.field textarea:user-invalid:focus {
+		border-color: var(--color-danger);
+		box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.2);
+	}
+
 	.field-count {
 		display: block;
 		margin-top: var(--space-1);
 		text-align: right;
 		font-size: var(--font-size-xs);
 		color: var(--color-text-muted);
+	}
+
+	.error {
+		margin: var(--space-2) 0 0;
+		font-size: var(--font-size-sm);
+		color: var(--color-danger);
 	}
 
 	/* Hidden control so pressing Enter in a field submits; the visible submit is the wizard CTA. */
