@@ -549,10 +549,10 @@
 						></textarea>
 						<input type="hidden" name="token" value={data.token} />
 						<div class="cancel-dialog-actions">
-							<button type="submit" class="cancel-confirm-btn">Submit</button>
+							<button type="submit" class="dialog-btn-danger">Submit</button>
 							<Dialog.Close>
 								{#snippet child({ props: closeProps })}
-									<button {...closeProps} type="button" class="cancel-cancel-btn">Close</button>
+									<button {...closeProps} type="button" class="dialog-btn-secondary">Close</button>
 								{/snippet}
 							</Dialog.Close>
 						</div>
@@ -597,7 +597,7 @@
 							bind:this={noteTextareaEl}
 						></textarea>
 						<div class="cancel-dialog-actions edit-note-actions">
-							<button type="submit" class="cancel-confirm-btn">Save</button>
+							<button type="submit" class="dialog-btn-primary">Save</button>
 							{#if data.appointment.note}
 								<button
 									type="submit"
@@ -611,7 +611,7 @@
 							{/if}
 							<Dialog.Close>
 								{#snippet child({ props: closeProps })}
-									<button {...closeProps} type="button" class="cancel-cancel-btn">Close</button>
+									<button {...closeProps} type="button" class="dialog-btn-secondary">Close</button>
 								{/snippet}
 							</Dialog.Close>
 						</div>
@@ -656,7 +656,7 @@
 							bind:this={locationInputEl}
 						/>
 						<div class="cancel-dialog-actions edit-note-actions">
-							<button type="submit" class="cancel-confirm-btn">Save</button>
+							<button type="submit" class="dialog-btn-primary">Save</button>
 							{#if data.appointment.location}
 								<button
 									type="submit"
@@ -670,7 +670,7 @@
 							{/if}
 							<Dialog.Close>
 								{#snippet child({ props: closeProps })}
-									<button {...closeProps} type="button" class="cancel-cancel-btn">Close</button>
+									<button {...closeProps} type="button" class="dialog-btn-secondary">Close</button>
 								{/snippet}
 							</Dialog.Close>
 						</div>
@@ -734,7 +734,9 @@
 									<button type="submit" class="delete-note-btn">Remove</button>
 									<Dialog.Close>
 										{#snippet child({ props: closeProps })}
-											<button {...closeProps} type="button" class="cancel-cancel-btn">Close</button>
+											<button {...closeProps} type="button" class="dialog-btn-secondary"
+												>Close</button
+											>
 										{/snippet}
 									</Dialog.Close>
 								</div>
@@ -743,7 +745,7 @@
 							<div class="cancel-dialog-actions edit-note-actions">
 								<button
 									type="button"
-									class="cancel-confirm-btn"
+									class="dialog-btn-primary"
 									class:busy={generatingVideoChat}
 									disabled={generatingVideoChat}
 									onclick={handleGenerateVideoChat}
@@ -755,7 +757,8 @@
 								</button>
 								<Dialog.Close>
 									{#snippet child({ props: closeProps })}
-										<button {...closeProps} type="button" class="cancel-cancel-btn">Close</button>
+										<button {...closeProps} type="button" class="dialog-btn-secondary">Close</button
+										>
 									{/snippet}
 								</Dialog.Close>
 							</div>
@@ -771,7 +774,7 @@
 								bind:this={videoChatInputEl}
 							/>
 							<div class="cancel-dialog-actions edit-note-actions">
-								<button type="submit" class="cancel-confirm-btn">Save</button>
+								<button type="submit" class="dialog-btn-primary">Save</button>
 								{#if data.appointment.video_chat}
 									<button
 										type="submit"
@@ -785,7 +788,8 @@
 								{/if}
 								<Dialog.Close>
 									{#snippet child({ props: closeProps })}
-										<button {...closeProps} type="button" class="cancel-cancel-btn">Close</button>
+										<button {...closeProps} type="button" class="dialog-btn-secondary">Close</button
+										>
 									{/snippet}
 								</Dialog.Close>
 							</div>
@@ -1201,6 +1205,7 @@
 		margin-top: var(--space-2);
 	}
 
+	.dialog-btn-danger,
 	.cancel-confirm-btn {
 		background: var(--color-danger);
 		color: var(--when-color-text-on-primary);
@@ -1215,11 +1220,48 @@
 			border-color var(--transition);
 	}
 
+	.dialog-btn-danger:hover,
 	.cancel-confirm-btn:hover {
 		background: var(--color-danger-strong);
 		border-color: var(--color-danger-strong);
 	}
 
+	.dialog-btn-primary {
+		background: var(--when-color-primary);
+		color: var(--when-color-text-on-primary);
+		border: 1px solid var(--when-color-primary);
+		border-radius: var(--radius);
+		padding: var(--space-3) var(--space-6);
+		font-size: var(--font-size-md);
+		font-weight: 600;
+		cursor: pointer;
+		display: inline-grid;
+		grid-template-areas: 'content';
+		place-items: center;
+		transition:
+			opacity var(--transition),
+			background var(--transition),
+			border-color var(--transition);
+	}
+
+	.dialog-btn-primary > * {
+		grid-area: content;
+	}
+
+	.dialog-btn-primary.busy .label {
+		opacity: 0;
+	}
+
+	.dialog-btn-primary:hover:not(:disabled) {
+		opacity: 0.9;
+	}
+
+	.dialog-btn-primary:disabled {
+		opacity: 0.7;
+		cursor: not-allowed;
+	}
+
+	.dialog-btn-secondary,
 	.cancel-cancel-btn {
 		background: none;
 		border: 1px solid var(--color-border-strong);
@@ -1232,6 +1274,7 @@
 		transition: background var(--transition);
 	}
 
+	.dialog-btn-secondary:hover,
 	.cancel-cancel-btn:hover {
 		background: var(--color-surface-muted);
 	}
@@ -1389,32 +1432,7 @@
 		background: var(--color-danger-bg);
 	}
 
-	.edit-note-actions .cancel-confirm-btn {
-		background: var(--when-color-primary);
-		border-color: var(--when-color-primary);
-		display: inline-grid;
-		grid-template-areas: 'content';
-		place-items: center;
-	}
-
-	.edit-note-actions .cancel-confirm-btn > * {
-		grid-area: content;
-	}
-
-	.edit-note-actions .cancel-confirm-btn.busy .label {
-		opacity: 0;
-	}
-
-	.edit-note-actions .cancel-confirm-btn:hover:not(:disabled) {
-		background: var(--when-color-primary);
-		opacity: 0.9;
-	}
-
-	.edit-note-actions .cancel-confirm-btn:disabled {
-		opacity: 0.7;
-		cursor: not-allowed;
-	}
-
+	.edit-note-actions .dialog-btn-secondary,
 	.edit-note-actions .cancel-cancel-btn {
 		margin-left: auto;
 	}

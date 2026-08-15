@@ -502,15 +502,18 @@
 		border: 1px solid var(--color-border-strong);
 		border-radius: var(--radius);
 		background: var(--color-surface);
-		color: var(--color-danger);
+		color: var(--when-color-text);
 		font-size: var(--font-size-md);
 		font-weight: 600;
 		cursor: pointer;
-		transition: background var(--transition);
+		transition:
+			background var(--transition),
+			border-color var(--transition);
 	}
 
 	.share-rotate-btn:hover {
 		background: var(--color-surface-muted);
+		border-color: var(--color-border-strong);
 	}
 
 	.share-dialog-header {
