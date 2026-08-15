@@ -1,8 +1,7 @@
 <script lang="ts">
 	import { tick } from 'svelte';
-	import { SvelteMap } from 'svelte/reactivity';
 	import { Dialog } from 'bits-ui';
-	import { tzCity, tzOffset } from '$lib/datetime';
+	import { getTimezoneIndex, searchTimezones } from '$lib/timezones';
 	import { getPreferredTimezone } from '$lib/preferredTimezone.svelte';
 
 	interface Props {
@@ -12,27 +11,13 @@
 	let { open = $bindable(false) }: Props = $props();
 
 	const ptz = getPreferredTimezone();
-
-	const ALL_TIMEZONES = Intl.supportedValuesOf('timeZone');
-
-	type TzInfo = { city: string; offset: string; haystack: string };
-	const TZ_INFO = new SvelteMap<string, TzInfo>();
-	for (const tz of ALL_TIMEZONES) {
-		const city = tzCity(tz);
-		const offset = tzOffset(tz);
-		const haystack = `${tz} ${city} ${offset}`.toLowerCase();
-		TZ_INFO.set(tz, { city, offset, haystack });
-	}
+	const tzIndex = getTimezoneIndex();
 
 	let search = $state('');
 	let searchInput = $state<HTMLInputElement | null>(null);
 	let listEl = $state<HTMLUListElement | null>(null);
 
-	let filtered = $derived.by(() => {
-		const q = search.trim().toLowerCase();
-		if (!q) return ALL_TIMEZONES;
-		return ALL_TIMEZONES.filter((tz) => TZ_INFO.get(tz)?.haystack.includes(q));
-	});
+	let filtered = $derived(searchTimezones(search, tzIndex));
 
 	$effect(() => {
 		if (!open) return;
@@ -57,7 +42,12 @@
 				<div {...props} class="dialog-overlay"></div>
 			{/snippet}
 		</Dialog.Overlay>
-		<Dialog.Content>
+		<Dialog.Content
+			onOpenAutoFocus={(e) => {
+				e.preventDefault();
+				searchInput?.focus();
+			}}
+		>
 			{#snippet child({ props })}
 				<div {...props} class="dialog-content tz-dialog">
 					<header class="tz-dialog-header">
@@ -72,6 +62,7 @@
 							{/snippet}
 						</Dialog.Close>
 					</header>
+					<!-- svelte-ignore a11y_autofocus -->
 					<input
 						class="tz-search"
 						type="search"
@@ -79,20 +70,25 @@
 						bind:value={search}
 						bind:this={searchInput}
 						autocomplete="off"
+						autofocus
 					/>
 					<ul class="tz-list" bind:this={listEl}>
-						{#each filtered as tz (tz)}
-							{@const info = TZ_INFO.get(tz)}
+						{#each filtered as item (item.tz)}
 							<li>
 								<button
 									type="button"
 									class="tz-option"
-									class:selected={tz === ptz.current}
-									onclick={() => select(tz)}
+									class:selected={item.tz === ptz.current}
+									onclick={() => select(item.tz)}
 								>
-									<span class="tz-option-city">{info?.city ?? tz}</span>
-									{#if info?.offset}
-										<span class="tz-option-offset">{info.offset}</span>
+									<div class="tz-option-main">
+										<span class="tz-option-city">{item.city}</span>
+										{#if item.tzName}
+											<span class="tz-option-name">{item.tzName}</span>
+										{/if}
+									</div>
+									{#if item.offset}
+										<span class="tz-option-offset">{item.offset}</span>
 									{/if}
 								</button>
 							</li>
@@ -246,7 +242,7 @@
 		text-align: left;
 		background: none;
 		border: none;
-		padding: var(--space-3) var(--space-4);
+		padding: var(--space-2) var(--space-4);
 		font: inherit;
 		color: inherit;
 		cursor: pointer;
@@ -263,11 +259,40 @@
 		font-weight: 600;
 	}
 
+	.tz-option-main {
+		display: flex;
+		flex-direction: column;
+		min-width: 0;
+		gap: 2px;
+	}
+
 	.tz-option-city {
 		min-width: 0;
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
+		font-size: var(--font-size-base);
+		font-weight: 500;
+		color: var(--when-color-text);
+	}
+
+	.tz-option-name {
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		font-size: var(--font-size-xs);
+		color: var(--color-text-secondary);
+	}
+
+	.tz-option.selected .tz-option-city {
+		color: var(--when-color-primary);
+		font-weight: 600;
+	}
+
+	.tz-option.selected .tz-option-name {
+		color: var(--when-color-primary);
+		opacity: 0.85;
 	}
 
 	.tz-option-offset {
