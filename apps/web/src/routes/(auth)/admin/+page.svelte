@@ -161,22 +161,22 @@
 		<div class="stats-group">
 			<h2 class="section-label">Statistics</h2>
 			<div class="stats-row">
-				<div class="stat-card">
+				<a href="/admin/appointments/past" class="stat-card">
 					<span class="stat-value">{fmtHours(data.confirmedMinutesThisWeek)}</span>
 					<span class="stat-label">scheduled this week</span>
-				</div>
-				<div class="stat-card">
+				</a>
+				<a href="/admin/appointments/past" class="stat-card">
 					<span class="stat-value">{data.totalThisMonth}</span>
 					<span class="stat-label">total this month</span>
-				</div>
+				</a>
 				<a href="/admin/appointments/past" class="stat-card">
 					<span class="stat-value">{data.lifetimeMeetings}</span>
 					<span class="stat-label">lifetime meetings</span>
 				</a>
-				<div class="stat-card">
+				<a href="/admin/appointments/past" class="stat-card">
 					<span class="stat-value">{fmtHours(data.lifetimeMinutes)}</span>
 					<span class="stat-label">lifetime meeting time</span>
-				</div>
+				</a>
 			</div>
 		</div>
 
