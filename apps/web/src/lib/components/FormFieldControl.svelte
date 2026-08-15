@@ -26,12 +26,15 @@
 	$effect(() => {
 		if (focusOnMount) container?.querySelector<HTMLElement>('input, select, textarea')?.focus();
 	});
+
+	let isRequired = $derived((field.required || field.type === 'guest_name') && !disabled);
+	let isFilled = $derived((liveValue || value || '').trim().length > 0);
+	let showRequired = $derived(isRequired && !isFilled);
 </script>
 
 <div class="field" bind:this={container}>
 	<label for={field.name}>
-		{field.label}{#if field.required && !disabled}<span class="required" aria-hidden="true">*</span
-			>{/if}
+		{field.label}{#if showRequired}<span class="required" aria-hidden="true">*</span>{/if}
 	</label>
 	{#if field.type === 'guest_name'}
 		<input
