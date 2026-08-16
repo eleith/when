@@ -1,11 +1,9 @@
 <!-- Placeholder shown on step 1 while the viewer timezone resolves client-side. -->
 <div class="skeleton" aria-hidden="true">
 	<div class="header">
+		<span class="nav-button"></span>
 		<span class="heading"></span>
-		<div class="nav">
-			<span class="nav-button"></span>
-			<span class="nav-button"></span>
-		</div>
+		<span class="nav-button"></span>
 	</div>
 	<div class="grid">
 		<div class="weekdays">
@@ -24,6 +22,12 @@
 </div>
 
 <style>
+	.skeleton {
+		width: 100%;
+		max-width: 360px;
+		margin: 0 auto;
+	}
+
 	.header {
 		display: flex;
 		align-items: center;
@@ -36,11 +40,6 @@
 		width: 9rem;
 		border-radius: var(--radius-sm);
 		background: var(--color-surface-muted);
-	}
-
-	.nav {
-		display: flex;
-		gap: var(--space-1);
 	}
 
 	.nav-button {

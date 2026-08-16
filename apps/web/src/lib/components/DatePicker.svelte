@@ -52,15 +52,13 @@
 	>
 		{#snippet children({ months, weekdays })}
 			<Calendar.Header class="cal-header">
+				<Calendar.PrevButton class="cal-nav-btn"
+					><IconCaretLeft aria-hidden="true" /></Calendar.PrevButton
+				>
 				<Calendar.Heading class="cal-heading" />
-				<div class="cal-nav">
-					<Calendar.PrevButton class="cal-nav-btn"
-						><IconCaretLeft aria-hidden="true" /></Calendar.PrevButton
-					>
-					<Calendar.NextButton class="cal-nav-btn"
-						><IconCaretRight aria-hidden="true" /></Calendar.NextButton
-					>
-				</div>
+				<Calendar.NextButton class="cal-nav-btn"
+					><IconCaretRight aria-hidden="true" /></Calendar.NextButton
+				>
 			</Calendar.Header>
 			<Calendar.Grid class="cal-grid">
 				<Calendar.GridHead>
@@ -91,5 +89,7 @@
 <style>
 	.calendar-panel {
 		width: 100%;
+		max-width: 360px;
+		margin: 0 auto;
 	}
 </style>

@@ -4,12 +4,18 @@
 	align-items: center;
 	justify-content: space-between;
 	margin-bottom: var(--space-7);
+	width: 100%;
+	max-width: 360px;
+	margin-left: auto;
+	margin-right: auto;
 }
 
 .calendar-panel .cal-heading {
 	font-weight: 600;
 	font-size: var(--font-size-xl);
 	color: var(--when-color-text);
+	text-align: center;
+	flex: 1;
 }
 
 .calendar-panel .cal-nav {
