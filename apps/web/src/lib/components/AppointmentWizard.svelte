@@ -133,6 +133,10 @@
 
 <svelte:head>
 	<title>{data.eventType.title} — {data.user.name}</title>
+	<meta
+		name="description"
+		content={data.eventType.description || data.user.appearance.description}
+	/>
 </svelte:head>
 
 <header class="page-banner">

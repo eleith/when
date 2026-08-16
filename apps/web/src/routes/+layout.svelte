@@ -27,6 +27,7 @@
 
 <svelte:head>
 	<link rel="icon" href={favicon} />
+	<meta name="description" content={data.appearance.description} />
 	<meta property="og:type" content="website" />
 	<meta property="og:title" content={data.appearance.title} />
 	<meta property="og:description" content={data.appearance.description} />
