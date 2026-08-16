@@ -2,7 +2,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import IconCaretLeft from 'virtual:icons/ph/caret-left';
-	import { formatDateCompact, formatTimeShort, formatTzAbbrev } from '$lib/datetime';
 	import { evaluateVisibility } from '$lib/forms/conditional';
 	import { defaultFieldValue } from '$lib/forms/defaults';
 	import FormFieldControl from '$lib/components/FormFieldControl.svelte';
@@ -52,7 +51,6 @@
 
 	// read-only views of the shared flow; the back button goes through flow.goBack
 	let selectedSlot = $derived(flow.selectedSlot);
-	let viewDate = $derived(flow.viewDate);
 	let userTz = $derived(flow.userTz);
 
 	// svelte-ignore state_referenced_locally
@@ -98,19 +96,16 @@
 	});
 </script>
 
-<div class="form-header">
-	<button type="button" class="form-back" onclick={flow.goBack} aria-label="Back to time picker">
+<div class="form-toolbar">
+	<button
+		type="button"
+		class="form-back"
+		onclick={flow.goBack}
+		aria-label="Back to time picker"
+	>
 		<IconCaretLeft aria-hidden="true" />
+		<span>Back</span>
 	</button>
-	<h2 class="form-title">
-		{#if selectedSlot}
-			{#if viewDate}{formatDateCompact(viewDate)} at&nbsp;{/if}{formatTimeShort(
-				selectedSlot,
-				userTz
-			)}
-			<span class="form-title-tz">{formatTzAbbrev(selectedSlot, userTz)}</span>
-		{/if}
-	</h2>
 </div>
 <div class="appointment-form">
 	{#if form?.error}
@@ -162,45 +157,30 @@
 		width: 100%;
 	}
 
-	.form-header {
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-		margin: 0 0 var(--space-7);
-		min-width: 0;
-	}
-
-	.form-title {
-		font-size: var(--font-size-lg);
-		font-weight: 600;
-		margin: 0;
-	}
-
-	.form-title-tz {
-		font-size: var(--font-size-md);
-		font-weight: 400;
-		color: var(--color-text-muted);
+	.form-toolbar {
+		display: none;
+		margin: 0 0 var(--space-4);
 	}
 
 	/* caret to return to the time picker — mobile only (desktop has the wizard back button) */
 	.form-back {
-		display: none;
+		display: inline-flex;
 		align-items: center;
-		justify-content: center;
-		flex-shrink: 0;
+		gap: var(--space-1);
 		background: none;
 		border: none;
-		padding: var(--space-1);
+		padding: var(--space-1) var(--space-2);
 		margin-left: calc(var(--space-2) * -1);
-		font-size: var(--font-size-xl);
-		line-height: 1;
+		font-size: var(--font-size-sm);
 		color: var(--color-text-muted);
 		cursor: pointer;
-		transition: color var(--transition);
+		border-radius: var(--radius-sm);
+		transition: color var(--transition), background var(--transition);
 	}
 
 	.form-back:hover {
 		color: var(--when-color-text);
+		background: var(--color-surface-muted);
 	}
 
 	.form-error {
@@ -228,8 +208,8 @@
 	}
 
 	@media (max-width: 768px) {
-		.form-back {
-			display: inline-flex;
+		.form-toolbar {
+			display: flex;
 		}
 	}
 </style>

@@ -12,7 +12,7 @@
 	import { createAppointmentFlow } from '$lib/appointmentFlow.svelte';
 	import { createAppointmentUrlSync } from '$lib/appointmentUrlSync.svelte';
 	import { buildDayTimeline } from '$lib/appointment';
-	import { formatDate } from '$lib/datetime';
+	import { formatDate, formatDateCompact, formatTimeShort, formatTzAbbrev } from '$lib/datetime';
 	import { getPreferredTimezone } from '$lib/preferredTimezone.svelte';
 	import type { GuestAnswer, Appearance, FormField } from '@when/config';
 	import type { PublicEventType } from '$lib/server/appointment/sanitize';
@@ -203,6 +203,15 @@
 					</h1>
 					{#if step === 2 && viewDate}
 						<p class="stage-subtitle">{formatDate(viewDate)}</p>
+					{:else if step === 3 && selectedSlot}
+						<p class="stage-subtitle">
+							{#if viewDate}{formatDateCompact(viewDate)} at&nbsp;{/if}{formatTimeShort(
+								selectedSlot,
+								userTz
+							)}
+							<span class="stage-subtitle-tz">{formatTzAbbrev(selectedSlot, userTz)}</span>
+							&nbsp;·&nbsp;{flow.duration}&nbsp;min
+						</p>
 					{/if}
 				</header>
 
@@ -312,6 +321,11 @@
 		color: var(--color-text-muted);
 		margin: var(--space-2) 0 0;
 		font-weight: 500;
+	}
+
+	.stage-subtitle-tz {
+		font-weight: 400;
+		color: var(--color-text-muted);
 	}
 
 	.appointment-body {
