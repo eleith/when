@@ -1,7 +1,7 @@
 <script lang="ts">
 	import IconCaretLeft from 'virtual:icons/ph/caret-left';
 	import IconGlobe from 'virtual:icons/ph/globe';
-	import { formatDate, formatTzShort, tzCity, tzOffset } from '$lib/datetime';
+	import { formatTzShort, tzCity, tzOffset } from '$lib/datetime';
 	import { onDestroy } from 'svelte';
 	import {
 		slotsOnDate,
@@ -240,19 +240,17 @@
 {#if viewDate && timeline}
 	<div class="timeline-container">
 		<div class="slots-header">
-			<div class="slots-date-group">
-				{#if onEditDate}
-					<button
-						type="button"
-						class="slots-back"
-						onclick={onEditDate}
-						aria-label="Back to calendar"
-					>
-						<IconCaretLeft aria-hidden="true" />
-					</button>
-				{/if}
-				<h2 class="slots-date">{formatDate(viewDate)}</h2>
-			</div>
+			{#if onEditDate}
+				<button
+					type="button"
+					class="slots-back"
+					onclick={onEditDate}
+					aria-label="Back to calendar"
+				>
+					<IconCaretLeft aria-hidden="true" />
+					<span>Back</span>
+				</button>
+			{/if}
 			<div class="slots-meta">
 				{#if durations.length > 1}
 					<button type="button" class="slots-chip" onclick={() => (durationOpen = true)}>
@@ -411,47 +409,34 @@
 		--timeline-hatch: color-mix(in srgb, var(--when-color-text) 20%, var(--color-surface));
 	}
 
-	/* ---- timeline day view ---- */
+	/* ---- timeline toolbar / header ---- */
 	.slots-header {
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		gap: var(--space-4);
-		margin: 0 0 var(--space-7);
-	}
-
-	.slots-date-group {
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-		min-width: 0;
-	}
-
-	.slots-date {
-		font-size: var(--font-size-lg);
-		font-weight: 600;
-		margin: 0;
+		margin: 0 0 var(--space-6);
+		min-height: var(--space-7);
 	}
 
 	/* caret to return to the calendar — mobile only (desktop has the wizard back button) */
 	.slots-back {
 		display: none;
 		align-items: center;
-		justify-content: center;
-		flex-shrink: 0;
+		gap: var(--space-1);
 		background: none;
 		border: none;
-		padding: var(--space-1);
+		padding: var(--space-1) var(--space-2);
 		margin-left: calc(var(--space-2) * -1);
-		font-size: var(--font-size-xl);
-		line-height: 1;
+		font-size: var(--font-size-sm);
 		color: var(--color-text-muted);
 		cursor: pointer;
-		transition: color var(--transition);
+		border-radius: var(--radius-sm);
+		transition: color var(--transition), background var(--transition);
 	}
 
 	.slots-back:hover {
 		color: var(--when-color-text);
+		background: var(--color-surface-muted);
 	}
 
 	@media (max-width: 768px) {
@@ -465,6 +450,7 @@
 		align-items: center;
 		gap: var(--space-6);
 		flex-shrink: 0;
+		margin-left: auto;
 	}
 
 	.slots-chip {

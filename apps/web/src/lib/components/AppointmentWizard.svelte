@@ -12,6 +12,7 @@
 	import { createAppointmentFlow } from '$lib/appointmentFlow.svelte';
 	import { createAppointmentUrlSync } from '$lib/appointmentUrlSync.svelte';
 	import { buildDayTimeline } from '$lib/appointment';
+	import { formatDate } from '$lib/datetime';
 	import { getPreferredTimezone } from '$lib/preferredTimezone.svelte';
 	import type { GuestAnswer, Appearance, FormField } from '@when/config';
 	import type { PublicEventType } from '$lib/server/appointment/sanitize';
@@ -195,10 +196,15 @@
 			/>
 
 			<div class="card-stage">
-				<h1 class="stage-title">
-					<span class="stage-step">Step {step} of 3:</span>
-					{#if step === 1}Pick a day{:else if step === 2}Pick a time{:else}Enter your info{/if}
-				</h1>
+				<header class="stage-header">
+					<h1 class="stage-title">
+						<span class="stage-step">Step {step} of 3:</span>
+						{#if step === 1}Pick a day{:else if step === 2}Pick a time{:else}Enter your info{/if}
+					</h1>
+					{#if step === 2 && viewDate}
+						<p class="stage-subtitle">{formatDate(viewDate)}</p>
+					{/if}
+				</header>
 
 				<div class="appointment-body">
 					{#if step === 1}
@@ -281,13 +287,17 @@
 		padding: var(--space-7);
 	}
 
+	.stage-header {
+		margin: 0 0 var(--space-6);
+		padding-bottom: var(--space-5);
+		border-bottom: 1px solid var(--color-border);
+	}
+
 	.stage-title {
 		font-size: var(--font-size-xl);
 		font-weight: 700;
 		line-height: 1.25;
-		margin: 0 0 var(--space-6);
-		padding-bottom: var(--space-5);
-		border-bottom: 1px solid var(--color-border);
+		margin: 0;
 		color: var(--when-color-text);
 	}
 
@@ -295,6 +305,13 @@
 		font-weight: 500;
 		color: var(--color-text-muted);
 		margin-right: var(--space-2);
+	}
+
+	.stage-subtitle {
+		font-size: var(--font-size-sm);
+		color: var(--color-text-muted);
+		margin: var(--space-2) 0 0;
+		font-weight: 500;
 	}
 
 	.appointment-body {
@@ -421,7 +438,7 @@
 			padding: 0;
 		}
 
-		.stage-title {
+		.stage-header {
 			margin: 0 calc(var(--space-5) * -1) var(--space-5);
 			padding: var(--space-4) var(--space-5);
 			border-width: 1px 0;

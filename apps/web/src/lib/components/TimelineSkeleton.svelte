@@ -9,7 +9,6 @@
 
 <div class="skeleton" aria-hidden="true">
 	<div class="header">
-		<span class="heading"></span>
 		<span class="timezone"></span>
 	</div>
 	<div class="scroll">
@@ -29,20 +28,13 @@
 	.header {
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
-		margin-bottom: var(--space-7);
-	}
-
-	.heading {
-		height: var(--font-size-xl);
-		width: 9rem;
-		border-radius: var(--radius-sm);
-		background: var(--color-surface-muted);
+		justify-content: flex-end;
+		margin-bottom: var(--space-6);
 	}
 
 	.timezone {
 		align-self: center;
-		width: 4rem;
+		width: 5rem;
 		height: var(--font-size-md);
 		border-radius: var(--radius-sm);
 		background: var(--color-surface-muted);
