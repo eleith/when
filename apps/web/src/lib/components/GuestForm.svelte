@@ -1,7 +1,6 @@
 <!-- Step 3: the guest fills in their details. Owns all guest-field state and posts the booking. -->
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import IconCaretLeft from 'virtual:icons/ph/caret-left';
 	import { evaluateVisibility } from '$lib/forms/conditional';
 	import { defaultFieldValue } from '$lib/forms/defaults';
 	import FormFieldControl from '$lib/components/FormFieldControl.svelte';
@@ -96,17 +95,6 @@
 	});
 </script>
 
-<div class="form-toolbar">
-	<button
-		type="button"
-		class="form-back"
-		onclick={flow.goBack}
-		aria-label="Back to time picker"
-	>
-		<IconCaretLeft aria-hidden="true" />
-		<span>Back</span>
-	</button>
-</div>
 <div class="appointment-form">
 	{#if form?.error}
 		<p class="form-error" role="alert">{form.error}</p>
@@ -157,32 +145,6 @@
 		width: 100%;
 	}
 
-	.form-toolbar {
-		display: none;
-		margin: 0 0 var(--space-4);
-	}
-
-	/* caret to return to the time picker — mobile only (desktop has the wizard back button) */
-	.form-back {
-		display: inline-flex;
-		align-items: center;
-		gap: var(--space-1);
-		background: none;
-		border: none;
-		padding: var(--space-1) var(--space-2);
-		margin-left: calc(var(--space-2) * -1);
-		font-size: var(--font-size-sm);
-		color: var(--color-text-muted);
-		cursor: pointer;
-		border-radius: var(--radius-sm);
-		transition: color var(--transition), background var(--transition);
-	}
-
-	.form-back:hover {
-		color: var(--when-color-text);
-		background: var(--color-surface-muted);
-	}
-
 	.form-error {
 		background: var(--color-danger-bg);
 		color: var(--color-danger);
@@ -205,11 +167,5 @@
 		border: 0;
 		border-top: 1px dashed var(--color-border-strong);
 		margin: 0;
-	}
-
-	@media (max-width: 768px) {
-		.form-toolbar {
-			display: flex;
-		}
 	}
 </style>

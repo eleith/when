@@ -231,7 +231,6 @@
 								eventType={data.eventType}
 								showSlots={data.eventType.show_slots}
 								originalSlot={rescheduleAppt?.start_time ?? null}
-								onEditDate={flow.goBack}
 							/>
 						{:else}
 							<TimelineSkeleton rows={timelineSkeletonRows} />

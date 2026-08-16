@@ -1,5 +1,4 @@
 <script lang="ts">
-	import IconCaretLeft from 'virtual:icons/ph/caret-left';
 	import IconGlobe from 'virtual:icons/ph/globe';
 	import { formatTzShort, tzCity, tzOffset } from '$lib/datetime';
 	import { onDestroy } from 'svelte';
@@ -20,7 +19,6 @@
 		eventType: TimelineEventType;
 		showSlots?: boolean;
 		originalSlot?: string | null;
-		onEditDate?: (() => void) | null;
 	}
 
 	let {
@@ -29,8 +27,7 @@
 		busyBlocks,
 		eventType,
 		showSlots = false,
-		originalSlot = null,
-		onEditDate = null
+		originalSlot = null
 	}: Props = $props();
 
 	// read-only views of the shared flow; all mutations go through flow.* below
@@ -240,17 +237,6 @@
 {#if viewDate && timeline}
 	<div class="timeline-container">
 		<div class="slots-header">
-			{#if onEditDate}
-				<button
-					type="button"
-					class="slots-back"
-					onclick={onEditDate}
-					aria-label="Back to calendar"
-				>
-					<IconCaretLeft aria-hidden="true" />
-					<span>Back</span>
-				</button>
-			{/if}
 			<div class="slots-meta">
 				{#if durations.length > 1}
 					<button type="button" class="slots-chip" onclick={() => (durationOpen = true)}>
@@ -412,37 +398,10 @@
 	/* ---- timeline toolbar / header ---- */
 	.slots-header {
 		display: flex;
-		justify-content: space-between;
+		justify-content: flex-end;
 		align-items: center;
 		margin: 0 0 var(--space-6);
 		min-height: var(--space-7);
-	}
-
-	/* caret to return to the calendar — mobile only (desktop has the wizard back button) */
-	.slots-back {
-		display: none;
-		align-items: center;
-		gap: var(--space-1);
-		background: none;
-		border: none;
-		padding: var(--space-1) var(--space-2);
-		margin-left: calc(var(--space-2) * -1);
-		font-size: var(--font-size-sm);
-		color: var(--color-text-muted);
-		cursor: pointer;
-		border-radius: var(--radius-sm);
-		transition: color var(--transition), background var(--transition);
-	}
-
-	.slots-back:hover {
-		color: var(--when-color-text);
-		background: var(--color-surface-muted);
-	}
-
-	@media (max-width: 768px) {
-		.slots-back {
-			display: inline-flex;
-		}
 	}
 
 	.slots-meta {
@@ -450,7 +409,6 @@
 		align-items: center;
 		gap: var(--space-6);
 		flex-shrink: 0;
-		margin-left: auto;
 	}
 
 	.slots-chip {

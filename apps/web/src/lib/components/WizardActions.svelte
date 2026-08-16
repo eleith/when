@@ -1,6 +1,7 @@
 <!-- The wizard's action bar: selection summary and the navigation/submit buttons. -->
 <script lang="ts">
 	import IconArrowRight from 'virtual:icons/ph/arrow-right';
+	import IconCaretLeft from 'virtual:icons/ph/caret-left';
 	import { formatDate, formatTime } from '$lib/datetime';
 	import type { AppointmentFlow } from '$lib/appointmentFlow.svelte';
 	import type { PublicEventType } from '$lib/server/appointment/sanitize';
@@ -33,12 +34,28 @@
 			Continue <span class="arrow"><IconArrowRight aria-hidden="true" /></span>
 		</button>
 	{:else if step === 2}
-		<button type="button" class="button button-secondary" onclick={flow.goBack}> Back </button>
+		<button
+			type="button"
+			class="button button-secondary button-back"
+			onclick={flow.goBack}
+			aria-label="Back"
+		>
+			<span class="back-icon"><IconCaretLeft aria-hidden="true" /></span>
+			<span class="back-text">Back</span>
+		</button>
 		<button type="button" class="button" onclick={flow.advance} disabled={!flow.canAdvance}>
 			Confirm <span class="arrow"><IconArrowRight aria-hidden="true" /></span>
 		</button>
 	{:else}
-		<button type="button" class="button button-secondary" onclick={flow.goBack}> Back </button>
+		<button
+			type="button"
+			class="button button-secondary button-back"
+			onclick={flow.goBack}
+			aria-label="Back"
+		>
+			<span class="back-icon"><IconCaretLeft aria-hidden="true" /></span>
+			<span class="back-text">Back</span>
+		</button>
 		<button
 			type="submit"
 			form="appointment-form"
@@ -117,24 +134,23 @@
 		opacity: 1;
 	}
 
+	.back-icon {
+		display: none;
+	}
+
+	.back-text {
+		display: inline;
+	}
+
 	@media (max-width: 768px) {
 		.summary {
 			display: none;
 		}
 
-		.button {
-			min-height: 56px;
-			width: 100%;
-			padding: var(--space-4) var(--space-6);
-		}
-
-		.button-secondary {
-			display: none;
-		}
-
 		.actions {
-			display: block;
-			justify-content: initial;
+			display: flex;
+			align-items: center;
+			gap: var(--space-3);
 			border-top: none;
 			padding-top: 0;
 			margin: 0;
@@ -146,6 +162,33 @@
 			background: var(--color-surface);
 			border-top: 1px solid var(--color-border);
 			z-index: 100;
+		}
+
+		.button {
+			min-height: 56px;
+			flex: 1;
+			width: auto;
+			padding: var(--space-4) var(--space-6);
+		}
+
+		.button-secondary.button-back {
+			display: inline-flex;
+			flex: 0 0 56px;
+			width: 56px;
+			height: 56px;
+			padding: 0;
+			align-items: center;
+			justify-content: center;
+		}
+
+		.button-secondary.button-back .back-text {
+			display: none;
+		}
+
+		.button-secondary.button-back .back-icon {
+			display: inline-flex;
+			font-size: var(--font-size-xl);
+			line-height: 1;
 		}
 	}
 </style>
