@@ -64,9 +64,17 @@ test('still renders when the logo and avatar cannot be loaded', async () => {
 
 test('still renders with fallback to default avatar when avatar is an avif file', async () => {
 	let fetchedDefaultAvatar = false;
+	// Minimal valid AVIF container bytes that Takumi's image decoder will fail to decode
+	const fakeAvifBytes = Buffer.from([
+		0x00, 0x00, 0x00, 0x1c, 0x66, 0x74, 0x79, 0x70, 0x61, 0x76, 0x69, 0x66, 0x00, 0x00, 0x00, 0x00,
+		0x61, 0x76, 0x69, 0x66, 0x6d, 0x69, 0x66, 0x31, 0x6d, 0x69, 0x61, 0x66
+	]);
 	const trackingFetch: typeof fetch = async (input, init) => {
 		const url = typeof input === 'string' ? input : (input as Request).url;
 		const path = new URL(url, 'http://localhost').pathname;
+		if (path === '/custom-avatar.avif') {
+			return new Response(fakeAvifBytes);
+		}
 		if (path === '/assets/images/avatar.svg') {
 			fetchedDefaultAvatar = true;
 		}
@@ -75,7 +83,7 @@ test('still renders with fallback to default avatar when avatar is an avif file'
 
 	const appearance = {
 		...validConfig.user.appearance,
-		avatar_path: '/public/avatar.avif'
+		avatar_path: '/custom-avatar.avif'
 	};
 	const response = await renderOpengraph(trackingFetch, { appUrl: 'eleith.com', appearance });
 	expect(fetchedDefaultAvatar).toBe(true);
