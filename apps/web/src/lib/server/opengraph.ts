@@ -52,7 +52,7 @@ async function buildRenderer(fetchFn: typeof fetch, appearance: Appearance): Pro
 	return renderer;
 }
 
-function getRenderer(fetchFn: typeof fetch, appearance: Appearance): Promise<Renderer> {
+export function getRenderer(fetchFn: typeof fetch, appearance: Appearance): Promise<Renderer> {
 	if (cachedRenderer?.appearance === appearance) return cachedRenderer.renderer;
 
 	// Drop a failed build so the next request retries rather than replaying the error.
@@ -64,10 +64,12 @@ function getRenderer(fetchFn: typeof fetch, appearance: Appearance): Promise<Ren
 	return renderer;
 }
 
-async function loadImage(
-	fetchFn: typeof fetch,
-	url: string
-): Promise<{ src: string; data: Buffer } | null> {
+interface LoadedImage {
+	src: string;
+	data: Buffer;
+}
+
+async function loadImage(fetchFn: typeof fetch, url: string): Promise<LoadedImage | null> {
 	try {
 		const res = await fetchFn(url);
 		if (!res.ok) return null;
@@ -106,19 +108,14 @@ export async function renderConfiguredOpengraph(fetchFn: typeof fetch): Promise<
 	});
 }
 
-export async function renderOpengraph(
-	fetchFn: typeof fetch,
-	input: OpengraphInput
-): Promise<Response> {
-	const { appearance } = input;
+function renderImageResponse(
+	appearance: Appearance,
+	renderer: Renderer,
+	appIcon?: LoadedImage | null,
+	avatar?: LoadedImage | null
+): ImageResponse {
 	const primary = appearance.primary_light_color;
 	const text = appearance.text_light_color;
-
-	const [appIcon, avatar, renderer] = await Promise.all([
-		loadImage(fetchFn, appearance.app_icon_path),
-		loadImage(fetchFn, appearance.avatar_path),
-		getRenderer(fetchFn, appearance)
-	]);
 
 	const { head, body } = render(OpengraphImage, {
 		props: {
@@ -135,12 +132,44 @@ export async function renderOpengraph(
 		}
 	});
 
+	const images = [appIcon, avatar].filter(
+		(img): img is LoadedImage => img !== null && img !== undefined
+	);
+
 	return new ImageResponse(`${head}${body}`, {
 		width: WIDTH,
 		height: HEIGHT,
 		format: 'png',
 		renderer,
-		images: [appIcon, avatar].filter((image) => image !== null),
+		images,
+		onError: () => {},
 		headers: { 'cache-control': CACHE_CONTROL }
 	});
+}
+
+export async function renderOpengraph(
+	fetchFn: typeof fetch,
+	input: OpengraphInput
+): Promise<Response> {
+	const { appearance } = input;
+
+	const [appIcon, avatar, renderer] = await Promise.all([
+		loadImage(fetchFn, appearance.app_icon_path),
+		loadImage(fetchFn, appearance.avatar_path),
+		getRenderer(fetchFn, appearance)
+	]);
+
+	const response = renderImageResponse(appearance, renderer, appIcon, avatar);
+	try {
+		await response.ready;
+		return response;
+	} catch {
+		const [fallbackIcon, fallbackAvatar] = await Promise.all([
+			loadImage(fetchFn, '/assets/images/app-icon.svg'),
+			loadImage(fetchFn, '/assets/images/avatar.svg')
+		]);
+		const fallback = renderImageResponse(appearance, renderer, fallbackIcon, fallbackAvatar);
+		await fallback.ready;
+		return fallback;
+	}
 }

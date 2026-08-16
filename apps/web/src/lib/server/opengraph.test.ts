@@ -7,9 +7,10 @@ import { defaultAvatar } from './avatar';
 import { validConfig } from './__fixtures__/valid-config';
 
 const STATIC_DIR = fileURLToPath(new URL('../../../static', import.meta.url));
+const PUBLIC_DIR = fileURLToPath(new URL('../../../public', import.meta.url));
 
 // Serve the URLs the pipeline fetches (Outfit fonts + logo from /static, the
-// avatar route generated on the fly) the way SvelteKit's `fetch` would.
+// avatar route generated on the fly, custom assets from /public) the way SvelteKit's `fetch` would.
 const fakeFetch: typeof fetch = async (input) => {
 	const url = typeof input === 'string' ? input : (input as Request).url;
 	const path = new URL(url, 'http://localhost').pathname;
@@ -17,6 +18,10 @@ const fakeFetch: typeof fetch = async (input) => {
 		return new Response(defaultAvatar('Jane Doe'), {
 			headers: { 'content-type': 'image/svg+xml' }
 		});
+	}
+	if (path.startsWith('/public/')) {
+		const data = await readFile(join(PUBLIC_DIR, path.replace(/^\/public\//, '')));
+		return new Response(data);
 	}
 	const data = await readFile(join(STATIC_DIR, path));
 	return new Response(data);
@@ -55,6 +60,76 @@ test('still renders when the logo and avatar cannot be loaded', async () => {
 	const bytes = new Uint8Array(await response.arrayBuffer());
 	expect(Array.from(bytes.slice(0, 8))).toEqual([137, 80, 78, 71, 13, 10, 26, 10]);
 	expect(readUint32BE(bytes, 16)).toBe(1200);
+});
+
+test('still renders with fallback to default avatar when avatar is an avif file', async () => {
+	let fetchedDefaultAvatar = false;
+	const trackingFetch: typeof fetch = async (input, init) => {
+		const url = typeof input === 'string' ? input : (input as Request).url;
+		const path = new URL(url, 'http://localhost').pathname;
+		if (path === '/assets/images/avatar.svg') {
+			fetchedDefaultAvatar = true;
+		}
+		return fakeFetch(input, init);
+	};
+
+	const appearance = {
+		...validConfig.user.appearance,
+		avatar_path: '/public/avatar.avif'
+	};
+	const response = await renderOpengraph(trackingFetch, { appUrl: 'eleith.com', appearance });
+	expect(fetchedDefaultAvatar).toBe(true);
+
+	const bytes = new Uint8Array(await response.arrayBuffer());
+	expect(Array.from(bytes.slice(0, 8))).toEqual([137, 80, 78, 71, 13, 10, 26, 10]);
+	expect(readUint32BE(bytes, 16)).toBe(1200);
+	expect(readUint32BE(bytes, 20)).toBe(630);
+});
+
+test('still renders when avatar data is corrupted', async () => {
+	const corruptFetch: typeof fetch = async (input) => {
+		const url = typeof input === 'string' ? input : (input as Request).url;
+		const path = new URL(url, 'http://localhost').pathname;
+		if (path === '/public/corrupt.png') {
+			return new Response(Buffer.from('not an image'));
+		}
+		return fakeFetch(input);
+	};
+	const appearance = {
+		...validConfig.user.appearance,
+		avatar_path: '/public/corrupt.png'
+	};
+	const response = await renderOpengraph(corruptFetch, { appUrl: 'eleith.com', appearance });
+	const bytes = new Uint8Array(await response.arrayBuffer());
+	expect(Array.from(bytes.slice(0, 8))).toEqual([137, 80, 78, 71, 13, 10, 26, 10]);
+	expect(readUint32BE(bytes, 16)).toBe(1200);
+	expect(readUint32BE(bytes, 20)).toBe(630);
+});
+
+test('still renders with fallback to default app icon when app icon is corrupted', async () => {
+	let fetchedDefaultIcon = false;
+	const trackingFetch: typeof fetch = async (input, init) => {
+		const url = typeof input === 'string' ? input : (input as Request).url;
+		const path = new URL(url, 'http://localhost').pathname;
+		if (path === '/public/corrupt-icon.png') {
+			return new Response(Buffer.from('not an image'));
+		}
+		if (path === '/assets/images/app-icon.svg') {
+			fetchedDefaultIcon = true;
+		}
+		return fakeFetch(input, init);
+	};
+	const appearance = {
+		...validConfig.user.appearance,
+		app_icon_path: '/public/corrupt-icon.png'
+	};
+	const response = await renderOpengraph(trackingFetch, { appUrl: 'eleith.com', appearance });
+	expect(fetchedDefaultIcon).toBe(true);
+
+	const bytes = new Uint8Array(await response.arrayBuffer());
+	expect(Array.from(bytes.slice(0, 8))).toEqual([137, 80, 78, 71, 13, 10, 26, 10]);
+	expect(readUint32BE(bytes, 16)).toBe(1200);
+	expect(readUint32BE(bytes, 20)).toBe(630);
 });
 
 // The renderer (and the fonts registered on it) is cached at module level, so

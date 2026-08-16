@@ -126,8 +126,8 @@ importers:
         specifier: 1.11.3
         version: 1.11.3(@sveltejs/kit@2.70.1(@opentelemetry/api@1.9.1)(@sveltejs/vite-plugin-svelte@7.1.2(svelte@5.56.0(@typescript-eslint/types@8.60.0))(vite@8.0.16(@types/node@24.12.4)(yaml@2.9.0)))(svelte@5.56.0(@typescript-eslint/types@8.60.0))(typescript@6.0.3)(vite@8.0.16(@types/node@24.12.4)(yaml@2.9.0)))(nodemailer@9.0.3)(svelte@5.56.0(@typescript-eslint/types@8.60.0))
       '@dicebear/core':
-        specifier: 10.3.0
-        version: 10.3.0
+        specifier: 10.4.0
+        version: 10.4.0
       '@internationalized/date':
         specifier: 3.12.2
         version: 3.12.2
@@ -611,8 +611,8 @@ packages:
     resolution: {integrity: sha512-EYlRokl8szrP9Z25qT5aepMdBjzBvHF9ZEhzIiUBc9guz/T31EqRgvD0QSgZcpE93xiwrr+OkB4nz0BZyF6fSA==}
     engines: {node: '>= 20.12.0'}
 
-  '@dicebear/core@10.3.0':
-    resolution: {integrity: sha512-HbzHvYY/E0m3B7BfBjs8SO7JyqJnORJgQhM2YM7VoN/EQzrqJ3Z0j4+op+WfEWXWzZj75tQqBU5SZpUssi5m/Q==}
+  '@dicebear/core@10.4.0':
+    resolution: {integrity: sha512-IeMZboyput2XB2Lypf650AZ7YDdqzsp3HIaHWEYe+M9AX9/mylDgHLNdSA0OquUy1clFtGNYWnzibb1ZMJzLFw==}
     engines: {node: '>=22.0.0'}
 
   '@emnapi/core@1.10.0':
@@ -2571,7 +2571,7 @@ snapshots:
       fast-wrap-ansi: 0.2.2
       sisteransi: 1.0.5
 
-  '@dicebear/core@10.3.0': {}
+  '@dicebear/core@10.4.0': {}
 
   '@emnapi/core@1.10.0':
     dependencies:
