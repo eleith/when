@@ -11,9 +11,10 @@
 		isReschedule: boolean;
 		requireApproval: PublicEventType['require_approval'];
 		canSubmit?: boolean;
+		homeHref?: string;
 	}
 
-	let { flow, isReschedule, requireApproval, canSubmit = true }: Props = $props();
+	let { flow, isReschedule, requireApproval, canSubmit = true, homeHref = '/' }: Props = $props();
 
 	// read-only views of the shared flow; navigation goes through flow.* below
 	let step = $derived(flow.step);
@@ -30,6 +31,10 @@
 	{/if}
 
 	{#if step === 1}
+		<a href={homeHref} class="button button-secondary button-back" aria-label="Back">
+			<span class="back-icon"><IconCaretLeft aria-hidden="true" /></span>
+			<span class="back-text">Back</span>
+		</a>
 		<button type="button" class="button" onclick={flow.advance} disabled={!flow.canAdvance}>
 			Continue <span class="arrow"><IconArrowRight aria-hidden="true" /></span>
 		</button>
@@ -110,6 +115,7 @@
 		font-size: var(--font-size-md);
 		font-weight: 600;
 		cursor: pointer;
+		text-decoration: none;
 		transition: opacity var(--transition);
 	}
 

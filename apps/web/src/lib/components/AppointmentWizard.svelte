@@ -261,6 +261,7 @@
 					isReschedule={!!rescheduleAppt}
 					requireApproval={data.eventType.require_approval}
 					canSubmit={step === 3 ? isGuestFormValid : true}
+					homeHref={previousAppointmentHref || '/'}
 				/>
 			</div>
 		</div>
