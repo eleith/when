@@ -34,9 +34,9 @@
 					<div class="event-duration">
 						<span class="duration-value" aria-hidden="true">
 							{#if et.durations.length > 2}
-								{et.durations[0]} / … / {et.durations[et.durations.length - 1]}
+								{et.durations[0]} or … {et.durations[et.durations.length - 1]}
 							{:else}
-								{et.durations.join(' / ')}
+								{et.durations.join(' or ')}
 							{/if}
 						</span>
 						<span class="duration-unit" aria-hidden="true">min</span>
