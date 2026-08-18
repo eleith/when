@@ -7,6 +7,10 @@ import {
 	resolveDeepLink,
 	normalizeDeepLinkParams,
 	buildDayTimeline,
+	isInTimelineBlock,
+	isTimelineUnavailable,
+	nearestTimelineSlot,
+	isDirectSlotHit,
 	desiredUrlState,
 	urlStateMatches,
 	buildAppointmentSearch
@@ -366,5 +370,98 @@ describe('buildAppointmentSearch', () => {
 
 	test('is empty when nothing is set', () => {
 		expect(buildAppointmentSearch({ duration: null, slot: null, date: null })).toBe('');
+	});
+});
+
+describe('isInTimelineBlock', () => {
+	const blocks = [{ top: 10, height: 20 }];
+
+	test('returns true when percentage falls inside a block', () => {
+		expect(isInTimelineBlock(10, blocks)).toBe(true);
+		expect(isInTimelineBlock(20, blocks)).toBe(true);
+		expect(isInTimelineBlock(30, blocks)).toBe(true);
+	});
+
+	test('returns false when percentage is outside', () => {
+		expect(isInTimelineBlock(9, blocks)).toBe(false);
+		expect(isInTimelineBlock(31, blocks)).toBe(false);
+	});
+
+	test('returns false for undefined or empty blocks', () => {
+		expect(isInTimelineBlock(15, undefined)).toBe(false);
+		expect(isInTimelineBlock(15, [])).toBe(false);
+	});
+});
+
+describe('isTimelineUnavailable', () => {
+	const timeline = {
+		totalMs: 36000000,
+		working: [{ top: 10, height: 80 }],
+		busy: [{ top: 40, height: 10 }],
+		buffers: [{ top: 35, height: 20 }],
+		past: { top: 0, height: 15 },
+		slots: [],
+		labels: []
+	};
+
+	test('returns true when outside working windows', () => {
+		expect(isTimelineUnavailable(timeline, 5)).toBe(true);
+		expect(isTimelineUnavailable(timeline, 95)).toBe(true);
+	});
+
+	test('returns true when in past cutoff', () => {
+		expect(isTimelineUnavailable(timeline, 12)).toBe(true);
+	});
+
+	test('returns true when inside busy or buffer block', () => {
+		expect(isTimelineUnavailable(timeline, 37)).toBe(true); // in buffer
+		expect(isTimelineUnavailable(timeline, 45)).toBe(true); // in busy
+	});
+
+	test('returns false when in available working time', () => {
+		expect(isTimelineUnavailable(timeline, 25)).toBe(false);
+		expect(isTimelineUnavailable(timeline, 60)).toBe(false);
+	});
+
+	test('returns true if timeline is null', () => {
+		expect(isTimelineUnavailable(null, 25)).toBe(true);
+	});
+});
+
+describe('nearestTimelineSlot', () => {
+	const slots = [
+		{ iso: '2025-06-15T09:00:00Z', time: '9:00 AM', endTime: '9:30 AM', top: 10, height: 5, isOriginal: false },
+		{ iso: '2025-06-15T09:30:00Z', time: '9:30 AM', endTime: '10:00 AM', top: 15, height: 5, isOriginal: false }
+	];
+
+	test('returns slot with closest center', () => {
+		expect(nearestTimelineSlot(slots, 11)?.iso).toBe('2025-06-15T09:00:00Z');
+		expect(nearestTimelineSlot(slots, 16)?.iso).toBe('2025-06-15T09:30:00Z');
+	});
+
+	test('returns null for empty slots list', () => {
+		expect(nearestTimelineSlot([], 10)).toBeNull();
+	});
+});
+
+describe('isDirectSlotHit', () => {
+	const slot = {
+		iso: '2025-06-15T09:00:00Z',
+		time: '9:00 AM',
+		endTime: '9:30 AM',
+		top: 10,
+		height: 5,
+		isOriginal: false
+	};
+
+	test('returns true within slot bounds', () => {
+		expect(isDirectSlotHit(slot, 10)).toBe(true);
+		expect(isDirectSlotHit(slot, 12.5)).toBe(true);
+		expect(isDirectSlotHit(slot, 15)).toBe(true);
+	});
+
+	test('returns false outside slot bounds', () => {
+		expect(isDirectSlotHit(slot, 9.9)).toBe(false);
+		expect(isDirectSlotHit(slot, 15.1)).toBe(false);
 	});
 });

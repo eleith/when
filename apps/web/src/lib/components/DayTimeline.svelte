@@ -5,6 +5,10 @@
 	import {
 		slotsOnDate,
 		buildDayTimeline,
+		isInTimelineBlock,
+		isTimelineUnavailable,
+		nearestTimelineSlot,
+		isDirectSlotHit,
 		type TimelineEventType,
 		type TimelineSlot
 	} from '$lib/appointment';
@@ -68,15 +72,9 @@
 	}
 
 	const DRAG_THRESHOLD_PX = 6;
-	const SNAP_MS = 150;
+	const SNAP_HOLD_MS = 90;
 
 	let trackEl = $state<HTMLElement | null>(null);
-	let dragYPercent = $state<number | null>(null);
-	let clickYPercent = $state<number | null>(null);
-	let snapTimer: ReturnType<typeof setTimeout> | null = null;
-	let isDragging = $state(false);
-	let pointerStartMode: 'on-slot' | 'on-track' | null = null;
-	let pointerStartClientY = 0;
 
 	function pointToPercent(clientY: number): number {
 		if (!trackEl) return 0;
@@ -84,130 +82,157 @@
 		return ((clientY - rect.top) / rect.height) * 100;
 	}
 
-	function isInBlock(percent: number, blocks?: Array<{ top: number; height: number }>): boolean {
-		if (!blocks) return false;
-		return blocks.some((b) => percent >= b.top && percent <= b.top + b.height);
-	}
+	function createTimelineGestures() {
+		let isDragging = $state(false);
+		let dragYPercent = $state<number | null>(null);
+		let snapYPercent = $state<number | null>(null);
+		let suppressTransition = $state(false);
+		let snapTimer: ReturnType<typeof setTimeout> | null = null;
+		let pointerStartMode: 'on-slot' | 'on-track' | null = null;
+		let pointerStartClientY = 0;
 
-	function isUnavailable(percent: number): boolean {
-		if (!timeline) return true;
-		if (!isInBlock(percent, timeline.working)) return true;
-		if (isInBlock(percent, timeline.busy)) return true;
-		if (isInBlock(percent, timeline.buffers)) return true;
-		if (timeline.past && percent <= timeline.past.top + timeline.past.height) return true;
-		return false;
-	}
-
-	function nearestSlotAt(percent: number) {
-		if (!timeline) return null;
-		let best: (typeof timeline.slots)[number] | null = null;
-		let minDiff = Infinity;
-		for (const s of timeline.slots) {
-			const center = s.top + s.height / 2;
-			const diff = Math.abs(center - percent);
-			if (diff < minDiff) {
-				minDiff = diff;
-				best = s;
+		function clearSnap() {
+			if (snapTimer) {
+				clearTimeout(snapTimer);
+				snapTimer = null;
 			}
+			snapYPercent = null;
+			suppressTransition = false;
 		}
-		return best;
+
+		function reset() {
+			pointerStartMode = null;
+			isDragging = false;
+			dragYPercent = null;
+		}
+
+		return {
+			get isDragging() {
+				return isDragging;
+			},
+			get dragYPercent() {
+				return dragYPercent;
+			},
+			get activeYPercent() {
+				return isDragging && dragYPercent !== null ? dragYPercent : snapYPercent;
+			},
+			get suppressTransition() {
+				return suppressTransition;
+			},
+			clearSnap,
+			snapTo(percent: number, onSelect: () => void) {
+				clearSnap();
+				snapYPercent = percent;
+				suppressTransition = true;
+				onSelect();
+
+				snapTimer = setTimeout(() => {
+					snapTimer = null;
+					suppressTransition = false;
+					snapYPercent = null;
+				}, SNAP_HOLD_MS);
+			},
+			destroy() {
+				if (snapTimer) clearTimeout(snapTimer);
+			},
+			onPointerDown(e: PointerEvent, onSlot: boolean) {
+				pointerStartMode = onSlot ? 'on-slot' : 'on-track';
+				pointerStartClientY = e.clientY;
+				isDragging = false;
+				dragYPercent = null;
+				if (onSlot && trackEl) {
+					trackEl.setPointerCapture(e.pointerId);
+				}
+			},
+			onPointerMove(e: PointerEvent) {
+				if (!pointerStartMode) return;
+				if (!isDragging && Math.abs(e.clientY - pointerStartClientY) > DRAG_THRESHOLD_PX) {
+					isDragging = true;
+				}
+				if (isDragging && pointerStartMode === 'on-slot') {
+					dragYPercent = Math.max(0, Math.min(100, pointToPercent(e.clientY)));
+				}
+			},
+			onPointerUp(
+				e: PointerEvent,
+				callbacks: {
+					onDropSlot: (percent: number) => void;
+					onClearSlot: () => void;
+					onClickTrack: (percent: number) => void;
+				}
+			) {
+				if (!pointerStartMode) return;
+				if (pointerStartMode === 'on-slot') {
+					if (isDragging && dragYPercent !== null) {
+						callbacks.onDropSlot(dragYPercent);
+					} else {
+						callbacks.onClearSlot();
+					}
+				} else if (!isDragging) {
+					callbacks.onClickTrack(pointToPercent(e.clientY));
+				}
+				reset();
+			},
+			onPointerCancel() {
+				reset();
+			}
+		};
 	}
+
+	const gestures = createTimelineGestures();
+	onDestroy(gestures.destroy);
 
 	function snapToClick(percent: number) {
-		const best = nearestSlotAt(percent);
+		if (!timeline) return;
+		const best = nearestTimelineSlot(timeline.slots, percent);
 		if (!best || best.isOriginal) return;
-		if (!selectedSlot) {
-			selectSlot(best.iso);
+
+		if (isDirectSlotHit(best, percent)) {
+			gestures.clearSnap();
+			if (selectedSlot !== best.iso) selectSlot(best.iso);
 			return;
 		}
-		clickYPercent = percent;
-		if (snapTimer) clearTimeout(snapTimer);
-		snapTimer = setTimeout(() => {
-			snapTimer = null;
-			clickYPercent = null;
-			if (best.iso !== selectedSlot) selectSlot(best.iso);
-		}, SNAP_MS);
+
+		gestures.snapTo(percent, () => {
+			if (selectedSlot !== best.iso) selectSlot(best.iso);
+		});
 	}
 
 	function blockTop(slot: TimelineSlot): number {
-		const y = isDragging && dragYPercent !== null ? dragYPercent : clickYPercent;
-		if (y === null) return slot.top;
-		return Math.max(0, Math.min(100 - slot.height, y - slot.height / 2));
+		if (gestures.activeYPercent === null) return slot.top;
+		return Math.max(0, Math.min(100 - slot.height, gestures.activeYPercent - slot.height / 2));
 	}
 
-	onDestroy(() => {
-		if (snapTimer) clearTimeout(snapTimer);
-	});
-
 	function handleTrackPointerDown(e: PointerEvent) {
-		if (showSlots) return;
-		if (!trackEl) return;
+		if (showSlots || !trackEl) return;
 		const percent = pointToPercent(e.clientY);
 		const current = timeline?.slots.find((s) => s.iso === selectedSlot);
 		const onSlot = !!current && percent >= current.top && percent <= current.top + current.height;
-
-		pointerStartMode = onSlot ? 'on-slot' : 'on-track';
-		pointerStartClientY = e.clientY;
-		isDragging = false;
-		dragYPercent = null;
-
-		if (onSlot) {
-			trackEl.setPointerCapture(e.pointerId);
-		}
+		gestures.onPointerDown(e, onSlot);
 	}
 
 	function handleTrackPointerMove(e: PointerEvent) {
-		if (!pointerStartMode) return;
-		const dy = Math.abs(e.clientY - pointerStartClientY);
-		if (!isDragging && dy > DRAG_THRESHOLD_PX) {
-			isDragging = true;
-		}
-		if (isDragging && pointerStartMode === 'on-slot') {
-			dragYPercent = Math.max(0, Math.min(100, pointToPercent(e.clientY)));
-		}
+		gestures.onPointerMove(e);
 	}
 
-	let suppressTransition = $state(false);
-
 	function handleTrackPointerUp(e: PointerEvent) {
-		if (!pointerStartMode) {
-			return;
-		}
-
-		if (pointerStartMode === 'on-slot') {
-			if (isDragging && dragYPercent !== null) {
-				if (!isUnavailable(dragYPercent)) {
-					const best = nearestSlotAt(dragYPercent);
-					if (best && !best.isOriginal) {
-						suppressTransition = true;
-						selectSlot(best.iso);
-						setTimeout(() => {
-							suppressTransition = false;
-						}, 50);
-					}
-				}
-			} else {
-				flow.clearSlot();
-			}
-		} else {
-			if (!isDragging) {
-				const percent = pointToPercent(e.clientY);
-				if (!isUnavailable(percent)) {
-					suppressTransition = false;
+		gestures.onPointerUp(e, {
+			onDropSlot: (percent) => {
+				if (!timeline) return;
+				const best = nearestTimelineSlot(timeline.slots, percent);
+				if (best && !best.isOriginal) selectSlot(best.iso);
+			},
+			onClearSlot: () => flow.clearSlot(),
+			onClickTrack: (percent) => {
+				if (timeline && isInTimelineBlock(percent, timeline.working)) {
 					snapToClick(percent);
 				}
 			}
-		}
-
-		pointerStartMode = null;
-		isDragging = false;
-		dragYPercent = null;
+		});
 	}
 
 	function handleTrackPointerCancel() {
-		pointerStartMode = null;
-		isDragging = false;
-		dragYPercent = null;
+		gestures.onPointerCancel();
 	}
 
 	function handleKeyDown(e: KeyboardEvent) {
@@ -219,16 +244,17 @@
 
 		if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
 			e.preventDefault();
-			suppressTransition = false;
+			gestures.clearSnap();
 			const next = currentIndex < available.length - 1 ? currentIndex + 1 : 0;
 			selectSlot(available[next].iso);
 		} else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
 			e.preventDefault();
-			suppressTransition = false;
+			gestures.clearSnap();
 			const prev = currentIndex > 0 ? currentIndex - 1 : available.length - 1;
 			selectSlot(available[prev].iso);
 		} else if (e.key === 'Escape' || e.key === 'Delete' || e.key === 'Backspace') {
 			e.preventDefault();
+			gestures.clearSnap();
 			flow.clearSlot();
 		}
 	}
@@ -279,14 +305,14 @@
 
 					{#if timeline.past}
 						<div
-							class="buffer-block"
+							class="past-block"
 							style:top="{timeline.past.top}%"
 							style:height="{timeline.past.height}%"
 						></div>
 					{/if}
 
 					{#each timeline.buffers as b, bi (bi)}
-						<div class="buffer-block" style:top="{b.top}%" style:height="{b.height}%"></div>
+						<div class="buffer-zone" style:top="{b.top}%" style:height="{b.height}%"></div>
 					{/each}
 
 					{#each timeline.busy as b, bi (bi)}
@@ -296,68 +322,9 @@
 					{/each}
 
 					{#if showSlots}
-						{#each timeline.slots as s (s.iso)}
-							{#if !s.isOriginal}
-								{@const isSelected = s.iso === selectedSlot}
-								<button
-									type="button"
-									role="radio"
-									aria-checked={isSelected}
-									class="slot-btn"
-									class:selected={isSelected}
-									style:top="{s.top}%"
-									style:height="{s.height}%"
-									onclick={() => selectSlot(s.iso)}
-								>
-									<span class="slot-text">{s.time} – {s.endTime}</span>
-								</button>
-							{/if}
-						{/each}
+						{@render discreteSlots()}
 					{:else}
-						{#each timeline.slots as s (s.iso)}
-							{#if !s.isOriginal}
-								{@const isSelected = s.iso === selectedSlot}
-								<button
-									type="button"
-									role="radio"
-									aria-checked={isSelected}
-									class="slot-hit-target"
-									class:selected={isSelected}
-									style:top="{s.top}%"
-									style:height="{s.height}%"
-									onclick={() => {
-										suppressTransition = false;
-										selectSlot(s.iso);
-									}}
-								>
-									<span class="visually-hidden">{s.time} – {s.endTime}</span>
-								</button>
-							{/if}
-						{/each}
-
-						{#if selectedSlot}
-							{@const s = timeline.slots.find((s) => s.iso === selectedSlot)}
-							{#if s}
-								{@const isSelectedDragging = isDragging && dragYPercent !== null}
-								{@const preview =
-									isSelectedDragging && dragYPercent !== null ? nearestSlotAt(dragYPercent) : null}
-								{@const overUnavailable =
-									isSelectedDragging && dragYPercent !== null ? isUnavailable(dragYPercent) : false}
-								<div
-									class="slot-block selected"
-									class:dragging={isSelectedDragging}
-									class:no-transition={suppressTransition || isSelectedDragging}
-									class:unavailable={overUnavailable}
-									style:top="{isSelectedDragging ? blockTop(s) : s.top}%"
-									style:height="{s.height}%"
-									aria-hidden="true"
-								>
-									<span class="slot-text">
-										{preview ? preview.time : s.time} – {preview ? preview.endTime : s.endTime}
-									</span>
-								</div>
-							{/if}
-						{/if}
+						{@render continuousTrack()}
 					{/if}
 
 					{#if timeline.slots.some((s) => s.isOriginal)}
@@ -379,6 +346,75 @@
 		<p>Select a highlighted date to see available times.</p>
 	</div>
 {/if}
+
+{#snippet discreteSlots()}
+	{#if timeline}
+		{#each timeline.slots as s (s.iso)}
+			{#if !s.isOriginal}
+				{@const isSelected = s.iso === selectedSlot}
+				<button
+					type="button"
+					role="radio"
+					aria-checked={isSelected}
+					class="slot-btn"
+					class:selected={isSelected}
+					style:top="{s.top}%"
+					style:height="{s.height}%"
+					onclick={() => selectSlot(s.iso)}
+				>
+					<span class="slot-text">{s.time} – {s.endTime}</span>
+				</button>
+			{/if}
+		{/each}
+	{/if}
+{/snippet}
+
+{#snippet continuousTrack()}
+	{#if timeline}
+		{#each timeline.slots as s (s.iso)}
+			{#if !s.isOriginal}
+				{@const isSelected = s.iso === selectedSlot}
+				<button
+					type="button"
+					role="radio"
+					aria-checked={isSelected}
+					class="slot-hit-target"
+					class:selected={isSelected}
+					style:top="{s.top}%"
+					style:height="{s.height}%"
+					onclick={() => {
+						gestures.clearSnap();
+						selectSlot(s.iso);
+					}}
+				>
+					<span class="visually-hidden">{s.time} – {s.endTime}</span>
+				</button>
+			{/if}
+		{/each}
+
+		{#if selectedSlot}
+			{@const s = timeline.slots.find((s) => s.iso === selectedSlot)}
+			{#if s}
+				{@const isSelectedDragging = gestures.isDragging && gestures.dragYPercent !== null}
+				{@const preview = isSelectedDragging ? nearestTimelineSlot(timeline.slots, gestures.dragYPercent!) : null}
+				{@const overUnavailable = gestures.activeYPercent !== null ? isTimelineUnavailable(timeline, gestures.activeYPercent) : false}
+				<div
+					class="slot-block selected"
+					class:dragging={isSelectedDragging}
+					class:no-transition={gestures.suppressTransition || isSelectedDragging}
+					class:unavailable={overUnavailable}
+					style:top="{blockTop(s)}%"
+					style:height="{s.height}%"
+					aria-hidden="true"
+				>
+					<span class="slot-text">
+						{preview ? preview.time : s.time} – {preview ? preview.endTime : s.endTime}
+					</span>
+				</div>
+			{/if}
+		{/if}
+	{/if}
+{/snippet}
 
 <TimezoneDialog bind:open={tzOpen} />
 <DurationDialog
@@ -552,33 +588,8 @@
 		z-index: 2;
 	}
 
-	.busy-block {
-		position: absolute;
-		left: var(--space-4);
-		right: var(--space-4);
-		background: var(--color-border);
-		border: 1px solid var(--color-border-strong);
-		border-radius: var(--radius-sm);
-		display: flex;
-		justify-content: center;
-		align-items: center;
-		padding: var(--space-1) var(--space-2);
-		font-size: var(--font-size-sm);
-		z-index: 4;
-		overflow: hidden;
-		cursor: default;
-	}
-
-	.buffer-block {
-		position: absolute;
-		left: 0;
-		right: 0;
-		z-index: 3;
-		cursor: default;
-	}
-
 	.closed-bg,
-	.buffer-block {
+	.past-block {
 		background-color: var(--timeline-closed);
 		background-image: repeating-linear-gradient(
 			45deg,
@@ -589,15 +600,56 @@
 		);
 	}
 
+	.past-block {
+		position: absolute;
+		left: 0;
+		right: 0;
+		z-index: 3;
+		cursor: default;
+	}
+
+	.buffer-zone {
+		position: absolute;
+		left: var(--space-2);
+		right: var(--space-2);
+		z-index: 3;
+		cursor: not-allowed;
+	}
+
+	.busy-block {
+		position: absolute;
+		left: var(--space-2);
+		right: var(--space-2);
+		background-color: var(--color-surface-muted);
+		background-image: repeating-linear-gradient(
+			45deg,
+			var(--color-border) 0,
+			var(--color-border) 1px,
+			transparent 1px,
+			transparent 10px
+		);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-sm);
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		padding: var(--space-1) var(--space-2);
+		font-size: var(--font-size-sm);
+		z-index: 4;
+		overflow: hidden;
+		cursor: not-allowed;
+	}
+
 	.busy-text {
-		font-weight: 600;
-		color: var(--color-text-secondary);
+		font-weight: 500;
+		font-size: var(--font-size-sm);
+		color: var(--color-text-disabled);
 	}
 
 	.slot-block {
 		position: absolute;
-		left: var(--space-4);
-		right: var(--space-4);
+		left: var(--space-2);
+		right: var(--space-2);
 		border-radius: var(--radius-sm);
 		display: flex;
 		justify-content: center;
@@ -611,7 +663,11 @@
 		border: 1px solid var(--color-primary-border);
 		color: var(--when-color-primary);
 		z-index: 5;
-		transition: top var(--transition);
+		transition:
+			top 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+			background-color 0.35s ease,
+			border-color 0.35s ease,
+			color 0.35s ease;
 		cursor: grab;
 		touch-action: none;
 	}
@@ -655,8 +711,8 @@
 	/* Accessible hit target for keyboard and screen-readers in continuous mode */
 	.slot-hit-target {
 		position: absolute;
-		left: var(--space-4);
-		right: var(--space-4);
+		left: var(--space-2);
+		right: var(--space-2);
 		background: transparent;
 		border: 1px solid transparent;
 		border-radius: var(--radius-sm);
@@ -689,8 +745,8 @@
 	/* Discrete buttons for show_slots: true */
 	.slot-btn {
 		position: absolute;
-		left: var(--space-4);
-		right: var(--space-4);
+		left: var(--space-2);
+		right: var(--space-2);
 		background: var(--color-surface);
 		border: 1px dashed var(--color-border-strong);
 		border-radius: var(--radius-sm);

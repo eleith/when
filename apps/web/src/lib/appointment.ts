@@ -376,3 +376,35 @@ export function buildDayTimeline({
 
 	return { totalMs, working, busy, buffers, past, slots, labels };
 }
+
+export function isInTimelineBlock(percent: number, blocks?: TimelineBlock[]): boolean {
+	if (!blocks) return false;
+	return blocks.some((b) => percent >= b.top && percent <= b.top + b.height);
+}
+
+export function isTimelineUnavailable(timeline: DayTimeline | null, percent: number): boolean {
+	if (!timeline) return true;
+	if (!isInTimelineBlock(percent, timeline.working)) return true;
+	if (isInTimelineBlock(percent, timeline.busy)) return true;
+	if (isInTimelineBlock(percent, timeline.buffers)) return true;
+	if (timeline.past && percent <= timeline.past.top + timeline.past.height) return true;
+	return false;
+}
+
+export function nearestTimelineSlot(slots: TimelineSlot[], percent: number): TimelineSlot | null {
+	let best: TimelineSlot | null = null;
+	let minDiff = Infinity;
+	for (const s of slots) {
+		const center = s.top + s.height / 2;
+		const diff = Math.abs(center - percent);
+		if (diff < minDiff) {
+			minDiff = diff;
+			best = s;
+		}
+	}
+	return best;
+}
+
+export function isDirectSlotHit(slot: TimelineSlot, percent: number): boolean {
+	return percent >= slot.top && percent <= slot.top + slot.height;
+}
