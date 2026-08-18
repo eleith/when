@@ -396,8 +396,13 @@
 			{@const s = timeline.slots.find((s) => s.iso === selectedSlot)}
 			{#if s}
 				{@const isSelectedDragging = gestures.isDragging && gestures.dragYPercent !== null}
-				{@const preview = isSelectedDragging ? nearestTimelineSlot(timeline.slots, gestures.dragYPercent!) : null}
-				{@const overUnavailable = gestures.activeYPercent !== null ? isTimelineUnavailable(timeline, gestures.activeYPercent) : false}
+				{@const preview = isSelectedDragging
+					? nearestTimelineSlot(timeline.slots, gestures.dragYPercent!)
+					: null}
+				{@const overUnavailable =
+					gestures.activeYPercent !== null
+						? isTimelineUnavailable(timeline, gestures.activeYPercent)
+						: false}
 				<div
 					class="slot-block selected"
 					class:dragging={isSelectedDragging}
