@@ -89,6 +89,20 @@ vi.mock('@when/db', async (importOriginal) => {
 		...actual,
 		findAppointment: async (_db: unknown, id: string) => {
 			if (id === 'appt-1') return mockAppt;
+			if (id === 'appt-concluded')
+				return {
+					...mockAppt,
+					id: 'appt-concluded',
+					start_time: new Date(Date.now() - 2 * 3600 * 1000).toISOString(),
+					end_time: new Date(Date.now() - 1 * 3600 * 1000).toISOString()
+				};
+			if (id === 'appt-inprogress')
+				return {
+					...mockAppt,
+					id: 'appt-inprogress',
+					start_time: '2020-01-01T00:00:00Z',
+					end_time: '2099-01-01T00:00:00Z'
+				};
 			if (id === 'appt-deleted') return { ...mockAppt, id: 'appt-deleted', event_type_id: 'gone' };
 			return chain[id] ?? null;
 		},
@@ -181,6 +195,25 @@ describe('/appointment/[id] server load', () => {
 		expect(result.actions.reschedule.allowed).toBe(false);
 		// Delete must be allowed (constraints lifted)
 		expect(result.deleteCheck?.terminal).toBe(true);
+	});
+
+	test('computes clockStatus upcoming and builds calendarLinks for upcoming appointments', async () => {
+		const result = await loadAppointment('appt-1', 'tok-abc');
+		expect(result.clockStatus).toBe('upcoming');
+		expect(result.calendarLinks).not.toBeNull();
+		expect(result.calendarLinks?.google).toBeDefined();
+	});
+
+	test('computes clockStatus in_progress and builds calendarLinks for in-progress appointments', async () => {
+		const result = await loadAppointment('appt-inprogress', 'tok-abc');
+		expect(result.clockStatus).toBe('in_progress');
+		expect(result.calendarLinks).not.toBeNull();
+	});
+
+	test('computes clockStatus concluded and omits calendarLinks for concluded appointments', async () => {
+		const result = await loadAppointment('appt-concluded', 'tok-abc');
+		expect(result.clockStatus).toBe('concluded');
+		expect(result.calendarLinks).toBeNull();
 	});
 
 	test('passes flash message value from cookie to page data', async () => {

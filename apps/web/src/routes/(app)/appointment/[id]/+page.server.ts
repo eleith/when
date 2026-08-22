@@ -86,7 +86,7 @@ export const load: PageServerLoad = async ({ params, url, locals, cookies }) => 
 
 	const eventName = resolvedEventType?.title ?? row.event_type_id;
 	const calendarLinks =
-		row.status === 'confirmed'
+		row.status === 'confirmed' && clockStatus !== 'concluded'
 			? buildAddToCalendarLinks(
 					{
 						start: row.start_time,

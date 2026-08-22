@@ -109,15 +109,31 @@
 	});
 
 	let status = $derived(data.appointment.status);
+	let displayStatus = $derived.by(() => {
+		if (status === 'confirmed') {
+			if (data.clockStatus === 'in_progress') return 'in_progress';
+			if (data.clockStatus === 'concluded') return 'concluded';
+		}
+		return status;
+	});
 	let isEditable = $derived(
-		(status === 'pending' || status === 'confirmed') && data.clockStatus !== 'concluded'
+		displayStatus === 'pending' || displayStatus === 'confirmed' || displayStatus === 'in_progress'
 	);
 	let stateTone = $derived.by(() => {
-		if (status === 'declined' || status === 'cancelled' || status === 'expired') return 'danger';
-		if (status === 'rescheduled' || status === 'purged') return 'quiet';
-		if (status === 'pending') return 'warning';
-		if (data.clockStatus === 'in_progress') return 'active';
-		if (data.clockStatus === 'concluded') return 'quiet';
+		if (
+			displayStatus === 'declined' ||
+			displayStatus === 'cancelled' ||
+			displayStatus === 'expired'
+		)
+			return 'danger';
+		if (
+			displayStatus === 'rescheduled' ||
+			displayStatus === 'purged' ||
+			displayStatus === 'concluded'
+		)
+			return 'quiet';
+		if (displayStatus === 'pending') return 'warning';
+		if (displayStatus === 'in_progress') return 'active';
 		return 'info';
 	});
 	let displayTz = $derived(data.isAdmin ? data.hostTz : data.guestTz);
@@ -144,18 +160,22 @@
 </script>
 
 <svelte:head>
-	{#if status === 'cancelled'}
+	{#if displayStatus === 'cancelled'}
 		<title>Appointment cancelled — When</title>
-	{:else if status === 'expired'}
+	{:else if displayStatus === 'expired'}
 		<title>Appointment expired — When</title>
-	{:else if status === 'declined'}
+	{:else if displayStatus === 'declined'}
 		<title>Appointment declined — When</title>
-	{:else if status === 'rescheduled'}
+	{:else if displayStatus === 'rescheduled'}
 		<title>Appointment rescheduled — When</title>
-	{:else if status === 'purged'}
+	{:else if displayStatus === 'purged'}
 		<title>Appointment purged — When</title>
-	{:else if status === 'pending'}
+	{:else if displayStatus === 'pending'}
 		<title>Appointment requested — When</title>
+	{:else if displayStatus === 'concluded'}
+		<title>Appointment concluded — When</title>
+	{:else if displayStatus === 'in_progress'}
+		<title>Appointment in progress — When</title>
 	{:else}
 		<title>Appointment confirmed — When</title>
 	{/if}
@@ -175,14 +195,12 @@
 
 	<div class="page-header-container">
 		<div class="page-header-icon status-{stateTone}">
-			{#if status === 'confirmed'}
+			{#if displayStatus === 'confirmed' || displayStatus === 'concluded'}
 				<IconCheckCircle aria-hidden="true" />
-			{:else if status === 'pending'}
+			{:else if displayStatus === 'in_progress' || displayStatus === 'pending'}
 				<IconClock aria-hidden="true" />
-			{:else if status === 'cancelled' || status === 'declined' || status === 'expired' || status === 'purged'}
-				<IconWarningCircle aria-hidden="true" />
 			{:else}
-				<IconClock aria-hidden="true" />
+				<IconWarningCircle aria-hidden="true" />
 			{/if}
 		</div>
 		<h1 class="page-header-title">
@@ -200,26 +218,30 @@
 						Reschedule requested
 					{/if}
 				{/if}
-			{:else if status === 'confirmed'}
+			{:else if displayStatus === 'confirmed'}
 				Confirmed
-			{:else if status === 'pending'}
+			{:else if displayStatus === 'in_progress'}
+				In progress
+			{:else if displayStatus === 'concluded'}
+				Concluded
+			{:else if displayStatus === 'pending'}
 				Pending
-			{:else if status === 'cancelled'}
+			{:else if displayStatus === 'cancelled'}
 				Cancelled
-			{:else if status === 'declined'}
+			{:else if displayStatus === 'declined'}
 				Declined
-			{:else if status === 'expired'}
+			{:else if displayStatus === 'expired'}
 				Expired
-			{:else if status === 'rescheduled'}
+			{:else if displayStatus === 'rescheduled'}
 				Rescheduled
-			{:else if status === 'purged'}
+			{:else if displayStatus === 'purged'}
 				Purged
 			{:else}
 				Appointment
 			{/if}
 		</h1>
 		<p class="page-header-desc">
-			{#if status === 'confirmed'}
+			{#if displayStatus === 'confirmed'}
 				{#if data.flash}
 					{#if data.appointment.guest_email}
 						A confirmation has been sent to <strong>{data.appointment.guest_email}</strong>.
@@ -229,19 +251,23 @@
 				{:else}
 					See you soon!
 				{/if}
-			{:else if status === 'pending'}
+			{:else if displayStatus === 'in_progress'}
+				This appointment is currently in progress.
+			{:else if displayStatus === 'concluded'}
+				This appointment has concluded.
+			{:else if displayStatus === 'pending'}
 				{#if data.appointment.guest_email}
 					We will email you once confirmed.
 				{:else}
 					Check back here to see when it's confirmed.
 				{/if}
-			{:else if status === 'cancelled'}
+			{:else if displayStatus === 'cancelled'}
 				This appointment has been cancelled.
-			{:else if status === 'declined'}
+			{:else if displayStatus === 'declined'}
 				This appointment request was declined.
-			{:else if status === 'expired'}
+			{:else if displayStatus === 'expired'}
 				This appointment request has expired.
-			{:else if status === 'purged'}
+			{:else if displayStatus === 'purged'}
 				This appointment is being deleted.
 			{:else}
 				This appointment has been rescheduled to a new date.
@@ -278,19 +304,21 @@
 		<section class="card-section card-state state-{stateTone}">
 			<div class="state-info-group">
 				<span class="state-text">
-					{#if status === 'confirmed'}
-						{#if data.clockStatus === 'upcoming'}Upcoming
-						{:else if data.clockStatus === 'in_progress'}In progress
-						{:else}Concluded{/if}
-					{:else if status === 'pending'}
+					{#if displayStatus === 'confirmed'}
+						Upcoming
+					{:else if displayStatus === 'in_progress'}
+						In progress
+					{:else if displayStatus === 'concluded'}
+						Concluded
+					{:else if displayStatus === 'pending'}
 						Pending · waiting for host
-					{:else if status === 'declined'}
+					{:else if displayStatus === 'declined'}
 						Declined
-					{:else if status === 'expired'}
+					{:else if displayStatus === 'expired'}
 						Expired
-					{:else if status === 'rescheduled'}
+					{:else if displayStatus === 'rescheduled'}
 						Rescheduled
-					{:else if status === 'purged'}
+					{:else if displayStatus === 'purged'}
 						Purged
 					{:else}
 						Cancelled
