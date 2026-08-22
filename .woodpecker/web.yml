@@ -72,14 +72,13 @@ steps:
     commands:
       - cd apps/web
       - |
+        VERSION_FROM_TAG="${CI_COMMIT_TAG#web/v}"
         VERSION_FROM_PKG=$(node -p "require('./package.json').version")
 
         if [ "$VERSION_FROM_TAG" != "$VERSION_FROM_PKG" ]; then
           echo "Version mismatch: Git tag version $VERSION_FROM_TAG does not match package.json version: $VERSION_FROM_PKG"
           exit 1
         fi
-    environment:
-      VERSION_FROM_TAG: ${CI_COMMIT_TAG#web/v}
     when:
       - event: tag
 
