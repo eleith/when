@@ -12,7 +12,7 @@ on:
       - 'pnpm-workspace.yaml'
       - 'pnpm-lock.yaml'
     tags:
-      - 'web/v*'
+      - '@when/web@*'
 
   pull_request:
     branches:
@@ -109,7 +109,7 @@ jobs:
         run: |
           VERSION_FROM_PKG=$(node -p "require('./apps/web/package.json').version")
           TAG_NAME=${GITHUB_REF#refs/tags/}
-          VERSION_FROM_TAG=${TAG_NAME#web/v}
+          VERSION_FROM_TAG=${TAG_NAME#@when/web@}
 
           if [ "$VERSION_FROM_TAG" != "$VERSION_FROM_PKG" ]; then
             echo "Version mismatch: Tag version $VERSION_FROM_TAG does not match package.json version $VERSION_FROM_PKG"
@@ -124,9 +124,9 @@ jobs:
           images: ghcr.io/${{ github.repository }}
           tags: |
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
-            type=match,pattern=web/v(\d+),group=1
-            type=match,pattern=web/v(\d+\.\d+),group=1
-            type=match,pattern=web/v(\d+\.\d+\.\d+),group=1
+            type=match,pattern=@when/web@(\d+),group=1
+            type=match,pattern=@when/web@(\d+\.\d+),group=1
+            type=match,pattern=@when/web@(\d+\.\d+\.\d+),group=1
 
       - name: Log in to the Container registry
         uses: docker/login-action@v4

@@ -122,3 +122,23 @@ pnpm --filter @when/config generate:schema
 ```
 
 (This runs as part of `pnpm --filter @when/config build`.) Update [config/when.example.yml](file:///home/eleith/dev/when/apps/web/config/when.example.yml) and the fixtures if you add or change a field — the web app's `example.test.ts` fails until the example documents every schema field.
+
+## Releases
+
+When uses [Changesets](https://github.com/changesets/changesets) with fixed app grouping (`apps/web`, `apps/cli`, `apps/worker`) so all deployable applications stay synchronized in versioning.
+
+1. **Document changes:** when finishing a feature or fix, record a changeset:
+   ```sh
+   pnpm changeset
+   ```
+2. **Bump versions & changelogs:** when ready to release:
+   ```sh
+   pnpm version:apps
+   ```
+   Commit the resulting version bumps and changelog updates (`git commit -m "[when] release X.Y.Z"`).
+3. **Tag & deploy:**
+   ```sh
+   pnpm tag:apps
+   git push origin main --tags
+   ```
+   This triggers the automated container image builds in Woodpecker CI and GitHub Actions.

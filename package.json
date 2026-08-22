@@ -13,9 +13,13 @@
 		"format": "pnpm --filter @when/web format",
 		"test": "pnpm --filter @when/web test",
 		"test:e2e": "pnpm --filter @when/web test:e2e",
-		"cli": "pnpm --filter @when/cli start"
+		"cli": "pnpm --filter @when/cli start",
+		"changeset": "changeset",
+		"version:apps": "changeset version",
+		"tag:apps": "changeset tag"
 	},
 	"devDependencies": {
+		"@changesets/cli": "3.0.1",
 		"@when/cli": "workspace:*",
 		"prettier": "3.8.3",
 		"prettier-plugin-svelte": "3.5.2",
