@@ -1,5 +1,11 @@
 # @when/web
 
+## 0.0.9
+
+### Patch Changes
+
+- d19ab78: Add configurable OIDC provider display name and configure state checks for Authelia compatibility
+
 ## 0.0.8
 
 ### Patch Changes
