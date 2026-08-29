@@ -38,7 +38,7 @@
 			</div>
 		{/if}
 
-		{#if data.authType === 'credentials'}
+		{#if data.auth.type === 'credentials'}
 			<form method="POST" class="signin-form">
 				<input type="hidden" name="providerId" value="credentials" />
 				<input type="hidden" name="redirectTo" value={data.callbackUrl} />
@@ -80,17 +80,19 @@
 					Sign in
 				</button>
 			</form>
-		{:else if data.authType === 'oidc'}
+		{:else if data.auth.type === 'oidc'}
 			<form method="POST" class="signin-form">
 				<input type="hidden" name="providerId" value="oidc" />
 				<input type="hidden" name="redirectTo" value={data.callbackUrl} />
 
-				<p class="sso-desc">This app is configured to use Single Sign-On for authentication.</p>
+				<p class="sso-desc">
+					Single sign-on via {data.auth.name}.
+				</p>
 
 				<!-- svelte-ignore a11y_autofocus -->
 				<button type="submit" class="submit-btn" autofocus>
 					<span class="btn-icon"><IconSignIn aria-hidden="true" /></span>
-					Sign in with Single Sign-On
+					Sign in
 				</button>
 			</form>
 		{/if}

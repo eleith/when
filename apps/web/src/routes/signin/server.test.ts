@@ -12,7 +12,7 @@ vi.mock('$lib/server/auth', () => {
 import { signInAction } from '$lib/server/auth';
 
 describe('/signin server load and actions', () => {
-	test('load function returns callbackUrl, authType, and errorCode', async () => {
+	test('load function returns callbackUrl, auth, and errorCode', async () => {
 		setState({
 			config: validConfig,
 			db: {} as AppState['db']
@@ -32,8 +32,43 @@ describe('/signin server load and actions', () => {
 
 		expect(result).toEqual({
 			callbackUrl: '/custom-path',
-			authType: 'credentials',
+			auth: { type: 'credentials' },
 			errorCode: 'CredentialsSignin'
+		});
+	});
+
+	test('load function returns custom oidc auth when configured', async () => {
+		setState({
+			config: {
+				...validConfig,
+				auth: {
+					oidc: {
+						issuer: 'https://auth.example.com',
+						client_id: 'when',
+						client_secret: 'shh',
+						name: 'Authelia'
+					}
+				}
+			},
+			db: {} as AppState['db']
+		});
+
+		const mockLocals = {
+			auth: vi.fn().mockResolvedValue(null)
+		};
+
+		const url = new URL('http://localhost/signin');
+		const result = await load({
+			url,
+			locals: mockLocals,
+			route: { id: '/signin' },
+			params: {}
+		} as unknown as Parameters<typeof load>[0]);
+
+		expect(result).toEqual({
+			callbackUrl: '/admin',
+			auth: { type: 'oidc', name: 'Authelia' },
+			errorCode: null
 		});
 	});
 

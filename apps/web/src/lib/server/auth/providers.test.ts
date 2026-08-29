@@ -10,14 +10,15 @@ test('credentials config produces a single Credentials provider', () => {
 	expect(providers).toHaveLength(1);
 });
 
-test('oidc config produces a single OIDC provider', () => {
+test('oidc config produces a single OIDC provider with state checks and default name', () => {
 	const cfg: WhenConfiguration = {
 		...validConfig,
 		auth: {
 			oidc: {
 				issuer: 'https://auth.example.com',
 				client_id: 'when',
-				client_secret: 'shh'
+				client_secret: 'shh',
+				name: 'Single Sign-On'
 			}
 		}
 	};
@@ -25,8 +26,28 @@ test('oidc config produces a single OIDC provider', () => {
 	expect(providers).toHaveLength(1);
 	const p = providers[0] as Record<string, unknown>;
 	expect(p.id).toBe('oidc');
+	expect(p.name).toBe('Single Sign-On');
 	expect(p.type).toBe('oidc');
 	expect(p.issuer).toBe('https://auth.example.com');
+	expect(p.checks).toEqual(['state']);
+});
+
+test('oidc config with custom name sets provider name', () => {
+	const cfg: WhenConfiguration = {
+		...validConfig,
+		auth: {
+			oidc: {
+				issuer: 'https://auth.example.com',
+				client_id: 'when',
+				client_secret: 'shh',
+				name: 'Authelia'
+			}
+		}
+	};
+	const providers = buildProviders(cfg);
+	const p = providers[0] as Record<string, unknown>;
+	expect(p.name).toBe('Authelia');
+	expect(p.checks).toEqual(['state']);
 });
 
 test('requireAuthSecret rejects missing secret', () => {
@@ -93,7 +114,12 @@ function warningsWhileBuilding(env: string, auth: WhenConfiguration['auth']): st
 }
 
 const OIDC = {
-	oidc: { issuer: 'https://auth.example.com', client_id: 'when', client_secret: 'shh' }
+	oidc: {
+		issuer: 'https://auth.example.com',
+		client_id: 'when',
+		client_secret: 'shh',
+		name: 'Single Sign-On'
+	}
 };
 
 test('credentials auth in production warns about the missing rate limiting', () => {

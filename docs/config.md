@@ -69,6 +69,7 @@ auth:
     issuer: 'https://auth.example.com'
     client_id: 'when'
     client_secret: '${WHEN_OIDC_CLIENT_SECRET}'
+    name: 'Single Sign-On' # optional display name, defaults to 'Single Sign-On' (e.g. 'Authelia', 'Google')
 ```
 
 Both are supported in production. Which one fits depends on who can reach the sign-in page:

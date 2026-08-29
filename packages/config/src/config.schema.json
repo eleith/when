@@ -795,6 +795,12 @@
 					"minLength": 1,
 					"description": "OIDC client secret.",
 					"type": "string"
+				},
+				"name": {
+					"minLength": 1,
+					"default": "Single Sign-On",
+					"description": "Display name for the OIDC provider (default: \"Single Sign-On\").",
+					"type": "string"
 				}
 			}
 		},

@@ -29,11 +29,12 @@ function credentialsProvider(admin: CredentialsAuth) {
 function oidcProvider(oidc: OidcAuth) {
 	return {
 		id: 'oidc',
-		name: 'Single Sign-On',
+		name: oidc.name,
 		type: 'oidc' as const,
 		issuer: oidc.issuer,
 		clientId: oidc.client_id,
-		clientSecret: oidc.client_secret
+		clientSecret: oidc.client_secret,
+		checks: ['state'] as ['state']
 	};
 }
 

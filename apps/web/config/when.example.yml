@@ -19,6 +19,8 @@ auth:
   #   issuer: 'https://accounts.example.com'
   #   client_id: 'when'
   #   client_secret: '${WHEN_OIDC_CLIENT_SECRET}'
+  #   # name defaults to 'Single Sign-On'
+  #   # name: 'Single Sign-On'
 
 # --- The schedule owner ---
 user:

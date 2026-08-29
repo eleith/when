@@ -20,7 +20,12 @@ export const LocalPathSchema = Type.String({
 export const OidcAuthSchema = Type.Object({
 	issuer: Type.String({ format: 'uri', description: 'OIDC provider issuer URI.' }),
 	client_id: Type.String({ minLength: 1, description: 'OIDC client ID.' }),
-	client_secret: Type.String({ minLength: 1, description: 'OIDC client secret.' })
+	client_secret: Type.String({ minLength: 1, description: 'OIDC client secret.' }),
+	name: Type.String({
+		minLength: 1,
+		default: 'Single Sign-On',
+		description: 'Display name for the OIDC provider (default: "Single Sign-On").'
+	})
 }, { $id: 'OidcAuth', additionalProperties: false, title: 'OidcAuth', description: 'OIDC single sign-on authentication configuration.' });
 
 export const CredentialsAuthSchema = Type.Object({

@@ -12,10 +12,12 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 	if (session) redirect(303, callbackUrl);
 
 	const cfg = getConfig();
-	const authType = 'credentials' in cfg.auth ? 'credentials' : 'oidc';
+	const auth = cfg.auth.oidc
+		? { type: 'oidc' as const, name: cfg.auth.oidc.name }
+		: { type: 'credentials' as const };
 	const errorCode = url.searchParams.get('error');
 
-	return { callbackUrl, authType, errorCode };
+	return { callbackUrl, auth, errorCode };
 };
 
 export const actions: Actions = {

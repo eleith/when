@@ -79,6 +79,29 @@ test('auth with both oidc and credentials fails oneOf', () => {
 	expect(() => validateConfig(bad)).toThrow(ConfigError);
 });
 
+test('oidc auth defaults name to Single Sign-On when omitted', () => {
+	const cfg = clone(validConfig);
+	(cfg as { auth: unknown }).auth = {
+		oidc: { issuer: 'https://auth.example.com', client_id: 'a', client_secret: 'b' }
+	};
+	const loaded = validateConfig(cfg);
+	expect(loaded.auth.oidc?.name).toBe('Single Sign-On');
+});
+
+test('oidc auth preserves custom name override', () => {
+	const cfg = clone(validConfig);
+	(cfg as { auth: unknown }).auth = {
+		oidc: {
+			issuer: 'https://auth.example.com',
+			client_id: 'a',
+			client_secret: 'b',
+			name: 'Authelia'
+		}
+	};
+	const loaded = validateConfig(cfg);
+	expect(loaded.auth.oidc?.name).toBe('Authelia');
+});
+
 test('invalid email format fails', () => {
 	const bad = clone(validConfig);
 	bad.user.email = 'not-an-email';
