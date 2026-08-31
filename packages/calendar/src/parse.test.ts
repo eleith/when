@@ -118,3 +118,53 @@ test('returns empty list on empty calendar', () => {
 	const empty = `BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//test//EN\nEND:VCALENDAR`;
 	expect(parseBusyEvents(empty)).toEqual([]);
 });
+
+test('ignores events with TRANSP:TRANSPARENT (free)', () => {
+	const transparent = `BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//test//EN
+BEGIN:VEVENT
+UID:free@test
+DTSTAMP:20260101T000000Z
+DTSTART:20260415T140000Z
+DTEND:20260415T150000Z
+TRANSP:TRANSPARENT
+SUMMARY:Free event
+END:VEVENT
+END:VCALENDAR`;
+	expect(parseBusyEvents(transparent)).toEqual([]);
+});
+
+test('includes events with TRANSP:OPAQUE (busy)', () => {
+	const opaque = `BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//test//EN
+BEGIN:VEVENT
+UID:busy@test
+DTSTAMP:20260101T000000Z
+DTSTART:20260415T140000Z
+DTEND:20260415T150000Z
+TRANSP:OPAQUE
+SUMMARY:Busy event
+END:VEVENT
+END:VCALENDAR`;
+	const busy = parseBusyEvents(opaque);
+	expect(busy).toHaveLength(1);
+	expect(busy[0].uid).toBe('busy@test');
+});
+
+test('ignores events with STATUS:CANCELLED', () => {
+	const cancelled = `BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//test//EN
+BEGIN:VEVENT
+UID:cancelled@test
+DTSTAMP:20260101T000000Z
+DTSTART:20260415T140000Z
+DTEND:20260415T150000Z
+STATUS:CANCELLED
+SUMMARY:Cancelled event
+END:VEVENT
+END:VCALENDAR`;
+	expect(parseBusyEvents(cancelled)).toEqual([]);
+});

@@ -25,6 +25,9 @@ export function parseBusyEvents(icsString: string): BusyEvent[] {
 }
 
 function toBusy(event: IcsEvent): BusyEvent | null {
+	if (event.status === 'CANCELLED') return null;
+	if (event.timeTransparent === 'TRANSPARENT') return null;
+
 	try {
 		const startMs = event.start.date.getTime();
 		const endMs = getEventEnd(event).getTime();
