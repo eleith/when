@@ -166,8 +166,8 @@ export async function putGoogleEvent(
 	const eventId = isUpdate ? appointment.external_event_id : '';
 
 	const url = isUpdate
-		? `https://www.googleapis.com/calendar/v3/calendars/${calId}/events/${eventId}?conferenceDataVersion=1`
-		: `https://www.googleapis.com/calendar/v3/calendars/${calId}/events?conferenceDataVersion=1`;
+		? `https://www.googleapis.com/calendar/v3/calendars/${calId}/events/${eventId}?conferenceDataVersion=1&sendUpdates=none`
+		: `https://www.googleapis.com/calendar/v3/calendars/${calId}/events?conferenceDataVersion=1&sendUpdates=none`;
 
 	const method = isUpdate ? 'PUT' : 'POST';
 
@@ -249,7 +249,7 @@ export async function putGoogleEvent(
 export async function deleteGoogleEvent(cfg: GoogleConfig, externalEventId: string): Promise<void> {
 	const token = await getGoogleAccessToken(cfg);
 	const calId = encodeURIComponent(cfg.google_calendar_id);
-	const url = `https://www.googleapis.com/calendar/v3/calendars/${calId}/events/${externalEventId}`;
+	const url = `https://www.googleapis.com/calendar/v3/calendars/${calId}/events/${externalEventId}?sendUpdates=none`;
 
 	const res = await fetch(url, {
 		method: 'DELETE',

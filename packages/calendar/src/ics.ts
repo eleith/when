@@ -58,7 +58,7 @@ export function buildIcs(input: IcsInput): string {
 	};
 	if (method) calendar.method = method;
 
-	return generateIcsCalendar(calendar, {
+	const generated = generateIcsCalendar(calendar, {
 		nonStandard: {
 			conference: {
 				name: 'CONFERENCE' as 'X-CONFERENCE',
@@ -66,6 +66,17 @@ export function buildIcs(input: IcsInput): string {
 			}
 		}
 	});
+
+	return withClientScheduleAgent(generated);
+}
+
+/**
+ * Injects RFC 6638 § 3.2.4 `SCHEDULE-AGENT=CLIENT` into ATTENDEE properties.
+ * This instructs CalDAV servers (e.g. Nextcloud, SabreDAV, Fastmail, Apple Calendar)
+ * that the client application handles scheduling and to suppress server-sent emails.
+ */
+function withClientScheduleAgent(ics: string): string {
+	return ics.replaceAll('ATTENDEE;', 'ATTENDEE;SCHEDULE-AGENT=CLIENT;');
 }
 
 function icsPerson(name: string, email: string): { name: string; email: string } {

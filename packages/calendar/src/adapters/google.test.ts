@@ -6,6 +6,7 @@ import {
 	revokeGoogleToken,
 	listGoogleCalendars,
 	putGoogleEvent,
+	deleteGoogleEvent,
 	type GoogleConfig
 } from './google.js';
 import type { Appointment } from '@when/db';
@@ -109,8 +110,36 @@ test('includes conferenceData and appends version query parameter when video_cha
 });
 
 test('omits conferenceData when video_chat link is absent', async () => {
-	const { payload } = await push(baseAppointment);
+	const { payload, url } = await push(baseAppointment);
 	expect(payload?.conferenceData).toBeUndefined();
+	expect(url).toContain('sendUpdates=none');
+});
+
+test('putGoogleEvent includes sendUpdates=none on update (PUT)', async () => {
+	const { url } = await push({
+		...baseAppointment,
+		external_event_id: 'existing-evt-1'
+	});
+	expect(url).toContain('/events/existing-evt-1?conferenceDataVersion=1&sendUpdates=none');
+});
+
+test('deleteGoogleEvent includes sendUpdates=none', async () => {
+	const fetchSpy = vi
+		.spyOn(globalThis, 'fetch')
+		.mockImplementation(async (url: Parameters<typeof fetch>[0]) => {
+			if (String(url).includes('oauth2.googleapis.com/token')) {
+				return new Response(JSON.stringify({ access_token: 't', expires_in: 3600 }), {
+					status: 200
+				});
+			}
+			return new Response(null, { status: 204 });
+		});
+
+	await deleteGoogleEvent(cfg, 'evt-to-delete');
+	expect(fetchSpy).toHaveBeenCalledWith(
+		'https://www.googleapis.com/calendar/v3/calendars/cal/events/evt-to-delete?sendUpdates=none',
+		expect.objectContaining({ method: 'DELETE' })
+	);
 });
 
 // getGoogleAccessToken is re-exported for the CLI (service test/token/calendars).

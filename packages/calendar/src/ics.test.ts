@@ -107,7 +107,7 @@ test('STATUS is CONFIRMED for confirmed appointments', () => {
 test('ORGANIZER and ATTENDEE lines are present', () => {
 	const ics = buildIcs({ appointment: baseAppointment, ...baseInput });
 	expect(ics).toMatch(/ORGANIZER[;:][^\r\n]*jane@example\.com/);
-	expect(ics).toMatch(/ATTENDEE[;:][^\r\n]*booker@example\.com/);
+	expect(ics).toMatch(/ATTENDEE[;:][^\r\n]*SCHEDULE-AGENT=CLIENT[;:][^\r\n]*booker@example\.com/);
 });
 
 test('ATTENDEE is omitted when the appointment has no email', () => {

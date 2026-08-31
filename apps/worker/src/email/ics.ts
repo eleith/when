@@ -1,68 +1,10 @@
-import { generateIcsCalendar, type IcsCalendar, type IcsEvent } from 'ts-ics';
-import { guestContact, describeAppointment } from '@when/calendar';
+import { buildIcs, type IcsInput, type IcsMethod } from '@when/calendar';
 import { senderEmail } from '@when/config';
-import { originId, type Appointment, type AppointmentStatus } from '@when/db';
-import { systemClock, type Clock } from './clock.js';
 import { eventTypeName } from './format.js';
 import type { Attachment } from './recipients.js';
 import type { AppointmentEmailInput } from './types.js';
 
-export type IcsMethod = 'REQUEST' | 'CANCEL';
-
-export interface IcsInput {
-	appointment: Appointment;
-	eventTypeName: string;
-	hostName: string;
-	hostEmail: string;
-	/** Public URL the booker can use to cancel or reschedule. */
-	cancelUrl: string;
-	/**
-	 * Set for scheduling messages (iMIP email attachments): emits a calendar-level
-	 * `METHOD` line and forces the corresponding event STATUS.
-	 */
-	method?: IcsMethod;
-	clock?: Clock;
-}
-
-export function buildIcs(input: IcsInput): string {
-	const { appointment, eventTypeName: name, hostName, hostEmail, cancelUrl, method } = input;
-	const clock = input.clock ?? systemClock;
-	const guest = guestContact(appointment);
-
-	const event: IcsEvent = {
-		uid: originId(appointment),
-		sequence: appointment.ics_sequence,
-		summary: name,
-		start: { date: new Date(appointment.start_time), type: 'DATE-TIME' },
-		end: { date: new Date(appointment.end_time), type: 'DATE-TIME' },
-		stamp: { date: clock.now(), type: 'DATE-TIME' },
-		description: describeAppointment(appointment, cancelUrl),
-		location: appointment.location ?? undefined,
-		organizer: { name: hostName, email: hostEmail },
-		// The guest booked, so they've effectively accepted; mark it so calendar
-		// clients don't prompt them to RSVP to the noreply organizer.
-		attendees: guest ? [{ ...guest, partstat: 'ACCEPTED', rsvp: false }] : undefined,
-		status: eventStatus(method, appointment.status)
-	};
-
-	const calendar: IcsCalendar = {
-		prodId: '-//When//EN',
-		version: '2.0',
-		events: [event]
-	};
-	if (method) calendar.method = method;
-
-	return generateIcsCalendar(calendar);
-}
-
-function eventStatus(
-	method: IcsMethod | undefined,
-	appointmentStatus: AppointmentStatus
-): 'CANCELLED' | 'TENTATIVE' | 'CONFIRMED' {
-	if (method === 'CANCEL') return 'CANCELLED';
-	if (appointmentStatus === 'pending') return 'TENTATIVE';
-	return 'CONFIRMED';
-}
+export { buildIcs, type IcsInput, type IcsMethod };
 
 function icsAttachment(input: IcsInput): Attachment {
 	return {
