@@ -52,113 +52,115 @@
 			</section>
 		{/if}
 
-		{#if data.upcoming.length > 0 || data.pending.length > 0}
-			<div class="previews">
-				{#if data.upcoming.length > 0}
-					<section class="card preview-card">
-						<div class="card-header">
-							<h2 class="card-title">Upcoming</h2>
+		<div class="section-group">
+			<h2 class="section-label">Upcoming</h2>
+			<section class="card preview-card">
+				<div class="card-body">
+					{#if data.upcoming.length === 0}
+						<div class="empty-preview">
+							<p class="empty-text">No upcoming appointments.</p>
 						</div>
-						<div class="card-body">
-							<ul class="preview-list">
-								{#each data.upcoming as a (a.id)}
-									<li class="preview-row" class:past={a.is_past}>
-										<div class="details-guest">
-											<div class="guest-info">
-												<a href="/appointment/{a.id}" class="row-link">{a.guest_name}</a>
-												<span class="guest-email" class:no-email={!a.guest_email}>
-													{a.guest_email ?? 'No email'}
-												</span>
-											</div>
+					{:else}
+						<ul class="preview-list">
+							{#each data.upcoming as a (a.id)}
+								<li class="preview-row" class:past={a.is_past}>
+									<div class="details-guest">
+										<div class="guest-info">
+											<a href="/appointment/{a.id}" class="row-link">{a.guest_name}</a>
+											<span class="guest-email" class:no-email={!a.guest_email}>
+												{a.guest_email ?? 'No email'}
+											</span>
 										</div>
-										<div class="details-event">
-											<span class="event-tag">{a.event_type_name}</span>
-										</div>
-										<div class="details-time">
-											<span class="time-text">{fmt(a.start_time)}</span>
-										</div>
-										<div class="details-status">
-											<div class="status-wrapper">
-												<span class="status-badge status-{a.display_status}">
-													{#if a.display_status === 'in_progress'}
-														in progress
-													{:else}
-														{a.display_status}
-													{/if}
-												</span>
-												{#if a.possible_conflict}
-													<span
-														class="conflict-chip"
-														title="This time overlaps a busy event on a conflict calendar"
-													>
-														<IconWarning class="conflict-icon" aria-hidden="true" />
-														Conflict
-													</span>
+									</div>
+									<div class="details-event">
+										<span class="event-tag">{a.event_type_name}</span>
+									</div>
+									<div class="details-time">
+										<span class="time-text">{fmt(a.start_time)}</span>
+									</div>
+									<div class="details-status">
+										<div class="status-wrapper">
+											<span class="status-badge status-{a.display_status}">
+												{#if a.display_status === 'in_progress'}
+													in progress
+												{:else}
+													{a.display_status}
 												{/if}
-											</div>
-										</div>
-									</li>
-								{/each}
-							</ul>
-						</div>
-					</section>
-				{/if}
-
-				{#if data.pending.length > 0}
-					<section class="card preview-card">
-						<div class="card-header">
-							<h2 class="card-title">Pending review</h2>
-						</div>
-						<div class="card-body">
-							<ul class="preview-list">
-								{#each data.pending as a (a.id)}
-									<li class="preview-row" class:past={a.is_past}>
-										<div class="details-guest">
-											<div class="guest-info">
-												<a href="/appointment/{a.id}" class="row-link">{a.guest_name}</a>
-												<span class="guest-email" class:no-email={!a.guest_email}>
-													{a.guest_email ?? 'No email'}
+											</span>
+											{#if a.possible_conflict}
+												<span
+													class="conflict-chip"
+													title="This time overlaps a busy event on a conflict calendar"
+												>
+													<IconWarning class="conflict-icon" aria-hidden="true" />
+													Conflict
 												</span>
-											</div>
+											{/if}
 										</div>
-										<div class="details-event">
-											<span class="event-tag">{a.event_type_name}</span>
-										</div>
-										<div class="details-time">
-											<span class="time-text">{fmt(a.start_time)}</span>
-										</div>
-										<div class="details-status">
-											<div class="status-wrapper">
-												<span class="status-badge status-{a.display_status}">
-													{#if a.display_status === 'in_progress'}
-														in progress
-													{:else}
-														{a.display_status}
-													{/if}
-												</span>
-												{#if a.possible_conflict}
-													<span
-														class="conflict-chip"
-														title="This time overlaps a busy event on a conflict calendar"
-													>
-														<IconWarning class="conflict-icon" aria-hidden="true" />
-														Conflict
-													</span>
-												{/if}
-											</div>
-										</div>
-									</li>
-								{/each}
-							</ul>
-						</div>
-					</section>
-				{/if}
-			</div>
+									</div>
+								</li>
+							{/each}
+						</ul>
+					{/if}
+				</div>
+			</section>
+		</div>
 
+		{#if data.pending.length > 0}
 			<hr class="section-divider" />
+
+			<div class="section-group">
+				<h2 class="section-label">Pending review</h2>
+				<section class="card preview-card">
+					<div class="card-body">
+						<ul class="preview-list">
+							{#each data.pending as a (a.id)}
+								<li class="preview-row" class:past={a.is_past}>
+									<div class="details-guest">
+										<div class="guest-info">
+											<a href="/appointment/{a.id}" class="row-link">{a.guest_name}</a>
+											<span class="guest-email" class:no-email={!a.guest_email}>
+												{a.guest_email ?? 'No email'}
+											</span>
+										</div>
+									</div>
+									<div class="details-event">
+										<span class="event-tag">{a.event_type_name}</span>
+									</div>
+									<div class="details-time">
+										<span class="time-text">{fmt(a.start_time)}</span>
+									</div>
+									<div class="details-status">
+										<div class="status-wrapper">
+											<span class="status-badge status-{a.display_status}">
+												{#if a.display_status === 'in_progress'}
+													in progress
+												{:else}
+													{a.display_status}
+												{/if}
+											</span>
+											{#if a.possible_conflict}
+												<span
+													class="conflict-chip"
+													title="This time overlaps a busy event on a conflict calendar"
+												>
+													<IconWarning class="conflict-icon" aria-hidden="true" />
+													Conflict
+												</span>
+											{/if}
+										</div>
+									</div>
+								</li>
+							{/each}
+						</ul>
+					</div>
+				</section>
+			</div>
 		{/if}
 
-		<div class="stats-group">
+		<hr class="section-divider" />
+
+		<div class="section-group">
 			<h2 class="section-label">Statistics</h2>
 			<div class="stats-row">
 				<a href="/admin/appointments/past" class="stat-card">
@@ -180,7 +182,9 @@
 			</div>
 		</div>
 
-		<div class="stats-group">
+		<hr class="section-divider" />
+
+		<div class="section-group">
 			<h2 class="section-label">Setup</h2>
 			<div class="stats-row">
 				<a href="/admin/health" class="stat-card">
@@ -210,7 +214,7 @@
 	.dashboard {
 		display: flex;
 		flex-direction: column;
-		gap: var(--space-6);
+		gap: var(--space-7);
 	}
 
 	/* ---- alerts ---- */
@@ -227,11 +231,11 @@
 		margin: 0;
 	}
 
-	/* ---- stats ---- */
-	.stats-group {
+	/* ---- section groups ---- */
+	.section-group {
 		display: flex;
 		flex-direction: column;
-		gap: var(--space-3);
+		gap: var(--space-5);
 	}
 
 	.section-label {
@@ -287,13 +291,7 @@
 		color: var(--color-text-secondary);
 	}
 
-	/* ---- previews ---- */
-	.previews {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-4);
-	}
-
+	/* ---- preview cards ---- */
 	.card {
 		background: var(--color-surface);
 		border: 1px solid var(--color-border);
@@ -302,25 +300,22 @@
 		overflow: hidden;
 	}
 
-	.card-header {
-		background: var(--when-color-surface-page);
-		border-bottom: 1px solid var(--color-border);
-		padding: var(--space-3) var(--space-4);
-		display: flex;
-		align-items: center;
-	}
-
-	.card-title {
-		font-size: var(--font-size-md);
-		font-weight: 600;
-		color: var(--when-color-text);
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-	}
-
 	.card-body {
 		padding: 0;
+	}
+
+	.empty-preview {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: var(--space-8) var(--space-4);
+		text-align: center;
+	}
+
+	.empty-text {
+		font-size: var(--font-size-md);
+		color: var(--color-text-muted);
+		margin: 0;
 	}
 
 	.preview-list {
