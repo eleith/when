@@ -12,12 +12,12 @@
 
 	--color-primary-muted: color-mix(
 		in srgb,
-		var(--when-color-primary) 5%,
+		var(--when-color-primary) 12%,
 		var(--when-color-surface-page)
 	);
 	--color-primary-border: color-mix(
 		in srgb,
-		var(--when-color-primary) 20%,
+		var(--when-color-primary) 30%,
 		var(--when-color-surface-page)
 	);
 
