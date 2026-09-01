@@ -1,5 +1,13 @@
 # @when/web
 
+## 0.0.10
+
+### Patch Changes
+
+- 1821d28: improve today indicator and make more clear the day hover style
+- 3c82314: improved headers and spacing for admin dashboard
+- 3c01df2: improve ux for duration selection and slot picker rendering
+
 ## 0.0.9
 
 ### Patch Changes
