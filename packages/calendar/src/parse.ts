@@ -30,7 +30,7 @@ function toBusy(event: IcsEvent): BusyEvent | null {
 
 	try {
 		const startMs = event.start.date.getTime();
-		const endMs = getEventEnd(event).getTime();
+		const endMs = eventEnd(event).getTime();
 		return {
 			uid: event.uid,
 			start: Temporal.Instant.fromEpochMilliseconds(startMs),
@@ -47,4 +47,21 @@ function toBusy(event: IcsEvent): BusyEvent | null {
 		logger.warn({ err, uid: event.uid }, 'failed to normalize VEVENT; skipping');
 		return null;
 	}
+}
+
+function eventEnd(event: IcsEvent): Date {
+	if (event.end?.date) {
+		return event.end.date;
+	}
+	if (event.duration) {
+		return getEventEnd(event);
+	}
+	if (event.start.type === 'DATE') {
+		// All-day event without DTEND/DURATION lasts 1 full day per RFC 5545 §3.6.1
+		const d = new Date(event.start.date.getTime());
+		d.setUTCDate(d.getUTCDate() + 1);
+		return d;
+	}
+	// DATE-TIME event without DTEND/DURATION has 0 duration per RFC 5545 §3.6.1
+	return event.start.date;
 }

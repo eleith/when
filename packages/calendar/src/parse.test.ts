@@ -168,3 +168,58 @@ END:VEVENT
 END:VCALENDAR`;
 	expect(parseBusyEvents(cancelled)).toEqual([]);
 });
+
+test('parses all-day event with explicit DTEND', () => {
+	const alldayWithEnd = `BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//test//EN
+BEGIN:VEVENT
+UID:allday-end@test
+DTSTAMP:20260101T000000Z
+DTSTART;VALUE=DATE:20260415
+DTEND;VALUE=DATE:20260416
+SUMMARY:All day with DTEND
+END:VEVENT
+END:VCALENDAR`;
+	const busy = parseBusyEvents(alldayWithEnd);
+	expect(busy).toHaveLength(1);
+	expect(busy[0].uid).toBe('allday-end@test');
+	expect(busy[0].start.toString()).toBe('2026-04-15T00:00:00Z');
+	expect(busy[0].end.toString()).toBe('2026-04-16T00:00:00Z');
+});
+
+test('parses single-day all-day event without DTEND (RFC 5545 default 1 day duration)', () => {
+	const alldayNoEnd = `BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//test//EN
+BEGIN:VEVENT
+UID:allday-noend@test
+DTSTAMP:20260101T000000Z
+DTSTART;VALUE=DATE:20260415
+SUMMARY:All day single day
+END:VEVENT
+END:VCALENDAR`;
+	const busy = parseBusyEvents(alldayNoEnd);
+	expect(busy).toHaveLength(1);
+	expect(busy[0].uid).toBe('allday-noend@test');
+	expect(busy[0].start.toString()).toBe('2026-04-15T00:00:00Z');
+	expect(busy[0].end.toString()).toBe('2026-04-16T00:00:00Z');
+});
+
+test('parses timed event without DTEND or DURATION (0 duration)', () => {
+	const timedNoEnd = `BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//test//EN
+BEGIN:VEVENT
+UID:timed-noend@test
+DTSTAMP:20260101T000000Z
+DTSTART:20260415T140000Z
+SUMMARY:Zero duration
+END:VEVENT
+END:VCALENDAR`;
+	const busy = parseBusyEvents(timedNoEnd);
+	expect(busy).toHaveLength(1);
+	expect(busy[0].uid).toBe('timed-noend@test');
+	expect(busy[0].start.toString()).toBe('2026-04-15T14:00:00Z');
+	expect(busy[0].end.toString()).toBe('2026-04-15T14:00:00Z');
+});
