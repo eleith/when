@@ -289,36 +289,43 @@ export function buildDayTimeline({
 	};
 
 	const busy = busyBlocks
-		.map((b) => ({
-			start: InstantFns.fromString(b.start),
-			end: InstantFns.fromString(b.end)
-		}))
-		.filter(
-			(b) => InstantFns.compare(b.start, viewEnd) < 0 && InstantFns.compare(b.end, viewStart) > 0
-		)
-		.map((b) => ({
-			top: toPercent(b.start),
-			height: toPercent(b.end) - toPercent(b.start)
+		.flatMap((b) => {
+			const bStart = InstantFns.fromString(b.start);
+			const bEnd = InstantFns.fromString(b.end);
+			return dayWindows
+				.map((w) => {
+					const start = InstantFns.compare(bStart, w.start) > 0 ? bStart : w.start;
+					const end = InstantFns.compare(bEnd, w.end) < 0 ? bEnd : w.end;
+					return { start, end };
+				})
+				.filter((seg) => InstantFns.compare(seg.start, seg.end) < 0);
+		})
+		.map((seg) => ({
+			top: toPercent(seg.start),
+			height: toPercent(seg.end) - toPercent(seg.start)
 		}));
 
 	const buffers = busyBlocks
-		.map((b) => {
-			const start = InstantFns.subtractMinutes(
+		.flatMap((b) => {
+			const bStart = InstantFns.subtractMinutes(
 				InstantFns.fromString(b.start),
 				eventType.padding_before_minutes ?? 0
 			);
-			const end = InstantFns.addMinutes(
+			const bEnd = InstantFns.addMinutes(
 				InstantFns.fromString(b.end),
 				eventType.padding_after_minutes ?? 0
 			);
-			return { start, end };
+			return dayWindows
+				.map((w) => {
+					const start = InstantFns.compare(bStart, w.start) > 0 ? bStart : w.start;
+					const end = InstantFns.compare(bEnd, w.end) < 0 ? bEnd : w.end;
+					return { start, end };
+				})
+				.filter((seg) => InstantFns.compare(seg.start, seg.end) < 0);
 		})
-		.filter(
-			(b) => InstantFns.compare(b.start, viewEnd) < 0 && InstantFns.compare(b.end, viewStart) > 0
-		)
-		.map((b) => ({
-			top: toPercent(b.start),
-			height: toPercent(b.end) - toPercent(b.start)
+		.map((seg) => ({
+			top: toPercent(seg.start),
+			height: toPercent(seg.end) - toPercent(seg.start)
 		}));
 
 	const working = dayWindows.map((w) => ({

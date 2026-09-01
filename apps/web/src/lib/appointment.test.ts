@@ -249,6 +249,27 @@ describe('buildDayTimeline', () => {
 		expect(t.buffers).toEqual([{ top: 40, height: 10 }]);
 	});
 
+	test('clips busy blocks to working windows and excludes blocks outside working hours', () => {
+		const t = buildDayTimeline({
+			...base,
+			busyBlocks: [
+				// Starts before working hours (08:00–10:00) → should clip to 09:00–10:00
+				{ start: '2025-06-15T08:00:00Z', end: '2025-06-15T10:00:00Z' },
+				// Entirely outside working hours (06:00–08:30) → should be excluded
+				{ start: '2025-06-15T06:00:00Z', end: '2025-06-15T08:30:00Z' },
+				// Extends past working hours (16:00–18:00) → should clip to 16:00–17:00
+				{ start: '2025-06-15T16:00:00Z', end: '2025-06-15T18:00:00Z' }
+			]
+		})!;
+		// View is 08:00–18:00 (10h total).
+		// 09:00–10:00 is at top 10%, height 10%
+		// 16:00–17:00 is at top 80%, height 10%
+		expect(t.busy).toEqual([
+			{ top: 10, height: 10 },
+			{ top: 80, height: 10 }
+		]);
+	});
+
 	test('grows buffers by the configured buffer minutes', () => {
 		const t = buildDayTimeline({
 			...base,

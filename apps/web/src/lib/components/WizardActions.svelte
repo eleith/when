@@ -78,8 +78,8 @@
 		align-items: center;
 		justify-content: flex-end;
 		gap: var(--space-4);
-		margin-top: var(--space-6);
-		padding-top: var(--space-5);
+		margin-top: auto;
+		padding: var(--space-5) var(--space-7) var(--space-7);
 		border-top: 1px solid var(--color-border);
 	}
 

@@ -91,5 +91,12 @@
 		width: 100%;
 		max-width: 360px;
 		margin: 0 auto;
+		padding: var(--space-6) var(--space-7);
+	}
+
+	@media (max-width: 768px) {
+		.calendar-panel {
+			padding: var(--space-5) var(--space-5);
+		}
 	}
 </style>

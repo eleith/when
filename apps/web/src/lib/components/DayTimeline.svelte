@@ -1,5 +1,7 @@
 <script lang="ts">
 	import IconGlobe from 'virtual:icons/ph/globe';
+	import IconMinus from 'virtual:icons/ph/minus';
+	import IconPlus from 'virtual:icons/ph/plus';
 	import { formatTzShort, tzCity, tzOffset } from '$lib/datetime';
 	import { onDestroy } from 'svelte';
 	import {
@@ -39,6 +41,24 @@
 	let selectedSlot = $derived(flow.selectedSlot);
 	let userTz = $derived(flow.userTz);
 	let durations = $derived(flow.durations);
+
+	let currentIndex = $derived(durations.indexOf(flow.duration));
+	let canDecrease = $derived(currentIndex > 0);
+	let canIncrease = $derived(currentIndex >= 0 && currentIndex < durations.length - 1);
+	let prevDuration = $derived(canDecrease ? durations[currentIndex - 1] : null);
+	let nextDuration = $derived(canIncrease ? durations[currentIndex + 1] : null);
+
+	function decreaseDuration() {
+		if (canDecrease && prevDuration !== null) {
+			flow.setDuration(prevDuration);
+		}
+	}
+
+	function increaseDuration() {
+		if (canIncrease && nextDuration !== null) {
+			flow.setDuration(nextDuration);
+		}
+	}
 
 	// The picked length is flow state; overlay it onto the static event-type config.
 	let liveEventType = $derived({ ...eventType, duration_minutes: flow.duration });
@@ -263,20 +283,52 @@
 {#if viewDate && timeline}
 	<div class="timeline-container">
 		<div class="slots-header">
-			<div class="slots-meta">
-				{#if durations.length > 1}
-					<button type="button" class="slots-chip" onclick={() => (durationOpen = true)}>
-						<span class="slots-chip-text">{flow.duration} min</span>
-					</button>
-				{:else}
-					<span class="slots-static">{flow.duration} min</span>
-				{/if}
-				<button type="button" class="slots-chip" onclick={() => (tzOpen = true)}>
-					<span class="slots-chip-icon"><IconGlobe /></span>
-					<span class="slots-chip-text slots-tz-full">{tzFull}</span>
-					<span class="slots-chip-text slots-tz-short">{tzShort}</span>
-				</button>
-			</div>
+			<button
+				type="button"
+				class="tz-chip"
+				onclick={() => (tzOpen = true)}
+				aria-label="Change timezone, currently {tzFull}"
+			>
+				<span class="tz-icon"><IconGlobe aria-hidden="true" /></span>
+				<span class="tz-label tz-full">{tzFull}</span>
+				<span class="tz-label tz-short">{tzShort}</span>
+			</button>
+
+			{#if durations.length > 1}
+				<div class="duration-control">
+					<div class="duration-stepper" role="group" aria-label="Duration selector">
+						<button
+							type="button"
+							class="stepper-btn stepper-btn-left"
+							onclick={decreaseDuration}
+							disabled={!canDecrease}
+							aria-label="Decrease duration"
+							title={canDecrease ? `Decrease to ${prevDuration} min` : undefined}
+						>
+							<IconMinus aria-hidden="true" />
+						</button>
+						<button
+							type="button"
+							class="stepper-display"
+							onclick={() => (durationOpen = true)}
+							aria-label="Change duration, currently {flow.duration} minutes"
+							aria-haspopup="dialog"
+						>
+							<span class="duration-value">{flow.duration} min</span>
+						</button>
+						<button
+							type="button"
+							class="stepper-btn stepper-btn-right"
+							onclick={increaseDuration}
+							disabled={!canIncrease}
+							aria-label="Increase duration"
+							title={canIncrease ? `Increase to ${nextDuration} min` : undefined}
+						>
+							<IconPlus aria-hidden="true" />
+						</button>
+					</div>
+				</div>
+			{/if}
 		</div>
 		<div class="timeline-scroll">
 			<div class="timeline" style:height="{(timeline.totalMs / 3600000) * 96}px">
@@ -432,89 +484,183 @@
 <style>
 	.timeline-container {
 		width: 100%;
-		--timeline-closed: color-mix(in srgb, var(--when-color-text) 5%, var(--color-surface));
-		--timeline-hatch: color-mix(in srgb, var(--when-color-text) 20%, var(--color-surface));
+		display: flex;
+		flex-direction: column;
+		--timeline-bg: var(--color-surface);
+		--timeline-closed: color-mix(in srgb, var(--when-color-text) 5%, var(--timeline-bg));
+		--timeline-hatch: color-mix(in srgb, var(--when-color-text) 20%, var(--timeline-bg));
+	}
+
+	@media (max-width: 768px) {
+		.timeline-container {
+			--timeline-bg: var(--when-color-surface-page);
+		}
 	}
 
 	/* ---- timeline toolbar / header ---- */
 	.slots-header {
 		display: flex;
-		justify-content: flex-end;
+		justify-content: space-between;
 		align-items: center;
-		margin: 0 0 var(--space-6);
-		min-height: var(--space-7);
+		padding: var(--space-4) var(--space-7);
+		background: var(--color-quiet-bg);
+		border-bottom: 1px solid var(--color-border);
+		min-height: 44px;
+		gap: var(--space-3);
 	}
 
-	.slots-meta {
+	@media (max-width: 768px) {
+		.slots-header {
+			padding: var(--space-3) var(--space-5);
+		}
+	}
+
+	.duration-control {
 		display: flex;
 		align-items: center;
-		gap: var(--space-6);
-		flex-shrink: 0;
 	}
 
-	.slots-chip {
+	.duration-stepper {
+		display: inline-flex;
+		align-items: stretch;
+		background: var(--color-surface);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius);
+		overflow: hidden;
+		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+		transition: border-color var(--transition);
+	}
+
+	.duration-stepper:focus-within {
+		border-color: var(--color-border-strong);
+	}
+
+	.stepper-btn {
 		display: inline-flex;
 		align-items: center;
-		gap: var(--space-2);
-		background: none;
-		border: none;
-		padding: 0;
-		margin: 0;
-		font: inherit;
-		font-size: var(--font-size-sm);
-		color: var(--color-text-muted);
-		white-space: nowrap;
-		cursor: pointer;
-		position: relative;
-		z-index: 0;
-		transition: color var(--transition);
-	}
-
-	.slots-chip::before {
-		content: '';
-		position: absolute;
-		inset: calc(var(--space-4) * -1);
+		justify-content: center;
 		background: transparent;
-		border-radius: var(--radius-sm);
-		transition: background var(--transition);
-		z-index: -1;
-	}
-
-	.slots-chip-text {
-		text-decoration: underline;
-		text-decoration-style: dotted;
-		text-underline-offset: 3px;
-	}
-
-	.slots-static {
-		font-size: var(--font-size-sm);
-		color: var(--color-text-muted);
-		white-space: nowrap;
-	}
-
-	.slots-chip-icon {
-		display: inline-flex;
+		border: none;
+		padding: 0 var(--space-3);
+		min-width: 38px;
+		height: 38px;
+		color: var(--color-text-secondary);
+		cursor: pointer;
 		font-size: var(--font-size-base);
+		transition:
+			background var(--transition),
+			color var(--transition),
+			opacity var(--transition);
 	}
 
-	.slots-chip:hover {
+	.stepper-btn:not(:disabled):hover {
+		background: var(--color-surface-active);
 		color: var(--when-color-text);
 	}
 
-	.slots-chip:hover::before {
-		background: var(--color-surface-muted);
+	.stepper-btn:disabled {
+		opacity: 0.25;
+		cursor: not-allowed;
 	}
 
-	.slots-tz-short {
+	.stepper-btn:focus-visible {
+		outline: 2px solid var(--when-color-primary);
+		outline-offset: -2px;
+		z-index: 1;
+	}
+
+	.stepper-btn-left {
+		border-right: 1px solid var(--color-border);
+	}
+
+	.stepper-btn-right {
+		border-left: 1px solid var(--color-border);
+	}
+
+	.stepper-display {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		background: transparent;
+		border: none;
+		padding: 0 var(--space-4);
+		height: 38px;
+		font: inherit;
+		color: var(--when-color-text);
+		cursor: pointer;
+		transition: background var(--transition);
+	}
+
+	.stepper-display:hover {
+		background: var(--color-surface-active);
+		color: var(--when-color-text);
+	}
+
+	.stepper-display:focus-visible {
+		outline: 2px solid var(--when-color-primary);
+		outline-offset: -2px;
+		z-index: 1;
+	}
+
+	.duration-value {
+		font-size: var(--font-size-md);
+		font-weight: 600;
+		white-space: nowrap;
+	}
+
+	/* ---- timezone pill on right ---- */
+	.tz-chip {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-2);
+		background: var(--color-surface);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius);
+		padding: 0 var(--space-3);
+		height: 38px;
+		font: inherit;
+		font-size: var(--font-size-sm);
+		color: var(--color-text-secondary);
+		cursor: pointer;
+		white-space: nowrap;
+		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+		transition:
+			background var(--transition),
+			color var(--transition),
+			border-color var(--transition);
+	}
+
+	.tz-chip:hover {
+		background: var(--color-surface-active);
+		color: var(--when-color-text);
+		border-color: var(--color-border-strong);
+	}
+
+	.tz-chip:focus-visible {
+		outline: 2px solid var(--when-color-primary);
+		outline-offset: 2px;
+	}
+
+	.tz-icon {
+		display: inline-flex;
+		font-size: var(--font-size-base);
+		color: var(--color-text-muted);
+	}
+
+	.tz-chip:hover .tz-icon {
+		color: var(--when-color-text);
+	}
+
+	.tz-short {
 		display: none;
 	}
 
 	@media (max-width: 768px) {
-		.slots-tz-full {
+		.tz-full {
 			display: none;
 		}
 
-		.slots-tz-short {
+		.tz-short {
 			display: inline;
 		}
 	}
@@ -524,8 +670,15 @@
 		max-height: 60vh;
 		overflow-y: auto;
 		overflow-x: hidden;
+		padding: var(--space-4) var(--space-7) var(--space-4) 0;
 		scrollbar-width: thin;
 		scrollbar-color: var(--color-border-strong) transparent;
+	}
+
+	@media (max-width: 768px) {
+		.timeline-scroll {
+			padding: var(--space-4) var(--space-5) var(--space-4) 0;
+		}
 	}
 
 	.timeline-scroll::-webkit-scrollbar {
@@ -589,7 +742,7 @@
 		position: absolute;
 		left: 0;
 		right: 0;
-		background: var(--color-surface);
+		background: var(--timeline-bg);
 		z-index: 2;
 	}
 
@@ -609,22 +762,22 @@
 		position: absolute;
 		left: 0;
 		right: 0;
-		z-index: 3;
+		z-index: 5;
 		cursor: default;
 	}
 
 	.buffer-zone {
 		position: absolute;
-		left: var(--space-2);
-		right: var(--space-2);
+		left: var(--space-4);
+		right: var(--space-4);
 		z-index: 3;
 		cursor: not-allowed;
 	}
 
 	.busy-block {
 		position: absolute;
-		left: var(--space-2);
-		right: var(--space-2);
+		left: var(--space-4);
+		right: var(--space-4);
 		background-color: var(--color-surface-muted);
 		background-image: repeating-linear-gradient(
 			45deg,
@@ -653,8 +806,8 @@
 
 	.slot-block {
 		position: absolute;
-		left: var(--space-2);
-		right: var(--space-2);
+		left: var(--space-4);
+		right: var(--space-4);
 		border-radius: var(--radius-sm);
 		display: flex;
 		justify-content: center;
@@ -667,7 +820,7 @@
 		background: var(--color-primary-muted);
 		border: 1px solid var(--color-primary-border);
 		color: var(--when-color-primary);
-		z-index: 5;
+		z-index: 6;
 		transition:
 			top 0.35s cubic-bezier(0.16, 1, 0.3, 1),
 			background-color 0.35s ease,
@@ -686,7 +839,7 @@
 		opacity: 0.85;
 		cursor: grabbing;
 		box-shadow: var(--shadow-md, 0 4px 10px rgba(0, 0, 0, 0.15));
-		z-index: 6;
+		z-index: 7;
 	}
 
 	.slot-block.selected.unavailable {
@@ -750,9 +903,9 @@
 	/* Discrete buttons for show_slots: true */
 	.slot-btn {
 		position: absolute;
-		left: var(--space-2);
-		right: var(--space-2);
-		background: var(--color-surface);
+		left: var(--space-4);
+		right: var(--space-4);
+		background: var(--timeline-bg);
 		border: 1px dashed var(--color-border-strong);
 		border-radius: var(--radius-sm);
 		display: flex;

@@ -237,7 +237,10 @@
 								originalSlot={rescheduleAppt?.start_time ?? null}
 							/>
 						{:else}
-							<TimelineSkeleton rows={timelineSkeletonRows} />
+							<TimelineSkeleton
+								rows={timelineSkeletonRows}
+								showDuration={data.eventType.durations.length > 1}
+							/>
 						{/if}
 					{/if}
 
@@ -297,12 +300,12 @@
 		min-width: 0;
 		display: flex;
 		flex-direction: column;
-		padding: var(--space-7);
+		padding: 0;
 	}
 
 	.stage-header {
-		margin: 0 0 var(--space-6);
-		padding-bottom: var(--space-5);
+		margin: 0;
+		padding: var(--space-7) var(--space-7) var(--space-5);
 		border-bottom: 1px solid var(--color-border);
 	}
 
@@ -440,7 +443,7 @@
 		}
 
 		.appointment {
-			padding: 0 var(--space-5) calc(var(--space-9) + 64px);
+			padding: 0 0 calc(var(--space-9) + 64px);
 		}
 
 		.card {
@@ -457,7 +460,7 @@
 		}
 
 		.stage-header {
-			margin: 0 calc(var(--space-5) * -1) var(--space-5);
+			margin: 0;
 			padding: var(--space-4) var(--space-5);
 			border-width: 1px 0;
 			border-style: solid;

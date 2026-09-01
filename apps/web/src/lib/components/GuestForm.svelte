@@ -143,6 +143,13 @@
 <style>
 	.appointment-form {
 		width: 100%;
+		padding: var(--space-6) var(--space-7);
+	}
+
+	@media (max-width: 768px) {
+		.appointment-form {
+			padding: var(--space-5) var(--space-5);
+		}
 	}
 
 	.form-error {
