@@ -22,8 +22,7 @@
 		"format": "prettier --write .",
 		"test": "vitest run",
 		"test:coverage": "vitest run --coverage",
-		"test:e2e": "playwright test",
-		"dev:docker": "docker compose -f docker-compose.dev.yml up"
+		"test:e2e": "playwright test"
 	},
 	"devDependencies": {
 		"@eslint/compat": "2.1.0",

@@ -10,8 +10,6 @@ services:
       - ./config:/app/config
       - ./data:/app/data
       - ./public:/app/public
-    env_file:
-      - ./.env
     restart: unless-stopped
     depends_on:
       when-worker:
@@ -37,8 +35,6 @@ services:
     volumes:
       - ./config:/app/config
       - ./data:/app/data
-    env_file:
-      - ./.env
     restart: unless-stopped
     healthcheck:
       test:
@@ -64,5 +60,3 @@ services:
     tty: true
     volumes:
       - ./config:/app/config
-    env_file:
-      - ./.env

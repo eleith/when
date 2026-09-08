@@ -1,0 +1,5 @@
+#:schema https://fnox.jdx.dev/schema.json
+
+[secrets]
+AUTH_SECRET= { default = "asdfghjkl;" }
+

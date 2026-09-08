@@ -4,10 +4,7 @@
 	"packageManager": "pnpm@11.9.0",
 	"scripts": {
 		"build:packages": "pnpm --filter \"./packages/*\" -r build",
-		"dev": "pnpm --filter @when/web dev",
-		"dev:docker": "pnpm --filter @when/web dev:docker",
 		"build": "pnpm --filter @when/web build",
-		"preview": "pnpm --filter @when/web preview",
 		"check": "pnpm --filter @when/web check",
 		"lint": "pnpm --filter @when/web lint",
 		"format": "pnpm --filter @when/web format",

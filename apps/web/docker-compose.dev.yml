@@ -9,7 +9,6 @@ services:
     ports:
       - '5173:5173'
     volumes:
-      - ./.env:/m/apps/web/.env
       - ./src:/m/apps/web/src
       - ./static:/m/apps/web/static
       - ./config:/m/apps/web/config
@@ -24,12 +23,8 @@ services:
       - ../../packages/jobs/src:/m/packages/jobs/src
       - ../../packages/calendar/src:/m/packages/calendar/src
       - ../../packages/video-chat/src:/m/packages/video-chat/src
-    env_file:
-      - ./.env
     environment:
       NODE_ENV: development
-      AUTH_SECRET: ${AUTH_SECRET:-development-only-secret-please-change-it-32chars}
-      # localhost is auto-allowed; add the docker service name the worker calls web by.
       WHEN_ALLOWED_HOSTS: when-app
     depends_on:
       when-worker:
@@ -57,8 +52,6 @@ services:
     user: '${UID:-1000}:${GID:-1000}'
     ports:
       - '9000:9000'
-    env_file:
-      - ./.env
     environment:
       NODE_ENV: development
     healthcheck:
@@ -94,8 +87,6 @@ services:
     user: '${UID:-1000}:${GID:-1000}'
     stdin_open: true
     tty: true
-    env_file:
-      - ./.env
     environment:
       NODE_ENV: development
 
