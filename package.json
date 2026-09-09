@@ -13,7 +13,7 @@
 		"cli": "pnpm --filter @when/cli start",
 		"changeset": "changeset",
 		"version:apps": "changeset version",
-		"tag:apps": "changeset tag"
+		"tag:apps": "changeset git-tag"
 	},
 	"devDependencies": {
 		"@changesets/cli": "3.0.1",
