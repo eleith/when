@@ -1,5 +1,13 @@
 # @when/web
 
+## 0.0.11
+
+### Patch Changes
+
+- f0bd354: Migrate local dev secret management and Docker workflows to fnox and mise.
+- a108c66: Add meeting types health section with booking counts and public/unlisted meeting setup cards on the admin dashboard.
+- e26d1c0: Simplify admin navigation on user-facing pages: replace top admin banner with an avatar badge on the home page, remove admin banners from wizards, and add subtle footer navigation between admin and public pages.
+
 ## 0.0.10
 
 ### Patch Changes
