@@ -1,5 +1,5 @@
 <script lang="ts">
-	import AdminNav from '$lib/components/AdminNav.svelte';
+	import IconShieldCheck from 'virtual:icons/ph/shield-check';
 
 	let { data } = $props();
 </script>
@@ -8,13 +8,16 @@
 	<title>{data.user.name} | When</title>
 </svelte:head>
 
-{#if data.isAdmin}
-	<AdminNav />
-{/if}
-
 <main class="landing">
 	{#if data.user.appearance.avatar_path}
-		<img src={data.user.appearance.avatar_path} alt={data.user.name} class="avatar" />
+		<div class="avatar-container">
+			<img src={data.user.appearance.avatar_path} alt={data.user.name} class="avatar" />
+			{#if data.isAdmin}
+				<a href="/admin" class="admin-badge" title="Admin dashboard" aria-label="Admin dashboard">
+					<IconShieldCheck aria-hidden="true" />
+				</a>
+			{/if}
+		</div>
 	{/if}
 	<h1>{data.user.appearance.title}</h1>
 	<p class="subtitle">{data.user.appearance.description}</p>
@@ -64,13 +67,47 @@
 		color: var(--when-color-text);
 	}
 
+	.avatar-container {
+		position: relative;
+		display: inline-block;
+		margin-bottom: var(--space-5);
+	}
+
 	.avatar {
 		width: 72px;
 		height: 72px;
 		border-radius: 50%;
 		object-fit: cover;
 		border: 3px solid var(--when-color-text);
-		margin-bottom: var(--space-5);
+		display: block;
+	}
+
+	.admin-badge {
+		position: absolute;
+		bottom: 0;
+		right: 0;
+		width: 24px;
+		height: 24px;
+		border-radius: var(--radius-pill);
+		background: var(--when-color-primary);
+		color: var(--when-color-text-on-primary);
+		border: 2px solid var(--when-color-surface-page);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: var(--font-size-sm);
+		text-decoration: none;
+		box-shadow: var(--shadow-card);
+		transition: transform var(--transition);
+	}
+
+	.admin-badge:hover {
+		transform: scale(1.15);
+	}
+
+	.admin-badge:focus-visible {
+		outline: 2px solid var(--when-color-primary);
+		outline-offset: 2px;
 	}
 
 	h1 {

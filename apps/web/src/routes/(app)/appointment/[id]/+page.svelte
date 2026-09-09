@@ -4,7 +4,6 @@
 	import { invalidateAll } from '$app/navigation';
 	import { tick } from 'svelte';
 	import IconCalendarBlank from 'virtual:icons/ph/calendar-blank';
-	import AdminNav from '$lib/components/AdminNav.svelte';
 	import IconClock from 'virtual:icons/ph/clock';
 	import IconMapPin from 'virtual:icons/ph/map-pin';
 	import IconUser from 'virtual:icons/ph/user';
@@ -180,10 +179,6 @@
 		<title>Appointment confirmed — When</title>
 	{/if}
 </svelte:head>
-
-{#if data.isAdmin}
-	<AdminNav />
-{/if}
 
 <main class="page" class:has-cta={!!data.calendarLinks || showDecideCta}>
 	{#if form?.error}
@@ -530,6 +525,12 @@
 			</section>
 		{/if}
 	</article>
+
+	{#if data.isAdmin}
+		<div class="admin-footer-link">
+			<a href="/admin">Admin dashboard</a>
+		</div>
+	{/if}
 </main>
 
 <Dialog.Root bind:open={cancelDialogOpen}>
@@ -1505,5 +1506,29 @@
 		display: inline-flex;
 		align-items: center;
 		font-size: var(--font-size-lg);
+	}
+
+	.admin-footer-link {
+		display: flex;
+		justify-content: center;
+		margin-top: var(--space-6);
+	}
+
+	.admin-footer-link a {
+		padding: var(--space-2) var(--space-3);
+		font-size: var(--font-size-md);
+		color: var(--color-text-muted);
+		text-decoration: none;
+		transition: color var(--transition);
+	}
+
+	.admin-footer-link a:hover {
+		color: var(--color-text-secondary);
+		text-decoration: underline;
+	}
+
+	.admin-footer-link a:focus-visible {
+		outline: 2px solid var(--when-color-primary);
+		outline-offset: 2px;
 	}
 </style>

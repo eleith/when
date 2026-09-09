@@ -202,11 +202,13 @@
 			</div>
 		</div>
 
-		{#if data.purgedCount > 0}
-			<div class="purged-link">
+		<div class="footer-links">
+			<a href="/">Booking page</a>
+			{#if data.purgedCount > 0}
+				<span class="footer-divider" aria-hidden="true">•</span>
 				<a href="/admin/appointments/purged">View purged appointments</a>
-			</div>
-		{/if}
+			{/if}
+		</div>
 	</div>
 </AdminPage>
 
@@ -492,23 +494,36 @@
 		}
 	}
 
-	/* ---- purged link ---- */
-	.purged-link {
+	/* ---- footer links ---- */
+	.footer-links {
 		display: flex;
 		justify-content: center;
+		align-items: center;
+		gap: var(--space-3);
+		flex-wrap: wrap;
 	}
 
-	.purged-link a {
+	.footer-links a {
 		padding: var(--space-2) var(--space-3);
-		font-size: var(--font-size-sm);
+		font-size: var(--font-size-md);
 		color: var(--color-text-muted);
 		text-decoration: none;
 		transition: color var(--transition);
 	}
 
-	.purged-link a:hover {
+	.footer-links a:hover {
 		color: var(--color-text-secondary);
 		text-decoration: underline;
+	}
+
+	.footer-links a:focus-visible {
+		outline: 2px solid var(--when-color-primary);
+		outline-offset: 2px;
+	}
+
+	.footer-divider {
+		color: var(--color-text-disabled);
+		font-size: var(--font-size-xs);
 	}
 
 	/* ---- responsive ---- */
