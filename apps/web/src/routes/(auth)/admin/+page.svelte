@@ -107,8 +107,6 @@
 		</div>
 
 		{#if data.pending.length > 0}
-			<hr class="section-divider" />
-
 			<div class="section-group">
 				<h2 class="section-label">Pending review</h2>
 				<section class="card preview-card">
@@ -158,8 +156,6 @@
 			</div>
 		{/if}
 
-		<hr class="section-divider" />
-
 		<div class="section-group">
 			<h2 class="section-label">Statistics</h2>
 			<div class="stats-row">
@@ -182,8 +178,6 @@
 			</div>
 		</div>
 
-		<hr class="section-divider" />
-
 		<div class="section-group">
 			<h2 class="section-label">Setup</h2>
 			<div class="stats-row">
@@ -199,16 +193,26 @@
 						calendar{#if data.calendarCount !== 1}s{/if}
 					</span>
 				</a>
+				<a href="/" class="stat-card">
+					<span class="stat-value">{data.publicMeetingCount}</span>
+					<span class="stat-label">
+						public meeting{#if data.publicMeetingCount !== 1}s{/if}
+					</span>
+				</a>
+				<a href="/admin/health#meetings" class="stat-card">
+					<span class="stat-value">{data.unlistedMeetingCount}</span>
+					<span class="stat-label">
+						unlisted meeting{#if data.unlistedMeetingCount !== 1}s{/if}
+					</span>
+				</a>
 			</div>
 		</div>
 
-		<div class="footer-links">
-			<a href="/">Booking page</a>
-			{#if data.purgedCount > 0}
-				<span class="footer-divider" aria-hidden="true">•</span>
+		{#if data.purgedCount > 0}
+			<div class="purged-link">
 				<a href="/admin/appointments/purged">View purged appointments</a>
-			{/if}
-		</div>
+			</div>
+		{/if}
 	</div>
 </AdminPage>
 
@@ -224,13 +228,6 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-3);
-	}
-
-	/* ---- divider ---- */
-	.section-divider {
-		border: 0;
-		border-top: 1px solid var(--color-border);
-		margin: 0;
 	}
 
 	/* ---- section groups ---- */
@@ -494,16 +491,13 @@
 		}
 	}
 
-	/* ---- footer links ---- */
-	.footer-links {
+	/* ---- purged link ---- */
+	.purged-link {
 		display: flex;
 		justify-content: center;
-		align-items: center;
-		gap: var(--space-3);
-		flex-wrap: wrap;
 	}
 
-	.footer-links a {
+	.purged-link a {
 		padding: var(--space-2) var(--space-3);
 		font-size: var(--font-size-md);
 		color: var(--color-text-muted);
@@ -511,19 +505,14 @@
 		transition: color var(--transition);
 	}
 
-	.footer-links a:hover {
+	.purged-link a:hover {
 		color: var(--color-text-secondary);
 		text-decoration: underline;
 	}
 
-	.footer-links a:focus-visible {
+	.purged-link a:focus-visible {
 		outline: 2px solid var(--when-color-primary);
 		outline-offset: 2px;
-	}
-
-	.footer-divider {
-		color: var(--color-text-disabled);
-		font-size: var(--font-size-xs);
 	}
 
 	/* ---- responsive ---- */

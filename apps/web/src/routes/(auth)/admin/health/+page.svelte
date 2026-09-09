@@ -375,6 +375,60 @@
 				</form>
 			</div>
 		</div>
+
+		<h2 class="section" id="meetings">Meeting types</h2>
+
+		{#if data.meetings.length === 0}
+			<p class="empty">No meeting types are configured in when.yaml.</p>
+		{:else}
+			<ul class="list">
+				{#each data.meetings as meeting (meeting.slug)}
+					<li class="card">
+						<div class="body">
+							<h3 class="name">{meeting.slug}</h3>
+
+							<dl class="fields">
+								<dt>Title</dt>
+								<dd>{meeting.title}</dd>
+
+								<dt>Visibility</dt>
+								<dd>{meeting.visibility}</dd>
+
+								<dt>Duration</dt>
+								<dd>
+									{#if meeting.durations.length === 1}
+										{meeting.durations[0]} min
+									{:else}
+										{meeting.durations.join(', ')} min
+									{/if}
+								</dd>
+
+								<dt>Approval</dt>
+								<dd>{meeting.requireApproval ? 'yes' : 'no'}</dd>
+
+								<dt>Calendar</dt>
+								<dd>{meeting.bookingCalendar}</dd>
+
+								<dt>Bookings</dt>
+								<dd>{meeting.bookingCount}</dd>
+
+								{#if meeting.location}
+									<dt>Location</dt>
+									<dd>{meeting.location}</dd>
+								{/if}
+							</dl>
+						</div>
+
+						<div class="actions">
+							<div class="actions-change"></div>
+							<div class="actions-check">
+								<a href="/schedule/{meeting.slug}" class="button">View</a>
+							</div>
+						</div>
+					</li>
+				{/each}
+			</ul>
+		{/if}
 	</section>
 </AdminPage>
 
@@ -604,6 +658,7 @@
 		font-size: var(--font-size-base);
 		color: var(--when-color-text);
 		cursor: pointer;
+		text-decoration: none;
 	}
 
 	.button > * {

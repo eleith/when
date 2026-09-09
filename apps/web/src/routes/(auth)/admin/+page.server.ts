@@ -115,10 +115,16 @@ export const load: PageServerLoad = async () => {
 			.map((s) => ({ name: s.name || s.kind, reason: s.error as string, since: s.failing_since }))
 	];
 
+	const meetings = Object.values(cfg.meetings);
+	const publicMeetingCount = meetings.filter((m) => (m.visibility ?? 'public') === 'public').length;
+	const unlistedMeetingCount = meetings.filter((m) => m.visibility === 'unlisted').length;
+
 	return {
 		// The services page cards: every provider, plus smtp and the worker.
 		serviceCount: Object.keys(cfg.providers).length + 2,
 		calendarCount: allCalendars(cfg).length,
+		publicMeetingCount,
+		unlistedMeetingCount,
 		failing,
 		conflictCount,
 		upcomingCount,

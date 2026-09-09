@@ -53,6 +53,8 @@ describe('admin +page.server load', () => {
 		const data = (await load(loadEvent())) as LoadResult;
 		expect(data.purgedCount).toBe(0);
 		expect(data.lifetimeMeetings).toBe(1);
+		expect(data.publicMeetingCount).toBe(1);
+		expect(data.unlistedMeetingCount).toBe(0);
 	});
 
 	test('returns correct purgedCount when purged appointments exist', async () => {
