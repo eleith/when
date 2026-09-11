@@ -53,11 +53,7 @@ export const load: PageServerLoad = async () => {
 			.executeTakeFirst(),
 		db
 			.selectFrom('appointments')
-			.select(
-				sql<number>`sum(cast((julianday(end_time) - julianday(start_time)) * 24 * 60 as integer))`.as(
-					'minutes'
-				)
-			)
+			.select(sql<number>`sum((unixepoch(end_time) - unixepoch(start_time)) / 60)`.as('minutes'))
 			.where('status', '=', 'confirmed')
 			.where('start_time', '>=', weekStart.toISOString())
 			.where(
@@ -88,11 +84,7 @@ export const load: PageServerLoad = async () => {
 			.executeTakeFirst(),
 		db
 			.selectFrom('appointments')
-			.select(
-				sql<number>`sum(cast((julianday(end_time) - julianday(start_time)) * 24 * 60 as integer))`.as(
-					'minutes'
-				)
-			)
+			.select(sql<number>`sum((unixepoch(end_time) - unixepoch(start_time)) / 60)`.as('minutes'))
 			.where('status', '=', 'confirmed')
 			.executeTakeFirst()
 	]);

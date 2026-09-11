@@ -35,5 +35,6 @@ playwright/.cache/
 # Per-user / local tool state
 /.claude/
 /.antigravitycli/
+.nono.json
 
 /static/public

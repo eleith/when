@@ -72,4 +72,43 @@ describe('admin +page.server load', () => {
 		expect(data.purgedCount).toBe(2);
 		expect(data.lifetimeMeetings).toBe(1);
 	});
+
+	test('calculates lifetimeMinutes accurately without floating-point truncation', async () => {
+		mockDb = await makeDb();
+		await mockDb
+			.insertInto('appointments')
+			.values([
+				{
+					...baseRow,
+					id: 'a1',
+					start_time: '2026-09-10T14:00:00.000Z',
+					end_time: '2026-09-10T14:30:00.000Z',
+					status: 'confirmed',
+					cancel_token: 't1'
+				},
+				{
+					...baseRow,
+					id: 'a2',
+					start_time: '2026-09-10T15:00:00.000Z',
+					end_time: '2026-09-10T15:45:00.000Z',
+					status: 'confirmed',
+					cancel_token: 't2'
+				},
+				{
+					...baseRow,
+					id: 'a3',
+					start_time: '2026-09-10T16:00:00.000Z',
+					end_time: '2026-09-10T17:00:00.000Z',
+					status: 'confirmed',
+					cancel_token: 't3'
+				}
+			])
+			.execute();
+
+		const data = (await load(loadEvent())) as LoadResult;
+		expect(data.lifetimeMeetings).toBe(3);
+		// 30 min + 45 min + 60 min = 135 min (with old julianday float cast truncation it produced 133)
+		expect(data.lifetimeMinutes).toBe(135);
+		expect(data.confirmedMinutesThisWeek).toBe(135);
+	});
 });
