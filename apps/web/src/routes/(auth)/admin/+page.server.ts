@@ -78,7 +78,7 @@ export const load: PageServerLoad = async () => {
 		db
 			.selectFrom('appointments')
 			.select([
-				sql<number>`count(case when status != 'purged' then 1 end)`.as('lifetimeMeetings'),
+				sql<number>`count(case when status = 'confirmed' then 1 end)`.as('lifetimeMeetings'),
 				sql<number>`count(case when status = 'purged' then 1 end)`.as('purgedCount')
 			])
 			.executeTakeFirst(),

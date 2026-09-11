@@ -111,4 +111,73 @@ describe('admin +page.server load', () => {
 		expect(data.lifetimeMinutes).toBe(135);
 		expect(data.confirmedMinutesThisWeek).toBe(135);
 	});
+
+	test('lifetimeMeetings only counts confirmed meetings and excludes cancelled, declined, expired, and rescheduled', async () => {
+		mockDb = await makeDb();
+		await mockDb
+			.insertInto('appointments')
+			.values([
+				{
+					...baseRow,
+					id: 'a1',
+					start_time: '2026-09-10T10:00:00Z',
+					status: 'confirmed',
+					cancel_token: 't1'
+				},
+				{
+					...baseRow,
+					id: 'a2',
+					start_time: '2026-09-10T11:00:00Z',
+					status: 'confirmed',
+					cancel_token: 't2'
+				},
+				{
+					...baseRow,
+					id: 'a3',
+					start_time: '2026-09-10T12:00:00Z',
+					status: 'cancelled',
+					cancel_token: 't3'
+				},
+				{
+					...baseRow,
+					id: 'a4',
+					start_time: '2026-09-10T13:00:00Z',
+					status: 'declined',
+					cancel_token: 't4'
+				},
+				{
+					...baseRow,
+					id: 'a5',
+					start_time: '2026-09-10T14:00:00Z',
+					status: 'expired',
+					cancel_token: 't5'
+				},
+				{
+					...baseRow,
+					id: 'a6',
+					start_time: '2026-09-10T15:00:00Z',
+					status: 'rescheduled',
+					cancel_token: 't6'
+				},
+				{
+					...baseRow,
+					id: 'a7',
+					start_time: '2026-09-10T16:00:00Z',
+					status: 'purged',
+					cancel_token: 't7'
+				},
+				{
+					...baseRow,
+					id: 'a8',
+					start_time: '2026-09-10T17:00:00Z',
+					status: 'pending',
+					cancel_token: 't8'
+				}
+			])
+			.execute();
+
+		const data = (await load(loadEvent())) as LoadResult;
+		expect(data.lifetimeMeetings).toBe(2);
+		expect(data.purgedCount).toBe(1);
+	});
 });
