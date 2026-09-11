@@ -180,4 +180,96 @@ describe('admin +page.server load', () => {
 		expect(data.lifetimeMeetings).toBe(2);
 		expect(data.purgedCount).toBe(1);
 	});
+
+	test('totalThisMonth bounds to current month and counts only confirmed appointments', async () => {
+		mockDb = await makeDb();
+		const now = new Date();
+		const thisMonthIso1 = new Date(now.getFullYear(), now.getMonth(), 10, 12, 0, 0).toISOString();
+		const thisMonthIso2 = new Date(now.getFullYear(), now.getMonth(), 11, 12, 0, 0).toISOString();
+		const thisMonthIso3 = new Date(now.getFullYear(), now.getMonth(), 12, 12, 0, 0).toISOString();
+		const thisMonthIso4 = new Date(now.getFullYear(), now.getMonth(), 13, 12, 0, 0).toISOString();
+		const thisMonthIso5 = new Date(now.getFullYear(), now.getMonth(), 14, 12, 0, 0).toISOString();
+		const thisMonthIso6 = new Date(now.getFullYear(), now.getMonth(), 15, 12, 0, 0).toISOString();
+		const thisMonthIso7 = new Date(now.getFullYear(), now.getMonth(), 16, 12, 0, 0).toISOString();
+		const nextMonthIso = new Date(
+			now.getFullYear(),
+			now.getMonth() + 2,
+			15,
+			12,
+			0,
+			0
+		).toISOString();
+
+		await mockDb
+			.insertInto('appointments')
+			.values([
+				{
+					...baseRow,
+					id: 'm1',
+					start_time: thisMonthIso1,
+					status: 'confirmed',
+					cancel_token: 't1'
+				},
+				{
+					...baseRow,
+					id: 'm2',
+					start_time: thisMonthIso2,
+					status: 'cancelled',
+					cancel_token: 't2'
+				},
+				{ ...baseRow, id: 'm3', start_time: thisMonthIso3, status: 'declined', cancel_token: 't3' },
+				{ ...baseRow, id: 'm4', start_time: thisMonthIso4, status: 'expired', cancel_token: 't4' },
+				{
+					...baseRow,
+					id: 'm5',
+					start_time: thisMonthIso5,
+					status: 'rescheduled',
+					cancel_token: 't5'
+				},
+				{ ...baseRow, id: 'm6', start_time: thisMonthIso6, status: 'pending', cancel_token: 't6' },
+				{
+					...baseRow,
+					id: 'm7',
+					start_time: thisMonthIso7,
+					status: 'confirmed',
+					cancel_token: 't7'
+				},
+				{ ...baseRow, id: 'm8', start_time: nextMonthIso, status: 'confirmed', cancel_token: 't8' }
+			])
+			.execute();
+
+		const data = (await load(loadEvent())) as LoadResult;
+		// Only m1 and m7 (confirmed in current month) should be counted in totalThisMonth
+		expect(data.totalThisMonth).toBe(2);
+	});
+
+	test('confirmedMinutesThisWeek includes appointments starting within the week window', async () => {
+		mockDb = await makeDb();
+		const now = new Date();
+		const todayStart = new Date(now);
+		todayStart.setHours(0, 0, 0, 0);
+		const weekStart = new Date(todayStart);
+		weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+		const saturdayLate = new Date(
+			weekStart.getTime() + 6 * 24 * 60 * 60 * 1000 + 23 * 60 * 60 * 1000
+		);
+		const sundayEarlyNextWeek = new Date(saturdayLate.getTime() + 60 * 60 * 1000);
+
+		await mockDb
+			.insertInto('appointments')
+			.values([
+				{
+					...baseRow,
+					id: 'w1',
+					start_time: saturdayLate.toISOString(),
+					end_time: sundayEarlyNextWeek.toISOString(),
+					status: 'confirmed',
+					cancel_token: 't1'
+				}
+			])
+			.execute();
+
+		const data = (await load(loadEvent())) as LoadResult;
+		expect(data.confirmedMinutesThisWeek).toBe(60);
+	});
 });

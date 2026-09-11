@@ -20,8 +20,10 @@ export const load: PageServerLoad = async () => {
 
 	const weekStart = new Date(todayStart);
 	weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+	const weekEnd = new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000);
 
 	const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+	const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1);
 
 	const [
 		pendingCount,
@@ -56,24 +58,14 @@ export const load: PageServerLoad = async () => {
 			.select(sql<number>`sum((unixepoch(end_time) - unixepoch(start_time)) / 60)`.as('minutes'))
 			.where('status', '=', 'confirmed')
 			.where('start_time', '>=', weekStart.toISOString())
-			.where(
-				'end_time',
-				'<=',
-				new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString()
-			)
+			.where('start_time', '<', weekEnd.toISOString())
 			.executeTakeFirst(),
 		db
 			.selectFrom('appointments')
 			.select(sql<number>`count(*)`.as('cnt'))
 			.where('start_time', '>=', monthStart.toISOString())
-			.where('status', 'in', [
-				'confirmed',
-				'pending',
-				'declined',
-				'cancelled',
-				'expired',
-				'rescheduled'
-			])
+			.where('start_time', '<', nextMonthStart.toISOString())
+			.where('status', '=', 'confirmed')
 			.executeTakeFirst(),
 		db
 			.selectFrom('appointments')
