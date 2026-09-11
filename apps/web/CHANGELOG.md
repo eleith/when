@@ -1,5 +1,13 @@
 # @when/web
 
+## 0.0.12
+
+### Patch Changes
+
+- de52a83: Fix floating-point truncation in admin dashboard lifetime and weekly meeting minutes calculation by using unixepoch integer arithmetic
+- a0bdf30: Count only confirmed appointments for admin dashboard lifetime meetings metric, excluding cancelled, declined, expired, and intermediate rescheduled records
+- ff376ad: Bound admin dashboard total this month metric to confirmed appointments within the current month and fix weekly scheduled minutes date range
+
 ## 0.0.11
 
 ### Patch Changes
