@@ -1,4 +1,6 @@
 import { expect, test } from 'vitest';
+import { sql } from 'kysely';
+import { listOutOfSyncAppointments } from './calendar-busy.js';
 import { openDb } from './index.js';
 import { runMigrations } from './migrate.js';
 import {
@@ -127,23 +129,103 @@ test('appendJobLogSql appends system email/calendar entries, leaving prior entri
 	}
 });
 
-test('expireStalePending retires only pending rows whose start has passed', async () => {
+test('expiry dirties only newly expired pending rows and preserves replay accounting', async () => {
 	const db = await makeDb();
 	try {
 		const now = '2026-06-14T12:00:00Z';
+		const created = { action: 'create', actor: 'guest', at: '2026-06-01T09:00:00Z' } as const;
 		await insert(db, 'past-pending', 'pending', '2026-06-14T11:00:00Z');
 		await insert(db, 'future-pending', 'pending', '2026-06-14T13:00:00Z');
 		await insert(db, 'past-confirmed', 'confirmed', '2026-06-14T10:00:00Z');
+		await insert(db, 'already-expired', 'expired', '2026-06-14T09:00:00Z');
+		await db
+			.updateTable('appointments')
+			.set({
+				calendar_revision: 7,
+				calendar_synced_revision: 7,
+				ics_sequence: 3,
+				action_log: createActionLog([created])
+			})
+			.execute();
+		const initiallyDirty = await listOutOfSyncAppointments(db);
+		expect(initiallyDirty).toEqual([]);
+		const unchangedBefore = await db
+			.selectFrom('appointments')
+			.selectAll()
+			.where('id', '!=', 'past-pending')
+			.orderBy('id')
+			.execute();
 
 		const count = await expireStalePending(db, now);
 
 		expect(count).toBe(1);
-		expect((await findAppointment(db, 'past-pending'))?.status).toBe('expired');
-		expect((await findAppointment(db, 'future-pending'))?.status).toBe('pending');
-		expect((await findAppointment(db, 'past-confirmed'))?.status).toBe('confirmed');
+		const expired = await findAppointment(db, 'past-pending');
+		expect(expired).toMatchObject({
+			status: 'expired',
+			calendar_revision: 8,
+			calendar_synced_revision: 7,
+			ics_sequence: 3
+		});
+		expect(parseActionLog(expired!.action_log)).toEqual([
+			created,
+			{ action: 'expire', actor: 'system', at: now }
+		]);
+		const dirty = await listOutOfSyncAppointments(db);
+		expect(dirty.map((row) => row.id)).toEqual(['past-pending']);
+		const unchangedAfter = await db
+			.selectFrom('appointments')
+			.selectAll()
+			.where('id', '!=', 'past-pending')
+			.orderBy('id')
+			.execute();
+		expect(unchangedAfter).toEqual(unchangedBefore);
 
-		// Idempotent: a second sweep finds nothing left to retire.
-		expect(await expireStalePending(db, now)).toBe(0);
+		const repeatedCount = await expireStalePending(db, now);
+		const afterReplay = await findAppointment(db, 'past-pending');
+		expect(repeatedCount).toBe(0);
+		expect(afterReplay).toEqual(expired);
+	} finally {
+		await db.destroy();
+	}
+});
+
+test.each([
+	['2026-06-14T12:00:00Z', '2026-06-14T12:00:00.123Z', 1],
+	['2026-06-14T12:00:00Z', '2026-06-14T12:00:00.000Z', 1],
+	['2026-06-14T12:00:00.000Z', '2026-06-14T12:00:00Z', 1],
+	['2026-06-14T12:00:00.123Z', '2026-06-14T12:00:00.122Z', 0],
+	['2026-06-14T12:00:00.123Z', '2026-06-14T12:00:00.123Z', 1],
+	['2026-06-14T12:00:00.123Z', '2026-06-14T12:00:00.124Z', 1]
+])('expiry compares start %s with now %s as instants (%i expired)', async (start, now, count) => {
+	const db = await makeDb();
+	try {
+		await insert(db, 'pending', 'pending', start);
+		const expiredCount = await expireStalePending(db, now);
+		const row = await findAppointment(db, 'pending');
+		expect(expiredCount).toBe(count);
+		expect(row?.status).toBe(count ? 'expired' : 'pending');
+		expect(row?.calendar_revision).toBe(count);
+		const log = parseActionLog(row!.action_log);
+		expect(log).toEqual(count ? [{ action: 'expire', actor: 'system', at: now }] : []);
+	} finally {
+		await db.destroy();
+	}
+});
+
+test('expiry rolls back status and log when its revision update fails', async () => {
+	const db = await makeDb();
+	try {
+		await insert(db, 'pending', 'pending', '2026-06-14T11:00:00Z');
+		const before = await findAppointment(db, 'pending');
+		await sql`create trigger fail_expiry before update of calendar_revision on appointments
+			when new.status = 'expired'
+			begin select raise(abort, 'revision unavailable'); end`.execute(db);
+
+		const expiry = expireStalePending(db, '2026-06-14T12:00:00Z');
+		await expect(expiry).rejects.toThrow('revision unavailable');
+
+		const after = await findAppointment(db, 'pending');
+		expect(after).toEqual(before);
 	} finally {
 		await db.destroy();
 	}

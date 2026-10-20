@@ -26,11 +26,12 @@ async function expireStalePending(db: Kysely<Database>, nowIso: string): Promise
 		.updateTable('appointments')
 		.set({
 			status: 'expired',
+			calendar_revision: sql`calendar_revision + 1`,
 			action_log: appendActionLogSql({ action: 'expire', actor: 'system', at: nowIso }),
 			updated_at: sql`CURRENT_TIMESTAMP`
 		})
 		.where('status', '=', 'pending')
-		.where('start_time', '<=', nowIso)
+		.where(sql<boolean>`julianday(start_time) <= julianday(${nowIso})`)
 		.executeTakeFirst();
 	return Number(result.numUpdatedRows);
 }

@@ -26,22 +26,40 @@ interface GoogleTokenResponse {
 	expires_in: number;
 }
 
-/** A Google event time: `dateTime` for timed events, `date` for all-day. */
 interface GoogleEventTime {
-	dateTime?: string;
-	date?: string;
+	dateTime?: string | null;
+	date?: string | null;
 }
 
 interface GoogleEvent {
 	id: string;
 	status?: string;
 	transparency?: string;
-	start: GoogleEventTime;
-	end: GoogleEventTime;
+	start?: GoogleEventTime | null;
+	end?: GoogleEventTime | null;
 }
 
 interface GoogleEventsResponse {
 	items?: GoogleEvent[];
+	nextPageToken?: string;
+	timeZone?: string;
+}
+
+function googleEventBoundary(time: GoogleEventTime, timeZone?: string): Temporal.Instant {
+	if (time.dateTime != null && time.date == null && typeof time.dateTime === 'string') {
+		return Temporal.Instant.from(time.dateTime);
+	}
+	if (time.date != null && time.dateTime == null && typeof time.date === 'string') {
+		if (!/^\d{4}-\d{2}-\d{2}$/.test(time.date)) {
+			throw new Error('Invalid Google event date');
+		}
+		if (typeof timeZone !== 'string' || !timeZone.trim()) {
+			throw new Error('Google date-only event requires a response calendar timeZone');
+		}
+		const date = Temporal.PlainDate.from(time.date);
+		return date.toZonedDateTime(timeZone).toInstant();
+	}
+	throw new Error('Google event boundary must have exactly one date or dateTime');
 }
 
 const tokenCache = new Map<string, { token: string; expiresAt: number }>();
@@ -92,47 +110,44 @@ export async function fetchGoogleBusy(
 	url.searchParams.set('singleEvents', 'true');
 	url.searchParams.set('orderBy', 'startTime');
 
-	const res = await fetch(url.toString(), {
-		headers: { Authorization: `Bearer ${token}` }
-	});
-
-	if (!res.ok) {
-		throw new Error(`Google Calendar fetch failed: ${res.status} ${res.statusText}`);
-	}
-
-	const data = (await res.json()) as GoogleEventsResponse;
 	const out: BusyEvent[] = [];
 
-	for (const item of data.items || []) {
-		if (item.status === 'cancelled') continue;
-		if (item.transparency === 'transparent') continue; // Available/Free
+	while (true) {
+		const res = await fetch(url.toString(), {
+			headers: { Authorization: `Bearer ${token}` }
+		});
 
-		let startInst: Temporal.Instant;
-		let endInst: Temporal.Instant;
-
-		try {
-			if (item.start?.dateTime) {
-				startInst = Temporal.Instant.from(item.start.dateTime);
-				endInst = Temporal.Instant.from(item.end.dateTime!);
-			} else if (item.start?.date) {
-				// All-day event
-				// Google dates are YYYY-MM-DD. We assume UTC for the comparison window
-				// to ensure we block the whole day.
-				startInst = Temporal.Instant.from(`${item.start.date}T00:00:00Z`);
-				endInst = Temporal.Instant.from(`${item.end.date}T00:00:00Z`);
-			} else {
-				continue; // Missing start/end
-			}
-		} catch (err) {
-			logger.warn({ err, eventId: item.id }, 'Failed to parse Google event time');
-			continue;
+		if (!res.ok) {
+			throw new Error(`Google Calendar fetch failed: ${res.status} ${res.statusText}`);
 		}
 
-		out.push({
-			uid: item.id,
-			start: startInst,
-			end: endInst
-		});
+		const data = (await res.json()) as GoogleEventsResponse;
+		if (
+			!data ||
+			typeof data !== 'object' ||
+			Array.isArray(data) ||
+			(data.items !== undefined && !Array.isArray(data.items))
+		) {
+			throw new Error('Invalid Google Calendar events response');
+		}
+		for (const item of data.items ?? []) {
+			if (item?.status === 'cancelled' || item?.transparency === 'transparent') continue;
+			if (!item?.start || !item.end || (item.start.date != null) !== (item.end.date != null)) {
+				throw new Error('Google event requires matching start and end boundaries');
+			}
+			const start = googleEventBoundary(item.start, data.timeZone);
+			const end = googleEventBoundary(item.end, data.timeZone);
+			if (Temporal.Instant.compare(start, end) >= 0) {
+				throw new Error('Google event end must be after start');
+			}
+			out.push({ uid: item.id, start, end });
+		}
+
+		if (data.nextPageToken === undefined) break;
+		if (typeof data.nextPageToken !== 'string' || !data.nextPageToken) {
+			throw new Error('Invalid Google Calendar nextPageToken');
+		}
+		url.searchParams.set('pageToken', data.nextPageToken);
 	}
 
 	logger.debug(

@@ -170,6 +170,98 @@ test('refreshCalendar keeps stale data and records the error on provider failure
 	}
 });
 
+test.each(['HTTP failure', 'invalid event time'])(
+	'a later Google page with %s preserves the mirror; a later empty import clears it',
+	async (failure) => {
+		const provider = {
+			type: 'google' as const,
+			client_id: 'google-import-client',
+			client_secret: 'google-import-secret',
+			refresh_token: 'google-import-refresh',
+			calendars: { work: { id: 'primary', sync: { refresh_every_minutes: 10 } } }
+		};
+		const cal: ResolvedCalendar = {
+			type: 'google',
+			name: 'work',
+			providerName: 'google',
+			provider,
+			calendar: provider.calendars.work
+		};
+		const ctx = await ctxWithDb({ providers: { google: provider } });
+		try {
+			const stale = { start: '2026-04-10T09:00:00Z', end: '2026-04-10T09:30:00Z' };
+			await replaceCalendarBusy(ctx.db, 'work', [stale]);
+			const lastOk = window.start.subtract({ minutes: 30 }).toString();
+			await recordServiceOutcome(
+				ctx.db,
+				{ kind: 'calendar', name: 'work' },
+				{ at: lastOk, via: 'refresh' }
+			);
+			const pages: URL[] = [];
+			let empty = false;
+			vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+				const url = new URL(String(input));
+				if (url.hostname === 'oauth2.googleapis.com') {
+					return Response.json({ access_token: 'google-import-token', expires_in: 3600 });
+				}
+				pages.push(url);
+				if (empty) return Response.json({ items: [] });
+				if (url.searchParams.has('pageToken')) {
+					if (failure === 'HTTP failure') return new Response(null, { status: 503 });
+					return Response.json({
+						items: [{ id: 'invalid', start: { dateTime: 'invalid' }, end: { dateTime: 'invalid' } }]
+					});
+				}
+				return Response.json({
+					nextPageToken: 'more',
+					items: [
+						{
+							id: 'first-page',
+							start: { dateTime: '2026-04-15T14:00:00Z' },
+							end: { dateTime: '2026-04-15T15:00:00Z' }
+						}
+					]
+				});
+			});
+
+			const failed = await refreshCalendar(ctx, cal, window, { now: window.start });
+
+			expect(failed).toMatchObject({ ok: false });
+			expect(pages.map((url) => url.searchParams.get('pageToken'))).toEqual([null, 'more']);
+			const retained = await ctx.db
+				.selectFrom('external_calendar_busy')
+				.select(['start_time', 'end_time'])
+				.execute();
+			expect(retained).toEqual([{ start_time: stale.start, end_time: stale.end }]);
+			const failedStatus = await ctx.db
+				.selectFrom('service_status')
+				.selectAll()
+				.where('kind', '=', 'calendar')
+				.where('name', '=', 'work')
+				.executeTakeFirstOrThrow();
+			expect(failedStatus.last_ok_at).toBe(lastOk);
+			expect(failedStatus.error).toBeTruthy();
+
+			empty = true;
+			const recoveredAt = window.start.add({ minutes: 1 });
+			const recovered = await refreshCalendar(ctx, cal, window, { now: recoveredAt });
+			const cleared = await ctx.db.selectFrom('external_calendar_busy').selectAll().execute();
+			const recoveredStatus = await ctx.db
+				.selectFrom('service_status')
+				.selectAll()
+				.where('kind', '=', 'calendar')
+				.where('name', '=', 'work')
+				.executeTakeFirstOrThrow();
+			expect(recovered).toEqual({ ok: true, busyCount: 0 });
+			expect(cleared).toEqual([]);
+			expect(recoveredStatus.last_ok_at).toBe(recoveredAt.toString());
+			expect(recoveredStatus.error).toBeNull();
+		} finally {
+			await ctx.db.destroy();
+		}
+	}
+);
+
 test('a successful refresh records the provider behind the calendar', async () => {
 	const ctx = await ctxWithDb();
 	try {

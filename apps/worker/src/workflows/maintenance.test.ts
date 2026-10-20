@@ -144,6 +144,7 @@ test('expiry uses the injected clock, is idempotent, and logs the changed count'
 				cancel_token: `token-${id}`,
 				status,
 				start_time: start,
+				calendar_synced_revision: 0,
 				action_log: '[]'
 			})
 			.execute();
@@ -160,6 +161,9 @@ test('expiry uses the injected clock, is idempotent, and logs the changed count'
 			.where('id', '=', id)
 			.executeTakeFirstOrThrow();
 		expect(row.status).toBe(expectedStatus);
+		expect(row.calendar_revision).toBe(expectedStatus === 'expired' ? 1 : 0);
+		expect(row.calendar_synced_revision).toBe(0);
+		expect(row.ics_sequence).toBe(0);
 		if (expectedStatus === 'expired') {
 			expect(parseActionLog(row.action_log)).toEqual([{ action: 'expire', actor: 'system', at }]);
 		} else {

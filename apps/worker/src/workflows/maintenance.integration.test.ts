@@ -4,7 +4,13 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { OpenWorkflow, type Worker } from 'openworkflow';
 import { BackendSqlite } from 'openworkflow/sqlite';
-import { openDb, runMigrations } from '@when/db';
+import {
+	openDb,
+	runMigrations,
+	findAppointment,
+	listOutOfSyncAppointments,
+	parseActionLog
+} from '@when/db';
 import {
 	refreshCalendars,
 	expirePendingAppointments,
@@ -257,6 +263,91 @@ test('paused cron survives startup but does not suppress explicit startup work',
 		{ status: 'completed', workflowScheduleId: null },
 		{ status: 'completed', workflowScheduleId: null }
 	]);
+});
+
+test('expiry makes a synced inherited event discoverable for cleanup without backfilling history', async () => {
+	useCalendar();
+	const fetch = vi
+		.spyOn(globalThis, 'fetch')
+		.mockResolvedValue(new Response(null, { status: 204 }));
+	try {
+		for (const row of [
+			{ id: 'pending', status: 'pending', start: '2026-04-01T07:03:19Z' },
+			{ id: 'historical', status: 'expired', start: '2026-04-01T06:00:00Z' }
+		] as const) {
+			await ctx.db
+				.insertInto('appointments')
+				.values({
+					...sampleAppointment,
+					id: row.id,
+					event_type_id: 'chat',
+					cancel_token: `token-${row.id}`,
+					status: row.status,
+					start_time: row.start,
+					end_time: '2026-04-01T07:30:00Z',
+					external_event_id: `event-${row.id}`,
+					external_calendar_id: 'work',
+					calendar_revision: 4,
+					calendar_synced_revision: 4,
+					action_log: '[]'
+				})
+				.execute();
+		}
+		const initiallyDirty = await listOutOfSyncAppointments(ctx.db);
+		expect(initiallyDirty).toEqual([]);
+		const historicalBefore = await findAppointment(ctx.db, 'historical');
+
+		const expiry = await client.runWorkflow(expirePendingAppointments, {});
+		await drain(1);
+		const expiryResult = await expiry.result({ timeoutMs: 500 });
+		expect(expiryResult).toBe('expired');
+		const expired = await findAppointment(ctx.db, 'pending');
+		expect(expired).toMatchObject({
+			status: 'expired',
+			calendar_revision: 5,
+			calendar_synced_revision: 4,
+			external_event_id: 'event-pending',
+			ics_sequence: 0
+		});
+		expect(parseActionLog(expired!.action_log)).toEqual([
+			{ action: 'expire', actor: 'system', at }
+		]);
+		const dirty = await listOutOfSyncAppointments(ctx.db);
+		expect(dirty.map((row) => row.id)).toEqual(['pending']);
+
+		const repair = await client.runWorkflow(syncCalendars, {});
+		await drain(1);
+		const repairResult = await repair.result({ timeoutMs: 500 });
+		expect(repairResult).toBe('requested');
+		const cleaned = await findAppointment(ctx.db, 'pending');
+		expect(cleaned).toMatchObject({
+			status: 'expired',
+			calendar_revision: 5,
+			calendar_synced_revision: 5,
+			external_event_id: null,
+			external_calendar_id: null,
+			ics_sequence: 0
+		});
+		expect(fetch).toHaveBeenCalledExactlyOnceWith(
+			'https://calendar.example.com/work/event-pending.ics',
+			expect.objectContaining({ method: 'DELETE' })
+		);
+		expect(pushAppointment).not.toHaveBeenCalled();
+
+		await client.runWorkflow(expirePendingAppointments, {});
+		await drain(1);
+		await client.runWorkflow(syncCalendars, {});
+		await drain(1);
+		const afterReplay = await findAppointment(ctx.db, 'pending');
+		const historicalAfter = await findAppointment(ctx.db, 'historical');
+		const remainingDirty = await listOutOfSyncAppointments(ctx.db);
+		expect(afterReplay).toEqual(cleaned);
+		expect(historicalAfter).toEqual(historicalBefore);
+		expect(remainingDirty).toEqual([]);
+		expect(fetch).toHaveBeenCalledTimes(1);
+	} finally {
+		fetch.mockRestore();
+	}
 });
 
 test('repeated sync requests serialize without coalescing and stop awaits the active pass', async () => {
