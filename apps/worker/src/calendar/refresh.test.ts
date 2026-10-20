@@ -1,10 +1,18 @@
 import { expect, test, vi, beforeEach } from 'vitest';
 import pino from 'pino';
+import { sql } from 'kysely';
 import type { ResolvedCalendar, WhenConfiguration } from '@when/config';
 import { openDb, runMigrations, replaceCalendarBusy, recordServiceOutcome } from '@when/db';
 import type { Logger } from '../services/logger.js';
 import type { WorkerContext } from '../services/context.js';
-import { busyCalendarIds, refreshCalendar, refreshCalendars, refreshWindow } from './refresh.js';
+import { calendarRefreshTotal } from '../services/metrics.js';
+import {
+	busyCalendarIds,
+	refreshCalendar,
+	refreshCalendars,
+	refreshCycle,
+	refreshWindow
+} from './refresh.js';
 
 const inst = (s: string) => Temporal.Instant.from(s);
 const window = { start: inst('2026-04-01T00:00:00Z'), end: inst('2026-05-01T00:00:00Z') };
@@ -45,6 +53,26 @@ END:VCALENDAR</C:calendar-data>
   </response>
 </multistatus>`;
 
+const workMeetings = {
+	chat: {
+		booking_calendar: 'work',
+		additional_busy_calendars: [],
+		booking_window_days: 60,
+		schedule: 'standard'
+	}
+} as unknown as WhenConfiguration['meetings'];
+
+const appointment = {
+	id: '1',
+	event_type_id: 'chat',
+	start_time: '2026-04-15T14:00:00Z',
+	end_time: '2026-04-15T15:00:00Z',
+	guest_name: 'A',
+	guest_email: 'a@example.com',
+	status: 'confirmed' as const,
+	cancel_token: 't'
+};
+
 const defaultTestConfig = {
 	url: { app: 'https://when.example.com' },
 	user: { name: 'Jane', email: 'jane@example.com' },
@@ -78,7 +106,14 @@ test('refreshCalendar populates the mirror and records success', async () => {
 		vi.spyOn(globalThis, 'fetch').mockResolvedValue(
 			new Response(oneEvent('remote-1@x'), { status: 207 })
 		);
-		await refreshCalendar(ctx, workCal, window, { now: window.start });
+		const metric = vi.spyOn(calendarRefreshTotal, 'inc');
+		const result = await refreshCalendar(ctx, workCal, window, { now: window.start });
+		expect(result).toEqual({ ok: true, busyCount: 1 });
+		expect(metric).toHaveBeenCalledExactlyOnceWith({
+			calendar_id: 'work',
+			provider_type: 'caldav',
+			status: 'success'
+		});
 		const busy = await ctx.db.selectFrom('external_calendar_busy').selectAll().execute();
 		expect(busy).toHaveLength(1);
 		expect(busy[0].start_time).toBe('2026-04-15T14:00:00Z');
@@ -101,10 +136,23 @@ test('refreshCalendar keeps stale data and records the error on provider failure
 		await replaceCalendarBusy(ctx.db, 'work', [
 			{ start: '2026-04-10T09:00:00Z', end: '2026-04-10T09:30:00Z' }
 		]);
+		const lastOk = window.start.subtract({ minutes: 30 }).toString();
+		await recordServiceOutcome(
+			ctx.db,
+			{ kind: 'calendar', name: 'work' },
+			{ at: lastOk, via: 'refresh' }
+		);
 		vi.spyOn(globalThis, 'fetch').mockResolvedValue(
 			new Response('boom', { status: 500, statusText: 'err' })
 		);
-		await refreshCalendar(ctx, workCal, window, { now: window.start });
+		const metric = vi.spyOn(calendarRefreshTotal, 'inc');
+		const result = await refreshCalendar(ctx, workCal, window, { now: window.start, via: 'test' });
+		expect(result).toEqual({ ok: false, error: expect.stringContaining('500') });
+		expect(metric).toHaveBeenCalledExactlyOnceWith({
+			calendar_id: 'work',
+			provider_type: 'caldav',
+			status: 'failure'
+		});
 		const busy = await ctx.db.selectFrom('external_calendar_busy').selectAll().execute();
 		expect(busy).toHaveLength(1);
 		expect(busy[0].start_time).toBe('2026-04-10T09:00:00Z');
@@ -115,7 +163,8 @@ test('refreshCalendar keeps stale data and records the error on provider failure
 			.where('name', '=', 'work')
 			.executeTakeFirstOrThrow();
 		expect(status.error).toContain('500');
-		expect(status.last_ok_at).toBeNull();
+		expect(status.last_ok_at).toBe(lastOk);
+		expect(status.via).toBe('test');
 	} finally {
 		await ctx.db.destroy();
 	}
@@ -170,15 +219,8 @@ test('refreshCalendar drops our own published event', async () => {
 		await ctx.db
 			.insertInto('appointments')
 			.values({
-				id: '1',
-				event_type_id: 'chat',
-				start_time: '2026-04-15T14:00:00Z',
-				end_time: '2026-04-15T15:00:00Z',
-				guest_name: 'A',
-				guest_email: 'a@example.com',
+				...appointment,
 				location: null,
-				status: 'confirmed',
-				cancel_token: 't',
 				external_event_id: 'remote-1@x',
 				external_calendar_id: 'work',
 				calendar_revision: 0,
@@ -381,10 +423,286 @@ test('refreshCalendars skips a calendar refreshed within its interval, refreshes
 		await refreshCalendars(ctx, { now: window.start.add({ minutes: 10 }) });
 		expect(fetched).toBe(false);
 
-		// past the interval → due, refreshes
-		await refreshCalendars(ctx, { now: window.start.add({ minutes: 31 }) });
+		await refreshCalendars(ctx, { now: window.start.add({ minutes: 30 }) });
 		expect(fetched).toBe(true);
 	} finally {
 		await db.destroy();
+	}
+});
+
+test('refreshCalendar lets the own-event DB read fail before fetching or recording an outcome', async () => {
+	const ctx = await ctxWithDb();
+	try {
+		await ctx.db.schema.dropTable('appointments').execute();
+		const fetch = vi.spyOn(globalThis, 'fetch');
+		const log = vi.spyOn(ctx.logger, 'error');
+		const metric = vi.spyOn(calendarRefreshTotal, 'inc');
+
+		await expect(refreshCalendar(ctx, workCal, window)).rejects.toThrow('no such table');
+
+		expect(fetch).not.toHaveBeenCalled();
+		expect(log).not.toHaveBeenCalled();
+		expect(metric).not.toHaveBeenCalled();
+		const statuses = await ctx.db.selectFrom('service_status').selectAll().execute();
+		expect(statuses).toEqual([]);
+	} finally {
+		await ctx.db.destroy();
+	}
+});
+
+test('refreshCalendar rejects a mirror replacement failure without recording provider failure', async () => {
+	const ctx = await ctxWithDb();
+	try {
+		const stale = { start: '2026-04-10T09:00:00Z', end: '2026-04-10T09:30:00Z' };
+		await replaceCalendarBusy(ctx.db, 'work', [stale]);
+		await sql`create trigger fail_mirror before insert on external_calendar_busy
+			begin select raise(abort, 'mirror unavailable'); end`.execute(ctx.db);
+		vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(oneEvent('r1'), { status: 207 }));
+		const log = vi.spyOn(ctx.logger, 'error');
+		const metric = vi.spyOn(calendarRefreshTotal, 'inc');
+
+		await expect(refreshCalendar(ctx, workCal, window)).rejects.toThrow('mirror unavailable');
+
+		expect(log).not.toHaveBeenCalled();
+		expect(metric).not.toHaveBeenCalled();
+		const statuses = await ctx.db.selectFrom('service_status').selectAll().execute();
+		expect(statuses).toEqual([]);
+		const busy = await ctx.db
+			.selectFrom('external_calendar_busy')
+			.select(['start_time', 'end_time'])
+			.execute();
+		expect(busy).toEqual([{ start_time: stale.start, end_time: stale.end }]);
+	} finally {
+		await ctx.db.destroy();
+	}
+});
+
+test.each(['calendar', 'provider'] as const)(
+	'refreshCalendar does not reclassify a successful fetch when the %s status write fails',
+	async (kind) => {
+		const ctx = await ctxWithDb();
+		try {
+			await sql`create trigger fail_status before insert on service_status
+				when new.kind = ${sql.lit(kind)}
+				begin select raise(abort, 'status unavailable'); end`.execute(ctx.db);
+			vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+				new Response(oneEvent('r1'), { status: 207 })
+			);
+			const log = vi.spyOn(ctx.logger, 'error');
+			const metric = vi.spyOn(calendarRefreshTotal, 'inc');
+
+			await expect(refreshCalendar(ctx, workCal, window)).rejects.toThrow('status unavailable');
+
+			expect(log).not.toHaveBeenCalled();
+			expect(metric).not.toHaveBeenCalled();
+			const statuses = await ctx.db.selectFrom('service_status').selectAll().execute();
+			expect(statuses).toHaveLength(kind === 'provider' ? 1 : 0);
+			for (const status of statuses) {
+				expect(status.error).toBeNull();
+				expect(status.last_ok_at).toBe(window.start.toString());
+			}
+			const busy = await ctx.db.selectFrom('external_calendar_busy').selectAll().execute();
+			expect(busy).toHaveLength(1);
+		} finally {
+			await ctx.db.destroy();
+		}
+	}
+);
+
+test('refreshCalendar lets a success metric failure escape without recording provider failure', async () => {
+	const ctx = await ctxWithDb();
+	try {
+		vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(oneEvent('r1'), { status: 207 }));
+		const error = new Error('metric unavailable');
+		const metric = vi.spyOn(calendarRefreshTotal, 'inc').mockImplementationOnce(() => {
+			throw error;
+		});
+		const log = vi.spyOn(ctx.logger, 'error');
+
+		await expect(refreshCalendar(ctx, workCal, window)).rejects.toBe(error);
+
+		expect(log).not.toHaveBeenCalled();
+		expect(metric).toHaveBeenCalledTimes(1);
+		const statuses = await ctx.db.selectFrom('service_status').selectAll().execute();
+		expect(statuses).toHaveLength(2);
+		for (const status of statuses) expect(status.error).toBeNull();
+	} finally {
+		await ctx.db.destroy();
+	}
+});
+
+test('refreshCalendar rejects if recording an expected provider failure fails locally', async () => {
+	const ctx = await ctxWithDb();
+	try {
+		await sql`create trigger fail_status before insert on service_status
+			begin select raise(abort, 'status unavailable'); end`.execute(ctx.db);
+		vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('boom', { status: 500 }));
+		const metric = vi.spyOn(calendarRefreshTotal, 'inc');
+
+		await expect(refreshCalendar(ctx, workCal, window)).rejects.toThrow('status unavailable');
+
+		expect(metric).not.toHaveBeenCalled();
+	} finally {
+		await ctx.db.destroy();
+	}
+});
+
+test('refreshCycle flags conflicts using the newly refreshed mirror', async () => {
+	const ctx = await ctxWithDb({ meetings: workMeetings });
+	try {
+		await ctx.db.insertInto('appointments').values(appointment).execute();
+		await replaceCalendarBusy(ctx.db, 'work', [
+			{ start: '2026-04-10T09:00:00Z', end: '2026-04-10T09:30:00Z' }
+		]);
+		vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(oneEvent('r1'), { status: 207 }));
+
+		await refreshCycle(ctx, { now: window.start });
+
+		const row = await ctx.db
+			.selectFrom('appointments')
+			.select('has_possible_conflict')
+			.executeTakeFirstOrThrow();
+		expect(row.has_possible_conflict).toBe(1);
+		const statuses = await ctx.db.selectFrom('service_status').selectAll().execute();
+		expect(statuses).toHaveLength(2);
+		for (const status of statuses) {
+			expect(status.last_attempt_at).toBe(window.start.toString());
+			expect(status.error).toBeNull();
+		}
+	} finally {
+		await ctx.db.destroy();
+	}
+});
+
+test('refreshCycle flags conflicts using the stale mirror after a provider failure', async () => {
+	const ctx = await ctxWithDb({ meetings: workMeetings });
+	try {
+		await ctx.db.insertInto('appointments').values(appointment).execute();
+		await replaceCalendarBusy(ctx.db, 'work', [
+			{ start: appointment.start_time, end: appointment.end_time }
+		]);
+		vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('boom', { status: 500 }));
+
+		await refreshCycle(ctx, { now: window.start });
+
+		const row = await ctx.db
+			.selectFrom('appointments')
+			.select('has_possible_conflict')
+			.executeTakeFirstOrThrow();
+		expect(row.has_possible_conflict).toBe(1);
+		const statuses = await ctx.db.selectFrom('service_status').selectAll().execute();
+		expect(statuses).toHaveLength(2);
+		for (const status of statuses) {
+			expect(status.last_attempt_at).toBe(window.start.toString());
+			expect(status.error).toEqual(expect.stringContaining('500'));
+		}
+	} finally {
+		await ctx.db.destroy();
+	}
+});
+
+test('refreshCycle lets conflict writes fail without marking a successful provider refresh as failed', async () => {
+	const ctx = await ctxWithDb({ meetings: workMeetings });
+	try {
+		await ctx.db.insertInto('appointments').values(appointment).execute();
+		await sql`create trigger fail_conflict before update of has_possible_conflict on appointments
+			begin select raise(abort, 'conflict unavailable'); end`.execute(ctx.db);
+		vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(oneEvent('r1'), { status: 207 }));
+		const log = vi.spyOn(ctx.logger, 'error');
+		const metric = vi.spyOn(calendarRefreshTotal, 'inc');
+
+		await expect(refreshCycle(ctx, { now: window.start })).rejects.toThrow('conflict unavailable');
+
+		expect(log).not.toHaveBeenCalled();
+		expect(metric).toHaveBeenCalledExactlyOnceWith({
+			calendar_id: 'work',
+			provider_type: 'caldav',
+			status: 'success'
+		});
+		const statuses = await ctx.db.selectFrom('service_status').selectAll().execute();
+		expect(statuses).toHaveLength(2);
+		for (const status of statuses) {
+			expect(status.error).toBeNull();
+			expect(status.last_ok_at).toBe(window.start.toString());
+		}
+	} finally {
+		await ctx.db.destroy();
+	}
+});
+
+test('refreshCalendars keeps independent due intervals and retries a stale failure on later passes', async () => {
+	const ctx = await ctxWithDb({
+		providers: {
+			'work-dav': {
+				...workDav,
+				calendars: {
+					...workDav.calendars,
+					other: { href: 'https://cal.example.com/other/', sync: { refresh_every_minutes: 30 } }
+				}
+			}
+		},
+		meetings: {
+			chat: { ...workMeetings.chat, additional_busy_calendars: ['other'] }
+		}
+	});
+	try {
+		for (const name of ['work', 'other']) {
+			await recordServiceOutcome(
+				ctx.db,
+				{ kind: 'calendar', name },
+				{ at: window.start.toString(), via: 'refresh' }
+			);
+		}
+		const fetch = vi.spyOn(globalThis, 'fetch').mockImplementation(async () => {
+			return new Response('boom', { status: 500 });
+		});
+
+		await refreshCalendars(ctx, { now: window.start.add({ minutes: 9 }) });
+		expect(fetch).not.toHaveBeenCalled();
+		await refreshCalendars(ctx, { now: window.start.add({ minutes: 10 }) });
+		await refreshCalendars(ctx, { now: window.start.add({ minutes: 11 }) });
+		expect(fetch.mock.calls.map(([url]) => String(url))).toEqual([
+			'https://cal.example.com/work/',
+			'https://cal.example.com/work/'
+		]);
+
+		await refreshCalendars(ctx, { now: window.start.add({ minutes: 30 }) });
+		expect(fetch.mock.calls.slice(2).map(([url]) => String(url))).toEqual([
+			'https://cal.example.com/work/',
+			'https://cal.example.com/other/'
+		]);
+	} finally {
+		await ctx.db.destroy();
+	}
+});
+
+test('refreshCalendars uses a reloaded calendar interval on its next pass', async () => {
+	const ctx = await ctxWithDb({ meetings: workMeetings });
+	try {
+		await recordServiceOutcome(
+			ctx.db,
+			{ kind: 'calendar', name: 'work' },
+			{ at: window.start.toString(), via: 'refresh' }
+		);
+		const fetch = vi
+			.spyOn(globalThis, 'fetch')
+			.mockResolvedValue(new Response(oneEvent('r1'), { status: 207 }));
+		const now = window.start.add({ minutes: 5 });
+		await refreshCalendars(ctx, { now });
+		expect(fetch).not.toHaveBeenCalled();
+
+		ctx.config = {
+			...ctx.config,
+			providers: {
+				'work-dav': {
+					...workDav,
+					calendars: { work: { ...workDav.calendars.work, sync: { refresh_every_minutes: 5 } } }
+				}
+			}
+		};
+		await refreshCalendars(ctx, { now });
+		expect(fetch).toHaveBeenCalledTimes(1);
+	} finally {
+		await ctx.db.destroy();
 	}
 });

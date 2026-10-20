@@ -1,5 +1,5 @@
 import { findCalendar, type ResolvedCalendar, type WhenConfiguration } from '@when/config';
-import type { ExpandWindow } from '@when/calendar';
+import type { ExpandWindow, Interval } from '@when/calendar';
 import { busyCalendarsFor, fetchBusyIntervals } from '@when/calendar';
 import {
 	listOwnEventIds,
@@ -52,21 +52,11 @@ export async function refreshCalendar(
 ): Promise<RefreshResult> {
 	const at = (opts.now ?? window.start).toString();
 	const via = opts.via ?? 'refresh';
+	const ownEventIds = await listOwnEventIds(ctx.db, cal.name);
+	const excludeUids = new Set(ownEventIds);
+	let intervals: Interval[];
 	try {
-		const excludeUids = new Set(await listOwnEventIds(ctx.db, cal.name));
-		const intervals = await fetchBusyIntervals(cal, window, { excludeUids });
-		await replaceCalendarBusy(
-			ctx.db,
-			cal.name,
-			intervals.map((i) => ({ start: i.start.toString(), end: i.end.toString() }))
-		);
-		await recordRefreshOutcome(ctx, cal, { at, via });
-		calendarRefreshTotal.inc({
-			calendar_id: cal.name,
-			provider_type: cal.provider.type,
-			status: 'success'
-		});
-		return { ok: true, busyCount: intervals.length };
+		intervals = await fetchBusyIntervals(cal, window, { excludeUids });
 	} catch (err) {
 		const error = err instanceof Error ? err.message : String(err);
 		ctx.logger.error(
@@ -84,6 +74,18 @@ export async function refreshCalendar(
 		});
 		return { ok: false, error };
 	}
+	await replaceCalendarBusy(
+		ctx.db,
+		cal.name,
+		intervals.map((i) => ({ start: i.start.toString(), end: i.end.toString() }))
+	);
+	await recordRefreshOutcome(ctx, cal, { at, via });
+	calendarRefreshTotal.inc({
+		calendar_id: cal.name,
+		provider_type: cal.provider.type,
+		status: 'success'
+	});
+	return { ok: true, busyCount: intervals.length };
 }
 
 // A provider backing no calendars has no other source of status.
@@ -109,8 +111,6 @@ export async function refreshCalendars(
 			ctx.logger.warn({ calendarId: id }, 'busy calendar id not found in calendars; skipping');
 			continue;
 		}
-		// Each calendar refreshes on its own interval; a never-synced or failing one
-		// (no recent success) is always due, so failures retry every tick.
 		if (!isDue(lastSuccess.get(id) ?? null, cal, now)) continue;
 		await refreshCalendar(ctx, cal, refreshWindow(ctx.config, id, now), { ...opts, now });
 	}

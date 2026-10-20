@@ -152,13 +152,36 @@ export const testCalendar: WorkflowSpec<TestCalendarInput, TestCalendarResult> =
 	}
 });
 
+export type RefreshCalendarsInput = Record<string, never>;
+export type RefreshCalendarsResult = 'refreshed';
+
+export const refreshCalendars: WorkflowSpec<RefreshCalendarsInput, RefreshCalendarsResult> =
+	defineWorkflowSpec<RefreshCalendarsInput, RefreshCalendarsResult>({
+		name: 'refresh-calendars',
+		schedules: [{ id: 'when:refresh-calendars', cron: '*/5 * * * *', timezone: 'UTC', input: {} }]
+	});
+
+export type ExpirePendingAppointmentsInput = Record<string, never>;
+export type ExpirePendingAppointmentsResult = 'expired';
+
+export const expirePendingAppointments: WorkflowSpec<
+	ExpirePendingAppointmentsInput,
+	ExpirePendingAppointmentsResult
+> = defineWorkflowSpec<ExpirePendingAppointmentsInput, ExpirePendingAppointmentsResult>({
+	name: 'expire-pending-appointments',
+	schedules: [
+		{ id: 'when:expire-pending-appointments', cron: '0 * * * *', timezone: 'UTC', input: {} }
+	]
+});
+
 export type SyncCalendarsInput = Record<string, never>;
 export type SyncCalendarsResult = 'requested';
 
-// Payload-free wake-up the worker handles by running its calendar sync.
+// A requested result means the pass finished, not that every provider succeeded.
 export const syncCalendars: WorkflowSpec<SyncCalendarsInput, SyncCalendarsResult> =
 	defineWorkflowSpec<SyncCalendarsInput, SyncCalendarsResult>({
 		name: 'sync-calendars',
+		schedules: [{ id: 'when:sync-calendars', cron: '*/10 * * * *', timezone: 'UTC', input: {} }],
 		retryPolicy: {
 			maximumAttempts: 1,
 			initialInterval: '1s',
