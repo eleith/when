@@ -55,6 +55,27 @@ Relative paths resolve against the config file's directory, so web and worker
 - `pnpm start` — `node dist/src/index.js`.
 - `pnpm check` / `pnpm lint` / `pnpm test` / `pnpm test:coverage`.
 
+## Appointment jobs
+
+Reconciliation saves prepared email content and recipient roles, then starts one
+`deliver-appointment-email` child per recipient. Each child has five native SMTP
+attempts (30-second initial delay, doubling up to ten minutes). A successful send
+is checkpointed separately from its status write. Host and guest keep independent
+retry budgets, even when they share an email address.
+
+An email `failed` action means a provider attempt failed and retries may remain.
+The parent records `done` only when every intended email was sent and the appointment
+still exists and is not purged. Ineligible deliveries are skipped. Exhaustion fails
+the engine run rather than returning a successful summary of failed delivery.
+
+Prepared envelopes include personal data and guest capability links: treat queue
+backups like application backups. Checkpoints do not guarantee exactly-once SMTP;
+a crash after remote acceptance but before saving success can still cause a duplicate.
+
+Before deploying these changed workflows, stop producers, let the old worker drain
+unfinished jobs, then stop it and back up both databases before a grouped restart.
+Do not replay unfinished old workflow histories through the changed step graph.
+
 ## Engine integration
 
 Engine polling, schedule, heartbeat, and execution diagnostics go through the
@@ -66,7 +87,6 @@ escaped handler execution may mean durable suspension rather than a terminal job
 failure. Email metrics count physical SMTP attempt outcomes, not an exactly-once
 delivery ledger.
 
-OpenWorkflow `0.11.0` supports persisted cron schedules. This engine-upgrade step
-still uses the existing process timers for refresh, expiry, and repair; migrating
-those tasks to awaited cron workflows is a separate application change. Likewise,
-upgrading the engine alone does not change the current workflow error handling.
+OpenWorkflow `0.11.0` supports persisted cron schedules. Refresh, expiry, and repair
+still use the existing process timers; migrating those tasks to awaited cron
+workflows is a separate application change.

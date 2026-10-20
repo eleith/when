@@ -6,11 +6,16 @@ import {
 	whenForGuest,
 	whenForHost
 } from '../format.js';
-import { guestMessage, messages, hostMessage, type EmailMessage } from '../recipients.js';
+import {
+	guestMessage,
+	messages,
+	hostMessage,
+	type AppointmentEmailMessage
+} from '../recipients.js';
 import type { EmailContent } from '../content.js';
 import type { AppointmentEmailInput } from '../types.js';
 
-export function appointmentDeclined(i: AppointmentEmailInput): EmailMessage[] {
+export function appointmentDeclined(i: AppointmentEmailInput): AppointmentEmailMessage[] {
 	const a = i.appointment;
 	const brand = deriveBrand(i.cfg, i.logo?.cid);
 	const eventName = eventTypeName(i.eventType, a);

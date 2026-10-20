@@ -7,12 +7,17 @@ import {
 	whenForHost
 } from '../format.js';
 import { requestIcs } from '../ics.js';
-import { guestMessage, messages, hostMessage, type EmailMessage } from '../recipients.js';
+import {
+	guestMessage,
+	messages,
+	hostMessage,
+	type AppointmentEmailMessage
+} from '../recipients.js';
 import type { EmailContent } from '../content.js';
 import type { AppointmentEmailInput } from '../types.js';
 import { parseActionLog } from '@when/db';
 
-export function appointmentEditedByHost(i: AppointmentEmailInput): EmailMessage[] {
+export function appointmentEditedByHost(i: AppointmentEmailInput): AppointmentEmailMessage[] {
 	const a = i.appointment;
 	const brand = deriveBrand(i.cfg, i.logo?.cid);
 	const eventName = eventTypeName(i.eventType, a);

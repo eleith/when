@@ -8,6 +8,12 @@ import { createLogger } from '../services/logger.js';
 import type { Mailer } from '../email/smtp.js';
 import { sampleInput } from '../email/__fixtures__/appointment.js';
 import { runReconcileAppointment } from './reconcile-appointment.js';
+import {
+	deliverAppointmentEmail,
+	runDeliverAppointmentEmail,
+	type DeliverAppointmentEmailInput,
+	type DeliverAppointmentEmailResult
+} from './deliver-appointment-email.js';
 
 import type { WhenConfiguration } from '@when/config';
 
@@ -41,13 +47,27 @@ const testConfig = {
 
 function makeStep() {
 	const names: string[] = [];
+	const childRuns: Promise<DeliverAppointmentEmailResult>[] = [];
 	const step = {
 		run: async <T>(config: { name: string }, fn: () => Promise<T> | T): Promise<T> => {
 			names.push(config.name);
 			return fn();
+		},
+		runWorkflow(
+			spec: typeof deliverAppointmentEmail,
+			childInput: DeliverAppointmentEmailInput,
+			config: { name: string }
+		) {
+			expect(spec).toBe(deliverAppointmentEmail);
+			names.push(config.name);
+			const child = runDeliverAppointmentEmail(childInput, {
+				run: async <T>(_config: { name: string }, fn: () => Promise<T> | T): Promise<T> => fn()
+			});
+			childRuns.push(child);
+			return child;
 		}
 	};
-	return { step, names };
+	return { step, names, childRuns };
 }
 
 function makeMailer() {
@@ -133,17 +153,19 @@ describe('runReconcileAppointment', () => {
 		expect(result).toBe('reconciled');
 		expect(send).toHaveBeenCalledTimes(2); // guest + host
 		expect(names).toEqual([
+			'prepare-reconciliation',
 			'resolve-video-chat',
 			'sync-calendar',
-			'smtp:guest',
-			'smtp:host',
+			'prepare-emails',
+			'email:guest',
+			'email:host',
 			'log:result'
 		]);
 		expect(await readEmailJobStates(db)).toEqual(['done']);
 		await db.destroy();
 	});
 
-	test('records email:failed when a send keeps failing', async () => {
+	test('records failed attempts and lets delivery errors escape', async () => {
 		const db = await seedDb();
 		const { mailer, send } = makeMailer();
 		send.mockResolvedValue({ ok: false, reason: 'smtp down' });
@@ -151,11 +173,13 @@ describe('runReconcileAppointment', () => {
 
 		setWorkerContext({ config: testConfig, db, logger: createLogger(), mailer });
 
-		const { step } = makeStep();
-		const result = await runReconcileAppointment(input, step);
+		const { step, names, childRuns } = makeStep();
+		await expect(runReconcileAppointment(input, step)).rejects.toThrow('smtp down');
+		await Promise.allSettled(childRuns);
 
-		expect(result).toBe('reconciled');
-		expect(await readEmailJobStates(db)).toEqual(['failed']);
+		expect(send).toHaveBeenCalledTimes(2);
+		expect(names).not.toContain('log:result');
+		expect(await readEmailJobStates(db)).toEqual(['failed', 'failed']);
 		await db.destroy();
 	});
 

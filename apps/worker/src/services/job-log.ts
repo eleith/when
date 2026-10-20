@@ -22,6 +22,22 @@ export async function appendJobLog(
 		.execute();
 }
 
+export async function appendEmailJobLog(
+	db: Kysely<Database>,
+	appointmentId: string,
+	state: JobState,
+	at: string
+): Promise<void> {
+	await db
+		.updateTable('appointments')
+		.set({
+			action_log: appendJobLogSql({ kind: 'email', at, state, appointment_id: appointmentId })
+		})
+		.where('id', '=', appointmentId)
+		.where('status', '!=', 'purged')
+		.execute();
+}
+
 // The `at` of an unclosed calendar `failed` (no later `done`) for this row, or
 // null. Scoped to appointment_id: the log is inherited across a reschedule chain.
 // This timestamp is the log's "failing since".

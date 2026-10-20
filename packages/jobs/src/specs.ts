@@ -28,7 +28,7 @@ export interface ReconcileAppointmentInput {
 	cleanupVideoChatUrl?: string | null;
 }
 
-// 'reconciled' = completed successfully; 'failed' = failed after retries.
+// Native retry exhaustion rejects result(); 'failed' remains for contract compatibility.
 export type ReconcileAppointmentResult = 'reconciled' | 'failed';
 
 /**

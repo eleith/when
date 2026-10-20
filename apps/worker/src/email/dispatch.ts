@@ -9,7 +9,7 @@ import { appointmentPending } from './builders/appointment-pending.js';
 import { appointmentRescheduledByGuest } from './builders/appointment-rescheduled-by-guest.js';
 import { appointmentRescheduledByHost } from './builders/appointment-rescheduled-by-host.js';
 import { appointmentEditedByHost } from './builders/appointment-edited-by-host.js';
-import type { EmailMessage, Envelope } from './recipients.js';
+import type { AppointmentEmailMessage, Envelope, PreparedAppointmentEmail } from './recipients.js';
 import { renderMessage } from './render.js';
 import { emailTheme } from './theme.js';
 import { appointmentLinks } from '../links.js';
@@ -22,7 +22,7 @@ export interface DispatchInput {
 	appointment: Appointment;
 }
 
-function build(i: AppointmentEmailInput, kind: AppointmentEmailKind): EmailMessage[] {
+function build(i: AppointmentEmailInput, kind: AppointmentEmailKind): AppointmentEmailMessage[] {
 	switch (kind) {
 		case 'confirmed':
 			return appointmentConfirmed(i);
@@ -47,7 +47,10 @@ function build(i: AppointmentEmailInput, kind: AppointmentEmailKind): EmailMessa
 	}
 }
 
-export async function dispatch(input: DispatchInput, cfg: WhenConfiguration): Promise<Envelope[]> {
+export async function prepareAppointmentEmails(
+	input: DispatchInput,
+	cfg: WhenConfiguration
+): Promise<PreparedAppointmentEmail[]> {
 	const eventType = cfg.meetings[input.appointment.event_type_id];
 	const logo = await fetchBrandLogo(cfg);
 
@@ -65,5 +68,13 @@ export async function dispatch(input: DispatchInput, cfg: WhenConfiguration): Pr
 	};
 
 	const theme = emailTheme(cfg.user.appearance);
-	return build(i, input.kind).map((m) => renderMessage(m, logo, theme));
+	return build(i, input.kind).map((m) => ({
+		role: m.role,
+		envelope: renderMessage(m, logo, theme)
+	}));
+}
+
+export async function dispatch(input: DispatchInput, cfg: WhenConfiguration): Promise<Envelope[]> {
+	const emails = await prepareAppointmentEmails(input, cfg);
+	return emails.map((email) => email.envelope);
 }

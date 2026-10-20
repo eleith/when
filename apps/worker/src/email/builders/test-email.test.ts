@@ -8,6 +8,7 @@ describe('testEmailMessage', () => {
 	test('addresses the recipient and builds test content', () => {
 		const msg = testEmailMessage(sampleConfig, 'me@example.com', null);
 		expect(msg.to).toBe('me@example.com');
+		expect(msg).not.toHaveProperty('role');
 		expect(msg.content.subject).toContain('Test email');
 		expect(msg.content.heading).toContain('test email from When');
 		expect(msg.content.actions).toEqual([

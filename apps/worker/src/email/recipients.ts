@@ -25,25 +25,36 @@ export interface EmailMessage {
 	ics?: Attachment;
 }
 
+export type RecipientRole = 'host' | 'guest';
+
+export interface AppointmentEmailMessage extends EmailMessage {
+	role: RecipientRole;
+}
+
+export interface PreparedAppointmentEmail {
+	role: RecipientRole;
+	envelope: Envelope;
+}
+
 /** Message addressed to the appointment's guest, or null when no email was collected. */
 export function guestMessage(
 	i: Pick<AppointmentEmailInput, 'appointment'>,
 	content: EmailContent,
 	ics?: Attachment
-): EmailMessage | null {
+): AppointmentEmailMessage | null {
 	if (!i.appointment.guest_email) return null;
-	return { to: i.appointment.guest_email, content, ics };
+	return { role: 'guest', to: i.appointment.guest_email, content, ics };
 }
 
 /** Message addressed to the host (the single configured user). */
 export function hostMessage(
 	i: Pick<AppointmentEmailInput, 'cfg'>,
 	content: EmailContent
-): EmailMessage {
-	return { to: i.cfg.user.email, content };
+): AppointmentEmailMessage {
+	return { role: 'host', to: i.cfg.user.email, content };
 }
 
 /** Collect a builder's messages, dropping any that had no recipient (e.g. no guest email). */
-export function messages(...list: (EmailMessage | null)[]): EmailMessage[] {
-	return list.filter((m): m is EmailMessage => m !== null);
+export function messages(...list: (AppointmentEmailMessage | null)[]): AppointmentEmailMessage[] {
+	return list.filter((m): m is AppointmentEmailMessage => m !== null);
 }

@@ -7,7 +7,12 @@ import {
 	whenForHost
 } from '../format.js';
 import { cancelIcs } from '../ics.js';
-import { guestMessage, messages, hostMessage, type EmailMessage } from '../recipients.js';
+import {
+	guestMessage,
+	messages,
+	hostMessage,
+	type AppointmentEmailMessage
+} from '../recipients.js';
 import type { EmailContent } from '../content.js';
 import type { AppointmentEmailInput } from '../types.js';
 
@@ -19,7 +24,7 @@ function reasonParagraph(a: Appointment): string[] {
 	return cancel?.payload?.note ? [`Reason: ${cancel.payload.note}`] : [];
 }
 
-export function appointmentCancelledByGuest(i: AppointmentEmailInput): EmailMessage[] {
+export function appointmentCancelledByGuest(i: AppointmentEmailInput): AppointmentEmailMessage[] {
 	const a = i.appointment;
 	const brand = deriveBrand(i.cfg, i.logo?.cid);
 	const eventName = eventTypeName(i.eventType, a);

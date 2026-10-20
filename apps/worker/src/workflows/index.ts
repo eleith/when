@@ -1,4 +1,5 @@
 import { registerReconcileAppointmentWorkflow } from './reconcile-appointment.js';
+import { registerDeliverAppointmentEmailWorkflow } from './deliver-appointment-email.js';
 import { registerPurgeAppointmentWorkflow } from './purge-appointment.js';
 import { registerTestEmailWorkflow } from './test-email.js';
 import { registerProbeProviderWorkflows } from './probe-provider.js';
@@ -10,6 +11,7 @@ import { registerGenerateVideoChatWorkflow } from './generate-video-chat.js';
  * once at boot, after `initOpenWorkflow`.
  */
 export function registerWorkflows(): void {
+	registerDeliverAppointmentEmailWorkflow();
 	registerReconcileAppointmentWorkflow();
 	registerPurgeAppointmentWorkflow();
 	registerTestEmailWorkflow();
