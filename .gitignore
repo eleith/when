@@ -33,6 +33,7 @@ blob-report/
 playwright/.cache/
 
 # Per-user / local tool state
+/.plans/
 /.claude/
 /.antigravitycli/
 .nono.json

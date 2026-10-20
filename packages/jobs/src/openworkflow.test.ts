@@ -1,128 +1,186 @@
-import { describe, expect, test } from 'vitest';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
-import {
-	initOpenWorkflow,
-	getOpenWorkflow,
-	getWorkflowRun,
-	getStepAttempts
-} from './openworkflow.js';
+import { OpenWorkflow, defineWorkflowSpec } from 'openworkflow';
+import { BackendSqlite } from 'openworkflow/sqlite';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { getWorkflowRun, getStepAttempts } from './openworkflow.js';
 import { reconcileAppointment } from './specs.js';
-import type { ReconcileAppointmentInput } from './specs.js';
 
 describe('client singleton', () => {
-	test('getOpenWorkflow throws before initialization', () => {
-		expect(() => getOpenWorkflow()).toThrow(/has not been initialized/);
+	let api: typeof import('./index.js');
+
+	beforeEach(async () => {
+		vi.resetModules();
+		api = await import('./index.js');
 	});
 
-	test('initOpenWorkflow returns a reusable singleton', () => {
-		// :memory: backend auto-migrates on connect.
-		const client = initOpenWorkflow({ dbPath: ':memory:' });
-		expect(client).toBeDefined();
-		expect(getOpenWorkflow()).toBe(client);
-		// Idempotent: a second init keeps the first instance.
-		expect(initOpenWorkflow({ dbPath: ':memory:' })).toBe(client);
+	afterEach(async () => {
+		await api.closeOpenWorkflow();
 	});
 
-	test('the client can enqueue a run (producer-only path)', async () => {
-		const input: ReconcileAppointmentInput = {
-			appointmentId: 'appt-1',
+	test('get throws before initialization; closing before init does not poison later init', async () => {
+		expect(() => api.getOpenWorkflow()).toThrow(/has not been initialized/);
+		await api.closeOpenWorkflow();
+		const client = api.initOpenWorkflow({ dbPath: ':memory:' });
+		expect(api.getOpenWorkflow()).toBe(client);
+	});
+
+	test('first initialization wins and a producer can enqueue without worker registration', async () => {
+		const client = api.initOpenWorkflow({ dbPath: ':memory:' });
+		expect(api.initOpenWorkflow({ dbPath: ':memory:' })).toBe(client);
+		expect(api.getOpenWorkflow()).toBe(client);
+		const handle = await client.runWorkflow(reconcileAppointment, {
+			appointmentId: 'synthetic-appointment',
 			emailKind: 'confirmed'
-		};
-
-		const handle = await getOpenWorkflow().runWorkflow(reconcileAppointment, input);
-
+		});
 		expect(handle.workflowRun.id).toBeTruthy();
 		expect(handle.workflowRun.status).toBe('pending');
 	});
+
+	test('public close is shared, idempotent and terminal for init/get and the retained client', async () => {
+		const client = api.initOpenWorkflow({ dbPath: ':memory:' });
+		const closing = api.closeOpenWorkflow();
+		expect(api.closeOpenWorkflow()).toBe(closing);
+		expect(() => api.getOpenWorkflow()).toThrow(/has been closed/);
+		expect(() => api.initOpenWorkflow({ dbPath: ':memory:' })).toThrow(/has been closed/);
+		await closing;
+		expect(api.closeOpenWorkflow()).toBe(closing);
+		await expect(
+			client.runWorkflow(reconcileAppointment, { appointmentId: 'after-close' })
+		).rejects.toThrow();
+	});
 });
 
-describe('read helpers', () => {
-	function seedQueueDb(): DatabaseSync {
-		const db = new DatabaseSync(':memory:');
-		db.exec(`
-			CREATE TABLE workflow_runs (
-				id TEXT PRIMARY KEY,
-				workflow_name TEXT NOT NULL,
-				status TEXT NOT NULL,
-				error TEXT,
-				input TEXT,
-				output TEXT,
-				finished_at TEXT,
-				created_at TEXT NOT NULL
-			);
-			CREATE TABLE step_attempts (
-				id TEXT PRIMARY KEY,
-				workflow_run_id TEXT NOT NULL,
-				step_name TEXT NOT NULL,
-				status TEXT NOT NULL,
-				started_at TEXT,
-				finished_at TEXT,
-				error TEXT,
-				created_at TEXT NOT NULL
-			);
-		`);
-		db.prepare(
-			`INSERT INTO workflow_runs (id, workflow_name, status, error, input, output, finished_at, created_at)
-			 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-		).run(
-			'run-1',
-			'reconcile-appointment',
-			'completed',
-			null,
-			'{}',
-			'"reconciled"',
-			null,
-			'2026-01-01T10:00:00Z'
-		);
-		db.prepare(
-			`INSERT INTO step_attempts (id, workflow_run_id, step_name, status, started_at, finished_at, error, created_at)
-			 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-		).run(
-			'step-1',
-			'run-1',
-			'smtp:jane@example.com',
-			'completed',
-			'2026-01-01T10:00:01Z',
-			'2026-01-01T10:00:02Z',
-			null,
-			'2026-01-01T10:00:01Z'
-		);
-		db.prepare(
-			`INSERT INTO step_attempts (id, workflow_run_id, step_name, status, started_at, finished_at, error, created_at)
-			 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-		).run(
-			'step-2',
-			'run-1',
-			'status',
-			'completed',
-			'2026-01-01T10:00:03Z',
-			'2026-01-01T10:00:04Z',
-			null,
-			'2026-01-01T10:00:03Z'
-		);
-		return db;
-	}
+describe('real SQLite engine integration', () => {
+	let directory: string;
+	let raw: DatabaseSync;
+	let backend: BackendSqlite;
+	let client: OpenWorkflow;
+	let worker: ReturnType<OpenWorkflow['newWorker']> | undefined;
 
-	test('getWorkflowRun returns a run by id, or null when missing', () => {
-		const db = seedQueueDb();
-		const run = getWorkflowRun(db, 'run-1');
-		expect(run).not.toBeNull();
-		expect(run!.workflow_name).toBe('reconcile-appointment');
-		expect(run!.status).toBe('completed');
-		expect(getWorkflowRun(db, 'missing')).toBeNull();
+	beforeEach(async () => {
+		directory = await mkdtemp(join(tmpdir(), 'when-queue-read-'));
+		const path = join(directory, 'queue.sqlite');
+		backend = BackendSqlite.connect(path);
+		client = new OpenWorkflow({ backend });
+		raw = new DatabaseSync(path);
 	});
 
-	test("getStepAttempts lists a run's steps in chronological order", () => {
-		const db = seedQueueDb();
-		const steps = getStepAttempts(db, 'run-1');
-		expect(steps).toHaveLength(2);
-		expect(steps[0]).toEqual({
-			phase: 'smtp:jane@example.com',
-			status: 'completed',
-			started_at: '2026-01-01T10:00:01Z',
-			finished_at: '2026-01-01T10:00:02Z',
-			message: null
+	afterEach(async () => {
+		try {
+			await worker?.stop();
+			await backend.stop();
+		} finally {
+			worker = undefined;
+			vi.restoreAllMocks();
+			vi.useRealTimers();
+			raw.close();
+			await rm(directory, { recursive: true, force: true });
+		}
+	});
+
+	test('raw readers expose real run and chronological step rows, including missing ids', async () => {
+		const workflow = client.defineWorkflow({ name: 'reader-probe' }, async ({ step }) => {
+			await step.run({ name: 'first' }, async () => {
+				await new Promise((resolve) => setTimeout(resolve, 2));
+				return 'saved';
+			});
+			return step.run({ name: 'second' }, () => 'done');
 		});
-		expect(steps[1].phase).toBe('status');
+		const handle = await workflow.run({});
+		expect(getWorkflowRun(raw, handle.workflowRun.id)).toMatchObject({ status: 'pending' });
+		expect(getStepAttempts(raw, handle.workflowRun.id)).toEqual([]);
+		worker = client.newWorker({ concurrency: 1 });
+		expect(await worker.tick()).toBe(1);
+		await worker.stop();
+		const run = getWorkflowRun(raw, handle.workflowRun.id)!;
+		expect(run).toMatchObject({
+			workflow_name: 'reader-probe',
+			status: 'completed',
+			input: '{}',
+			output: '"done"',
+			error: null
+		});
+		expect(run.finished_at).toEqual(expect.any(String));
+		const steps = getStepAttempts(raw, handle.workflowRun.id);
+		expect(steps).toEqual(
+			['first', 'second'].map((phase) => ({
+				phase,
+				status: 'completed',
+				message: null,
+				started_at: expect.any(String),
+				finished_at: expect.any(String)
+			}))
+		);
+		expect(steps[0].started_at! <= steps[1].started_at!).toBe(true);
+		expect(getWorkflowRun(raw, 'missing')).toBeNull();
+		expect(getStepAttempts(raw, 'missing')).toEqual([]);
+	});
+
+	test.each([
+		['completed', 10],
+		['completed', 11],
+		['failed', 10],
+		['failed', 11],
+		['canceled', 10],
+		['canceled', 11]
+	] as const)(
+		'result() observes %s when its read crosses the %ims timeout boundary',
+		async (status, elapsed) => {
+			vi.useFakeTimers({ toFake: ['Date'] });
+			const start = new Date('2026-02-01T00:00:00.000Z');
+			vi.setSystemTime(start);
+			const workflow = client.defineWorkflow(
+				{ name: 'boundary-probe', retryPolicy: { maximumAttempts: 1 } },
+				() => {
+					if (status === 'failed') throw new Error('synthetic boundary failure');
+					return 'finished';
+				}
+			);
+			const handle = await workflow.run({});
+			if (status === 'canceled') {
+				await handle.cancel();
+			} else {
+				worker = client.newWorker({ concurrency: 1 });
+				expect(await worker.tick()).toBe(1);
+				await worker.stop();
+			}
+			expect(getWorkflowRun(raw, handle.workflowRun.id)!.status).toBe(status);
+			// Model a backend read completing at/after the deadline. Exercise the actual
+			// returned handle, not a local reproduction of its polling algorithm.
+			const read = backend.getWorkflowRun.bind(backend);
+			vi.spyOn(backend, 'getWorkflowRun').mockImplementation(async (params) => {
+				const run = await read(params);
+				vi.setSystemTime(start.getTime() + elapsed);
+				return run;
+			});
+			if (status === 'completed') {
+				await expect(handle.result({ timeoutMs: 10 })).resolves.toBe('finished');
+			} else {
+				await expect(handle.result({ timeoutMs: 10 })).rejects.toThrow(
+					status === 'failed' ? /synthetic boundary failure/ : /canceled/
+				);
+			}
+		}
+	);
+
+	test('result() still times out if a read crosses the boundary with a nonterminal run', async () => {
+		vi.useFakeTimers({ toFake: ['Date'] });
+		const start = new Date('2026-02-01T00:00:00.000Z');
+		vi.setSystemTime(start);
+		const handle = await client.runWorkflow(
+			defineWorkflowSpec({ name: 'unregistered-producer' }),
+			{}
+		);
+		const read = backend.getWorkflowRun.bind(backend);
+		vi.spyOn(backend, 'getWorkflowRun').mockImplementation(async (params) => {
+			const run = await read(params);
+			vi.setSystemTime(start.getTime() + 11);
+			return run;
+		});
+		await expect(handle.result({ timeoutMs: 10 })).rejects.toThrow(/Timed out/);
+		expect(getWorkflowRun(raw, handle.workflowRun.id)!.status).toBe('pending');
 	});
 });

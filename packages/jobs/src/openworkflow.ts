@@ -1,29 +1,34 @@
-import { OpenWorkflow } from 'openworkflow';
+import { OpenWorkflow, type Logger } from 'openworkflow';
 import { BackendSqlite } from 'openworkflow/sqlite';
 import type { DatabaseSync } from 'node:sqlite';
 
 let instance: OpenWorkflow | null = null;
+let backend: BackendSqlite | null = null;
+let closePromise: Promise<void> | null = null;
 
 export interface InitOpenWorkflowOptions {
-	/** Path to the openworkflow `node:sqlite` queue DB (or `:memory:`). */
 	dbPath: string;
+	logger?: Logger;
 }
 
-/**
- * Initialize the process-wide openworkflow client over a `node:sqlite` backend.
- * Idempotent: the first call wins; later calls return the same instance. The
- * worker calls this at boot; the web producer keeps its own client (it lives in
- * a separate process), so the singleton is per-process either way.
- */
-export function initOpenWorkflow({ dbPath }: InitOpenWorkflowOptions): OpenWorkflow {
+export function initOpenWorkflow({ dbPath, logger }: InitOpenWorkflowOptions): OpenWorkflow {
+	if (closePromise) throw new Error('openworkflow client has been closed');
 	if (!instance) {
-		instance = new OpenWorkflow({ backend: BackendSqlite.connect(dbPath) });
+		backend = BackendSqlite.connect(dbPath);
+		instance = new OpenWorkflow({ backend, logger });
 	}
 	return instance;
 }
 
-/** The initialized client. Throws if `initOpenWorkflow` hasn't been called. */
+// Stop the worker before closing its database connection.
+export function closeOpenWorkflow(): Promise<void> {
+	if (!backend) return Promise.resolve();
+	closePromise ??= backend.stop();
+	return closePromise;
+}
+
 export function getOpenWorkflow(): OpenWorkflow {
+	if (closePromise) throw new Error('openworkflow client has been closed');
 	if (!instance) {
 		throw new Error(
 			'openworkflow client has not been initialized; call initOpenWorkflow({ dbPath }) first'
@@ -32,7 +37,6 @@ export function getOpenWorkflow(): OpenWorkflow {
 	return instance;
 }
 
-/** A row from openworkflow's `workflow_runs` table (the columns web cares about). */
 export interface WorkflowRunRow {
 	id: string;
 	workflow_name: string;
@@ -44,7 +48,6 @@ export interface WorkflowRunRow {
 	created_at: string;
 }
 
-/** A flattened step attempt, for surfacing run progress in the UI. */
 export interface StepAttemptRow {
 	phase: string;
 	status: string;
@@ -53,11 +56,6 @@ export interface StepAttemptRow {
 	message: string | null;
 }
 
-/**
- * Look up a single workflow run by id. Read-only over a raw `DatabaseSync`
- * handle to the queue DB, so consumers (web) can surface run status without
- * pulling in the openworkflow engine.
- */
 export function getWorkflowRun(db: DatabaseSync, id: string): WorkflowRunRow | null {
 	const row = db
 		.prepare(
@@ -68,7 +66,6 @@ export function getWorkflowRun(db: DatabaseSync, id: string): WorkflowRunRow | n
 	return row ? (row as unknown as WorkflowRunRow) : null;
 }
 
-/** List a run's step attempts in chronological order. */
 export function getStepAttempts(db: DatabaseSync, workflowRunId: string): StepAttemptRow[] {
 	const rows = db
 		.prepare(

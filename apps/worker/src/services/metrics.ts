@@ -44,28 +44,28 @@ for (const metric of metricsToPrune) {
 
 export const jobsTotal = new Counter({
 	name: 'when_jobs_total',
-	help: 'Total number of background jobs processed.',
+	help: 'Workflow handler executions by return (success) or escape (failure, including durable suspension), not terminal job outcomes.',
 	labelNames: ['job_name', 'status'],
 	registers: [register]
 });
 
 export const jobDuration = new Histogram({
 	name: 'when_job_duration_seconds',
-	help: 'Execution duration of background jobs.',
+	help: 'Duration of each workflow handler execution, including executions that durably suspend.',
 	labelNames: ['job_name'],
 	registers: [register]
 });
 
 export const jobsActive = new Gauge({
 	name: 'when_jobs_active',
-	help: 'Number of background jobs currently running.',
+	help: 'Number of active workflow handler executions; durably suspended runs are excluded.',
 	labelNames: ['job_name'],
 	registers: [register]
 });
 
 export const emailsTotal = new Counter({
 	name: 'when_emails_total',
-	help: 'Total number of emails sent.',
+	help: 'Physical SMTP send attempts by outcome, not unique email deliveries.',
 	labelNames: ['recipient_type', 'status', 'email_kind'],
 	registers: [register]
 });

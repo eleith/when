@@ -7,6 +7,7 @@ import { applyConfig } from './services/config-reload.js';
 import { setWorkerContext, type WorkerContext } from './services/context.js';
 import { createHealthServer } from './services/health.js';
 import { logger } from './services/logger.js';
+import { createEngineLogger } from './services/engine-logger.js';
 import { registerWorkflows } from './workflows/index.js';
 import { registerSyncCalendarsWorkflow } from './workflows/sync-calendars.js';
 import { refreshCycle } from './calendar/refresh.js';
@@ -48,7 +49,10 @@ async function main(): Promise<void> {
 		}
 	}, CALENDAR_SYNC_FLOOR_MS);
 
-	const client = initOpenWorkflow({ dbPath: config.database.queue });
+	const client = initOpenWorkflow({
+		dbPath: config.database.queue,
+		logger: createEngineLogger(logger)
+	});
 	registerWorkflows();
 	registerSyncCalendarsWorkflow(calendarSync);
 	const worker = client.newWorker();

@@ -1,6 +1,7 @@
-import { describe, expect, test, vi } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vitest';
 import { openDb, runMigrations } from '@when/db';
 import { validConfig } from '$lib/server/__fixtures__/valid-config';
+import { systemClock } from '$lib/server/clock';
 
 let mockDb: Awaited<ReturnType<typeof makeDb>> | null = null;
 vi.mock('$lib/server/state', () => ({
@@ -38,6 +39,8 @@ function loadEvent(): Parameters<typeof load>[0] {
 }
 
 describe('admin +page.server load', () => {
+	afterEach(() => vi.restoreAllMocks());
+
 	test('returns purgedCount: 0 when no purged appointments exist', async () => {
 		mockDb = await makeDb();
 		await mockDb
@@ -74,6 +77,7 @@ describe('admin +page.server load', () => {
 	});
 
 	test('calculates lifetimeMinutes accurately without floating-point truncation', async () => {
+		vi.spyOn(systemClock, 'now').mockReturnValue(new Date('2026-09-10T12:00:00Z'));
 		mockDb = await makeDb();
 		await mockDb
 			.insertInto('appointments')

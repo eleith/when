@@ -27,7 +27,7 @@
 		"eta": "4.6.0",
 		"kysely": "0.28.17",
 		"nodemailer": "9.0.3",
-		"openworkflow": "0.9.0",
+		"openworkflow": "0.11.0",
 		"pino": "10.3.1",
 		"prom-client": "15.1.3",
 		"ts-ics": "2.4.4"

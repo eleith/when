@@ -30,7 +30,7 @@
 	"dependencies": {
 		"@when/config": "workspace:*",
 		"@when/db": "workspace:*",
-		"openworkflow": "0.9.0"
+		"openworkflow": "0.11.0"
 	},
 	"devDependencies": {
 		"@eslint/js": "catalog:",

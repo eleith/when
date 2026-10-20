@@ -1,16 +1,16 @@
 # @when/worker
 
-The `when` worker — a long-running Node service that runs jobs produced by the
-web app (and, later, jobs it schedules itself). Built on
-[openworkflow](https://openworkflow.dev) over `node:sqlite`, so it shares the
-`when.sqlite` app DB and owns the `queue.sqlite` job DB.
+The `when` worker is a long-running Node service for appointment side effects,
+calendar maintenance, and on-demand service probes. Built on
+[OpenWorkflow](https://openworkflow.dev) `0.11.0` over `node:sqlite`, it shares the
+`when.sqlite` app DB and the `openworkflow.sqlite` queue with producers.
 
-Its job is sending appointment emails: web enqueues a `send-appointment-email` run when an
-appointment is created, confirmed, cancelled, rescheduled, or declined, and the
-worker renders the email(s), sends them over SMTP, and records the per-channel
-outcome on the appointment (`email_notification_status`). On boot it loads
-config, migrates the app DB, connects the queue, registers its workflows, starts
-polling, and serves `/healthz`.
+Web enqueues `reconcile-appointment` when an appointment changes. The worker
+coordinates calendar/video updates, renders emails, sends them over SMTP, and
+records outcomes in the appointment action log and service status. It also handles
+purge, calendar-repair requests, video-link generation, and service probes. On boot
+it loads config, migrates the app DB, connects the queue, registers workflows,
+starts polling with one execution slot, and serves `/healthz`.
 
 ## Run it
 
@@ -55,12 +55,18 @@ Relative paths resolve against the config file's directory, so web and worker
 - `pnpm start` — `node dist/src/index.js`.
 - `pnpm check` / `pnpm lint` / `pnpm test` / `pnpm test:coverage`.
 
-## Recurring jobs (future)
+## Engine integration
 
-openworkflow has no native cron yet. When the worker needs periodic work — e.g. a
-calendar refresh — schedule it itself: a `setInterval` that calls
-`getOpenWorkflow().runWorkflow(spec, input, { idempotencyKey })` with a
-time-bucketed key (e.g. `calendar-refresh:2026-06-05T12`), so a given bucket runs
-at most once even if the interval double-fires or the process restarts (the same
-pattern luzzle uses for its purge job). Swap to native cron once openworkflow
-ships it.
+Engine polling, schedule, heartbeat, and execution diagnostics go through the
+worker's Pino logger. The adapter emits operational categories without forwarding
+arbitrary engine error text or payloads that may contain credentials or guest links.
+
+The existing job metrics describe **handler executions**, including replays. An
+escaped handler execution may mean durable suspension rather than a terminal job
+failure. Email metrics count physical SMTP attempt outcomes, not an exactly-once
+delivery ledger.
+
+OpenWorkflow `0.11.0` supports persisted cron schedules. This engine-upgrade step
+still uses the existing process timers for refresh, expiry, and repair; migrating
+those tasks to awaited cron workflows is a separate application change. Likewise,
+upgrading the engine alone does not change the current workflow error handling.

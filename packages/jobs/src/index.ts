@@ -31,6 +31,7 @@ export type {
 } from './specs.js';
 export {
 	initOpenWorkflow,
+	closeOpenWorkflow,
 	getOpenWorkflow,
 	getWorkflowRun,
 	getStepAttempts
