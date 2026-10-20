@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
-import { openDb, runMigrations } from '@when/db';
+import { openDb, runMigrations, replaceCalendarBusy, lastCalendarRefreshAt } from '@when/db';
 import type { WhenConfiguration } from '@when/config';
-import { setWorkerContext, type WorkerContext } from '../services/context.js';
+import { getWorkerContext, setWorkerContext, type WorkerContext } from '../services/context.js';
+import { refreshCalendars } from '../calendar/refresh.js';
 import { createLogger } from '../services/logger.js';
 import { runTestCalendar } from './probe-calendar.js';
 
@@ -12,7 +13,9 @@ const config = {
 			url: 'https://cal.example.com/',
 			username: 'u',
 			password: 'p',
-			calendars: { work: { href: 'https://cal.example.com/work/' } }
+			calendars: {
+				work: { href: 'https://cal.example.com/work/', sync: { refresh_every_minutes: 10 } }
+			}
 		}
 	},
 	meetings: {
@@ -40,10 +43,16 @@ afterEach(async () => {
 	await db.destroy();
 });
 
-test('a reachable calendar reports its busy count and records both keys', async () => {
-	vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(emptyReport, { status: 207 }));
+test('an empty calendar test replaces the mirror and supplies fresh evidence only for its calendar', async () => {
+	await replaceCalendarBusy(db, 'work', [
+		{ start: '2026-04-01T10:00:00Z', end: '2026-04-01T11:00:00Z' }
+	]);
+	const fetch = vi
+		.spyOn(globalThis, 'fetch')
+		.mockResolvedValue(new Response(emptyReport, { status: 207 }));
 
-	expect(await runTestCalendar({ name: 'work' })).toEqual({ busyCount: 0, days: 14 });
+	const result = await runTestCalendar({ name: 'work' });
+	expect(result).toEqual({ busyCount: 0, days: 14 });
 	const mirror = await db.selectFrom('external_calendar_busy').selectAll().execute();
 	expect(mirror).toEqual([]);
 
@@ -52,7 +61,15 @@ test('a reachable calendar reports its busy count and records both keys', async 
 		'calendar/work',
 		'provider/work-dav'
 	]);
-	for (const row of rows) expect(row.via).toBe('test');
+	for (const row of rows) {
+		expect(row.via).toBe('test');
+		const refreshAt = lastCalendarRefreshAt(row);
+		expect(refreshAt).toBe(row.kind === 'calendar' ? row.last_ok_at : null);
+	}
+	const calendar = rows.find((row) => row.kind === 'calendar')!;
+	const now = Temporal.Instant.from(calendar.last_ok_at!).add({ minutes: 9 });
+	await refreshCalendars(getWorkerContext(), { now });
+	expect(fetch).toHaveBeenCalledOnce();
 });
 
 test('an unreachable calendar records the failure on both keys and rethrows', async () => {

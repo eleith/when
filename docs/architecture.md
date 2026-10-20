@@ -71,6 +71,8 @@ clients: they neither start a worker nor persist schedules.
   minutes. Startup then independently enqueues all three `{}` passes without options.
   Cron is wall-clock aligned and catches up once per overdue schedule, not once per
   missed tick. Pausing cron does not suppress startup passes or already queued work.
+  Worker scheduling and web health share conservative mirror-freshness evidence;
+  a push is not a refresh. See the [worker maintenance reference](../apps/worker/README.md#maintenance-and-shutdown).
 - **One execution slot.** Maintenance handlers await their actual pass; sync's
   `requested` result means its scan finished. There are no application maintenance
   timers or coalescers. Repeated requests each get a pass and can build a backlog;

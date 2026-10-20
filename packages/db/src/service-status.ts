@@ -16,7 +16,6 @@ export interface ServiceOutcome {
 	error?: string | null;
 }
 
-// failing_since is set only on the healthy-to-failing transition, so it reads as "since".
 export async function recordServiceOutcome(
 	db: Kysely<Database>,
 	ref: ServiceRef,
@@ -55,6 +54,26 @@ export async function recordServiceOutcome(
 			)
 		)
 		.execute();
+}
+
+export function lastCalendarRefreshAt(status: ServiceStatus | undefined): string | null {
+	if (
+		status?.kind !== 'calendar' ||
+		(status.via !== 'refresh' && status.via !== 'test') ||
+		status.error !== null ||
+		status.failing_since !== null ||
+		!status.last_attempt_at ||
+		!status.last_ok_at
+	) {
+		return null;
+	}
+	try {
+		const attempt = Temporal.Instant.from(status.last_attempt_at);
+		const success = Temporal.Instant.from(status.last_ok_at);
+		return Temporal.Instant.compare(attempt, success) === 0 ? status.last_ok_at : null;
+	} catch {
+		return null;
+	}
 }
 
 export function listServiceStatus(

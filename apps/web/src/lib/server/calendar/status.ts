@@ -3,7 +3,7 @@ import { allCalendars, calendarTarget, type WhenConfiguration } from '@when/conf
 import type { Database } from '@when/db';
 import { getOpenWorkflow, testCalendar } from '@when/jobs';
 import { workerReachable } from '$lib/server/worker';
-import { listServiceStatus } from '@when/db';
+import { lastCalendarRefreshAt, listServiceStatus } from '@when/db';
 import { evaluateCalendarStatuses } from './health';
 
 const PROBE_TIMEOUT_MS = 30_000;
@@ -21,8 +21,6 @@ export interface CalendarView {
 
 export type CalendarProbeResult = { ok: true; message: string } | { ok: false; message: string };
 
-// Cheap: config plus two indexed reads. The worker records a verdict on every refresh
-// pass, so the page reports real health without reaching a provider.
 export async function listCalendars(
 	config: WhenConfiguration,
 	db: Kysely<Database>
@@ -31,7 +29,7 @@ export async function listCalendars(
 
 	const computed = evaluateCalendarStatuses(syncStatus, config, Temporal.Now.instant());
 	const statuses = new Map(computed.map((s) => [s.id, s]));
-	const lastSynced = new Map(syncStatus.map((s) => [s.name, s.last_ok_at]));
+	const lastSynced = new Map(syncStatus.map((s) => [s.name, lastCalendarRefreshAt(s)]));
 
 	return allCalendars(config).map((resolved) => {
 		const { calendar } = resolved;

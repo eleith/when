@@ -3,7 +3,12 @@ import { Migrator, sql } from 'kysely';
 import { openDb } from './index.js';
 import { runMigrations } from './migrate.js';
 import { migrations } from './migrations/index.js';
-import { listServiceStatus, recordServiceOutcome } from './service-status.js';
+import {
+	lastCalendarRefreshAt,
+	listServiceStatus,
+	recordServiceOutcome
+} from './service-status.js';
+import type { ServiceStatus } from './types.js';
 
 async function freshDb() {
 	const db = openDb(':memory:');
@@ -21,6 +26,61 @@ async function statusOf(db: Awaited<ReturnType<typeof freshDb>>, kind: string, n
 		.where('name', '=', name)
 		.executeTakeFirstOrThrow();
 }
+
+const refreshed: ServiceStatus = {
+	kind: 'calendar',
+	name: 'work',
+	last_attempt_at: '2026-04-01T00:00:00Z',
+	last_ok_at: '2026-04-01T00:00:00Z',
+	failing_since: null,
+	error: null,
+	via: 'refresh'
+};
+
+test.each(['refresh', 'test'])('a successful calendar %s proves mirror refresh time', (via) => {
+	const at = lastCalendarRefreshAt({ ...refreshed, via });
+	expect(at).toBe(refreshed.last_ok_at);
+});
+
+test('mirror evidence compares timestamp instants, not their formatting', () => {
+	const at = lastCalendarRefreshAt({
+		...refreshed,
+		last_attempt_at: '2026-04-01T01:00:00.000+01:00'
+	});
+	expect(at).toBe(refreshed.last_ok_at);
+});
+
+test.each([
+	{ label: 'missing observation', status: undefined },
+	{ label: 'push success', status: { ...refreshed, via: 'push' } },
+	{ label: 'send success', status: { ...refreshed, via: 'send' } },
+	{ label: 'unknown operation', status: { ...refreshed, via: null } },
+	{ label: 'unrecognized operation', status: { ...refreshed, via: 'unknown' } },
+	{ label: 'provider test', status: { ...refreshed, kind: 'provider', via: 'test' } },
+	{ label: 'SMTP test', status: { ...refreshed, kind: 'smtp', via: 'test' } },
+	{ label: 'missing success', status: { ...refreshed, last_ok_at: null } },
+	{ label: 'missing attempt', status: { ...refreshed, last_attempt_at: null } },
+	{ label: 'invalid success', status: { ...refreshed, last_ok_at: 'invalid' } },
+	{ label: 'invalid attempt', status: { ...refreshed, last_attempt_at: 'invalid' } },
+	{
+		label: 'both timestamps invalid',
+		status: { ...refreshed, last_ok_at: 'invalid', last_attempt_at: 'invalid' }
+	},
+	{
+		label: 'attempt after success',
+		status: { ...refreshed, last_attempt_at: '2026-04-01T00:01:00Z' }
+	},
+	{ label: 'success after attempt', status: { ...refreshed, last_ok_at: '2026-04-01T00:01:00Z' } },
+	{ label: 'failed refresh', status: { ...refreshed, error: 'offline' } },
+	{ label: 'failed test', status: { ...refreshed, via: 'test', error: 'offline' } },
+	{
+		label: 'unresolved failing state',
+		status: { ...refreshed, failing_since: refreshed.last_attempt_at }
+	}
+])('$label does not prove mirror freshness', ({ status }) => {
+	const at = lastCalendarRefreshAt(status);
+	expect(at).toBeNull();
+});
 
 test('a first success records the attempt and leaves nothing failing', async () => {
 	const db = await freshDb();

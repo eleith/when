@@ -13,6 +13,8 @@ by `@when/web` and `@when/worker`, which both open the same `when.sqlite`.
 - `runMigrations(db)` — apply pending migrations; returns the applied names (the
   caller logs — the package stays logger-agnostic).
 - `migrations` — the ordered migration set.
+- `lastCalendarRefreshAt(status)` — proven mirror-refresh timestamp, or `null` when
+  the latest observation cannot establish refresh freshness. Shared by worker and web.
 - `parseNotificationStatus(raw)` — parse the `appointments.notification_status`
   JSON column.
 - Types: `Database`, `Appointment`, `NewAppointment`, `AppointmentUpdate`,

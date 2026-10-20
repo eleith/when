@@ -1,8 +1,7 @@
-import type { ServiceStatus } from '@when/db';
+import { lastCalendarRefreshAt, type ServiceStatus } from '@when/db';
 import { findCalendar, type WhenConfiguration } from '@when/config';
 
 const STALE_GRACE_MINUTES = 30;
-const STARTUP_GRACE_MINUTES = 15;
 
 export interface ComputedCalendarStatus {
 	id: string;
@@ -20,33 +19,24 @@ export function evaluateCalendarStatuses(
 		const id = s.name;
 
 		if (s.error) {
-			const reason = s.last_ok_at ? s.error : `Never synced: ${s.error}`;
-			return { id, health: 'bad', reason, since: s.failing_since };
+			return { id, health: 'bad', reason: s.error, since: s.failing_since };
 		}
 
-		if (s.last_ok_at) {
+		const lastRefreshAt = lastCalendarRefreshAt(s);
+		if (lastRefreshAt) {
 			const intervalMinutes = findCalendar(config, id)?.calendar.sync.refresh_every_minutes ?? 10;
-			const staleAfter = Temporal.Instant.from(s.last_ok_at).add({
+			const staleAfter = Temporal.Instant.from(lastRefreshAt).add({
 				minutes: intervalMinutes + STALE_GRACE_MINUTES
 			});
 			if (Temporal.Instant.compare(now, staleAfter) > 0) {
 				return {
 					id,
 					health: 'bad',
-					reason: `No successful refresh since ${s.last_ok_at}.`,
-					since: s.last_ok_at
+					reason: `No successful refresh since ${lastRefreshAt}.`,
+					since: lastRefreshAt
 				};
 			}
 			return { id, health: 'good', reason: null, since: null };
-		}
-
-		if (s.last_attempt_at) {
-			const graceAfter = Temporal.Instant.from(s.last_attempt_at).add({
-				minutes: STARTUP_GRACE_MINUTES
-			});
-			if (Temporal.Instant.compare(now, graceAfter) > 0) {
-				return { id, health: 'bad', reason: 'Never synced.', since: s.last_attempt_at };
-			}
 		}
 
 		return { id, health: 'unknown', reason: null, since: null };

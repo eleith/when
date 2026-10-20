@@ -251,8 +251,11 @@
 								{:else if calendar.health === 'good'}
 									<dd class="ok">up ({timeAgo(calendar.lastSyncedAt)})</dd>
 								{:else}
-									<dd>not observed</dd>
+									<dd>refresh freshness unknown</dd>
 								{/if}
+
+								<dt>Last refresh</dt>
+								<dd>{timeAgo(calendar.lastSyncedAt)}</dd>
 
 								<dt>Refreshes</dt>
 								<dd>every {calendar.refreshEveryMinutes} min</dd>

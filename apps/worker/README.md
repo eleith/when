@@ -106,9 +106,19 @@ delivery ledger.
 All inputs are `{}`. Each handler awaits the actual pass in durable steps; `requested`
 means the scan finished, not that an in-memory request was accepted. Refresh checks
 per-calendar due intervals, keeps stale mirrors on provider fetch failure, and runs
-before conflict checks. Expiry SQL is idempotent. Subsequent callbacks read live config.
+before conflict checks. Expiry SQL is idempotent and dirties newly expired pending rows
+for repair; already-expired equal-revision rows are not backfilled. Subsequent callbacks
+read live config.
 Expected provider failures record status for later passes; local errors escape to native
 retries. Completion is not a promise that every provider succeeded.
+
+Mirror freshness is proven only by the latest successful calendar refresh or calendar
+test, including an empty result. Pushes, failures and unknown/inconsistent observations
+make a calendar due on the next pass, even when an older success timestamp remains.
+Provider authentication/discovery does not refresh a mirror. The worker and web health
+share this evidence check: untrusted refresh time is unknown, while explicit errors
+remain failures. This conservative policy can fetch more often during push traffic or
+sustained failure; it adds no timestamp column or freshness history.
 
 Cron follows UTC wall-clock boundaries, not time since the last pass finished. After
 downtime it dispatches one overdue run per schedule. Native startup upserts preserve

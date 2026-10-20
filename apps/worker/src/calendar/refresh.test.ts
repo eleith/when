@@ -470,6 +470,104 @@ test('refreshCalendars refreshes known busy calendars and skips unknown ids', as
 	}
 });
 
+test.each(['push', 'refresh', 'test'] as const)(
+	'refreshCalendars refreshes after a latest %s observation that does not prove mirror freshness',
+	async (via) => {
+		const ctx = await ctxWithDb({ meetings: workMeetings });
+		try {
+			await recordServiceOutcome(
+				ctx.db,
+				{ kind: 'calendar', name: 'work' },
+				{
+					at: window.start.subtract({ minutes: 2 }).toString(),
+					via: via === 'push' ? 'refresh' : 'push'
+				}
+			);
+			await recordServiceOutcome(
+				ctx.db,
+				{ kind: 'calendar', name: 'work' },
+				{
+					at: window.start.subtract({ minutes: 1 }).toString(),
+					via,
+					error: via === 'push' ? null : 'offline'
+				}
+			);
+			const fetch = vi
+				.spyOn(globalThis, 'fetch')
+				.mockResolvedValue(new Response(oneEvent('new'), { status: 207 }));
+
+			await refreshCalendars(ctx, { now: window.start });
+
+			expect(fetch).toHaveBeenCalledOnce();
+			const status = await ctx.db
+				.selectFrom('service_status')
+				.selectAll()
+				.where('kind', '=', 'calendar')
+				.where('name', '=', 'work')
+				.executeTakeFirstOrThrow();
+			expect(status).toMatchObject({
+				last_ok_at: window.start.toString(),
+				via: 'refresh',
+				error: null
+			});
+		} finally {
+			await ctx.db.destroy();
+		}
+	}
+);
+
+test.each([
+	{ via: null },
+	{ last_ok_at: 'invalid' },
+	{ last_attempt_at: 'invalid' },
+	{ last_attempt_at: '2026-03-31T23:59:00Z' },
+	{ failing_since: '2026-03-31T23:59:00Z' }
+])('refreshCalendars treats inconsistent mirror evidence as due: %j', async (overrides) => {
+	const ctx = await ctxWithDb({ meetings: workMeetings });
+	try {
+		await recordServiceOutcome(
+			ctx.db,
+			{ kind: 'calendar', name: 'work' },
+			{ at: window.start.toString(), via: 'refresh' }
+		);
+		await ctx.db
+			.updateTable('service_status')
+			.set(overrides)
+			.where('kind', '=', 'calendar')
+			.where('name', '=', 'work')
+			.execute();
+		const fetch = vi
+			.spyOn(globalThis, 'fetch')
+			.mockResolvedValue(new Response(oneEvent('new'), { status: 207 }));
+
+		await refreshCalendars(ctx, { now: window.start });
+
+		expect(fetch).toHaveBeenCalledOnce();
+	} finally {
+		await ctx.db.destroy();
+	}
+});
+
+test('a provider authentication observation cannot postpone calendar refresh', async () => {
+	const ctx = await ctxWithDb({ meetings: workMeetings });
+	try {
+		await recordServiceOutcome(
+			ctx.db,
+			{ kind: 'provider', name: 'work-dav' },
+			{ at: window.start.toString(), via: 'test' }
+		);
+		const fetch = vi
+			.spyOn(globalThis, 'fetch')
+			.mockResolvedValue(new Response(oneEvent('new'), { status: 207 }));
+
+		await refreshCalendars(ctx, { now: window.start });
+
+		expect(fetch).toHaveBeenCalledOnce();
+	} finally {
+		await ctx.db.destroy();
+	}
+});
+
 test('refreshCalendars skips a calendar refreshed within its interval, refreshes once due', async () => {
 	const db = openDb(':memory:');
 	await runMigrations(db);
