@@ -105,6 +105,8 @@ suite in both pipelines.
 - **Type safety at boundaries:** validate every external input (YAML, forms, API) against
   the config JSON Schema (ajv) — the repo does not use Zod. Database access goes through
   Kysely.
+- **Async readability:** assign awaited results to named variables before returning
+  them or passing them as arguments.
 - **Time:** never call `new Date()` / `Date.now()` in domain logic; inject a `Clock`.
 - **Comments:** comment non-obvious rationale only. Don't restate what a name already
   says.

@@ -146,15 +146,132 @@ State is two SQLite files under the data directory the compose file mounts
 (`./data` → `/app/data`):
 
 - `when.sqlite` — appointments, mirrored busy times, and service status (shared by web + worker).
-- `openworkflow.sqlite` — the background job queue (owned by the worker).
+- `openworkflow.sqlite` — the background job queue (shared by web/CLI producers and worker).
 
 Branding overrides live in a separate `public/` directory mounted alongside
 (`./public` → `/app/public`, overridable with `WHEN_PUBLIC_DIR`); the web app serves
 them at `/public/...`. The bundled defaults under `/assets/*` are baked into the image
 and need no mount.
 
-Back up the data directory (and `public/`, if you use it) to preserve appointments and
-settings across restarts. Database paths are configurable under `database` in `when.yaml`.
+Back up both databases consistently using SQLite-aware backup handling, not live file
+copies that omit committed WAL data. Include `when.yaml`, its environment secrets, and
+`public/` overrides separately. Database paths are configurable under `database`.
+Both databases are sensitive: the queue includes prepared email envelopes, personal data
+and guest capability links. Encrypt off-host backups and restrict local access.
+
+## Grouped workflow rollout
+
+Deploy web, worker and CLI as one stopped, grouped release. Do not deploy intermediate
+PR images automatically; release/version/tag operations require separate authorization.
+Application tests and the read-only drain/backup procedure are the gates, not an
+assumption of old/new queue compatibility.
+
+1. **Verify the release.** Run affected jobs/worker/web/CLI checks, lint, coverage and
+   builds, workspace checks and browser regressions. Confirm both CI paths execute the
+   co-located integration tests. Keep the currently deployed artifacts available.
+2. **Stop producers**, including web, CLI commands and any other enqueuers. Let the
+   **old worker** drain every unfinished old run. Worker shutdown alone is not draining:
+   future pending jobs, parked retries/parents, running jobs and legacy `sleeping` work
+   all count. Inspect the old queue read-only; do not initialize the new jobs client,
+   since connection runs migrations. If recurring dispatch exists, pause it with the
+   matching deployed API so the queue can drain.
+3. **Halt if it cannot drain.** Require an explicit operator retry/cancel/reset decision
+   after reviewing local and remote state. Never automatically wipe/reset a queue, even
+   an apparently empty one, edit checkpoints, or resume changed old application graphs.
+   Inspect again after any authorized action; cancelling a parent need not cancel its
+   already-started children.
+4. **Stop the old worker**, recheck that no unfinished runs remain, then take a consistent
+   paired app/queue backup while all writers stay stopped. Include committed WAL data
+   with SQLite-aware handling and verify restoration on copies (examples below).
+5. **Deploy the grouped artifacts once**, against the same config and database paths,
+   with no old worker or competing maintenance timers. Native `worker.start()` persists
+   schedules and preserves pause; startup then enqueues all three `{}` passes without
+   options, independently of pause. Inspect startup passes, schedules, service status
+   and queue progress. Cron catches up once per overdue schedule and can coexist with
+   startup work. Repeated scans are not coalesced; slow active maintenance blocks other
+   jobs at concurrency one, while native retry waits park. Do not replay old graphs or
+   automatically rerun terminal history; dedup may return an existing terminal run.
+6. **Rollback only with evidence.** Use a proven compatible binary, or obtain explicit
+   approval for restoring the paired backups and losing all later writes. Old binaries
+   are not assumed compatible with migrated queues. Stop every writer before a paired
+   restore; restore into clean destinations without stale WAL/SHM sidecars. Remote
+   calendar/email effects are not undone by restoring SQLite.
+
+### Read-only drain inspection
+
+Set `QUEUE` to the actual old queue path. With the SQLite CLI, inspect the schema first:
+
+```sh
+sqlite3 -readonly "$QUEUE" '.schema workflow_runs'
+```
+
+The installed `0.11.0` schema uses `workflow_runs`, with `namespace_id`, `id`,
+`workflow_name`, `status`, and `available_at`. Verify these columns against the deployed
+schema; a mismatch requires investigation, not opening it with a newer client. Installed
+public status types/terminal logic recognize `completed`, legacy `succeeded`, `failed`,
+and **`canceled`** (one l) as terminal. `pending`, `running`, and legacy `sleeping` are
+unfinished. Unknown statuses halt the rollout, even if they look terminal.
+
+```sh
+sqlite3 -readonly -header -column "$QUEUE" <<'SQL'
+PRAGMA query_only = ON;
+SELECT status, COUNT(*) AS runs FROM workflow_runs GROUP BY status;
+SELECT namespace_id, id, workflow_name, status, available_at
+FROM workflow_runs
+WHERE status NOT IN ('completed', 'succeeded', 'failed', 'canceled')
+ORDER BY namespace_id, created_at, id;
+SQL
+```
+
+Proceed only when the second query returns no rows and every observed status is known.
+There is deliberately **no due-time filter**: future pending work is unfinished. Inspect
+all namespaces and child runs, not just top-level appointment runs. Do not dump inputs,
+envelopes, errors or capability links into shared logs.
+
+### Paired backup and restore check
+
+With producers and worker stopped, set `APP`, `QUEUE`, and `BACKUP` to the real paths
+and a fresh restricted backup directory. For ordinary paths without single quotes:
+
+```sh
+mkdir -m 700 "$BACKUP"
+sqlite3 -readonly "$APP" ".backup '$BACKUP/when.sqlite'"
+sqlite3 -readonly "$QUEUE" ".backup '$BACKUP/openworkflow.sqlite'"
+mkdir -m 700 "$BACKUP/restore-check"
+cp "$BACKUP/when.sqlite" "$BACKUP/restore-check/when.sqlite"
+cp "$BACKUP/openworkflow.sqlite" "$BACKUP/restore-check/openworkflow.sqlite"
+sqlite3 -readonly "$BACKUP/restore-check/when.sqlite" 'PRAGMA integrity_check;'
+sqlite3 -readonly "$BACKUP/restore-check/openworkflow.sqlite" 'PRAGMA integrity_check;'
+```
+
+Both integrity checks must report `ok`. Compare restored appointment counts and queue
+status counts to the stopped sources, and rerun drain inspection on the restored queue.
+SQLite `.backup` includes committed WAL state; do not copy live main files alone or
+remove source WAL files to make backups look clean. Because every writer is stopped,
+the sequential backups form a consistent pair. Keep that pair together; test copies
+must never reach real providers or become the running deployment.
+
+### Interpreting outcomes
+
+An email action `failed` is an **observed provider attempt**, possibly followed by retries
+and recovery; local errors are not provider-failure observations. `done` requires a
+nonempty intended set where every delivery reported `sent` and the row is still eligible
+at the final write. Mixed/all skipped sets and missing/purged rows get no summary.
+Engine history is authoritative for terminal failure; no aggregate terminal email-failure
+summary is synthesized. An already-started sibling can continue independently. SMTP
+service status is the **last recorded physical attempt outcome**, not an aggregate
+recipient/job result. Handler metrics include replays/suspensions; email metrics count
+physical attempt outcomes. Crashes before checkpoints can duplicate effects or log
+entries: this is at-least-once execution, not an exactly-once ledger.
+
+A failed purge retains the current and later hidden `purged` rows, including local
+personal data. Earlier successful deletions remain deleted. Web selection skips
+already-purged rows, so clicking purge again is not promised recovery. Review retained
+rows, engine history and remote state before choosing explicit operator cleanup; there
+is no automatic terminal rerun or remote-orphan fallback. A completed maintenance pass
+likewise does not guarantee every provider succeeded. See the
+[worker README](../apps/worker/README.md#maintenance-and-shutdown) for cadence and the
+[jobs README](../packages/jobs/README.md#schedule-management) for public schedule management.
 
 ## Config reloads
 
