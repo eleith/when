@@ -68,6 +68,13 @@ The parent records `done` only when every intended email was sent and the appoin
 still exists and is not purged. Ineligible deliveries are skipped. Exhaustion fails
 the engine run rather than returning a successful summary of failed delivery.
 
+Purge deletes each remote event with up to thirty native attempts (one-minute
+initial delay, doubling up to one hour). Success or an already-missing event permits
+video cleanup and local deletion. Exhaustion fails the job, retaining that row and
+all later rows in the chain. These rows are already marked `purged` and hidden from
+normal scheduling; another purge click does not automatically recover them. Review
+failed jobs before deciding how to finish cleanup.
+
 Prepared envelopes include personal data and guest capability links: treat queue
 backups like application backups. Checkpoints do not guarantee exactly-once SMTP;
 a crash after remote acceptance but before saving success can still cause a duplicate.

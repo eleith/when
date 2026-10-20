@@ -1,7 +1,8 @@
 import { expect, test, vi, beforeEach } from 'vitest';
 import { openDb, runMigrations } from '@when/db';
 import type { Database } from '@when/db';
-import type { Kysely } from 'kysely';
+import { sql, type Kysely } from 'kysely';
+import type { RetryPolicy } from 'openworkflow';
 import type { WhenConfiguration } from '@when/config';
 import type { PurgeAppointmentInput } from '@when/jobs';
 import { setWorkerContext } from '../services/context.js';
@@ -25,13 +26,18 @@ const config = {
 
 function makeStep() {
 	const names: string[] = [];
+	const policies: (Partial<RetryPolicy> | undefined)[] = [];
 	const step = {
-		run: async <T>(cfg: { name: string }, fn: () => Promise<T> | T): Promise<T> => {
+		run: async <T>(
+			cfg: { name: string; retryPolicy?: Partial<RetryPolicy> },
+			fn: () => Promise<T> | T
+		): Promise<T> => {
 			names.push(cfg.name);
+			policies.push(cfg.retryPolicy);
 			return fn();
 		}
 	};
-	return { step, names };
+	return { step, names, policies };
 }
 
 function recordingFetch(status = 204) {
@@ -107,9 +113,19 @@ test('reachable calendar: deletes the remote event and the row', async () => {
 		const input: PurgeAppointmentInput = {
 			rows: [{ id: '1', externalEventId: '1', externalCalendarId: 'work' }]
 		};
-		const { step, names } = makeStep();
+		const { step, names, policies } = makeStep();
 
 		expect(await runPurgeAppointment(input, step)).toBe('purged');
+		expect(policies).toEqual([
+			{
+				maximumAttempts: 30,
+				initialInterval: '1m',
+				backoffCoefficient: 2,
+				maximumInterval: '1h'
+			},
+			undefined,
+			undefined
+		]);
 		expect(calls.some((c) => c.method === 'DELETE')).toBe(true);
 		expect(names).toEqual(['calendar:1', 'video-chat-cleanup:1', 'delete:1']);
 		expect(await exists(db, '1')).toBe(false);
@@ -119,7 +135,7 @@ test('reachable calendar: deletes the remote event and the row', async () => {
 	}
 });
 
-test('unreachable calendar: logs the orphan but still deletes the row', async () => {
+test('calendar failure escapes without cleanup, deletion or an orphan warning', async () => {
 	const db = await seedDb([
 		{ id: '1', cancel_token: 't1', external_event_id: '1', external_calendar_id: 'work' }
 	]);
@@ -130,12 +146,11 @@ test('unreachable calendar: logs the orphan but still deletes the row', async ()
 			rows: [{ id: '1', externalEventId: '1', externalCalendarId: 'work' }]
 		};
 
-		expect(await runPurgeAppointment(input, makeStep().step)).toBe('purged');
-		expect(warn).toHaveBeenCalledWith(
-			expect.objectContaining({ appointmentId: '1', externalEventId: '1' }),
-			'purge left an orphaned calendar event'
-		);
-		expect(await exists(db, '1')).toBe(false);
+		const { step, names } = makeStep();
+		await expect(runPurgeAppointment(input, step)).rejects.toThrow();
+		expect(names).toEqual(['calendar:1']);
+		expect(warn).not.toHaveBeenCalled();
+		expect(await exists(db, '1')).toBe(true);
 	} finally {
 		await db.destroy();
 	}
@@ -182,3 +197,54 @@ test('purges every row in the chain', async () => {
 		await db.destroy();
 	}
 });
+
+test('opaque step rejection escapes unchanged', async () => {
+	const db = await seedDb([{ id: '1' }]);
+	try {
+		const { warn } = useContext(db);
+		const rejection = new Error('opaque step rejection');
+		const run = vi.fn().mockRejectedValue(rejection);
+		await expect(
+			runPurgeAppointment(
+				{ rows: [{ id: '1', externalEventId: '1', externalCalendarId: 'work' }] },
+				{ run }
+			)
+		).rejects.toBe(rejection);
+		expect(run).toHaveBeenCalledTimes(1);
+		expect(warn).not.toHaveBeenCalled();
+		expect(await exists(db, '1')).toBe(true);
+	} finally {
+		await db.destroy();
+	}
+});
+
+test.each(['video cleanup', 'local delete'])(
+	'%s database failure escapes and retains the row',
+	async (stage) => {
+		const videoChatUrl = stage === 'video cleanup' ? 'https://talk.example.com/call/room' : null;
+		const db = await seedDb([{ id: '1', video_chat: videoChatUrl }]);
+		try {
+			useContext(db);
+			const operation = stage === 'video cleanup' ? 'UPDATE' : 'DELETE';
+			await sql
+				.raw(
+					`CREATE TRIGGER fail_cleanup BEFORE ${operation} ON appointments
+			BEGIN SELECT RAISE(FAIL, 'local cleanup failed'); END`
+				)
+				.execute(db);
+			const { step, names } = makeStep();
+			await expect(
+				runPurgeAppointment(
+					{ rows: [{ id: '1', externalEventId: null, externalCalendarId: null }] },
+					step
+				)
+			).rejects.toThrow('local cleanup failed');
+			expect(names).toEqual(
+				stage === 'video cleanup' ? ['video-chat-cleanup:1'] : ['video-chat-cleanup:1', 'delete:1']
+			);
+			expect(await exists(db, '1')).toBe(true);
+		} finally {
+			await db.destroy();
+		}
+	}
+);
