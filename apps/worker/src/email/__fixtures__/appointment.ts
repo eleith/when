@@ -18,6 +18,7 @@ export const sampleAppointment: Appointment = {
 	status: 'confirmed',
 	note: null,
 	video_chat: null,
+	video_chat_request: null,
 	cancel_token: 'tok-1',
 	action_log: null,
 	external_event_id: null,

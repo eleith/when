@@ -18,7 +18,17 @@ by `@when/web` and `@when/worker`, which both open the same `when.sqlite`.
 - `parseNotificationStatus(raw)` — parse the `appointments.notification_status`
   JSON column.
 - Types: `Database`, `Appointment`, `NewAppointment`, `AppointmentUpdate`,
-  `AppointmentStatus`, `NotificationStatus`, `NotificationOutcome`, …
+  `AppointmentStatus`, `VideoChatRequest`, `NotificationStatus`, `NotificationOutcome`, …
+
+`video_chat_request` is a standing instruction, not job progress:
+
+- `NULL` follows configured attachment rules.
+- `generate` asks for a generated link when one is missing, regardless of attachment rules.
+- `suppress` prevents generation without removing a selected URL.
+
+The selected URL remains in `video_chat`. Existing and new appointments default to
+`NULL`. Migration does not interpret activity history or change existing URLs, ICS
+sequences or calendar revisions; historical Remove choices are not carried forward.
 
 ## Scripts
 

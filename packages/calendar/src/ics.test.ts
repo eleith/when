@@ -13,6 +13,7 @@ const baseAppointment: Appointment = {
 	location: null,
 	note: null,
 	video_chat: null,
+	video_chat_request: null,
 	status: 'confirmed',
 	origin_id: 'appt-123',
 	cancel_token: 'tok-abc',

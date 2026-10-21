@@ -55,6 +55,7 @@ test('toAppointmentView enriches appointment rows correctly', () => {
 		location: 'Zoom',
 		note: null,
 		video_chat: null,
+		video_chat_request: null,
 		status: 'confirmed',
 		origin_id: null,
 		cancel_token: 'tok-a1',

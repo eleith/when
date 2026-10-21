@@ -33,6 +33,7 @@ const mockAppts: Record<string, Appointment> = {
 		meeting_snapshot: JSON.stringify(validConfig.meetings['30-min-chat']),
 		note: null,
 		video_chat: null,
+		video_chat_request: null,
 		created_at: '',
 		updated_at: ''
 	},
@@ -59,6 +60,7 @@ const mockAppts: Record<string, Appointment> = {
 		meeting_snapshot: JSON.stringify(validConfig.meetings['30-min-chat']),
 		note: null,
 		video_chat: null,
+		video_chat_request: null,
 		created_at: '',
 		updated_at: ''
 	}

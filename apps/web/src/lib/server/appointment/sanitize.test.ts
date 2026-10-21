@@ -22,6 +22,7 @@ const baseRow: Appointment = {
 	location: 'https://meet.example.com/jane',
 	note: 'Meeting prep document link: test',
 	video_chat: 'https://zoom.us/j/12345',
+	video_chat_request: null,
 	status: 'confirmed',
 	origin_id: 'appt-1',
 	cancel_token: 'tok-abc',

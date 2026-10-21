@@ -9,6 +9,8 @@ export type AppointmentStatus =
 	| 'rescheduled'
 	| 'purged';
 
+export type VideoChatRequest = 'generate' | 'suppress' | null;
+
 type NullableText = ColumnType<string | null, string | null | undefined, string | null>;
 
 export interface AppointmentsTable {
@@ -23,6 +25,7 @@ export interface AppointmentsTable {
 	location: string | null;
 	note: string | null;
 	video_chat: string | null;
+	video_chat_request: Generated<VideoChatRequest>;
 	status: AppointmentStatus;
 	origin_id: NullableText;
 	cancel_token: string;
