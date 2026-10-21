@@ -103,6 +103,53 @@ export async function listOutOfSyncAppointments(db: Kysely<Database>): Promise<A
 		.execute();
 }
 
+export interface CalendarEventReference {
+	calendarId: string;
+	eventId: string;
+}
+
+export async function recordCalendarEventReference(
+	db: Kysely<Database>,
+	appointmentId: string,
+	reference: CalendarEventReference
+): Promise<void> {
+	await db
+		.updateTable('appointments')
+		.set({
+			external_event_id: reference.eventId,
+			external_calendar_id: reference.calendarId,
+			calendar_synced_revision: null
+		})
+		.where('id', '=', appointmentId)
+		.where((eb) =>
+			eb.or([eb('external_event_id', 'is', null), eb('external_event_id', '=', reference.eventId)])
+		)
+		.where((eb) =>
+			eb.or([
+				eb('external_calendar_id', 'is', null),
+				eb('external_calendar_id', '=', reference.calendarId)
+			])
+		)
+		.where((eb) =>
+			eb.or([eb('external_event_id', 'is', null), eb('external_calendar_id', 'is', null)])
+		)
+		.execute();
+}
+
+export async function listActiveAppointmentsForCalendarEvent(
+	db: Kysely<Database>,
+	reference: CalendarEventReference
+): Promise<Appointment[]> {
+	const appointments = await db
+		.selectFrom('appointments')
+		.selectAll()
+		.where('status', 'in', ['pending', 'confirmed'])
+		.where('external_event_id', '=', reference.eventId)
+		.where('external_calendar_id', '=', reference.calendarId)
+		.execute();
+	return appointments;
+}
+
 export interface MarkSyncedFields {
 	external_event_id?: string | null;
 	external_calendar_id?: string | null;

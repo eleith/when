@@ -15,10 +15,19 @@ by `@when/web` and `@when/worker`, which both open the same `when.sqlite`.
 - `migrations` — the ordered migration set.
 - `lastCalendarRefreshAt(status)` — proven mirror-refresh timestamp, or `null` when
   the latest observation cannot establish refresh freshness. Shared by worker and web.
+- `recordCalendarEventReference(db, appointmentId, reference)` — record which
+  calendar event belongs to an appointment, filling only compatible missing IDs.
+  Recording a new reference invalidates sync evidence; repeating it does nothing.
+- `listActiveAppointmentsForCalendarEvent(db, reference)` — return the pending and
+  confirmed appointments referencing that event. This reads local rows, not the provider.
 - `parseNotificationStatus(raw)` — parse the `appointments.notification_status`
   JSON column.
 - Types: `Database`, `Appointment`, `NewAppointment`, `AppointmentUpdate`,
   `AppointmentStatus`, `VideoChatRequest`, `NotificationStatus`, `NotificationOutcome`, …
+
+A `CalendarEventReference` contains `{ calendarId, eventId }`: the configured
+calendar and the provider's event ID. The query returns the appointments themselves,
+so callers can distinguish the current appointment from others using the event.
 
 `video_chat_request` is a standing instruction, not job progress:
 
