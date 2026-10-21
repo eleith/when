@@ -2,13 +2,15 @@ export {
 	getVideoChatAdapter,
 	isCalendarIntegratedVideoChat,
 	isStandaloneVideoChat
-} from './adapter.js';
+} from './factory.js';
 export type {
 	VideoChatAdapter,
 	VideoChatResult,
-	VideoChatDeleteResult,
-	CreateRoomResult
+	VideoChatRemoveResult,
+	VideoChatRequestInput,
+	VideoChatReady,
+	VideoChatFailure
 } from './adapter.js';
-export { NextcloudTalkAdapter } from './adapters/nextcloud-talk.js';
-export { GoogleMeetAdapter } from './adapters/google-meet.js';
+export { NextcloudTalkAdapter, nextcloudRoomToken } from './adapters/nextcloud-talk.js';
+export { GoogleMeetAdapter, type GoogleEventPort } from './adapters/google-meet.js';
 export { shouldAttachVideoChat } from './attach.js';

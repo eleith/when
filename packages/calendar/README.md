@@ -16,6 +16,16 @@ Web does import this package, but only the local, network-free pieces — `build
 keeps the adapter/provider code out of the web bundle because web never
 references it.
 
+## Google event I/O
+
+`getGoogleEvent` reads a stored event. `patchGoogleEvent` sends supplied fields and
+query parameters to that event. Both reuse Google authentication and return
+unvalidated response data. PATCH 204 returns `undefined`, distinct from JSON `null`.
+
+The Google adapter in `@when/video-chat` accepts event operations backed by these
+functions. Conference payloads and interpretation belong to that adapter, not the
+calendar transport. Neither package owns worker retries or appointment writes.
+
 ## Scripts
 
 - `pnpm build` — typecheck (`tsc -p tsconfig.json`) then emit `dist/`.

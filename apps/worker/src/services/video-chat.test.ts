@@ -6,7 +6,7 @@ import { getVideoChatAdapter, type VideoChatAdapter } from '@when/video-chat';
 
 vi.mock('@when/video-chat', () => ({
 	getVideoChatAdapter: vi.fn(),
-	isStandaloneVideoChat: vi.fn((p) => p.type !== 'google')
+	isStandaloneVideoChat: vi.fn((p) => p.type === 'nextcloud')
 }));
 
 beforeEach(() => {
@@ -97,17 +97,24 @@ describe('createStandaloneVideoChat', () => {
 				})
 				.execute();
 
-			const mockAdapter = {
-				createRoom: vi
-					.fn()
-					.mockResolvedValue({ ok: true, url: 'https://cloud.example.com/call/abc' }),
-				deleteRoom: vi.fn()
-			} as unknown as VideoChatAdapter;
+			const mockAdapter: VideoChatAdapter = {
+				read: vi.fn(),
+				request: vi.fn().mockResolvedValue({
+					ok: true,
+					status: 'ready',
+					url: 'https://cloud.example.com/call/abc'
+				}),
+				removeLink: vi.fn()
+			};
 			vi.mocked(getVideoChatAdapter).mockReturnValue(mockAdapter);
 
 			const res = await createStandaloneVideoChat(db, 'a3', mockConfig);
 
-			expect(mockAdapter.createRoom).toHaveBeenCalledWith('Meeting: Booker');
+			expect(getVideoChatAdapter).toHaveBeenCalledWith(mockConfig.providers['nc-service']);
+			expect(mockAdapter.request).toHaveBeenCalledWith({
+				name: 'Meeting: Booker',
+				requestId: 'a3'
+			});
 			expect(res.video_chat).toBe('https://cloud.example.com/call/abc');
 			expect(res.calendar_revision).toBe(2);
 
@@ -201,16 +208,17 @@ describe('deleteStandaloneVideoChat', () => {
 				})
 				.execute();
 
-			const mockAdapter = {
-				createRoom: vi.fn(),
-				deleteRoom: vi.fn().mockResolvedValue({ ok: true })
-			} as unknown as VideoChatAdapter;
+			const mockAdapter: VideoChatAdapter = {
+				read: vi.fn(),
+				request: vi.fn(),
+				removeLink: vi.fn().mockResolvedValue({ ok: true })
+			};
 			vi.mocked(getVideoChatAdapter).mockReturnValue(mockAdapter);
 
 			await deleteStandaloneVideoChat(db, 'c2', configWithVc);
 
 			expect(getVideoChatAdapter).toHaveBeenCalledWith(mockConfig.providers['nc-service']);
-			expect(mockAdapter.deleteRoom).toHaveBeenCalledWith(
+			expect(mockAdapter.removeLink).toHaveBeenCalledWith(
 				'https://cloud.example.com/call/room-abc'
 			);
 

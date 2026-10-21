@@ -11,7 +11,7 @@ import { sampleConfig } from '../email/__fixtures__/appointment.js';
 vi.mock('@when/video-chat', () => ({
 	getVideoChatAdapter: vi.fn(),
 	isCalendarIntegratedVideoChat: vi.fn((p) => p.type === 'google'),
-	isStandaloneVideoChat: vi.fn((p) => p.type !== 'google')
+	isStandaloneVideoChat: vi.fn((p) => p.type === 'nextcloud')
 }));
 
 const mockConfig = {
@@ -117,12 +117,15 @@ describe('runGenerateVideoChat', () => {
 			})
 			.execute();
 
-		const mockAdapter = {
-			createRoom: vi
-				.fn()
-				.mockResolvedValue({ ok: true, url: 'https://cloud.example.com/call/room-generated' }),
-			deleteRoom: vi.fn()
-		} as unknown as VideoChatAdapter;
+		const mockAdapter: VideoChatAdapter = {
+			read: vi.fn(),
+			request: vi.fn().mockResolvedValue({
+				ok: true,
+				status: 'ready',
+				url: 'https://cloud.example.com/call/room-generated'
+			}),
+			removeLink: vi.fn()
+		};
 		vi.mocked(getVideoChatAdapter).mockReturnValue(mockAdapter);
 
 		const result = await runGenerateVideoChat({ appointmentId: 'app-2' });
@@ -142,8 +145,7 @@ describe('runGenerateVideoChat', () => {
 	});
 
 	test('throws if appointment is not found', async () => {
-		await expect(runGenerateVideoChat({ appointmentId: 'missing' })).rejects.toThrow(
-			'Appointment "missing" not found'
-		);
+		const generation = runGenerateVideoChat({ appointmentId: 'missing' });
+		await expect(generation).rejects.toThrow('Appointment "missing" not found');
 	});
 });

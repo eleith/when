@@ -1,5 +1,5 @@
 import { describe, expect, test, vi, beforeEach } from 'vitest';
-import { NextcloudTalkAdapter } from './nextcloud-talk.js';
+import { NextcloudTalkAdapter, nextcloudRoomToken } from '../index.js';
 import type { NextcloudProvider } from '@when/config';
 
 describe('NextcloudTalkAdapter', () => {
@@ -15,7 +15,100 @@ describe('NextcloudTalkAdapter', () => {
 		vi.restoreAllMocks();
 	});
 
-	test('createRoom success returns meeting URL', async () => {
+	test('room identity follows normalized origin and decoded installation/call/token segments', () => {
+		const provider = { url: 'https://CLOUD.example.com:443/next%63loud/' };
+		const canonical = nextcloudRoomToken(
+			provider,
+			'https://cloud.example.com/nextcloud/call/room_123'
+		);
+		const alias = nextcloudRoomToken(
+			provider,
+			'https://CLOUD.example.com:443/next%63loud/%63all/room_%3123?view=guest#call'
+		);
+
+		const userinfoAlias = nextcloudRoomToken(
+			provider,
+			'https://guest:shared@cloud.example.com/nextcloud/call/room_123'
+		);
+
+		expect(canonical).toBe('room_123');
+		expect(alias).toBe(canonical);
+		expect(userinfoAlias).toBe(canonical);
+	});
+
+	test.each([
+		'https://other.example.com/nextcloud/call/room_123',
+		'https://cloud.example.com/call/room_123',
+		'https://cloud.example.com/nextcloud/call/room%2F123',
+		'https://cloud.example.com/nextcloud/call/room%5C123',
+		'https://cloud.example.com/nextcloud%2Fcall/room_123',
+		'https://cloud.example.com/nextcloud/call/room%ZZ'
+	])('rejects a different or invalid resource identity: %s', (url) => {
+		const token = nextcloudRoomToken({ url: 'https://cloud.example.com/nextcloud/' }, url);
+		expect(token).toBeNull();
+	});
+
+	test('same token on another origin never deletes a room on the configured server', async () => {
+		const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) => {
+			throw new Error(`Unexpected fetch: ${String(url)}`);
+		});
+		const adapter = new NextcloudTalkAdapter(mockService);
+
+		const result = await adapter.removeLink(
+			'https://guest:secret@other.example.com/call/room-token-123?password=private'
+		);
+
+		expect(result).toEqual({ ok: false, reason: 'Invalid Nextcloud room identity' });
+		expect(fetchSpy).not.toHaveBeenCalled();
+	});
+
+	test('creates and deletes the actual room beneath an installation path', async () => {
+		const provider = { ...mockService, url: 'https://cloud.example.com/nextcloud/' };
+		const endpoint = 'https://cloud.example.com/nextcloud/ocs/v2.php/apps/spreed/api/v4/room';
+		const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (url, init) => {
+			if (String(url) === endpoint && init?.method === 'POST') {
+				return new Response(JSON.stringify({ ocs: { data: { token: 'room_123' } } }));
+			}
+			if (String(url) === `${endpoint}/room_123` && init?.method === 'DELETE') {
+				return new Response(null, { status: 204 });
+			}
+			throw new Error(`Unexpected fetch: ${String(url)}`);
+		});
+		const adapter = new NextcloudTalkAdapter(provider);
+
+		const created = await adapter.request({ name: 'Meeting', requestId: 'booking-id' });
+		const deleted = await adapter.removeLink(
+			'https://guest:shared@CLOUD.example.com:443/next%63loud/%63all/room_%3123?view=guest#call'
+		);
+
+		expect(created).toEqual({
+			ok: true,
+			status: 'ready',
+			url: 'https://cloud.example.com/nextcloud/call/room_123'
+		});
+		expect(deleted).toEqual({ ok: true });
+		expect(JSON.parse(JSON.stringify([created, deleted]))).toEqual([created, deleted]);
+		expect(fetchSpy).toHaveBeenCalledTimes(2);
+	});
+
+	test('creation rejects a token that would not identify one safe room path segment', async () => {
+		vi.spyOn(globalThis, 'fetch').mockImplementation(async (url, init) => {
+			if (
+				String(url) !== 'https://cloud.example.com/ocs/v2.php/apps/spreed/api/v4/room' ||
+				init?.method !== 'POST'
+			) {
+				throw new Error(`Unexpected fetch: ${String(url)}`);
+			}
+			return new Response(JSON.stringify({ ocs: { data: { token: 'room/other' } } }));
+		});
+		const adapter = new NextcloudTalkAdapter(mockService);
+
+		const result = await adapter.request({ name: 'Meeting', requestId: 'booking-id' });
+
+		expect(result.ok).toBe(false);
+	});
+
+	test('request success returns meeting URL', async () => {
 		const adapter = new NextcloudTalkAdapter(mockService);
 
 		const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
@@ -29,10 +122,11 @@ describe('NextcloudTalkAdapter', () => {
 			})
 		} as Response);
 
-		const result = await adapter.createRoom('Meeting: Alice');
+		const result = await adapter.request({ name: 'Meeting: Alice', requestId: 'booking-id' });
 
 		expect(result).toEqual({
 			ok: true,
+			status: 'ready',
 			url: 'https://cloud.example.com/call/room-token-123'
 		});
 
@@ -54,7 +148,7 @@ describe('NextcloudTalkAdapter', () => {
 		);
 	});
 
-	test('createRoom failure returns error reason', async () => {
+	test('request failure returns error reason', async () => {
 		const adapter = new NextcloudTalkAdapter(mockService);
 
 		vi.spyOn(globalThis, 'fetch').mockResolvedValue({
@@ -63,7 +157,7 @@ describe('NextcloudTalkAdapter', () => {
 			text: async () => 'Internal Server Error'
 		} as Response);
 
-		const result = await adapter.createRoom('Meeting: Alice');
+		const result = await adapter.request({ name: 'Meeting: Alice', requestId: 'booking-id' });
 
 		expect(result.ok).toBe(false);
 		if (!result.ok) {
@@ -72,14 +166,120 @@ describe('NextcloudTalkAdapter', () => {
 		}
 	});
 
-	test('deleteRoom success returns ok', async () => {
+	test('a null pointer is known absence and removal needs no I/O', async () => {
+		const fetchSpy = vi.spyOn(globalThis, 'fetch');
+		const adapter = new NextcloudTalkAdapter(mockService);
+
+		const read = await adapter.read(null);
+		const removed = await adapter.removeLink(null);
+
+		expect(read).toEqual({ ok: true, status: 'absent' });
+		expect(removed).toEqual({ ok: true });
+		expect(fetchSpy).not.toHaveBeenCalled();
+	});
+
+	test('reads the validated room with configured credentials and returns its canonical URL', async () => {
+		const adapter = new NextcloudTalkAdapter({
+			...mockService,
+			url: 'https://cloud.example.com/nextcloud/'
+		});
+		const fetchSpy = vi
+			.spyOn(globalThis, 'fetch')
+			.mockResolvedValue(new Response(JSON.stringify({ ocs: { data: { token: 'room_123' } } })));
+
+		const result = await adapter.read(
+			'https://guest:shared@CLOUD.example.com:443/next%63loud/%63all/room_%3123?view=guest#call'
+		);
+
+		expect(result).toEqual({
+			ok: true,
+			status: 'ready',
+			url: 'https://cloud.example.com/nextcloud/call/room_123'
+		});
+		expect(fetchSpy).toHaveBeenCalledExactlyOnceWith(
+			'https://cloud.example.com/nextcloud/ocs/v2.php/apps/spreed/api/v4/room/room_123',
+			{
+				method: 'GET',
+				headers: {
+					'OCS-APIRequest': 'true',
+					Accept: 'application/json',
+					Authorization: `Basic ${Buffer.from('user:password').toString('base64')}`
+				}
+			}
+		);
+	});
+
+	test.each([404, 401, 403, 500])('read HTTP %s is not evidence of absence', async (status) => {
+		const fetchSpy = vi
+			.spyOn(globalThis, 'fetch')
+			.mockResolvedValue(new Response('private server details', { status }));
+		const adapter = new NextcloudTalkAdapter(mockService);
+
+		const result = await adapter.read('https://cloud.example.com/call/room_123');
+
+		expect(result).toEqual({
+			ok: false,
+			reason: `Nextcloud Talk room read returned status ${status}`
+		});
+		expect(fetchSpy).toHaveBeenCalledTimes(1);
+	});
+
+	test.each([
+		'https://guest:secret@other.example.com/call/room_123?password=private',
+		'https://cloud.example.com/call/room%2F123'
+	])('read rejects invalid identity without I/O: %s', async (url) => {
+		const fetchSpy = vi.spyOn(globalThis, 'fetch');
+		const adapter = new NextcloudTalkAdapter(mockService);
+
+		const result = await adapter.read(url);
+
+		expect(result).toEqual({ ok: false, reason: 'Invalid Nextcloud room identity' });
+		expect(fetchSpy).not.toHaveBeenCalled();
+	});
+
+	test.each([
+		'not JSON',
+		'null',
+		'{}',
+		JSON.stringify({ ocs: { data: { token: 'room/123' } } }),
+		JSON.stringify({ ocs: { data: { token: 'different_room' } } })
+	])('read does not treat malformed or mismatched data as absence: %s', async (body) => {
+		vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(body));
+		const adapter = new NextcloudTalkAdapter(mockService);
+
+		const result = await adapter.read('https://cloud.example.com/call/room_123');
+
+		expect(result).toEqual({ ok: true, status: 'ambiguous' });
+	});
+
+	test('read transport failure returns a controlled reason', async () => {
+		vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('private transport details'));
+		const adapter = new NextcloudTalkAdapter(mockService);
+
+		const result = await adapter.read('https://cloud.example.com/call/room_123');
+
+		expect(result).toEqual({ ok: false, reason: 'Nextcloud Talk room read failed' });
+	});
+
+	test('read body transport failure is not a successful observation', async () => {
+		const response = new Response('{}');
+		vi.spyOn(response, 'text').mockRejectedValue(new TypeError('private body read details'));
+		vi.spyOn(globalThis, 'fetch').mockResolvedValue(response);
+		const adapter = new NextcloudTalkAdapter(mockService);
+
+		const result = await adapter.read('https://cloud.example.com/call/room_123');
+
+		expect(result).toEqual({ ok: false, reason: 'Nextcloud Talk room read failed' });
+	});
+
+	test('removeLink success returns ok', async () => {
 		const adapter = new NextcloudTalkAdapter(mockService);
 
 		const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
 			ok: true
 		} as Response);
 
-		const result = await adapter.deleteRoom('https://cloud.example.com/call/room-token-123');
+		const result = await adapter.removeLink('https://cloud.example.com/call/room-token-123');
 
 		expect(result).toEqual({ ok: true });
 
@@ -97,7 +297,7 @@ describe('NextcloudTalkAdapter', () => {
 		);
 	});
 
-	test('deleteRoom failure returns error reason', async () => {
+	test('removeLink failure returns error reason', async () => {
 		const adapter = new NextcloudTalkAdapter(mockService);
 
 		vi.spyOn(globalThis, 'fetch').mockResolvedValue({
@@ -106,7 +306,7 @@ describe('NextcloudTalkAdapter', () => {
 			text: async () => 'Not Found'
 		} as Response);
 
-		const result = await adapter.deleteRoom('https://cloud.example.com/call/room-token-123');
+		const result = await adapter.removeLink('https://cloud.example.com/call/room-token-123');
 
 		expect(result.ok).toBe(false);
 		if (!result.ok) {
@@ -115,12 +315,12 @@ describe('NextcloudTalkAdapter', () => {
 		}
 	});
 
-	test('deleteRoom with invalid URL returns error', async () => {
+	test('removeLink with invalid URL returns error', async () => {
 		const adapter = new NextcloudTalkAdapter(mockService);
-		const result = await adapter.deleteRoom('https://cloud.example.com/invalid-path');
+		const result = await adapter.removeLink('https://cloud.example.com/invalid-path');
 		expect(result.ok).toBe(false);
 		if (!result.ok) {
-			expect(result.reason).toContain('Invalid room URL format');
+			expect(result.reason).toBe('Invalid Nextcloud room identity');
 		}
 	});
 });

@@ -36,10 +36,13 @@ export async function createStandaloneVideoChat(
 	const now = Temporal.Now.instant().toString();
 	const adapter = getVideoChatAdapter(service);
 	const roomName = `Meeting: ${row.guest_name}`;
-	const result = await adapter.createRoom(roomName);
+	const result = await adapter.request({ name: roomName, requestId: row.id });
 
 	if (!result.ok) {
 		throw new Error(`Failed to create video chat room: ${result.reason}`);
+	}
+	if (result.status !== 'ready') {
+		throw new Error(`Video chat room is not ready: ${result.status}`);
 	}
 
 	const editEntry: ActionLogEntry = {
@@ -64,11 +67,12 @@ export async function createStandaloneVideoChat(
 
 	await appendJobLog(db, appointmentId, 'video_chat', 'done', now);
 
-	return (await db
+	const updated = await db
 		.selectFrom('appointments')
 		.selectAll()
 		.where('id', '=', appointmentId)
-		.executeTakeFirstOrThrow()) as Appointment;
+		.executeTakeFirstOrThrow();
+	return updated as Appointment;
 }
 
 export async function deleteStandaloneVideoChatByUrl(
@@ -92,7 +96,7 @@ export async function deleteStandaloneVideoChatByUrl(
 
 	try {
 		const adapter = getVideoChatAdapter(service);
-		const deleteResult = await adapter.deleteRoom(videoChatUrl);
+		const deleteResult = await adapter.removeLink(videoChatUrl);
 		if (!deleteResult.ok) {
 			console.warn(`Failed to delete video chat room: ${deleteResult.reason}`);
 		}

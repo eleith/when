@@ -48,6 +48,7 @@ export type {
 	GoogleCalendarItem,
 	GoogleAuthUrlOptions
 } from './adapters/google.js';
+export { getGoogleEvent, patchGoogleEvent } from './adapters/google-event.js';
 export { verifyCalDavProvider, discoverCalDavCalendars } from './adapters/caldav.js';
 export type { CalDavCalendarItem } from './adapters/caldav.js';
 

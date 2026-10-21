@@ -1,46 +1,32 @@
-import type { Provider } from '@when/config';
-import { NextcloudTalkAdapter } from './adapters/nextcloud-talk.js';
-import { GoogleMeetAdapter } from './adapters/google-meet.js';
-
-interface CreateRoomResult {
+interface VideoChatReady {
 	ok: true;
+	status: 'ready';
 	url: string;
 }
 
-type VideoChatResult = CreateRoomResult | { ok: false; reason: string };
+type VideoChatFailure = { ok: false; reason: string };
+type VideoChatResult =
+	| VideoChatReady
+	| { ok: true; status: 'pending' | 'absent' | 'failed' | 'ambiguous' }
+	| VideoChatFailure;
+type VideoChatRemoveResult = { ok: true } | VideoChatFailure;
 
-type VideoChatDeleteResult = { ok: true } | { ok: false; reason: string };
+interface VideoChatRequestInput {
+	name: string;
+	requestId: string;
+}
 
 interface VideoChatAdapter {
-	createRoom(roomName: string): Promise<VideoChatResult>;
-	deleteRoom(roomUrl: string): Promise<VideoChatDeleteResult>;
+	request(input: VideoChatRequestInput): Promise<VideoChatResult>;
+	read(knownUrl: string | null): Promise<VideoChatResult>;
+	removeLink(knownUrl: string | null): Promise<VideoChatRemoveResult>;
 }
 
-interface VideoChatAdapterClass {
-	readonly type: string;
-	readonly expectedProviderType: string;
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	new (provider: any): VideoChatAdapter;
-}
-
-const ADAPTERS: VideoChatAdapterClass[] = [NextcloudTalkAdapter, GoogleMeetAdapter];
-
-function getVideoChatAdapter(provider: Provider): VideoChatAdapter {
-	const AdapterClass = ADAPTERS.find((a) => a.expectedProviderType === provider.type);
-	if (!AdapterClass) {
-		throw new Error('Unsupported video chat provider type: ' + provider.type);
-	}
-	return new AdapterClass(provider);
-}
-
-function isCalendarIntegratedVideoChat(provider: Provider): boolean {
-	return provider.type === 'google';
-}
-
-function isStandaloneVideoChat(provider: Provider): boolean {
-	return !isCalendarIntegratedVideoChat(provider);
-}
-
-export type { CreateRoomResult, VideoChatResult, VideoChatDeleteResult, VideoChatAdapter };
-
-export { getVideoChatAdapter, isCalendarIntegratedVideoChat, isStandaloneVideoChat };
+export type {
+	VideoChatRequestInput,
+	VideoChatReady,
+	VideoChatFailure,
+	VideoChatResult,
+	VideoChatRemoveResult,
+	VideoChatAdapter
+};
