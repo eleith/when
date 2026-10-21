@@ -123,7 +123,7 @@ export const actions: Actions = {
 		}
 
 		const result = await editAppointment(appointmentContext(), {
-			appointment: row,
+			appointmentId: row.id,
 			note,
 			location,
 			video_chat: videoChat

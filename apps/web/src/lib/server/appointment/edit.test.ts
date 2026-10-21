@@ -39,6 +39,224 @@ describe('editAppointment', () => {
 		);
 	});
 
+	test.each(['note', 'location'] as const)(
+		'editing %s preserves newer omitted fields',
+		async (field) => {
+			const db = await makeDb();
+			try {
+				await db
+					.insertInto('appointments')
+					.values({
+						...baseRow,
+						id: 'fresh',
+						status: 'confirmed',
+						cancel_token: 'fresh',
+						location: 'Old location',
+						video_chat: 'https://old.example/room'
+					})
+					.execute();
+				const page = await fetchRow(db, 'fresh');
+				await db
+					.updateTable('appointments')
+					.set({
+						note: 'Current note',
+						location: 'Current location',
+						video_chat: 'https://current.example/room',
+						video_chat_request: 'suppress',
+						calendar_revision: 1,
+						ics_sequence: 1
+					})
+					.where('id', '=', page.id)
+					.execute();
+
+				const result = await editAppointment(
+					{ db, cfg: validConfig, clock: systemClock },
+					{ appointmentId: page.id, [field]: 'New value' }
+				);
+
+				expect(result.ok).toBe(true);
+				const saved = await fetchRow(db, 'fresh');
+				expect(saved).toMatchObject({
+					note: 'Current note',
+					location: 'Current location',
+					video_chat: 'https://current.example/room',
+					video_chat_request: 'suppress',
+					calendar_revision: 2,
+					ics_sequence: 2,
+					[field]: 'New value'
+				});
+				const history = parseActionLog(saved.action_log);
+				expect(history).toHaveLength(1);
+				expect(history[0].payload?.metadata?.changes).toEqual([`${field}_updated`]);
+				expect(enqueueAppointmentReconciliation).toHaveBeenCalledWith(
+					db,
+					page.id,
+					'edited-by-host',
+					null
+				);
+			} finally {
+				await db.destroy();
+			}
+		}
+	);
+
+	test('video replacement compares against the current link, not the page snapshot', async () => {
+		const db = await makeDb();
+		try {
+			await db
+				.insertInto('appointments')
+				.values({
+					...baseRow,
+					id: 'replacement',
+					status: 'confirmed',
+					cancel_token: 'replacement',
+					video_chat: 'https://old.example/room'
+				})
+				.execute();
+			const page = await fetchRow(db, 'replacement');
+			await db
+				.updateTable('appointments')
+				.set({
+					video_chat: 'https://current.example/room',
+					calendar_revision: 1,
+					ics_sequence: 1
+				})
+				.where('id', '=', page.id)
+				.execute();
+
+			const result = await editAppointment(
+				{ db, cfg: validConfig, clock: systemClock },
+				{ appointmentId: page.id, video_chat: page.video_chat }
+			);
+
+			expect(result.ok).toBe(true);
+			const saved = await fetchRow(db, 'replacement');
+			expect(saved).toMatchObject({
+				video_chat: page.video_chat,
+				calendar_revision: 2,
+				ics_sequence: 2
+			});
+			expect(enqueueAppointmentReconciliation).toHaveBeenCalledWith(
+				db,
+				page.id,
+				'edited-by-host',
+				'https://current.example/room'
+			);
+		} finally {
+			await db.destroy();
+		}
+	});
+
+	test.each([
+		['cancelled', { status: 'cancelled' as const }],
+		['concluded', { end_time: '2000-01-01T15:30:00Z' }]
+	])('gates the current %s appointment before writing', async (_name, changes) => {
+		const db = await makeDb();
+		try {
+			await db
+				.insertInto('appointments')
+				.values({
+					...baseRow,
+					id: 'gated',
+					status: 'confirmed',
+					cancel_token: 'gated'
+				})
+				.execute();
+			const page = await fetchRow(db, 'gated');
+			await db.updateTable('appointments').set(changes).where('id', '=', page.id).execute();
+			const before = await fetchRow(db, page.id);
+
+			const result = await editAppointment(
+				{ db, cfg: validConfig, clock: systemClock },
+				{ appointmentId: page.id, note: 'Too late' }
+			);
+
+			expect(result).toEqual({ ok: false, reason: 'gated' });
+			const after = await fetchRow(db, page.id);
+			expect(after).toEqual(before);
+			expect(enqueueAppointmentReconciliation).not.toHaveBeenCalled();
+		} finally {
+			await db.destroy();
+		}
+	});
+
+	test('concurrent partial edits keep both changes', async () => {
+		const db = await makeDb();
+		try {
+			await db
+				.insertInto('appointments')
+				.values({
+					...baseRow,
+					id: 'concurrent',
+					status: 'confirmed',
+					cancel_token: 'concurrent'
+				})
+				.execute();
+			const ctx = { db, cfg: validConfig, clock: systemClock };
+
+			const results = await Promise.all([
+				editAppointment(ctx, { appointmentId: 'concurrent', note: 'New note' }),
+				editAppointment(ctx, { appointmentId: 'concurrent', location: 'New location' })
+			]);
+
+			expect(results.every((result) => result.ok)).toBe(true);
+			const saved = await fetchRow(db, 'concurrent');
+			expect(saved).toMatchObject({
+				note: 'New note',
+				location: 'New location',
+				ics_sequence: 2,
+				calendar_revision: 2
+			});
+			const history = parseActionLog(saved.action_log);
+			expect(history).toHaveLength(2);
+			expect(enqueueAppointmentReconciliation).toHaveBeenCalledTimes(2);
+		} finally {
+			await db.destroy();
+		}
+	});
+
+	test('a missing appointment cannot be edited or queued', async () => {
+		const db = await makeDb();
+		try {
+			const result = await editAppointment(
+				{ db, cfg: validConfig, clock: systemClock },
+				{ appointmentId: 'missing', note: 'No appointment' }
+			);
+			expect(result).toEqual({ ok: false, reason: 'conflict' });
+			expect(enqueueAppointmentReconciliation).not.toHaveBeenCalled();
+		} finally {
+			await db.destroy();
+		}
+	});
+
+	test('does not fabricate an edit when the submitted note already matches the current row', async () => {
+		const db = await makeDb();
+		try {
+			await db
+				.insertInto('appointments')
+				.values({ ...baseRow, id: 'no-change', status: 'confirmed', cancel_token: 'no-change' })
+				.execute();
+			await db
+				.updateTable('appointments')
+				.set({ note: 'Current note', calendar_revision: 1, ics_sequence: 1 })
+				.where('id', '=', 'no-change')
+				.execute();
+			const before = await fetchRow(db, 'no-change');
+
+			const result = await editAppointment(
+				{ db, cfg: validConfig, clock: systemClock },
+				{ appointmentId: 'no-change', note: 'Current note' }
+			);
+
+			expect(result).toEqual({ ok: false, reason: 'no_changes' });
+			const after = await fetchRow(db, 'no-change');
+			expect(after).toEqual(before);
+			expect(enqueueAppointmentReconciliation).not.toHaveBeenCalled();
+		} finally {
+			await db.destroy();
+		}
+	});
+
 	test('happy path: add note, edit note, remove note', async () => {
 		const db = await makeDb();
 		try {
@@ -52,7 +270,7 @@ describe('editAppointment', () => {
 			let row = await fetchRow(db, 'a1');
 			let result = await editAppointment(
 				{ db, cfg: validConfig, clock: systemClock },
-				{ appointment: row, note: 'Read the handbook' }
+				{ appointmentId: row.id, note: 'Read the handbook' }
 			);
 
 			expect(result.ok).toBe(true);
@@ -70,7 +288,7 @@ describe('editAppointment', () => {
 			row = await fetchRow(db, 'a1');
 			result = await editAppointment(
 				{ db, cfg: validConfig, clock: systemClock },
-				{ appointment: row, note: 'Read the updated handbook' }
+				{ appointmentId: row.id, note: 'Read the updated handbook' }
 			);
 
 			expect(result.ok).toBe(true);
@@ -87,7 +305,7 @@ describe('editAppointment', () => {
 			row = await fetchRow(db, 'a1');
 			result = await editAppointment(
 				{ db, cfg: validConfig, clock: systemClock },
-				{ appointment: row, note: null }
+				{ appointmentId: row.id, note: null }
 			);
 
 			expect(result.ok).toBe(true);
@@ -119,7 +337,7 @@ describe('editAppointment', () => {
 			let row = await fetchRow(db, 'a1_c');
 			let result = await editAppointment(
 				{ db, cfg: validConfig, clock: systemClock },
-				{ appointment: row, video_chat: 'https://zoom.us/j/12345' }
+				{ appointmentId: row.id, video_chat: 'https://zoom.us/j/12345' }
 			);
 
 			expect(result.ok).toBe(true);
@@ -137,7 +355,7 @@ describe('editAppointment', () => {
 			row = await fetchRow(db, 'a1_c');
 			result = await editAppointment(
 				{ db, cfg: validConfig, clock: systemClock },
-				{ appointment: row, video_chat: 'https://zoom.us/j/67890' }
+				{ appointmentId: row.id, video_chat: 'https://zoom.us/j/67890' }
 			);
 
 			expect(result.ok).toBe(true);
@@ -154,7 +372,7 @@ describe('editAppointment', () => {
 			row = await fetchRow(db, 'a1_c');
 			result = await editAppointment(
 				{ db, cfg: validConfig, clock: systemClock },
-				{ appointment: row, video_chat: null }
+				{ appointmentId: row.id, video_chat: null }
 			);
 
 			expect(result.ok).toBe(true);
@@ -197,7 +415,7 @@ describe('editAppointment', () => {
 
 			const result = await editAppointment(
 				{ db, cfg: validConfig, clock: systemClock },
-				{ appointment: row, note: 'Unchanged' }
+				{ appointmentId: row.id, note: 'Unchanged' }
 			);
 
 			expect(result).toEqual({ ok: false, reason: 'no_changes' });
@@ -217,7 +435,7 @@ describe('editAppointment', () => {
 
 			const result = await editAppointment(
 				{ db, cfg: validConfig, clock: systemClock },
-				{ appointment: row, note: 'Some new note' }
+				{ appointmentId: row.id, note: 'Some new note' }
 			);
 
 			expect(result).toEqual({ ok: false, reason: 'gated' });
@@ -243,7 +461,7 @@ describe('editAppointment', () => {
 
 			const result = await editAppointment(
 				{ db, cfg: validConfig, clock: systemClock },
-				{ appointment: row, note: 'Some new note' }
+				{ appointmentId: row.id, note: 'Some new note' }
 			);
 
 			expect(result).toEqual({ ok: false, reason: 'gated' });
@@ -265,7 +483,7 @@ describe('editAppointment', () => {
 			let row = await fetchRow(db, 'loc1');
 			let result = await editAppointment(
 				{ db, cfg: validConfig, clock: systemClock },
-				{ appointment: row, location: 'Meeting Room A' }
+				{ appointmentId: row.id, location: 'Meeting Room A' }
 			);
 
 			expect(result.ok).toBe(true);
@@ -283,7 +501,7 @@ describe('editAppointment', () => {
 			row = await fetchRow(db, 'loc1');
 			result = await editAppointment(
 				{ db, cfg: validConfig, clock: systemClock },
-				{ appointment: row, location: 'Meeting Room B' }
+				{ appointmentId: row.id, location: 'Meeting Room B' }
 			);
 
 			expect(result.ok).toBe(true);
@@ -300,7 +518,7 @@ describe('editAppointment', () => {
 			row = await fetchRow(db, 'loc1');
 			result = await editAppointment(
 				{ db, cfg: validConfig, clock: systemClock },
-				{ appointment: row, location: null }
+				{ appointmentId: row.id, location: null }
 			);
 
 			expect(result.ok).toBe(true);
