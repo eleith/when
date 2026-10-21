@@ -2,10 +2,14 @@ import { resolveAppointmentActions, isTerminalStatus, type Viewer } from './acti
 import { isRescheduleAllowed, isViewable } from './access';
 import { enqueueAppointmentReconciliation } from '../workflow';
 import type { AppointmentContext } from './context';
-import { rescheduleAppointmentTransition, type RescheduleResult } from './transitions';
+import {
+	rescheduleAppointmentTransition,
+	type RescheduleDetails,
+	type RescheduleGuest
+} from './transitions';
 import type { ParsedAppointment } from './form.server';
 import type { Meeting } from '@when/config';
-import type { Appointment } from '@when/db';
+import { findAppointment, withWriteTransaction, type Appointment } from '@when/db';
 
 export type RescheduleErrorCode =
 	| 'token'
@@ -29,7 +33,7 @@ export interface ClassifyRescheduleInput {
 }
 
 export interface RescheduleAppointmentInput {
-	appointment: Appointment;
+	appointmentId: string;
 	initiator: Viewer;
 	/** New start_time as ISO instant (caller has validated availability). */
 	newStart: string;
@@ -54,68 +58,86 @@ export async function rescheduleAppointment(
 	ctx: AppointmentContext,
 	input: RescheduleAppointmentInput
 ): Promise<RescheduleAppointmentResult> {
-	const eventType = ctx.cfg.meetings[input.appointment.event_type_id];
-
-	const gate = resolveAppointmentActions({
-		row: input.appointment,
-		viewer: input.initiator,
-		now: ctx.clock.now(),
-		eventType
-	}).reschedule;
-	if (!gate.allowed) return { ok: false, reason: 'gated' };
-
-	// Host reschedules are auto-confirmed. Guest reschedules preserve status,
-	// except when moving a confirmed requires-confirmation appointment which re-arms host approval.
-	const newStatus =
-		input.initiator === 'host'
-			? 'confirmed'
-			: input.initiator === 'guest' &&
-				  eventType?.require_approval &&
-				  input.appointment.status === 'confirmed'
-				? 'pending'
-				: input.appointment.status;
-
-	let result: RescheduleResult;
+	let result: RescheduleAppointmentResult;
 	try {
-		result = await rescheduleAppointmentTransition(
-			ctx.db,
-			input.appointment,
-			input.initiator === 'host' ? 'host' : 'guest',
-			ctx.clock.now().toISOString(),
-			{
-				newStart: input.newStart,
-				newEnd: input.newEnd,
-				newStatus,
-				eventTypeSnapshot: eventType
-					? JSON.stringify({
-							title: eventType.title,
-							duration_minutes: eventType.duration_minutes,
-							description: eventType.description,
-							slug: input.appointment.event_type_id
-						})
-					: '{}',
-				reason: input.reason,
-				guest: input.guest
-					? {
-							name: input.guest.name,
-							email: input.guest.email,
-							answers: input.guest.answers.length ? JSON.stringify(input.guest.answers) : null,
-							location: input.guest.location,
-							timezone: input.timezone ?? input.appointment.guest_timezone
-						}
-					: undefined
-			}
-		);
+		result = await withWriteTransaction(ctx.db, async (connection) => {
+			const appointment = await findAppointment(connection, input.appointmentId);
+			if (!appointment) return { ok: false, reason: 'conflict' } as const;
+			const eventType = ctx.cfg.meetings[appointment.event_type_id];
+			const now = ctx.clock.now();
+			const gate = resolveAppointmentActions({
+				row: appointment,
+				viewer: input.initiator,
+				now,
+				eventType
+			}).reschedule;
+			if (!gate.allowed) return { ok: false, reason: 'gated' } as const;
+
+			const details = rescheduleDetails(appointment, input, eventType);
+			const moved = await rescheduleAppointmentTransition(
+				connection,
+				appointment,
+				input.initiator,
+				now.toISOString(),
+				details
+			);
+			return moved;
+		});
 	} catch (err) {
 		if (isUniqueViolation(err)) return { ok: false, reason: 'slot_taken' };
 		throw err;
 	}
-	if (!result.ok) return { ok: false, reason: 'conflict' };
+	if (!result.ok) return result;
 
 	const kind = input.initiator === 'host' ? 'rescheduled-by-host' : 'rescheduled-by-guest';
 	const appointment = await enqueueAppointmentReconciliation(ctx.db, result.appointment.id, kind);
 
 	return { ok: true, appointment };
+}
+
+function rescheduleDetails(
+	appointment: Appointment,
+	input: RescheduleAppointmentInput,
+	eventType: Meeting | undefined
+): RescheduleDetails {
+	// Host moves confirm; guest moves can re-arm approval on a confirmed appointment.
+	let newStatus = appointment.status;
+	if (input.initiator === 'host') {
+		newStatus = 'confirmed';
+	} else if (eventType?.require_approval && appointment.status === 'confirmed') {
+		newStatus = 'pending';
+	}
+
+	let eventTypeSnapshot = '{}';
+	if (eventType) {
+		eventTypeSnapshot = JSON.stringify({
+			title: eventType.title,
+			duration_minutes: eventType.duration_minutes,
+			description: eventType.description,
+			slug: appointment.event_type_id
+		});
+	}
+
+	let guestOverride: RescheduleGuest | undefined;
+	if (input.guest) {
+		const answers = input.guest.answers.length ? JSON.stringify(input.guest.answers) : null;
+		guestOverride = {
+			name: input.guest.name,
+			email: input.guest.email,
+			answers,
+			location: input.guest.location,
+			timezone: input.timezone ?? appointment.guest_timezone
+		};
+	}
+
+	return {
+		newStart: input.newStart,
+		newEnd: input.newEnd,
+		newStatus,
+		eventTypeSnapshot,
+		reason: input.reason,
+		guest: guestOverride
+	};
 }
 
 export function classifyReschedule({

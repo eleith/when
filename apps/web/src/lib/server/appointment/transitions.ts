@@ -65,19 +65,22 @@ export interface RescheduleGuest {
 	timezone: string | null;
 }
 
+export interface RescheduleDetails {
+	newStart: string;
+	newEnd: string;
+	newStatus: AppointmentStatus;
+	guest?: RescheduleGuest;
+	eventTypeSnapshot: string;
+	reason?: string;
+}
+
+// Use the caller's write transaction and its freshly read row.
 export async function rescheduleAppointmentTransition(
-	db: Kysely<Database>,
+	connection: Kysely<Database>,
 	old: Appointment,
 	actor: 'guest' | 'host',
 	now: string,
-	when: {
-		newStart: string;
-		newEnd: string;
-		newStatus: AppointmentStatus;
-		guest?: RescheduleGuest;
-		eventTypeSnapshot: string;
-		reason?: string;
-	}
+	when: RescheduleDetails
 ): Promise<RescheduleResult> {
 	const newId = newAppointmentId();
 	const newToken = newCancelToken();
@@ -103,47 +106,44 @@ export async function rescheduleAppointmentTransition(
 	};
 	const updatedLogJson = JSON.stringify([...parseActionLog(old.action_log), rescheduleEntry]);
 
-	const created = await db.transaction().execute(async (trx) => {
-		const terminated = await trx
-			.updateTable('appointments')
-			.set({
-				status: 'rescheduled',
-				action_log: updatedLogJson,
-				updated_at: sql`CURRENT_TIMESTAMP`
-			})
-			.where('id', '=', old.id)
-			.where('status', 'in', ['pending', 'confirmed'])
-			.executeTakeFirst();
-		// old row raced to a terminal state
-		if (terminated.numUpdatedRows === 0n) return null;
+	const terminated = await connection
+		.updateTable('appointments')
+		.set({
+			status: 'rescheduled',
+			action_log: updatedLogJson,
+			updated_at: sql`CURRENT_TIMESTAMP`
+		})
+		.where('id', '=', old.id)
+		.where('status', 'in', ['pending', 'confirmed'])
+		.executeTakeFirst();
+	if (terminated.numUpdatedRows === 0n) return { ok: false, reason: 'conflict' };
 
-		return await trx
-			.insertInto('appointments')
-			.values({
-				id: newId,
-				event_type_id: old.event_type_id,
-				start_time: when.newStart,
-				end_time: when.newEnd,
-				guest_name: guest.name,
-				guest_email: guest.email,
-				guest_answers: guest.answers,
-				guest_timezone: guest.timezone,
-				location: guest.location,
-				status: when.newStatus,
-				video_chat: old.video_chat,
-				origin_id: originId(old),
-				cancel_token: newToken,
-				action_log: updatedLogJson,
-				external_event_id: old.external_event_id,
-				external_calendar_id: old.external_calendar_id,
-				meeting_snapshot: when.eventTypeSnapshot,
-				ics_sequence: old.ics_sequence + 1
-			})
-			.returningAll()
-			.executeTakeFirstOrThrow();
-	});
-
-	if (!created) return { ok: false, reason: 'conflict' };
+	const created = await connection
+		.insertInto('appointments')
+		.values({
+			id: newId,
+			event_type_id: old.event_type_id,
+			start_time: when.newStart,
+			end_time: when.newEnd,
+			guest_name: guest.name,
+			guest_email: guest.email,
+			guest_answers: guest.answers,
+			guest_timezone: guest.timezone,
+			location: guest.location,
+			note: old.note,
+			status: when.newStatus,
+			video_chat: old.video_chat,
+			video_chat_request: old.video_chat_request,
+			origin_id: originId(old),
+			cancel_token: newToken,
+			action_log: updatedLogJson,
+			external_event_id: old.external_event_id,
+			external_calendar_id: old.external_calendar_id,
+			meeting_snapshot: when.eventTypeSnapshot,
+			ics_sequence: old.ics_sequence + 1
+		})
+		.returningAll()
+		.executeTakeFirstOrThrow();
 	return { ok: true, appointment: created };
 }
 

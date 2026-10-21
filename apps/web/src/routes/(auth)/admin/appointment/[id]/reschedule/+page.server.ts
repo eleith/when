@@ -49,7 +49,7 @@ export const actions: Actions = {
 
 		const end = start.add({ minutes: duration });
 		const result = await rescheduleAppointment(appointmentContext(), {
-			appointment: found,
+			appointmentId: found.id,
 			initiator: 'host', // Admin is always the host
 			newStart: start.toString(),
 			newEnd: end.toString(),

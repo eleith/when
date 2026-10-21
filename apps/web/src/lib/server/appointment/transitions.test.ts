@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { openDb, runMigrations } from '@when/db';
+import { openDb, runMigrations, withWriteTransaction } from '@when/db';
 import {
 	confirmAppointment,
 	rescheduleAppointmentTransition,
@@ -74,11 +74,21 @@ test('rescheduleAppointmentTransition ends the old row and creates a linked new 
 		await insert(db, { id: '1', status: 'confirmed', cancel_token: 't1', origin_id: '1' });
 		const old = await fetchRow(db, '1');
 
-		const result = await rescheduleAppointmentTransition(db, old, 'guest', '2026-01-01T13:00:00Z', {
-			newStart: '2099-02-01T10:00:00Z',
-			newEnd: '2099-02-01T10:30:00Z',
-			newStatus: 'confirmed',
-			eventTypeSnapshot: '{}'
+		const result = await withWriteTransaction(db, async (connection) => {
+			const current = await fetchRow(connection, old.id);
+			const moved = await rescheduleAppointmentTransition(
+				connection,
+				current,
+				'guest',
+				'2026-01-01T13:00:00Z',
+				{
+					newStart: '2099-02-01T10:00:00Z',
+					newEnd: '2099-02-01T10:30:00Z',
+					newStatus: 'confirmed',
+					eventTypeSnapshot: '{}'
+				}
+			);
+			return moved;
 		});
 
 		expect(result.ok).toBe(true);
@@ -125,11 +135,21 @@ test('rescheduleAppointmentTransition reports conflict when the old row is no lo
 			.where('id', '=', '1')
 			.execute();
 
-		const result = await rescheduleAppointmentTransition(db, old, 'guest', '2026-01-01T13:00:00Z', {
-			newStart: '2099-02-01T10:00:00Z',
-			newEnd: '2099-02-01T10:30:00Z',
-			newStatus: 'confirmed',
-			eventTypeSnapshot: '{}'
+		const result = await withWriteTransaction(db, async (connection) => {
+			const current = await fetchRow(connection, old.id);
+			const moved = await rescheduleAppointmentTransition(
+				connection,
+				current,
+				'guest',
+				'2026-01-01T13:00:00Z',
+				{
+					newStart: '2099-02-01T10:00:00Z',
+					newEnd: '2099-02-01T10:30:00Z',
+					newStatus: 'confirmed',
+					eventTypeSnapshot: '{}'
+				}
+			);
+			return moved;
 		});
 		expect(result).toEqual({ ok: false, reason: 'conflict' });
 	} finally {
@@ -143,12 +163,22 @@ test('rescheduleAppointmentTransition saves the reschedule reason note in the ac
 		await insert(db, { id: '1', status: 'confirmed', cancel_token: 't1', origin_id: '1' });
 		const old = await fetchRow(db, '1');
 
-		const result = await rescheduleAppointmentTransition(db, old, 'guest', '2026-01-01T13:00:00Z', {
-			newStart: '2099-02-01T10:00:00Z',
-			newEnd: '2099-02-01T10:30:00Z',
-			newStatus: 'confirmed',
-			eventTypeSnapshot: '{}',
-			reason: 'scheduling conflict'
+		const result = await withWriteTransaction(db, async (connection) => {
+			const current = await fetchRow(connection, old.id);
+			const moved = await rescheduleAppointmentTransition(
+				connection,
+				current,
+				'guest',
+				'2026-01-01T13:00:00Z',
+				{
+					newStart: '2099-02-01T10:00:00Z',
+					newEnd: '2099-02-01T10:30:00Z',
+					newStatus: 'confirmed',
+					eventTypeSnapshot: '{}',
+					reason: 'scheduling conflict'
+				}
+			);
+			return moved;
 		});
 
 		expect(result.ok).toBe(true);

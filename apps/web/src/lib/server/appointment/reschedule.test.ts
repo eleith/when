@@ -1,7 +1,13 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { classifyReschedule, rescheduleAppointment } from './reschedule';
 import { systemClock } from '$lib/server/clock';
-import { openDb, runMigrations, type Appointment } from '@when/db';
+import {
+	openDb,
+	runMigrations,
+	parseActionLog,
+	type ActionLogEntry,
+	type Appointment
+} from '@when/db';
 import type { WhenConfiguration } from '@when/config';
 import { validConfig } from '$lib/server/__fixtures__/valid-config';
 
@@ -234,15 +240,21 @@ async function makeDb() {
 }
 
 async function fetchRow(db: Awaited<ReturnType<typeof makeDb>>, id: string) {
-	return db.selectFrom('appointments').selectAll().where('id', '=', id).executeTakeFirstOrThrow();
+	const row = await db
+		.selectFrom('appointments')
+		.selectAll()
+		.where('id', '=', id)
+		.executeTakeFirstOrThrow();
+	return row;
 }
 
 describe('rescheduleAppointment', () => {
 	beforeEach(() => {
 		vi.mocked(enqueueAppointmentReconciliation).mockReset();
-		vi.mocked(enqueueAppointmentReconciliation).mockImplementation(async (db, id) =>
-			db.selectFrom('appointments').selectAll().where('id', '=', id).executeTakeFirstOrThrow()
-		);
+		vi.mocked(enqueueAppointmentReconciliation).mockImplementation(async (db, id) => {
+			const row = await fetchRow(db, id);
+			return row;
+		});
 	});
 
 	test('happy path: creates a linked new row, ends the old one, queues a calendar sync', async () => {
@@ -257,7 +269,7 @@ describe('rescheduleAppointment', () => {
 			const result = await rescheduleAppointment(
 				{ db, cfg: validConfig, clock: systemClock },
 				{
-					appointment: row,
+					appointmentId: row.id,
 					initiator: 'guest',
 					newStart: '2099-01-02T10:00:00Z',
 					newEnd: '2099-01-02T10:30:00Z'
@@ -301,7 +313,7 @@ describe('rescheduleAppointment', () => {
 			const result = await rescheduleAppointment(
 				{ db, cfg: validConfig, clock: systemClock },
 				{
-					appointment: row,
+					appointmentId: row.id,
 					initiator: 'guest',
 					newStart: '2099-01-02T10:00:00Z',
 					newEnd: '2099-01-02T10:30:00Z',
@@ -351,7 +363,7 @@ describe('rescheduleAppointment', () => {
 			const result = await rescheduleAppointment(
 				{ db, cfg: validConfig, clock: systemClock },
 				{
-					appointment: row,
+					appointmentId: row.id,
 					initiator: 'host',
 					newStart: '2099-01-02T10:00:00Z',
 					newEnd: '2099-01-02T10:30:00Z'
@@ -388,7 +400,7 @@ describe('rescheduleAppointment', () => {
 			const result = await rescheduleAppointment(
 				{ db, cfg: validConfig, clock: systemClock },
 				{
-					appointment: row,
+					appointmentId: row.id,
 					initiator: 'host',
 					newStart: '2099-03-02T10:00:00Z',
 					newEnd: '2099-03-02T10:30:00Z'
@@ -438,7 +450,7 @@ describe('rescheduleAppointment', () => {
 			const result = await rescheduleAppointment(
 				{ db, cfg: reapprovalCfg, clock: systemClock },
 				{
-					appointment: row,
+					appointmentId: row.id,
 					initiator: 'guest',
 					newStart: '2099-04-02T10:00:00Z',
 					newEnd: '2099-04-02T10:30:00Z'
@@ -473,7 +485,7 @@ describe('rescheduleAppointment', () => {
 			const result = await rescheduleAppointment(
 				{ db, cfg: reapprovalCfg, clock: systemClock },
 				{
-					appointment: row,
+					appointmentId: row.id,
 					initiator: 'host',
 					newStart: '2099-04-03T10:00:00Z',
 					newEnd: '2099-04-03T10:30:00Z'
@@ -505,7 +517,7 @@ describe('rescheduleAppointment', () => {
 			const result = await rescheduleAppointment(
 				{ db, cfg: reapprovalCfg, clock: systemClock },
 				{
-					appointment: row,
+					appointmentId: row.id,
 					initiator: 'host',
 					newStart: '2099-04-03T10:00:00Z',
 					newEnd: '2099-04-03T10:30:00Z'
@@ -531,7 +543,7 @@ describe('rescheduleAppointment', () => {
 			const result = await rescheduleAppointment(
 				{ db, cfg: validConfig, clock: systemClock },
 				{
-					appointment: row,
+					appointmentId: row.id,
 					initiator: 'guest',
 					newStart: '2099-01-02T10:00:00Z',
 					newEnd: '2099-01-02T10:30:00Z'
@@ -568,7 +580,7 @@ describe('rescheduleAppointment', () => {
 			const result = await rescheduleAppointment(
 				{ db, cfg: validConfig, clock: systemClock },
 				{
-					appointment: row,
+					appointmentId: row.id,
 					initiator: 'guest',
 					newStart: '2099-02-01T10:00:00Z',
 					newEnd: '2099-02-01T10:30:00Z'
@@ -578,13 +590,16 @@ describe('rescheduleAppointment', () => {
 
 			// Original row unchanged
 			const persisted = await fetchRow(db, 'r3a');
-			expect(persisted.start_time).toBe('2099-01-01T15:00:00Z');
+			expect(persisted).toEqual(row);
+			const rows = await db.selectFrom('appointments').selectAll().execute();
+			expect(rows).toHaveLength(2);
+			expect(enqueueAppointmentReconciliation).not.toHaveBeenCalled();
 		} finally {
 			await db.destroy();
 		}
 	});
 
-	test('conflict: row already cancelled by concurrent caller surfaces as conflict', async () => {
+	test('gated: cancellation after the page was loaded prevents rescheduling', async () => {
 		const db = await makeDb();
 		try {
 			await db
@@ -599,17 +614,415 @@ describe('rescheduleAppointment', () => {
 				.set({ status: 'cancelled' })
 				.where('id', '=', 'r4')
 				.execute();
+			const before = await fetchRow(db, row.id);
 
 			const result = await rescheduleAppointment(
 				{ db, cfg: validConfig, clock: systemClock },
 				{
-					appointment: row,
+					appointmentId: row.id,
+					initiator: 'guest',
+					newStart: '2099-01-02T10:00:00Z',
+					newEnd: '2099-01-02T10:30:00Z'
+				}
+			);
+			expect(result).toEqual({ ok: false, reason: 'gated' });
+			const after = await fetchRow(db, row.id);
+			expect(after).toEqual(before);
+			const rows = await db.selectFrom('appointments').selectAll().execute();
+			expect(rows).toHaveLength(1);
+			expect(enqueueAppointmentReconciliation).not.toHaveBeenCalled();
+		} finally {
+			await db.destroy();
+		}
+	});
+
+	test.each(['generate', 'suppress', null] as const)(
+		'host reschedule inherits current fields and history with video request %s',
+		async (request) => {
+			const db = await makeDb();
+			try {
+				const created: ActionLogEntry = {
+					action: 'create',
+					actor: 'guest',
+					at: '2026-04-30T12:00:00Z'
+				};
+				await db
+					.insertInto('appointments')
+					.values({
+						...opBaseRow,
+						id: 'fresh',
+						status: 'confirmed',
+						cancel_token: 'fresh-token',
+						origin_id: 'root',
+						note: 'Page note',
+						video_chat: 'https://page.example/room',
+						video_chat_request: 'generate',
+						external_event_id: 'page-event',
+						external_calendar_id: 'page-calendar',
+						action_log: JSON.stringify([created])
+					})
+					.execute();
+				const page = await fetchRow(db, 'fresh');
+				const currentHistory: ActionLogEntry[] = [
+					created,
+					{
+						action: 'edit',
+						actor: 'host',
+						at: '2026-05-01T12:00:00Z',
+						payload: { metadata: { changes: ['note_updated', 'video_chat_updated'] } }
+					}
+				];
+				const currentAnswers = JSON.stringify([
+					{ name: 'topic', label: 'Topic', type: 'text', value: 'Current topic' }
+				]);
+				await db
+					.updateTable('appointments')
+					.set({
+						note: 'Current host note',
+						video_chat: 'https://current.example/room',
+						video_chat_request: request,
+						guest_name: 'Current guest',
+						guest_email: 'current@example.com',
+						guest_answers: currentAnswers,
+						guest_timezone: 'Asia/Tokyo',
+						location: 'Current room',
+						ics_sequence: 5,
+						calendar_revision: 8,
+						calendar_synced_revision: 7,
+						external_event_id: 'current-event',
+						external_calendar_id: 'current-calendar',
+						action_log: JSON.stringify(currentHistory)
+					})
+					.where('id', '=', page.id)
+					.execute();
+				const current = await fetchRow(db, page.id);
+
+				const result = await rescheduleAppointment(
+					{ db, cfg: validConfig, clock: { now: () => now, nowMs: () => now.getTime() } },
+					{
+						appointmentId: page.id,
+						initiator: 'host',
+						newStart: '2099-01-02T10:00:00Z',
+						newEnd: '2099-01-02T10:30:00Z',
+						reason: 'Moving our meeting'
+					}
+				);
+
+				expect(result.ok).toBe(true);
+				if (!result.ok) return;
+				const next = await fetchRow(db, result.appointment.id);
+				expect(result.appointment).toEqual(next);
+				expect(next).toMatchObject({
+					note: current.note,
+					video_chat: current.video_chat,
+					video_chat_request: request,
+					guest_name: current.guest_name,
+					guest_email: current.guest_email,
+					guest_answers: currentAnswers,
+					guest_timezone: current.guest_timezone,
+					location: current.location,
+					ics_sequence: 6,
+					calendar_revision: 0,
+					calendar_synced_revision: null,
+					origin_id: 'root',
+					external_event_id: 'current-event',
+					external_calendar_id: 'current-calendar',
+					status: 'confirmed',
+					start_time: '2099-01-02T10:00:00Z',
+					end_time: '2099-01-02T10:30:00Z'
+				});
+				expect(next.id).not.toBe(page.id);
+				expect(next.cancel_token).not.toBe(page.cancel_token);
+				const expectedHistory = [
+					...currentHistory,
+					{
+						action: 'reschedule',
+						actor: 'host',
+						at: now.toISOString(),
+						payload: {
+							field: 'status',
+							from: 'confirmed',
+							to: 'rescheduled',
+							note: 'Moving our meeting',
+							metadata: { next_id: next.id, previous_id: page.id }
+						}
+					}
+				];
+				const old = await fetchRow(db, page.id);
+				const nextHistory = parseActionLog(next.action_log);
+				const oldHistory = parseActionLog(old.action_log);
+				expect(nextHistory).toEqual(expectedHistory);
+				expect(oldHistory).toEqual(expectedHistory);
+				expect(old).toEqual({
+					...current,
+					status: 'rescheduled',
+					action_log: next.action_log,
+					updated_at: old.updated_at
+				});
+				expect(enqueueAppointmentReconciliation).toHaveBeenCalledTimes(1);
+				expect(enqueueAppointmentReconciliation).toHaveBeenCalledWith(
+					db,
+					next.id,
+					'rescheduled-by-host'
+				);
+			} finally {
+				await db.destroy();
+			}
+		}
+	);
+
+	test.each([
+		{ timezone: undefined, expected: 'Asia/Tokyo' },
+		{ timezone: 'Europe/London', expected: 'Europe/London' }
+	])(
+		'guest clears form values and uses timezone $expected without losing current host fields',
+		async ({ timezone, expected }) => {
+			const db = await makeDb();
+			try {
+				await db
+					.insertInto('appointments')
+					.values({
+						...opBaseRow,
+						id: 'guest-clear',
+						status: 'confirmed',
+						cancel_token: 'guest-token',
+						guest_timezone: 'America/New_York'
+					})
+					.execute();
+				const page = await fetchRow(db, 'guest-clear');
+				await db
+					.updateTable('appointments')
+					.set({
+						note: 'Current host note',
+						video_chat: 'https://current.example/room',
+						video_chat_request: 'suppress',
+						guest_name: 'Current guest',
+						guest_email: 'current@example.com',
+						location: 'Current room',
+						guest_answers: JSON.stringify([
+							{ name: 'topic', label: 'Topic', type: 'text', value: 'Current' }
+						]),
+						guest_timezone: 'Asia/Tokyo'
+					})
+					.where('id', '=', page.id)
+					.execute();
+
+				const result = await rescheduleAppointment(
+					{ db, cfg: validConfig, clock: systemClock },
+					{
+						appointmentId: page.id,
+						initiator: 'guest',
+						newStart: '2099-01-02T10:00:00Z',
+						newEnd: '2099-01-02T10:30:00Z',
+						guest: { name: 'Submitted guest', email: null, location: null, answers: [] },
+						timezone
+					}
+				);
+
+				expect(result.ok).toBe(true);
+				if (!result.ok) return;
+				const next = await fetchRow(db, result.appointment.id);
+				expect(next).toMatchObject({
+					guest_name: 'Submitted guest',
+					guest_email: null,
+					location: null,
+					guest_answers: null,
+					guest_timezone: expected,
+					note: 'Current host note',
+					video_chat: 'https://current.example/room',
+					video_chat_request: 'suppress'
+				});
+			} finally {
+				await db.destroy();
+			}
+		}
+	);
+
+	test.each([
+		{ requireApproval: false, expected: 'confirmed' },
+		{ requireApproval: true, expected: 'pending' }
+	])(
+		'guest reschedule uses current acceptance with require_approval=$requireApproval',
+		async ({ requireApproval, expected }) => {
+			const db = await makeDb();
+			try {
+				const cfg: WhenConfiguration = {
+					...validConfig,
+					meetings: {
+						'30-min-chat': {
+							...validConfig.meetings['30-min-chat'],
+							require_approval: requireApproval
+						}
+					}
+				};
+				await db
+					.insertInto('appointments')
+					.values({
+						...opBaseRow,
+						id: 'accepted',
+						status: 'pending',
+						cancel_token: 'accepted-token'
+					})
+					.execute();
+				const page = await fetchRow(db, 'accepted');
+				const acceptance: ActionLogEntry = {
+					action: 'confirm',
+					actor: 'host',
+					at: '2026-05-01T12:00:00Z'
+				};
+				await db
+					.updateTable('appointments')
+					.set({ status: 'confirmed', action_log: JSON.stringify([acceptance]) })
+					.where('id', '=', page.id)
+					.execute();
+
+				const result = await rescheduleAppointment(
+					{ db, cfg, clock: systemClock },
+					{
+						appointmentId: page.id,
+						initiator: 'guest',
+						newStart: '2099-01-02T10:00:00Z',
+						newEnd: '2099-01-02T10:30:00Z'
+					}
+				);
+
+				expect(result.ok).toBe(true);
+				if (!result.ok) return;
+				expect(result.appointment.status).toBe(expected);
+				const history = parseActionLog(result.appointment.action_log);
+				expect(history).toHaveLength(2);
+				expect(history[0]).toEqual(acceptance);
+				expect(history[1]).toMatchObject({
+					action: 'reschedule',
+					actor: 'guest',
+					payload: { from: 'confirmed', to: 'rescheduled' }
+				});
+			} finally {
+				await db.destroy();
+			}
+		}
+	);
+
+	test.each([
+		{ gate: 'minimum notice', start: '2026-05-01T13:30:00Z', end: '2026-05-01T14:00:00Z' },
+		{ gate: 'past start', start: '2026-05-01T12:30:00Z', end: '2026-05-01T13:00:00Z' }
+	])('gates the current $gate row without mutation or enqueue', async ({ start, end }) => {
+		const db = await makeDb();
+		try {
+			await db
+				.insertInto('appointments')
+				.values({
+					...opBaseRow,
+					id: 'fresh-gate',
+					status: 'confirmed',
+					cancel_token: 'gate-token'
+				})
+				.execute();
+			const page = await fetchRow(db, 'fresh-gate');
+			await db
+				.updateTable('appointments')
+				.set({ start_time: start, end_time: end })
+				.where('id', '=', page.id)
+				.execute();
+			const before = await fetchRow(db, page.id);
+			const clock = { now: () => now, nowMs: () => now.getTime() };
+
+			const result = await rescheduleAppointment(
+				{ db, cfg: validConfig, clock },
+				{
+					appointmentId: page.id,
+					initiator: 'guest',
+					newStart: '2099-01-02T10:00:00Z',
+					newEnd: '2099-01-02T10:30:00Z'
+				}
+			);
+
+			expect(result).toEqual({ ok: false, reason: 'gated' });
+			const rows = await db.selectFrom('appointments').selectAll().execute();
+			expect(rows).toEqual([before]);
+			expect(enqueueAppointmentReconciliation).not.toHaveBeenCalled();
+		} finally {
+			await db.destroy();
+		}
+	});
+
+	test('concurrent reschedules to different slots create only one successor and enqueue', async () => {
+		const db = await makeDb();
+		try {
+			await db
+				.insertInto('appointments')
+				.values({
+					...opBaseRow,
+					id: 'concurrent',
+					status: 'confirmed',
+					cancel_token: 'concurrent-token'
+				})
+				.execute();
+			const ctx = { db, cfg: validConfig, clock: systemClock };
+
+			const results = await Promise.all([
+				rescheduleAppointment(ctx, {
+					appointmentId: 'concurrent',
+					initiator: 'host',
+					newStart: '2099-01-02T10:00:00Z',
+					newEnd: '2099-01-02T10:30:00Z'
+				}),
+				rescheduleAppointment(ctx, {
+					appointmentId: 'concurrent',
+					initiator: 'host',
+					newStart: '2099-01-03T10:00:00Z',
+					newEnd: '2099-01-03T10:30:00Z'
+				})
+			]);
+
+			const successes = results.filter((result) => result.ok);
+			const failures = results.filter((result) => !result.ok);
+			expect(successes).toHaveLength(1);
+			expect(failures).toEqual([{ ok: false, reason: 'gated' }]);
+			const rows = await db.selectFrom('appointments').selectAll().execute();
+			expect(rows).toHaveLength(2);
+			const original = await fetchRow(db, 'concurrent');
+			expect(original.status).toBe('rescheduled');
+			const successors = rows.filter((row) => row.id !== original.id);
+			expect(successors).toHaveLength(1);
+			const next = successors[0];
+			expect(next).toMatchObject({ origin_id: original.id, status: 'confirmed' });
+			expect(['2099-01-02T10:00:00Z', '2099-01-03T10:00:00Z']).toContain(next.start_time);
+			expect(successes[0].appointment.id).toBe(next.id);
+			const history = parseActionLog(next.action_log);
+			expect(history).toHaveLength(1);
+			expect(history[0]).toMatchObject({
+				action: 'reschedule',
+				payload: { metadata: { previous_id: original.id, next_id: next.id } }
+			});
+			expect(original.action_log).toBe(next.action_log);
+			expect(enqueueAppointmentReconciliation).toHaveBeenCalledTimes(1);
+			expect(enqueueAppointmentReconciliation).toHaveBeenCalledWith(
+				db,
+				next.id,
+				'rescheduled-by-host'
+			);
+		} finally {
+			await db.destroy();
+		}
+	});
+
+	test('a missing appointment returns conflict without enqueue', async () => {
+		const db = await makeDb();
+		try {
+			const result = await rescheduleAppointment(
+				{ db, cfg: validConfig, clock: systemClock },
+				{
+					appointmentId: 'missing',
 					initiator: 'guest',
 					newStart: '2099-01-02T10:00:00Z',
 					newEnd: '2099-01-02T10:30:00Z'
 				}
 			);
 			expect(result).toEqual({ ok: false, reason: 'conflict' });
+			const rows = await db.selectFrom('appointments').selectAll().execute();
+			expect(rows).toEqual([]);
+			expect(enqueueAppointmentReconciliation).not.toHaveBeenCalled();
 		} finally {
 			await db.destroy();
 		}
