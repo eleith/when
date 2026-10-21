@@ -13,6 +13,11 @@ by `@when/web` and `@when/worker`, which both open the same `when.sqlite`.
 - `runMigrations(db)` — apply pending migrations; returns the applied names (the
   caller logs — the package stays logger-agnostic).
 - `migrations` — the ordered migration set.
+- `withWriteTransaction(db, write)` — reserve SQLite write access before a short
+  read-modify-write operation. The callback gets a leased Kysely connection, not a
+  `Transaction`. Use only that connection and await all queries before returning;
+  do not nest transactions, close or retain it. Returning commits; throwing rolls
+  back. Lock acquisition can still time out.
 - `lastCalendarRefreshAt(status)` — proven mirror-refresh timestamp, or `null` when
   the latest observation cannot establish refresh freshness. Shared by worker and web.
 - `recordCalendarEventReference(db, appointmentId, reference)` — record which
