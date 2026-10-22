@@ -19,10 +19,9 @@ function configuredAdapter(ctx: WorkerContext, name: string): ProviderAdapter {
 
 async function observed<T>(ctx: WorkerContext, name: string, work: () => Promise<T>): Promise<T> {
 	const at = Temporal.Now.instant().toString();
+	let result: T;
 	try {
-		const result = await work();
-		await recordServiceOutcome(ctx.db, { kind: 'provider', name }, { at, via: 'test' });
-		return result;
+		result = await work();
 	} catch (err) {
 		const error = err instanceof Error ? err.message : String(err);
 		if (name in ctx.config.providers) {
@@ -30,14 +29,14 @@ async function observed<T>(ctx: WorkerContext, name: string, work: () => Promise
 		}
 		throw err;
 	}
+	await recordServiceOutcome(ctx.db, { kind: 'provider', name }, { at, via: 'test' });
+	return result;
 }
 
 export async function runTestProvider(input: TestProviderInput): Promise<TestProviderResult> {
 	const ctx = getWorkerContext();
-	await observed(ctx, input.name, async () => {
-		const adapter = configuredAdapter(ctx, input.name);
-		await adapter.verify();
-	});
+	const adapter = configuredAdapter(ctx, input.name);
+	await observed(ctx, input.name, () => adapter.verify());
 	return 'authenticated';
 }
 
@@ -45,10 +44,9 @@ export async function runListProviderCalendars(
 	input: ListProviderCalendarsInput
 ): Promise<ListProviderCalendarsResult> {
 	const ctx = getWorkerContext();
-	return observed(ctx, input.name, async () => {
-		const adapter = configuredAdapter(ctx, input.name);
-		return { field: adapter.calendarIdField, calendars: await adapter.listCalendars() };
-	});
+	const adapter = configuredAdapter(ctx, input.name);
+	const calendars = await observed(ctx, input.name, () => adapter.listCalendars());
+	return { field: adapter.calendarIdField, calendars };
 }
 
 export function registerProbeProviderWorkflows(): void {

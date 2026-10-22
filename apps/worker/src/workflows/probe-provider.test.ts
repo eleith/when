@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { getProviderAdapter } from '@when/calendar';
 import { openDb, runMigrations, listServiceStatus } from '@when/db';
+import * as database from '@when/db';
 import type { WhenConfiguration } from '@when/config';
 import { setWorkerContext, type WorkerContext } from '../services/context.js';
 import { createLogger } from '../services/logger.js';
@@ -41,11 +42,13 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
+	vi.restoreAllMocks();
 	await db.destroy();
 });
 
 test('a passing probe records the provider as working', async () => {
-	expect(await runTestProvider({ name: 'dav' })).toBe('authenticated');
+	const result = await runTestProvider({ name: 'dav' });
+	expect(result).toBe('authenticated');
 
 	const [status] = await listServiceStatus(db, 'provider');
 	expect(status).toMatchObject({ name: 'dav', via: 'test', error: null });
@@ -63,7 +66,8 @@ test('a failing probe records the reason and still throws', async () => {
 
 test('an unknown provider throws and records nothing', async () => {
 	await expect(runTestProvider({ name: 'nope' })).rejects.toThrow('No provider named');
-	expect(await listServiceStatus(db, 'provider')).toEqual([]);
+	const statuses = await listServiceStatus(db, 'provider');
+	expect(statuses).toEqual([]);
 });
 
 test('discovery returns the calendars and counts as an observation', async () => {
@@ -75,6 +79,39 @@ test('discovery returns the calendars and counts as an observation', async () =>
 	});
 	const [status] = await listServiceStatus(db, 'provider');
 	expect(status.via).toBe('test');
+});
+
+test.each([
+	['authentication', runTestProvider],
+	['calendar discovery', runListProviderCalendars]
+] as const)(
+	'successful %s does not report a status-write failure as a provider failure',
+	async (_name, run) => {
+		const error = new Error('Status write failed');
+		const record = vi.spyOn(database, 'recordServiceOutcome').mockRejectedValueOnce(error);
+
+		await expect(run({ name: 'dav' })).rejects.toBe(error);
+
+		expect(getProviderAdapter).toHaveBeenCalledOnce();
+		expect(record).toHaveBeenCalledExactlyOnceWith(
+			db,
+			{ kind: 'provider', name: 'dav' },
+			{ at: expect.any(String), via: 'test' }
+		);
+		const statuses = await listServiceStatus(db, 'provider');
+		expect(statuses).toEqual([]);
+	}
+);
+
+test('failed discovery records the provider failure and preserves the error', async () => {
+	const error = new Error('Calendar discovery unavailable');
+	adapter.listCalendars.mockRejectedValueOnce(error);
+
+	await expect(runListProviderCalendars({ name: 'dav' })).rejects.toBe(error);
+
+	const [status] = await listServiceStatus(db, 'provider');
+	expect(status).toMatchObject({ name: 'dav', via: 'test', error: error.message });
+	expect(status.failing_since).toBeTruthy();
 });
 
 test('the worker probes with the refresh token when.yaml configured', async () => {
