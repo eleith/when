@@ -1,6 +1,7 @@
 import { error, fail, redirect } from '@sveltejs/kit';
+import { shouldAttachVideoChat } from '@when/video-chat';
 import { isViewAllowed } from '$lib/server/appointment/access';
-import { resolveAppointmentActions } from '$lib/server/appointment/actions';
+import { isActiveStatus, resolveAppointmentActions } from '$lib/server/appointment/actions';
 import { buildAddToCalendarLinks } from '$lib/server/calendar-links';
 import { systemClock } from '$lib/server/clock';
 import { getConfig, getDb } from '$lib/server/state';
@@ -117,8 +118,20 @@ export const load: PageServerLoad = async ({ params, url, locals, cookies }) => 
 		}
 	}
 
+	const appointment = toPublicAppointment(row, isAdmin);
+	const automaticVideoChat = eventType
+		? shouldAttachVideoChat(eventType, cfg, appointment.answers)
+		: false;
+	const videoChatRequested =
+		isAdmin &&
+		isActiveStatus(row.status) &&
+		!row.video_chat &&
+		row.video_chat_request !== 'suppress' &&
+		(row.video_chat_request === 'generate' || automaticVideoChat);
+
 	return {
-		appointment: toPublicAppointment(row, isAdmin),
+		appointment,
+		videoChatRequested,
 		eventType: toPublicEventType(row.event_type_id, resolvedEventType, isAdmin),
 		calendarLinks,
 		actions,

@@ -8,7 +8,7 @@
 	type Gate = { allowed: boolean };
 
 	interface Props {
-		actions: { reschedule: Gate; cancel: Gate };
+		actions: { reschedule: Gate; cancel: Gate; generateVideoChat: Gate };
 		appointmentId: string;
 		token: string;
 		onCancel: () => void;
@@ -18,6 +18,10 @@
 		hasLocation?: boolean;
 		onEditLocation?: () => void;
 		hasVideoChat?: boolean;
+		videoChatRequested?: boolean;
+		changingVideoChat?: boolean;
+		onGenerateVideoChat?: () => void;
+		onRemoveVideoChat?: () => void;
 		onEditVideoChat?: () => void;
 		isEditable?: boolean;
 	}
@@ -33,6 +37,10 @@
 		hasLocation = false,
 		onEditLocation,
 		hasVideoChat = false,
+		videoChatRequested = false,
+		changingVideoChat = false,
+		onGenerateVideoChat,
+		onRemoveVideoChat,
 		onEditVideoChat,
 		isEditable = false
 	}: Props = $props();
@@ -137,7 +145,35 @@
 											{/snippet}
 										</DropdownMenu.Item>
 									{/if}
-									{#if onEditVideoChat && !hasVideoChat}
+									{#if onRemoveVideoChat && (hasVideoChat || videoChatRequested)}
+										<DropdownMenu.Item
+											disabled={changingVideoChat}
+											onSelect={() => {
+												menuOpen = false;
+												onRemoveVideoChat();
+											}}
+										>
+											{#snippet child({ props: itemProps })}
+												<button {...itemProps} type="button" class="action-item">
+													{#if hasVideoChat}Remove Video Link{:else}Cancel Video Link Request{/if}
+												</button>
+											{/snippet}
+										</DropdownMenu.Item>
+									{:else if actions.generateVideoChat.allowed && onGenerateVideoChat}
+										<DropdownMenu.Item
+											disabled={changingVideoChat}
+											onSelect={() => {
+												menuOpen = false;
+												onGenerateVideoChat();
+											}}
+										>
+											{#snippet child({ props: itemProps })}
+												<button {...itemProps} type="button" class="action-item"
+													>Generate Video Link</button
+												>
+											{/snippet}
+										</DropdownMenu.Item>
+									{:else if onEditVideoChat && !hasVideoChat}
 										<DropdownMenu.Item
 											onSelect={() => {
 												menuOpen = false;

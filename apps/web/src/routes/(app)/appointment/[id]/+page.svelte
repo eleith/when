@@ -12,7 +12,6 @@
 	import IconNote from 'virtual:icons/ph/note';
 	import IconPencilSimple from 'virtual:icons/ph/pencil-simple';
 	import IconVideo from 'virtual:icons/ph/video-conference';
-	import IconSpinner from 'virtual:icons/ph/spinner';
 	import AppointmentActions from '$lib/components/AppointmentActions.svelte';
 	import AppointmentLog from '$lib/components/AppointmentLog.svelte';
 	import AppointmentQuestions from '$lib/components/AppointmentQuestions.svelte';
@@ -25,7 +24,8 @@
 	let editNoteDialogOpen = $state(false);
 	let editLocationDialogOpen = $state(false);
 	let editVideoChatDialogOpen = $state(false);
-	let generatingVideoChat = $state(false);
+	let changingVideoChat = $state(false);
+	let videoChatError = $state<{ message?: string } | null>(null);
 	let cancelReason = $state('I can no longer attend');
 	let editNoteValue = $state('');
 	let editLocationValue = $state('');
@@ -36,22 +36,36 @@
 	let videoChatInputEl = $state<HTMLInputElement | null>(null);
 
 	async function handleGenerateVideoChat() {
-		generatingVideoChat = true;
+		await submitVideoChatChange('generateVideoChat', new FormData());
+	}
+
+	async function handleRemoveVideoChat() {
+		const form = new FormData();
+		form.set('video_chat', '');
+		await submitVideoChatChange('edit', form);
+	}
+
+	async function submitVideoChatChange(action: 'generateVideoChat' | 'edit', form: FormData) {
+		changingVideoChat = true;
+		videoChatError = null;
 		try {
-			const fd = new FormData();
-			const res = await fetch(`/admin/appointment/${data.appointment.id}?/generateVideoChat`, {
+			const res = await fetch(`/admin/appointment/${data.appointment.id}?/${action}`, {
 				method: 'POST',
-				body: fd
+				headers: { accept: 'application/json', 'x-sveltekit-action': 'true' },
+				body: form
 			});
-			const result = deserialize(await res.text());
+			const body = await res.text();
+			const result = deserialize(body);
 			if (result.type === 'success') {
-				editVideoChatDialogOpen = false;
 				await invalidateAll();
+			} else {
+				const error = result.type === 'failure' ? result.data?.error : undefined;
+				videoChatError = { message: typeof error === 'string' ? error : undefined };
 			}
-		} catch (err) {
-			console.error('Failed to generate video chat:', err);
+		} catch {
+			videoChatError = {};
 		} finally {
-			generatingVideoChat = false;
+			changingVideoChat = false;
 		}
 	}
 
@@ -290,6 +304,10 @@
 					hasLocation={!!data.appointment.location}
 					onEditLocation={() => (editLocationDialogOpen = true)}
 					hasVideoChat={!!data.appointment.video_chat}
+					videoChatRequested={data.videoChatRequested}
+					{changingVideoChat}
+					onGenerateVideoChat={handleGenerateVideoChat}
+					onRemoveVideoChat={handleRemoveVideoChat}
 					onEditVideoChat={() => (editVideoChatDialogOpen = true)}
 					{isEditable}
 				/>
@@ -410,6 +428,26 @@
 						</div>
 					</div>
 				{/if}
+			{/if}
+			{#if data.isAdmin && videoChatError}
+				<div class="detail-row" role="alert">
+					<span class="detail-icon"><IconWarningCircle aria-hidden="true" /></span>
+					<div class="detail-text">
+						<div class="detail-secondary">
+							{#if videoChatError.message}{videoChatError.message}{:else}Could not confirm the
+								change. Refresh the page before trying again.{/if}
+						</div>
+					</div>
+				</div>
+			{/if}
+			{#if data.isAdmin && data.videoChatRequested && !data.appointment.video_chat}
+				<div class="detail-row" role="status">
+					<span class="detail-icon"><IconVideo aria-hidden="true" /></span>
+					<div class="detail-text">
+						<div class="detail-primary">Video link requested</div>
+						<div class="detail-secondary">You’ll be emailed when it is added.</div>
+					</div>
+				</div>
 			{/if}
 			{#if data.appointment.video_chat}
 				{#if data.isAdmin && isEditable}
@@ -723,107 +761,45 @@
 					<Dialog.Title>
 						{#snippet child({ props: titleProps })}
 							<h2 {...titleProps} class="cancel-dialog-title">
-								{#if data.actions.generateVideoChat.allowed}
-									{#if data.appointment.video_chat}Video Link{:else}Generate Video Link{/if}
-								{:else if data.appointment.video_chat}Edit Video Link{:else}Add Video Link{/if}
+								{#if data.appointment.video_chat}Edit Video Link{:else}Add Video Link{/if}
 							</h2>
 						{/snippet}
 					</Dialog.Title>
 
 					<p class="cancel-dialog-desc">
-						{#if data.actions.generateVideoChat.allowed}
-							{#if data.appointment.video_chat}
-								This video link was generated with your meeting provider.
-							{:else}
-								Generate a video link with your meeting provider to include in the invitation and
-								emails.
-							{/if}
-						{:else}
-							This link will be included in the calendar invitation and email notifications sent to
-							the guest.
-						{/if}
+						This link will be included in the calendar invitation and email notifications sent to
+						the guest.
 					</p>
 
-					{#if data.actions.generateVideoChat.allowed}
-						{#if data.appointment.video_chat}
-							<div class="video-preview-box">
-								<a
-									href={data.appointment.video_chat}
-									target="_blank"
-									rel="noopener noreferrer"
-									class="video-preview-link"
-								>
-									{data.appointment.video_chat}
-								</a>
-							</div>
-
-							<form method="POST" action="/admin/appointment/{data.appointment.id}?/edit">
-								<input type="hidden" name="video_chat" value="" />
-								<div class="cancel-dialog-actions edit-note-actions">
-									<button type="submit" class="delete-note-btn">Remove</button>
-									<Dialog.Close>
-										{#snippet child({ props: closeProps })}
-											<button {...closeProps} type="button" class="dialog-btn-secondary"
-												>Close</button
-											>
-										{/snippet}
-									</Dialog.Close>
-								</div>
-							</form>
-						{:else}
-							<div class="cancel-dialog-actions edit-note-actions">
+					<form method="POST" action="/admin/appointment/{data.appointment.id}?/edit">
+						<input
+							type="url"
+							name="video_chat"
+							class="cancel-reason-input"
+							placeholder="e.g., https://zoom.us/j/..."
+							bind:value={editVideoChatValue}
+							bind:this={videoChatInputEl}
+						/>
+						<div class="cancel-dialog-actions edit-note-actions">
+							<button type="submit" class="dialog-btn-primary">Save</button>
+							{#if data.appointment.video_chat}
 								<button
-									type="button"
-									class="dialog-btn-primary"
-									class:busy={generatingVideoChat}
-									disabled={generatingVideoChat}
-									onclick={handleGenerateVideoChat}
+									type="submit"
+									class="delete-note-btn"
+									onclick={() => {
+										editVideoChatValue = '';
+									}}
 								>
-									<span class="label">Generate</span>
-									{#if generatingVideoChat}
-										<span class="spinner"><IconSpinner aria-hidden="true" /></span>
-									{/if}
+									Delete
 								</button>
-								<Dialog.Close>
-									{#snippet child({ props: closeProps })}
-										<button {...closeProps} type="button" class="dialog-btn-secondary">Close</button
-										>
-									{/snippet}
-								</Dialog.Close>
-							</div>
-						{/if}
-					{:else}
-						<form method="POST" action="/admin/appointment/{data.appointment.id}?/edit">
-							<input
-								type="url"
-								name="video_chat"
-								class="cancel-reason-input"
-								placeholder="e.g., https://zoom.us/j/..."
-								bind:value={editVideoChatValue}
-								bind:this={videoChatInputEl}
-							/>
-							<div class="cancel-dialog-actions edit-note-actions">
-								<button type="submit" class="dialog-btn-primary">Save</button>
-								{#if data.appointment.video_chat}
-									<button
-										type="submit"
-										class="delete-note-btn"
-										onclick={() => {
-											editVideoChatValue = '';
-										}}
-									>
-										Delete
-									</button>
-								{/if}
-								<Dialog.Close>
-									{#snippet child({ props: closeProps })}
-										<button {...closeProps} type="button" class="dialog-btn-secondary">Close</button
-										>
-									{/snippet}
-								</Dialog.Close>
-							</div>
-						</form>
-					{/if}
+							{/if}
+							<Dialog.Close>
+								{#snippet child({ props: closeProps })}
+									<button {...closeProps} type="button" class="dialog-btn-secondary">Close</button>
+								{/snippet}
+							</Dialog.Close>
+						</div>
+					</form>
 				</div>
 			{/snippet}
 		</Dialog.Content>
@@ -1485,21 +1461,6 @@
 
 	:global(.questions-section[open] + .log-section) {
 		border-top: none;
-	}
-
-	.video-preview-box {
-		padding: var(--space-3) var(--space-4);
-		background: var(--color-surface-muted);
-		border: 1px solid var(--color-border);
-		border-radius: var(--radius);
-		margin-bottom: var(--space-4);
-		word-break: break-all;
-	}
-
-	.video-preview-link {
-		color: var(--when-color-primary);
-		text-decoration: underline;
-		font-size: var(--font-size-md);
 	}
 
 	.btn-icon {

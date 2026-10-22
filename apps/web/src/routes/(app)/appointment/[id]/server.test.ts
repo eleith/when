@@ -79,8 +79,30 @@ const chain: Record<string, Appointment> = {
 	}
 };
 
+const loadConfig = {
+	...validConfig,
+	meetings: {
+		...validConfig.meetings,
+		'automatic-video': {
+			...validConfig.meetings['30-min-chat'],
+			video_chat: {
+				provider: 'google-service',
+				attach: { when: [{ field: 'meeting_type', equals: 'video chat' }] }
+			}
+		}
+	}
+};
+
+const automaticVideoAppointment: Appointment = {
+	...mockAppt,
+	event_type_id: 'automatic-video',
+	guest_answers: JSON.stringify([
+		{ name: 'meeting_type', label: 'How?', type: 'choice', value: 'video chat' }
+	])
+};
+
 vi.mock('$lib/server/state', () => ({
-	getConfig: () => validConfig,
+	getConfig: () => loadConfig,
 	getDb: () => mockDb
 }));
 
@@ -90,6 +112,22 @@ vi.mock('@when/db', async (importOriginal) => {
 		...actual,
 		findAppointment: async (_db: unknown, id: string) => {
 			if (id === 'appt-1') return mockAppt;
+			if (id === 'appt-auto-video') return { ...automaticVideoAppointment, id };
+			if (id === 'appt-auto-phone')
+				return {
+					...automaticVideoAppointment,
+					id,
+					guest_answers: JSON.stringify([
+						{ name: 'meeting_type', label: 'How?', type: 'choice', value: 'by phone' }
+					])
+				};
+			if (id === 'appt-auto-suppressed')
+				return { ...automaticVideoAppointment, id, video_chat_request: 'suppress' };
+			if (id === 'appt-auto-ready')
+				return { ...automaticVideoAppointment, id, video_chat: 'https://video.example.test/ready' };
+			if (id === 'appt-video-request') return { ...mockAppt, id, video_chat_request: 'generate' };
+			if (id === 'appt-video-cancelled')
+				return { ...mockAppt, id, status: 'cancelled', video_chat_request: 'generate' };
 			if (id === 'appt-concluded')
 				return {
 					...mockAppt,
@@ -148,6 +186,28 @@ describe('/appointment/[id] server load', () => {
 		expect(result.eventType.slug).toBe('30-min-chat');
 		expect(result.actions.cancel.allowed).toBe(true);
 	});
+
+	test('exposes an active saved video request only to the host', async () => {
+		const host = await loadAppointment('appt-video-request', null, true);
+		const guest = await loadAppointment('appt-video-request', 'tok-abc');
+		const cancelled = await loadAppointment('appt-video-cancelled', null, true);
+		expect(host.videoChatRequested).toBe(true);
+		expect(guest.videoChatRequested).toBe(false);
+		expect(cancelled.videoChatRequested).toBe(false);
+	});
+
+	test.each([
+		['appt-auto-video', true],
+		['appt-auto-phone', false],
+		['appt-auto-suppressed', false],
+		['appt-auto-ready', false]
+	] as const)(
+		'shows automatic request indication for %s only when a link is expected and missing',
+		async (id, expected) => {
+			const result = await loadAppointment(id, null, true);
+			expect(result.videoChatRequested).toBe(expected);
+		}
+	);
 
 	test('throws 404 for guest when event type is missing/deleted from config', async () => {
 		const mockLocals = {

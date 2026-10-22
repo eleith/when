@@ -28,6 +28,13 @@ providers:
       main:
         href: 'calendars/e2e/main/'
 
+  fixture-video:
+    type: 'nextcloud'
+    url: 'https://video.example.test'
+    username: 'e2e'
+    password: 'e2e-video-password'
+    calendars: {}
+
 schedules:
   standard:
     weekly:
@@ -43,6 +50,10 @@ meetings:
     description: 'A quick introductory call.'
     schedule: 'standard'
     booking_calendar: 'main'
+    video_chat:
+      provider: 'fixture-video'
+      attach:
+        auto: false
 
 url:
   app: 'http://localhost:4183'
