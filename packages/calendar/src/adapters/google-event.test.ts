@@ -36,7 +36,10 @@ describe('getGoogleEvent', () => {
 
 		expect(result).toEqual(body);
 		expect(requests).toEqual([
-			{ url: eventUrl, init: { headers: { Authorization: 'Bearer event-token' } } }
+			{
+				url: eventUrl,
+				init: { signal: undefined, headers: { Authorization: 'Bearer event-token' } }
+			}
 		]);
 		expect(fetchSpy).toHaveBeenCalledTimes(2);
 	});
@@ -56,6 +59,7 @@ describe('patchGoogleEvent', () => {
 				url: `${eventUrl}?custom=a%2Fb+%26+c`,
 				init: {
 					method: 'PATCH',
+					signal: undefined,
 					headers: { Authorization: 'Bearer event-token', 'Content-Type': 'application/json' },
 					body: JSON.stringify(fields)
 				}
@@ -138,3 +142,57 @@ test('authentication failure is bounded and does not request the event', async (
 	await expect(result).rejects.toThrow(/^Google event GET request failed$/);
 	expect(fetchSpy).toHaveBeenCalledTimes(1);
 });
+
+test.each(['GET', 'PATCH'] as const)(
+	'%s forwards the same optional caller signal to OAuth and the event without creating deadlines',
+	async (method) => {
+		const timeout = vi.spyOn(AbortSignal, 'timeout');
+		const controller = new AbortController();
+		for (const signal of [undefined, controller.signal]) {
+			const { fetchSpy } = mockGoogle({ id: eventId });
+			const operation =
+				method === 'GET'
+					? getGoogleEvent(cfg, eventId, signal)
+					: patchGoogleEvent(cfg, eventId, { summary: 'Changed' }, {}, signal);
+			const result = await operation;
+
+			expect(result).toEqual({ id: eventId });
+			expect(fetchSpy).toHaveBeenCalledTimes(2);
+			for (const [, init] of fetchSpy.mock.calls) {
+				expect(init?.signal).toBe(signal);
+			}
+			fetchSpy.mockRestore();
+		}
+		expect(timeout).not.toHaveBeenCalled();
+	}
+);
+
+test.each(['GET', 'PATCH'] as const)(
+	'%s converts caller cancellation during OAuth or event I/O to the existing transport error',
+	async (method) => {
+		for (const stage of ['token', 'event']) {
+			const controller = new AbortController();
+			const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+				expect(init?.signal).toBe(controller.signal);
+				if (stage === 'event' && String(input) === 'https://oauth2.googleapis.com/token') {
+					return new Response(JSON.stringify({ access_token: 'event-token', expires_in: 0 }));
+				}
+				const response = new Promise<Response>((_resolve, reject) => {
+					controller.signal.addEventListener('abort', () => reject(controller.signal.reason), {
+						once: true
+					});
+				});
+				controller.abort();
+				return response;
+			});
+			const result =
+				method === 'GET'
+					? getGoogleEvent(cfg, eventId, controller.signal)
+					: patchGoogleEvent(cfg, eventId, {}, {}, controller.signal);
+
+			await expect(result).rejects.toThrow(`Google event ${method} request failed`);
+			expect(fetchSpy).toHaveBeenCalledTimes(stage === 'token' ? 1 : 2);
+			fetchSpy.mockRestore();
+		}
+	}
+);

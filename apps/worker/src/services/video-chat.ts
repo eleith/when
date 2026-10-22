@@ -39,6 +39,14 @@ export interface VideoChatBooking {
 	created: boolean;
 }
 
+export type VideoChatBookingResult =
+	| { ok: true; booking: VideoChatBooking | null }
+	| { ok: false; reason: string };
+
+export type VideoChatRequestResult =
+	| { ok: true; attempt: VideoChatAttempt | null }
+	| { ok: false; reason: string };
+
 export function wantsGeneratedVideoChat(config: WhenConfiguration, row: Appointment): boolean {
 	if (row.status !== 'pending' && row.status !== 'confirmed') return false;
 	if (row.video_chat || row.video_chat_request === 'suppress') return false;
@@ -74,11 +82,12 @@ export function videoChatResource(
 
 export function videoChatAdapter(
 	ctx: WorkerContext,
-	resource: VideoChatResource
+	resource: VideoChatResource,
+	signal?: AbortSignal
 ): VideoChatAdapter {
 	const provider = ctx.config.providers[resource.providerName];
 	if (!provider) throw new Error('Video chat provider no longer exists');
-	if (provider.type !== 'google') return getVideoChatAdapter(provider);
+	if (provider.type !== 'google') return getVideoChatAdapter(provider, null, signal);
 	const reference = resource.calendarEvent;
 	const calendar = reference ? findCalendar(ctx.config, reference.calendarId) : undefined;
 	if (!reference || calendar?.type !== 'google') {
@@ -93,34 +102,44 @@ export function videoChatAdapter(
 	};
 	return getVideoChatAdapter(provider, {
 		id: reference.eventId,
-		read: () => getGoogleEvent(config, reference.eventId),
-		patch: (fields, query) => patchGoogleEvent(config, reference.eventId, fields, query)
+		read: () => getGoogleEvent(config, reference.eventId, signal),
+		patch: (fields, query) => patchGoogleEvent(config, reference.eventId, fields, query, signal)
 	});
 }
 
-export async function bookVideoChatEvent(
+export async function tryBookVideoChatEvent(
 	ctx: WorkerContext,
 	appointmentId: string
-): Promise<VideoChatBooking | null> {
+): Promise<VideoChatBookingResult> {
 	const row = await findAppointment(ctx.db, appointmentId);
-	if (!row || !wantsGeneratedVideoChat(ctx.config, row)) return null;
+	if (!row || !wantsGeneratedVideoChat(ctx.config, row)) return { ok: true, booking: null };
 	const resource = videoChatResource(ctx.config, row);
-	if (!resource || ctx.config.providers[resource.providerName]?.type !== 'google') return null;
-	if (resource.calendarEvent) return { reference: resource.calendarEvent, created: false };
-	if (row.status !== 'confirmed') return null;
+	if (!resource || ctx.config.providers[resource.providerName]?.type !== 'google')
+		return { ok: true, booking: null };
+	if (resource.calendarEvent)
+		return { ok: true, booking: { reference: resource.calendarEvent, created: false } };
+	if (row.status !== 'confirmed') return { ok: true, booking: null };
 	const calendarId =
 		row.external_calendar_id ?? ctx.config.meetings[row.event_type_id]?.booking_calendar;
 	const calendar = calendarId ? findCalendar(ctx.config, calendarId) : undefined;
 	if (calendar?.type !== 'google')
-		throw new Error('Google Meet requires a Google booking calendar');
+		return { ok: false, reason: 'Google Meet requires a Google booking calendar' };
 	const cancelUrl = appointmentLinks({ baseUrl: ctx.config.url.app, appointment: row }).booked;
 	const result = await pushAppointment(ctx.config, row, calendar.name, { cancelUrl });
-	if (!result.ok || !result.externalEventId || !result.externalCalendarId) {
-		throw new Error('Could not book the Google event for video attachment');
+	if (!result.ok)
+		return {
+			ok: false,
+			reason: result.reason ?? 'Could not book the Google event for video attachment'
+		};
+	if (!result.externalEventId || !result.externalCalendarId) {
+		return { ok: false, reason: 'Could not book the Google event for video attachment' };
 	}
 	return {
-		reference: { calendarId: result.externalCalendarId, eventId: result.externalEventId },
-		created: !row.external_event_id
+		ok: true,
+		booking: {
+			reference: { calendarId: result.externalCalendarId, eventId: result.externalEventId },
+			created: !row.external_event_id
+		}
 	};
 }
 
@@ -148,31 +167,41 @@ function sameVideoChatResource(left: VideoChatResource | null, right: VideoChatR
 	);
 }
 
-export async function requestMissingVideoChat(
+export async function tryRequestMissingVideoChat(
 	ctx: WorkerContext,
 	appointmentId: string,
-	requestId: string
-): Promise<VideoChatAttempt | null> {
+	requestId: string,
+	signal?: AbortSignal
+): Promise<VideoChatRequestResult> {
 	const row = await findAppointment(ctx.db, appointmentId);
-	if (!row || !wantsGeneratedVideoChat(ctx.config, row)) return null;
+	if (!row || !wantsGeneratedVideoChat(ctx.config, row)) return { ok: true, attempt: null };
 	const resource = videoChatResource(ctx.config, row);
-	if (!resource) return null;
-	if (ctx.config.providers[resource.providerName]?.type === 'google' && !resource.calendarEvent)
-		return null;
+	if (!resource) return { ok: true, attempt: null };
+	if (ctx.config.providers[resource.providerName]?.type === 'google') {
+		if (!resource.calendarEvent) return { ok: true, attempt: null };
+		const calendar = findCalendar(ctx.config, resource.calendarEvent.calendarId);
+		if (calendar?.type !== 'google')
+			return { ok: false, reason: 'Google Meet requires a Google booking calendar' };
+	}
 	const target = { appointmentId, revision: row.calendar_revision, resource };
-	const adapter = videoChatAdapter(ctx, resource);
+	const adapter = videoChatAdapter(ctx, resource, signal);
 	const observed = await adapter.read(null);
-	if (!observed.ok) throw new Error(observed.reason);
-	if (observed.status === 'ready') return { target, status: 'ready', url: observed.url };
-	if (observed.status === 'pending') return { target, status: 'pending', url: null };
-	if (observed.status !== 'absent') throw new Error(`Video chat observation is ${observed.status}`);
+	if (!observed.ok) return { ok: false, reason: observed.reason };
+	if (observed.status === 'ready')
+		return { ok: true, attempt: { target, status: 'ready', url: observed.url } };
+	if (observed.status === 'pending')
+		return { ok: true, attempt: { target, status: 'pending', url: null } };
+	if (observed.status !== 'absent')
+		return { ok: false, reason: `Video chat observation is ${observed.status}` };
 	const current = await currentTarget(ctx, target);
-	if (!current) return null;
+	if (!current) return { ok: true, attempt: null };
 	const result = await adapter.request({ name: `Meeting: ${current.guest_name}`, requestId });
-	if (!result.ok) throw new Error(result.reason);
-	if (result.status === 'ready') return { target, status: 'ready', url: result.url };
-	if (result.status === 'pending') return { target, status: 'pending', url: null };
-	throw new Error(`Video chat request is ${result.status}`);
+	if (!result.ok) return { ok: false, reason: result.reason };
+	if (result.status === 'ready')
+		return { ok: true, attempt: { target, status: 'ready', url: result.url } };
+	if (result.status === 'pending')
+		return { ok: true, attempt: { target, status: 'pending', url: null } };
+	return { ok: false, reason: `Video chat request is ${result.status}` };
 }
 
 export async function readPendingVideoChat(

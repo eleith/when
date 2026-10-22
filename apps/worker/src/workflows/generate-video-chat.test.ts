@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { findAppointment, openDb, parseActionLog, runMigrations, type Appointment } from '@when/db';
-import { getOpenWorkflow, reconcileAppointment } from '@when/jobs';
+import type { GenerateVideoChatInput } from '@when/jobs';
+import { notifyAppointment, type NotifyAppointmentInput } from './notify-appointment.js';
 import { pushAppointment } from '@when/calendar';
 import { getVideoChatAdapter, type VideoChatAdapter } from '@when/video-chat';
 import type { WhenConfiguration } from '@when/config';
@@ -10,11 +11,6 @@ import { createLogger } from '../services/logger.js';
 import { sampleAppointment, sampleConfig } from '../email/__fixtures__/appointment.js';
 import { runGenerateVideoChat } from './generate-video-chat.js';
 
-const { enqueue } = vi.hoisted(() => ({ enqueue: vi.fn() }));
-vi.mock('@when/jobs', async (importOriginal) => {
-	const actual = await importOriginal<typeof import('@when/jobs')>();
-	return { ...actual, getOpenWorkflow: vi.fn(() => ({ runWorkflow: enqueue })) };
-});
 vi.mock('@when/video-chat', async (importOriginal) => {
 	const actual = await importOriginal<typeof import('@when/video-chat')>();
 	return { ...actual, getVideoChatAdapter: vi.fn() };
@@ -26,7 +22,8 @@ vi.mock('@when/calendar', async (importOriginal) => {
 
 const url = 'https://cloud.example.com/call/generated';
 const clock = { now: () => new Date('2026-01-02T10:00:00.000Z') };
-const input = { appointmentId: 'a' };
+const input: GenerateVideoChatInput = { appointmentId: 'a', notificationKind: 'video-chat-added' };
+const notify = vi.fn();
 let ctx: WorkerContext;
 let adapter: VideoChatAdapter;
 const send = vi.fn();
@@ -60,6 +57,13 @@ function cachedSteps() {
 			}
 			saved.set(config.name, structuredClone(result));
 			return result;
+		},
+		async runWorkflow(
+			spec: typeof notifyAppointment,
+			notice: NotifyAppointmentInput,
+			options: { name: string }
+		) {
+			return step.run(options, () => notify(spec, notice, options));
 		}
 	};
 	return {
@@ -101,10 +105,11 @@ async function row() {
 
 beforeEach(async () => {
 	vi.resetAllMocks();
-	vi.mocked(getOpenWorkflow).mockReturnValue({ runWorkflow: enqueue } as unknown as ReturnType<
-		typeof getOpenWorkflow
-	>);
-	enqueue.mockResolvedValue({ id: 'reconciliation' });
+	vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('Unexpected network call'));
+	notify.mockImplementation(async (_spec, notice) => {
+		const current = await findAppointment(ctx.db, notice.appointmentId);
+		return current ? { videoChatUrl: current.video_chat } : null;
+	});
 	const db = openDb(':memory:');
 	await runMigrations(db);
 	const config = {
@@ -149,6 +154,8 @@ beforeEach(async () => {
 });
 afterEach(async () => {
 	expect(send).not.toHaveBeenCalled();
+	expect(globalThis.fetch).not.toHaveBeenCalled();
+	vi.restoreAllMocks();
 	await ctx.db.destroy();
 });
 
@@ -157,8 +164,9 @@ describe('runGenerateVideoChat with successful-step replay', () => {
 		{ choice: null, automatic: true, actor: 'system' },
 		{ choice: 'generate', automatic: false, actor: 'host' }
 	] as const)(
-		'$choice generation publishes then hands off to existing reconciliation, never SMTP',
+		'$choice generation publishes then awaits the neutral notification child, never direct SMTP',
 		async ({ choice, automatic, actor }) => {
+			const timeout = vi.spyOn(AbortSignal, 'timeout');
 			await seed({ video_chat_request: choice });
 			ctx.config.meetings.chat.video_chat!.attach = { auto: automatic };
 			const steps = cachedSteps();
@@ -171,29 +179,33 @@ describe('runGenerateVideoChat with successful-step replay', () => {
 				calendar_revision: 5,
 				ics_sequence: 8
 			});
-			expect(parseActionLog(current.action_log)).toEqual([
-				{
-					action: 'edit',
-					actor,
-					at: clock.now().toISOString(),
-					payload: { metadata: { changes: ['video_chat_added'] } }
-				}
-			]);
-			expect(enqueue).toHaveBeenCalledExactlyOnceWith(
-				reconcileAppointment,
-				{ appointmentId: 'a', emailKind: 'video-chat-added' },
-				{ idempotencyKey: 'a:video-chat-added:8' }
+			expect(parseActionLog(current.action_log).filter((entry) => entry.action === 'edit')).toEqual(
+				[
+					{
+						action: 'edit',
+						actor,
+						at: clock.now().toISOString(),
+						payload: { metadata: { changes: ['video_chat_added'] } }
+					}
+				]
+			);
+			expect(notify).toHaveBeenCalledExactlyOnceWith(
+				notifyAppointment,
+				{ appointmentId: 'a', kind: 'video-chat-added', videoChatUrl: url },
+				{ name: 'video-chat-added-notification' }
 			);
 			expect(steps.executions).toEqual([
 				'prepare-video-chat',
+				'conference-request-id',
 				'reconcile-video-removal',
 				'book-google-event',
-				'conference-request-id',
 				'request-video-chat',
 				'publish-video-chat',
 				'cleanup-unused-video-chat',
-				'notify-video-chat-added'
+				'sync-video-notification',
+				'video-chat-added-notification'
 			]);
+			expect(timeout).not.toHaveBeenCalled();
 			expect(adapter.request).toHaveBeenCalledWith({
 				name: 'Meeting: Jane Doe',
 				requestId: steps.saved.get('conference-request-id')
@@ -220,14 +232,14 @@ describe('runGenerateVideoChat with successful-step replay', () => {
 		const edits = parseActionLog(after.action_log).filter((entry) => entry.action === 'edit');
 		expect(edits).toEqual([]);
 		expect(adapter.request).not.toHaveBeenCalled();
-		expect(enqueue).not.toHaveBeenCalled();
+		expect(notify).not.toHaveBeenCalled();
 	});
 
 	test('missing appointment returns null without creating or notifying', async () => {
 		const result = await runGenerateVideoChat(input, cachedSteps().step, clock);
 		expect(result).toEqual({ url: null });
 		expect(adapter.request).not.toHaveBeenCalled();
-		expect(enqueue).not.toHaveBeenCalled();
+		expect(notify).not.toHaveBeenCalled();
 	});
 
 	test('pending Google without a booked event defers with no link or notification', async () => {
@@ -238,7 +250,7 @@ describe('runGenerateVideoChat with successful-step replay', () => {
 		expect(pushAppointment).not.toHaveBeenCalled();
 		expect(adapter.read).not.toHaveBeenCalled();
 		expect(adapter.request).not.toHaveBeenCalled();
-		expect(enqueue).not.toHaveBeenCalled();
+		expect(notify).not.toHaveBeenCalled();
 	});
 
 	test('a lost request checkpoint reuses its separate UUID and observes the existing effect before creating again', async () => {
@@ -283,7 +295,7 @@ describe('runGenerateVideoChat with successful-step replay', () => {
 			maximumAttempts: 10,
 			initialInterval: '30s'
 		});
-		expect(enqueue).toHaveBeenCalledTimes(1);
+		expect(notify).toHaveBeenCalledTimes(1);
 	});
 
 	test('provider booking checkpoints before SQL reference recording and is reused after interruption', async () => {
@@ -302,19 +314,19 @@ describe('runGenerateVideoChat with successful-step replay', () => {
 		const unrecorded = await row();
 		expect(unrecorded.external_event_id).toBeNull();
 		expect(steps.saved.has('book-google-event')).toBe(true);
-		expect(steps.saved.has('conference-request-id')).toBe(false);
+		expect(steps.saved.has('conference-request-id')).toBe(true);
 		const result = await runGenerateVideoChat(input, steps.step, clock);
 		expect(result).toEqual({ url });
-		expect(pushAppointment).toHaveBeenCalledTimes(1);
+		expect(pushAppointment).toHaveBeenCalledTimes(2);
 		const current = await row();
 		expect(current.external_event_id).toBe('event');
-		expect(steps.executions.indexOf('record-booking-reference')).toBeLessThan(
-			steps.executions.indexOf('conference-request-id')
+		expect(steps.executions.indexOf('conference-request-id')).toBeLessThan(
+			steps.executions.indexOf('record-booking-reference')
 		);
 		expect(adapter.request).not.toHaveBeenCalled();
 	});
 
-	test('SQL commit before a lost publish checkpoint replays without a second edit, then queues handoff', async () => {
+	test('SQL commit before a lost publish checkpoint replays without a second edit, then awaits notification', async () => {
 		await seed();
 		const steps = cachedSteps();
 		steps.loseCheckpointOnce('publish-video-chat');
@@ -322,20 +334,27 @@ describe('runGenerateVideoChat with successful-step replay', () => {
 		await expect(interrupted).rejects.toThrow('lost checkpoint: publish-video-chat');
 		const committed = await row();
 		expect(committed).toMatchObject({ video_chat: url, calendar_revision: 5, ics_sequence: 8 });
-		expect(enqueue).not.toHaveBeenCalled();
+		expect(notify).not.toHaveBeenCalled();
 		const result = await runGenerateVideoChat(input, steps.step, clock);
 		const replayed = await row();
 		expect(result).toEqual({ url });
-		expect(replayed).toEqual(committed);
+		expect(replayed).toMatchObject({
+			video_chat: committed.video_chat,
+			calendar_revision: committed.calendar_revision,
+			ics_sequence: committed.ics_sequence
+		});
+		expect(
+			parseActionLog(replayed.action_log).filter((entry) => entry.action === 'edit')
+		).toHaveLength(1);
 		expect(adapter.request).toHaveBeenCalledTimes(1);
-		expect(enqueue).toHaveBeenCalledExactlyOnceWith(
-			reconcileAppointment,
-			{ appointmentId: 'a', emailKind: 'video-chat-added' },
-			{ idempotencyKey: 'a:video-chat-added:8' }
+		expect(notify).toHaveBeenCalledExactlyOnceWith(
+			notifyAppointment,
+			{ appointmentId: 'a', kind: 'video-chat-added', videoChatUrl: url },
+			{ name: 'video-chat-added-notification' }
 		);
 	});
 
-	test('handoff key uses actual materialized ICS, not the sequence observed before provider IO', async () => {
+	test('notification sees actual materialized ICS, not the sequence observed before provider IO', async () => {
 		await seed();
 		const steps = cachedSteps();
 		steps.afterEffect(async (name) => {
@@ -350,33 +369,40 @@ describe('runGenerateVideoChat with successful-step replay', () => {
 		await runGenerateVideoChat(input, steps.step, clock);
 		const current = await row();
 		expect(current.ics_sequence).toBe(13);
-		expect(enqueue).toHaveBeenCalledWith(
-			reconcileAppointment,
-			{ appointmentId: 'a', emailKind: 'video-chat-added' },
-			{ idempotencyKey: 'a:video-chat-added:13' }
+		expect(notify).toHaveBeenCalledWith(
+			notifyAppointment,
+			{ appointmentId: 'a', kind: 'video-chat-added', videoChatUrl: url },
+			{ name: 'video-chat-added-notification' }
 		);
 	});
 
-	test.each(['enqueue failure', 'effect before checkpoint loss'] as const)(
-		'%s retries the same handoff key without another provider request or SMTP',
+	test.each(['child creation failure', 'effect before checkpoint loss'] as const)(
+		'%s retries the same notification child without another provider request or SMTP',
 		async (failure) => {
 			await seed();
 			const steps = cachedSteps();
-			if (failure === 'enqueue failure')
-				enqueue.mockRejectedValueOnce(new Error('queue unavailable'));
-			else steps.loseCheckpointOnce('notify-video-chat-added');
+			if (failure === 'child creation failure')
+				notify.mockRejectedValueOnce(new Error('queue unavailable'));
+			else steps.loseCheckpointOnce('video-chat-added-notification');
 			const interrupted = runGenerateVideoChat(input, steps.step, clock);
 			await expect(interrupted).rejects.toThrow(
-				failure === 'enqueue failure' ? 'queue unavailable' : 'lost checkpoint'
+				failure === 'child creation failure' ? 'queue unavailable' : 'lost checkpoint'
 			);
 			const committed = await row();
 			expect(committed.video_chat).toBe(url);
 			await runGenerateVideoChat(input, steps.step, clock);
 			const replayed = await row();
-			expect(replayed).toEqual(committed);
-			expect(enqueue).toHaveBeenCalledTimes(2);
-			expect(enqueue.mock.calls[0]).toEqual(enqueue.mock.calls[1]);
-			expect(enqueue.mock.calls[1][2]).toEqual({ idempotencyKey: 'a:video-chat-added:8' });
+			expect(replayed).toMatchObject({
+				video_chat: committed.video_chat,
+				calendar_revision: committed.calendar_revision,
+				ics_sequence: committed.ics_sequence
+			});
+			expect(
+				parseActionLog(replayed.action_log).filter((entry) => entry.action === 'edit')
+			).toHaveLength(1);
+			expect(notify).toHaveBeenCalledTimes(2);
+			expect(notify.mock.calls[0]).toEqual(notify.mock.calls[1]);
+			expect(notify.mock.calls[1][2]).toEqual({ name: 'video-chat-added-notification' });
 			expect(adapter.request).toHaveBeenCalledTimes(1);
 		}
 	);
@@ -401,7 +427,7 @@ describe('runGenerateVideoChat with successful-step replay', () => {
 			ics_sequence: 7
 		});
 		expect(adapter.removeLink).toHaveBeenCalledExactlyOnceWith(url);
-		expect(enqueue).not.toHaveBeenCalled();
+		expect(notify).not.toHaveBeenCalled();
 	});
 
 	test('a different URI selected after publication wins and prevents a stale handoff', async () => {
@@ -418,8 +444,134 @@ describe('runGenerateVideoChat with successful-step replay', () => {
 		});
 		const result = await runGenerateVideoChat(input, steps.step, clock);
 		expect(result).toEqual({ url: 'https://chosen.example.com' });
-		expect(enqueue).not.toHaveBeenCalled();
+		expect(notify).not.toHaveBeenCalled();
 		const current = await row();
 		expect(current.video_chat_request).toBe('suppress');
+	});
+	test('automatic ready first publishes before the full notice and never sends added', async () => {
+		const timeout = vi.spyOn(AbortSignal, 'timeout');
+		await seed();
+		const steps = cachedSteps();
+		const result = await runGenerateVideoChat(
+			{ ...input, notificationKind: 'confirmed' },
+			steps.step,
+			clock
+		);
+		expect(result).toEqual({ url });
+		expect(notify).toHaveBeenCalledExactlyOnceWith(
+			notifyAppointment,
+			{ appointmentId: 'a', kind: 'confirmed' },
+			{ name: 'original-notification' }
+		);
+		expect(steps.policies.get('initial-video-request')).toEqual({ maximumAttempts: 1 });
+		expect(timeout).toHaveBeenCalledExactlyOnceWith(5_000);
+		const signal = vi.mocked(getVideoChatAdapter).mock.calls[0][2];
+		expect(signal).toBeInstanceOf(AbortSignal);
+		expect(timeout).toHaveReturnedWith(signal);
+		expect(steps.saved.has('book-google-event')).toBe(false);
+		expect(steps.executions.indexOf('publish-initial-video')).toBeLessThan(
+			steps.executions.indexOf('original-notification')
+		);
+	});
+
+	test('provider failure is saved data; the full notice precedes the remaining native retry budget', async () => {
+		const timeout = vi.spyOn(AbortSignal, 'timeout');
+		await seed();
+		vi.mocked(adapter.request).mockResolvedValueOnce({ ok: false, reason: 'provider unavailable' });
+		const steps = cachedSteps();
+		await runGenerateVideoChat({ ...input, notificationKind: 'confirmed' }, steps.step, clock);
+		expect(steps.saved.get('initial-video-request')).toEqual({
+			ok: false,
+			reason: 'provider unavailable'
+		});
+		expect(timeout).toHaveBeenCalledExactlyOnceWith(5_000);
+		const signals = vi.mocked(getVideoChatAdapter).mock.calls.map(([, , signal]) => signal);
+		expect(signals).toEqual([expect.any(AbortSignal), undefined]);
+		expect(steps.policies.get('request-video-chat')).toEqual({ maximumAttempts: 9 });
+		expect(steps.policies.get('book-google-event')).toEqual({ maximumAttempts: 9 });
+		expect(steps.executions.indexOf('original-notification')).toBeLessThan(
+			steps.executions.indexOf('request-video-chat')
+		);
+		expect(notify.mock.calls.map(([, notice]) => notice.kind)).toEqual([
+			'confirmed',
+			'video-chat-added'
+		]);
+	});
+
+	test('a rejected ready first candidate is cleaned before a fresh target is requested', async () => {
+		await seed();
+		const freshUrl = 'https://cloud.example.com/call/fresh';
+		vi.mocked(adapter.request)
+			.mockResolvedValueOnce({ ok: true, status: 'ready', url })
+			.mockResolvedValueOnce({ ok: true, status: 'ready', url: freshUrl });
+		const steps = cachedSteps();
+		steps.afterEffect(async (name) => {
+			if (name === 'initial-video-request')
+				await ctx.db
+					.updateTable('appointments')
+					.set({ calendar_revision: 5 })
+					.where('id', '=', 'a')
+					.execute();
+		});
+		const result = await runGenerateVideoChat(
+			{ ...input, notificationKind: 'confirmed' },
+			steps.step,
+			clock
+		);
+		expect(result).toEqual({ url: freshUrl });
+		expect(adapter.removeLink).toHaveBeenCalledExactlyOnceWith(url);
+		expect(steps.executions.indexOf('cleanup-initial-video')).toBeLessThan(
+			steps.executions.indexOf('request-video-chat')
+		);
+		expect(notify.mock.calls.map(([, notice]) => notice.kind)).toEqual([
+			'confirmed',
+			'video-chat-added'
+		]);
+	});
+
+	test.each([null, 'suppress'] as const)(
+		'cleanup-only purpose with intent %s never creates or notifies',
+		async (choice) => {
+			await seed({ video_chat_request: choice });
+			const steps = cachedSteps();
+			const result = await runGenerateVideoChat(
+				{ ...input, notificationKind: null },
+				steps.step,
+				clock
+			);
+			expect(result).toEqual({ url: null });
+			expect(adapter.request).not.toHaveBeenCalled();
+			expect(notify).not.toHaveBeenCalled();
+			expect(steps.saved.get('prepare-video-chat')).toBe(false);
+		}
+	);
+
+	test.each([null, 'https://chosen.example.com'] as const)(
+		'full notification remains owed with a current selected URI %s',
+		async (selected) => {
+			await seed({ video_chat: selected, video_chat_request: 'suppress' });
+			await runGenerateVideoChat(
+				{ ...input, notificationKind: 'confirmed' },
+				cachedSteps().step,
+				clock
+			);
+			expect(adapter.request).not.toHaveBeenCalled();
+			expect(notify).toHaveBeenCalledExactlyOnceWith(
+				notifyAppointment,
+				{ appointmentId: 'a', kind: 'confirmed' },
+				{ name: 'original-notification' }
+			);
+		}
+	);
+
+	test('a null original receipt stops before retries or creation', async () => {
+		await seed();
+		vi.mocked(adapter.request).mockResolvedValue({ ok: true, status: 'pending' });
+		notify.mockResolvedValue(null);
+		const steps = cachedSteps();
+		await runGenerateVideoChat({ ...input, notificationKind: 'pending' }, steps.step, clock);
+		expect(steps.saved.has('read-pending-video-chat')).toBe(false);
+		expect(steps.saved.has('book-google-event')).toBe(false);
+		expect(notify).toHaveBeenCalledTimes(1);
 	});
 });

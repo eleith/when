@@ -13,6 +13,7 @@ import {
 	listProviderCalendars,
 	testCalendar,
 	generateVideoChat,
+	videoChatGenerationKey,
 	type AppointmentEmailKind,
 	type GenerateVideoChatInput,
 	type GenerateVideoChatResult,
@@ -93,9 +94,30 @@ test('generateVideoChat carries the shared workflow name', () => {
 	expect(generateVideoChat.name).toBe('generate-video-chat');
 });
 
-test('video-link generation keeps its narrow input and nullable result contract', () => {
-	expectTypeOf<GenerateVideoChatInput>().toEqualTypeOf<{ appointmentId: string }>();
+test('video-link generation requires its intended notification and keeps a nullable result', () => {
+	expectTypeOf<GenerateVideoChatInput>().toEqualTypeOf<{
+		appointmentId: string;
+		notificationKind: 'pending' | 'confirmed' | 'video-chat-added' | null;
+	}>();
 	expectTypeOf<GenerateVideoChatResult>().toEqualTypeOf<{ url: string | null }>();
+});
+
+test('generation keys separate cleanup, original notices and link updates at the same revision', () => {
+	const purposes = [null, 'pending', 'confirmed', 'video-chat-added'] as const;
+	const keys = purposes.map((purpose) => videoChatGenerationKey('appt-1', 4, purpose));
+
+	expect(keys).toEqual([
+		'generate-video-chat:appt-1:4:sync',
+		'generate-video-chat:appt-1:4:pending',
+		'generate-video-chat:appt-1:4:confirmed',
+		'generate-video-chat:appt-1:4:video-chat-added'
+	]);
+	expect(new Set(keys).size).toBe(purposes.length);
+	for (const [index, purpose] of purposes.entries()) {
+		expect(videoChatGenerationKey('appt-1', 4, purpose)).toBe(keys[index]);
+	}
+	expect(videoChatGenerationKey('appt-1', 5, 'confirmed')).not.toBe(keys[2]);
+	expect(videoChatGenerationKey('appt-2', 4, 'confirmed')).not.toBe(keys[2]);
 });
 
 test('video-chat-added is an appointment notification through reconciliation', () => {

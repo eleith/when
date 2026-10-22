@@ -515,3 +515,49 @@ describe('GoogleAdapter.pushAppointment', () => {
 		}
 	);
 });
+
+test.each(['POST', 'PATCH'] as const)(
+	'booking %s and token refresh create no deadline without a caller signal',
+	async (method) => {
+		const timeout = vi.spyOn(AbortSignal, 'timeout');
+		const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) => {
+			if (String(url).includes('oauth2.googleapis.com/token')) {
+				return new Response(JSON.stringify({ access_token: 'deadline-token', expires_in: 0 }));
+			}
+			return new Response(JSON.stringify({ id: 'event' }));
+		});
+		const result = await putGoogleEvent(
+			{ ...cfg, refresh_token: `deadline-${method}` },
+			{ ...baseAppointment, external_event_id: method === 'PATCH' ? 'event' : null },
+			{
+				cancelUrl: 'https://when.example.com/booked/appt-1',
+				eventTypeName: 'Chat',
+				hostName: 'Jane'
+			}
+		);
+		expect(result).toEqual({ externalEventId: 'event' });
+		expect(timeout).not.toHaveBeenCalled();
+		expect(fetchSpy).toHaveBeenCalledTimes(2);
+		const signals = fetchSpy.mock.calls.map(([, init]) => init?.signal);
+		for (const signal of signals) {
+			expect(signal).toBeUndefined();
+		}
+	}
+);
+
+test('getGoogleAccessToken forwards the caller signal without creating a deadline', async () => {
+	const timeout = vi.spyOn(AbortSignal, 'timeout');
+	const signal = new AbortController().signal;
+	const fetchSpy = vi
+		.spyOn(globalThis, 'fetch')
+		.mockResolvedValue(
+			new Response(JSON.stringify({ access_token: 'caller-token', expires_in: 0 }))
+		);
+
+	const token = await getGoogleAccessToken({ ...cfg, refresh_token: 'caller-signal' }, signal);
+
+	expect(token).toBe('caller-token');
+	expect(fetchSpy).toHaveBeenCalledTimes(1);
+	expect(fetchSpy.mock.calls[0][1]?.signal).toBe(signal);
+	expect(timeout).not.toHaveBeenCalled();
+});

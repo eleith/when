@@ -83,8 +83,8 @@ describe('requestVideoChat', () => {
 			expect(result).toEqual({ ok: true, outcome: 'requested' });
 			expect(runWorkflow).toHaveBeenCalledWith(
 				generateVideoChat,
-				{ appointmentId: 'appt-1' },
-				{ idempotencyKey: 'generate-video-chat:appt-1:5' }
+				{ appointmentId: 'appt-1', notificationKind: 'video-chat-added' },
+				{ idempotencyKey: 'generate-video-chat:appt-1:5:video-chat-added' }
 			);
 			expect(workerResult).not.toHaveBeenCalled();
 			const saved = await findAppointment(db, 'appt-1');

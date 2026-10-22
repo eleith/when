@@ -5,14 +5,15 @@ import { NextcloudTalkAdapter } from './adapters/nextcloud-talk.js';
 
 export function getVideoChatAdapter(
 	service: Provider,
-	bookingEvent: GoogleEventPort | null = null
+	bookingEvent: GoogleEventPort | null = null,
+	signal?: AbortSignal
 ): VideoChatAdapter {
 	switch (service.type) {
 		case 'google':
 			if (!bookingEvent) throw new Error('Google Meet requires an already-booked event');
 			return new GoogleMeetAdapter(bookingEvent);
 		case 'nextcloud':
-			return new NextcloudTalkAdapter(service);
+			return new NextcloudTalkAdapter(service, signal);
 		case 'caldav':
 			throw new Error('CalDAV does not support video chat');
 	}

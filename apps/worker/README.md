@@ -59,35 +59,47 @@ Relative paths resolve against the config directory's parent (the deployment roo
 
 ## Appointment jobs
 
-Reconciliation saves prepared email content and recipient roles, then starts one
-`deliver-appointment-email` child per recipient. Each child has five native SMTP
+The worker-local `notify-appointment` workflow saves prepared email content and
+recipient roles, then starts one `deliver-appointment-email` child per recipient. Each child has five native SMTP
 attempts (30-second initial delay, doubling up to ten minutes). A successful send
 is checkpointed separately from its status write. Host and guest keep independent
 retry budgets, even when they share an email address.
 
-Video generation is a separate queued workflow, not a prerequisite for booking
-email delivery. Reconciliation saves envelopes using the currently selected link,
-then enqueues missing-link work without awaiting its result. A missing link normally
-means two emails even when generation is fast: the booking notice, then a neutral
-"Video link added" notice with an updated ICS sequence. Already-selected links are
-included in the booking notice without another generation. SMTP retries can change
-physical arrival order; ICS sequence identifies the newer invitation.
+Normal bookings, nonmatching attachment rules and already-selected links use the
+notification workflow directly. A pending/confirmed booking that needs an automatic
+link delegates its original notification to Generate instead of sending it separately.
+Generate makes one provider attempt, publishes an immediately ready link, then sends
+the original notice with or without that link. First-attempt success therefore needs
+only the original notification; pending or failed generation can produce a later
+"Video link added" update. Manual Generate remains update-only; removal uses the
+existing edit notification, while canceling an unfulfilled request is silent.
 
-Generate checkpoints the provider request separately from local publication and
-notification enqueue. Accepted pending Google requests use read-only native retries
+Expected provider failures are returned as data for the first attempt, not retried
+before the original notice. That initial video attempt has one five-second deadline,
+shared by its HTTP calls, including Google token refresh. Calendar sync, later video
+retries and SMTP do not inherit this deadline. The notification child
+returns the selected link in its saved envelope snapshot. Generate continues only
+if that original notice lacked a link. The original notice has its own native child
+checkpoint, so video retries do not resend it. Its SMTP retries finish before video
+continuation; exhausted notification delivery stops that continuation for operator
+review. Physical inbox arrival order is still not guaranteed.
+
+Generate checkpoints provider requests separately from local publication and
+notification delivery. Accepted pending Google requests use read-only native retries
 (ten attempts, 30-second initial delay, doubling to a ten-minute cap); they are not
 resubmitted. Current choice, revision, selection and relevant event binding guard
 publication. Every newly attached background link advances ICS and calendar revision;
 manual intent logs the host edit, while automatic attachment logs a system edit.
-The existing reconciliation/email pipeline delivers the follow-up—Generate never
-sends SMTP directly. Saved intent is not job progress and workers never rewrite it.
+The existing builders and role-specific SMTP children deliver both notices through
+`notify-appointment`—Generate never sends SMTP directly. Saved intent is not job progress and workers never rewrite it.
 
 Maintenance still repairs dirty calendar content and cleans unwanted resources; it
 does not create rooms or restart exhausted generation. Broader late-ready observation
 is not included here. Generation failure leaves the booking intact and requires
 operator review; application-write/enqueue and effect-before-checkpoint gaps remain.
 One worker slot means active provider calls can still delay other work, but retry
-waits park and do not hold booking email behind the generation retry budget.
+waits park; the original notice follows one bounded attempt rather than the full
+generation retry budget.
 
 Purge deletes each remote event with up to thirty native attempts (one-minute
 initial delay, doubling up to one hour). Exhaustion fails the job and retains the

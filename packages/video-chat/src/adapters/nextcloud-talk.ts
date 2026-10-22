@@ -41,9 +41,11 @@ export function nextcloudRoomToken(
 
 export class NextcloudTalkAdapter implements VideoChatAdapter {
 	private readonly provider: NextcloudProvider;
+	private readonly signal?: AbortSignal;
 
-	constructor(provider: NextcloudProvider) {
+	constructor(provider: NextcloudProvider, signal?: AbortSignal) {
 		this.provider = provider;
+		this.signal = signal;
 	}
 
 	private requestHeaders(): Record<string, string> {
@@ -64,6 +66,7 @@ export class NextcloudTalkAdapter implements VideoChatAdapter {
 		try {
 			const res = await fetch(endpoint, {
 				method: 'POST',
+				signal: this.signal,
 				headers: { ...this.requestHeaders(), 'Content-Type': 'application/json' },
 				body: JSON.stringify({
 					roomType: 3, // Public room
@@ -104,6 +107,7 @@ export class NextcloudTalkAdapter implements VideoChatAdapter {
 		try {
 			const res = await fetch(endpoint, {
 				method: 'GET',
+				signal: this.signal,
 				headers: this.requestHeaders()
 			});
 			// Even 404 means not found for this participant, not known absence.
@@ -144,6 +148,7 @@ export class NextcloudTalkAdapter implements VideoChatAdapter {
 		try {
 			const res = await fetch(endpoint, {
 				method: 'DELETE',
+				signal: this.signal,
 				headers: { ...this.requestHeaders(), 'Content-Type': 'application/json' }
 			});
 

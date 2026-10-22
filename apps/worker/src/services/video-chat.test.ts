@@ -11,10 +11,10 @@ import type { WhenConfiguration } from '@when/config';
 import { getGoogleEvent, patchGoogleEvent, pushAppointment } from '@when/calendar';
 import { getVideoChatAdapter, type VideoChatAdapter } from '@when/video-chat';
 import {
-	bookVideoChatEvent,
+	tryBookVideoChatEvent,
 	publishVideoChat,
 	readPendingVideoChat,
-	requestMissingVideoChat,
+	tryRequestMissingVideoChat,
 	videoChatAdapter,
 	videoChatResource,
 	wantsGeneratedVideoChat,
@@ -216,8 +216,11 @@ describe('provider observation and booking', () => {
 			vi.mocked(adapter.read).mockResolvedValue(
 				status === 'ready' ? { ok: true, status, url } : { ok: true, status }
 			);
-			const result = await requestMissingVideoChat(ctx, 'a', 'request-uuid');
-			expect(result).toMatchObject({ status, url: status === 'ready' ? url : null });
+			const result = await tryRequestMissingVideoChat(ctx, 'a', 'request-uuid');
+			expect(result).toMatchObject({
+				ok: true,
+				attempt: { status, url: status === 'ready' ? url : null }
+			});
 			expect(adapter.read).toHaveBeenCalledWith(null);
 			expect(adapter.request).not.toHaveBeenCalled();
 			const current = await row();
@@ -226,10 +229,20 @@ describe('provider observation and booking', () => {
 		}
 	);
 
-	test('only observed absence permits creating, using the checkpointed request UUID', async () => {
+	test('only observed absence permits creating, forwarding the caller signal and checkpointed request UUID', async () => {
 		await seed();
-		const result = await requestMissingVideoChat(ctx, 'a', 'request-uuid');
-		expect(result).toMatchObject({ status: 'ready', url, target: { revision: 4 } });
+		const signal = new AbortController().signal;
+		const result = await tryRequestMissingVideoChat(ctx, 'a', 'request-uuid', signal);
+		expect(getVideoChatAdapter).toHaveBeenCalledExactlyOnceWith(
+			ctx.config.providers.nc,
+			null,
+			signal
+		);
+		expect(vi.mocked(getVideoChatAdapter).mock.calls[0][2]).toBe(signal);
+		expect(result).toMatchObject({
+			ok: true,
+			attempt: { status: 'ready', url, target: { revision: 4 } }
+		});
 		expect(adapter.request).toHaveBeenCalledExactlyOnceWith({
 			name: 'Meeting: Jane Doe',
 			requestId: 'request-uuid'
@@ -245,20 +258,20 @@ describe('provider observation and booking', () => {
 			await update({ video_chat_request: 'suppress' });
 			return { ok: true, status: 'absent' };
 		});
-		const result = await requestMissingVideoChat(ctx, 'a', 'request-uuid');
-		expect(result).toBeNull();
+		const result = await tryRequestMissingVideoChat(ctx, 'a', 'request-uuid');
+		expect(result).toEqual({ ok: true, attempt: null });
 		expect(adapter.request).not.toHaveBeenCalled();
 		const current = await row();
 		expect(current.video_chat_request).toBe('suppress');
 	});
 
 	test.each(['failed', 'ambiguous'] as const)(
-		'observed %s throws rather than creating',
+		'observed %s returns failure data rather than creating',
 		async (status) => {
 			await seed();
 			vi.mocked(adapter.read).mockResolvedValue({ ok: true, status });
-			const request = requestMissingVideoChat(ctx, 'a', 'request-uuid');
-			await expect(request).rejects.toThrow(status);
+			const result = await tryRequestMissingVideoChat(ctx, 'a', 'request-uuid');
+			expect(result).toEqual({ ok: false, reason: `Video chat observation is ${status}` });
 			expect(adapter.request).not.toHaveBeenCalled();
 		}
 	);
@@ -286,8 +299,8 @@ describe('provider observation and booking', () => {
 		async (status) => {
 			ctx.config.meetings.chat.video_chat!.provider = 'google';
 			await seed({ status });
-			const requested = await requestMissingVideoChat(ctx, 'a', 'uuid');
-			expect(requested).toBeNull();
+			const requested = await tryRequestMissingVideoChat(ctx, 'a', 'uuid');
+			expect(requested).toEqual({ ok: true, attempt: null });
 			expect(getVideoChatAdapter).not.toHaveBeenCalled();
 		}
 	);
@@ -295,8 +308,8 @@ describe('provider observation and booking', () => {
 	test('pending Google does not book; confirmed Google returns provider evidence without writing the reference', async () => {
 		ctx.config.meetings.chat.video_chat!.provider = 'google';
 		await seed({ status: 'pending' });
-		const deferred = await bookVideoChatEvent(ctx, 'a');
-		expect(deferred).toBeNull();
+		const deferred = await tryBookVideoChatEvent(ctx, 'a');
+		expect(deferred).toEqual({ ok: true, booking: null });
 		expect(pushAppointment).not.toHaveBeenCalled();
 		await update({ status: 'confirmed' });
 		vi.mocked(pushAppointment).mockResolvedValue({
@@ -304,38 +317,164 @@ describe('provider observation and booking', () => {
 			externalCalendarId: 'work',
 			externalEventId: 'event'
 		});
-		const booked = await bookVideoChatEvent(ctx, 'a');
-		expect(booked).toEqual({ reference: { calendarId: 'work', eventId: 'event' }, created: true });
+		const booked = await tryBookVideoChatEvent(ctx, 'a');
+		expect(booked).toEqual({
+			ok: true,
+			booking: { reference: { calendarId: 'work', eventId: 'event' }, created: true }
+		});
 		const current = await row();
 		expect(current.external_event_id).toBeNull();
 		expect(current.calendar_revision).toBe(4);
 	});
 
-	test('Google adapter is wired to the bound event and configured calendar, not an implicit generation mode', () => {
-		const resource = {
-			providerName: 'google',
-			calendarEvent: { calendarId: 'work', eventId: 'event' },
-			url: null
-		};
-		videoChatAdapter(ctx, resource);
-		const [, port] = vi.mocked(getVideoChatAdapter).mock.calls[0];
-		expect(port?.id).toBe('event');
-		port!.read();
-		port!.patch({ summary: 'updated' }, { conferenceDataVersion: '1' });
-		expect(getGoogleEvent).toHaveBeenCalledWith(
-			expect.objectContaining({ google_calendar_id: 'primary' }),
-			'event'
-		);
-		expect(patchGoogleEvent).toHaveBeenCalledWith(
-			expect.objectContaining({ google_calendar_id: 'primary' }),
-			'event',
-			{ summary: 'updated' },
-			{ conferenceDataVersion: '1' }
-		);
-		expect(() => videoChatAdapter(ctx, { ...resource, calendarEvent: null })).toThrow(
-			'already-booked'
-		);
+	test.each(['read', 'request'] as const)(
+		'%s provider errors return failure data',
+		async (method) => {
+			await seed();
+			vi.mocked(adapter[method]).mockResolvedValue({ ok: false, reason: 'Provider unavailable' });
+			const result = await tryRequestMissingVideoChat(ctx, 'a', 'uuid');
+			expect(result).toEqual({ ok: false, reason: 'Provider unavailable' });
+			if (method === 'read') expect(adapter.request).not.toHaveBeenCalled();
+		}
+	);
+
+	test.each(['absent', 'failed', 'ambiguous'] as const)(
+		'request %s returns failure data without publication',
+		async (status) => {
+			await seed();
+			const initial = await row();
+			vi.mocked(adapter.request).mockResolvedValue({ ok: true, status });
+			const result = await tryRequestMissingVideoChat(ctx, 'a', 'uuid');
+			expect(result).toEqual({ ok: false, reason: `Video chat request is ${status}` });
+			const current = await row();
+			expect(current).toEqual(initial);
+		}
+	);
+
+	test('requested pending evidence is saved for read-only continuation', async () => {
+		await seed();
+		vi.mocked(adapter.request).mockResolvedValue({ ok: true, status: 'pending' });
+		const requested = await tryRequestMissingVideoChat(ctx, 'a', 'uuid');
+		expect(requested).toMatchObject({ ok: true, attempt: { status: 'pending', url: null } });
+		if (!requested.ok || !requested.attempt) throw new Error('Missing attempt');
+		vi.mocked(adapter.read).mockResolvedValue({ ok: true, status: 'ready', url });
+		const ready = await readPendingVideoChat(ctx, requested.attempt);
+		expect(ready).toMatchObject({ status: 'ready', url });
+		expect(adapter.request).toHaveBeenCalledTimes(1);
 	});
+
+	test.each([
+		{ calendar_revision: 5 },
+		{ external_event_id: 'replacement' },
+		{ external_calendar_id: 'replacement' }
+	] satisfies AppointmentUpdate[])(
+		'fresh Google target guard rejects %j before POST',
+		async (change) => {
+			ctx.config.meetings.chat.video_chat!.provider = 'google';
+			await seed({ external_calendar_id: 'work', external_event_id: 'event' });
+			vi.mocked(adapter.read).mockImplementation(async () => {
+				await update(change);
+				return { ok: true, status: 'absent' };
+			});
+			const result = await tryRequestMissingVideoChat(ctx, 'a', 'uuid');
+			expect(result).toEqual({ ok: true, attempt: null });
+			expect(adapter.request).not.toHaveBeenCalled();
+		}
+	);
+
+	test('bad Google binding is controlled without constructing an adapter', async () => {
+		ctx.config.meetings.chat.video_chat!.provider = 'google';
+		await seed({ external_calendar_id: 'missing', external_event_id: 'event' });
+		const result = await tryRequestMissingVideoChat(ctx, 'a', 'uuid');
+		expect(result).toEqual({ ok: false, reason: 'Google Meet requires a Google booking calendar' });
+		expect(getVideoChatAdapter).not.toHaveBeenCalled();
+	});
+
+	test('bad Google booking config returns failure data without provider I/O', async () => {
+		ctx.config.meetings.chat.video_chat!.provider = 'google';
+		ctx.config.meetings.chat.booking_calendar = 'missing';
+		await seed();
+		const result = await tryBookVideoChatEvent(ctx, 'a');
+		expect(result).toEqual({ ok: false, reason: 'Google Meet requires a Google booking calendar' });
+		expect(pushAppointment).not.toHaveBeenCalled();
+	});
+
+	test('controlled booking failure returns no fake booking or database mutation', async () => {
+		ctx.config.meetings.chat.video_chat!.provider = 'google';
+		await seed();
+		const initial = await row();
+		vi.mocked(pushAppointment).mockResolvedValue({ ok: false, reason: 'Provider unavailable' });
+		const result = await tryBookVideoChatEvent(ctx, 'a');
+		expect(result).toEqual({ ok: false, reason: 'Provider unavailable' });
+		const current = await row();
+		expect(current).toEqual(initial);
+	});
+
+	test('already-bound Google booking is reused without a POST', async () => {
+		ctx.config.meetings.chat.video_chat!.provider = 'google';
+		await seed({ external_calendar_id: 'work', external_event_id: 'event' });
+		const result = await tryBookVideoChatEvent(ctx, 'a');
+		expect(result).toEqual({
+			ok: true,
+			booking: { reference: { calendarId: 'work', eventId: 'event' }, created: false }
+		});
+		expect(pushAppointment).not.toHaveBeenCalled();
+	});
+
+	test.each(['booking', 'request'] as const)(
+		'%s local SQL errors still escape',
+		async (operation) => {
+			await ctx.db.schema.dropTable('appointments').execute();
+			const result =
+				operation === 'booking'
+					? tryBookVideoChatEvent(ctx, 'a')
+					: tryRequestMissingVideoChat(ctx, 'a', 'uuid');
+			await expect(result).rejects.toThrow();
+		}
+	);
+
+	test('unexpected adapter construction errors still escape', async () => {
+		await seed();
+		vi.mocked(getVideoChatAdapter).mockImplementation(() => {
+			throw new TypeError('Programming error');
+		});
+		const result = tryRequestMissingVideoChat(ctx, 'a', 'uuid');
+		await expect(result).rejects.toThrow('Programming error');
+	});
+
+	test.each([false, true])(
+		'Google bound port forwards the optional caller signal (caller=%s)',
+		(withSignal) => {
+			const signal = withSignal ? new AbortController().signal : undefined;
+			const resource = {
+				providerName: 'google',
+				calendarEvent: { calendarId: 'work', eventId: 'event' },
+				url: null
+			};
+			videoChatAdapter(ctx, resource, signal);
+			const [, port] = vi.mocked(getVideoChatAdapter).mock.calls[0];
+			expect(port?.id).toBe('event');
+			port!.read();
+			port!.patch({ summary: 'updated' }, { conferenceDataVersion: '1' });
+			expect(getGoogleEvent).toHaveBeenCalledWith(
+				expect.objectContaining({ google_calendar_id: 'primary' }),
+				'event',
+				signal
+			);
+			expect(patchGoogleEvent).toHaveBeenCalledWith(
+				expect.objectContaining({ google_calendar_id: 'primary' }),
+				'event',
+				{ summary: 'updated' },
+				{ conferenceDataVersion: '1' },
+				signal
+			);
+			expect(vi.mocked(getGoogleEvent).mock.calls[0][2]).toBe(signal);
+			expect(vi.mocked(patchGoogleEvent).mock.calls[0][4]).toBe(signal);
+			expect(() => videoChatAdapter(ctx, { ...resource, calendarEvent: null })).toThrow(
+				'already-booked'
+			);
+		}
+	);
 });
 
 describe('guarded SQL publication', () => {

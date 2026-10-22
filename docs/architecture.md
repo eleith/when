@@ -65,7 +65,9 @@ clients: they neither start a worker nor persist schedules.
   they do not automatically rerun old jobs. Appointment emails key on
   `appointmentId:kind:ics_sequence`; email-free reconciliation uses
   `appointmentId:sync:calendar_revision`. Generation reminders use
-  `generate-video-chat:appointmentId:calendar_revision`. Purge keys use sorted chain IDs. Calendar sync
+  `generate-video-chat:appointmentId:calendar_revision:notificationKind` (or `sync`
+  for cleanup-only work). Different notification purposes cannot consume each
+  other's reminder. Purge keys use sorted chain IDs. Calendar sync
   uses a random key per call, and the producer awaits enqueueing only.
 - **Native maintenance.** Worker `start()` persists declared UTC schedules, preserving
   pause state: refresh every five minutes, pending expiry hourly, repair every ten
@@ -81,12 +83,17 @@ clients: they neither start a worker nor persist schedules.
   failures are recorded for later passes; unexpected local errors escape to bounded
   native retries. A completed pass does not mean every provider succeeded.
 
-Booking email is independent of video generation. Reconciliation checkpoints its
-current email envelopes, then enqueues background generation without awaiting that
-workflow. A newly attached link increments ICS/calendar revisions and enqueues a
-`video-chat-added` notification through the same email pipeline. Consequently a
-booking without a saved link normally receives a follow-up even if generation is
-fast; delivery retries can reorder physical arrival. Calendar publishing does not
+Normal bookings use the worker-local `notify-appointment` workflow. A booking that
+needs an automatic link instead delegates its original pending/confirmed notice
+to Generate. That job makes one provider attempt, publishes a ready link, and sends
+the original notification with or without it. Only a notice prepared without a link
+needs native video continuation and a later `video-chat-added` update. Manual Generate
+is update-only. Expected initial provider failures are data, not a reason to withhold
+the original notice. The initial video attempt shares one five-second deadline across
+its HTTP calls; calendar sync and SMTP are outside that deadline. Notification
+SMTP retries complete before video continuation. Notification preparation/role
+children and their snapshot receipt have native checkpoints; no progress columns or
+separate video-continuation job are needed. Physical inbox order is not guaranteed. Calendar publishing does not
 create, copy, clear or adopt native conferencing. Provider video adapters own those
 operations, with current-choice checks in the worker. See the
 [worker appointment jobs](../apps/worker/README.md#appointment-jobs) for retry and

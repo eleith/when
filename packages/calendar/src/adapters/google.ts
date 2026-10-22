@@ -59,7 +59,10 @@ function googleEventBoundary(time: GoogleEventTime, timeZone?: string): Temporal
 
 const tokenCache = new Map<string, { token: string; expiresAt: number }>();
 
-export async function getGoogleAccessToken(cfg: GoogleConfig): Promise<string> {
+export async function getGoogleAccessToken(
+	cfg: GoogleConfig,
+	signal?: AbortSignal
+): Promise<string> {
 	const cacheKey = cfg.refresh_token;
 	const cached = tokenCache.get(cacheKey);
 	if (cached && Date.now() < cached.expiresAt) {
@@ -68,6 +71,7 @@ export async function getGoogleAccessToken(cfg: GoogleConfig): Promise<string> {
 
 	const res = await fetch('https://oauth2.googleapis.com/token', {
 		method: 'POST',
+		signal,
 		headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
 		body: new URLSearchParams({
 			client_id: cfg.client_id,

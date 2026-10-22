@@ -162,14 +162,14 @@ describe('enqueueVideoChatGeneration', () => {
 		expect(runWorkflow).toHaveBeenNthCalledWith(
 			1,
 			generateVideoChat,
-			{ appointmentId: 'appt-1' },
-			{ idempotencyKey: 'generate-video-chat:appt-1:4' }
+			{ appointmentId: 'appt-1', notificationKind: 'video-chat-added' },
+			{ idempotencyKey: 'generate-video-chat:appt-1:4:video-chat-added' }
 		);
 		const keys = runWorkflow.mock.calls.map((call) => call[2].idempotencyKey);
 		expect(keys).toEqual([
-			'generate-video-chat:appt-1:4',
-			'generate-video-chat:appt-1:4',
-			'generate-video-chat:appt-1:5'
+			'generate-video-chat:appt-1:4:video-chat-added',
+			'generate-video-chat:appt-1:4:video-chat-added',
+			'generate-video-chat:appt-1:5:video-chat-added'
 		]);
 		expect(workerResult).not.toHaveBeenCalled();
 	});

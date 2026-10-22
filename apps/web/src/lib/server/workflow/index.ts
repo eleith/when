@@ -7,6 +7,7 @@ import {
 	type AppointmentEmailKind,
 	type PurgeAppointmentRow
 } from '@when/jobs';
+import { videoChatGenerationKey } from '@when/jobs/specs';
 import type { Appointment } from '@when/db';
 
 // Use the mutation's committed row: a later read can dedupe distinct edits and lose cleanup URLs.
@@ -35,8 +36,10 @@ export async function enqueueVideoChatGeneration(
 ): Promise<void> {
 	await getOpenWorkflow().runWorkflow(
 		generateVideoChat,
-		{ appointmentId },
-		{ idempotencyKey: `generate-video-chat:${appointmentId}:${calendarRevision}` }
+		{ appointmentId, notificationKind: 'video-chat-added' },
+		{
+			idempotencyKey: videoChatGenerationKey(appointmentId, calendarRevision, 'video-chat-added')
+		}
 	);
 }
 

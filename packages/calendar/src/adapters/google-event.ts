@@ -22,12 +22,19 @@ async function readGoogleEventResponse(res: Response, allowEmpty: boolean): Prom
 	}
 }
 
-export async function getGoogleEvent(cfg: GoogleConfig, eventId: string): Promise<unknown> {
+export async function getGoogleEvent(
+	cfg: GoogleConfig,
+	eventId: string,
+	signal?: AbortSignal
+): Promise<unknown> {
 	const url = googleEventUrl(cfg, eventId);
 	let res: Response;
 	try {
-		const token = await getGoogleAccessToken(cfg);
-		res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+		const token = await getGoogleAccessToken(cfg, signal);
+		res = await fetch(url, {
+			signal,
+			headers: { Authorization: `Bearer ${token}` }
+		});
 	} catch {
 		throw new Error('Google event GET request failed');
 	}
@@ -39,15 +46,17 @@ export async function patchGoogleEvent(
 	cfg: GoogleConfig,
 	eventId: string,
 	fields: Record<string, unknown>,
-	query: Record<string, string>
+	query: Record<string, string>,
+	signal?: AbortSignal
 ): Promise<unknown> {
 	const url = new URL(googleEventUrl(cfg, eventId));
 	url.search = new URLSearchParams(query).toString();
 	let res: Response;
 	try {
-		const token = await getGoogleAccessToken(cfg);
+		const token = await getGoogleAccessToken(cfg, signal);
 		res = await fetch(url.toString(), {
 			method: 'PATCH',
+			signal,
 			headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
 			body: JSON.stringify(fields)
 		});

@@ -21,6 +21,7 @@ import * as status from '../email/status.js';
 import { setWorkerContext, type WorkerContext } from '../services/context.js';
 import { createLogger } from '../services/logger.js';
 import { runReconcileAppointment } from './reconcile-appointment.js';
+import { notifyAppointment, runNotifyAppointment } from './notify-appointment.js';
 import { runGenerateVideoChat } from './generate-video-chat.js';
 import {
 	deliverAppointmentEmail,
@@ -49,7 +50,8 @@ const roles: RecipientRole[] = ['guest', 'host'];
 function openQueue(
 	path = ':memory:',
 	beforeParentStep?: (name: string) => Promise<void>,
-	register?: (client: OpenWorkflow) => void
+	register?: (client: OpenWorkflow) => void,
+	afterParentStep?: (name: string) => Promise<void>
 ) {
 	const backend = BackendSqlite.connect(path);
 	const client = new OpenWorkflow({ backend });
@@ -78,13 +80,33 @@ function openQueue(
 					},
 					async () => {
 						await beforeParentStep?.(config.name);
-						return fn();
+						const result = await fn();
+						await afterParentStep?.(config.name);
+						return result;
 					}
 				),
 			runWorkflow: (...args) => step.runWorkflow(...args)
 		};
-		return runReconcileAppointment(input, adapted, clock);
+		return runReconcileAppointment(input, adapted);
 	});
+	client.implementWorkflow(notifyAppointment, ({ input, step }) =>
+		runNotifyAppointment(
+			input,
+			{
+				run: (settings, fn) =>
+					step.run(
+						{ ...settings, retryPolicy: { initialInterval: '1ms', maximumInterval: '1ms' } },
+						async () => {
+							await beforeParentStep?.(settings.name);
+							const result = await fn();
+							return result;
+						}
+					),
+				runWorkflow: (...args) => step.runWorkflow(...args)
+			},
+			clock
+		)
+	);
 	register?.(client);
 	const worker = client.newWorker({ concurrency: 1 });
 	return {
@@ -127,13 +149,22 @@ async function children(queue: Queue) {
 	return workflowRuns.filter((run) => run.workflowName === deliverAppointmentEmail.name);
 }
 async function startParentAndExpectChildren(queue: Queue, count = 2) {
-	expect(await queue.worker.tick()).toBe(1);
-	await queue.worker.stop();
-	expect(await children(queue)).toHaveLength(count);
+	await driveUntil(queue.worker, async () => {
+		const deliveries = await children(queue);
+		expect(deliveries).toHaveLength(count);
+		expect(deliveries.every((run) => run.status === 'pending')).toBe(true);
+	});
+}
+async function notificationId(queue: Queue) {
+	const workflowRuns = await runs(queue);
+	const notice = workflowRuns.find((run) => run.workflowName === notifyAppointment.name);
+	if (!notice) throw new Error('Missing notification child');
+	return notice.id;
 }
 async function finish(queue: Queue, parentId: string, state = 'completed') {
 	await driveUntil(queue.worker, async () => {
-		expect(await queue.backend.getWorkflowRun({ workflowRunId: parentId })).toMatchObject({
+		const workflowRun = await queue.backend.getWorkflowRun({ workflowRunId: parentId });
+		expect(workflowRun).toMatchObject({
 			status: state
 		});
 	});
@@ -144,6 +175,7 @@ let config: WhenConfiguration;
 let ctx: WorkerContext;
 let send: ReturnType<typeof vi.fn<(envelope: Envelope) => Promise<SendResult>>>;
 beforeEach(async () => {
+	vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('Unexpected network call'));
 	db = openDb(':memory:');
 	await runMigrations(db);
 	await db
@@ -196,6 +228,298 @@ function configureVideo() {
 }
 
 describe('appointment email reconciliation with native children', () => {
+	test.each(['pending', 'confirmed'] as const)(
+		'automatic matching %s delegates its full notice purpose without a separate parent notification',
+		async (kind) => {
+			configureVideo();
+			config.meetings['30-min'].video_chat!.attach = { when: [{ field: 'loc', equals: 'Video' }] };
+			await db
+				.updateTable('appointments')
+				.set({
+					status: kind,
+					guest_answers: JSON.stringify([
+						{ name: 'loc', type: 'event_location', label: 'Location', value: 'Video' }
+					])
+				})
+				.execute();
+			const queue = openQueue();
+			try {
+				const parent = await queue.client.runWorkflow(reconcileAppointment, {
+					appointmentId: input.appointmentId,
+					emailKind: kind
+				});
+				await queue.worker.tick();
+				await queue.worker.stop();
+				const workflowRuns = await runs(queue);
+				const generators = workflowRuns.filter(
+					(run) => run.workflowName === generateVideoChat.name
+				);
+				expect(generators).toHaveLength(1);
+				expect(generators[0]).toMatchObject({
+					input: { appointmentId: input.appointmentId, notificationKind: kind },
+					idempotencyKey: `generate-video-chat:${input.appointmentId}:0:${kind}`
+				});
+				expect(workflowRuns.filter((run) => run.workflowName === notifyAppointment.name)).toEqual(
+					[]
+				);
+				const current = await queue.backend.getWorkflowRun({
+					workflowRunId: parent.workflowRun.id
+				});
+				expect(current).toMatchObject({ status: 'completed', output: 'reconciled' });
+				expect(send).not.toHaveBeenCalled();
+			} finally {
+				await queue.close();
+			}
+		}
+	);
+
+	test('a lost delegation checkpoint reuses the original purpose/revision key after a link is selected', async () => {
+		const directory = await mkdtemp(join(tmpdir(), 'when-original-notice-key-'));
+		configureVideo();
+		await db.updateTable('appointments').set({ status: 'confirmed' }).execute();
+		const originalKey = `generate-video-chat:${input.appointmentId}:0:confirmed`;
+		const selectedUrl = 'https://cloud.example.com/call/selected';
+		const registerGeneration = (client: OpenWorkflow) => {
+			client.implementWorkflow(generateVideoChat, ({ input, step }) =>
+				runGenerateVideoChat(input, step, clock)
+			);
+		};
+		let loseCheckpoint = true;
+		let queue = openQueue(
+			join(directory, 'queue.sqlite'),
+			undefined,
+			registerGeneration,
+			async (name) => {
+				if (name === 'delegate-booking-notification' && loseCheckpoint) {
+					loseCheckpoint = false;
+					throw new Error('delegation effect saved, step checkpoint lost');
+				}
+			}
+		);
+		try {
+			const firstProducer = vi.spyOn(queue.client, 'runWorkflow');
+			const parent = await queue.client.runWorkflow(reconcileAppointment, {
+				...input,
+				emailKind: 'confirmed'
+			});
+			await queue.worker.tick();
+			await queue.worker.stop();
+			const preparation = await attempts(queue, parent.workflowRun.id, 'prepare-reconciliation');
+			expect(preparation[0]).toMatchObject({
+				status: 'completed',
+				output: { videoNotificationKind: 'confirmed', calendarRevision: 0 }
+			});
+			const failedDelegation = await attempts(
+				queue,
+				parent.workflowRun.id,
+				'delegate-booking-notification'
+			);
+			expect(failedDelegation.map((attempt) => attempt.status)).toEqual(['failed']);
+			const initialRuns = await runs(queue);
+			const originalGenerator = initialRuns.find(
+				(run) => run.workflowName === generateVideoChat.name
+			)!;
+			expect(originalGenerator).toMatchObject({ status: 'pending', idempotencyKey: originalKey });
+			expect(send).not.toHaveBeenCalled();
+			const firstEnqueues = firstProducer.mock.calls.filter(
+				([spec]) => spec.name === generateVideoChat.name
+			);
+			await queue.close();
+
+			// Simulate generation's materialization while its producer is parked before replay.
+			await db
+				.updateTable('appointments')
+				.set({ video_chat: selectedUrl, calendar_revision: 1, ics_sequence: 1 })
+				.execute();
+			queue = openQueue(join(directory, 'queue.sqlite'), undefined, registerGeneration);
+			const replayProducer = vi.spyOn(queue.client, 'runWorkflow');
+			await driveUntil(queue.worker, async () => {
+				const workflowRuns = await runs(queue);
+				expect(workflowRuns.every((run) => run.status === 'completed')).toBe(true);
+			});
+			const replayEnqueues = replayProducer.mock.calls.filter(
+				([spec]) => spec.name === generateVideoChat.name
+			);
+			for (const enqueues of [firstEnqueues, replayEnqueues]) {
+				expect(enqueues).toEqual([
+					[
+						generateVideoChat,
+						{ appointmentId: input.appointmentId, notificationKind: 'confirmed' },
+						{ idempotencyKey: originalKey }
+					]
+				]);
+			}
+			const finalRuns = await runs(queue);
+			const generators = finalRuns.filter((run) => run.workflowName === generateVideoChat.name);
+			expect(generators.map((run) => run.id)).toEqual([originalGenerator.id]);
+			const notices = finalRuns.filter((run) => run.workflowName === notifyAppointment.name);
+			expect(notices).toHaveLength(1);
+			expect(notices[0]).toMatchObject({
+				input: { appointmentId: input.appointmentId, kind: 'confirmed' },
+				output: { videoChatUrl: selectedUrl }
+			});
+			const replayedPreparation = await attempts(
+				queue,
+				parent.workflowRun.id,
+				'prepare-reconciliation'
+			);
+			expect(replayedPreparation).toEqual(preparation);
+			const delegation = await attempts(
+				queue,
+				parent.workflowRun.id,
+				'delegate-booking-notification'
+			);
+			expect(delegation.map((attempt) => attempt.status)).toEqual(['failed', 'completed']);
+			expect(send).toHaveBeenCalledTimes(2);
+			for (const [envelope] of send.mock.calls) expect(envelope.text).toContain(selectedUrl);
+		} finally {
+			try {
+				await queue.close();
+			} finally {
+				await rm(directory, { recursive: true, force: true });
+			}
+		}
+	});
+
+	test.each(['existing', 'no-config', 'phone', 'nonmatch', 'suppress', 'manual-force'] as const)(
+		'%s keeps the full notice under Reconcile → Notify → role',
+		async (choice) => {
+			configureVideo();
+			if (choice === 'existing')
+				await db
+					.updateTable('appointments')
+					.set({ video_chat: 'https://cloud.example.com/call/chosen' })
+					.execute();
+			if (choice === 'no-config') delete config.meetings['30-min'].video_chat;
+			if (choice === 'phone') {
+				config.meetings['30-min'].video_chat!.attach = {
+					when: [{ field: 'loc', equals: 'Video' }]
+				};
+				await db
+					.updateTable('appointments')
+					.set({
+						guest_answers: JSON.stringify([
+							{ name: 'loc', type: 'event_location', label: 'Location', value: 'Phone' }
+						])
+					})
+					.execute();
+			}
+			if (choice === 'nonmatch' || choice === 'manual-force')
+				config.meetings['30-min'].video_chat!.attach = { auto: false };
+			if (choice === 'suppress' || choice === 'manual-force')
+				await db
+					.updateTable('appointments')
+					.set({ video_chat_request: choice === 'suppress' ? 'suppress' : 'generate' })
+					.execute();
+			const queue = openQueue(':memory:', undefined, (client) => {
+				client.implementWorkflow(generateVideoChat, async () => ({ url: null }));
+			});
+			try {
+				const parent = await queue.client.runWorkflow(reconcileAppointment, input);
+				await finish(queue, parent.workflowRun.id);
+				const workflowRuns = await runs(queue);
+				const notices = workflowRuns.filter((run) => run.workflowName === notifyAppointment.name);
+				expect(notices).toHaveLength(1);
+				expect(notices[0].input).toEqual({ appointmentId: input.appointmentId, kind: 'pending' });
+				const links = await attempts(queue, parent.workflowRun.id, 'notify-appointment');
+				expect(links[0]).toMatchObject({ childWorkflowRunId: notices[0].id });
+				const roleLinks = await attempts(queue, notices[0].id);
+				expect(
+					roleLinks
+						.filter((attempt) => attempt.childWorkflowRunId)
+						.map((attempt) => attempt.stepName)
+						.sort()
+				).toEqual(['email:guest', 'email:host']);
+				const generators = workflowRuns.filter(
+					(run) => run.workflowName === generateVideoChat.name
+				);
+				const expectedPurpose =
+					choice === 'manual-force' ? 'video-chat-added' : choice === 'suppress' ? null : undefined;
+				expect(generators).toHaveLength(expectedPurpose === undefined ? 0 : 1);
+				if (generators.length)
+					expect(generators[0].input).toEqual({
+						appointmentId: input.appointmentId,
+						notificationKind: expectedPurpose
+					});
+				expect(send).toHaveBeenCalledTimes(2);
+			} finally {
+				await queue.close();
+			}
+		}
+	);
+
+	test.each(['unchanged', 'replaced'] as const)(
+		'legacy Reconcile Added checkpoints its expected URI before Notify prepares (%s)',
+		async (choice) => {
+			const expectedUrl = 'https://cloud.example.com/call/generated';
+			await db
+				.updateTable('appointments')
+				.set({ status: 'confirmed', video_chat: expectedUrl })
+				.execute();
+			const queue = openQueue(':memory:', async (name) => {
+				if (name === 'prepare-emails' && choice === 'replaced') {
+					await db
+						.updateTable('appointments')
+						.set({
+							video_chat: 'https://chosen.example.com/replacement',
+							video_chat_request: 'suppress'
+						})
+						.execute();
+				}
+			});
+			try {
+				const parent = await queue.client.runWorkflow(reconcileAppointment, {
+					...input,
+					emailKind: 'video-chat-added'
+				});
+				await finish(queue, parent.workflowRun.id);
+				const preparation = await attempts(queue, parent.workflowRun.id, 'prepare-notification');
+				const expectedInput = {
+					appointmentId: input.appointmentId,
+					kind: 'video-chat-added',
+					videoChatUrl: expectedUrl
+				};
+				expect(preparation).toHaveLength(1);
+				expect(preparation[0]).toMatchObject({ status: 'completed', output: expectedInput });
+				const workflowRuns = await runs(queue);
+				const notices = workflowRuns.filter((run) => run.workflowName === notifyAppointment.name);
+				expect(notices).toHaveLength(1);
+				expect(notices[0]).toMatchObject({
+					status: 'completed',
+					input: expectedInput,
+					output: choice === 'unchanged' ? { videoChatUrl: expectedUrl } : null
+				});
+				expect(send).toHaveBeenCalledTimes(choice === 'unchanged' ? 2 : 0);
+			} finally {
+				await queue.close();
+			}
+		}
+	);
+
+	test.each(['pending', 'confirmed'] as const)(
+		'a stale %s request with the opposite current status creates no notice or generator',
+		async (kind) => {
+			configureVideo();
+			await db
+				.updateTable('appointments')
+				.set({ status: kind === 'pending' ? 'confirmed' : 'pending' })
+				.execute();
+			const queue = openQueue();
+			try {
+				const parent = await queue.client.runWorkflow(reconcileAppointment, {
+					appointmentId: input.appointmentId,
+					emailKind: kind
+				});
+				await finish(queue, parent.workflowRun.id);
+				const workflowRuns = await runs(queue);
+				expect(workflowRuns).toHaveLength(1);
+				expect(send).not.toHaveBeenCalled();
+			} finally {
+				await queue.close();
+			}
+		}
+	);
+
 	test('retries transient SMTP failures and logs done only after both roles recover', async () => {
 		const counts = failingMailer({ guest: 2, host: 2 });
 		const queue = openQueue();
@@ -203,24 +527,28 @@ describe('appointment email reconciliation with native children', () => {
 			const parent = await queue.client.runWorkflow(reconcileAppointment, input);
 			await startParentAndExpectChildren(queue);
 			await finish(queue, parent.workflowRun.id);
-			expect(await parent.result({ timeoutMs: 500 })).toBe('reconciled');
+			const reconciliationResult = await parent.result({ timeoutMs: 500 });
+			expect(reconciliationResult).toBe('reconciled');
 			expect(counts).toEqual({ guest: 3, host: 3 });
-			expect(await emailStates()).toEqual(['failed', 'failed', 'failed', 'failed', 'done']);
-			expect(
-				await db
-					.selectFrom('service_status')
-					.select(['error', 'via'])
-					.where('kind', '=', 'smtp')
-					.executeTakeFirstOrThrow()
-			).toEqual({ error: null, via: 'send' });
-			for (const child of await children(queue)) {
-				expect((await attempts(queue, child.id, 'smtp')).map((attempt) => attempt.status)).toEqual([
+			const states = await emailStates();
+			expect(states).toEqual(['failed', 'failed', 'failed', 'failed', 'done']);
+			const serviceStatus = await db
+				.selectFrom('service_status')
+				.select(['error', 'via'])
+				.where('kind', '=', 'smtp')
+				.executeTakeFirstOrThrow();
+			expect(serviceStatus).toEqual({ error: null, via: 'send' });
+			const deliveryRuns = await children(queue);
+			for (const child of deliveryRuns) {
+				const stepAttempts = await attempts(queue, child.id, 'smtp');
+				expect(stepAttempts.map((attempt) => attempt.status)).toEqual([
 					'failed',
 					'failed',
 					'completed'
 				]);
 			}
-			expect(await runs(queue)).toHaveLength(3);
+			const workflowRuns = await runs(queue);
+			expect(workflowRuns).toHaveLength(4);
 		} finally {
 			await queue.close();
 		}
@@ -238,7 +566,8 @@ describe('appointment email reconciliation with native children', () => {
 			try {
 				const parent = await queue.client.runWorkflow(reconcileAppointment, input);
 				await startParentAndExpectChildren(queue);
-				const links = await attempts(queue, parent.workflowRun.id);
+				const noticeId = await notificationId(queue);
+				const links = await attempts(queue, noticeId);
 				expect(
 					links
 						.filter((attempt) => attempt.childWorkflowRunId)
@@ -250,11 +579,14 @@ describe('appointment email reconciliation with native children', () => {
 					`SMTP ${failedRole} unavailable`
 				);
 				expect(counts).toEqual({ guest: 5, host: 5 });
-				expect(await emailStates()).toEqual(Array(9).fill('failed'));
-				for (const child of await children(queue)) {
+				const states = await emailStates();
+				expect(states).toEqual(Array(9).fill('failed'));
+				const deliveryRuns = await children(queue);
+				for (const child of deliveryRuns) {
 					const role = (child.input as { role: RecipientRole }).role;
 					expect(child.status).toBe(role === failedRole ? 'failed' : 'completed');
-					expect(await attempts(queue, child.id, 'smtp')).toHaveLength(5);
+					const stepAttempts = await attempts(queue, child.id, 'smtp');
+					expect(stepAttempts).toHaveLength(5);
 				}
 			} finally {
 				await queue.close();
@@ -269,15 +601,18 @@ describe('appointment email reconciliation with native children', () => {
 			const parent = await queue.client.runWorkflow(reconcileAppointment, input);
 			await finish(queue, parent.workflowRun.id, 'failed');
 			expect(counts).toEqual({ guest: 5, host: 5 });
-			expect((await children(queue)).map((child) => child.status)).toEqual(['failed', 'failed']);
-			expect(await emailStates()).toEqual(Array(10).fill('failed'));
-			expect(
-				await db
-					.selectFrom('service_status')
-					.select('error')
-					.where('kind', '=', 'smtp')
-					.executeTakeFirstOrThrow()
-			).toEqual({ error: expect.stringMatching(/^SMTP (guest|host) unavailable$/) });
+			const deliveryRuns = await children(queue);
+			expect(deliveryRuns.map((child) => child.status)).toEqual(['failed', 'failed']);
+			const states = await emailStates();
+			expect(states).toEqual(Array(10).fill('failed'));
+			const serviceStatus = await db
+				.selectFrom('service_status')
+				.select('error')
+				.where('kind', '=', 'smtp')
+				.executeTakeFirstOrThrow();
+			expect(serviceStatus).toEqual({
+				error: expect.stringMatching(/^SMTP (guest|host) unavailable$/)
+			});
 		} finally {
 			await queue.close();
 		}
@@ -294,10 +629,12 @@ describe('appointment email reconciliation with native children', () => {
 				config.user.email,
 				config.user.email
 			]);
+			const deliveryRuns = await children(queue);
 			expect(
-				(await children(queue)).map((child) => (child.input as { role: RecipientRole }).role).sort()
+				deliveryRuns.map((child) => (child.input as { role: RecipientRole }).role).sort()
 			).toEqual(['guest', 'host']);
-			expect(await emailStates()).toEqual(['done']);
+			const states = await emailStates();
+			expect(states).toEqual(['done']);
 		} finally {
 			await queue.close();
 		}
@@ -310,10 +647,12 @@ describe('appointment email reconciliation with native children', () => {
 			const parent = await queue.client.runWorkflow(reconcileAppointment, input);
 			await finish(queue, parent.workflowRun.id);
 			expect(send).toHaveBeenCalledTimes(1);
-			expect((await children(queue)).map((child) => child.input)).toEqual([
+			const deliveryRuns = await children(queue);
+			expect(deliveryRuns.map((child) => child.input)).toEqual([
 				expect.objectContaining({ role: 'host' })
 			]);
-			expect(await emailStates()).toEqual(['done']);
+			const states = await emailStates();
+			expect(states).toEqual(['done']);
 		} finally {
 			await queue.close();
 		}
@@ -332,10 +671,13 @@ describe('appointment email reconciliation with native children', () => {
 					state === 'no-email' ? { appointmentId: input.appointmentId } : input
 				);
 				await finish(queue, parent.workflowRun.id);
-				expect(await parent.result({ timeoutMs: 500 })).toBe('reconciled');
+				const reconciliationResult = await parent.result({ timeoutMs: 500 });
+				expect(reconciliationResult).toBe('reconciled');
 				expect(send).not.toHaveBeenCalled();
-				expect(await children(queue)).toEqual([]);
-				expect(await emailStates()).toEqual([]);
+				const deliveryRuns = await children(queue);
+				expect(deliveryRuns).toEqual([]);
+				const states = await emailStates();
+				expect(states).toEqual([]);
 			} finally {
 				await queue.close();
 			}
@@ -353,12 +695,12 @@ describe('appointment email reconciliation with native children', () => {
 				else await db.updateTable('appointments').set({ status: 'purged' }).execute();
 				await finish(queue, parent.workflowRun.id);
 				expect(send).not.toHaveBeenCalled();
-				expect((await children(queue)).map((child) => child.output)).toEqual([
-					'skipped',
-					'skipped'
-				]);
-				expect(await emailStates()).toEqual([]);
-				expect(await db.selectFrom('service_status').selectAll().execute()).toEqual([]);
+				const deliveryRuns = await children(queue);
+				expect(deliveryRuns.map((child) => child.output)).toEqual(['skipped', 'skipped']);
+				const states = await emailStates();
+				expect(states).toEqual([]);
+				const serviceStatus = await db.selectFrom('service_status').selectAll().execute();
+				expect(serviceStatus).toEqual([]);
 			} finally {
 				await queue.close();
 			}
@@ -375,11 +717,10 @@ describe('appointment email reconciliation with native children', () => {
 			const parent = await queue.client.runWorkflow(reconcileAppointment, input);
 			await finish(queue, parent.workflowRun.id);
 			expect(send).toHaveBeenCalledTimes(1);
-			expect((await children(queue)).map((child) => child.output).sort()).toEqual([
-				'sent',
-				'skipped'
-			]);
-			expect(await emailStates()).toEqual([]);
+			const deliveryRuns = await children(queue);
+			expect(deliveryRuns.map((child) => child.output).sort()).toEqual(['sent', 'skipped']);
+			const states = await emailStates();
+			expect(states).toEqual([]);
 		} finally {
 			await queue.close();
 		}
@@ -415,6 +756,7 @@ describe('appointment email reconciliation with native children', () => {
 						: undefined;
 				const parent = await queue.client.runWorkflow(reconcileAppointment, {
 					...input,
+					emailKind: 'edited-by-host',
 					cleanupVideoChatUrl
 				});
 				await finish(queue, parent.workflowRun.id);
@@ -449,6 +791,7 @@ describe('appointment email reconciliation with native children', () => {
 			);
 		let queue = openQueue(join(directory, 'queue.sqlite'));
 		try {
+			await db.updateTable('appointments').set({ status: 'confirmed' }).execute();
 			const parent = await queue.client.runWorkflow(reconcileAppointment, {
 				...input,
 				emailKind: 'confirmed'
@@ -495,12 +838,16 @@ describe('appointment email reconciliation with native children', () => {
 				expect.arrayContaining(prepared.map((item) => item.envelope))
 			);
 			expect(send).toHaveBeenCalledTimes(2);
-			expect((await children(queue)).map((child) => child.id).sort()).toEqual(
+			const deliveryRuns = await children(queue);
+			expect(deliveryRuns.map((child) => child.id).sort()).toEqual(
 				savedChildren.map((child) => child.id).sort()
 			);
 			expect(external).toHaveBeenCalledTimes(1);
-			expect(await attempts(queue, parent.workflowRun.id, 'prepare-emails')).toHaveLength(1);
-			expect(await emailStates()).toEqual(['done']);
+			const noticeId = await notificationId(queue);
+			const stepAttempts = await attempts(queue, noticeId, 'prepare-emails');
+			expect(stepAttempts).toHaveLength(1);
+			const states = await emailStates();
+			expect(states).toEqual(['done']);
 		} finally {
 			try {
 				await queue.close();
@@ -570,16 +917,27 @@ describe('appointment email reconciliation with native children', () => {
 
 	test('the native enqueue checkpoint survives restart without waiting for generation or changing saved mail', async () => {
 		const directory = await mkdtemp(join(tmpdir(), 'when-video-enqueue-'));
+		await db.updateTable('appointments').set({ status: 'confirmed' }).execute();
 		configureVideo();
-		let queue = openQueue(join(directory, 'queue.sqlite'));
+		const registerBlockedGeneration = (client: OpenWorkflow) => {
+			client.implementWorkflow(generateVideoChat, ({ step }) =>
+				step.run({ name: 'blocked-generation', retryPolicy: { initialInterval: '1h' } }, () => {
+					throw new Error('provider unavailable');
+				})
+			);
+		};
+		let queue = openQueue(join(directory, 'queue.sqlite'), undefined, registerBlockedGeneration);
 		try {
-			const parent = await queue.client.runWorkflow(reconcileAppointment, input);
+			const parent = await queue.client.runWorkflow(reconcileAppointment, {
+				...input,
+				emailKind: 'edited-by-host'
+			});
 			await startParentAndExpectChildren(queue);
 			const workflowRuns = await runs(queue);
 			const [generator] = workflowRuns.filter((run) => run.workflowName === generateVideoChat.name);
 			expect(generator).toMatchObject({
 				status: 'pending',
-				input: { appointmentId: input.appointmentId }
+				input: { appointmentId: input.appointmentId, notificationKind: 'video-chat-added' }
 			});
 			const savedEnqueue = await attempts(queue, parent.workflowRun.id, 'request-video-chat');
 			expect(savedEnqueue).toHaveLength(1);
@@ -596,7 +954,7 @@ describe('appointment email reconciliation with native children', () => {
 					video_chat_request: 'suppress'
 				})
 				.execute();
-			queue = openQueue(join(directory, 'queue.sqlite'));
+			queue = openQueue(join(directory, 'queue.sqlite'), undefined, registerBlockedGeneration);
 			await finish(queue, parent.workflowRun.id);
 			const replayedEnqueue = await attempts(queue, parent.workflowRun.id, 'request-video-chat');
 			expect(replayedEnqueue).toEqual(savedEnqueue);
@@ -651,7 +1009,8 @@ describe('appointment email reconciliation with native children', () => {
 									}
 								},
 								fn
-							)
+							),
+						runWorkflow: (...args) => step.runWorkflow(...args)
 					},
 					clock
 				)
@@ -659,7 +1018,6 @@ describe('appointment email reconciliation with native children', () => {
 		});
 		try {
 			const parent = await queue.client.runWorkflow(reconcileAppointment, input);
-			await startParentAndExpectChildren(queue);
 			await driveUntil(queue.worker, async () => {
 				const parkedRuns = await runs(queue);
 				const [parkedGenerator] = parkedRuns.filter(
@@ -704,11 +1062,14 @@ describe('appointment email reconciliation with native children', () => {
 		try {
 			const parent = await queue.client.runWorkflow(reconcileAppointment, input);
 			await startParentAndExpectChildren(queue);
-			expect(await queue.worker.tick()).toBe(1);
+			const ticked = await queue.worker.tick();
 			await queue.worker.stop();
+			expect(ticked).toBe(1);
 			expect(send).toHaveBeenCalledTimes(1);
-			expect(await emailStates()).toEqual(['failed']);
-			const failedChild = (await children(queue)).find(
+			const states = await emailStates();
+			expect(states).toEqual(['failed']);
+			const deliveryRuns = await children(queue);
+			const failedChild = deliveryRuns.find(
 				(child) => child.status === 'pending' && child.error !== null
 			);
 			expect(failedChild).toBeDefined();
@@ -717,11 +1078,12 @@ describe('appointment email reconciliation with native children', () => {
 			queue = openQueue(join(directory, 'queue.sqlite'));
 			await finish(queue, parent.workflowRun.id);
 			expect(send).toHaveBeenCalledTimes(1);
-			expect((await children(queue)).map((child) => child.output)).toEqual(['skipped', 'skipped']);
-			expect(await emailStates()).toEqual(['failed']);
-			expect(
-				(await attempts(queue, failedChild!.id, 'smtp')).map((attempt) => attempt.status)
-			).toEqual(['failed', 'completed']);
+			const replayedDeliveries = await children(queue);
+			expect(replayedDeliveries.map((child) => child.output)).toEqual(['skipped', 'skipped']);
+			const replayedStates = await emailStates();
+			expect(replayedStates).toEqual(['failed']);
+			const stepAttempts = await attempts(queue, failedChild!.id, 'smtp');
+			expect(stepAttempts.map((attempt) => attempt.status)).toEqual(['failed', 'completed']);
 		} finally {
 			try {
 				await queue.close();
@@ -740,8 +1102,10 @@ describe('appointment email reconciliation with native children', () => {
 			const parent = await queue.client.runWorkflow(reconcileAppointment, input);
 			await finish(queue, parent.workflowRun.id);
 			expect(send).toHaveBeenCalledTimes(2);
-			expect((await children(queue)).map((child) => child.output)).toEqual(['sent', 'sent']);
-			expect(await emailStates()).toEqual([]);
+			const deliveryRuns = await children(queue);
+			expect(deliveryRuns.map((child) => child.output)).toEqual(['sent', 'sent']);
+			const states = await emailStates();
+			expect(states).toEqual([]);
 		} finally {
 			await queue.close();
 		}
@@ -760,25 +1124,26 @@ describe('appointment email reconciliation with native children', () => {
 			await driveUntil(queue.worker, async () => {
 				const [child] = await children(queue);
 				expect(child).toMatchObject({ status: 'pending', workerId: null });
-				expect(
-					(await attempts(queue, child.id, 'smtp:status')).map((attempt) => attempt.status)
-				).toEqual(['failed']);
+				const stepAttempts = await attempts(queue, child.id, 'smtp:status');
+				expect(stepAttempts.map((attempt) => attempt.status)).toEqual(['failed']);
 			});
 			const [child] = await children(queue);
 			const savedSmtp = await attempts(queue, child.id, 'smtp');
 			expect(savedSmtp).toHaveLength(1);
 			expect(savedSmtp[0].status).toBe('completed');
-			expect(await emailStates()).toEqual([]);
+			const states = await emailStates();
+			expect(states).toEqual([]);
 			await queue.close();
 			bookkeeping.mockRestore();
 			queue = openQueue(join(directory, 'queue.sqlite'));
 			await finish(queue, parent.workflowRun.id);
 			expect(send).toHaveBeenCalledTimes(1);
-			expect(await attempts(queue, child.id, 'smtp')).toEqual(savedSmtp);
-			expect(
-				(await attempts(queue, child.id, 'smtp:status')).map((attempt) => attempt.status)
-			).toEqual(['failed', 'completed']);
-			expect(await emailStates()).toEqual(['done']);
+			const replayedSmtp = await attempts(queue, child.id, 'smtp');
+			expect(replayedSmtp).toEqual(savedSmtp);
+			const replayedStatus = await attempts(queue, child.id, 'smtp:status');
+			expect(replayedStatus.map((attempt) => attempt.status)).toEqual(['failed', 'completed']);
+			const replayedStates = await emailStates();
+			expect(replayedStates).toEqual(['done']);
 		} finally {
 			try {
 				await queue.close();

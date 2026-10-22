@@ -193,6 +193,15 @@ export const syncCalendars: WorkflowSpec<SyncCalendarsInput, SyncCalendarsResult
 
 export interface GenerateVideoChatInput {
 	appointmentId: string;
+	notificationKind: 'pending' | 'confirmed' | 'video-chat-added' | null;
+}
+
+export function videoChatGenerationKey(
+	appointmentId: string,
+	calendarRevision: number,
+	notificationKind: GenerateVideoChatInput['notificationKind']
+): string {
+	return `generate-video-chat:${appointmentId}:${calendarRevision}:${notificationKind ?? 'sync'}`;
 }
 
 export interface GenerateVideoChatResult {

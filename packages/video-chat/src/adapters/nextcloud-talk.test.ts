@@ -1,5 +1,5 @@
 import { describe, expect, test, vi, beforeEach } from 'vitest';
-import { NextcloudTalkAdapter, nextcloudRoomToken } from '../index.js';
+import { getVideoChatAdapter, NextcloudTalkAdapter, nextcloudRoomToken } from '../index.js';
 import type { NextcloudProvider } from '@when/config';
 
 describe('NextcloudTalkAdapter', () => {
@@ -200,6 +200,7 @@ describe('NextcloudTalkAdapter', () => {
 			'https://cloud.example.com/nextcloud/ocs/v2.php/apps/spreed/api/v4/room/room_123',
 			{
 				method: 'GET',
+				signal: undefined,
 				headers: {
 					'OCS-APIRequest': 'true',
 					Accept: 'application/json',
@@ -314,6 +315,68 @@ describe('NextcloudTalkAdapter', () => {
 			expect(result.reason).toContain('Not Found');
 		}
 	});
+
+	test.each([false, true])(
+		'one adapter forwards its optional caller signal to create/read/remove (caller=%s), without deadlines',
+		async (withSignal) => {
+			const timeout = vi.spyOn(AbortSignal, 'timeout');
+			const signal = withSignal ? new AbortController().signal : undefined;
+			const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (_url, init) => {
+				if (init?.method === 'DELETE') return new Response(null, { status: 204 });
+				return new Response(JSON.stringify({ ocs: { data: { token: 'room_123' } } }));
+			});
+			const adapter = getVideoChatAdapter(mockService, null, signal);
+			const roomUrl = 'https://cloud.example.com/call/room_123';
+
+			const created = await adapter.request({ name: 'Meeting', requestId: 'uuid' });
+			const read = await adapter.read(roomUrl);
+			const removed = await adapter.removeLink(roomUrl);
+
+			expect(created).toEqual({ ok: true, status: 'ready', url: roomUrl });
+			expect(read).toEqual(created);
+			expect(removed).toEqual({ ok: true });
+			expect(fetchSpy.mock.calls.map(([, init]) => init?.method)).toEqual([
+				'POST',
+				'GET',
+				'DELETE'
+			]);
+			for (const [, init] of fetchSpy.mock.calls) {
+				expect(init?.signal).toBe(signal);
+			}
+			expect(timeout).not.toHaveBeenCalled();
+		}
+	);
+
+	test.each(['POST', 'GET', 'DELETE'] as const)(
+		'%s controls caller cancellation through the existing adapter catch',
+		async (method) => {
+			const controller = new AbortController();
+			const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (_url, init) => {
+				expect(init?.signal).toBe(controller.signal);
+				const response = new Promise<Response>((_resolve, reject) => {
+					controller.signal.addEventListener('abort', () => reject(controller.signal.reason), {
+						once: true
+					});
+				});
+				controller.abort(new DOMException('Caller cancelled', 'AbortError'));
+				return response;
+			});
+			const adapter = new NextcloudTalkAdapter(mockService, controller.signal);
+			let result: { ok: boolean; reason?: string };
+			if (method === 'POST') {
+				result = await adapter.request({ name: 'Meeting', requestId: 'uuid' });
+			} else if (method === 'GET') {
+				result = await adapter.read('https://cloud.example.com/call/room_123');
+			} else {
+				result = await adapter.removeLink('https://cloud.example.com/call/room_123');
+			}
+			expect(result).toEqual({
+				ok: false,
+				reason: method === 'GET' ? 'Nextcloud Talk room read failed' : 'Caller cancelled'
+			});
+			expect(fetchSpy).toHaveBeenCalledTimes(1);
+		}
+	);
 
 	test('removeLink with invalid URL returns error', async () => {
 		const adapter = new NextcloudTalkAdapter(mockService);

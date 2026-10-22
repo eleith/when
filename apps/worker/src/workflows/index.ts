@@ -1,5 +1,6 @@
 import { registerReconcileAppointmentWorkflow } from './reconcile-appointment.js';
 import { registerDeliverAppointmentEmailWorkflow } from './deliver-appointment-email.js';
+import { registerNotifyAppointmentWorkflow } from './notify-appointment.js';
 import { registerPurgeAppointmentWorkflow } from './purge-appointment.js';
 import { registerTestEmailWorkflow } from './test-email.js';
 import { registerProbeProviderWorkflows } from './probe-provider.js';
@@ -15,6 +16,7 @@ import { registerExpirePendingAppointmentsWorkflow } from './expire-pending-appo
  */
 export function registerWorkflows(): void {
 	registerDeliverAppointmentEmailWorkflow();
+	registerNotifyAppointmentWorkflow();
 	registerReconcileAppointmentWorkflow();
 	registerPurgeAppointmentWorkflow();
 	registerTestEmailWorkflow();
