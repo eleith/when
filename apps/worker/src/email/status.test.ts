@@ -12,10 +12,12 @@ async function freshCtx(): Promise<WorkerContext> {
 test('a sent email records smtp as working', async () => {
 	const ctx = await freshCtx();
 	try {
-		await recordSendOutcome(ctx, { ok: true });
+		const observedAt = '2026-02-01T12:00:00.000Z';
+		await recordSendOutcome(ctx, { ok: true }, observedAt);
 
 		const [smtp] = await listServiceStatus(ctx.db, 'smtp');
-		expect(smtp.last_ok_at).toBeTruthy();
+		expect(smtp.last_ok_at).toBe(observedAt);
+		expect(smtp.last_attempt_at).toBe(observedAt);
 		expect(smtp.via).toBe('send');
 		expect(smtp.error).toBeNull();
 	} finally {
@@ -23,11 +25,11 @@ test('a sent email records smtp as working', async () => {
 	}
 });
 
-test('a failed send records the reason using the supplied clock', async () => {
+test('a failed send records the reason using the observed attempt time', async () => {
 	const ctx = await freshCtx();
 	try {
 		const at = '2026-02-01T12:00:00.000Z';
-		await recordSendOutcome(ctx, { ok: false, reason: 'EAUTH' }, { now: () => new Date(at) });
+		await recordSendOutcome(ctx, { ok: false, reason: 'EAUTH' }, at);
 
 		const [smtp] = await listServiceStatus(ctx.db, 'smtp');
 		expect(smtp.error).toBe('EAUTH');

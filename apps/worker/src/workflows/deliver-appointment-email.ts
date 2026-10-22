@@ -34,7 +34,7 @@ export async function runDeliverAppointmentEmail(
 	clock: Pick<Clock, 'now'> = systemClock
 ): Promise<DeliverAppointmentEmailResult> {
 	const ctx = getWorkerContext();
-	const outcome = await step.run(
+	const sentAt = await step.run(
 		{
 			name: 'smtp',
 			retryPolicy: {
@@ -51,9 +51,10 @@ export async function runDeliverAppointmentEmail(
 				.where('id', '=', input.appointmentId)
 				.where('status', '!=', 'purged')
 				.executeTakeFirst();
-			if (!row) return 'skipped' as const;
+			if (!row) return null;
 
 			const result = await ctx.mailer.send(input.envelope);
+			const observedAt = clock.now().toISOString();
 			const deliveryStatus = result.ok ? 'success' : 'failure';
 			emailsTotal.inc({
 				recipient_type: input.role,
@@ -61,18 +62,17 @@ export async function runDeliverAppointmentEmail(
 				status: deliveryStatus
 			});
 			if (!result.ok) {
-				await recordSendOutcome(ctx, result, clock);
-				await appendEmailJobLog(ctx.db, input.appointmentId, 'failed', clock.now().toISOString());
+				await recordSendOutcome(ctx, result, observedAt);
+				await appendEmailJobLog(ctx.db, input.appointmentId, 'failed', observedAt);
 				throw new Error(result.reason);
 			}
-			return 'sent' as const;
+			return observedAt;
 		}
 	);
 
-	if (outcome === 'sent') {
-		await step.run({ name: 'smtp:status' }, () => recordSendOutcome(ctx, { ok: true }, clock));
-	}
-	return outcome;
+	if (sentAt === null) return 'skipped';
+	await step.run({ name: 'smtp:status' }, () => recordSendOutcome(ctx, { ok: true }, sentAt));
+	return 'sent';
 }
 
 export function registerDeliverAppointmentEmailWorkflow(): void {

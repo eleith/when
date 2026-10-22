@@ -73,10 +73,10 @@ describe('delivery attempt boundaries', () => {
 			{ name: 'smtp:status' }
 		]);
 		expect(send).toHaveBeenCalledExactlyOnceWith(envelope);
-		expect(await emailEntries()).toEqual([]);
-		expect(
-			await db.selectFrom('service_status').selectAll().executeTakeFirstOrThrow()
-		).toMatchObject({
+		const entries = await emailEntries();
+		expect(entries).toEqual([]);
+		const smtp = await db.selectFrom('service_status').selectAll().executeTakeFirstOrThrow();
+		expect(smtp).toMatchObject({
 			kind: 'smtp',
 			error: null,
 			via: 'send',
@@ -98,7 +98,8 @@ describe('delivery attempt boundaries', () => {
 			email_kind: 'confirmed',
 			status: 'failure'
 		});
-		expect(await emailEntries()).toEqual([
+		const entries = await emailEntries();
+		expect(entries).toEqual([
 			expect.objectContaining({
 				at,
 				payload: expect.objectContaining({
@@ -109,12 +110,39 @@ describe('delivery attempt boundaries', () => {
 				})
 			})
 		]);
-		expect(
-			await db
-				.selectFrom('service_status')
-				.select(['error', 'last_attempt_at', 'failing_since'])
-				.executeTakeFirstOrThrow()
-		).toEqual({ error: 'SMTP unavailable', last_attempt_at: at, failing_since: at });
+		const smtp = await db
+			.selectFrom('service_status')
+			.select(['error', 'last_attempt_at', 'failing_since'])
+			.executeTakeFirstOrThrow();
+		expect(smtp).toEqual({ error: 'SMTP unavailable', last_attempt_at: at, failing_since: at });
+	});
+
+	test.each([
+		{ name: 'successful', result: { ok: true } },
+		{ name: 'failed', result: { ok: false, reason: 'SMTP unavailable' } }
+	] as const)('captures the $name attempt time before recording its status', async ({ result }) => {
+		const sentAt = '2026-02-01T12:01:00.000Z';
+		const writtenAt = '2026-02-01T12:10:00.000Z';
+		let now = at;
+		const attemptClock = { now: () => new Date(now) };
+		send.mockImplementation(async () => {
+			now = sentAt;
+			return result;
+		});
+		const record = status.recordSendOutcome;
+		vi.spyOn(status, 'recordSendOutcome').mockImplementation(async (...args) => {
+			now = writtenAt;
+			await record(...args);
+		});
+
+		const delivery = runDeliverAppointmentEmail(input, directStep(), attemptClock);
+		if (result.ok) await expect(delivery).resolves.toBe('sent');
+		else await expect(delivery).rejects.toThrow(result.reason);
+
+		const smtp = await db.selectFrom('service_status').selectAll().executeTakeFirstOrThrow();
+		expect(smtp.last_attempt_at).toBe(sentAt);
+		if (result.ok) expect(smtp.last_ok_at).toBe(sentAt);
+		else expect(smtp.failing_since).toBe(sentAt);
 	});
 
 	test.each(['missing', 'purged'] as const)(
@@ -127,8 +155,12 @@ describe('delivery attempt boundaries', () => {
 			});
 			await expect(runDeliverAppointmentEmail(input, step, clock)).resolves.toBe('skipped');
 			expect(send).not.toHaveBeenCalled();
-			expect(await db.selectFrom('service_status').selectAll().execute()).toEqual([]);
-			if (state === 'purged') expect(await emailEntries()).toEqual([]);
+			const observations = await db.selectFrom('service_status').selectAll().execute();
+			expect(observations).toEqual([]);
+			if (state === 'purged') {
+				const entries = await emailEntries();
+				expect(entries).toEqual([]);
+			}
 		}
 	);
 
@@ -140,7 +172,8 @@ describe('delivery attempt boundaries', () => {
 		await expect(runDeliverAppointmentEmail(input, step, clock)).rejects.toBe(fault);
 		expect(step.configs.map((config) => config.name)).toEqual(['smtp', 'smtp:status']);
 		expect(send).toHaveBeenCalledTimes(1);
-		expect(await emailEntries()).toEqual([]);
+		const entries = await emailEntries();
+		expect(entries).toEqual([]);
 		expect(increment).not.toHaveBeenCalledWith(expect.objectContaining({ status: 'failure' }));
 	});
 
@@ -153,6 +186,7 @@ describe('delivery attempt boundaries', () => {
 		};
 		await expect(runDeliverAppointmentEmail(input, step, clock)).rejects.toBe(opaque);
 		expect(send).not.toHaveBeenCalled();
-		expect(await emailEntries()).toEqual([]);
+		const entries = await emailEntries();
+		expect(entries).toEqual([]);
 	});
 });

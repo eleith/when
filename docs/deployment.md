@@ -260,7 +260,10 @@ at the final write. Mixed/all skipped sets and missing/purged rows get no summar
 Engine history is authoritative for terminal failure; no aggregate terminal email-failure
 summary is synthesized. An already-started sibling can continue independently. SMTP
 service status is the **last recorded physical attempt outcome**, not an aggregate
-recipient/job result. Handler metrics include replays/suspensions; email metrics count
+recipient/job result. Its timestamps describe the send attempt, not a later status-write
+retry. A delayed success write can overwrite a newer failure and move the recorded
+timestamps backwards; this is not a time-ordered health history.
+Handler metrics include replays/suspensions; email metrics count
 physical attempt outcomes. Crashes before checkpoints can duplicate effects or log
 entries: this is at-least-once execution, not an exactly-once ledger.
 

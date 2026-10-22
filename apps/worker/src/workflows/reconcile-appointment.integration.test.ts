@@ -11,7 +11,7 @@ import {
 	type ReconcileAppointmentInput
 } from '@when/jobs';
 import { getVideoChatAdapter, type VideoChatAdapter } from '@when/video-chat';
-import { openDb, parseActionLog, runMigrations } from '@when/db';
+import { openDb, parseActionLog, recordServiceOutcome, runMigrations } from '@when/db';
 import type { WhenConfiguration } from '@when/config';
 import { sampleAppointment, sampleConfig } from '../email/__fixtures__/appointment.js';
 import type { Envelope, RecipientRole } from '../email/recipients.js';
@@ -1111,7 +1111,9 @@ describe('appointment email reconciliation with native children', () => {
 		}
 	});
 
-	test('saved SMTP success survives a status failure and restart without resending', async () => {
+	test('saved SMTP success replays its original timestamp over a newer failure without resending', async () => {
+		let now = at;
+		vi.spyOn(clock, 'now').mockImplementation(() => new Date(now));
 		const directory = await mkdtemp(join(tmpdir(), 'when-email-status-'));
 		await db.updateTable('appointments').set({ guest_email: null }).execute();
 		const bookkeeping = vi
@@ -1134,6 +1136,25 @@ describe('appointment email reconciliation with native children', () => {
 			const states = await emailStates();
 			expect(states).toEqual([]);
 			await queue.close();
+			now = '2026-02-01T12:05:00.000Z';
+			await recordServiceOutcome(
+				db,
+				{ kind: 'smtp' },
+				{ at: now, via: 'send', error: 'later SMTP failure' }
+			);
+			const newerFailure = await db
+				.selectFrom('service_status')
+				.selectAll()
+				.where('kind', '=', 'smtp')
+				.executeTakeFirstOrThrow();
+			expect(newerFailure).toMatchObject({
+				last_attempt_at: now,
+				last_ok_at: null,
+				failing_since: now,
+				error: 'later SMTP failure',
+				via: 'send'
+			});
+			now = '2026-02-01T12:10:00.000Z';
 			bookkeeping.mockRestore();
 			queue = openQueue(join(directory, 'queue.sqlite'));
 			await finish(queue, parent.workflowRun.id);
@@ -1144,6 +1165,22 @@ describe('appointment email reconciliation with native children', () => {
 			expect(replayedStatus.map((attempt) => attempt.status)).toEqual(['failed', 'completed']);
 			const replayedStates = await emailStates();
 			expect(replayedStates).toEqual(['done']);
+			const replayedDeliveries = await children(queue);
+			expect(replayedDeliveries.map((delivery) => delivery.output)).toEqual(['sent']);
+			const replayedSuccess = await db
+				.selectFrom('service_status')
+				.selectAll()
+				.where('kind', '=', 'smtp')
+				.executeTakeFirstOrThrow();
+			expect(replayedSuccess).toMatchObject({
+				last_attempt_at: at,
+				last_ok_at: at,
+				failing_since: null,
+				error: null,
+				via: 'send'
+			});
+			expect(replayedSuccess.last_attempt_at! < newerFailure.last_attempt_at!).toBe(true);
+			expect(savedSmtp[0].output).toBe(at);
 		} finally {
 			try {
 				await queue.close();
