@@ -81,7 +81,7 @@ export async function createAppointment(
 	}
 
 	const kind: AppointmentEmailKind = status === 'confirmed' ? 'confirmed' : 'pending';
-	appointment = await enqueueAppointmentReconciliation(ctx.db, appointment.id, kind);
+	await enqueueAppointmentReconciliation(appointment, kind);
 
 	return { ok: true, appointment };
 }

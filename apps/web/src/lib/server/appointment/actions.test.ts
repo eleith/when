@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { resolveAppointmentActions } from './actions';
+import { resolveAppointmentActions, resolveGenerateVideoChat } from './actions';
 import type { AppointmentStatus } from '@when/db';
 
 const startTime = '2026-05-01T15:00:00Z';
@@ -195,6 +195,44 @@ describe('accept / decline', () => {
 			eventType: eventTypeNoNotice
 		});
 		expect(a.accept).toEqual({ allowed: false, reason: 'wrong_viewer' });
+	});
+});
+
+describe('resolveGenerateVideoChat', () => {
+	const videoChat = { provider: 'g-service' };
+
+	test.each([
+		'pending',
+		'confirmed',
+		'cancelled',
+		'declined',
+		'expired',
+		'rescheduled',
+		'purged'
+	] as const)('direct and aggregate checks share the %s policy', (status) => {
+		const gate = resolveGenerateVideoChat({ status }, 'host', videoChat);
+		const summary = resolveAppointmentActions({
+			row: row(status),
+			viewer: 'host',
+			now: after,
+			eventType: { notice_minutes: 30, video_chat: videoChat }
+		});
+		if (status === 'pending' || status === 'confirmed') {
+			expect(gate).toEqual({ allowed: true });
+		} else {
+			expect(gate).toEqual({ allowed: false, reason: 'terminal_status' });
+		}
+		expect(summary.generateVideoChat).toEqual(gate);
+	});
+
+	test('direct check rejects guests without needing a clock or start time', () => {
+		const gate = resolveGenerateVideoChat({ status: 'confirmed' }, 'guest', videoChat);
+		expect(gate).toEqual({ allowed: false, reason: 'wrong_viewer' });
+	});
+
+	test('direct check rejects missing video configuration', () => {
+		const gate = resolveGenerateVideoChat({ status: 'confirmed' }, 'host', undefined);
+		expect(gate).toEqual({ allowed: false, reason: 'not_configured' });
 	});
 });
 

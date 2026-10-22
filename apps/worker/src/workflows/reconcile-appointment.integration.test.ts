@@ -4,7 +4,13 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { OpenWorkflow, type Worker } from 'openworkflow';
 import { BackendSqlite } from 'openworkflow/sqlite';
-import { reconcileAppointment, type ReconcileAppointmentInput } from '@when/jobs';
+import {
+	generateVideoChat,
+	getOpenWorkflow,
+	reconcileAppointment,
+	type ReconcileAppointmentInput
+} from '@when/jobs';
+import { getVideoChatAdapter, type VideoChatAdapter } from '@when/video-chat';
 import { openDb, parseActionLog, runMigrations } from '@when/db';
 import type { WhenConfiguration } from '@when/config';
 import { sampleAppointment, sampleConfig } from '../email/__fixtures__/appointment.js';
@@ -15,10 +21,20 @@ import * as status from '../email/status.js';
 import { setWorkerContext, type WorkerContext } from '../services/context.js';
 import { createLogger } from '../services/logger.js';
 import { runReconcileAppointment } from './reconcile-appointment.js';
+import { runGenerateVideoChat } from './generate-video-chat.js';
 import {
 	deliverAppointmentEmail,
 	runDeliverAppointmentEmail
 } from './deliver-appointment-email.js';
+
+vi.mock('@when/jobs', async (importOriginal) => {
+	const actual = await importOriginal<typeof import('@when/jobs')>();
+	return { ...actual, getOpenWorkflow: vi.fn() };
+});
+vi.mock('@when/video-chat', async (importOriginal) => {
+	const actual = await importOriginal<typeof import('@when/video-chat')>();
+	return { ...actual, getVideoChatAdapter: vi.fn() };
+});
 
 type ParentStep = Parameters<typeof runReconcileAppointment>[1];
 type DeliveryStep = Parameters<typeof runDeliverAppointmentEmail>[1];
@@ -30,9 +46,14 @@ const input: ReconcileAppointmentInput = {
 };
 const roles: RecipientRole[] = ['guest', 'host'];
 
-function openQueue(path = ':memory:', beforeParentStep?: (name: string) => Promise<void>) {
+function openQueue(
+	path = ':memory:',
+	beforeParentStep?: (name: string) => Promise<void>,
+	register?: (client: OpenWorkflow) => void
+) {
 	const backend = BackendSqlite.connect(path);
 	const client = new OpenWorkflow({ backend });
+	vi.mocked(getOpenWorkflow).mockReturnValue(client);
 	client.implementWorkflow(deliverAppointmentEmail, ({ input, step }) => {
 		const adapted: DeliveryStep = {
 			run: (config, fn) =>
@@ -64,6 +85,7 @@ function openQueue(path = ':memory:', beforeParentStep?: (name: string) => Promi
 		};
 		return runReconcileAppointment(input, adapted, clock);
 	});
+	register?.(client);
 	const worker = client.newWorker({ concurrency: 1 });
 	return {
 		backend,
@@ -158,6 +180,19 @@ function failingMailer(failures: Record<RecipientRole, number>) {
 			: { ok: true };
 	});
 	return counts;
+}
+
+function configureVideo() {
+	config.providers = {
+		cloud: {
+			type: 'nextcloud',
+			url: 'https://cloud.example.com',
+			username: 'user',
+			password: 'secret',
+			calendars: {}
+		}
+	};
+	config.meetings['30-min'].video_chat = { provider: 'cloud', attach: { auto: true } };
 }
 
 describe('appointment email reconciliation with native children', () => {
@@ -350,7 +385,7 @@ describe('appointment email reconciliation with native children', () => {
 		}
 	});
 
-	test.each(['cleanup-video-chat', 'resolve-video-chat', 'sync-calendar'])(
+	test.each(['cleanup-video-chat', 'request-video-chat', 'sync-calendar'])(
 		'rechecks live eligibility inside %s after initial preparation',
 		async (blockedStep) => {
 			config.providers = {
@@ -383,15 +418,21 @@ describe('appointment email reconciliation with native children', () => {
 					cleanupVideoChatUrl
 				});
 				await finish(queue, parent.workflowRun.id);
-				expect(external).toHaveBeenCalledTimes(blockedStep === 'sync-calendar' ? 1 : 0);
+				expect(external).not.toHaveBeenCalled();
+				const workflowRuns = await runs(queue);
+				expect(workflowRuns.filter((run) => run.workflowName === generateVideoChat.name)).toEqual(
+					[]
+				);
 				expect(send).not.toHaveBeenCalled();
-				expect(
-					await db
-						.selectFrom('appointments')
-						.select('calendar_synced_revision')
-						.executeTakeFirstOrThrow()
-				).toEqual({ calendar_synced_revision: null });
-				expect(await emailStates()).toEqual([]);
+				const row = await db
+					.selectFrom('appointments')
+					.select('calendar_synced_revision')
+					.executeTakeFirstOrThrow();
+				expect(row).toEqual({
+					calendar_synced_revision: blockedStep === 'request-video-chat' ? 0 : null
+				});
+				const states = await emailStates();
+				expect(states).toEqual([]);
 			} finally {
 				await queue.close();
 			}
@@ -469,65 +510,54 @@ describe('appointment email reconciliation with native children', () => {
 		}
 	});
 
-	test.each([true, false])(
-		'the initial optional-video decision (%s) survives a retry and restart',
-		async (resolveVideo) => {
-			const directory = await mkdtemp(join(tmpdir(), 'when-video-branch-'));
-			config.providers = {
-				cloud: {
-					type: 'nextcloud',
-					url: 'https://cloud.example.com',
-					username: 'user',
-					password: 'secret',
-					calendars: {}
-				}
-			};
-			config.meetings['30-min'].video_chat = { provider: 'cloud', attach: { auto: true } };
-			if (!resolveVideo)
-				await db
-					.updateTable('appointments')
-					.set({ video_chat: 'https://cloud.example.com/call/original' })
-					.execute();
-			const external = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-				new Response(JSON.stringify({ ocs: { data: { token: 'created-room' } } }), {
-					status: 201,
-					headers: { 'content-type': 'application/json' }
+	test.each(['generate', 'saved-link'] as const)(
+		'observes the current %s choice before enqueue, not the initial preparation',
+		async (choice) => {
+			const directory = await mkdtemp(join(tmpdir(), 'when-video-choice-'));
+			configureVideo();
+			config.meetings['30-min'].video_chat!.attach = { auto: false };
+			await db
+				.updateTable('appointments')
+				.set({
+					video_chat_request: choice === 'generate' ? null : 'generate',
+					video_chat: choice === 'generate' ? 'https://cloud.example.com/call/original' : null
 				})
-			);
-			let failSync = true;
+				.execute();
 			let queue = openQueue(join(directory, 'queue.sqlite'), async (name) => {
-				if (name === 'sync-calendar' && failSync) {
-					failSync = false;
-					throw new Error('local calendar callback interrupted');
-				}
+				if (name === 'sync-calendar') throw new Error('local calendar callback interrupted');
 			});
 			try {
 				const parent = await queue.client.runWorkflow(reconcileAppointment, input);
-				expect(await queue.worker.tick()).toBe(1);
+				await queue.worker.tick();
 				await queue.worker.stop();
-				expect(
-					await queue.backend.getWorkflowRun({ workflowRunId: parent.workflowRun.id })
-				).toMatchObject({ status: 'pending', workerId: null });
-				const savedVideo = await attempts(queue, parent.workflowRun.id, 'resolve-video-chat');
-				expect(savedVideo).toHaveLength(resolveVideo ? 1 : 0);
+				const before = await attempts(queue, parent.workflowRun.id, 'request-video-chat');
+				expect(before).toEqual([]);
 				await queue.close();
-				const changedVideoChatUrl = resolveVideo ? 'https://changed.example.com/call' : null;
-				await db.updateTable('appointments').set({ video_chat: changedVideoChatUrl }).execute();
+				await db
+					.updateTable('appointments')
+					.set({
+						video_chat_request: choice === 'generate' ? 'generate' : null,
+						video_chat: choice === 'generate' ? null : 'https://cloud.example.com/call/current'
+					})
+					.execute();
 				queue = openQueue(join(directory, 'queue.sqlite'));
 				await finish(queue, parent.workflowRun.id);
-				expect(await attempts(queue, parent.workflowRun.id, 'resolve-video-chat')).toEqual(
-					savedVideo
+				const workflowRuns = await runs(queue);
+				const generators = workflowRuns.filter(
+					(run) => run.workflowName === generateVideoChat.name
 				);
-				expect(await attempts(queue, parent.workflowRun.id, 'prepare-reconciliation')).toHaveLength(
-					1
-				);
-				expect(external).toHaveBeenCalledTimes(resolveVideo ? 1 : 0);
-				expect(
-					(await attempts(queue, parent.workflowRun.id, 'sync-calendar')).map(
-						(attempt) => attempt.status
-					)
-				).toEqual(['failed', 'completed']);
-				expect(await emailStates()).toEqual(['done']);
+				expect(generators).toHaveLength(choice === 'generate' ? 1 : 0);
+				const envelopes = send.mock.calls.map(([envelope]) => envelope.text);
+				for (const text of envelopes) {
+					if (choice === 'saved-link')
+						expect(text).toContain('https://cloud.example.com/call/current');
+					else expect(text).not.toContain('https://cloud.example.com/call/original');
+				}
+				const preparation = await attempts(queue, parent.workflowRun.id, 'prepare-reconciliation');
+				expect(preparation).toHaveLength(1);
+				expect(send).toHaveBeenCalledTimes(2);
+				const states = await emailStates();
+				expect(states).toEqual(['done']);
 			} finally {
 				try {
 					await queue.close();
@@ -537,6 +567,135 @@ describe('appointment email reconciliation with native children', () => {
 			}
 		}
 	);
+
+	test('the native enqueue checkpoint survives restart without waiting for generation or changing saved mail', async () => {
+		const directory = await mkdtemp(join(tmpdir(), 'when-video-enqueue-'));
+		configureVideo();
+		let queue = openQueue(join(directory, 'queue.sqlite'));
+		try {
+			const parent = await queue.client.runWorkflow(reconcileAppointment, input);
+			await startParentAndExpectChildren(queue);
+			const workflowRuns = await runs(queue);
+			const [generator] = workflowRuns.filter((run) => run.workflowName === generateVideoChat.name);
+			expect(generator).toMatchObject({
+				status: 'pending',
+				input: { appointmentId: input.appointmentId }
+			});
+			const savedEnqueue = await attempts(queue, parent.workflowRun.id, 'request-video-chat');
+			expect(savedEnqueue).toHaveLength(1);
+			expect(savedEnqueue[0]).toMatchObject({ status: 'completed', childWorkflowRunId: null });
+			const savedChildren = await children(queue);
+			const prepared = savedChildren.map(
+				(child) => (child.input as unknown as { envelope: Envelope }).envelope
+			);
+			await queue.close();
+			await db
+				.updateTable('appointments')
+				.set({
+					video_chat: 'https://cloud.example.com/call/later',
+					video_chat_request: 'suppress'
+				})
+				.execute();
+			queue = openQueue(join(directory, 'queue.sqlite'));
+			await finish(queue, parent.workflowRun.id);
+			const replayedEnqueue = await attempts(queue, parent.workflowRun.id, 'request-video-chat');
+			expect(replayedEnqueue).toEqual(savedEnqueue);
+			const replayedRuns = await runs(queue);
+			expect(
+				replayedRuns
+					.filter((run) => run.workflowName === generateVideoChat.name)
+					.map((run) => run.id)
+			).toEqual([generator.id]);
+			expect(send.mock.calls.map(([envelope]) => envelope)).toEqual(
+				expect.arrayContaining(prepared)
+			);
+			expect(send).toHaveBeenCalledTimes(2);
+			expect(JSON.stringify(prepared)).not.toContain('/call/later');
+			const states = await emailStates();
+			expect(states).toEqual(['done']);
+		} finally {
+			try {
+				await queue.close();
+			} finally {
+				await rm(directory, { recursive: true, force: true });
+			}
+		}
+	});
+
+	test('native pending-read exhaustion fails only generation, not booking mail or either role child', async () => {
+		configureVideo();
+		const adapter: VideoChatAdapter = {
+			read: vi
+				.fn<VideoChatAdapter['read']>()
+				.mockResolvedValueOnce({ ok: true, status: 'absent' })
+				.mockResolvedValue({ ok: false, reason: 'conference still unavailable' }),
+			request: vi
+				.fn<VideoChatAdapter['request']>()
+				.mockResolvedValue({ ok: true, status: 'pending' }),
+			removeLink: vi.fn<VideoChatAdapter['removeLink']>().mockResolvedValue({ ok: true })
+		};
+		vi.mocked(getVideoChatAdapter).mockReturnValue(adapter);
+		const queue = openQueue(':memory:', undefined, (client) => {
+			client.implementWorkflow(generateVideoChat, ({ input, step }) =>
+				runGenerateVideoChat(
+					input,
+					{
+						run: (config, fn) =>
+							step.run(
+								{
+									...config,
+									retryPolicy: {
+										...config.retryPolicy,
+										initialInterval: '1ms',
+										maximumInterval: '1ms'
+									}
+								},
+								fn
+							)
+					},
+					clock
+				)
+			);
+		});
+		try {
+			const parent = await queue.client.runWorkflow(reconcileAppointment, input);
+			await startParentAndExpectChildren(queue);
+			await driveUntil(queue.worker, async () => {
+				const parkedRuns = await runs(queue);
+				const [parkedGenerator] = parkedRuns.filter(
+					(run) => run.workflowName === generateVideoChat.name
+				);
+				expect(parkedGenerator).toMatchObject({ status: 'pending', workerId: null });
+				const firstRead = await attempts(queue, parkedGenerator.id, 'read-pending-video-chat');
+				expect(firstRead.map((attempt) => attempt.status)).toEqual(['failed']);
+			});
+			await finish(queue, parent.workflowRun.id);
+			expect(send).toHaveBeenCalledTimes(2);
+			const deliveryRuns = await children(queue);
+			expect(deliveryRuns.map((child) => child.output)).toEqual(['sent', 'sent']);
+			for (const [envelope] of send.mock.calls) expect(envelope.text).not.toContain('Video link');
+			const workflowRuns = await runs(queue);
+			const [generator] = workflowRuns.filter((run) => run.workflowName === generateVideoChat.name);
+			await finish(queue, generator.id, 'failed');
+			const reads = await attempts(queue, generator.id, 'read-pending-video-chat');
+			expect(reads.map((attempt) => attempt.status)).toEqual(Array(10).fill('failed'));
+			expect(adapter.request).toHaveBeenCalledTimes(1);
+			expect(adapter.read).toHaveBeenCalledTimes(11);
+			const parentState = await queue.backend.getWorkflowRun({
+				workflowRunId: parent.workflowRun.id
+			});
+			expect(parentState).toMatchObject({ status: 'completed', output: 'reconciled' });
+			const row = await db
+				.selectFrom('appointments')
+				.select(['video_chat', 'ics_sequence', 'calendar_revision'])
+				.executeTakeFirstOrThrow();
+			expect(row).toEqual({ video_chat: null, ics_sequence: 0, calendar_revision: 0 });
+			const states = await emailStates();
+			expect(states).toEqual(['done']);
+		} finally {
+			await queue.close();
+		}
+	});
 
 	test('a native SMTP retry rechecks eligibility after a queue restart', async () => {
 		const directory = await mkdtemp(join(tmpdir(), 'when-email-eligibility-'));

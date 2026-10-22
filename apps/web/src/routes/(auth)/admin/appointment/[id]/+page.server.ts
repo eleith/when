@@ -9,7 +9,7 @@ import { editAppointment } from '$lib/server/appointment/edit';
 import { validateReason } from '$lib/server/appointment/form.server';
 import { appointmentContext } from '$lib/server/appointment/context';
 import { rotateGuestTokenTransition } from '$lib/server/appointment/transitions';
-import { generateVideoChat, getOpenWorkflow } from '@when/jobs';
+import { requestVideoChat } from '$lib/server/appointment/request-video-chat';
 import type { Actions, PageServerLoad } from './$types';
 import { systemClock } from '$lib/server/clock';
 
@@ -143,28 +143,26 @@ export const actions: Actions = {
 	},
 
 	generateVideoChat: async ({ params }) => {
-		const row = await findAppointment(getDb(), params.id);
-		if (!row) return fail(404, { error: 'Appointment not found.' });
-
-		const cfg = getConfig();
-		const meeting = cfg.meetings[row.event_type_id];
-		if (!meeting || !meeting.video_chat) {
-			return fail(400, { error: 'This meeting type does not have video chat configured.' });
-		}
-
-		try {
-			const idempotencyKey = `generate-video-chat:${row.id}:${Date.now()}`;
-			const handle = await getOpenWorkflow().runWorkflow(
-				generateVideoChat,
-				{ appointmentId: row.id },
-				{ idempotencyKey }
-			);
-			const result = await handle.result({ timeoutMs: 15000 });
-			return { success: 'video_chat_generated', url: result.url };
-		} catch (err) {
+		const result = await requestVideoChat(appointmentContext(), { appointmentId: params.id });
+		if (!result.ok) {
+			if (result.reason === 'not_found') {
+				return fail(404, { error: 'Appointment not found.' });
+			}
+			if (result.reason === 'not_configured') {
+				return fail(400, { error: 'This meeting type does not have video chat configured.' });
+			}
+			if (result.reason === 'gated') {
+				return fail(400, { error: 'This appointment cannot generate a video chat link.' });
+			}
 			return fail(500, {
-				error: `Failed to generate video chat link: ${err instanceof Error ? err.message : String(err)}`
+				error:
+					'Your video chat choice was saved, but submission could not be confirmed. Please try again.',
+				choiceSaved: true
 			});
 		}
+		return {
+			success:
+				result.outcome === 'already_linked' ? 'video_chat_already_linked' : 'video_chat_requested'
+		};
 	}
 };

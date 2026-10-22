@@ -39,9 +39,7 @@ async function fetchRow(db: Awaited<ReturnType<typeof makeDb>>, id: string) {
 describe('cancelAppointment', () => {
 	beforeEach(() => {
 		vi.mocked(enqueueAppointmentReconciliation).mockReset();
-		vi.mocked(enqueueAppointmentReconciliation).mockImplementation(async (db, id) =>
-			db.selectFrom('appointments').selectAll().where('id', '=', id).executeTakeFirstOrThrow()
-		);
+		vi.mocked(enqueueAppointmentReconciliation).mockResolvedValue(undefined);
 	});
 
 	test('happy path: a published appointment is cancelled, queued for reconciliation', async () => {
@@ -72,8 +70,7 @@ describe('cancelAppointment', () => {
 			expect(persisted.ics_sequence).toBe(1);
 			expect(persisted.calendar_revision).toBe(1);
 			expect(enqueueAppointmentReconciliation).toHaveBeenCalledWith(
-				expect.anything(),
-				expect.any(String),
+				persisted,
 				'cancelled-by-guest'
 			);
 		} finally {

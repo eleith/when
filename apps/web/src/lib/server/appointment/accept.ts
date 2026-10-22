@@ -2,7 +2,7 @@ import { resolveAppointmentActions } from './actions';
 import { enqueueAppointmentReconciliation } from '../workflow';
 import type { AppointmentContext } from './context';
 import { confirmAppointment } from './transitions';
-import type { Appointment } from '@when/db';
+import { getAppointment, type Appointment } from '@when/db';
 
 export interface AcceptAppointmentInput {
 	appointment: Appointment;
@@ -33,11 +33,8 @@ export async function acceptAppointment(
 	);
 	if (!result.ok) return { ok: false, reason: 'conflict' };
 
-	const appointment = await enqueueAppointmentReconciliation(
-		ctx.db,
-		input.appointment.id,
-		'confirmed'
-	);
+	const appointment = await getAppointment(ctx.db, input.appointment.id);
+	await enqueueAppointmentReconciliation(appointment, 'confirmed');
 
 	return { ok: true, appointment };
 }

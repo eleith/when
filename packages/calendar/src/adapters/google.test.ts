@@ -241,7 +241,12 @@ describe('fetchGoogleBusy', () => {
 });
 
 async function push(appointment: Appointment) {
-	const captured: { url?: string; payload?: Record<string, unknown> } = {};
+	const captured: {
+		url?: string;
+		method?: string;
+		payload?: Record<string, unknown>;
+		result?: unknown;
+	} = {};
 
 	vi.spyOn(globalThis, 'fetch').mockImplementation(
 		async (url: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) => {
@@ -251,12 +256,13 @@ async function push(appointment: Appointment) {
 				});
 			}
 			captured.url = String(url);
+			captured.method = init?.method;
 			captured.payload = JSON.parse(String(init?.body));
 			return new Response(JSON.stringify({ id: 'evt-1' }), { status: 200 });
 		}
 	);
 
-	await putGoogleEvent(cfg, appointment, {
+	captured.result = await putGoogleEvent(cfg, appointment, {
 		cancelUrl: 'https://when.example.com/appointment/appt-1?token=tok',
 		eventTypeName: 'Chat',
 		hostName: 'Jane'
@@ -284,34 +290,64 @@ test('email line is dropped and attendees empty when there is no email', async (
 	expect(payload!.attendees).toEqual([]);
 });
 
-test('includes conferenceData and appends version query parameter when video_chat link is present', async () => {
-	const { url, payload } = await push({
+test.each([null, 'https://zoom.us/j/12345', 'sip:room@example.com'])(
+	'creates appointment content with POST, never conference data, for selected URI %s',
+	async (videoChat) => {
+		const { url, method, payload } = await push({ ...baseAppointment, video_chat: videoChat });
+		expect(method).toBe('POST');
+		expect(url).toBe(
+			'https://www.googleapis.com/calendar/v3/calendars/cal/events?sendUpdates=none'
+		);
+		expect(payload).not.toHaveProperty('conferenceData');
+		if (videoChat) expect(payload?.description).toContain(videoChat);
+	}
+);
+
+test.each([null, 'https://meet.google.com/selected', 'sip:room@example.com'])(
+	'updates content with encoded-ID PATCH, preserving native conferences, for selected URI %s',
+	async (videoChat) => {
+		const { url, method, payload, result } = await push({
+			...baseAppointment,
+			external_event_id: 'existing/event?1',
+			video_chat: videoChat
+		});
+		expect(method).toBe('PATCH');
+		expect(url).toBe(
+			'https://www.googleapis.com/calendar/v3/calendars/cal/events/existing%2Fevent%3F1?sendUpdates=none'
+		);
+		expect(payload).not.toHaveProperty('conferenceData');
+		if (videoChat) expect(payload?.description).toContain(videoChat);
+		expect(result).toEqual({ externalEventId: 'existing/event?1' });
+	}
+);
+
+test('PATCH explicitly clears removed location content without touching conference fields', async () => {
+	const { payload } = await push({
 		...baseAppointment,
-		video_chat: 'https://zoom.us/j/12345'
+		external_event_id: 'existing',
+		location: null
 	});
-	expect(url).toContain('conferenceDataVersion=1');
-	expect(payload?.conferenceData).toEqual({
-		entryPoints: [
-			{
-				entryPointType: 'video',
-				uri: 'https://zoom.us/j/12345'
-			}
-		]
-	});
+	expect(payload?.location).toBeNull();
+	expect(payload).not.toHaveProperty('conferenceData');
 });
 
-test('omits conferenceData when video_chat link is absent', async () => {
-	const { payload, url } = await push(baseAppointment);
-	expect(payload?.conferenceData).toBeUndefined();
-	expect(url).toContain('sendUpdates=none');
-});
-
-test('putGoogleEvent includes sendUpdates=none on update (PUT)', async () => {
-	const { url } = await push({
-		...baseAppointment,
-		external_event_id: 'existing-evt-1'
+test('PATCH accepts a no-content acknowledgment and keeps the stored event ID', async () => {
+	vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) => {
+		if (String(url).includes('oauth2.googleapis.com/token')) {
+			return new Response(JSON.stringify({ access_token: 't', expires_in: 3600 }));
+		}
+		return new Response(null, { status: 204 });
 	});
-	expect(url).toContain('/events/existing-evt-1?conferenceDataVersion=1&sendUpdates=none');
+	const result = await putGoogleEvent(
+		cfg,
+		{ ...baseAppointment, external_event_id: 'existing' },
+		{
+			cancelUrl: 'https://when.example.com/booked/appt-1',
+			eventTypeName: 'Chat',
+			hostName: 'Jane'
+		}
+	);
+	expect(result).toEqual({ externalEventId: 'existing' });
 });
 
 test('deleteGoogleEvent includes sendUpdates=none', async () => {
@@ -414,9 +450,8 @@ test('listGoogleCalendars returns items and throws on failure', async () => {
 			status: 200
 		})
 	);
-	expect(await listGoogleCalendars('tok')).toEqual([
-		{ id: 'primary', summary: 'Me', primary: true }
-	]);
+	const calendars = await listGoogleCalendars('tok');
+	expect(calendars).toEqual([{ id: 'primary', summary: 'Me', primary: true }]);
 
 	vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('no', { status: 401 }));
 	await expect(listGoogleCalendars('tok')).rejects.toThrow(/calendar list failed/);
@@ -441,107 +476,42 @@ test('revokeGoogleToken throws when google rejects the revoke', async () => {
 });
 
 describe('GoogleAdapter.pushAppointment', () => {
-	test('omits Meet creation when attach.auto is false', async () => {
-		const { GoogleAdapter } = await import('./google.js');
-		const adapter = new GoogleAdapter(
-			'primary',
-			{ id: 'cal', sync: { refresh_every_minutes: 5 } },
-			{
-				type: 'google',
-				client_id: 'i',
-				client_secret: 's',
-				refresh_token: 'r',
-				calendars: {}
-			}
-		);
-
-		const configAutoFalse = {
-			user: { name: 'Jane' },
-			providers: {
-				'g-service': { type: 'google' }
-			},
-			meetings: {
-				chat: {
-					title: 'Chat',
-					video_chat: { provider: 'g-service', attach: { auto: false } }
-				}
-			}
-		} as unknown as import('@when/config').WhenConfiguration;
-
-		let capturedPayload: Record<string, unknown> | undefined;
-		vi.spyOn(globalThis, 'fetch').mockImplementation(
-			async (url: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) => {
+	test.each([true, false])(
+		'ignores video attach policy auto=%s and never adopts a returned URI',
+		async (auto) => {
+			const { GoogleAdapter } = await import('./google.js');
+			const adapter = new GoogleAdapter(
+				'primary',
+				{ id: 'cal', sync: { refresh_every_minutes: 5 } },
+				{ type: 'google', client_id: 'i', client_secret: 's', refresh_token: 'r', calendars: {} }
+			);
+			const config = {
+				user: { name: 'Jane' },
+				providers: { google: { type: 'google' } },
+				meetings: { chat: { video_chat: { provider: 'google', attach: { auto } } } }
+			} as unknown as import('@when/config').WhenConfiguration;
+			let payload: Record<string, unknown> | undefined;
+			vi.spyOn(globalThis, 'fetch').mockImplementation(async (url, init) => {
 				if (String(url).includes('oauth2.googleapis.com/token')) {
-					return new Response(JSON.stringify({ access_token: 't', expires_in: 3600 }), {
-						status: 200
-					});
+					return new Response(JSON.stringify({ access_token: 't', expires_in: 3600 }));
 				}
-				capturedPayload = JSON.parse(String(init?.body));
-				return new Response(JSON.stringify({ id: 'evt-1' }), { status: 200 });
-			}
-		);
-
-		await adapter.pushAppointment(configAutoFalse, baseAppointment, 'Chat', {
-			cancelUrl: 'https://when.example.com/appointment/appt-1?token=tok'
-		});
-
-		expect(capturedPayload?.conferenceData).toBeUndefined();
-	});
-
-	test('creates Meet when attachVideoChat is true even if attach.auto is false', async () => {
-		const { GoogleAdapter } = await import('./google.js');
-		const adapter = new GoogleAdapter(
-			'primary',
-			{ id: 'cal', sync: { refresh_every_minutes: 5 } },
-			{
-				type: 'google',
-				client_id: 'i',
-				client_secret: 's',
-				refresh_token: 'r',
-				calendars: {}
-			}
-		);
-
-		const configAutoFalse = {
-			user: { name: 'Jane' },
-			providers: {
-				'g-service': { type: 'google' }
-			},
-			meetings: {
-				chat: {
-					title: 'Chat',
-					video_chat: { provider: 'g-service', attach: { auto: false } }
-				}
-			}
-		} as unknown as import('@when/config').WhenConfiguration;
-
-		let capturedPayload: Record<string, unknown> | undefined;
-		vi.spyOn(globalThis, 'fetch').mockImplementation(
-			async (url: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) => {
-				if (String(url).includes('oauth2.googleapis.com/token')) {
-					return new Response(JSON.stringify({ access_token: 't', expires_in: 3600 }), {
-						status: 200
-					});
-				}
-				capturedPayload = JSON.parse(String(init?.body));
+				payload = JSON.parse(String(init?.body));
 				return new Response(
 					JSON.stringify({
 						id: 'evt-1',
 						conferenceData: {
-							entryPoints: [{ entryPointType: 'video', uri: 'https://meet.google.com/xyz' }]
+							entryPoints: [{ entryPointType: 'video', uri: 'https://meet.google.com/unselected' }]
 						}
-					}),
-					{ status: 200 }
+					})
 				);
-			}
-		);
+			});
 
-		const res = await adapter.pushAppointment(configAutoFalse, baseAppointment, 'Chat', {
-			cancelUrl: 'https://when.example.com/appointment/appt-1?token=tok',
-			attachVideoChat: true
-		});
+			const result = await adapter.pushAppointment(config, baseAppointment, 'Chat', {
+				cancelUrl: 'https://when.example.com/booked/appt-1'
+			});
 
-		expect(capturedPayload?.conferenceData).toBeDefined();
-		expect(res.videoChatUrl).toBe('https://meet.google.com/xyz');
-	});
+			expect(payload).not.toHaveProperty('conferenceData');
+			expect(result).toEqual({ ok: true, externalEventId: 'evt-1', externalCalendarId: 'primary' });
+		}
+	);
 });

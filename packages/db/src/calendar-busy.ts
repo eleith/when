@@ -150,21 +150,40 @@ export async function listActiveAppointmentsForCalendarEvent(
 	return appointments;
 }
 
-export interface MarkSyncedFields {
-	external_event_id?: string | null;
-	external_calendar_id?: string | null;
-	video_chat?: string | null;
-}
-
 export async function markSynced(
 	db: Kysely<Database>,
-	id: string,
+	appointmentId: string,
 	revision: number,
-	fields: MarkSyncedFields = {}
+	reference: { calendarId: string | null; eventId: string | null }
 ): Promise<void> {
 	await db
 		.updateTable('appointments')
-		.set({ calendar_synced_revision: revision, ...fields })
-		.where('id', '=', id)
+		.set({ calendar_synced_revision: revision })
+		.where('id', '=', appointmentId)
+		.where('calendar_revision', '=', revision)
+		.where('status', '!=', 'purged')
+		.where('external_calendar_id', 'is', reference.calendarId)
+		.where('external_event_id', 'is', reference.eventId)
+		.execute();
+}
+
+export async function recordCalendarEventDeletion(
+	db: Kysely<Database>,
+	appointmentId: string,
+	revision: number,
+	reference: CalendarEventReference
+): Promise<void> {
+	await db
+		.updateTable('appointments')
+		.set({
+			external_calendar_id: null,
+			external_event_id: null,
+			calendar_synced_revision: revision
+		})
+		.where('id', '=', appointmentId)
+		.where('calendar_revision', '=', revision)
+		.where('status', '!=', 'purged')
+		.where('external_calendar_id', '=', reference.calendarId)
+		.where('external_event_id', '=', reference.eventId)
 		.execute();
 }

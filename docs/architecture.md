@@ -64,7 +64,8 @@ clients: they neither start a worker nor persist schedules.
 - **Idempotency keys** dedupe enqueues for 24 hours, including matching terminal history;
   they do not automatically rerun old jobs. Appointment emails key on
   `appointmentId:kind:ics_sequence`; email-free reconciliation uses
-  `appointmentId:sync:ics_sequence`. Purge keys use sorted chain IDs. Calendar sync
+  `appointmentId:sync:calendar_revision`. Generation reminders use
+  `generate-video-chat:appointmentId:calendar_revision`. Purge keys use sorted chain IDs. Calendar sync
   uses a random key per call, and the producer awaits enqueueing only.
 - **Native maintenance.** Worker `start()` persists declared UTC schedules, preserving
   pause state: refresh every five minutes, pending expiry hourly, repair every ten
@@ -79,6 +80,17 @@ clients: they neither start a worker nor persist schedules.
   slow active maintenance blocks appointment jobs and probes. Expected provider
   failures are recorded for later passes; unexpected local errors escape to bounded
   native retries. A completed pass does not mean every provider succeeded.
+
+Booking email is independent of video generation. Reconciliation checkpoints its
+current email envelopes, then enqueues background generation without awaiting that
+workflow. A newly attached link increments ICS/calendar revisions and enqueues a
+`video-chat-added` notification through the same email pipeline. Consequently a
+booking without a saved link normally receives a follow-up even if generation is
+fast; delivery retries can reorder physical arrival. Calendar publishing does not
+create, copy, clear or adopt native conferencing. Provider video adapters own those
+operations, with current-choice checks in the worker. See the
+[worker appointment jobs](../apps/worker/README.md#appointment-jobs) for retry and
+failure limits.
 
 Email action logs describe attempts; engine history determines terminal outcomes.
 Failed purges retain hidden local personal data and require explicit operator review.

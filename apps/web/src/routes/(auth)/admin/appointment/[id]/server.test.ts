@@ -1,100 +1,22 @@
 import { describe, expect, test, vi, beforeEach } from 'vitest';
 import { actions, load } from './+page.server';
-import { validConfig } from '$lib/server/__fixtures__/valid-config';
-import type { Appointment } from '@when/db';
+import { requestVideoChat } from '$lib/server/appointment/request-video-chat';
 import type { RequestEvent } from './$types';
 
-const mockDb = {
-	selectFrom: vi.fn(),
-	executeTakeFirst: vi.fn()
-};
+vi.mock('$lib/server/appointment/context', () => ({ appointmentContext: () => context }));
+vi.mock('$lib/server/appointment/request-video-chat', () => ({ requestVideoChat: vi.fn() }));
 
-const mockAppt: Appointment = {
-	id: 'appt-1',
-	event_type_id: '30-min-chat',
-	start_time: '2099-05-01T15:00:00Z',
-	end_time: '2099-05-01T15:30:00Z',
-	guest_name: 'Booker',
-	guest_email: 'booker@example.com',
-	guest_answers: null,
-	guest_timezone: null,
-	location: null,
-	note: null,
-	video_chat: null,
-	video_chat_request: null,
-	status: 'confirmed',
-	origin_id: 'appt-1',
-	cancel_token: 'tok-abc',
-	action_log: null,
-	external_event_id: null,
-	external_calendar_id: null,
-	calendar_revision: 0,
-	calendar_synced_revision: null,
-	has_possible_conflict: 0,
-	ics_sequence: 0,
-	meeting_snapshot: JSON.stringify(validConfig.meetings['30-min-chat']),
-	created_at: '',
-	updated_at: ''
-};
-
-let currentAppt: Appointment | null = mockAppt;
-let currentConfig = {
-	...validConfig,
-	meetings: {
-		...validConfig.meetings,
-		'30-min-chat': {
-			...validConfig.meetings['30-min-chat'],
-			video_chat: { provider: 'google-service' }
-		}
-	}
-};
-
-const mockRunWorkflow = vi.fn();
-
-vi.mock('$lib/server/state', () => ({
-	getDb: () => mockDb,
-	getConfig: () => currentConfig
-}));
-
-vi.mock('@when/db', async (importOriginal) => {
-	const actual = await importOriginal<typeof import('@when/db')>();
-	return {
-		...actual,
-		findAppointment: vi.fn(async (_db, id) =>
-			currentAppt && currentAppt.id === id ? currentAppt : null
-		)
-	};
-});
-
-vi.mock('@when/jobs', async (importOriginal) => {
-	const actual = await importOriginal<typeof import('@when/jobs')>();
-	return {
-		...actual,
-		getOpenWorkflow: () => ({
-			runWorkflow: mockRunWorkflow
-		})
-	};
-});
+const context = { db: {}, cfg: {}, clock: {} };
+const event = { params: { id: 'appt-1' } } as unknown as RequestEvent;
 
 beforeEach(() => {
-	vi.clearAllMocks();
-	currentAppt = { ...mockAppt };
-	currentConfig = {
-		...validConfig,
-		meetings: {
-			...validConfig.meetings,
-			'30-min-chat': {
-				...validConfig.meetings['30-min-chat'],
-				video_chat: { provider: 'google-service' }
-			}
-		}
-	};
+	vi.mocked(requestVideoChat).mockReset();
 });
 
 describe('admin appointment load', () => {
 	test('redirects to public appointment view', async () => {
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		await expect(load({ params: { id: 'appt-1' } } as any)).rejects.toMatchObject({
+		const loading = load({ params: { id: 'appt-1' } } as Parameters<typeof load>[0]);
+		await expect(loading).rejects.toMatchObject({
 			status: 303,
 			location: '/appointment/appt-1'
 		});
@@ -102,63 +24,51 @@ describe('admin appointment load', () => {
 });
 
 describe('generateVideoChat action', () => {
-	test('returns 404 when appointment does not exist', async () => {
-		currentAppt = null;
-		const res = await actions.generateVideoChat({
-			params: { id: 'missing' }
-		} as unknown as RequestEvent);
-		expect(res).toEqual({ status: 404, data: { error: 'Appointment not found.' } });
+	test.each([
+		['not_found', 404, 'Appointment not found.'],
+		['not_configured', 400, 'This meeting type does not have video chat configured.'],
+		['gated', 400, 'This appointment cannot generate a video chat link.']
+	] as const)('maps %s from the fresh domain decision', async (reason, status, error) => {
+		vi.mocked(requestVideoChat).mockResolvedValue({ ok: false, reason });
+
+		const result = await actions.generateVideoChat(event);
+
+		expect(requestVideoChat).toHaveBeenCalledWith(context, { appointmentId: 'appt-1' });
+		expect(result).toEqual({ status, data: { error } });
 	});
 
-	test('returns 400 when meeting does not have video chat configured', async () => {
-		currentConfig = {
-			...validConfig,
-			meetings: {
-				...validConfig.meetings,
-				'30-min-chat': {
-					...validConfig.meetings['30-min-chat'],
-					video_chat: undefined as any // eslint-disable-line @typescript-eslint/no-explicit-any
-				}
-			}
-		};
+	test('acknowledges submission without claiming a link was generated', async () => {
+		vi.mocked(requestVideoChat).mockResolvedValue({ ok: true, outcome: 'requested' });
 
-		const res = await actions.generateVideoChat({
-			params: { id: 'appt-1' }
-		} as unknown as RequestEvent);
-		expect(res).toEqual({
-			status: 400,
-			data: { error: 'This meeting type does not have video chat configured.' }
-		});
+		const result = await actions.generateVideoChat(event);
+
+		expect(result).toEqual({ success: 'video_chat_requested' });
 	});
 
-	test('triggers workflow and returns generated url on success', async () => {
-		mockRunWorkflow.mockResolvedValue({
-			result: vi.fn().mockResolvedValue({ url: 'https://meet.google.com/abc-def-ghi' })
-		});
+	test('labels an existing link as a no-op', async () => {
+		vi.mocked(requestVideoChat).mockResolvedValue({ ok: true, outcome: 'already_linked' });
 
-		const res = await actions.generateVideoChat({
-			params: { id: 'appt-1' }
-		} as unknown as RequestEvent);
+		const result = await actions.generateVideoChat(event);
 
-		expect(mockRunWorkflow).toHaveBeenCalled();
-		expect(res).toEqual({
-			success: 'video_chat_generated',
-			url: 'https://meet.google.com/abc-def-ghi'
-		});
+		expect(result).toEqual({ success: 'video_chat_already_linked' });
 	});
 
-	test('returns 500 when workflow fails', async () => {
-		mockRunWorkflow.mockResolvedValue({
-			result: vi.fn().mockRejectedValue(new Error('Calendar sync timeout'))
+	test('reports a saved choice and unconfirmed submission on enqueue failure', async () => {
+		vi.mocked(requestVideoChat).mockResolvedValue({
+			ok: false,
+			reason: 'enqueue_failed',
+			choiceSaved: true
 		});
 
-		const res = await actions.generateVideoChat({
-			params: { id: 'appt-1' }
-		} as unknown as RequestEvent);
+		const result = await actions.generateVideoChat(event);
 
-		expect(res).toEqual({
+		expect(result).toEqual({
 			status: 500,
-			data: { error: 'Failed to generate video chat link: Calendar sync timeout' }
+			data: {
+				error:
+					'Your video chat choice was saved, but submission could not be confirmed. Please try again.',
+				choiceSaved: true
+			}
 		});
 	});
 });

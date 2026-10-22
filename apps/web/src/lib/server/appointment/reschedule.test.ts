@@ -251,10 +251,7 @@ async function fetchRow(db: Awaited<ReturnType<typeof makeDb>>, id: string) {
 describe('rescheduleAppointment', () => {
 	beforeEach(() => {
 		vi.mocked(enqueueAppointmentReconciliation).mockReset();
-		vi.mocked(enqueueAppointmentReconciliation).mockImplementation(async (db, id) => {
-			const row = await fetchRow(db, id);
-			return row;
-		});
+		vi.mocked(enqueueAppointmentReconciliation).mockResolvedValue(undefined);
 	});
 
 	test('happy path: creates a linked new row, ends the old one, queues a calendar sync', async () => {
@@ -290,11 +287,7 @@ describe('rescheduleAppointment', () => {
 				const old = await fetchRow(db, 'r1');
 				expect(old.status).toBe('rescheduled');
 
-				expect(enqueueAppointmentReconciliation).toHaveBeenCalledWith(
-					expect.anything(),
-					next.id,
-					'rescheduled-by-guest'
-				);
+				expect(enqueueAppointmentReconciliation).toHaveBeenCalledWith(next, 'rescheduled-by-guest');
 			}
 		} finally {
 			await db.destroy();
@@ -413,8 +406,7 @@ describe('rescheduleAppointment', () => {
 				expect(result.appointment.external_event_id).toBe('r5');
 				expect(result.appointment.external_calendar_id).toBe('work');
 				expect(enqueueAppointmentReconciliation).toHaveBeenCalledWith(
-					expect.anything(),
-					result.appointment.id,
+					result.appointment,
 					'rescheduled-by-host'
 				);
 			}
@@ -760,11 +752,7 @@ describe('rescheduleAppointment', () => {
 					updated_at: old.updated_at
 				});
 				expect(enqueueAppointmentReconciliation).toHaveBeenCalledTimes(1);
-				expect(enqueueAppointmentReconciliation).toHaveBeenCalledWith(
-					db,
-					next.id,
-					'rescheduled-by-host'
-				);
+				expect(enqueueAppointmentReconciliation).toHaveBeenCalledWith(next, 'rescheduled-by-host');
 			} finally {
 				await db.destroy();
 			}
@@ -997,11 +985,7 @@ describe('rescheduleAppointment', () => {
 			});
 			expect(original.action_log).toBe(next.action_log);
 			expect(enqueueAppointmentReconciliation).toHaveBeenCalledTimes(1);
-			expect(enqueueAppointmentReconciliation).toHaveBeenCalledWith(
-				db,
-				next.id,
-				'rescheduled-by-host'
-			);
+			expect(enqueueAppointmentReconciliation).toHaveBeenCalledWith(next, 'rescheduled-by-host');
 		} finally {
 			await db.destroy();
 		}

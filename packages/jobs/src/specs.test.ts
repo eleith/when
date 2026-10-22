@@ -1,7 +1,7 @@
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { expect, test } from 'vitest';
+import { expect, expectTypeOf, test } from 'vitest';
 import { initOpenWorkflow, closeOpenWorkflow } from './openworkflow.js';
 import {
 	reconcileAppointment,
@@ -12,7 +12,11 @@ import {
 	testProvider,
 	listProviderCalendars,
 	testCalendar,
-	generateVideoChat
+	generateVideoChat,
+	type AppointmentEmailKind,
+	type GenerateVideoChatInput,
+	type GenerateVideoChatResult,
+	type ReconcileAppointmentInput
 } from './specs.js';
 
 test('reconcileAppointment carries the shared workflow name', () => {
@@ -87,4 +91,16 @@ test('a human is waiting on a probe or on-demand action, so it is not retried', 
 
 test('generateVideoChat carries the shared workflow name', () => {
 	expect(generateVideoChat.name).toBe('generate-video-chat');
+});
+
+test('video-link generation keeps its narrow input and nullable result contract', () => {
+	expectTypeOf<GenerateVideoChatInput>().toEqualTypeOf<{ appointmentId: string }>();
+	expectTypeOf<GenerateVideoChatResult>().toEqualTypeOf<{ url: string | null }>();
+});
+
+test('video-chat-added is an appointment notification through reconciliation', () => {
+	expectTypeOf<'video-chat-added'>().toExtend<AppointmentEmailKind>();
+	expectTypeOf<ReconcileAppointmentInput['emailKind']>().toEqualTypeOf<
+		AppointmentEmailKind | undefined
+	>();
 });

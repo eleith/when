@@ -1,11 +1,13 @@
 import { expect, test } from 'vitest';
-import { sql } from 'kysely';
+import { NoResultError, sql } from 'kysely';
 import { listOutOfSyncAppointments } from './calendar-busy.js';
 import { openDb } from './index.js';
 import { runMigrations } from './migrate.js';
 import {
 	expireStalePending,
 	findAppointment,
+	getAppointment,
+	recordVideoChatGenerationRequest,
 	findChainTip,
 	listAppointmentsPage,
 	countAppointments,
@@ -74,6 +76,105 @@ test('findAppointment returns the row by id, or undefined when missing', async (
 		expect(found?.status).toBe('confirmed');
 
 		expect(await findAppointment(db, 'ghost')).toBeUndefined();
+	} finally {
+		await db.destroy();
+	}
+});
+
+test('getAppointment returns the required row by id', async () => {
+	const db = await makeDb();
+	try {
+		await insert(db, 'a1', 'confirmed', '2099-01-01T15:00:00Z');
+		await insert(db, 'a2', 'pending', '2099-01-02T15:00:00Z');
+
+		const appointment = await getAppointment(db, 'a1');
+		const found = await findAppointment(db, 'a1');
+
+		expect(appointment.id).toBe('a1');
+		expect(appointment).toEqual(found);
+	} finally {
+		await db.destroy();
+	}
+});
+
+test('getAppointment rejects missing rows with Kysely NoResultError', async () => {
+	const db = await makeDb();
+	try {
+		const missing = getAppointment(db, 'ghost');
+		await expect(missing).rejects.toBeInstanceOf(NoResultError);
+	} finally {
+		await db.destroy();
+	}
+});
+
+test.each([null, 'suppress'] as const)(
+	'recordVideoChatGenerationRequest changes %s once without editing content',
+	async (choice) => {
+		const db = await makeDb();
+		try {
+			await insert(db, 'a', 'confirmed', '2099-01-01T15:00:00Z');
+			await db
+				.updateTable('appointments')
+				.set({
+					video_chat_request: choice,
+					calendar_revision: 4,
+					ics_sequence: 2,
+					note: 'Keep this note',
+					action_log: '[]',
+					updated_at: '2000-01-01 00:00:00'
+				})
+				.where('id', '=', 'a')
+				.execute();
+			const before = await getAppointment(db, 'a');
+
+			const revision = await recordVideoChatGenerationRequest(db, 'a');
+
+			const after = await getAppointment(db, 'a');
+			expect(revision).toBe(5);
+			expect(after).toEqual({
+				...before,
+				video_chat_request: 'generate',
+				calendar_revision: 5,
+				updated_at: after.updated_at
+			});
+			expect(after.updated_at).not.toBe(before.updated_at);
+		} finally {
+			await db.destroy();
+		}
+	}
+);
+
+test('recordVideoChatGenerationRequest preserves the entire row when generation is already requested', async () => {
+	const db = await makeDb();
+	try {
+		await insert(db, 'a', 'confirmed', '2099-01-01T15:00:00Z');
+		await db
+			.updateTable('appointments')
+			.set({
+				video_chat_request: 'generate',
+				calendar_revision: 4,
+				updated_at: '2000-01-01 00:00:00'
+			})
+			.execute();
+		const before = await getAppointment(db, 'a');
+
+		const first = await recordVideoChatGenerationRequest(db, 'a');
+		const repeated = await recordVideoChatGenerationRequest(db, 'a');
+
+		const after = await getAppointment(db, 'a');
+		expect(first).toBe(4);
+		expect(repeated).toBe(first);
+		expect(after).toEqual(before);
+	} finally {
+		await db.destroy();
+	}
+});
+
+test('recordVideoChatGenerationRequest rejects a missing appointment', async () => {
+	const db = await makeDb();
+	try {
+		const request = recordVideoChatGenerationRequest(db, 'missing');
+		await expect(request).rejects.toBeInstanceOf(NoResultError);
 	} finally {
 		await db.destroy();
 	}

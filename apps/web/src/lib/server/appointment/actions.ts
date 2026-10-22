@@ -66,7 +66,7 @@ function resolveHostDecision(
 	return ALLOWED;
 }
 
-function resolveGenerateVideoChat(
+export function resolveGenerateVideoChat(
 	row: Pick<Appointment, 'status'>,
 	viewer: Viewer,
 	videoChat: Meeting['video_chat'] | undefined

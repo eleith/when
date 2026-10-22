@@ -5,13 +5,8 @@ import type { BusyEvent } from '../types.js';
 import type { Appointment } from '@when/db';
 import type { FetchBusyOptions } from './caldav.js';
 import type { CalendarAdapter, PushOptions, PushResult, DeleteResult } from '../adapter.js';
-import {
-	parseGuestAnswers,
-	type WhenConfiguration,
-	type GoogleCalendar,
-	type GoogleProvider
-} from '@when/config';
-import { shouldAttachVideoChat } from '@when/video-chat';
+import type { WhenConfiguration, GoogleCalendar, GoogleProvider } from '@when/config';
+import { patchGoogleEvent } from './google-event.js';
 import type { ExpandWindow } from '../expand.js';
 
 export interface GoogleConfig {
@@ -161,7 +156,6 @@ export interface GooglePushOptions {
 	cancelUrl: string;
 	eventTypeName: string;
 	hostName: string;
-	createMeet?: boolean;
 }
 
 /**
@@ -171,91 +165,40 @@ export async function putGoogleEvent(
 	cfg: GoogleConfig,
 	appointment: Appointment,
 	opts: GooglePushOptions
-): Promise<{ externalEventId: string; videoChatUrl?: string }> {
-	const token = await getGoogleAccessToken(cfg);
-	const calId = encodeURIComponent(cfg.google_calendar_id);
-
-	// Existing events are updated via PUT with the stored external_event_id;
-	// new events are created via POST and the returned event ID is stored.
-	const isUpdate = !!appointment.external_event_id;
-	const eventId = isUpdate ? appointment.external_event_id : '';
-
-	const url = isUpdate
-		? `https://www.googleapis.com/calendar/v3/calendars/${calId}/events/${eventId}?conferenceDataVersion=1&sendUpdates=none`
-		: `https://www.googleapis.com/calendar/v3/calendars/${calId}/events?conferenceDataVersion=1&sendUpdates=none`;
-
-	const method = isUpdate ? 'PUT' : 'POST';
-
+): Promise<{ externalEventId: string }> {
 	const guest = guestContact(appointment);
-	let conferenceData: Record<string, unknown> | undefined = undefined;
-	if (appointment.video_chat && appointment.video_chat.startsWith('http')) {
-		conferenceData = {
-			entryPoints: [
-				{
-					entryPointType: 'video',
-					uri: appointment.video_chat
-				}
-			]
-		};
-	} else if (opts.createMeet) {
-		conferenceData = {
-			createRequest: {
-				requestId: appointment.id,
-				conferenceSolutionKey: {
-					type: 'hangoutsMeet'
-				}
-			}
-		};
-	} else if (isUpdate) {
-		conferenceData = {};
-	}
 
 	const payload = {
 		summary: `${opts.eventTypeName} with ${appointment.guest_name}`,
 		description: describeAppointment(appointment, opts.cancelUrl),
-		location: appointment.location || undefined,
+		location: appointment.location || (appointment.external_event_id ? null : undefined),
 		start: { dateTime: appointment.start_time },
 		end: { dateTime: appointment.end_time },
-		attendees: guest ? [{ email: guest.email, displayName: guest.name }] : [],
-		conferenceData
+		attendees: guest ? [{ email: guest.email, displayName: guest.name }] : []
 	};
 
+	if (appointment.external_event_id) {
+		await patchGoogleEvent(cfg, appointment.external_event_id, payload, { sendUpdates: 'none' });
+		return { externalEventId: appointment.external_event_id };
+	}
+
+	const token = await getGoogleAccessToken(cfg);
+	const calId = encodeURIComponent(cfg.google_calendar_id);
+	const url = `https://www.googleapis.com/calendar/v3/calendars/${calId}/events?sendUpdates=none`;
 	const res = await fetch(url, {
-		method,
+		method: 'POST',
 		headers: {
 			Authorization: `Bearer ${token}`,
 			'Content-Type': 'application/json'
 		},
 		body: JSON.stringify(payload)
 	});
-
 	if (!res.ok) {
 		const text = await res.text();
-		throw new Error(`Google Calendar ${method} failed: ${res.status} ${text}`);
+		throw new Error(`Google Calendar POST failed: ${res.status} ${text}`);
 	}
-
-	interface GoogleEventResponse {
-		id: string;
-		conferenceData?: {
-			entryPoints?: {
-				entryPointType: string;
-				uri?: string;
-			}[];
-		};
-	}
-
-	const data = (await res.json()) as GoogleEventResponse;
-	let videoChatUrl: string | undefined;
-	if (data.conferenceData?.entryPoints) {
-		const meetEntryPoint = data.conferenceData.entryPoints.find(
-			(ep) => ep.entryPointType === 'video'
-		);
-		if (meetEntryPoint?.uri) {
-			videoChatUrl = meetEntryPoint.uri;
-		}
-	}
-
-	return { externalEventId: data.id, videoChatUrl };
+	const data = (await res.json()) as { id: string };
+	return { externalEventId: data.id };
 }
 
 /**
@@ -264,7 +207,7 @@ export async function putGoogleEvent(
 export async function deleteGoogleEvent(cfg: GoogleConfig, externalEventId: string): Promise<void> {
 	const token = await getGoogleAccessToken(cfg);
 	const calId = encodeURIComponent(cfg.google_calendar_id);
-	const url = `https://www.googleapis.com/calendar/v3/calendars/${calId}/events/${externalEventId}?sendUpdates=none`;
+	const url = `https://www.googleapis.com/calendar/v3/calendars/${calId}/events/${encodeURIComponent(externalEventId)}?sendUpdates=none`;
 
 	const res = await fetch(url, {
 		method: 'DELETE',
@@ -311,28 +254,15 @@ export class GoogleAdapter implements CalendarAdapter {
 		eventTypeName: string,
 		opts: PushOptions
 	): Promise<PushResult> {
-		const meeting = cfg.meetings[appointment.event_type_id];
-		const videoChatProv = meeting?.video_chat
-			? cfg.providers[meeting.video_chat.provider]
-			: undefined;
-		const isGoogleMeet = videoChatProv?.type === 'google';
-		const answers = parseGuestAnswers(appointment.guest_answers);
-		const isInitialBooking = !appointment.external_event_id && !appointment.video_chat;
-		const shouldAttach =
-			opts.attachVideoChat ??
-			(isInitialBooking && meeting ? shouldAttachVideoChat(meeting, cfg, answers) : false);
-
 		const result = await putGoogleEvent(this.googleCfg, appointment, {
 			cancelUrl: opts.cancelUrl,
 			eventTypeName,
-			hostName: cfg.user.name,
-			createMeet: isGoogleMeet && shouldAttach
+			hostName: cfg.user.name
 		});
 		return {
 			ok: true,
 			externalEventId: result.externalEventId,
-			externalCalendarId: this.name,
-			videoChatUrl: result.videoChatUrl
+			externalCalendarId: this.name
 		};
 	}
 
@@ -386,7 +316,8 @@ export async function revokeGoogleToken(refreshToken: string): Promise<void> {
 		body: new URLSearchParams({ token: refreshToken })
 	});
 	if (!res.ok) {
-		throw new Error(`Google token revoke failed: ${res.status} ${await res.text()}`);
+		const text = await res.text();
+		throw new Error(`Google token revoke failed: ${res.status} ${text}`);
 	}
 }
 
@@ -408,9 +339,11 @@ export async function exchangeGoogleAuthCode(
 		})
 	});
 	if (!res.ok) {
-		throw new Error(`Google auth-code exchange failed: ${res.status} ${await res.text()}`);
+		const text = await res.text();
+		throw new Error(`Google auth-code exchange failed: ${res.status} ${text}`);
 	}
-	return (await res.json()) as GoogleTokens;
+	const data = (await res.json()) as GoogleTokens;
+	return data;
 }
 
 export async function listGoogleCalendars(accessToken: string): Promise<GoogleCalendarItem[]> {
@@ -418,7 +351,8 @@ export async function listGoogleCalendars(accessToken: string): Promise<GoogleCa
 		headers: { Authorization: `Bearer ${accessToken}` }
 	});
 	if (!res.ok) {
-		throw new Error(`Google calendar list failed: ${res.status} ${await res.text()}`);
+		const text = await res.text();
+		throw new Error(`Google calendar list failed: ${res.status} ${text}`);
 	}
 	const data = (await res.json()) as { items?: GoogleCalendarItem[] };
 	return data.items ?? [];

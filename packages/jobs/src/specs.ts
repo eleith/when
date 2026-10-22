@@ -17,7 +17,8 @@ export type AppointmentEmailKind =
 	| 'rescheduled-by-guest'
 	| 'rescheduled-by-host'
 	| 'declined'
-	| 'edited-by-host';
+	| 'edited-by-host'
+	| 'video-chat-added';
 
 /**
  * Self-contained input for a reconcile-appointment run.
@@ -195,7 +196,7 @@ export interface GenerateVideoChatInput {
 }
 
 export interface GenerateVideoChatResult {
-	url: string;
+	url: string | null;
 }
 
 export const generateVideoChat: WorkflowSpec<GenerateVideoChatInput, GenerateVideoChatResult> =

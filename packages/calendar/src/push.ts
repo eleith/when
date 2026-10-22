@@ -26,7 +26,8 @@ export async function pushAppointment(
 
 	try {
 		const adapter = getCalendarAdapter(cal);
-		return await adapter.pushAppointment(cfg, appointment, eventTypeName, opts);
+		const result = await adapter.pushAppointment(cfg, appointment, eventTypeName, opts);
+		return result;
 	} catch (err) {
 		logger.error(
 			{ err, calendarId: cal.name, appointmentId: appointment.id },
@@ -50,7 +51,8 @@ export async function deleteAppointmentFromCalendar(
 
 	try {
 		const adapter = getCalendarAdapter(cal);
-		return await adapter.deleteAppointment(externalEventId);
+		const result = await adapter.deleteAppointment(externalEventId);
+		return result;
 	} catch (err) {
 		logger.error({ err, calendarId: cal.name, externalEventId }, `${cal.type} delete failed`);
 		return { ok: false, reason: String(err) };

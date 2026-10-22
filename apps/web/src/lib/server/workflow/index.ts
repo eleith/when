@@ -1,40 +1,43 @@
-import type { Kysely } from 'kysely';
 import {
 	getOpenWorkflow,
+	generateVideoChat,
 	reconcileAppointment,
 	syncCalendars,
 	purgeAppointment,
 	type AppointmentEmailKind,
 	type PurgeAppointmentRow
 } from '@when/jobs';
-import type { Appointment, Database } from '@when/db';
+import type { Appointment } from '@when/db';
 
-// Enqueues the targeted reconciliation workflow for a specific appointment.
-// Coordinates video chat, calendar sync, and notification emails in the correct order.
+// Use the mutation's committed row: a later read can dedupe distinct edits and lose cleanup URLs.
 export async function enqueueAppointmentReconciliation(
-	db: Kysely<Database>,
-	appointmentId: string,
+	appointment: Appointment,
 	emailKind?: AppointmentEmailKind,
 	cleanupVideoChatUrl?: string | null
-): Promise<Appointment> {
-	const appointment = await db
-		.selectFrom('appointments')
-		.selectAll()
-		.where('id', '=', appointmentId)
-		.executeTakeFirstOrThrow();
+): Promise<void> {
+	const appointmentId = appointment.id;
 
 	await getOpenWorkflow().runWorkflow(
 		reconcileAppointment,
 		{ appointmentId, emailKind, cleanupVideoChatUrl },
-		// Bumping by ics_sequence ensures reschedules get distinct runs and aren't swallowed by queue dedup.
+		// Email follows guest-visible edits; email-free sync also follows standing video choices.
 		{
 			idempotencyKey: emailKind
 				? `${appointmentId}:${emailKind}:${appointment.ics_sequence}`
-				: `${appointmentId}:sync:${appointment.ics_sequence}`
+				: `${appointmentId}:sync:${appointment.calendar_revision}`
 		}
 	);
+}
 
-	return appointment as Appointment;
+export async function enqueueVideoChatGeneration(
+	appointmentId: string,
+	calendarRevision: number
+): Promise<void> {
+	await getOpenWorkflow().runWorkflow(
+		generateVideoChat,
+		{ appointmentId },
+		{ idempotencyKey: `generate-video-chat:${appointmentId}:${calendarRevision}` }
+	);
 }
 
 // Wake the worker's calendar sync scanner.

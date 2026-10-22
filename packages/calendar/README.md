@@ -16,6 +16,11 @@ Web does import this package, but only the local, network-free pieces — `build
 keeps the adapter/provider code out of the web bundle because web never
 references it.
 
+Calendar publishing writes appointment content only. Selected video URIs appear in
+appointment descriptions (including non-HTTP URIs); publishing does not create,
+copy, clear, or adopt conferences. Google updates use PATCH with an encoded event
+ID; creates use POST. Neither sends `conferenceData` or applies video attach policy.
+
 ## Google event I/O
 
 `getGoogleEvent` reads a stored event. `patchGoogleEvent` sends supplied fields and

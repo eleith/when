@@ -90,9 +90,9 @@ export async function rescheduleAppointment(
 	if (!result.ok) return result;
 
 	const kind = input.initiator === 'host' ? 'rescheduled-by-host' : 'rescheduled-by-guest';
-	const appointment = await enqueueAppointmentReconciliation(ctx.db, result.appointment.id, kind);
+	await enqueueAppointmentReconciliation(result.appointment, kind);
 
-	return { ok: true, appointment };
+	return { ok: true, appointment: result.appointment };
 }
 
 function rescheduleDetails(

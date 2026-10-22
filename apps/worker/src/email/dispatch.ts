@@ -9,6 +9,7 @@ import { appointmentPending } from './builders/appointment-pending.js';
 import { appointmentRescheduledByGuest } from './builders/appointment-rescheduled-by-guest.js';
 import { appointmentRescheduledByHost } from './builders/appointment-rescheduled-by-host.js';
 import { appointmentEditedByHost } from './builders/appointment-edited-by-host.js';
+import { appointmentVideoChatAdded } from './builders/appointment-video-chat-added.js';
 import type { AppointmentEmailMessage, Envelope, PreparedAppointmentEmail } from './recipients.js';
 import { renderMessage } from './render.js';
 import { emailTheme } from './theme.js';
@@ -40,6 +41,8 @@ function build(i: AppointmentEmailInput, kind: AppointmentEmailKind): Appointmen
 			return appointmentDeclined(i);
 		case 'edited-by-host':
 			return appointmentEditedByHost(i);
+		case 'video-chat-added':
+			return appointmentVideoChatAdded(i);
 		default: {
 			const unhandled: never = kind;
 			throw new Error(`unhandled appointment email kind: ${String(unhandled)}`);

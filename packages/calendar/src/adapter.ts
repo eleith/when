@@ -7,7 +7,6 @@ import type { BusyEvent } from './types.js';
 
 interface PushOptions {
 	cancelUrl: string;
-	attachVideoChat?: boolean;
 }
 
 interface PushResult {
@@ -15,7 +14,6 @@ interface PushResult {
 	reason?: string;
 	externalEventId?: string;
 	externalCalendarId?: string;
-	videoChatUrl?: string;
 }
 
 interface DeleteResult {

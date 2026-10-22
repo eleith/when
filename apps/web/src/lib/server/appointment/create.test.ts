@@ -31,9 +31,7 @@ const input = {
 describe('createAppointment', () => {
 	beforeEach(() => {
 		vi.mocked(enqueueAppointmentReconciliation).mockReset();
-		vi.mocked(enqueueAppointmentReconciliation).mockImplementation(async (db, id) =>
-			db.selectFrom('appointments').selectAll().where('id', '=', id).executeTakeFirstOrThrow()
-		);
+		vi.mocked(enqueueAppointmentReconciliation).mockResolvedValue(undefined);
 	});
 
 	test('auto flow inserts a confirmed appointment, queued for reconciliation', async () => {
@@ -54,7 +52,10 @@ describe('createAppointment', () => {
 					.executeTakeFirstOrThrow();
 				expect(persisted.status).toBe('confirmed');
 				expect(enqueueAppointmentReconciliation).toHaveBeenCalledTimes(1);
-				expect(vi.mocked(enqueueAppointmentReconciliation).mock.calls[0][2]).toBe('confirmed');
+				expect(enqueueAppointmentReconciliation).toHaveBeenCalledWith(
+					result.appointment,
+					'confirmed'
+				);
 			}
 		} finally {
 			await db.destroy();
@@ -78,8 +79,7 @@ describe('createAppointment', () => {
 			if (result.ok) {
 				expect(result.appointment.status).toBe('pending');
 				expect(enqueueAppointmentReconciliation).toHaveBeenCalledWith(
-					expect.anything(),
-					expect.any(String),
+					result.appointment,
 					'pending'
 				);
 			}
@@ -105,8 +105,7 @@ describe('createAppointment', () => {
 			if (result.ok) {
 				expect(result.appointment.status).toBe('confirmed');
 				expect(enqueueAppointmentReconciliation).toHaveBeenCalledWith(
-					expect.anything(),
-					expect.any(String),
+					result.appointment,
 					'confirmed'
 				);
 			}

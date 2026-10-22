@@ -1,234 +1,280 @@
-import { describe, expect, test, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { openDb, runMigrations, parseActionLog } from '@when/db';
-import type { Database } from '@when/db';
-import type { Kysely } from 'kysely';
-import type { ReconcileAppointmentInput } from '@when/jobs';
+import { generateVideoChat } from '@when/jobs';
 import { setWorkerContext } from '../services/context.js';
 import { createLogger } from '../services/logger.js';
-import type { Mailer } from '../email/smtp.js';
-import { sampleInput } from '../email/__fixtures__/appointment.js';
+import { sampleAppointment, sampleConfig } from '../email/__fixtures__/appointment.js';
 import { runReconcileAppointment } from './reconcile-appointment.js';
 import {
 	deliverAppointmentEmail,
-	runDeliverAppointmentEmail,
-	type DeliverAppointmentEmailInput,
-	type DeliverAppointmentEmailResult
+	runDeliverAppointmentEmail
 } from './deliver-appointment-email.js';
-
 import type { WhenConfiguration } from '@when/config';
 
-const input: ReconcileAppointmentInput = {
-	appointmentId: 'appt-1',
-	emailKind: 'confirmed'
-};
+const queued = vi.hoisted(() => vi.fn());
+vi.mock('@when/jobs', async (importOriginal) => {
+	const actual = await importOriginal<typeof import('@when/jobs')>();
+	return { ...actual, getOpenWorkflow: () => ({ runWorkflow: queued }) };
+});
 
-const testConfig = {
-	...sampleInput.cfg,
+const config: WhenConfiguration = {
+	...sampleConfig,
 	providers: {
-		'nc-service': {
+		cloud: {
 			type: 'nextcloud',
 			url: 'https://cloud.example.com',
 			username: 'user',
-			password: 'pwd',
+			password: 'test',
 			calendars: {}
 		}
 	},
 	meetings: {
 		'30-min': {
-			title: '30 minute meeting',
-			duration_minutes: 30,
-			require_approval: false,
-			booking_calendar: 'cal',
-			schedule: 'standard',
-			video_chat: { provider: 'nc-service', attach: { auto: true } }
+			...sampleConfig.meetings['30-min'],
+			booking_calendar: 'unconfigured',
+			video_chat: { provider: 'cloud', attach: { auto: true } }
 		}
 	}
-} as unknown as WhenConfiguration;
+};
 
-function makeStep() {
-	const names: string[] = [];
-	const childRuns: Promise<DeliverAppointmentEmailResult>[] = [];
-	const step = {
-		run: async <T>(config: { name: string }, fn: () => Promise<T> | T): Promise<T> => {
-			names.push(config.name);
-			return fn();
-		},
-		runWorkflow(
-			spec: typeof deliverAppointmentEmail,
-			childInput: DeliverAppointmentEmailInput,
-			config: { name: string }
-		) {
-			expect(spec).toBe(deliverAppointmentEmail);
-			names.push(config.name);
-			const child = runDeliverAppointmentEmail(childInput, {
-				run: async <T>(_config: { name: string }, fn: () => Promise<T> | T): Promise<T> => fn()
-			});
-			childRuns.push(child);
-			return child;
-		}
-	};
-	return { step, names, childRuns };
-}
-
-function makeMailer() {
-	const send = vi.fn();
-	const mailer: Mailer = { send };
-	return { mailer, send };
-}
-
-function recordingFetch(status = 204) {
-	const calls: { method: string; url: string }[] = [];
-	vi.spyOn(globalThis, 'fetch').mockImplementation(
-		async (url: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) => {
-			calls.push({ method: (init?.method as string) ?? 'GET', url: String(url) });
-			if (String(url).includes('/ocs/v2.php/apps/spreed/api/v4/room')) {
-				return new Response(
-					JSON.stringify({ ocs: { data: { token: 'call-tok', name: 'room' } } }),
-					{ status: 201, headers: { 'content-type': 'application/json' } }
-				);
-			}
-			return new Response(null, { status });
-		}
-	);
-	return { calls };
-}
-
-beforeEach(() => {
-	vi.restoreAllMocks();
-});
-
-async function seedDb(): Promise<Kysely<Database>> {
+async function fixture() {
 	const db = openDb(':memory:');
 	await runMigrations(db);
 	await db
 		.insertInto('appointments')
-		.values({
-			id: 'appt-1',
-			event_type_id: '30-min',
-			start_time: '2026-01-05T15:00:00Z',
-			end_time: '2026-01-05T15:30:00Z',
-			guest_name: 'Jane Doe',
-			guest_email: 'jane@example.com',
-			guest_timezone: 'UTC',
-			location: null,
-			external_event_id: null,
-			external_calendar_id: null,
-			status: 'confirmed',
-			cancel_token: 'tok-1',
-			calendar_revision: 0,
-			ics_sequence: 0,
-			has_possible_conflict: 0,
-			meeting_snapshot: null,
-			guest_answers: null,
-			created_at: '',
-			updated_at: ''
-		})
+		.values({ ...sampleAppointment, status: 'confirmed', video_chat: null })
 		.execute();
-	return db;
+	const send = vi.fn().mockResolvedValue({ ok: true });
+	setWorkerContext({ db, config, logger: createLogger(), mailer: { send } });
+	const names: string[] = [];
+	const children: Promise<unknown>[] = [];
+	const step: Parameters<typeof runReconcileAppointment>[1] = {
+		run: async (options, fn) => {
+			names.push(options.name);
+			const value = await fn();
+			return value;
+		},
+		runWorkflow: (spec, input, options) => {
+			expect(spec).toBe(deliverAppointmentEmail);
+			names.push(options.name);
+			const child = runDeliverAppointmentEmail(input, {
+				run: async (_options, fn) => {
+					const result = await fn();
+					return result;
+				}
+			});
+			children.push(child);
+			return child;
+		}
+	};
+	return { db, send, step, names, children };
 }
 
-async function readEmailJobStates(db: Kysely<Database>) {
-	const row = await db
-		.selectFrom('appointments')
-		.select('action_log')
-		.where('id', '=', 'appt-1')
-		.executeTakeFirstOrThrow();
-	return parseActionLog(row.action_log)
-		.filter((e) => e.action === 'email')
-		.map((e) => e.payload?.metadata?.state);
-}
+beforeEach(() => {
+	vi.restoreAllMocks();
+	queued.mockReset().mockResolvedValue({ workflowRun: { id: 'background-video' } });
+});
 
-describe('runReconcileAppointment', () => {
-	test('resolves video chat, syncs calendar, and sends email successfully', async () => {
-		const db = await seedDb();
-		const { mailer, send } = makeMailer();
-		send.mockResolvedValue({ ok: true });
-		recordingFetch(201); // Mock external CalDAV/Google calendar calls
-
-		setWorkerContext({ config: testConfig, db, logger: createLogger(), mailer });
-
-		const { step, names } = makeStep();
-		const result = await runReconcileAppointment(input, step);
-
-		expect(result).toBe('reconciled');
-		expect(send).toHaveBeenCalledTimes(2); // guest + host
-		expect(names).toEqual([
-			'prepare-reconciliation',
-			'resolve-video-chat',
-			'sync-calendar',
-			'prepare-emails',
-			'email:guest',
-			'email:host',
-			'log:result'
-		]);
-		expect(await readEmailJobStates(db)).toEqual(['done']);
-		await db.destroy();
+describe('booking and independent video generation', () => {
+	test('prepares booking mail before queueing video, without provider generation or waiting for its result', async () => {
+		const f = await fixture();
+		try {
+			const network = vi
+				.spyOn(globalThis, 'fetch')
+				.mockRejectedValue(new Error('video provider down'));
+			queued.mockResolvedValue({
+				result: () => {
+					throw new Error('must not wait for video');
+				}
+			});
+			const result = await runReconcileAppointment(
+				{ appointmentId: sampleAppointment.id, emailKind: 'confirmed' },
+				f.step
+			);
+			expect(result).toBe('reconciled');
+			expect(network).not.toHaveBeenCalled();
+			expect(f.send).toHaveBeenCalledTimes(2);
+			expect(
+				f.send.mock.calls.every(
+					([envelope]) => !envelope.text.includes('https://cloud.example.com/call/')
+				)
+			).toBe(true);
+			expect(f.names).toEqual([
+				'prepare-reconciliation',
+				'sync-calendar',
+				'prepare-emails',
+				'request-video-chat',
+				'email:guest',
+				'email:host',
+				'log:result'
+			]);
+			expect(queued).toHaveBeenCalledWith(
+				generateVideoChat,
+				{ appointmentId: sampleAppointment.id },
+				{
+					idempotencyKey: `generate-video-chat:${sampleAppointment.id}:${sampleAppointment.calendar_revision}`
+				}
+			);
+		} finally {
+			await f.db.destroy();
+		}
 	});
 
-	test('records failed attempts and lets delivery errors escape', async () => {
-		const db = await seedDb();
-		const { mailer, send } = makeMailer();
-		send.mockResolvedValue({ ok: false, reason: 'smtp down' });
-		recordingFetch(201);
-
-		setWorkerContext({ config: testConfig, db, logger: createLogger(), mailer });
-
-		const { step, names, childRuns } = makeStep();
-		await expect(runReconcileAppointment(input, step)).rejects.toThrow('smtp down');
-		await Promise.allSettled(childRuns);
-
-		expect(send).toHaveBeenCalledTimes(2);
-		expect(names).not.toContain('log:result');
-		expect(await readEmailJobStates(db)).toEqual(['failed', 'failed']);
-		await db.destroy();
+	test('saved links appear in the booking without queueing another generation', async () => {
+		const f = await fixture();
+		try {
+			await f.db
+				.updateTable('appointments')
+				.set({ video_chat: 'https://cloud.example.com/call/saved' })
+				.execute();
+			await runReconcileAppointment(
+				{ appointmentId: sampleAppointment.id, emailKind: 'confirmed' },
+				f.step
+			);
+			expect(queued).not.toHaveBeenCalled();
+			expect(f.send).toHaveBeenCalledTimes(2);
+			expect(
+				f.send.mock.calls.every(([envelope]) =>
+					envelope.text.includes('https://cloud.example.com/call/saved')
+				)
+			).toBe(true);
+		} finally {
+			await f.db.destroy();
+		}
 	});
 
-	test('does not auto-generate video chat on edited-by-host even if video_chat is null', async () => {
-		const db = await seedDb();
-		const { mailer, send } = makeMailer();
-		send.mockResolvedValue({ ok: true });
-		recordingFetch(201);
-
-		setWorkerContext({ config: testConfig, db, logger: createLogger(), mailer });
-
-		const { step, names } = makeStep();
-		const result = await runReconcileAppointment(
-			{ appointmentId: 'appt-1', emailKind: 'edited-by-host' },
-			step
-		);
-
-		expect(result).toBe('reconciled');
-		expect(names).not.toContain('resolve-video-chat');
-		expect(names).toContain('sync-calendar');
-		await db.destroy();
+	test('SMTP failure does not lose the already-enqueued independent video job', async () => {
+		const f = await fixture();
+		try {
+			f.send.mockResolvedValue({ ok: false, reason: 'smtp down' });
+			const run = runReconcileAppointment(
+				{ appointmentId: sampleAppointment.id, emailKind: 'confirmed' },
+				f.step
+			);
+			await expect(run).rejects.toThrow('smtp down');
+			await Promise.allSettled(f.children);
+			expect(queued).toHaveBeenCalledTimes(1);
+			expect(f.names).not.toContain('log:result');
+			const row = await f.db
+				.selectFrom('appointments')
+				.select('action_log')
+				.executeTakeFirstOrThrow();
+			const states = parseActionLog(row.action_log)
+				.filter((entry) => entry.action === 'email')
+				.map((entry) => entry.payload?.metadata?.state);
+			expect(states).toEqual(['failed', 'failed']);
+		} finally {
+			await f.db.destroy();
+		}
 	});
 
-	test('executes cleanup-video-chat step when cleanupVideoChatUrl is provided', async () => {
-		const db = await seedDb();
-		const { mailer, send } = makeMailer();
-		send.mockResolvedValue({ ok: true });
-		const { calls } = recordingFetch(200);
+	test('email-free reconciliation queues the current standing choice without inventing mail', async () => {
+		const f = await fixture();
+		try {
+			await f.db
+				.updateTable('appointments')
+				.set({ video_chat_request: 'suppress', calendar_revision: 4 })
+				.execute();
+			await runReconcileAppointment({ appointmentId: sampleAppointment.id }, f.step);
+			expect(f.send).not.toHaveBeenCalled();
+			expect(queued).toHaveBeenCalledWith(
+				generateVideoChat,
+				{ appointmentId: sampleAppointment.id },
+				{ idempotencyKey: `generate-video-chat:${sampleAppointment.id}:4` }
+			);
+		} finally {
+			await f.db.destroy();
+		}
+	});
 
-		setWorkerContext({ config: testConfig, db, logger: createLogger(), mailer });
+	test('a note edit can remind an outstanding generation using its current calendar revision', async () => {
+		const f = await fixture();
+		try {
+			await f.db
+				.updateTable('appointments')
+				.set({ video_chat_request: 'generate', calendar_revision: 7 })
+				.execute();
+			await runReconcileAppointment(
+				{ appointmentId: sampleAppointment.id, emailKind: 'edited-by-host' },
+				f.step
+			);
+			expect(queued).toHaveBeenCalledWith(
+				generateVideoChat,
+				{ appointmentId: sampleAppointment.id },
+				{ idempotencyKey: `generate-video-chat:${sampleAppointment.id}:7` }
+			);
+		} finally {
+			await f.db.destroy();
+		}
+	});
 
-		const { step, names } = makeStep();
-		const result = await runReconcileAppointment(
-			{
-				appointmentId: 'appt-1',
-				emailKind: 'edited-by-host',
-				cleanupVideoChatUrl: 'https://cloud.example.com/call/old-tok'
-			},
-			step
-		);
+	test('cleans an unselected old room without clearing the chosen replacement', async () => {
+		const f = await fixture();
+		try {
+			await f.db
+				.updateTable('appointments')
+				.set({
+					video_chat: 'https://cloud.example.com/call/current',
+					video_chat_request: 'suppress'
+				})
+				.execute();
+			const network = vi
+				.spyOn(globalThis, 'fetch')
+				.mockResolvedValue(new Response(null, { status: 204 }));
+			await runReconcileAppointment(
+				{
+					appointmentId: sampleAppointment.id,
+					emailKind: 'edited-by-host',
+					cleanupVideoChatUrl: 'https://cloud.example.com/call/old'
+				},
+				f.step
+			);
+			expect(network).toHaveBeenCalledWith(
+				expect.stringContaining('/room/old'),
+				expect.objectContaining({ method: 'DELETE' })
+			);
+			const row = await f.db
+				.selectFrom('appointments')
+				.select('video_chat')
+				.executeTakeFirstOrThrow();
+			expect(row.video_chat).toBe('https://cloud.example.com/call/current');
+		} finally {
+			await f.db.destroy();
+		}
+	});
 
-		expect(result).toBe('reconciled');
-		expect(names).toContain('cleanup-video-chat');
-		expect(
-			calls.some(
-				(c) =>
-					c.method === 'DELETE' && c.url.includes('/ocs/v2.php/apps/spreed/api/v4/room/old-tok')
-			)
-		).toBe(true);
-		await db.destroy();
+	test.each(['cancelled', 'confirmed'] as const)(
+		'skips obsolete link-added mail for %s without a selected link',
+		async (status) => {
+			const f = await fixture();
+			try {
+				await f.db
+					.updateTable('appointments')
+					.set({ status, video_chat: null, video_chat_request: 'suppress' })
+					.execute();
+				await runReconcileAppointment(
+					{ appointmentId: sampleAppointment.id, emailKind: 'video-chat-added' },
+					f.step
+				);
+				expect(f.send).not.toHaveBeenCalled();
+			} finally {
+				await f.db.destroy();
+			}
+		}
+	);
+
+	test('purged appointments cause neither notifications nor new video work', async () => {
+		const f = await fixture();
+		try {
+			await f.db.updateTable('appointments').set({ status: 'purged' }).execute();
+			await runReconcileAppointment(
+				{ appointmentId: sampleAppointment.id, emailKind: 'confirmed' },
+				f.step
+			);
+			expect(queued).not.toHaveBeenCalled();
+			expect(f.send).not.toHaveBeenCalled();
+		} finally {
+			await f.db.destroy();
+		}
 	});
 });

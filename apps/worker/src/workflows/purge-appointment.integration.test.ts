@@ -42,7 +42,7 @@ afterEach(() => {
 	vi.restoreAllMocks();
 });
 
-async function seed(ids: string[]) {
+async function seed(ids: string[], contextConfig = config) {
 	const db = openDb(':memory:');
 	await runMigrations(db);
 	for (const id of ids) {
@@ -67,7 +67,12 @@ async function seed(ids: string[]) {
 			.execute();
 	}
 	const logger = { warn: vi.fn(), info: vi.fn(), debug: vi.fn(), error: vi.fn() };
-	setWorkerContext({ config, db, logger: logger as unknown as Logger, mailer: { send: vi.fn() } });
+	setWorkerContext({
+		config: contextConfig,
+		db,
+		logger: logger as unknown as Logger,
+		mailer: { send: vi.fn() }
+	});
 	return { db, logger };
 }
 
@@ -141,20 +146,11 @@ async function runNextPurgePass(queue: Queue, id: string) {
 	if (before.availableAt && before.availableAt.getTime() > Date.now()) {
 		vi.setSystemTime(before.availableAt);
 	}
-	await vi.waitFor(async () => expect(await queue.worker.tick()).toBe(1), {
-		timeout: 2000,
-		interval: 1
-	});
-	await vi.waitFor(
-		async () => {
-			const run = await readRun(queue, id);
-			expect(['pending', 'completed', 'failed']).toContain(run.status);
-			if (run.status === 'pending') expect(run.workerId).toBeNull();
-		},
-		{ timeout: 2000, interval: 1 }
-	);
+	const ticked = await queue.worker.tick();
 	await queue.worker.stop();
-	return readRun(queue, id);
+	expect(ticked).toBe(1);
+	const run = await readRun(queue, id);
+	return run;
 }
 
 async function finish(queue: Queue, id: string) {
@@ -165,25 +161,32 @@ async function finish(queue: Queue, id: string) {
 	throw new Error('Purge did not settle within 1000 passes');
 }
 
-test('native transient retries retain the row until remote deletion succeeds', async () => {
+test('native transient retries retain cleanup evidence until calendar deletion succeeds', async () => {
 	const { db } = await seed(['one']);
 	const remote = provider({ one: 2 });
 	const queue = openQueue();
 	try {
 		const job = await queue.client.runWorkflow(purgeAppointment, input(['one']));
 		const id = job.workflowRun.id;
-		expect(await runNextPurgePass(queue, id)).toMatchObject({ status: 'pending', workerId: null });
-		expect(remote.video).toEqual([]);
-		expect(await db.selectFrom('appointments').selectAll().execute()).toHaveLength(1);
-		expect(await finish(queue, id)).toMatchObject({ status: 'completed', output: 'purged' });
-		expect(await job.result({ timeoutMs: 500 })).toBe('purged');
+		const parked = await runNextPurgePass(queue, id);
+		const retained = await db.selectFrom('appointments').selectAll().execute();
+		expect(parked).toMatchObject({ status: 'pending', workerId: null });
+		expect(remote.video).toEqual(['one']);
+		expect(retained).toHaveLength(1);
+		expect(retained[0].video_chat).toBe('https://talk.example.com/call/one');
+		const completed = await finish(queue, id);
+		const result = await job.result({ timeoutMs: 500 });
+		const rows = await db.selectFrom('appointments').selectAll().execute();
+		const recorded = await attempts(queue, id);
+		expect(completed).toMatchObject({ status: 'completed', output: 'purged' });
+		expect(result).toBe('purged');
 		expect(remote.calendar).toEqual({ one: 3 });
 		expect(remote.video).toEqual(['one']);
-		expect(await db.selectFrom('appointments').selectAll().execute()).toEqual([]);
-		expect((await attempts(queue, id)).map((attempt) => attempt.status)).toEqual([
-			'failed',
-			'failed',
+		expect(rows).toEqual([]);
+		expect(recorded.map((attempt) => attempt.status)).toEqual([
 			'completed',
+			'failed',
+			'failed',
 			'completed',
 			'completed'
 		]);
@@ -193,26 +196,28 @@ test('native transient retries retain the row until remote deletion succeeds', a
 	}
 });
 
-test('calendar 404 enables best-effort video cleanup and local deletion', async () => {
-	const { db } = await seed(['gone']);
+test('calendar 404 enables local deletion despite best-effort room deletion failure', async () => {
+	const { db, logger } = await seed(['gone']);
 	const remote = provider({}, 404, 500);
-	const warning = vi.spyOn(console, 'warn').mockImplementation(() => {});
 	const queue = openQueue();
 	try {
 		const job = await queue.client.runWorkflow(purgeAppointment, input(['gone']));
-		expect(await finish(queue, job.workflowRun.id)).toMatchObject({ status: 'completed' });
+		const completed = await finish(queue, job.workflowRun.id);
+		const rows = await db.selectFrom('appointments').selectAll().execute();
+		const recorded = await attempts(queue, job.workflowRun.id);
+		expect(completed).toMatchObject({ status: 'completed' });
 		expect(remote.calendar).toEqual({ gone: 1 });
 		expect(remote.video).toEqual(['gone']);
-		expect(warning).toHaveBeenCalledTimes(1);
-		expect(await db.selectFrom('appointments').selectAll().execute()).toEqual([]);
-		expect(await attempts(queue, job.workflowRun.id)).toHaveLength(3);
+		expect(logger.warn).toHaveBeenCalledTimes(1);
+		expect(rows).toEqual([]);
+		expect(recorded).toHaveLength(3);
 	} finally {
 		await queue.close();
 		await db.destroy();
 	}
 });
 
-test('thirty native failures fail the job, retaining current/later rows without redoing earlier success', async () => {
+test('thirty native calendar failures retain current/later rows without redoing cleanup', async () => {
 	const ids = ['earlier', 'current', 'later'];
 	const { db, logger } = await seed(ids);
 	const remote = provider({ current: 30 });
@@ -220,28 +225,31 @@ test('thirty native failures fail the job, retaining current/later rows without 
 	try {
 		const job = await queue.client.runWorkflow(purgeAppointment, input(ids));
 		const id = job.workflowRun.id;
-		expect(await runNextPurgePass(queue, id)).toMatchObject({ status: 'pending' });
-		const earlier = (await attempts(queue, id)).filter((attempt) =>
-			attempt.stepName.endsWith(':earlier')
-		);
+		const parked = await runNextPurgePass(queue, id);
+		const firstAttempts = await attempts(queue, id);
+		const earlier = firstAttempts.filter((attempt) => attempt.stepName.endsWith(':earlier'));
+		expect(parked).toMatchObject({ status: 'pending' });
 		expect(earlier).toHaveLength(3);
-		expect(await finish(queue, id)).toMatchObject({ status: 'failed', output: null });
+		const failedRun = await finish(queue, id);
+		expect(failedRun).toMatchObject({ status: 'failed', output: null });
 		await expect(job.result({ timeoutMs: 500 })).rejects.toThrow(/CalDAV DELETE/);
 		const recorded = await attempts(queue, id);
-		expect(recorded).toHaveLength(33);
+		const retained = await db.selectFrom('appointments').selectAll().orderBy('id').execute();
+		expect(recorded).toHaveLength(34);
 		expect(recorded.filter((attempt) => attempt.stepName.endsWith(':earlier'))).toEqual(earlier);
 		const failed = recorded.filter((attempt) => attempt.stepName === 'calendar:current');
 		expect(failed).toHaveLength(30);
 		expect(failed.every((attempt) => attempt.status === 'failed')).toBe(true);
 		expect(remote.calendar).toEqual({ earlier: 1, current: 30 });
-		expect(remote.video).toEqual(['earlier']);
-		const retained = await db.selectFrom('appointments').selectAll().orderBy('id').execute();
+		expect(remote.video).toEqual(['earlier', 'current']);
 		expect(retained.map((row) => [row.id, row.status, row.video_chat])).toEqual([
 			['current', 'purged', 'https://talk.example.com/call/current'],
 			['later', 'purged', 'https://talk.example.com/call/later']
 		]);
 		expect(logger.warn).not.toHaveBeenCalled();
-		expect(await queue.worker.tick()).toBe(0);
+		const ticked = await queue.worker.tick();
+		await queue.worker.stop();
+		expect(ticked).toBe(0);
 	} finally {
 		await queue.close();
 		await db.destroy();
@@ -258,20 +266,27 @@ test('reopens a file queue during retry delay without replaying earlier cleanup'
 		const job = await queue.client.runWorkflow(purgeAppointment, input(['earlier', 'retry']));
 		const id = job.workflowRun.id;
 		const parked = await runNextPurgePass(queue, id);
+		const saved = await attempts(queue, id);
 		expect(parked).toMatchObject({ status: 'pending', workerId: null });
 		expect(parked.availableAt!.getTime()).toBeGreaterThan(Date.now());
-		const saved = await attempts(queue, id);
-		expect(saved).toHaveLength(4);
+		expect(saved).toHaveLength(5);
 		await queue.close();
 		queue = openQueue(path);
-		expect(await readRun(queue, id)).toEqual(parked);
-		expect(await queue.worker.tick()).toBe(0);
-		expect(await attempts(queue, id)).toEqual(saved);
-		expect(await finish(queue, id)).toMatchObject({ status: 'completed', output: 'purged' });
+		const reopened = await readRun(queue, id);
+		const ticked = await queue.worker.tick();
+		await queue.worker.stop();
+		const unchanged = await attempts(queue, id);
+		expect(reopened).toEqual(parked);
+		expect(ticked).toBe(0);
+		expect(unchanged).toEqual(saved);
+		const completed = await finish(queue, id);
+		const recorded = await attempts(queue, id);
+		const rows = await db.selectFrom('appointments').selectAll().execute();
+		expect(completed).toMatchObject({ status: 'completed', output: 'purged' });
 		expect(remote.calendar).toEqual({ earlier: 1, retry: 3 });
 		expect(remote.video).toEqual(['earlier', 'retry']);
-		expect((await attempts(queue, id)).slice(0, 4)).toEqual(saved);
-		expect(await db.selectFrom('appointments').selectAll().execute()).toEqual([]);
+		expect(recorded.slice(0, 5)).toEqual(saved);
+		expect(rows).toEqual([]);
 	} finally {
 		await queue.close();
 		await db.destroy();
@@ -286,11 +301,10 @@ test('twenty near-budget rows complete with 640 actual step attempts, below the 
 	const queue = openQueue();
 	try {
 		const job = await queue.client.runWorkflow(purgeAppointment, input(ids));
-		expect(await finish(queue, job.workflowRun.id)).toMatchObject({
-			status: 'completed',
-			output: 'purged'
-		});
+		const completed = await finish(queue, job.workflowRun.id);
 		const recorded = await attempts(queue, job.workflowRun.id);
+		const rows = await db.selectFrom('appointments').selectAll().execute();
+		expect(completed).toMatchObject({ status: 'completed', output: 'purged' });
 		expect(recorded).toHaveLength(640);
 		expect(recorded.length).toBeLessThan(1000);
 		for (const id of ids) {
@@ -304,9 +318,94 @@ test('twenty near-budget rows complete with 640 actual step attempts, below the 
 		).toHaveLength(20);
 		expect(recorded.filter((attempt) => attempt.stepName.startsWith('delete:'))).toHaveLength(20);
 		expect(remote.video).toEqual(ids);
-		expect(await db.selectFrom('appointments').selectAll().execute()).toEqual([]);
+		expect(rows).toEqual([]);
 	} finally {
 		await queue.close();
 		await db.destroy();
 	}
-}, 15000);
+}, 90000);
+
+const googleConfig = {
+	providers: {
+		google: {
+			type: 'google',
+			client_id: 'native-purge-test',
+			client_secret: 'secret',
+			refresh_token: 'refresh',
+			calendars: { work: { id: 'primary' } }
+		},
+		talk: config.providers.talk
+	},
+	meetings: { chat: { video_chat: { provider: 'google' } } }
+} as unknown as WhenConfiguration;
+
+test.each([false, true])(
+	'native Google shared-booking chain purges without conference I/O; already deleted: %s',
+	async (alreadyDeleted) => {
+		const ids = ['source', 'successor'];
+		const { db } = await seed(ids, googleConfig);
+		await db
+			.updateTable('appointments')
+			.set({ external_event_id: 'shared', video_chat: 'https://meet.google.com/aaa-bbbb-ccc' })
+			.execute();
+		const calls: { method: string; url: string; status: number }[] = [];
+		let deleted = alreadyDeleted;
+		vi.spyOn(globalThis, 'fetch').mockImplementation(async (url, init) => {
+			if (String(url).includes('oauth2.googleapis.com/token')) {
+				return Response.json({ access_token: 'access', expires_in: 3600 });
+			}
+			const status = deleted ? 404 : 204;
+			calls.push({ method: init?.method ?? 'GET', url: String(url), status });
+			deleted = true;
+			return new Response(null, { status });
+		});
+		const queue = openQueue();
+		try {
+			const job = await queue.client.runWorkflow(purgeAppointment, input(ids));
+			const completed = await finish(queue, job.workflowRun.id);
+			const rows = await db.selectFrom('appointments').selectAll().execute();
+			const recorded = await attempts(queue, job.workflowRun.id);
+			expect(completed).toMatchObject({ status: 'completed', output: 'purged' });
+			expect(calls.map((call) => [call.method, call.status])).toEqual([
+				['DELETE', alreadyDeleted ? 404 : 204],
+				['DELETE', 404]
+			]);
+			expect(calls.every((call) => new URL(call.url).pathname.endsWith('/events/shared'))).toBe(
+				true
+			);
+			expect(rows).toEqual([]);
+			expect(recorded).toHaveLength(6);
+		} finally {
+			await queue.close();
+			await db.destroy();
+		}
+	}
+);
+
+test('native purge deletes an independent Nextcloud room alongside its Google booking', async () => {
+	const mixedConfig = { ...googleConfig, meetings: config.meetings };
+	const { db } = await seed(['mixed'], mixedConfig);
+	const calls: { method: string; host: string }[] = [];
+	vi.spyOn(globalThis, 'fetch').mockImplementation(async (url, init) => {
+		if (String(url).includes('oauth2.googleapis.com/token')) {
+			return Response.json({ access_token: 'access', expires_in: 3600 });
+		}
+		calls.push({ method: init?.method ?? 'GET', host: new URL(String(url)).hostname });
+		return new Response(null, { status: 204 });
+	});
+	const queue = openQueue();
+	try {
+		const job = await queue.client.runWorkflow(purgeAppointment, input(['mixed']));
+		const completed = await finish(queue, job.workflowRun.id);
+		const rows = await db.selectFrom('appointments').selectAll().execute();
+		expect(completed).toMatchObject({ status: 'completed', output: 'purged' });
+		expect(calls).toEqual([
+			{ method: 'DELETE', host: 'talk.example.com' },
+			{ method: 'DELETE', host: 'www.googleapis.com' }
+		]);
+		expect(rows).toEqual([]);
+	} finally {
+		await queue.close();
+		await db.destroy();
+	}
+});

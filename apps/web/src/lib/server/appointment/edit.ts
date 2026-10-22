@@ -54,54 +54,69 @@ export async function editAppointment(
 			return { ok: false, reason: 'gated' } as const;
 		}
 
-		const fields = {
-			note: appointment.note,
-			location: appointment.location,
-			video_chat: appointment.video_chat
-		};
-		const changes: string[] = [];
-		for (const field of ['note', 'location', 'video_chat'] as const) {
-			const value = input[field];
-			const change = detectFieldChange(appointment[field], value);
-			if (change) changes.push(`${field}_${change}`);
-			if (value !== undefined) {
-				fields[field] = cleanGuestText(value ?? '', field === 'note') || null;
-			}
+		const details = editDetails(appointment, input);
+		const contentChanged = details.changes.length > 0;
+		const choiceChanged = details.fields.video_chat_request !== appointment.video_chat_request;
+		if (!contentChanged && !choiceChanged) {
+			return { ok: false, reason: 'no_changes' } as const;
 		}
-		if (changes.length === 0) return { ok: false, reason: 'no_changes' } as const;
 
-		const updated = await connection
+		let update = connection
 			.updateTable('appointments')
 			.set({
-				...fields,
-				ics_sequence: sql`ics_sequence + 1`,
+				...details.fields,
 				calendar_revision: sql`calendar_revision + 1`,
+				updated_at: sql`CURRENT_TIMESTAMP`
+			})
+			.where('id', '=', appointment.id)
+			.where('status', 'in', ['pending', 'confirmed']);
+		if (contentChanged) {
+			update = update.set({
+				ics_sequence: sql`ics_sequence + 1`,
 				action_log: appendActionLogSql({
 					action: 'edit',
 					actor: 'host',
 					at: ctx.clock.now().toISOString(),
-					payload: { metadata: { changes } }
-				}),
-				updated_at: sql`CURRENT_TIMESTAMP`
-			})
-			.where('id', '=', appointment.id)
-			.where('status', 'in', ['pending', 'confirmed'])
-			.returningAll()
-			.executeTakeFirst();
+					payload: { metadata: { changes: details.changes } }
+				})
+			});
+		}
+		const updated = await update.returningAll().executeTakeFirst();
 		if (!updated) return { ok: false, reason: 'conflict' } as const;
 
-		const videoChatWasReplaced =
-			changes.includes('video_chat_removed') || changes.includes('video_chat_updated');
-		const cleanupVideoChatUrl = videoChatWasReplaced ? appointment.video_chat : null;
-		return { ok: true as const, appointment: updated, cleanupVideoChatUrl };
+		return {
+			ok: true as const,
+			appointment: updated,
+			contentChanged,
+			cleanupVideoChatUrl: details.cleanupVideoChatUrl
+		};
 	});
 	if (!committed.ok) return committed;
 
 	await enqueueAppointmentReconciliation(
-		ctx.db,
-		committed.appointment.id,
-		'edited-by-host',
+		committed.appointment,
+		committed.contentChanged ? 'edited-by-host' : undefined,
 		committed.cleanupVideoChatUrl
 	);
 	return { ok: true, appointment: committed.appointment };
+}
+
+function editDetails(appointment: Appointment, input: EditAppointmentInput) {
+	const fields: Pick<Appointment, 'note' | 'location' | 'video_chat' | 'video_chat_request'> = {
+		note: appointment.note,
+		location: appointment.location,
+		video_chat: appointment.video_chat,
+		video_chat_request: input.video_chat === undefined ? appointment.video_chat_request : 'suppress'
+	};
+	const changes: string[] = [];
+	for (const field of ['note', 'location', 'video_chat'] as const) {
+		const value = input[field];
+		const change = detectFieldChange(appointment[field], value);
+		if (change) changes.push(`${field}_${change}`);
+		if (value !== undefined) fields[field] = cleanGuestText(value ?? '', field === 'note') || null;
+	}
+	const videoChatWasReplaced =
+		changes.includes('video_chat_removed') || changes.includes('video_chat_updated');
+	const cleanupVideoChatUrl = videoChatWasReplaced ? appointment.video_chat : null;
+	return { fields, changes, cleanupVideoChatUrl };
 }

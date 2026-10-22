@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { editAppointment } from './edit';
 import { systemClock } from '$lib/server/clock';
-import { openDb, runMigrations, parseActionLog } from '@when/db';
+import { openDb, runMigrations, parseActionLog, withWriteTransaction } from '@when/db';
 import { validConfig } from '$lib/server/__fixtures__/valid-config';
 
 vi.mock('../workflow', () => ({ enqueueAppointmentReconciliation: vi.fn() }));
@@ -34,9 +34,7 @@ async function fetchRow(db: Awaited<ReturnType<typeof makeDb>>, id: string) {
 describe('editAppointment', () => {
 	beforeEach(() => {
 		vi.mocked(enqueueAppointmentReconciliation).mockReset();
-		vi.mocked(enqueueAppointmentReconciliation).mockImplementation(async (db, id) =>
-			db.selectFrom('appointments').selectAll().where('id', '=', id).executeTakeFirstOrThrow()
-		);
+		vi.mocked(enqueueAppointmentReconciliation).mockResolvedValue(undefined);
 	});
 
 	test.each(['note', 'location'] as const)(
@@ -89,8 +87,7 @@ describe('editAppointment', () => {
 				expect(history).toHaveLength(1);
 				expect(history[0].payload?.metadata?.changes).toEqual([`${field}_updated`]);
 				expect(enqueueAppointmentReconciliation).toHaveBeenCalledWith(
-					db,
-					page.id,
+					saved,
 					'edited-by-host',
 					null
 				);
@@ -133,12 +130,12 @@ describe('editAppointment', () => {
 			const saved = await fetchRow(db, 'replacement');
 			expect(saved).toMatchObject({
 				video_chat: page.video_chat,
+				video_chat_request: 'suppress',
 				calendar_revision: 2,
 				ics_sequence: 2
 			});
 			expect(enqueueAppointmentReconciliation).toHaveBeenCalledWith(
-				db,
-				page.id,
+				saved,
 				'edited-by-host',
 				'https://current.example/room'
 			);
@@ -257,6 +254,210 @@ describe('editAppointment', () => {
 		}
 	});
 
+	test.each([null, 'generate', 'suppress'] as const)(
+		'omitting video_chat preserves standing choice %s',
+		async (choice) => {
+			const db = await makeDb();
+			try {
+				await db
+					.insertInto('appointments')
+					.values({
+						...baseRow,
+						id: 'omitted',
+						status: 'confirmed',
+						cancel_token: 'omitted',
+						video_chat_request: choice
+					})
+					.execute();
+
+				const result = await editAppointment(
+					{ db, cfg: validConfig, clock: systemClock },
+					{ appointmentId: 'omitted', note: 'New note' }
+				);
+				const saved = await fetchRow(db, 'omitted');
+
+				expect(result.ok).toBe(true);
+				expect(saved).toMatchObject({
+					video_chat_request: choice,
+					calendar_revision: 1,
+					ics_sequence: 1
+				});
+			} finally {
+				await db.destroy();
+			}
+		}
+	);
+
+	test.each([null, '', '   '])(
+		'clearing a missing URI with %j saves suppression without fabricating an edit',
+		async (videoChat) => {
+			const db = await makeDb();
+			try {
+				await db
+					.insertInto('appointments')
+					.values({
+						...baseRow,
+						id: 'suppress',
+						status: 'confirmed',
+						cancel_token: 'suppress',
+						video_chat_request: 'generate',
+						calendar_revision: 4,
+						ics_sequence: 2
+					})
+					.execute();
+				const before = await fetchRow(db, 'suppress');
+				vi.mocked(enqueueAppointmentReconciliation).mockImplementationOnce(async () => {
+					await withWriteTransaction(db, async (connection) => {
+						const row = await fetchRow(connection, 'suppress');
+						expect(row).toMatchObject({ video_chat_request: 'suppress', calendar_revision: 5 });
+						return row;
+					});
+				});
+
+				const result = await editAppointment(
+					{ db, cfg: validConfig, clock: systemClock },
+					{ appointmentId: 'suppress', video_chat: videoChat }
+				);
+				const saved = await fetchRow(db, 'suppress');
+
+				expect(result.ok).toBe(true);
+				expect(saved).toEqual({
+					...before,
+					video_chat_request: 'suppress',
+					calendar_revision: 5,
+					updated_at: saved.updated_at
+				});
+				expect(parseActionLog(saved.action_log)).toEqual([]);
+				expect(enqueueAppointmentReconciliation).toHaveBeenCalledWith(saved, undefined, null);
+
+				const repeated = await editAppointment(
+					{ db, cfg: validConfig, clock: systemClock },
+					{ appointmentId: 'suppress', video_chat: videoChat }
+				);
+				const afterRepeat = await fetchRow(db, 'suppress');
+				expect(repeated).toEqual({ ok: false, reason: 'no_changes' });
+				expect(afterRepeat).toEqual(saved);
+				expect(enqueueAppointmentReconciliation).toHaveBeenCalledTimes(1);
+			} finally {
+				await db.destroy();
+			}
+		}
+	);
+
+	test('explicit unchanged null URI still suppresses default rules', async () => {
+		const db = await makeDb();
+		try {
+			await db
+				.insertInto('appointments')
+				.values({ ...baseRow, id: 'default', status: 'confirmed', cancel_token: 'default' })
+				.execute();
+
+			const result = await editAppointment(
+				{ db, cfg: validConfig, clock: systemClock },
+				{ appointmentId: 'default', video_chat: null }
+			);
+			const saved = await fetchRow(db, 'default');
+
+			expect(result.ok).toBe(true);
+			expect(saved).toMatchObject({
+				video_chat_request: 'suppress',
+				calendar_revision: 1,
+				ics_sequence: 0,
+				action_log: null
+			});
+			expect(enqueueAppointmentReconciliation).toHaveBeenCalledWith(saved, undefined, null);
+		} finally {
+			await db.destroy();
+		}
+	});
+
+	test('keeping the selected URI makes only the standing choice explicit; repeating is a no-op', async () => {
+		const db = await makeDb();
+		try {
+			await db
+				.insertInto('appointments')
+				.values({
+					...baseRow,
+					id: 'selected',
+					status: 'confirmed',
+					cancel_token: 'selected',
+					video_chat: 'https://selected.example/room',
+					video_chat_request: 'generate'
+				})
+				.execute();
+			const input = { appointmentId: 'selected', video_chat: 'https://selected.example/room' };
+			const ctx = { db, cfg: validConfig, clock: systemClock };
+
+			const first = await editAppointment(ctx, input);
+			const saved = await fetchRow(db, 'selected');
+			const repeated = await editAppointment(ctx, input);
+			const afterRepeat = await fetchRow(db, 'selected');
+
+			expect(first.ok).toBe(true);
+			expect(saved).toMatchObject({
+				video_chat: input.video_chat,
+				video_chat_request: 'suppress',
+				calendar_revision: 1,
+				ics_sequence: 0,
+				action_log: null
+			});
+			expect(repeated).toEqual({ ok: false, reason: 'no_changes' });
+			expect(afterRepeat).toEqual(saved);
+			expect(enqueueAppointmentReconciliation).toHaveBeenCalledExactlyOnceWith(
+				saved,
+				undefined,
+				null
+			);
+		} finally {
+			await db.destroy();
+		}
+	});
+
+	test('combined content and video-choice changes produce one host edit and ICS revision', async () => {
+		const db = await makeDb();
+		try {
+			await db
+				.insertInto('appointments')
+				.values({
+					...baseRow,
+					id: 'combined',
+					status: 'confirmed',
+					cancel_token: 'combined',
+					video_chat_request: 'generate',
+					video_chat: 'https://current.example/room'
+				})
+				.execute();
+
+			const result = await editAppointment(
+				{ db, cfg: validConfig, clock: systemClock },
+				{ appointmentId: 'combined', note: 'New note', location: 'New location', video_chat: null }
+			);
+			const saved = await fetchRow(db, 'combined');
+			const history = parseActionLog(saved.action_log);
+
+			expect(result.ok).toBe(true);
+			expect(saved).toMatchObject({
+				video_chat: null,
+				video_chat_request: 'suppress',
+				calendar_revision: 1,
+				ics_sequence: 1
+			});
+			expect(history).toHaveLength(1);
+			expect(history[0]).toMatchObject({
+				action: 'edit',
+				actor: 'host',
+				payload: { metadata: { changes: ['note_added', 'location_added', 'video_chat_removed'] } }
+			});
+			expect(enqueueAppointmentReconciliation).toHaveBeenCalledExactlyOnceWith(
+				saved,
+				'edited-by-host',
+				'https://current.example/room'
+			);
+		} finally {
+			await db.destroy();
+		}
+	});
+
 	test('happy path: add note, edit note, remove note', async () => {
 		const db = await makeDb();
 		try {
@@ -343,6 +544,7 @@ describe('editAppointment', () => {
 			expect(result.ok).toBe(true);
 			if (result.ok) {
 				expect(result.appointment.video_chat).toBe('https://zoom.us/j/12345');
+				expect(result.appointment.video_chat_request).toBe('suppress');
 				expect(result.appointment.calendar_revision).toBe(1);
 				expect(result.appointment.ics_sequence).toBe(1);
 				const log = parseActionLog(result.appointment.action_log);
@@ -361,6 +563,7 @@ describe('editAppointment', () => {
 			expect(result.ok).toBe(true);
 			if (result.ok) {
 				expect(result.appointment.video_chat).toBe('https://zoom.us/j/67890');
+				expect(result.appointment.video_chat_request).toBe('suppress');
 				expect(result.appointment.calendar_revision).toBe(2);
 				expect(result.appointment.ics_sequence).toBe(2);
 				const log = parseActionLog(result.appointment.action_log);
@@ -378,6 +581,7 @@ describe('editAppointment', () => {
 			expect(result.ok).toBe(true);
 			if (result.ok) {
 				expect(result.appointment.video_chat).toBeNull();
+				expect(result.appointment.video_chat_request).toBe('suppress');
 				expect(result.appointment.calendar_revision).toBe(3);
 				expect(result.appointment.ics_sequence).toBe(3);
 				const log = parseActionLog(result.appointment.action_log);
@@ -386,11 +590,11 @@ describe('editAppointment', () => {
 			}
 
 			expect(enqueueAppointmentReconciliation).toHaveBeenCalledTimes(3);
-			expect(vi.mocked(enqueueAppointmentReconciliation).mock.calls[0][3]).toBeNull();
-			expect(vi.mocked(enqueueAppointmentReconciliation).mock.calls[1][3]).toBe(
+			expect(vi.mocked(enqueueAppointmentReconciliation).mock.calls[0][2]).toBeNull();
+			expect(vi.mocked(enqueueAppointmentReconciliation).mock.calls[1][2]).toBe(
 				'https://zoom.us/j/12345'
 			);
-			expect(vi.mocked(enqueueAppointmentReconciliation).mock.calls[2][3]).toBe(
+			expect(vi.mocked(enqueueAppointmentReconciliation).mock.calls[2][2]).toBe(
 				'https://zoom.us/j/67890'
 			);
 		} finally {

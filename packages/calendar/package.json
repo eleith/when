@@ -25,7 +25,6 @@
 	"dependencies": {
 		"@when/config": "workspace:*",
 		"@when/db": "workspace:*",
-		"@when/video-chat": "workspace:*",
 		"ts-ics": "2.4.4"
 	},
 	"devDependencies": {

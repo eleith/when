@@ -65,6 +65,30 @@ attempts (30-second initial delay, doubling up to ten minutes). A successful sen
 is checkpointed separately from its status write. Host and guest keep independent
 retry budgets, even when they share an email address.
 
+Video generation is a separate queued workflow, not a prerequisite for booking
+email delivery. Reconciliation saves envelopes using the currently selected link,
+then enqueues missing-link work without awaiting its result. A missing link normally
+means two emails even when generation is fast: the booking notice, then a neutral
+"Video link added" notice with an updated ICS sequence. Already-selected links are
+included in the booking notice without another generation. SMTP retries can change
+physical arrival order; ICS sequence identifies the newer invitation.
+
+Generate checkpoints the provider request separately from local publication and
+notification enqueue. Accepted pending Google requests use read-only native retries
+(ten attempts, 30-second initial delay, doubling to a ten-minute cap); they are not
+resubmitted. Current choice, revision, selection and relevant event binding guard
+publication. Every newly attached background link advances ICS and calendar revision;
+manual intent logs the host edit, while automatic attachment logs a system edit.
+The existing reconciliation/email pipeline delivers the follow-up—Generate never
+sends SMTP directly. Saved intent is not job progress and workers never rewrite it.
+
+Maintenance still repairs dirty calendar content and cleans unwanted resources; it
+does not create rooms or restart exhausted generation. Broader late-ready observation
+is not included here. Generation failure leaves the booking intact and requires
+operator review; application-write/enqueue and effect-before-checkpoint gaps remain.
+One worker slot means active provider calls can still delay other work, but retry
+waits park and do not hold booking email behind the generation retry budget.
+
 Purge deletes each remote event with up to thirty native attempts (one-minute
 initial delay, doubling up to one hour). Exhaustion fails the job and retains the
 current and later hidden `purged` rows, including local personal data. Clicking

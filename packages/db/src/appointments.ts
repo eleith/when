@@ -9,6 +9,31 @@ function findAppointment(db: Kysely<Database>, id: string): Promise<Appointment 
 	return db.selectFrom('appointments').selectAll().where('id', '=', id).executeTakeFirst();
 }
 
+function getAppointment(db: Kysely<Database>, id: string): Promise<Appointment> {
+	return db.selectFrom('appointments').selectAll().where('id', '=', id).executeTakeFirstOrThrow();
+}
+
+// The caller holds the write transaction that checked eligibility.
+async function recordVideoChatGenerationRequest(
+	db: Kysely<Database>,
+	appointmentId: string
+): Promise<number> {
+	const updated = await db
+		.updateTable('appointments')
+		.set({
+			video_chat_request: 'generate',
+			calendar_revision: sql`calendar_revision + 1`,
+			updated_at: sql`CURRENT_TIMESTAMP`
+		})
+		.where('id', '=', appointmentId)
+		.where('video_chat_request', 'is not', 'generate')
+		.returning('calendar_revision')
+		.executeTakeFirst();
+	if (updated) return updated.calendar_revision;
+	const appointment = await getAppointment(db, appointmentId);
+	return appointment.calendar_revision;
+}
+
 function findChainTip(
 	db: Kysely<Database>,
 	chainOriginId: string
@@ -157,6 +182,8 @@ function createActionLog(entries: [ActionLogEntry, ...ActionLogEntry[]]): string
 export {
 	originId,
 	findAppointment,
+	getAppointment,
+	recordVideoChatGenerationRequest,
 	countAppointments,
 	listAppointmentsPage,
 	findChainTip,

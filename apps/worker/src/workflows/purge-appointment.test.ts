@@ -1,28 +1,41 @@
-import { expect, test, vi, beforeEach } from 'vitest';
-import { openDb, runMigrations } from '@when/db';
-import type { Database } from '@when/db';
-import { sql, type Kysely } from 'kysely';
+import { afterEach, expect, test, vi } from 'vitest';
+import { findAppointment, openDb, runMigrations, type Appointment } from '@when/db';
+import { sql } from 'kysely';
 import type { RetryPolicy } from 'openworkflow';
 import type { WhenConfiguration } from '@when/config';
-import type { PurgeAppointmentInput } from '@when/jobs';
 import { setWorkerContext } from '../services/context.js';
 import type { Logger } from '../services/logger.js';
 import { runPurgeAppointment } from './purge-appointment.js';
 
 const config = {
-	user: { name: 'Jane', email: 'jane@example.com', timezone: 'America/New_York' },
-	url: { app: 'https://when.example.com' },
 	providers: {
-		'work-dav': {
+		dav: {
 			type: 'caldav',
 			url: 'https://cal.example.com/work/',
 			username: 'u',
 			password: 'p',
 			calendars: { work: { href: 'https://cal.example.com/work/' } }
+		},
+		talk: {
+			type: 'nextcloud',
+			url: 'https://talk.example.com',
+			username: 'u',
+			password: 'p',
+			calendars: {}
 		}
 	},
-	meetings: {}
+	meetings: { chat: { video_chat: { provider: 'talk' } } }
 } as unknown as WhenConfiguration;
+
+const input = {
+	rows: [{ id: 'purged', externalEventId: 'event', externalCalendarId: 'work' }]
+};
+const databases: ReturnType<typeof openDb>[] = [];
+
+afterEach(async () => {
+	vi.restoreAllMocks();
+	for (const db of databases.splice(0)) await db.destroy();
+});
 
 function makeStep() {
 	const names: string[] = [];
@@ -34,217 +47,276 @@ function makeStep() {
 		): Promise<T> => {
 			names.push(cfg.name);
 			policies.push(cfg.retryPolicy);
-			return fn();
+			const result = await fn();
+			return result;
 		}
 	};
 	return { step, names, policies };
 }
 
-function recordingFetch(status = 204) {
-	const calls: { method: string; url: string }[] = [];
-	vi.spyOn(globalThis, 'fetch').mockImplementation(
-		async (url: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) => {
-			calls.push({ method: (init?.method as string) ?? 'GET', url: String(url) });
-			return new Response(null, { status });
-		}
-	);
-	return { calls };
-}
-
-beforeEach(() => {
-	vi.restoreAllMocks();
-});
-
-const appt = (over: Record<string, unknown>) => ({
-	id: 'a',
-	event_type_id: 'chat',
-	start_time: '2026-05-01T10:00:00Z',
-	end_time: '2026-05-01T10:30:00Z',
-	guest_name: 'A',
-	guest_email: 'a@example.com',
-	guest_timezone: 'UTC',
-	location: null,
-	status: 'purged' as const,
-	cancel_token: 't',
-	external_event_id: null,
-	external_calendar_id: null,
-	calendar_revision: 0,
-	ics_sequence: 0,
-	has_possible_conflict: 0,
-	meeting_snapshot: null,
-	guest_answers: null,
-	created_at: '',
-	updated_at: '',
-	...over
-});
-
-async function seedDb(rows: Record<string, unknown>[]): Promise<Kysely<Database>> {
+async function setup(
+	extra: (Partial<Appointment> & { id: string })[] = [],
+	contextConfig = config
+) {
 	const db = openDb(':memory:');
+	databases.push(db);
 	await runMigrations(db);
-	for (const row of rows) {
-		await db.insertInto('appointments').values(appt(row)).execute();
+	for (const row of [{ id: 'purged' }, ...extra]) {
+		await db
+			.insertInto('appointments')
+			.values({
+				event_type_id: 'chat',
+				start_time: '2026-05-01T10:00:00Z',
+				end_time: '2026-05-01T10:30:00Z',
+				guest_name: 'Guest',
+				guest_email: 'guest@example.com',
+				guest_timezone: 'UTC',
+				status: 'purged',
+				cancel_token: `token-${row.id}`,
+				external_event_id: 'event',
+				external_calendar_id: 'work',
+				video_chat: 'https://talk.example.com/call/room',
+				created_at: '',
+				updated_at: '',
+				...row
+			})
+			.execute();
 	}
-	return db;
+	const logger = { warn: vi.fn(), info: vi.fn(), debug: vi.fn(), error: vi.fn() };
+	setWorkerContext({
+		config: contextConfig,
+		db,
+		logger: logger as unknown as Logger,
+		mailer: { send: vi.fn() }
+	});
+	return { db, logger };
 }
 
-function useContext(db: Kysely<Database>) {
-	const warn = vi.fn();
-	const logger = { warn, info: vi.fn(), debug: vi.fn(), error: vi.fn() } as unknown as Logger;
-	setWorkerContext({ config, db, logger, mailer: { send: async () => ({ ok: true }) } });
-	return { warn };
+function provider(calendarStatus = 204, videoStatus = 204) {
+	const calls: { method: string; url: string }[] = [];
+	vi.spyOn(globalThis, 'fetch').mockImplementation(async (url, init) => {
+		calls.push({ method: init?.method ?? 'GET', url: String(url) });
+		const status = String(url).includes('cal.example.com') ? calendarStatus : videoStatus;
+		return new Response(null, { status });
+	});
+	return calls;
 }
 
-async function exists(db: Kysely<Database>, id: string): Promise<boolean> {
-	const row = await db
-		.selectFrom('appointments')
-		.select('id')
-		.where('id', '=', id)
-		.executeTakeFirst();
-	return !!row;
-}
-
-test('reachable calendar: deletes the remote event and the row', async () => {
-	const db = await seedDb([
-		{ id: '1', cancel_token: 't1', external_event_id: '1', external_calendar_id: 'work' }
+test('remote cleanup precedes booking deletion and local deletion; calendar keeps its retry budget', async () => {
+	const { db, logger } = await setup();
+	const calls = provider();
+	const { step, names, policies } = makeStep();
+	const result = await runPurgeAppointment(input, step);
+	const row = await findAppointment(db, 'purged');
+	expect(result).toBe('purged');
+	expect(names).toEqual(['video-chat-cleanup:purged', 'calendar:purged', 'delete:purged']);
+	expect(policies).toEqual([
+		undefined,
+		{ maximumAttempts: 30, initialInterval: '1m', backoffCoefficient: 2, maximumInterval: '1h' },
+		undefined
 	]);
-	try {
-		const { warn } = useContext(db);
-		const { calls } = recordingFetch(204);
-		const input: PurgeAppointmentInput = {
-			rows: [{ id: '1', externalEventId: '1', externalCalendarId: 'work' }]
-		};
-		const { step, names, policies } = makeStep();
-
-		expect(await runPurgeAppointment(input, step)).toBe('purged');
-		expect(policies).toEqual([
-			{
-				maximumAttempts: 30,
-				initialInterval: '1m',
-				backoffCoefficient: 2,
-				maximumInterval: '1h'
-			},
-			undefined,
-			undefined
-		]);
-		expect(calls.some((c) => c.method === 'DELETE')).toBe(true);
-		expect(names).toEqual(['calendar:1', 'video-chat-cleanup:1', 'delete:1']);
-		expect(await exists(db, '1')).toBe(false);
-		expect(warn).not.toHaveBeenCalled();
-	} finally {
-		await db.destroy();
-	}
+	expect(calls.map((call) => new URL(call.url).hostname)).toEqual([
+		'talk.example.com',
+		'cal.example.com'
+	]);
+	expect(row).toBeUndefined();
+	expect(logger.warn).not.toHaveBeenCalled();
 });
 
-test('calendar failure escapes without cleanup, deletion or an orphan warning', async () => {
-	const db = await seedDb([
-		{ id: '1', cancel_token: 't1', external_event_id: '1', external_calendar_id: 'work' }
-	]);
-	try {
-		const { warn } = useContext(db);
-		recordingFetch(500);
-		const input: PurgeAppointmentInput = {
-			rows: [{ id: '1', externalEventId: '1', externalCalendarId: 'work' }]
-		};
-
-		const { step, names } = makeStep();
-		await expect(runPurgeAppointment(input, step)).rejects.toThrow();
-		expect(names).toEqual(['calendar:1']);
-		expect(warn).not.toHaveBeenCalled();
-		expect(await exists(db, '1')).toBe(true);
-	} finally {
-		await db.destroy();
-	}
+test('unconfirmed calendar deletion retains the row and its selected cleanup evidence', async () => {
+	const { db } = await setup();
+	provider(500);
+	const { step, names } = makeStep();
+	await expect(runPurgeAppointment(input, step)).rejects.toThrow();
+	const row = await findAppointment(db, 'purged');
+	expect(names).toEqual(['video-chat-cleanup:purged', 'calendar:purged']);
+	expect(row?.video_chat).toBe('https://talk.example.com/call/room');
+	expect(row?.external_event_id).toBe('event');
 });
 
-test('no remote event: no calendar call, row still deleted', async () => {
-	const db = await seedDb([{ id: '1', cancel_token: 't1' }]);
-	try {
-		useContext(db);
-		const { calls } = recordingFetch();
-		const input: PurgeAppointmentInput = {
-			rows: [{ id: '1', externalEventId: null, externalCalendarId: null }]
-		};
-		const { step, names } = makeStep();
-
-		await runPurgeAppointment(input, step);
-		expect(calls).toHaveLength(0);
-		expect(names).toEqual(['video-chat-cleanup:1', 'delete:1']);
-		expect(await exists(db, '1')).toBe(false);
-	} finally {
-		await db.destroy();
-	}
+test('active inherited booking and canonical room references survive purge', async () => {
+	const { db } = await setup([
+		{
+			id: 'successor',
+			status: 'pending',
+			video_chat_request: 'suppress',
+			video_chat: 'https://TALK.example.com:443/call/%72oom?join=1'
+		}
+	]);
+	const calls = provider();
+	const result = await runPurgeAppointment(input, makeStep().step);
+	const purged = await findAppointment(db, 'purged');
+	const successor = await findAppointment(db, 'successor');
+	expect(result).toBe('purged');
+	expect(calls).toEqual([]);
+	expect(purged).toBeUndefined();
+	expect(successor?.external_event_id).toBe('event');
 });
 
-test('purges every row in the chain', async () => {
-	const db = await seedDb([
-		{ id: 'old', cancel_token: 't1' },
-		{ id: 'new', cancel_token: 't2', external_event_id: '1', external_calendar_id: 'work' }
+test('active suppressed successor with no selected URI still protects the booking', async () => {
+	await setup([
+		{ id: 'successor', status: 'confirmed', video_chat: null, video_chat_request: 'suppress' }
 	]);
-	try {
-		useContext(db);
-		recordingFetch(204);
-		const input: PurgeAppointmentInput = {
-			rows: [
-				{ id: 'old', externalEventId: null, externalCalendarId: null },
-				{ id: 'new', externalEventId: '1', externalCalendarId: 'work' }
-			]
-		};
+	const calls = provider();
+	await runPurgeAppointment(input, makeStep().step);
+	expect(calls).toHaveLength(1);
+	expect(new URL(calls[0].url).hostname).toBe('talk.example.com');
+});
 
-		await runPurgeAppointment(input, makeStep().step);
-		expect(await exists(db, 'old')).toBe(false);
-		expect(await exists(db, 'new')).toBe(false);
-	} finally {
-		await db.destroy();
-	}
+test('standalone room failure remains best effort', async () => {
+	const { db, logger } = await setup();
+	provider(204, 500);
+	const result = await runPurgeAppointment(input, makeStep().step);
+	const row = await findAppointment(db, 'purged');
+	expect(result).toBe('purged');
+	expect(row).toBeUndefined();
+	expect(logger.warn).toHaveBeenCalledTimes(1);
+});
+
+test('no remote booking: cleanup then delete without a calendar call', async () => {
+	const { db } = await setup();
+	await db
+		.updateTable('appointments')
+		.set({ external_event_id: null, external_calendar_id: null })
+		.execute();
+	const calls = provider();
+	const { step, names } = makeStep();
+	await runPurgeAppointment(
+		{ rows: [{ id: 'purged', externalEventId: null, externalCalendarId: null }] },
+		step
+	);
+	expect(names).toEqual(['video-chat-cleanup:purged', 'calendar:purged', 'delete:purged']);
+	expect(calls).toHaveLength(1);
 });
 
 test('opaque step rejection escapes unchanged', async () => {
-	const db = await seedDb([{ id: '1' }]);
-	try {
-		const { warn } = useContext(db);
-		const rejection = new Error('opaque step rejection');
-		const run = vi.fn().mockRejectedValue(rejection);
-		await expect(
-			runPurgeAppointment(
-				{ rows: [{ id: '1', externalEventId: '1', externalCalendarId: 'work' }] },
-				{ run }
-			)
-		).rejects.toBe(rejection);
-		expect(run).toHaveBeenCalledTimes(1);
-		expect(warn).not.toHaveBeenCalled();
-		expect(await exists(db, '1')).toBe(true);
-	} finally {
-		await db.destroy();
-	}
+	const { db } = await setup();
+	const rejection = new Error('opaque step rejection');
+	const run = vi.fn().mockRejectedValue(rejection);
+	await expect(runPurgeAppointment(input, { run })).rejects.toBe(rejection);
+	const row = await findAppointment(db, 'purged');
+	expect(run).toHaveBeenCalledTimes(1);
+	expect(row).toBeDefined();
 });
 
-test.each(['video cleanup', 'local delete'])(
-	'%s database failure escapes and retains the row',
-	async (stage) => {
-		const videoChatUrl = stage === 'video cleanup' ? 'https://talk.example.com/call/room' : null;
-		const db = await seedDb([{ id: '1', video_chat: videoChatUrl }]);
-		try {
-			useContext(db);
-			const operation = stage === 'video cleanup' ? 'UPDATE' : 'DELETE';
-			await sql
-				.raw(
-					`CREATE TRIGGER fail_cleanup BEFORE ${operation} ON appointments
-			BEGIN SELECT RAISE(FAIL, 'local cleanup failed'); END`
-				)
-				.execute(db);
-			const { step, names } = makeStep();
-			await expect(
-				runPurgeAppointment(
-					{ rows: [{ id: '1', externalEventId: null, externalCalendarId: null }] },
-					step
-				)
-			).rejects.toThrow('local cleanup failed');
-			expect(names).toEqual(
-				stage === 'video cleanup' ? ['video-chat-cleanup:1'] : ['video-chat-cleanup:1', 'delete:1']
-			);
-			expect(await exists(db, '1')).toBe(true);
-		} finally {
-			await db.destroy();
+test('local deletion failure escapes and retains the row', async () => {
+	const { db } = await setup();
+	provider();
+	await sql
+		.raw(
+			`CREATE TRIGGER fail_cleanup BEFORE DELETE ON appointments
+		BEGIN SELECT RAISE(FAIL, 'local cleanup failed'); END`
+		)
+		.execute(db);
+	await expect(runPurgeAppointment(input, makeStep().step)).rejects.toThrow('local cleanup failed');
+	const row = await findAppointment(db, 'purged');
+	expect(row?.video_chat).toBe('https://talk.example.com/call/room');
+});
+
+const googleConfig = {
+	providers: {
+		google: {
+			type: 'google',
+			client_id: 'purge-test',
+			client_secret: 'secret',
+			refresh_token: 'refresh',
+			calendars: { work: { id: 'primary' } }
+		},
+		talk: config.providers.talk
+	},
+	meetings: { chat: { video_chat: { provider: 'google' } } }
+} as unknown as WhenConfiguration;
+
+test.each([204, 404, 500])(
+	'Google booking deletion subsumes conference cleanup: HTTP %s',
+	async (status) => {
+		const nativeUrl = 'https://meet.google.com/aaa-bbbb-ccc';
+		const { db } = await setup([], googleConfig);
+		await db.updateTable('appointments').set({ video_chat: nativeUrl }).execute();
+		const calls: string[] = [];
+		vi.spyOn(globalThis, 'fetch').mockImplementation(async (url, init) => {
+			if (String(url).includes('oauth2.googleapis.com/token')) {
+				return Response.json({ access_token: 'access', expires_in: 3600 });
+			}
+			calls.push(init?.method ?? 'GET');
+			return new Response(null, { status });
+		});
+		if (status === 500) {
+			await expect(runPurgeAppointment(input, makeStep().step)).rejects.toThrow();
+		} else {
+			const result = await runPurgeAppointment(input, makeStep().step);
+			expect(result).toBe('purged');
 		}
+		const row = await findAppointment(db, 'purged');
+		expect(calls).toEqual(['DELETE']);
+		if (status === 500) expect(row?.video_chat).toBe(nativeUrl);
+		else expect(row).toBeUndefined();
 	}
 );
+
+test('an active Google booking reference protects its conference without reading/detaching it', async () => {
+	const { db } = await setup(
+		[{ id: 'successor', status: 'pending', video_chat: null, video_chat_request: 'suppress' }],
+		googleConfig
+	);
+	const calls = provider();
+	await runPurgeAppointment(input, makeStep().step);
+	const purged = await findAppointment(db, 'purged');
+	const successor = await findAppointment(db, 'successor');
+	expect(calls).toEqual([]);
+	expect(purged).toBeUndefined();
+	expect(successor?.external_event_id).toBe('event');
+});
+
+test.each([null, 'stale-event'])(
+	'current booking reference overrides the enqueue snapshot: %s',
+	async (snapshotEvent) => {
+		const { db } = await setup();
+		await db.updateTable('appointments').set({ external_event_id: 'late-booking' }).execute();
+		const calls = provider();
+		await runPurgeAppointment(
+			{
+				rows: [
+					{
+						id: 'purged',
+						externalEventId: snapshotEvent,
+						externalCalendarId: snapshotEvent ? 'stale-calendar' : null
+					}
+				]
+			},
+			makeStep().step
+		);
+		expect(calls).toHaveLength(2);
+		expect(calls[1].url).toContain('/work/late-booking.ics');
+	}
+);
+
+test('a current row without a booking does not revive a stale input reference', async () => {
+	const { db } = await setup();
+	await db
+		.updateTable('appointments')
+		.set({ external_event_id: null, external_calendar_id: null })
+		.execute();
+	const calls = provider();
+	await runPurgeAppointment(input, makeStep().step);
+	expect(calls).toHaveLength(1);
+	expect(new URL(calls[0].url).hostname).toBe('talk.example.com');
+});
+
+test('missing current row falls back to the input booking reference', async () => {
+	const { db } = await setup();
+	await db.deleteFrom('appointments').execute();
+	const calls = provider();
+	await runPurgeAppointment(input, makeStep().step);
+	expect(calls).toHaveLength(1);
+	expect(calls[0].url).toContain('/work/event.ics');
+});
+
+test('active references protect the current booking, not merely the stale snapshot', async () => {
+	const { db } = await setup([{ id: 'successor', status: 'pending', video_chat: null }]);
+	await db.updateTable('appointments').set({ external_event_id: 'late-booking' }).execute();
+	const calls = provider();
+	await runPurgeAppointment(input, makeStep().step);
+	expect(calls).toHaveLength(1);
+	expect(new URL(calls[0].url).hostname).toBe('talk.example.com');
+});

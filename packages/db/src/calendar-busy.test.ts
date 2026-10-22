@@ -9,6 +9,7 @@ import {
 	setPossibleConflicts,
 	listOutOfSyncAppointments,
 	recordCalendarEventReference,
+	recordCalendarEventDeletion,
 	listActiveAppointmentsForCalendarEvent,
 	markSynced
 } from './calendar-busy.js';
@@ -177,9 +178,11 @@ test('getBusyIntervals returns [] for no calendars', async () => {
 		await replaceCalendarBusy(db, 'work', [
 			{ start: '2026-05-01T09:00:00Z', end: '2026-05-01T10:00:00Z' }
 		]);
-		expect(
-			await getBusyIntervals(db, [], { start: '2026-05-01T00:00:00Z', end: '2026-05-02T00:00:00Z' })
-		).toEqual([]);
+		const intervals = await getBusyIntervals(db, [], {
+			start: '2026-05-01T00:00:00Z',
+			end: '2026-05-02T00:00:00Z'
+		});
+		expect(intervals).toEqual([]);
 	} finally {
 		await db.destroy();
 	}
@@ -316,37 +319,170 @@ test('listOutOfSyncAppointments returns rows whose revision differs from synced,
 	}
 });
 
-test('markSynced sets the synced revision and any provided fields, leaving others untouched', async () => {
+test.each([
+	['current', 2, 'confirmed', 2],
+	['stale', 3, 'confirmed', 1],
+	['purged', 2, 'purged', 1]
+] as const)(
+	'markSynced only updates sync evidence for a current non-purged row: %s',
+	async (_name, revision, status, synced) => {
+		const db = await freshDb();
+		try {
+			await db
+				.insertInto('appointments')
+				.values(
+					appt({
+						calendar_revision: revision,
+						calendar_synced_revision: 1,
+						status,
+						external_event_id: 'event',
+						external_calendar_id: 'work',
+						video_chat: 'sip:selected@example.com',
+						video_chat_request: 'suppress'
+					})
+				)
+				.execute();
+			const before = await db.selectFrom('appointments').selectAll().executeTakeFirstOrThrow();
+			await markSynced(db, 'a', 2, { calendarId: 'work', eventId: 'event' });
+			const after = await db.selectFrom('appointments').selectAll().executeTakeFirstOrThrow();
+			expect(after).toEqual({ ...before, calendar_synced_revision: synced });
+		} finally {
+			await db.destroy();
+		}
+	}
+);
+
+test.each([
+	['matching pair', 'work', 'event', 'work', 'event', true],
+	['changed calendar', 'other', 'event', 'work', 'event', false],
+	['changed event', 'work', 'other', 'work', 'event', false],
+	['matching empty pair', null, null, null, null, true],
+	['matching calendar only', 'work', null, 'work', null, true],
+	['matching event only', null, 'event', null, 'event', true],
+	['calendar filled since receipt', 'work', 'event', null, 'event', false],
+	['event filled since receipt', 'work', 'event', 'work', null, false],
+	['calendar cleared since receipt', null, 'event', 'work', 'event', false],
+	['event cleared since receipt', 'work', null, 'work', 'event', false]
+] as const)(
+	'markSynced requires a null-safe reference match: %s',
+	async (_name, calendarId, eventId, expectedCalendarId, expectedEventId, matches) => {
+		const db = await freshDb();
+		try {
+			await db
+				.insertInto('appointments')
+				.values(
+					appt({
+						calendar_revision: 2,
+						calendar_synced_revision: 1,
+						external_calendar_id: calendarId,
+						external_event_id: eventId
+					})
+				)
+				.execute();
+			const before = await db.selectFrom('appointments').selectAll().executeTakeFirstOrThrow();
+
+			await markSynced(db, 'a', 2, {
+				calendarId: expectedCalendarId,
+				eventId: expectedEventId
+			});
+
+			const after = await db.selectFrom('appointments').selectAll().executeTakeFirstOrThrow();
+			expect(after).toEqual({ ...before, calendar_synced_revision: matches ? 2 : 1 });
+		} finally {
+			await db.destroy();
+		}
+	}
+);
+
+const reference = { calendarId: 'work', eventId: 'event' };
+
+test.each([
+	['current pair and revision', 2, 'cancelled', 'work', 'event', true],
+	['stale revision', 3, 'cancelled', 'work', 'event', false],
+	['changed calendar', 2, 'cancelled', 'other', 'event', false],
+	['changed event', 2, 'cancelled', 'work', 'other', false],
+	['missing calendar', 2, 'cancelled', null, 'event', false],
+	['missing event', 2, 'cancelled', 'work', null, false],
+	['purged row', 2, 'purged', 'work', 'event', false]
+] as const)(
+	'deletion receipt requires the current complete pair and revision: %s',
+	async (_name, revision, status, calendarId, eventId, matches) => {
+		const db = await freshDb();
+		try {
+			await db
+				.insertInto('appointments')
+				.values(
+					appt({
+						status,
+						calendar_revision: revision,
+						calendar_synced_revision: 1,
+						external_calendar_id: calendarId,
+						external_event_id: eventId,
+						ics_sequence: 4,
+						video_chat: 'https://selected.example/room',
+						video_chat_request: 'suppress'
+					})
+				)
+				.execute();
+			const before = await db.selectFrom('appointments').selectAll().executeTakeFirstOrThrow();
+
+			await recordCalendarEventDeletion(db, 'a', 2, reference);
+
+			const after = await db.selectFrom('appointments').selectAll().executeTakeFirstOrThrow();
+			expect(after).toEqual(
+				matches
+					? {
+							...before,
+							external_calendar_id: null,
+							external_event_id: null,
+							calendar_synced_revision: 2
+						}
+					: before
+			);
+		} finally {
+			await db.destroy();
+		}
+	}
+);
+
+test('replaying a deletion receipt is a no-op and cannot acknowledge a replacement reference', async () => {
 	const db = await freshDb();
 	try {
 		await db
 			.insertInto('appointments')
-			.values(appt({ id: '1', cancel_token: 'a' }))
+			.values(
+				appt({
+					status: 'cancelled',
+					calendar_revision: 2,
+					calendar_synced_revision: 1,
+					external_calendar_id: reference.calendarId,
+					external_event_id: reference.eventId
+				})
+			)
 			.execute();
-		await markSynced(db, '1', 2, { external_event_id: 'ext', external_calendar_id: 'cal' });
-		let row = await db
-			.selectFrom('appointments')
-			.selectAll()
-			.where('id', '=', '1')
-			.executeTakeFirstOrThrow();
-		expect(row.calendar_synced_revision).toBe(2);
-		expect(row.external_event_id).toBe('ext');
-		expect(row.external_calendar_id).toBe('cal');
+		await recordCalendarEventDeletion(db, 'a', 2, reference);
+		const recorded = await db.selectFrom('appointments').selectAll().executeTakeFirstOrThrow();
 
-		await markSynced(db, '1', 3);
-		row = await db
-			.selectFrom('appointments')
-			.selectAll()
-			.where('id', '=', '1')
-			.executeTakeFirstOrThrow();
-		expect(row.calendar_synced_revision).toBe(3);
-		expect(row.external_event_id).toBe('ext');
+		await recordCalendarEventDeletion(db, 'a', 2, reference);
+
+		const replayed = await db.selectFrom('appointments').selectAll().executeTakeFirstOrThrow();
+		expect(replayed).toEqual(recorded);
+		expect(replayed.calendar_synced_revision).toBe(2);
+		expect(replayed.external_calendar_id).toBeNull();
+		expect(replayed.external_event_id).toBeNull();
+
+		await recordCalendarEventReference(db, 'a', { calendarId: 'work', eventId: 'replacement' });
+		const replacement = await db.selectFrom('appointments').selectAll().executeTakeFirstOrThrow();
+		expect(replacement.calendar_synced_revision).toBeNull();
+
+		await recordCalendarEventDeletion(db, 'a', 2, reference);
+
+		const after = await db.selectFrom('appointments').selectAll().executeTakeFirstOrThrow();
+		expect(after).toEqual(replacement);
 	} finally {
 		await db.destroy();
 	}
 });
-
-const reference = { calendarId: 'work', eventId: 'event' };
 
 test('recording a new calendar reference invalidates only sync evidence', async () => {
 	const db = await freshDb();
