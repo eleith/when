@@ -13,7 +13,9 @@ const h = vi.hoisted(() => ({
 	parseForm: vi.fn(),
 	resolveTimezone: vi.fn(() => 'UTC'),
 	validateReason: vi.fn(),
-	resolveDuration: vi.fn()
+	resolveDuration: vi.fn(),
+	toPublicAppointment: vi.fn(),
+	toPublicEventType: vi.fn()
 }));
 
 vi.mock('$lib/server/state', () => ({ getConfig: () => validConfig, getDb: () => h.db }));
@@ -46,8 +48,8 @@ vi.mock('$lib/server/appointment/form.server', async (io) => {
 });
 vi.mock('$lib/server/appointment/duration', () => ({ resolveDuration: h.resolveDuration }));
 vi.mock('$lib/server/appointment/sanitize', () => ({
-	toPublicAppointment: (row: Appointment) => ({ id: row.id }),
-	toPublicEventType: (et: { name: string }) => ({ name: et.name })
+	toPublicAppointment: h.toPublicAppointment,
+	toPublicEventType: h.toPublicEventType
 }));
 vi.mock('@when/config', async (io) => {
 	const original = await io<typeof import('@when/config')>();
@@ -84,10 +86,11 @@ function loadEvent(token = 'tok-1', session: unknown = null): Parameters<typeof 
 	} as unknown as Parameters<typeof load>[0];
 }
 
-function bookEvent(fd: FormData): Parameters<typeof actions.default>[0] {
+function bookEvent(fd: FormData, session: unknown = null): Parameters<typeof actions.default>[0] {
 	return {
 		request: { formData: async () => fd },
 		params: { id: 'appt-1' },
+		locals: { auth: vi.fn().mockResolvedValue(session) },
 		cookies: { set: vi.fn() }
 	} as unknown as Parameters<typeof actions.default>[0];
 }
@@ -124,6 +127,8 @@ beforeEach(() => {
 	h.resolveTimezone.mockReturnValue('UTC');
 	h.validateReason.mockReturnValue({ ok: true, reason: null });
 	h.resolveDuration.mockReturnValue(30);
+	h.toPublicAppointment.mockReturnValue({ id: 'appt-1' });
+	h.toPublicEventType.mockReturnValue({ slug: '30-min-chat' });
 });
 
 describe('/appointment/[id]/reschedule load', () => {
@@ -136,22 +141,33 @@ describe('/appointment/[id]/reschedule load', () => {
 	});
 
 	test.for([
-		{ viewer: 'guest', session: null, isAdmin: false },
-		{ viewer: 'host', session: { user: { name: 'Host' } }, isAdmin: true }
+		{ role: 'guest', session: null },
+		{ role: 'host', session: { user: { name: 'Host' } } }
 	])(
-		'returns the appointment and loads $viewer availability excluding self',
-		async ({ viewer, session, isAdmin }) => {
+		'returns the appointment and loads $role availability excluding self',
+		async ({ role, session }) => {
 			const loaded = await load(loadEvent('tok-1', session));
 			const result = loaded as LoadResult;
 			expect(result.reschedule.appt).toEqual({ id: 'appt-1' });
 			expect(result.reschedule.error).toBeNull();
-			expect(result.isAdmin).toBe(isAdmin);
+			expect(result.reschedule.token).toBe('tok-1');
+			expect(result.eventType).toEqual({ slug: '30-min-chat' });
+			expect(h.toPublicAppointment).toHaveBeenCalledExactlyOnceWith(h.row.current, role);
+			expect(h.toPublicEventType).toHaveBeenCalledExactlyOnceWith(
+				'30-min-chat',
+				validConfig.meetings['30-min-chat'],
+				role
+			);
+			expect(result.role).toBe(role);
+			expect(result).not.toHaveProperty('viewer');
+			expect(result).not.toHaveProperty('isAdmin');
+			expect(result).not.toHaveProperty('isHost');
 			expect(h.loadAvailability).toHaveBeenCalledExactlyOnceWith(
 				h.db,
 				validConfig,
 				'30-min-chat',
 				validConfig.meetings['30-min-chat'],
-				viewer,
+				role,
 				CURRENT
 			);
 		}
@@ -239,7 +255,7 @@ describe('/appointment/[id]/reschedule book action', () => {
 	test('ignores forged host flags and checks guest availability excluding self', async () => {
 		h.parseForm.mockReturnValue({ ok: true, data: {} });
 		h.isRescheduleSlotBookable.mockResolvedValue(false);
-		const result = await book(form({ viewer: 'host', isAdmin: 'true' }));
+		const result = await book(form({ viewer: 'host', role: 'host', isAdmin: 'true' }));
 		expect(result.status).toBe(409);
 		expect(h.isRescheduleSlotBookable).toHaveBeenCalledExactlyOnceWith(
 			h.db,
@@ -254,35 +270,43 @@ describe('/appointment/[id]/reschedule book action', () => {
 		expect(h.reschedule).not.toHaveBeenCalled();
 	});
 
-	test('reschedules and redirects to the new row on success', async () => {
-		h.parseForm.mockReturnValue({ ok: true, data: {} });
-		h.resolveDuration.mockReturnValue(60);
-		h.reschedule.mockResolvedValue({
-			ok: true,
-			appointment: { id: 'appt-2', cancel_token: 'tok-2' }
-		});
-		const r = await caught(() => actions.default(bookEvent(form())));
-		expect(r.status).toBe(303);
-		expect(r.location).toBe('/appointment/appt-2?token=tok-2');
-		expect(h.isRescheduleSlotBookable).toHaveBeenCalledExactlyOnceWith(
-			h.db,
-			validConfig,
-			'30-min-chat',
-			validConfig.meetings['30-min-chat'],
-			'guest',
-			NEW_SLOT,
-			60,
-			CURRENT
-		);
-		expect(h.reschedule).toHaveBeenCalledWith(
-			expect.anything(),
-			expect.objectContaining({
-				newStart: NEW_SLOT,
-				newEnd: '2099-05-02T17:00:00Z',
-				initiator: 'guest'
-			})
-		);
-	});
+	test.for([false, true])(
+		'reschedules as guest even with forged host fields: %s',
+		async (forged) => {
+			h.parseForm.mockReturnValue({ ok: true, data: {} });
+			h.resolveDuration.mockReturnValue(60);
+			h.reschedule.mockResolvedValue({
+				ok: true,
+				appointment: { id: 'appt-2', cancel_token: 'tok-2' }
+			});
+			const session = forged ? { user: { name: 'Host' } } : null;
+			const event = bookEvent(
+				form(forged ? { viewer: 'host', role: 'host', isAdmin: 'true' } : {}),
+				session
+			);
+			const r = await caught(() => actions.default(event));
+			expect(r.status).toBe(303);
+			expect(r.location).toBe('/appointment/appt-2?token=tok-2');
+			expect(h.isRescheduleSlotBookable).toHaveBeenCalledExactlyOnceWith(
+				h.db,
+				validConfig,
+				'30-min-chat',
+				validConfig.meetings['30-min-chat'],
+				'guest',
+				NEW_SLOT,
+				60,
+				CURRENT
+			);
+			expect(h.reschedule).toHaveBeenCalledWith(
+				expect.anything(),
+				expect.objectContaining({
+					newStart: NEW_SLOT,
+					newEnd: '2099-05-02T17:00:00Z',
+					initiator: 'guest'
+				})
+			);
+		}
+	);
 
 	test('409 when the reschedule loses the slot race', async () => {
 		h.parseForm.mockReturnValue({ ok: true, data: {} });

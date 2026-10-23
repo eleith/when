@@ -45,10 +45,11 @@ function loadEvent(search: string, session: unknown = null): Parameters<typeof l
 	} as unknown as Parameters<typeof load>[0];
 }
 
-function bookEvent(fd: FormData): Parameters<typeof actions.default>[0] {
+function bookEvent(fd: FormData, session: unknown = null): Parameters<typeof actions.default>[0] {
 	return {
 		request: { formData: async () => fd },
 		params: { slug: '30-min-chat' },
+		locals: { auth: vi.fn().mockResolvedValue(session) },
 		cookies: { set: vi.fn() }
 	} as unknown as Parameters<typeof actions.default>[0];
 }
@@ -112,24 +113,33 @@ describe('/schedule/[slug] load — deep-link canonicalization', () => {
 	});
 
 	test.for([
-		{ viewer: 'guest', session: null, isAdmin: false },
-		{ viewer: 'host', session: { user: { name: 'Host' } }, isAdmin: true }
-	])(
-		'returns canonical page data and loads $viewer availability',
-		async ({ viewer, session, isAdmin }) => {
-			const loaded = await load(loadEvent(`?slot=${SLOT}`, session));
-			const result = loaded as LoadResult;
-			expect(result.eventType.slug).toBe('30-min-chat');
-			expect(result.isAdmin).toBe(isAdmin);
-			expect(h.loadAvailability).toHaveBeenCalledExactlyOnceWith(
-				h.db,
-				h.cfg.current,
-				'30-min-chat',
-				h.cfg.current.meetings['30-min-chat'],
-				viewer
-			);
-		}
-	);
+		{ role: 'guest', session: null },
+		{ role: 'host', session: { user: { name: 'Host' } } }
+	])('returns canonical page data and loads $role availability', async ({ role, session }) => {
+		h.cfg.current = structuredClone(validConfig);
+		Object.assign(h.cfg.current.meetings['30-min-chat'], {
+			location: 'Private host location',
+			padding_before_minutes: 15,
+			padding_after_minutes: 10
+		});
+		const loaded = await load(loadEvent(`?slot=${SLOT}`, session));
+		const result = loaded as LoadResult;
+		expect(result.eventType.slug).toBe('30-min-chat');
+		expect(result.eventType.location).toBe(role === 'host' ? 'Private host location' : undefined);
+		expect(result.eventType.padding_before_minutes).toBe(role === 'host' ? 0 : 15);
+		expect(result.eventType.padding_after_minutes).toBe(role === 'host' ? 0 : 10);
+		expect(result.role).toBe(role);
+		expect(result).not.toHaveProperty('viewer');
+		expect(result).not.toHaveProperty('isAdmin');
+		expect(result).not.toHaveProperty('isHost');
+		expect(h.loadAvailability).toHaveBeenCalledExactlyOnceWith(
+			h.db,
+			h.cfg.current,
+			'30-min-chat',
+			h.cfg.current.meetings['30-min-chat'],
+			role
+		);
+	});
 });
 
 describe('/schedule/[slug] book action', () => {
@@ -209,6 +219,7 @@ describe('/schedule/[slug] book action', () => {
 		h.isNewSlotBookable.mockResolvedValue(false);
 		const fd = validForm();
 		fd.set('viewer', 'host');
+		fd.set('role', 'host');
 		fd.set('isAdmin', 'true');
 		const response = await actions.default(bookEvent(fd));
 		expect((response as Failure)?.status).toBe(409);
@@ -224,7 +235,7 @@ describe('/schedule/[slug] book action', () => {
 		expect(h.createAppointment).not.toHaveBeenCalled();
 	});
 
-	test('books and redirects to the new appointment on success', async () => {
+	test.for([false, true])('books as guest even with forged host fields: %s', async (forged) => {
 		h.parseForm.mockReturnValue(validGuest);
 		h.resolveDuration.mockReturnValue(60);
 		h.isNewSlotBookable.mockResolvedValue(true);
@@ -232,7 +243,15 @@ describe('/schedule/[slug] book action', () => {
 			ok: true,
 			appointment: { id: 'new-1', cancel_token: 'tok new' }
 		});
-		const r = await caught(() => actions.default(bookEvent(validForm())));
+		const fd = validForm();
+		if (forged) {
+			fd.set('viewer', 'host');
+			fd.set('role', 'host');
+			fd.set('isAdmin', 'true');
+		}
+		const session = forged ? { user: { name: 'Host' } } : null;
+		const event = bookEvent(fd, session);
+		const r = await caught(() => actions.default(event));
 		expect(r.status).toBe(303);
 		expect(r.location).toBe('/appointment/new-1?token=tok%20new');
 		expect(h.isNewSlotBookable).toHaveBeenCalledExactlyOnceWith(

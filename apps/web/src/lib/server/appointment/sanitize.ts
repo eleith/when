@@ -1,6 +1,7 @@
 import { durationsOf, parseGuestAnswers, type Meeting } from '@when/config';
 import { parseActionLog, type ActionLogEntry, type Appointment } from '@when/db';
 import { resolveAvailabilityLimits } from '../availability/settings';
+import type { AppointmentRole } from './actions';
 
 export interface PublicEventType extends Pick<
 	Meeting,
@@ -36,9 +37,9 @@ export interface PublicAppointment {
 export function toPublicEventType(
 	slug: string,
 	eventType: Meeting,
-	isAdmin: boolean
+	role: AppointmentRole
 ): PublicEventType {
-	const limits = resolveAvailabilityLimits(eventType, isAdmin ? 'host' : 'guest');
+	const limits = resolveAvailabilityLimits(eventType, role);
 	return {
 		slug,
 		title: eventType.title,
@@ -47,7 +48,7 @@ export function toPublicEventType(
 		description: eventType.description,
 		visibility: eventType.visibility,
 		require_approval: eventType.require_approval,
-		location: isAdmin ? eventType.location : undefined,
+		location: role === 'host' ? eventType.location : undefined,
 		show_slots: eventType.show_slots,
 		padding_before_minutes: limits.buffer_before,
 		padding_after_minutes: limits.buffer_after,
@@ -55,10 +56,10 @@ export function toPublicEventType(
 	};
 }
 
-export function toPublicAppointment(row: Appointment, isAdmin: boolean): PublicAppointment {
+export function toPublicAppointment(row: Appointment, role: AppointmentRole): PublicAppointment {
 	const action_log = parseActionLog(row.action_log);
 
-	if (isAdmin) {
+	if (role === 'host') {
 		return {
 			id: row.id,
 			start_time: row.start_time,

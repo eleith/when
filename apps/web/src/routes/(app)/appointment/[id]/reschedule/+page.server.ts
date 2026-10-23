@@ -6,6 +6,7 @@ import { resolveFormFields } from '@when/config';
 import { isRescheduleSlotBookable, loadAvailability } from '$lib/server/availability/booking';
 import { resolveDuration } from '$lib/server/appointment/duration';
 import { isViewAllowed } from '$lib/server/appointment/access';
+import type { AppointmentRole } from '$lib/server/appointment/actions';
 import { classifyReschedule, rescheduleAppointment } from '$lib/server/appointment/reschedule';
 import {
 	parseAndValidateAppointmentForm,
@@ -19,7 +20,7 @@ import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params, url, locals }) => {
 	const session = await locals.auth();
-	const isAdmin = !!session;
+	const role: AppointmentRole = session ? 'host' : 'guest';
 	const token = url.searchParams.get('token');
 	const now = systemClock.now();
 
@@ -46,20 +47,20 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 		cfg,
 		row.event_type_id,
 		eventType,
-		isAdmin ? 'host' : 'guest',
+		role,
 		row.start_time
 	);
 
 	return {
-		eventType: toPublicEventType(row.event_type_id, eventType, isAdmin),
+		eventType: toPublicEventType(row.event_type_id, eventType, role),
 		formFields: resolveFormFields(eventType),
 		availability: { slotsByDuration, workingWindows, busyBlocks },
 		reschedule: {
-			appt: rescheduleError ? null : toPublicAppointment(row, isAdmin),
+			appt: rescheduleError ? null : toPublicAppointment(row, role),
 			error: rescheduleError,
 			token
 		},
-		isAdmin
+		role
 	};
 };
 

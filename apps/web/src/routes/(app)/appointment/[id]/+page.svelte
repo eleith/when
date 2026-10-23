@@ -20,6 +20,8 @@
 
 	let { data, form } = $props();
 
+	const isHost = $derived(data.role === 'host');
+
 	let cancelDialogOpen = $state(false);
 	let editNoteDialogOpen = $state(false);
 	let editLocationDialogOpen = $state(false);
@@ -149,9 +151,9 @@
 		if (displayStatus === 'in_progress') return 'active';
 		return 'info';
 	});
-	let displayTz = $derived(data.isAdmin ? data.hostTz : data.guestTz);
-	let counterpartTz = $derived(data.isAdmin ? data.guestTz : data.hostTz);
-	let counterpartName = $derived(data.isAdmin ? data.appointment.guest_name : data.user.name);
+	let displayTz = $derived(isHost ? data.hostTz : data.guestTz);
+	let counterpartTz = $derived(isHost ? data.guestTz : data.hostTz);
+	let counterpartName = $derived(isHost ? data.appointment.guest_name : data.user.name);
 	let zonesDiffer = $derived(displayTz !== counterpartTz);
 	let hasActions = $derived(data.actions.cancel.allowed || data.actions.reschedule.allowed);
 	let showDecideCta = $derived(
@@ -213,7 +215,7 @@
 			{/if}
 		</div>
 		<h1 class="page-header-title">
-			{#if !data.isAdmin && data.flash}
+			{#if !isHost && data.flash}
 				{#if data.flash === 'request'}
 					{#if status === 'confirmed'}
 						Appointment created
@@ -292,12 +294,12 @@
 					<p class="event-meta">{data.eventType.description}</p>
 				{/if}
 			</div>
-			{#if (hasActions || data.isAdmin) && status !== 'purged'}
+			{#if (hasActions || isHost) && status !== 'purged'}
 				<AppointmentActions
 					actions={data.actions}
 					appointmentId={data.appointment.id}
 					token={data.token}
-					isAdmin={data.isAdmin}
+					role={data.role}
 					onCancel={() => (cancelDialogOpen = true)}
 					hasNote={!!data.appointment.note}
 					onEditNote={() => (editNoteDialogOpen = true)}
@@ -406,7 +408,7 @@
 				</div>
 			</div>
 			{#if data.appointment.location}
-				{#if data.isAdmin && isEditable}
+				{#if isHost && isEditable}
 					<button
 						type="button"
 						class="detail-row-button"
@@ -420,7 +422,7 @@
 						</div>
 						<span class="detail-edit-icon"><IconPencilSimple aria-hidden="true" /></span>
 					</button>
-				{:else if status === 'confirmed' || data.isAdmin}
+				{:else if status === 'confirmed' || isHost}
 					<div class="detail-row">
 						<span class="detail-icon"><IconMapPin aria-hidden="true" /></span>
 						<div class="detail-text">
@@ -429,7 +431,7 @@
 					</div>
 				{/if}
 			{/if}
-			{#if data.isAdmin && videoChatError}
+			{#if isHost && videoChatError}
 				<div class="detail-row" role="alert">
 					<span class="detail-icon"><IconWarningCircle aria-hidden="true" /></span>
 					<div class="detail-text">
@@ -440,7 +442,7 @@
 					</div>
 				</div>
 			{/if}
-			{#if data.isAdmin && data.videoChatRequested && !data.appointment.video_chat}
+			{#if isHost && data.videoChatRequested && !data.appointment.video_chat}
 				<div class="detail-row" role="status">
 					<span class="detail-icon"><IconVideo aria-hidden="true" /></span>
 					<div class="detail-text">
@@ -450,7 +452,7 @@
 				</div>
 			{/if}
 			{#if data.appointment.video_chat}
-				{#if data.isAdmin && isEditable}
+				{#if isHost && isEditable}
 					<button
 						type="button"
 						class="detail-row-button"
@@ -492,8 +494,7 @@
 				<div class="detail-text">
 					<div class="detail-primary">People</div>
 					<div class="detail-secondary">
-						{data.appointment
-							.guest_name}{#if data.isAdmin && data.appointment.guest_email}&nbsp;&lt;{data
+						{data.appointment.guest_name}{#if isHost && data.appointment.guest_email}&nbsp;&lt;{data
 								.appointment.guest_email}&gt;{/if}
 					</div>
 					<div class="detail-secondary">
@@ -502,7 +503,7 @@
 				</div>
 			</div>
 			{#if data.appointment.note}
-				{#if data.isAdmin && isEditable}
+				{#if isHost && isEditable}
 					<button
 						type="button"
 						class="detail-row-button"
@@ -532,7 +533,7 @@
 			<AppointmentQuestions answers={data.appointment.answers} />
 		{/if}
 
-		{#if data.isAdmin}
+		{#if isHost}
 			<AppointmentLog log={data.appointment.action_log} {displayTz} />
 		{/if}
 
@@ -564,7 +565,7 @@
 		{/if}
 	</article>
 
-	{#if data.isAdmin}
+	{#if isHost}
 		<div class="admin-footer-link">
 			<a href="/admin">Admin dashboard</a>
 		</div>
@@ -590,7 +591,7 @@
 					</Dialog.Title>
 
 					<p class="cancel-dialog-desc">
-						{#if data.isAdmin}
+						{#if isHost}
 							<strong>{data.appointment.guest_name}</strong> will be notified by email. This can't be
 							undone.
 						{:else}
@@ -600,7 +601,7 @@
 
 					<form
 						method="POST"
-						action={data.isAdmin
+						action={isHost
 							? `/admin/appointment/${data.appointment.id}?/cancel`
 							: `?token=${encodeURIComponent(data.token)}&/cancel`}
 					>

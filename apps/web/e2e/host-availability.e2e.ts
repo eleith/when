@@ -52,7 +52,7 @@ test('host adds beside a busy appointment despite guest buffers and daily cap', 
 	const before = await rowsForDay(day);
 	const blocked = await request.post(`/schedule/${slug}`, {
 		...postOptions,
-		form: { ...form, viewer: 'host', isAdmin: 'true' }
+		form: { ...form, viewer: 'host', role: 'host', isAdmin: 'true' }
 	});
 	const rejected = await blocked.json();
 	expect(rejected).toMatchObject({ type: 'failure', status: 409 });
@@ -60,6 +60,12 @@ test('host adds beside a busy appointment despite guest buffers and daily cap', 
 	expect(unchanged).toEqual(before);
 
 	await signInAsAdmin(page);
+	// A host session does not promote submissions to a guest action endpoint.
+	const hostOnGuestRoute = await page.request.post(`/schedule/${slug}`, { ...postOptions, form });
+	const guestRouteResult = await hostOnGuestRoute.json();
+	expect(guestRouteResult).toMatchObject({ type: 'failure', status: 409 });
+	const afterHostGuestPost = await rowsForDay(day);
+	expect(afterHostGuestPost).toEqual(before);
 	await page.goto(`/schedule/${slug}?date=${day}`);
 	const target = page.getByRole('radio', adjacentSlot);
 	await expect(target).toBeVisible();
@@ -137,7 +143,7 @@ test('host reschedules beside another meeting while the guest remains buffered',
 	const before = await rowsForDay(day);
 	const blocked = await request.post(publicPath, {
 		...postOptions,
-		form: { ...form, viewer: 'host', isAdmin: 'true' }
+		form: { ...form, viewer: 'host', role: 'host', isAdmin: 'true' }
 	});
 	const rejected = await blocked.json();
 	expect(rejected).toMatchObject({ type: 'failure', status: 409 });
@@ -145,6 +151,11 @@ test('host reschedules beside another meeting while the guest remains buffered',
 	expect(unchanged).toEqual(before);
 
 	await signInAsAdmin(page);
+	const hostOnGuestRoute = await page.request.post(publicPath, { ...postOptions, form });
+	const guestRouteResult = await hostOnGuestRoute.json();
+	expect(guestRouteResult).toMatchObject({ type: 'failure', status: 409 });
+	const afterHostGuestPost = await rowsForDay(day);
+	expect(afterHostGuestPost).toEqual(before);
 	await page.goto(`${publicPath}?token=${original.cancel_token}&date=${day}`);
 	await expect(page.getByRole('radio', adjacentSlot)).toBeVisible();
 	const overlap = await page.request.post(privatePath, {

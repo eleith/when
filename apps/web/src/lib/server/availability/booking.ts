@@ -9,7 +9,7 @@ import { loadAppointmentBlocks } from './blocks';
 import { resolveAvailabilitySettings } from './settings';
 import { buildBaseWindows, candidateDates } from './windows';
 import type { AvailabilitySettings } from './types';
-import type { Viewer } from '../appointment/actions';
+import type { AppointmentRole } from '../appointment/actions';
 
 export interface Availability {
 	settings: AvailabilitySettings;
@@ -24,7 +24,7 @@ export async function loadAvailability(
 	cfg: WhenConfiguration,
 	slug: string,
 	eventType: Meeting,
-	viewer: Viewer,
+	role: AppointmentRole,
 	excludeStart: string | null = null
 ): Promise<Availability> {
 	const { options, allowedDurations } = await readAvailabilityInputs(
@@ -32,7 +32,7 @@ export async function loadAvailability(
 		cfg,
 		slug,
 		eventType,
-		viewer,
+		role,
 		excludeStart
 	);
 	const { settings, rangeStart, rangeEnd, userTz } = options;
@@ -65,7 +65,7 @@ export async function isNewSlotBookable(
 	cfg: WhenConfiguration,
 	slug: string,
 	eventType: Meeting,
-	viewer: Viewer,
+	role: AppointmentRole,
 	slot: string,
 	duration: number
 ): Promise<boolean> {
@@ -75,7 +75,7 @@ export async function isNewSlotBookable(
 		cfg,
 		slug,
 		eventType,
-		viewer,
+		role,
 		null,
 		busyWindow
 	);
@@ -87,7 +87,7 @@ export async function isRescheduleSlotBookable(
 	cfg: WhenConfiguration,
 	slug: string,
 	eventType: Meeting,
-	viewer: Viewer,
+	role: AppointmentRole,
 	slot: string,
 	duration: number,
 	excludeStart: string
@@ -97,7 +97,7 @@ export async function isRescheduleSlotBookable(
 		cfg,
 		slug,
 		eventType,
-		viewer,
+		role,
 		excludeStart
 	);
 	return isOfferedSlot(options, allowedDurations, slot, duration);
@@ -108,11 +108,11 @@ async function readAvailabilityInputs(
 	cfg: WhenConfiguration,
 	slug: string,
 	eventType: Meeting,
-	viewer: Viewer,
+	role: AppointmentRole,
 	excludeStart: string | null,
 	remoteBusyWindow?: BusyInterval
 ): Promise<{ options: ComputeOptions; allowedDurations: number[] }> {
-	const settings = resolveAvailabilitySettings(cfg, eventType, viewer);
+	const settings = resolveAvailabilitySettings(cfg, eventType, role);
 	const now = Temporal.Instant.fromEpochMilliseconds(systemClock.nowMs());
 	const rangeEnd = now.add({ hours: 24 * settings.maximum_lookahead });
 	const blocks = await loadAppointmentBlocks(

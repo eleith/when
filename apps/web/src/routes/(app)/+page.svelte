@@ -15,7 +15,7 @@
 			{#if data.user.appearance.avatar_path}
 				<div class="avatar-container">
 					<img src={data.user.appearance.avatar_path} alt={data.user.name} class="avatar" />
-					{#if data.isAdmin}
+					{#if data.role === 'host'}
 						<a
 							href="/admin"
 							class="admin-badge"

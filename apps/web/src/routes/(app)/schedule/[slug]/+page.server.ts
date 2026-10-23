@@ -4,6 +4,7 @@ import { logger } from '$lib/server/logger';
 import { getConfig, getDb } from '$lib/server/state';
 import { durationsOf, resolveFormFields } from '@when/config';
 import { createAppointment } from '$lib/server/appointment/create';
+import type { AppointmentRole } from '$lib/server/appointment/actions';
 import { resolveDuration } from '$lib/server/appointment/duration';
 import {
 	parseAndValidateAppointmentForm,
@@ -18,7 +19,7 @@ import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params, url, locals }) => {
 	const session = await locals.auth();
-	const isAdmin = !!session;
+	const role: AppointmentRole = session ? 'host' : 'guest';
 	const cfg = getConfig();
 	const eventType = cfg.meetings[params.slug];
 	if (!eventType) error(404, `No meeting with slug "${params.slug}"`);
@@ -53,15 +54,15 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 		cfg,
 		params.slug,
 		eventType,
-		isAdmin ? 'host' : 'guest'
+		role
 	);
 
 	return {
-		eventType: toPublicEventType(params.slug, eventType, isAdmin),
+		eventType: toPublicEventType(params.slug, eventType, role),
 		formFields: resolveFormFields(eventType),
 		availability: { slotsByDuration, workingWindows, busyBlocks },
 		reschedule: null,
-		isAdmin
+		role
 	};
 };
 

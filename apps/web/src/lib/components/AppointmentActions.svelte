@@ -2,6 +2,7 @@
 	import { DropdownMenu, Dialog } from 'bits-ui';
 	import { enhance } from '$app/forms';
 	import { tick } from 'svelte';
+	import type { AppointmentRole } from '$lib/server/appointment/actions';
 	import IconDotsThreeVertical from 'virtual:icons/ph/dots-three-vertical';
 	import IconX from 'virtual:icons/ph/x';
 
@@ -12,7 +13,7 @@
 		appointmentId: string;
 		token: string;
 		onCancel: () => void;
-		isAdmin?: boolean;
+		role: AppointmentRole;
 		hasNote?: boolean;
 		onEditNote?: () => void;
 		hasLocation?: boolean;
@@ -31,7 +32,7 @@
 		appointmentId,
 		token,
 		onCancel,
-		isAdmin = false,
+		role,
 		hasNote = false,
 		onEditNote,
 		hasLocation = false,
@@ -44,6 +45,8 @@
 		onEditVideoChat,
 		isEditable = false
 	}: Props = $props();
+
+	const isHost = $derived(role === 'host');
 
 	let menuOpen = $state(false);
 	let shareDialogOpen = $state(false);
@@ -58,7 +61,7 @@
 	});
 
 	let hasAnyAction = $derived(
-		actions.reschedule.allowed || actions.cancel.allowed || (isAdmin && isEditable)
+		actions.reschedule.allowed || actions.cancel.allowed || (isHost && isEditable)
 	);
 
 	let rotated = $state(false);
@@ -118,7 +121,7 @@
 					{#if open}
 						<div {...wrapperProps}>
 							<div {...props} class="ba-menu">
-								{#if isAdmin && isEditable}
+								{#if isHost && isEditable}
 									{#if onEditNote && !hasNote}
 										<DropdownMenu.Item
 											onSelect={() => {
@@ -220,7 +223,7 @@
 	</DropdownMenu.Root>
 {/if}
 
-{#if isAdmin}
+{#if isHost}
 	<Dialog.Root bind:open={shareDialogOpen}>
 		<Dialog.Portal>
 			<Dialog.Overlay>

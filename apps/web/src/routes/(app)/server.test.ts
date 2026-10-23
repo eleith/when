@@ -94,11 +94,14 @@ describe('home page load', () => {
 		expect(await loadEventTypes()).toHaveLength(1);
 	});
 
-	test('flags a signed-in host so the page can offer the admin nav', async () => {
-		expect((await loadHome({ user: { name: 'host' } })).isAdmin).toBe(true);
-	});
-
-	test('leaves a guest unflagged', async () => {
-		expect((await loadHome()).isAdmin).toBe(false);
+	test.for([
+		{ role: 'host', session: { user: { name: 'host' } } },
+		{ role: 'guest', session: null }
+	])('reports $role from the session without parallel role flags', async ({ role, session }) => {
+		const result = await loadHome(session);
+		expect(result.role).toBe(role);
+		expect(result).not.toHaveProperty('viewer');
+		expect(result).not.toHaveProperty('isAdmin');
+		expect(result).not.toHaveProperty('isHost');
 	});
 });

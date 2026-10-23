@@ -1,4 +1,4 @@
-import { resolveAppointmentActions, type Viewer } from './actions';
+import { resolveAppointmentActions, type AppointmentRole } from './actions';
 import { enqueueAppointmentReconciliation } from '../workflow';
 import type { AppointmentContext } from './context';
 import { cancelAppointmentTransition } from './transitions';
@@ -6,7 +6,7 @@ import { getAppointment, type Appointment } from '@when/db';
 
 export interface CancelAppointmentInput {
 	appointment: Appointment;
-	initiator: Viewer;
+	initiator: AppointmentRole;
 	reason?: string;
 }
 
@@ -22,7 +22,7 @@ export async function cancelAppointment(
 
 	const gate = resolveAppointmentActions({
 		row: input.appointment,
-		viewer: input.initiator,
+		role: input.initiator,
 		now: ctx.clock.now(),
 		eventType
 	}).cancel;

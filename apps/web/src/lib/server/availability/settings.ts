@@ -1,13 +1,13 @@
 import type { Meeting, WhenConfiguration } from '@when/config';
 import { expandWeekly } from './expand-weekly';
 import type { AvailabilitySettings } from './types';
-import type { Viewer } from '../appointment/actions';
+import type { AppointmentRole } from '../appointment/actions';
 
 export function resolveAvailabilityLimits(
 	meeting: Meeting,
-	viewer: Viewer
+	role: AppointmentRole
 ): Pick<AvailabilitySettings, 'buffer_before' | 'buffer_after' | 'max_appointments_per_day'> {
-	if (viewer === 'host') {
+	if (role === 'host') {
 		return { buffer_before: 0, buffer_after: 0, max_appointments_per_day: null };
 	}
 	return {
@@ -20,21 +20,21 @@ export function resolveAvailabilityLimits(
 export function resolveAvailabilitySettingsById(
 	cfg: WhenConfiguration,
 	meetingName: string,
-	viewer: Viewer
+	role: AppointmentRole
 ): AvailabilitySettings {
 	const et = cfg.meetings[meetingName];
 	if (!et) throw new Error(`unknown meeting name: ${meetingName}`);
-	return resolveAvailabilitySettings(cfg, et, viewer);
+	return resolveAvailabilitySettings(cfg, et, role);
 }
 
 export function resolveAvailabilitySettings(
 	cfg: WhenConfiguration,
 	et: Meeting,
-	viewer: Viewer
+	role: AppointmentRole
 ): AvailabilitySettings {
 	const a = cfg.schedules[et.schedule];
 	if (!a) throw new Error(`unknown schedule name: ${et.schedule}`);
-	const limits = resolveAvailabilityLimits(et, viewer);
+	const limits = resolveAvailabilityLimits(et, role);
 	return {
 		duration: et.duration_minutes,
 		slot_granularity: et.start_times_every_minutes,

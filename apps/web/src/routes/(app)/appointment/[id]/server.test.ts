@@ -2,6 +2,11 @@ import { describe, expect, test, vi } from 'vitest';
 import { actions, load } from './+page.server';
 import { validConfig } from '$lib/server/__fixtures__/valid-config';
 import type { Appointment } from '@when/db';
+import type { AppointmentRole } from '$lib/server/appointment/actions';
+
+const h = vi.hoisted(() => ({ cancelAppointment: vi.fn() }));
+
+vi.mock('$lib/server/appointment/cancel', () => ({ cancelAppointment: h.cancelAppointment }));
 
 const mockDb = {
 	selectFrom: vi.fn(),
@@ -112,6 +117,14 @@ vi.mock('@when/db', async (importOriginal) => {
 		...actual,
 		findAppointment: async (_db: unknown, id: string) => {
 			if (id === 'appt-1') return mockAppt;
+			if (id === 'appt-pending')
+				return {
+					...mockAppt,
+					id,
+					status: 'pending',
+					note: 'Private prep',
+					video_chat: 'Private video'
+				};
 			if (id === 'appt-auto-video') return { ...automaticVideoAppointment, id };
 			if (id === 'appt-auto-phone')
 				return {
@@ -151,11 +164,13 @@ vi.mock('@when/db', async (importOriginal) => {
 	};
 });
 
-function loadAppointment(id: string, token: string | null, admin = false) {
+function loadAppointment(id: string, token: string | null, role: AppointmentRole = 'guest') {
 	const query = token === null ? '' : `?token=${encodeURIComponent(token)}`;
 	return load({
 		url: new URL(`http://localhost/appointment/${id}${query}`),
-		locals: { auth: vi.fn().mockResolvedValue(admin ? { user: { name: 'admin' } } : null) },
+		locals: {
+			auth: vi.fn().mockResolvedValue(role === 'host' ? { user: { name: 'host' } } : null)
+		},
 		params: { id },
 		cookies: { get: vi.fn().mockReturnValue(undefined), delete: vi.fn() }
 	} as unknown as Parameters<typeof load>[0]) as Promise<
@@ -164,6 +179,22 @@ function loadAppointment(id: string, token: string | null, admin = false) {
 }
 
 describe('/appointment/[id] server load', () => {
+	test.for(['guest', 'host'] as const)(
+		'reports %s and applies the same role to privacy and actions',
+		async (role) => {
+			const result = await loadAppointment('appt-pending', 'tok-abc', role);
+			expect(result.role).toBe(role);
+			expect(result).not.toHaveProperty('viewer');
+			expect(result).not.toHaveProperty('isAdmin');
+			expect(result).not.toHaveProperty('isHost');
+			expect(result.appointment.location).toBe(role === 'host' ? 'Meet link' : null);
+			expect(result.appointment.note).toBe(role === 'host' ? 'Private prep' : null);
+			expect(result.appointment.video_chat).toBe(role === 'host' ? 'Private video' : null);
+			expect(result.actions.accept.allowed).toBe(role === 'host');
+			expect(result.actions.decline.allowed).toBe(role === 'host');
+		}
+	);
+
 	test('renders successfully for guest when event type is active', async () => {
 		const mockLocals = {
 			auth: vi.fn().mockResolvedValue(null)
@@ -188,9 +219,9 @@ describe('/appointment/[id] server load', () => {
 	});
 
 	test('exposes an active saved video request only to the host', async () => {
-		const host = await loadAppointment('appt-video-request', null, true);
+		const host = await loadAppointment('appt-video-request', null, 'host');
 		const guest = await loadAppointment('appt-video-request', 'tok-abc');
-		const cancelled = await loadAppointment('appt-video-cancelled', null, true);
+		const cancelled = await loadAppointment('appt-video-cancelled', null, 'host');
 		expect(host.videoChatRequested).toBe(true);
 		expect(guest.videoChatRequested).toBe(false);
 		expect(cancelled.videoChatRequested).toBe(false);
@@ -204,7 +235,7 @@ describe('/appointment/[id] server load', () => {
 	] as const)(
 		'shows automatic request indication for %s only when a link is expected and missing',
 		async (id, expected) => {
-			const result = await loadAppointment(id, null, true);
+			const result = await loadAppointment(id, null, 'host');
 			expect(result.videoChatRequested).toBe(expected);
 		}
 	);
@@ -346,9 +377,12 @@ describe('/appointment/[id] reschedule chain links — characterization', () => 
 	});
 
 	test('an admin reaches a row without a token and receives the guest token', async () => {
-		const result = await loadAppointment('chain-3', null, true);
+		const result = await loadAppointment('chain-3', null, 'host');
 
-		expect(result.isAdmin).toBe(true);
+		expect(result.role).toBe('host');
+		expect(result).not.toHaveProperty('viewer');
+		expect(result).not.toHaveProperty('isAdmin');
+		expect(result).not.toHaveProperty('isHost');
 		expect(result.token).toBe('tok-3');
 	});
 
@@ -367,6 +401,33 @@ describe('/appointment/[id] cancel action — characterization', () => {
 			request: new Request('http://localhost', { method: 'POST', body: form })
 		} as unknown as Parameters<typeof actions.cancel>[0]);
 	}
+
+	test('cancels as guest despite forged host fields and a signed-in session', async () => {
+		h.cancelAppointment.mockResolvedValueOnce({ ok: true });
+		const form = new FormData();
+		form.set('token', 'tok-3');
+		form.set('reason', 'no longer needed');
+		form.set('viewer', 'host');
+		form.set('role', 'host');
+		form.set('isAdmin', 'true');
+		const response = actions.cancel({
+			params: { id: 'chain-3' },
+			request: new Request('http://localhost', { method: 'POST', body: form }),
+			locals: { auth: vi.fn().mockResolvedValue({ user: { name: 'Host' } }) }
+		} as unknown as Parameters<typeof actions.cancel>[0]);
+		await expect(response).rejects.toMatchObject({
+			status: 303,
+			location: '/appointment/chain-3?token=tok-3'
+		});
+		expect(h.cancelAppointment).toHaveBeenCalledExactlyOnceWith(
+			expect.anything(),
+			expect.objectContaining({
+				appointment: chain['chain-3'],
+				initiator: 'guest',
+				reason: 'no longer needed'
+			})
+		);
+	});
 
 	test('another row token in the chain cannot cancel this row', async () => {
 		expect(await cancelWith('chain-3', 'tok-1')).toMatchObject({ status: 403 });

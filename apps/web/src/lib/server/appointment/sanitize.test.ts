@@ -39,18 +39,18 @@ const baseRow: Appointment = {
 };
 
 describe('toPublicEventType', () => {
-	test('hides location for non-admins', () => {
-		const res = toPublicEventType('chat', baseEventType, false);
+	test('hides location for guests', () => {
+		const res = toPublicEventType('chat', baseEventType, 'guest');
 		expect(res.location).toBeUndefined();
 	});
 
-	test('shows location for admins', () => {
-		const res = toPublicEventType('chat', baseEventType, true);
+	test('shows location for hosts', () => {
+		const res = toPublicEventType('chat', baseEventType, 'host');
 		expect(res.location).toBe('https://meet.example.com/jane');
 	});
 
 	test('applies default padding and notice values', () => {
-		const res = toPublicEventType('chat', baseEventType, false);
+		const res = toPublicEventType('chat', baseEventType, 'guest');
 		expect(res.padding_before_minutes).toBe(0);
 		expect(res.padding_after_minutes).toBe(0);
 		expect(res.notice_minutes).toBe(120);
@@ -65,7 +65,7 @@ describe('toPublicEventType', () => {
 				padding_after_minutes: 10,
 				notice_minutes: 60
 			},
-			false
+			'guest'
 		);
 		expect(res.padding_before_minutes).toBe(15);
 		expect(res.padding_after_minutes).toBe(10);
@@ -85,8 +85,8 @@ describe('toPublicEventType', () => {
 		});
 		const original = structuredClone(cfg);
 
-		const guest = toPublicEventType('chat', meeting, false);
-		const host = toPublicEventType('chat', meeting, true);
+		const guest = toPublicEventType('chat', meeting, 'guest');
+		const host = toPublicEventType('chat', meeting, 'host');
 
 		expect(guest.padding_before_minutes).toBe(15);
 		expect(guest.padding_after_minutes).toBe(10);
@@ -100,50 +100,50 @@ describe('toPublicEventType', () => {
 			padding_before_minutes: 0,
 			padding_after_minutes: 0
 		});
-		expect(toPublicEventType('chat', meeting, false)).toEqual(guest);
+		expect(toPublicEventType('chat', meeting, 'guest')).toEqual(guest);
 		expect(cfg).toEqual(original);
 	});
 
 	test('maps show_slots', () => {
-		const res = toPublicEventType('chat', { ...baseEventType, show_slots: true }, false);
+		const res = toPublicEventType('chat', { ...baseEventType, show_slots: true }, 'guest');
 		expect(res.show_slots).toBe(true);
 	});
 
 	test('passes through require_approval', () => {
-		const res = toPublicEventType('chat', baseEventType, false);
+		const res = toPublicEventType('chat', baseEventType, 'guest');
 		expect(res.require_approval).toBe(false);
 	});
 });
 
 describe('toPublicAppointment', () => {
-	test('shows location, note, and video_chat for admins', () => {
-		const res = toPublicAppointment(baseRow, true);
+	test('shows location, note, and video_chat for hosts', () => {
+		const res = toPublicAppointment(baseRow, 'host');
 		expect(res.location).toBe('https://meet.example.com/jane');
 		expect(res.note).toBe('Meeting prep document link: test');
 		expect(res.video_chat).toBe('https://zoom.us/j/12345');
 	});
 
-	test('shows location, note, and video_chat for confirmed non-admins', () => {
-		const res = toPublicAppointment(baseRow, false);
+	test('shows location, note, and video_chat for confirmed guests', () => {
+		const res = toPublicAppointment(baseRow, 'guest');
 		expect(res.location).toBe('https://meet.example.com/jane');
 		expect(res.note).toBe('Meeting prep document link: test');
 		expect(res.video_chat).toBe('https://zoom.us/j/12345');
 	});
 
-	test('hides location, note, and video_chat for pending non-admins', () => {
+	test('hides location, note, and video_chat for pending guests', () => {
 		const pendingRow = { ...baseRow, status: 'pending' as const };
-		const res = toPublicAppointment(pendingRow, false);
+		const res = toPublicAppointment(pendingRow, 'guest');
 		expect(res.location).toBeNull();
 		expect(res.note).toBeNull();
 		expect(res.video_chat).toBeNull();
 	});
 
-	test('strips non-cancellation entries for non-admins', () => {
+	test('strips non-cancellation entries for guests', () => {
 		const rowWithLog: Appointment = {
 			...baseRow,
 			action_log: JSON.stringify([{ action: 'confirm', actor: 'host', at: '2026-05-01T12:00:00Z' }])
 		};
-		const res = toPublicAppointment(rowWithLog, false);
+		const res = toPublicAppointment(rowWithLog, 'guest');
 		expect(res.action_log).toEqual([]);
 	});
 
@@ -156,16 +156,16 @@ describe('toPublicAppointment', () => {
 			])
 		};
 
-		const res = toPublicAppointment(rowWithLog, false);
+		const res = toPublicAppointment(rowWithLog, 'guest');
 
 		expect(res.action_log.map((e) => e.action)).toEqual(['cancel']);
-		expect(toPublicAppointment(rowWithLog, true).action_log.map((e) => e.action)).toEqual([
+		expect(toPublicAppointment(rowWithLog, 'host').action_log.map((e) => e.action)).toEqual([
 			'rotate',
 			'cancel'
 		]);
 	});
 
-	test('returns only sanitized cancellation entries in action_log for non-admins', () => {
+	test('returns only sanitized cancellation entries in action_log for guests', () => {
 		const rowWithLog: Appointment = {
 			...baseRow,
 			action_log: JSON.stringify([
@@ -178,7 +178,7 @@ describe('toPublicAppointment', () => {
 				}
 			])
 		};
-		const res = toPublicAppointment(rowWithLog, false);
+		const res = toPublicAppointment(rowWithLog, 'guest');
 		expect(res.action_log).toEqual([
 			{
 				action: 'cancel',
@@ -189,7 +189,7 @@ describe('toPublicAppointment', () => {
 		]);
 	});
 
-	test('returns full action_log for admins', () => {
+	test('returns full action_log for hosts', () => {
 		const rowWithLog: Appointment = {
 			...baseRow,
 			action_log: JSON.stringify([
@@ -202,7 +202,7 @@ describe('toPublicAppointment', () => {
 				}
 			])
 		};
-		const res = toPublicAppointment(rowWithLog, true);
+		const res = toPublicAppointment(rowWithLog, 'host');
 		expect(res.action_log).toEqual([
 			{ action: 'confirm', actor: 'host', at: '2026-05-01T12:00:00Z' },
 			{

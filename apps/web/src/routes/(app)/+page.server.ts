@@ -1,10 +1,11 @@
 import { durationsOf } from '@when/config';
 import { getConfig } from '$lib/server/state';
+import type { AppointmentRole } from '$lib/server/appointment/actions';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	const session = await locals.auth();
-	const isAdmin = !!session;
+	const role: AppointmentRole = session ? 'host' : 'guest';
 	const cfg = getConfig();
 
 	const eventTypes = Object.entries(cfg.meetings)
@@ -18,5 +19,5 @@ export const load: PageServerLoad = async ({ locals }) => {
 			durations: durationsOf(e).toSorted((a, b) => a - b)
 		}));
 
-	return { eventTypes, isAdmin };
+	return { eventTypes, role };
 };

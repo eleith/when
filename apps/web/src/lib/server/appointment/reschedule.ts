@@ -1,4 +1,4 @@
-import { resolveAppointmentActions, isTerminalStatus, type Viewer } from './actions';
+import { resolveAppointmentActions, isTerminalStatus, type AppointmentRole } from './actions';
 import { isRescheduleAllowed, isViewable } from './access';
 import { enqueueAppointmentReconciliation } from '../workflow';
 import type { AppointmentContext } from './context';
@@ -34,7 +34,7 @@ export interface ClassifyRescheduleInput {
 
 export interface RescheduleAppointmentInput {
 	appointmentId: string;
-	initiator: Viewer;
+	initiator: AppointmentRole;
 	/** New start_time as ISO instant (caller has validated availability). */
 	newStart: string;
 	/** New end_time as ISO instant. */
@@ -67,7 +67,7 @@ export async function rescheduleAppointment(
 			const now = ctx.clock.now();
 			const gate = resolveAppointmentActions({
 				row: appointment,
-				viewer: input.initiator,
+				role: input.initiator,
 				now,
 				eventType
 			}).reschedule;

@@ -1,7 +1,11 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { shouldAttachVideoChat } from '@when/video-chat';
 import { isViewAllowed } from '$lib/server/appointment/access';
-import { isActiveStatus, resolveAppointmentActions } from '$lib/server/appointment/actions';
+import {
+	isActiveStatus,
+	resolveAppointmentActions,
+	type AppointmentRole
+} from '$lib/server/appointment/actions';
 import { buildAddToCalendarLinks } from '$lib/server/calendar-links';
 import { systemClock } from '$lib/server/clock';
 import { getConfig, getDb } from '$lib/server/state';
@@ -34,7 +38,8 @@ function computeClockStatus(
 
 export const load: PageServerLoad = async ({ params, url, locals, cookies }) => {
 	const session = await locals.auth();
-	const isAdmin = !!session;
+	const role: AppointmentRole = session ? 'host' : 'guest';
+	const isHost = role === 'host';
 	const token = url.searchParams.get('token');
 
 	const flash = cookies.get('submitted');
@@ -49,13 +54,13 @@ export const load: PageServerLoad = async ({ params, url, locals, cookies }) => 
 	const now = systemClock.now();
 	const row = found;
 
-	if (!isAdmin && !(await isViewAllowed(getDb(), row, token, now))) error(404);
+	if (!isHost && !(await isViewAllowed(getDb(), row, token, now))) error(404);
 
 	const cfg = getConfig();
 	const eventType = cfg.meetings[row.event_type_id];
 
 	let resolvedEventType = eventType;
-	if (!resolvedEventType && isAdmin && row.meeting_snapshot) {
+	if (!resolvedEventType && isHost && row.meeting_snapshot) {
 		try {
 			resolvedEventType = JSON.parse(row.meeting_snapshot);
 		} catch {
@@ -67,8 +72,7 @@ export const load: PageServerLoad = async ({ params, url, locals, cookies }) => 
 		error(404);
 	}
 
-	const viewer = isAdmin ? 'host' : 'guest';
-	let actions = resolveAppointmentActions({ row, viewer, now, eventType: resolvedEventType });
+	let actions = resolveAppointmentActions({ row, role, now, eventType: resolvedEventType });
 	if (!eventType) {
 		actions = {
 			cancel: { allowed: false, reason: 'terminal_status' },
@@ -110,7 +114,7 @@ export const load: PageServerLoad = async ({ params, url, locals, cookies }) => 
 	const latest = tip && tip.id !== row.id ? tip : null;
 
 	let deleteCheck = null;
-	if (isAdmin) {
+	if (isHost) {
 		if (!eventType) {
 			deleteCheck = { terminal: true };
 		} else {
@@ -118,12 +122,12 @@ export const load: PageServerLoad = async ({ params, url, locals, cookies }) => 
 		}
 	}
 
-	const appointment = toPublicAppointment(row, isAdmin);
+	const appointment = toPublicAppointment(row, role);
 	const automaticVideoChat = eventType
 		? shouldAttachVideoChat(eventType, cfg, appointment.answers)
 		: false;
 	const videoChatRequested =
-		isAdmin &&
+		isHost &&
 		isActiveStatus(row.status) &&
 		!row.video_chat &&
 		row.video_chat_request !== 'suppress' &&
@@ -132,15 +136,15 @@ export const load: PageServerLoad = async ({ params, url, locals, cookies }) => 
 	return {
 		appointment,
 		videoChatRequested,
-		eventType: toPublicEventType(row.event_type_id, resolvedEventType, isAdmin),
+		eventType: toPublicEventType(row.event_type_id, resolvedEventType, role),
 		calendarLinks,
 		actions,
 		flash: flash ?? null,
 		clockStatus,
-		// Admins are trusted with the guest's cancel_token so reschedule/cancel
+		// The host is trusted with the guest's cancel_token so reschedule/cancel
 		// links work without a token in the URL; guests only ever see their own.
-		token: isAdmin ? (token ?? row.cancel_token) : (token ?? ''),
-		isAdmin,
+		token: isHost ? (token ?? row.cancel_token) : (token ?? ''),
+		role,
 		hostTz: cfg.user.timezone,
 		guestTz: row.guest_timezone ?? cfg.user.timezone,
 		rescheduledFrom: predecessor

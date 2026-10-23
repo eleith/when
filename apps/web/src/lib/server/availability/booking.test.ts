@@ -333,7 +333,7 @@ describe('active appointments and self-exclusion', () => {
 	});
 });
 
-describe('viewer-specific availability limits', () => {
+describe('role-specific availability limits', () => {
 	test.each([
 		['before', '09:30'],
 		['after', '10:30']
@@ -345,27 +345,27 @@ describe('viewer-specific availability limits', () => {
 		await book(CHAT, `${DAY}T10:00:00Z`, `${DAY}T10:30:00Z`);
 		const slot = `${DAY}T${time}:00Z`;
 
-		for (const viewer of ['guest', 'host'] as const) {
-			const availability = await loadAvailability(db, cfg, CHAT, meeting, viewer);
-			const created = await isNewSlotBookable(db, cfg, CHAT, meeting, viewer, slot, 30);
+		for (const role of ['guest', 'host'] as const) {
+			const availability = await loadAvailability(db, cfg, CHAT, meeting, role);
+			const created = await isNewSlotBookable(db, cfg, CHAT, meeting, role, slot, 30);
 			const moved = await isRescheduleSlotBookable(
 				db,
 				cfg,
 				CHAT,
 				meeting,
-				viewer,
+				role,
 				slot,
 				30,
 				`${DAY}T14:00:00Z`
 			);
-			const expected = viewer === 'host';
-			expect(availability.slotsByDuration[30][DAY].includes(slot), viewer).toBe(expected);
-			expect([created, moved], viewer).toEqual([expected, expected]);
+			const expected = role === 'host';
+			expect(availability.slotsByDuration[30][DAY].includes(slot), role).toBe(expected);
+			expect([created, moved], role).toEqual([expected, expected]);
 		}
 	});
 
 	test.each(['appointment', 'remote'] as const)(
-		'actual overlap with a foreign %s blocks both viewers',
+		'actual overlap with a foreign %s blocks both roles',
 		async (source) => {
 			const cfg = makeConfig([30]);
 			const meeting = cfg.meetings[CHAT];
@@ -382,21 +382,12 @@ describe('viewer-specific availability limits', () => {
 				]);
 			}
 
-			for (const viewer of ['guest', 'host'] as const) {
-				const availability = await loadAvailability(db, cfg, CHAT, meeting, viewer);
-				const created = await isNewSlotBookable(db, cfg, CHAT, meeting, viewer, slot, 30);
-				const moved = await isRescheduleSlotBookable(
-					db,
-					cfg,
-					CHAT,
-					meeting,
-					viewer,
-					slot,
-					30,
-					slot
-				);
-				expect(availability.slotsByDuration[30][DAY], viewer).not.toContain(slot);
-				expect([created, moved], viewer).toEqual([false, false]);
+			for (const role of ['guest', 'host'] as const) {
+				const availability = await loadAvailability(db, cfg, CHAT, meeting, role);
+				const created = await isNewSlotBookable(db, cfg, CHAT, meeting, role, slot, 30);
+				const moved = await isRescheduleSlotBookable(db, cfg, CHAT, meeting, role, slot, 30, slot);
+				expect(availability.slotsByDuration[30][DAY], role).not.toContain(slot);
+				expect([created, moved], role).toEqual([false, false]);
 			}
 		}
 	);
@@ -416,15 +407,15 @@ describe('viewer-specific availability limits', () => {
 			.where('id', '=', `appt-${CHAT}`)
 			.execute();
 
-		for (const viewer of ['guest', 'host'] as const) {
-			const availability = await loadAvailability(db, cfg, CHAT, meeting, viewer);
-			const rescheduleAvailability = await loadAvailability(db, cfg, CHAT, meeting, viewer, own);
-			const created = await isNewSlotBookable(db, cfg, CHAT, meeting, viewer, free, 30);
-			const moved = await isRescheduleSlotBookable(db, cfg, CHAT, meeting, viewer, free, 30, own);
-			const occupied = await isNewSlotBookable(db, cfg, CHAT, meeting, viewer, own, 30);
-			const retained = await isRescheduleSlotBookable(db, cfg, CHAT, meeting, viewer, own, 30, own);
-			const expected = viewer === 'host';
-			if (viewer === 'guest') {
+		for (const role of ['guest', 'host'] as const) {
+			const availability = await loadAvailability(db, cfg, CHAT, meeting, role);
+			const rescheduleAvailability = await loadAvailability(db, cfg, CHAT, meeting, role, own);
+			const created = await isNewSlotBookable(db, cfg, CHAT, meeting, role, free, 30);
+			const moved = await isRescheduleSlotBookable(db, cfg, CHAT, meeting, role, free, 30, own);
+			const occupied = await isNewSlotBookable(db, cfg, CHAT, meeting, role, own, 30);
+			const retained = await isRescheduleSlotBookable(db, cfg, CHAT, meeting, role, own, 30, own);
+			const expected = role === 'host';
+			if (role === 'guest') {
 				expect(availability.slotsByDuration[30][DAY]).toBeUndefined();
 				expect(rescheduleAvailability.slotsByDuration[30][DAY]).toBeUndefined();
 			} else {
@@ -433,7 +424,7 @@ describe('viewer-specific availability limits', () => {
 				expect(rescheduleAvailability.slotsByDuration[30][DAY]).toContain(own);
 				expect(rescheduleAvailability.slotsByDuration[30][DAY]).toContain(free);
 			}
-			expect([created, moved, occupied, retained], viewer).toEqual([
+			expect([created, moved, occupied, retained], role).toEqual([
 				expected,
 				expected,
 				false,
@@ -450,14 +441,14 @@ describe('viewer-specific availability limits', () => {
 
 	test.each(['guest', 'host'] as const)(
 		'%s still obeys working hours, notice, grid, lookahead, and offered durations',
-		async (viewer) => {
+		async (role) => {
 			const cfg = makeConfig([30, 60]);
 			const meeting = cfg.meetings[CHAT];
 			meeting.padding_before_minutes = 15;
 			meeting.padding_after_minutes = 15;
 			meeting.daily_booking_limit = 1;
 			meeting.notice_minutes = 600;
-			const availability = await loadAvailability(db, cfg, CHAT, meeting, viewer);
+			const availability = await loadAvailability(db, cfg, CHAT, meeting, role);
 			expect(availability.durations).toEqual([30, 60]);
 			expect(Object.keys(availability.slotsByDuration)).toEqual(['30', '60']);
 			expect(availability.slotsByDuration[30][DAY]).toContain(`${DAY}T10:00:00Z`);
@@ -471,13 +462,13 @@ describe('viewer-specific availability limits', () => {
 				{ rule: 'unconfigured duration', slot: `${DAY}T11:00:00Z`, duration: 45 }
 			];
 			for (const { rule, slot, duration } of rejected) {
-				const created = await isNewSlotBookable(db, cfg, CHAT, meeting, viewer, slot, duration);
+				const created = await isNewSlotBookable(db, cfg, CHAT, meeting, role, slot, duration);
 				const moved = await isRescheduleSlotBookable(
 					db,
 					cfg,
 					CHAT,
 					meeting,
-					viewer,
+					role,
 					slot,
 					duration,
 					`${DAY}T14:00:00Z`

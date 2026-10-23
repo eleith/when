@@ -6,7 +6,7 @@ export type ActionReason =
 	| 'past_start'
 	| 'minimum_notice'
 	| 'terminal_status'
-	| 'wrong_viewer'
+	| 'wrong_role'
 	| 'not_configured';
 
 export type ActionGate = { allowed: true } | { allowed: false; reason: ActionReason };
@@ -19,11 +19,11 @@ export interface AppointmentActions {
 	generateVideoChat: ActionGate;
 }
 
-export type Viewer = 'guest' | 'host';
+export type AppointmentRole = 'guest' | 'host';
 
 export interface ResolveAppointmentActionsInput {
 	row: Pick<Appointment, 'status' | 'start_time'>;
-	viewer: Viewer;
+	role: AppointmentRole;
 	now: Date;
 	eventType: Pick<Meeting, 'notice_minutes' | 'video_chat'> | undefined;
 }
@@ -57,10 +57,10 @@ function resolveReschedule(
 
 function resolveHostDecision(
 	row: Pick<Appointment, 'status' | 'start_time'>,
-	viewer: Viewer,
+	role: AppointmentRole,
 	now: Date
 ): ActionGate {
-	if (viewer !== 'host') return { allowed: false, reason: 'wrong_viewer' };
+	if (role !== 'host') return { allowed: false, reason: 'wrong_role' };
 	if (row.status !== 'pending') return { allowed: false, reason: 'terminal_status' };
 	if (now.getTime() >= Date.parse(row.start_time)) return { allowed: false, reason: 'past_start' };
 	return ALLOWED;
@@ -68,10 +68,10 @@ function resolveHostDecision(
 
 export function resolveGenerateVideoChat(
 	row: Pick<Appointment, 'status'>,
-	viewer: Viewer,
+	role: AppointmentRole,
 	videoChat: Meeting['video_chat'] | undefined
 ): ActionGate {
-	if (viewer !== 'host') return { allowed: false, reason: 'wrong_viewer' };
+	if (role !== 'host') return { allowed: false, reason: 'wrong_role' };
 	if (!isActiveStatus(row.status)) return { allowed: false, reason: 'terminal_status' };
 	if (!videoChat) return { allowed: false, reason: 'not_configured' };
 	return ALLOWED;
@@ -79,17 +79,17 @@ export function resolveGenerateVideoChat(
 
 export function resolveAppointmentActions({
 	row,
-	viewer,
+	role,
 	now,
 	eventType
 }: ResolveAppointmentActionsInput): AppointmentActions {
 	const minimumNotice = eventType?.notice_minutes ?? 0;
-	const decision = resolveHostDecision(row, viewer, now);
+	const decision = resolveHostDecision(row, role, now);
 	return {
 		cancel: resolveCancel(row, now),
 		reschedule: resolveReschedule(row, now, minimumNotice),
 		accept: decision,
 		decline: decision,
-		generateVideoChat: resolveGenerateVideoChat(row, viewer, eventType?.video_chat)
+		generateVideoChat: resolveGenerateVideoChat(row, role, eventType?.video_chat)
 	};
 }

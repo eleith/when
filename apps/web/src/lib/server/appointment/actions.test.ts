@@ -19,7 +19,7 @@ describe('cancel', () => {
 	test('allowed for confirmed before start', () => {
 		const a = resolveAppointmentActions({
 			row: row('confirmed'),
-			viewer: 'guest',
+			role: 'guest',
 			now: before,
 			eventType: eventTypeNoNotice
 		});
@@ -29,7 +29,7 @@ describe('cancel', () => {
 	test('allowed for pending before start', () => {
 		const a = resolveAppointmentActions({
 			row: row('pending'),
-			viewer: 'guest',
+			role: 'guest',
 			now: before,
 			eventType: eventTypeNoNotice
 		});
@@ -39,7 +39,7 @@ describe('cancel', () => {
 	test('past_start at exact start_time', () => {
 		const a = resolveAppointmentActions({
 			row: row('confirmed'),
-			viewer: 'guest',
+			role: 'guest',
 			now: atStart,
 			eventType: eventTypeNoNotice
 		});
@@ -49,7 +49,7 @@ describe('cancel', () => {
 	test('past_start after start_time', () => {
 		const a = resolveAppointmentActions({
 			row: row('confirmed'),
-			viewer: 'guest',
+			role: 'guest',
 			now: after,
 			eventType: eventTypeNoNotice
 		});
@@ -59,7 +59,7 @@ describe('cancel', () => {
 	test('terminal_status for cancelled (even before start)', () => {
 		const a = resolveAppointmentActions({
 			row: row('cancelled'),
-			viewer: 'guest',
+			role: 'guest',
 			now: before,
 			eventType: eventTypeNoNotice
 		});
@@ -69,7 +69,7 @@ describe('cancel', () => {
 	test('terminal_status for declined', () => {
 		const a = resolveAppointmentActions({
 			row: row('declined'),
-			viewer: 'guest',
+			role: 'guest',
 			now: before,
 			eventType: eventTypeNoNotice
 		});
@@ -81,7 +81,7 @@ describe('reschedule', () => {
 	test('allowed when notice satisfied', () => {
 		const a = resolveAppointmentActions({
 			row: row('confirmed'),
-			viewer: 'guest',
+			role: 'guest',
 			now: before,
 			eventType: eventType30
 		});
@@ -91,7 +91,7 @@ describe('reschedule', () => {
 	test('allowed at exact notice boundary', () => {
 		const a = resolveAppointmentActions({
 			row: row('confirmed'),
-			viewer: 'guest',
+			role: 'guest',
 			now: noticeBoundary,
 			eventType: eventType30
 		});
@@ -101,7 +101,7 @@ describe('reschedule', () => {
 	test('minimum_notice when inside notice window', () => {
 		const a = resolveAppointmentActions({
 			row: row('confirmed'),
-			viewer: 'guest',
+			role: 'guest',
 			now: new Date('2026-05-01T14:45:00Z'),
 			eventType: eventType30
 		});
@@ -111,7 +111,7 @@ describe('reschedule', () => {
 	test('past_start beats minimum_notice when clock is past start', () => {
 		const a = resolveAppointmentActions({
 			row: row('confirmed'),
-			viewer: 'guest',
+			role: 'guest',
 			now: after,
 			eventType: eventType30
 		});
@@ -121,7 +121,7 @@ describe('reschedule', () => {
 	test('terminal_status for cancelled', () => {
 		const a = resolveAppointmentActions({
 			row: row('cancelled'),
-			viewer: 'guest',
+			role: 'guest',
 			now: before,
 			eventType: eventType30
 		});
@@ -131,7 +131,7 @@ describe('reschedule', () => {
 	test('missing eventType defaults minimum_notice to 0', () => {
 		const a = resolveAppointmentActions({
 			row: row('confirmed'),
-			viewer: 'guest',
+			role: 'guest',
 			now: noticeBoundary,
 			eventType: undefined
 		});
@@ -143,7 +143,7 @@ describe('accept / decline', () => {
 	test('allowed for host + pending + before start', () => {
 		const a = resolveAppointmentActions({
 			row: row('pending'),
-			viewer: 'host',
+			role: 'host',
 			now: before,
 			eventType: eventTypeNoNotice
 		});
@@ -151,22 +151,22 @@ describe('accept / decline', () => {
 		expect(a.decline).toEqual({ allowed: true });
 	});
 
-	test('wrong_viewer for guest regardless of status', () => {
+	test('wrong_role for guest regardless of status', () => {
 		const a = resolveAppointmentActions({
 			row: row('pending'),
-			viewer: 'guest',
+			role: 'guest',
 			now: before,
 			eventType: eventTypeNoNotice
 		});
-		expect(a.accept).toEqual({ allowed: false, reason: 'wrong_viewer' });
-		expect(a.decline).toEqual({ allowed: false, reason: 'wrong_viewer' });
+		expect(a.accept).toEqual({ allowed: false, reason: 'wrong_role' });
+		expect(a.decline).toEqual({ allowed: false, reason: 'wrong_role' });
 	});
 
 	test('terminal_status for host + non-pending status', () => {
 		for (const status of ['confirmed', 'cancelled', 'declined'] as const) {
 			const a = resolveAppointmentActions({
 				row: row(status),
-				viewer: 'host',
+				role: 'host',
 				now: before,
 				eventType: eventTypeNoNotice
 			});
@@ -178,7 +178,7 @@ describe('accept / decline', () => {
 	test('past_start for host + pending after start_time', () => {
 		const a = resolveAppointmentActions({
 			row: row('pending'),
-			viewer: 'host',
+			role: 'host',
 			now: after,
 			eventType: eventTypeNoNotice
 		});
@@ -186,15 +186,15 @@ describe('accept / decline', () => {
 		expect(a.decline).toEqual({ allowed: false, reason: 'past_start' });
 	});
 
-	test('wrong_viewer takes precedence over status', () => {
-		// guest viewing a confirmed appointment — wrong_viewer, not terminal_status
+	test('wrong_role takes precedence over status', () => {
+		// guest viewing a confirmed appointment — wrong_role, not terminal_status
 		const a = resolveAppointmentActions({
 			row: row('confirmed'),
-			viewer: 'guest',
+			role: 'guest',
 			now: before,
 			eventType: eventTypeNoNotice
 		});
-		expect(a.accept).toEqual({ allowed: false, reason: 'wrong_viewer' });
+		expect(a.accept).toEqual({ allowed: false, reason: 'wrong_role' });
 	});
 });
 
@@ -213,7 +213,7 @@ describe('resolveGenerateVideoChat', () => {
 		const gate = resolveGenerateVideoChat({ status }, 'host', videoChat);
 		const summary = resolveAppointmentActions({
 			row: row(status),
-			viewer: 'host',
+			role: 'host',
 			now: after,
 			eventType: { notice_minutes: 30, video_chat: videoChat }
 		});
@@ -227,7 +227,7 @@ describe('resolveGenerateVideoChat', () => {
 
 	test('direct check rejects guests without needing a clock or start time', () => {
 		const gate = resolveGenerateVideoChat({ status: 'confirmed' }, 'guest', videoChat);
-		expect(gate).toEqual({ allowed: false, reason: 'wrong_viewer' });
+		expect(gate).toEqual({ allowed: false, reason: 'wrong_role' });
 	});
 
 	test('direct check rejects missing video configuration', () => {
@@ -242,7 +242,7 @@ describe('generateVideoChat', () => {
 	test('allowed for host + active status + configured video_chat', () => {
 		const confirmed = resolveAppointmentActions({
 			row: row('confirmed'),
-			viewer: 'host',
+			role: 'host',
 			now: before,
 			eventType: eventTypeWithVideo
 		});
@@ -250,27 +250,27 @@ describe('generateVideoChat', () => {
 
 		const pending = resolveAppointmentActions({
 			row: row('pending'),
-			viewer: 'host',
+			role: 'host',
 			now: before,
 			eventType: eventTypeWithVideo
 		});
 		expect(pending.generateVideoChat).toEqual({ allowed: true });
 	});
 
-	test('wrong_viewer for guest', () => {
+	test('wrong_role for guest', () => {
 		const a = resolveAppointmentActions({
 			row: row('confirmed'),
-			viewer: 'guest',
+			role: 'guest',
 			now: before,
 			eventType: eventTypeWithVideo
 		});
-		expect(a.generateVideoChat).toEqual({ allowed: false, reason: 'wrong_viewer' });
+		expect(a.generateVideoChat).toEqual({ allowed: false, reason: 'wrong_role' });
 	});
 
 	test('terminal_status for cancelled / declined / expired / rescheduled / purged', () => {
 		const a = resolveAppointmentActions({
 			row: row('cancelled'),
-			viewer: 'host',
+			role: 'host',
 			now: before,
 			eventType: eventTypeWithVideo
 		});
@@ -280,7 +280,7 @@ describe('generateVideoChat', () => {
 	test('not_configured when meeting type has no video_chat', () => {
 		const a = resolveAppointmentActions({
 			row: row('confirmed'),
-			viewer: 'host',
+			role: 'host',
 			now: before,
 			eventType: eventTypeNoNotice
 		});
