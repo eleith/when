@@ -1,7 +1,7 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { findAppointment } from '@when/db';
 import { getConfig, getDb } from '$lib/server/state';
-import { isSlotBookable } from '$lib/server/availability/load';
+import { isRescheduleSlotBookable } from '$lib/server/availability/booking';
 import { resolveDuration } from '$lib/server/appointment/duration';
 import { rescheduleAppointment } from '$lib/server/appointment/reschedule';
 import { parseSlot, validateReason } from '$lib/server/appointment/form.server';
@@ -35,7 +35,8 @@ export const actions: Actions = {
 		if (duration === null) return fail(400, { error: 'Please pick a valid meeting length.' });
 
 		// Re-validate the slot is currently bookable, ignoring the appointment's own current slot.
-		const bookable = await isSlotBookable(
+		const bookable = await isRescheduleSlotBookable(
+			getDb(),
 			cfg,
 			found.event_type_id,
 			eventType,

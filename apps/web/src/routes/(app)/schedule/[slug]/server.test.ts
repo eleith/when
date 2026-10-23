@@ -5,32 +5,28 @@ import type { WhenConfiguration } from '@when/config';
 const h = vi.hoisted(() => ({
 	cfg: { current: null as unknown as WhenConfiguration },
 	loadAvailability: vi.fn(),
-	computeSlots: vi.fn(),
+	db: {},
+	isNewSlotBookable: vi.fn(),
 	createAppointment: vi.fn(),
 	parseForm: vi.fn(),
 	resolveTimezone: vi.fn(() => 'UTC'),
 	resolveDuration: vi.fn()
 }));
 
-vi.mock('$lib/server/state', () => ({ getConfig: () => h.cfg.current, getDb: () => ({}) }));
-vi.mock('$lib/server/availability/load', () => ({ loadAvailability: h.loadAvailability }));
-vi.mock('$lib/server/availability', () => ({ computeSlots: h.computeSlots }));
-vi.mock('$lib/server/availability/blocks', () => ({
-	loadAppointmentBlocks: async () => ({ appointments: [], perDayCount: {} })
-}));
-vi.mock('$lib/server/availability/settings', () => ({
-	resolveAvailabilitySettings: () => ({ maximum_lookahead: 30 })
-}));
-vi.mock('@when/db', async (io) => ({
-	...(await io<typeof import('@when/db')>()),
-	getBusyIntervals: async () => []
+vi.mock('$lib/server/state', () => ({ getConfig: () => h.cfg.current, getDb: () => h.db }));
+vi.mock('$lib/server/availability/booking', () => ({
+	loadAvailability: h.loadAvailability,
+	isNewSlotBookable: h.isNewSlotBookable
 }));
 vi.mock('$lib/server/appointment/create', () => ({ createAppointment: h.createAppointment }));
-vi.mock('$lib/server/appointment/form.server', async (io) => ({
-	...(await io<typeof import('$lib/server/appointment/form.server')>()),
-	parseAndValidateAppointmentForm: h.parseForm,
-	resolveTimezone: h.resolveTimezone
-}));
+vi.mock('$lib/server/appointment/form.server', async (io) => {
+	const original = await io<typeof import('$lib/server/appointment/form.server')>();
+	return {
+		...original,
+		parseAndValidateAppointmentForm: h.parseForm,
+		resolveTimezone: h.resolveTimezone
+	};
+});
 vi.mock('$lib/server/appointment/duration', () => ({ resolveDuration: h.resolveDuration }));
 
 import { load, actions } from './+page.server';
@@ -77,7 +73,8 @@ describe('/schedule/[slug] load — deep-link canonicalization', () => {
 	test('404s on an unknown slug', async () => {
 		const ev = loadEvent('');
 		(ev as { params: { slug: string } }).params = { slug: 'does-not-exist' };
-		expect((await caught(() => load(ev))).status).toBe(404);
+		const result = await caught(() => load(ev));
+		expect(result.status).toBe(404);
 	});
 
 	test('strips unknown params by redirecting to the clean url', async () => {
@@ -115,10 +112,16 @@ describe('/schedule/[slug] load — deep-link canonicalization', () => {
 	});
 
 	test('returns page data unchanged when the query is already canonical', async () => {
-		const result = (await load(loadEvent(`?slot=${SLOT}`))) as LoadResult;
+		const loaded = await load(loadEvent(`?slot=${SLOT}`));
+		const result = loaded as LoadResult;
 		expect(result.eventType.slug).toBe('30-min-chat');
 		expect(result.isAdmin).toBe(false);
-		expect(h.loadAvailability).toHaveBeenCalledOnce();
+		expect(h.loadAvailability).toHaveBeenCalledExactlyOnceWith(
+			h.db,
+			h.cfg.current,
+			'30-min-chat',
+			h.cfg.current.meetings['30-min-chat']
+		);
 	});
 });
 
@@ -133,8 +136,18 @@ describe('/schedule/[slug] book action', () => {
 		data: { name: 'A', email: 'a@b.co', answers: null, location: null }
 	};
 
+	test('404s on an unknown meeting before checking availability', async () => {
+		const event = bookEvent(validForm());
+		event.params.slug = 'missing';
+		const result = await caught(() => actions.default(event));
+		expect(result.status).toBe(404);
+		expect(h.isNewSlotBookable).not.toHaveBeenCalled();
+		expect(h.createAppointment).not.toHaveBeenCalled();
+	});
+
 	test('rejects a missing slot with 400', async () => {
-		const result = (await actions.default(bookEvent(new FormData()))) as Failure;
+		const response = await actions.default(bookEvent(new FormData()));
+		const result = response as Failure;
 		expect(result?.status).toBe(400);
 	});
 
@@ -144,34 +157,48 @@ describe('/schedule/[slug] book action', () => {
 			h.parseForm.mockReturnValue(validGuest);
 			const fd = new FormData();
 			fd.set('slot', slot);
-			expect(((await actions.default(bookEvent(fd))) as Failure)?.status).toBe(400);
+			const response = await actions.default(bookEvent(fd));
+			expect((response as Failure)?.status).toBe(400);
 		}
 	);
 
 	test('rejects invalid form fields with 400', async () => {
 		h.parseForm.mockReturnValue({ ok: false, errors: { name: 'required' } });
-		expect(((await actions.default(bookEvent(validForm()))) as Failure)?.status).toBe(400);
+		const response = await actions.default(bookEvent(validForm()));
+		expect((response as Failure)?.status).toBe(400);
 	});
 
 	test('rejects an invalid duration with 400', async () => {
 		h.parseForm.mockReturnValue(validGuest);
 		h.resolveDuration.mockReturnValue(null);
-		expect(((await actions.default(bookEvent(validForm()))) as Failure)?.status).toBe(400);
+		const response = await actions.default(bookEvent(validForm()));
+		expect((response as Failure)?.status).toBe(400);
+		expect(h.isNewSlotBookable).not.toHaveBeenCalled();
+		expect(h.createAppointment).not.toHaveBeenCalled();
 	});
 
 	test('re-validates availability and 409s when the slot is gone', async () => {
 		h.parseForm.mockReturnValue(validGuest);
 		h.resolveDuration.mockReturnValue(30);
-		h.computeSlots.mockReturnValue([]);
-		const result = (await actions.default(bookEvent(validForm()))) as Failure;
+		h.isNewSlotBookable.mockResolvedValue(false);
+		const response = await actions.default(bookEvent(validForm()));
+		const result = response as Failure;
 		expect(result?.status).toBe(409);
+		expect(h.isNewSlotBookable).toHaveBeenCalledExactlyOnceWith(
+			h.db,
+			h.cfg.current,
+			'30-min-chat',
+			h.cfg.current.meetings['30-min-chat'],
+			SLOT,
+			30
+		);
 		expect(h.createAppointment).not.toHaveBeenCalled();
 	});
 
 	test('books and redirects to the new appointment on success', async () => {
 		h.parseForm.mockReturnValue(validGuest);
-		h.resolveDuration.mockReturnValue(30);
-		h.computeSlots.mockReturnValue([Temporal.Instant.from(SLOT)]);
+		h.resolveDuration.mockReturnValue(60);
+		h.isNewSlotBookable.mockResolvedValue(true);
 		h.createAppointment.mockResolvedValue({
 			ok: true,
 			appointment: { id: 'new-1', cancel_token: 'tok new' }
@@ -179,21 +206,39 @@ describe('/schedule/[slug] book action', () => {
 		const r = await caught(() => actions.default(bookEvent(validForm())));
 		expect(r.status).toBe(303);
 		expect(r.location).toBe('/appointment/new-1?token=tok%20new');
+		expect(h.isNewSlotBookable).toHaveBeenCalledExactlyOnceWith(
+			h.db,
+			h.cfg.current,
+			'30-min-chat',
+			h.cfg.current.meetings['30-min-chat'],
+			SLOT,
+			60
+		);
+		expect(h.createAppointment).toHaveBeenCalledWith(
+			expect.anything(),
+			expect.objectContaining({
+				start: SLOT,
+				end: '2099-05-01T16:00:00Z',
+				initiator: 'guest'
+			})
+		);
 	});
 
 	test('409s when the row insert loses the race (created not ok)', async () => {
 		h.parseForm.mockReturnValue(validGuest);
 		h.resolveDuration.mockReturnValue(30);
-		h.computeSlots.mockReturnValue([Temporal.Instant.from(SLOT)]);
+		h.isNewSlotBookable.mockResolvedValue(true);
 		h.createAppointment.mockResolvedValue({ ok: false });
-		expect(((await actions.default(bookEvent(validForm()))) as Failure)?.status).toBe(409);
+		const response = await actions.default(bookEvent(validForm()));
+		expect((response as Failure)?.status).toBe(409);
 	});
 
 	test('500s when the insert throws', async () => {
 		h.parseForm.mockReturnValue(validGuest);
 		h.resolveDuration.mockReturnValue(30);
-		h.computeSlots.mockReturnValue([Temporal.Instant.from(SLOT)]);
+		h.isNewSlotBookable.mockResolvedValue(true);
 		h.createAppointment.mockRejectedValue(new Error('db down'));
-		expect(((await actions.default(bookEvent(validForm()))) as Failure)?.status).toBe(500);
+		const response = await actions.default(bookEvent(validForm()));
+		expect((response as Failure)?.status).toBe(500);
 	});
 });

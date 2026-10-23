@@ -3,7 +3,7 @@ import { findAppointment } from '@when/db';
 import { systemClock } from '$lib/server/clock';
 import { getConfig, getDb } from '$lib/server/state';
 import { resolveFormFields } from '@when/config';
-import { isSlotBookable, loadAvailability } from '$lib/server/availability/load';
+import { isRescheduleSlotBookable, loadAvailability } from '$lib/server/availability/booking';
 import { resolveDuration } from '$lib/server/appointment/duration';
 import { isViewAllowed } from '$lib/server/appointment/access';
 import { classifyReschedule, rescheduleAppointment } from '$lib/server/appointment/reschedule';
@@ -42,6 +42,7 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 	const rescheduleError = ctx.kind === 'error' ? ctx.code : null;
 
 	const { slotsByDuration, workingWindows, busyBlocks } = await loadAvailability(
+		getDb(),
 		cfg,
 		row.event_type_id,
 		eventType,
@@ -95,7 +96,8 @@ export const actions: Actions = {
 		if (duration === null) return fail(400, { error: 'Please pick a valid meeting length.' });
 
 		// Re-validate the slot is currently bookable, ignoring the appointment's own current slot.
-		const bookable = await isSlotBookable(
+		const bookable = await isRescheduleSlotBookable(
+			getDb(),
 			cfg,
 			found.event_type_id,
 			eventType,

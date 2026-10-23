@@ -1,10 +1,5 @@
 import { error, fail, redirect } from '@sveltejs/kit';
-import { computeSlots } from '$lib/server/availability';
-import { loadAppointmentBlocks } from '$lib/server/availability/blocks';
-import { resolveAvailabilitySettings } from '$lib/server/availability/settings';
-import { getBusyIntervals } from '@when/db';
-import { busyCalendarsFor } from '@when/calendar';
-import { systemClock } from '$lib/server/clock';
+import { isNewSlotBookable } from '$lib/server/availability/booking';
 import { getConfig, getDb } from '$lib/server/state';
 import { createAppointment } from '$lib/server/appointment/create';
 import { resolveDuration } from '$lib/server/appointment/duration';
@@ -41,25 +36,15 @@ export const actions: Actions = {
 			return fail(400, { error: 'Please pick a valid meeting length.' });
 		}
 
-		// Re-validate the slot is currently available for the chosen length.
-		const settings = resolveAvailabilitySettings(cfg, eventType);
-		const userTz = cfg.user.timezone;
-		const nowInstant = Temporal.Instant.fromEpochMilliseconds(systemClock.nowMs());
-		const rangeEnd = nowInstant.add({ hours: 24 * settings.maximum_lookahead });
-
-		const blocks = await loadAppointmentBlocks(getDb(), params.slug, nowInstant, rangeEnd, userTz);
-		const remoteBusy = await slotDayBusy(getDb(), busyCalendarsFor(eventType), slotStr, userTz);
-		const slots = computeSlots({
-			settings: { ...settings, duration },
-			rangeStart: nowInstant,
-			rangeEnd,
-			userTz,
-			now: nowInstant,
-			existingAppointments: blocks.appointments,
-			remoteBusy,
-			perDayCount: blocks.perDayCount
-		});
-		if (!slots.some((s) => s.toString() === slotStr)) {
+		const bookable = await isNewSlotBookable(
+			getDb(),
+			cfg,
+			params.slug,
+			eventType,
+			slotStr,
+			duration
+		);
+		if (!bookable) {
 			return fail(409, { error: 'That time is no longer available. Please pick another.' });
 		}
 
@@ -74,7 +59,7 @@ export const actions: Actions = {
 				name,
 				email,
 				answers,
-				timezone: resolveTimezone(form.get('timezone'), userTz)
+				timezone: resolveTimezone(form.get('timezone'), cfg.user.timezone)
 			},
 			location: resolvedLocation,
 			initiator: 'host'
@@ -87,21 +72,3 @@ export const actions: Actions = {
 		redirect(303, `/appointment/${result.appointment.id}`);
 	}
 };
-
-async function slotDayBusy(
-	db: ReturnType<typeof getDb>,
-	conflictCalendars: string[],
-	slotStr: string,
-	userTz: string
-) {
-	const slot = Temporal.Instant.from(slotStr);
-	const date = slot.toZonedDateTimeISO(userTz).toPlainDate();
-	const dayStart = date.toZonedDateTime(userTz).toInstant();
-	const dayEnd = date.add({ days: 1 }).toZonedDateTime(userTz).toInstant();
-	return (
-		await getBusyIntervals(db, conflictCalendars, {
-			start: dayStart.toString(),
-			end: dayEnd.toString()
-		})
-	).map((b) => ({ start: Temporal.Instant.from(b.start), end: Temporal.Instant.from(b.end) }));
-}
