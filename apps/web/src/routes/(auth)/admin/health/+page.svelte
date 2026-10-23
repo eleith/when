@@ -214,6 +214,9 @@
 								</div>
 							{/if}
 						</div>
+						{#if form?.providerTestResult?.provider === provider.name && pending !== `test:provider:${provider.name}`}
+							<p class="provider-test-result" role="status">{form.providerTestResult.message}</p>
+						{/if}
 					</li>
 				{/each}
 			</ul>
@@ -474,7 +477,8 @@
 		overflow-wrap: anywhere;
 	}
 
-	.email-result {
+	.email-result,
+	.provider-test-result {
 		margin: 0;
 		padding: var(--space-4) var(--space-5);
 		overflow-wrap: anywhere;

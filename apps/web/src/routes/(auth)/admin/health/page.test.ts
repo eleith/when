@@ -147,3 +147,83 @@ test('a saved SMTP failure still displays a down banner without an action notice
 	expect(banner).not.toContain('Last recorded failure:');
 	expect(html).toMatch(/<dt[^>]*>Status<\/dt>\s*<dd class="failed[^"]*">down \(/);
 });
+
+test('provider auth success is plain feedback only on the matching card, not up health', async () => {
+	const pageData: PageData = {
+		...data,
+		providers: [
+			{ ...data.providers[0], observed: { state: 'unobserved', at: null, error: null, via: null } },
+			{
+				...data.providers[0],
+				name: 'other',
+				observed: { state: 'unobserved', at: null, error: null, via: null }
+			}
+		],
+		calendars: []
+	};
+	const form: ActionData = {
+		providerTestResult: { provider: 'dav', ok: true, message: 'Authenticated.' }
+	};
+
+	const rendered = await render(HealthPage, { props: { data: pageData, form } });
+	const html = rendered.body.replace(/<!--[\s\S]*?-->/g, '');
+	const [providerCard, otherCard] = html.match(/<li class="card[^"]*"[^>]*>[\s\S]*?<\/li>/g) ?? [];
+
+	expect(providerCard).toContain('>dav</h2>');
+	expect(providerCard).toMatch(
+		/<\/div>\s*<p class="provider-test-result[^"]*" role="status">Authenticated\.<\/p>\s*<\/li>/
+	);
+	expect(providerCard).toMatch(/<dt[^>]*>Status<\/dt>\s*<dd[^>]*>not observed<\/dd>/);
+	expect(providerCard).not.toContain('role="alert"');
+	expect(otherCard).toContain('>other</h2>');
+	expect(otherCard).not.toContain('Authenticated.');
+	expect(otherCard).not.toContain('role="status"');
+});
+
+test.each(['wait timed out: <b>sentinel</b>', '401 Authentication failed: <b>sentinel</b>'])(
+	'provider auth failure preserves and escapes %s without changing unobserved health',
+	async (message) => {
+		const pageData: PageData = {
+			...data,
+			providers: [
+				{
+					...data.providers[0],
+					observed: { state: 'unobserved', at: null, error: null, via: null }
+				}
+			],
+			calendars: []
+		};
+		const form: ActionData = { providerTestResult: { provider: 'dav', ok: false, message } };
+
+		const rendered = await render(HealthPage, { props: { data: pageData, form } });
+		const html = rendered.body.replace(/<!--[\s\S]*?-->/g, '');
+		const providerCard = html.match(/<li class="card[^"]*"[^>]*>[\s\S]*?<\/li>/)?.[0] ?? '';
+		const escapedMessage = message.replaceAll('<', '&lt;');
+
+		expect(providerCard).toContain(`role="status">${escapedMessage}</p>`);
+		expect(providerCard).toMatch(/<p class="provider-test-result[^"]*" role="status">/);
+		expect(providerCard).not.toContain('<b>sentinel</b>');
+		expect(providerCard).not.toContain('role="alert"');
+		expect(providerCard).toMatch(/<dt[^>]*>Status<\/dt>\s*<dd[^>]*>not observed<\/dd>/);
+	}
+);
+
+test('a stored provider failure stays down separately from the current auth test message', async () => {
+	const pageData: PageData = { ...data, calendars: [] };
+	const form: ActionData = {
+		providerTestResult: { provider: 'dav', ok: true, message: 'Authenticated.' }
+	};
+
+	const rendered = await render(HealthPage, { props: { data: pageData, form } });
+	const html = rendered.body.replace(/<!--[\s\S]*?-->/g, '');
+	const providerCard = html.match(/<li class="card[^"]*"[^>]*>[\s\S]*?<\/li>/)?.[0] ?? '';
+	const banner = providerCard.match(/<aside\b[^>]*role="alert"[^>]*>[\s\S]*?<\/aside>/)?.[0] ?? '';
+
+	expect(banner).toContain('banner-error');
+	expect(banner).toContain('down: Authentication denied');
+	expect(banner).not.toContain('Authenticated.');
+	expect(providerCard).toMatch(/<dt[^>]*>Status<\/dt>\s*<dd class="failed[^"]*">down \(/);
+	expect(providerCard).toMatch(
+		/<p class="provider-test-result[^"]*" role="status">Authenticated\.<\/p>/
+	);
+});

@@ -90,10 +90,9 @@ export const actions: Actions = {
 	},
 
 	testProvider: async ({ request }) => {
-		const name = String((await request.formData()).get('provider') ?? '');
+		const form = await request.formData();
+		const name = String(form.get('provider') ?? '');
 		const result = await probeProvider(getConfig(), name);
-		return result.ok
-			? notice(`provider:${name}`, 'up')
-			: notice(`provider:${name}`, 'down', result.message);
+		return { providerTestResult: { provider: name, ...result } };
 	}
 };

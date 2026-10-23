@@ -46,6 +46,7 @@ vi.mock('$lib/server/worker', () => ({
 }));
 
 import { sendTestEmail, type SendResult } from '$lib/server/email/status';
+import { probeProvider, type ProbeResult } from '$lib/server/providers/status';
 import { actions, load } from './+page.server';
 
 type LoadResult = Exclude<Awaited<ReturnType<typeof load>>, void>;
@@ -87,6 +88,34 @@ describe('admin/health email action', () => {
 
 			expect(sendTestEmail).toHaveBeenLastCalledWith(validConfig, to);
 			expect(result).toEqual({ emailResult: sendResult });
+		}
+	);
+});
+
+function providerEvent(provider: string): Parameters<typeof actions.testProvider>[0] {
+	const form = new FormData();
+	form.set('provider', provider);
+	const request = new Request('https://book.example.com/admin/health?/testProvider', {
+		method: 'POST',
+		body: form
+	});
+	return { request } as Parameters<typeof actions.testProvider>[0];
+}
+
+describe('admin/health provider auth action', () => {
+	test.each<[string, ProbeResult]>([
+		['dav', { ok: true, message: 'Authenticated.' }],
+		['cloud', { ok: false, message: 'wait timed out' }],
+		['video', { ok: false, message: '401 Authentication failed' }]
+	])(
+		'returns the auth test result unchanged for %s without a health notice',
+		async (provider, probeResult) => {
+			vi.mocked(probeProvider).mockResolvedValueOnce(probeResult);
+
+			const result = await actions.testProvider(providerEvent(provider));
+
+			expect(probeProvider).toHaveBeenLastCalledWith(validConfig, provider);
+			expect(result).toEqual({ providerTestResult: { provider, ...probeResult } });
 		}
 	);
 });
