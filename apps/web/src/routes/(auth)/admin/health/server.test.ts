@@ -45,13 +45,51 @@ vi.mock('$lib/server/worker', () => ({
 	workerReachable: vi.fn().mockResolvedValue(true)
 }));
 
-import { load } from './+page.server';
+import { sendTestEmail, type SendResult } from '$lib/server/email/status';
+import { actions, load } from './+page.server';
 
 type LoadResult = Exclude<Awaited<ReturnType<typeof load>>, void>;
 
 function loadEvent(): Parameters<typeof load>[0] {
 	return {} as Parameters<typeof load>[0];
 }
+
+function emailEvent(to: string): Parameters<typeof actions.email>[0] {
+	const form = new FormData();
+	form.set('to', to);
+	const request = new Request('https://book.example.com/admin/health?/email', {
+		method: 'POST',
+		body: form
+	});
+	return { request } as Parameters<typeof actions.email>[0];
+}
+
+describe('admin/health email action', () => {
+	test('returns the successful send result unchanged with the submitted recipient', async () => {
+		const to = 'recipient@example.com';
+		const sendResult: SendResult = { ok: true, message: `Test email sent to ${to}.` };
+		vi.mocked(sendTestEmail).mockResolvedValueOnce(sendResult);
+
+		const result = await actions.email(emailEvent(to));
+
+		expect(sendTestEmail).toHaveBeenLastCalledWith(validConfig, to);
+		expect(result).toEqual({ emailResult: sendResult });
+	});
+
+	test.each(['wait timed out', '535 Authentication failed'])(
+		'returns the failed send result unchanged: %s',
+		async (message) => {
+			const to = 'another@example.com';
+			const sendResult: SendResult = { ok: false, message };
+			vi.mocked(sendTestEmail).mockResolvedValueOnce(sendResult);
+
+			const result = await actions.email(emailEvent(to));
+
+			expect(sendTestEmail).toHaveBeenLastCalledWith(validConfig, to);
+			expect(result).toEqual({ emailResult: sendResult });
+		}
+	);
+});
 
 describe('admin/health +page.server load', () => {
 	test('returns meeting types from config', async () => {

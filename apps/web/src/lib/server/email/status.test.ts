@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { getOpenWorkflow, testEmail } from '@when/jobs';
 import { openDb, runMigrations, recordServiceOutcome, type Database } from '@when/db';
 import type { Kysely } from 'kysely';
@@ -16,7 +16,7 @@ const config = {
 	url: { app: 'https://book.example.com', worker: 'http://when-worker:9000' }
 } as unknown as WhenConfiguration;
 
-const handle = { result: vi.fn() };
+const handle = { result: vi.fn(), cancel: vi.fn() };
 const client = { runWorkflow: vi.fn() };
 let db: Kysely<Database>;
 
@@ -24,6 +24,7 @@ beforeEach(async () => {
 	db = openDb(':memory:');
 	await runMigrations(db);
 	handle.result = vi.fn().mockResolvedValue('sent');
+	handle.cancel.mockReset();
 	client.runWorkflow = vi.fn().mockResolvedValue(handle);
 	vi.mocked(getOpenWorkflow)
 		.mockReset()
@@ -31,9 +32,15 @@ beforeEach(async () => {
 	vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('', { status: 200 }));
 });
 
+afterEach(async () => {
+	vi.restoreAllMocks();
+	await db.destroy();
+});
+
 describe('smtpSummary', () => {
 	test('reports the configured server without reaching it', async () => {
-		expect(await smtpSummary(config, db)).toMatchObject({
+		const summary = await smtpSummary(config, db);
+		expect(summary).toMatchObject({
 			host: 'smtp.example.com',
 			port: 587,
 			username: 'postmaster'
@@ -42,11 +49,13 @@ describe('smtpSummary', () => {
 	});
 
 	test('derives the sender address the app actually sends as', async () => {
-		expect((await smtpSummary(config, db)).sender).toBe('noreply@book.example.com');
+		const summary = await smtpSummary(config, db);
+		expect(summary.sender).toBe('noreply@book.example.com');
 	});
 
 	test('offers the host as the default recipient', async () => {
-		expect((await smtpSummary(config, db)).defaultRecipient).toBe('jane@example.com');
+		const summary = await smtpSummary(config, db);
+		expect(summary.defaultRecipient).toBe('jane@example.com');
 	});
 
 	test('never exposes the smtp password', async () => {
@@ -56,7 +65,8 @@ describe('smtpSummary', () => {
 	});
 
 	test('smtp reads as unobserved until an email has been sent', async () => {
-		expect((await smtpSummary(config, db)).observed.state).toBe('unobserved');
+		const summary = await smtpSummary(config, db);
+		expect(summary.observed.state).toBe('unobserved');
 	});
 
 	test('a sent email is what makes smtp read as working', async () => {
@@ -96,7 +106,8 @@ describe('sendTestEmail', () => {
 		const result = await sendTestEmail(config, 'someone@example.com');
 
 		expect(result).toEqual({ ok: true, message: 'Test email sent to someone@example.com.' });
-		expect(client.runWorkflow).toHaveBeenCalledWith(
+		expect(handle.result).toHaveBeenCalledExactlyOnceWith({ timeoutMs: 30_000 });
+		expect(client.runWorkflow).toHaveBeenCalledExactlyOnceWith(
 			testEmail,
 			{ to: 'someone@example.com' },
 			expect.objectContaining({ idempotencyKey: expect.any(String) })
@@ -113,23 +124,37 @@ describe('sendTestEmail', () => {
 	});
 
 	test('refuses an empty recipient without touching the queue', async () => {
-		expect(await sendTestEmail(config, '  ')).toMatchObject({ ok: false });
+		const result = await sendTestEmail(config, '  ');
+		expect(result).toMatchObject({ ok: false });
 		expect(client.runWorkflow).not.toHaveBeenCalled();
 	});
 
-	test('surfaces a worker failure', async () => {
-		handle.result = vi.fn().mockRejectedValue(new Error('535 auth failed'));
+	test.each([
+		'Timed out waiting for workflow run 123 to finish',
+		'Workflow test-email failed: 535 auth failed',
+		'Workflow test-email was canceled',
+		'Workflow run 123 no longer exists'
+	])('preserves "%s" as test feedback without retrying', async (message) => {
+		handle.result.mockRejectedValue(new Error(message));
 
-		expect(await sendTestEmail(config, 'someone@example.com')).toEqual({
-			ok: false,
-			message: '535 auth failed'
-		});
+		const result = await sendTestEmail(config, 'someone@example.com');
+
+		expect(result).toEqual({ ok: false, message });
+		expect(client.runWorkflow).toHaveBeenCalledTimes(1);
+		expect(handle.result).toHaveBeenCalledExactlyOnceWith({ timeoutMs: 30_000 });
+		expect(handle.cancel).not.toHaveBeenCalled();
+		const observations = await db.selectFrom('service_status').selectAll().execute();
+		expect(observations).toEqual([]);
 	});
 
 	test('surfaces a queue that will not accept the run', async () => {
-		client.runWorkflow = vi.fn().mockRejectedValue(new Error('queue unavailable'));
+		client.runWorkflow.mockRejectedValue(new Error('queue unavailable'));
 
-		expect(await sendTestEmail(config, 'someone@example.com')).toMatchObject({ ok: false });
+		const result = await sendTestEmail(config, 'someone@example.com');
+
+		expect(result).toEqual({ ok: false, message: 'queue unavailable' });
+		expect(client.runWorkflow).toHaveBeenCalledTimes(1);
+		expect(handle.result).not.toHaveBeenCalled();
 	});
 
 	// An unclaimed run sits pending until the result poll gives up half a minute later.
@@ -146,7 +171,8 @@ describe('sendTestEmail', () => {
 	test('treats an unhealthy worker as unreachable', async () => {
 		vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('', { status: 503 }));
 
-		expect(await sendTestEmail(config, 'someone@example.com')).toMatchObject({ ok: false });
+		const result = await sendTestEmail(config, 'someone@example.com');
+		expect(result).toMatchObject({ ok: false });
 		expect(client.runWorkflow).not.toHaveBeenCalled();
 	});
 });

@@ -83,9 +83,10 @@ export const actions: Actions = {
 	},
 
 	email: async ({ request }) => {
-		const to = String((await request.formData()).get('to') ?? '');
+		const form = await request.formData();
+		const to = String(form.get('to') ?? '');
 		const result = await sendTestEmail(getConfig(), to);
-		return result.ok ? notice('smtp', 'up', to) : notice('smtp', 'down', result.message);
+		return { emailResult: result };
 	},
 
 	testProvider: async ({ request }) => {

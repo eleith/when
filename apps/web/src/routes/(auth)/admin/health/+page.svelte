@@ -79,8 +79,6 @@
 			<p class="banner-text">
 				{#if !outcome}
 					down: {problem}
-				{:else if outcome.status === 'up' && kind === 'smtp'}
-					up: test email sent to {outcome.detail}
 				{:else if outcome.status === 'up' && kind === 'calendar'}
 					up: {outcome.detail}
 				{:else if outcome.status === 'up'}
@@ -377,6 +375,9 @@
 					</button>
 				</form>
 			</div>
+			{#if form?.emailResult && pending !== 'smtp'}
+				<p class="email-result" role="status">{form.emailResult.message}</p>
+			{/if}
 		</div>
 
 		<h2 class="section" id="meetings">Meeting types</h2>
@@ -470,6 +471,12 @@
 
 	.banner-text {
 		margin: 0;
+		overflow-wrap: anywhere;
+	}
+
+	.email-result {
+		margin: 0;
+		padding: var(--space-4) var(--space-5);
 		overflow-wrap: anywhere;
 	}
 

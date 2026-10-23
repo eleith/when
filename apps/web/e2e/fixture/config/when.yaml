@@ -57,3 +57,4 @@ meetings:
 
 url:
   app: 'http://localhost:4183'
+  worker: 'http://127.0.0.1:9'
