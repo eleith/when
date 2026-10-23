@@ -357,14 +357,7 @@
 	.action-item-danger:hover,
 	.action-item-danger:focus-visible {
 		background: var(--color-danger-bg);
-		color: var(--color-danger-strong);
-	}
-
-	@media (prefers-color-scheme: dark) {
-		.action-item-danger:hover,
-		.action-item-danger:focus-visible {
-			color: var(--color-danger);
-		}
+		color: light-dark(var(--color-danger-strong), var(--color-danger));
 	}
 
 	.action-item-info {

@@ -2,7 +2,9 @@
 	import type { Snippet } from 'svelte';
 	import { page } from '$app/state';
 	import IconCalendarBlank from 'virtual:icons/ph/calendar-blank';
+	import IconArrowUpLeft from 'virtual:icons/ph/arrow-up-left';
 	import IconSignOut from 'virtual:icons/ph/sign-out';
+	import ThemeToggle from './ThemeToggle.svelte';
 
 	// Each admin route renders this nav itself and names its own crumb.
 	let { crumb = null }: { crumb?: Snippet | null } = $props();
@@ -11,8 +13,6 @@
 	let pathname = $derived(page.url.pathname);
 
 	let isHome = $derived(pathname === '/admin' || pathname === '/admin/');
-
-	let homeHref = $derived(isHome ? null : '/admin');
 </script>
 
 <header class="admin-nav">
@@ -20,17 +20,17 @@
 		<nav aria-label="Admin breadcrumb">
 			<ol class="breadcrumb">
 				<li class="crumb-item">
-					{#if homeHref}
-						<a href={homeHref} class="crumb-link" aria-label="Admin dashboard">
+					<a
+						href={isHome ? '/' : '/admin'}
+						class="crumb-link"
+						aria-label={isHome ? 'Homepage' : 'Admin dashboard'}
+					>
+						{#if isHome}
+							<IconArrowUpLeft aria-hidden="true" />
+						{:else}
 							<IconCalendarBlank aria-hidden="true" />
-							<span class="crumb-label">Admin</span>
-						</a>
-					{:else}
-						<span class="crumb-root">
-							<IconCalendarBlank aria-hidden="true" />
-							<span class="crumb-label">Admin</span>
-						</span>
-					{/if}
+						{/if}
+					</a>
 				</li>
 				{#if crumb}
 					<li class="crumb-item">
@@ -39,17 +39,19 @@
 				{/if}
 			</ol>
 		</nav>
-		<form method="POST" action="/admin?/signout" class="signout-form" aria-label="Sign out">
-			<input
-				type="hidden"
-				name="redirectTo"
-				value="/signin?callbackUrl={encodeURIComponent(currentPath)}"
-			/>
-			<button type="submit" class="logout-btn">
-				<IconSignOut aria-hidden="true" />
-				<span class="crumb-label">Logout</span>
-			</button>
-		</form>
+		<div class="nav-actions">
+			<ThemeToggle />
+			<form method="POST" action="/admin?/signout" class="signout-form" aria-label="Sign out">
+				<input
+					type="hidden"
+					name="redirectTo"
+					value="/signin?callbackUrl={encodeURIComponent(currentPath)}"
+				/>
+				<button type="submit" class="logout-btn" aria-label="Sign out">
+					<IconSignOut aria-hidden="true" />
+				</button>
+			</form>
+		</div>
 	</div>
 </header>
 
@@ -67,6 +69,12 @@
 		justify-content: space-between;
 		align-items: center;
 		box-sizing: border-box;
+	}
+
+	.nav-actions {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
 	}
 
 	.breadcrumb {
@@ -97,6 +105,9 @@
 	}
 
 	.crumb-link {
+		min-width: calc(var(--space-8) + var(--space-4));
+		min-height: calc(var(--space-8) + var(--space-4));
+		justify-content: center;
 		color: var(--color-text-secondary);
 		text-decoration: none;
 		display: inline-flex;
@@ -116,19 +127,6 @@
 		outline-offset: 2px;
 	}
 
-	.crumb-root {
-		color: var(--color-text-muted);
-		display: inline-flex;
-		align-items: center;
-		gap: var(--space-2);
-		font-size: var(--font-size-xl);
-	}
-
-	.crumb-label {
-		font-size: var(--font-size-md);
-		font-weight: 500;
-	}
-
 	.crumb-item [aria-current='page'] {
 		font-size: var(--font-size-md);
 		color: var(--color-text-secondary);
@@ -143,18 +141,21 @@
 	.logout-btn {
 		background: none;
 		border: none;
-		padding: 0;
+		min-width: calc(var(--space-8) + var(--space-4));
+		min-height: calc(var(--space-8) + var(--space-4));
+		padding: var(--space-3);
 		color: var(--color-text-secondary);
 		cursor: pointer;
 		display: inline-flex;
 		align-items: center;
-		gap: var(--space-2);
+		justify-content: center;
 		transition: color var(--transition);
 		font-size: var(--font-size-xl);
 		border-radius: var(--radius-sm);
 	}
 
 	.logout-btn:hover {
+		background: var(--color-surface-active);
 		color: var(--when-color-text);
 	}
 

@@ -20,17 +20,17 @@ function fontFaceRule(appearance: Appearance): string {
 		}`;
 }
 
-function colorVariables(appearance: Appearance, scheme: 'light' | 'dark'): string {
-	const primary =
-		scheme === 'light' ? appearance.primary_light_color : appearance.primary_dark_color;
-	const text = scheme === 'light' ? appearance.text_light_color : appearance.text_dark_color;
-	const surface =
-		scheme === 'light' ? appearance.background_light_color : appearance.background_dark_color;
+function colorVariables(appearance: Appearance): string {
+	const contrastLight = getContrastText(
+		appearance.primary_light_color,
+		appearance.text_light_color
+	);
+	const contrastDark = getContrastText(appearance.primary_dark_color, appearance.text_dark_color);
 
-	return `--when-color-primary: ${primary};
-			--when-color-text: ${text};
-			--when-color-surface-page: ${surface};
-			--when-color-text-on-primary: ${getContrastText(primary, text)};`;
+	return `--when-color-primary: light-dark(${appearance.primary_light_color}, ${appearance.primary_dark_color});
+			--when-color-text: light-dark(${appearance.text_light_color}, ${appearance.text_dark_color});
+			--when-color-surface-page: light-dark(${appearance.background_light_color}, ${appearance.background_dark_color});
+			--when-color-text-on-primary: light-dark(${contrastLight}, ${contrastDark});`;
 }
 
 /** The owner's configured theme, as a <style> element for the document head. */
@@ -40,14 +40,8 @@ export function themeStyleTag(appearance: Appearance): string {
 	return `<style>
 		${fontFaceRule(appearance)}
 		:root {
-			${colorVariables(appearance, 'light')}
+			${colorVariables(appearance)}
 			--when-font-family: ${families};
-		}
-
-		@media (prefers-color-scheme: dark) {
-			:root {
-				${colorVariables(appearance, 'dark')}
-			}
 		}
 	</style>`;
 }

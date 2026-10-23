@@ -338,15 +338,7 @@
 	.status-cancelled,
 	.status-expired {
 		background: var(--color-danger-bg);
-		color: var(--color-danger-strong);
-	}
-
-	@media (prefers-color-scheme: dark) {
-		.status-declined,
-		.status-cancelled,
-		.status-expired {
-			color: var(--color-danger);
-		}
+		color: light-dark(var(--color-danger-strong), var(--color-danger));
 	}
 
 	/* ---- responsive overrides ---- */

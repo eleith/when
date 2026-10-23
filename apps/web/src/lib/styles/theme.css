@@ -1,14 +1,20 @@
 :root {
 	color-scheme: light dark;
 
-	--color-surface: #ffffff;
+	--color-surface: light-dark(
+		#ffffff,
+		color-mix(in srgb, var(--when-color-text) 8%, var(--when-color-surface-page))
+	);
 	/* --when-color-surface-page: injected from config appearance */
 	--color-surface-muted: color-mix(
 		in srgb,
 		var(--when-color-text) 5%,
 		var(--when-color-surface-page)
 	);
-	--color-surface-active: color-mix(in srgb, var(--when-color-text) 8%, transparent);
+	--color-surface-active: light-dark(
+		color-mix(in srgb, var(--when-color-text) 8%, transparent),
+		color-mix(in srgb, var(--when-color-text) 20%, transparent)
+	);
 
 	--color-primary-muted: color-mix(
 		in srgb,
@@ -34,10 +40,9 @@
 		var(--when-color-text) 85%,
 		var(--when-color-surface-page)
 	);
-	--color-text-muted: color-mix(
-		in srgb,
-		var(--when-color-text) 78%,
-		var(--when-color-surface-page)
+	--color-text-muted: light-dark(
+		color-mix(in srgb, var(--when-color-text) 78%, var(--when-color-surface-page)),
+		color-mix(in srgb, var(--when-color-text) 72%, var(--when-color-surface-page))
 	);
 	--color-text-disabled: color-mix(
 		in srgb,
@@ -45,33 +50,37 @@
 		var(--when-color-surface-page)
 	);
 
-	--color-success: #059669;
-	--color-success-strong: #005530;
-	--color-success-border: #a7f3d0;
-	--color-success-bg: #ecfdf5;
+	--color-success: light-dark(#059669, #34d399);
+	--color-success-strong: light-dark(#005530, #10b981);
+	--color-success-border: light-dark(#a7f3d0, #064e3b);
+	--color-success-bg: light-dark(#ecfdf5, #022c22);
 
-	--color-danger: #dc2626;
-	--color-danger-strong: #991616;
-	--color-danger-border: #fca5a5;
-	--color-danger-bg: #fef2f2;
+	--color-danger: light-dark(#dc2626, #ff9090);
+	--color-danger-strong: light-dark(#991616, #ef4444);
+	--color-danger-border: light-dark(#fca5a5, #7f1d1d);
+	--color-danger-bg: light-dark(#fef2f2, #450a0a);
 
-	--color-warning: #d97706;
-	--color-warning-strong: #8a3c00;
-	--color-warning-border: #fcd34d;
-	--color-warning-bg: #fffbeb;
+	--color-warning: light-dark(#d97706, #fbbf24);
+	--color-warning-strong: light-dark(#8a3c00, #f59e0b);
+	--color-warning-border: light-dark(#fcd34d, #78350f);
+	--color-warning-bg: light-dark(#fffbeb, #451a03);
 
-	--color-info: #2563eb;
-	--color-info-strong: #0a3ccc;
-	--color-info-border: #93c5fd;
-	--color-info-bg: #eff6ff;
+	--color-info: light-dark(#2563eb, #80bdfc);
+	--color-info-strong: light-dark(#0a3ccc, #3b82f6);
+	--color-info-border: light-dark(#93c5fd, #1e3a8a);
+	--color-info-bg: light-dark(#eff6ff, #172554);
 
-	--color-quiet: #737373;
-	--color-quiet-strong: #3d3d3d;
-	--color-quiet-border: #d4d4d4;
-	--color-quiet-bg: #d4d4d4;
+	--color-quiet: light-dark(#737373, #c8c8c8);
+	--color-quiet-strong: light-dark(#3d3d3d, #a3a3a3);
+	--color-quiet-border: light-dark(#d4d4d4, #404040);
+	--color-quiet-bg: light-dark(#d4d4d4, #333333);
 
-	--shadow-card: 0 1px 6px rgba(0, 0, 0, 0.06);
-	--shadow-focus: 0 0 0 3px oklch(from var(--when-color-primary) l c h / 0.35);
+	--shadow-card: 0 1px 6px light-dark(rgba(0, 0, 0, 0.06), rgba(0, 0, 0, 0.4));
+	--shadow-focus: 0 0 0 3px
+		light-dark(
+			oklch(from var(--when-color-primary) l c h / 0.35),
+			oklch(from var(--when-color-primary) l c h / 0.45)
+		);
 
 	--space-1: 2px;
 	--space-2: 4px;
@@ -107,46 +116,12 @@
 	/* --when-font-family: injected from config appearance */
 }
 
-@media (prefers-color-scheme: dark) {
-	:root {
-		--color-text-muted: color-mix(
-			in srgb,
-			var(--when-color-text) 72%,
-			var(--when-color-surface-page)
-		);
-		/* --when-color-surface-page: injected from config appearance */
-		/* --when-color-text: injected from config appearance */
-		--color-surface: color-mix(in srgb, var(--when-color-text) 8%, var(--when-color-surface-page));
-		--color-surface-active: color-mix(in srgb, var(--when-color-text) 20%, transparent);
+:root[data-theme='light'] {
+	color-scheme: light;
+}
 
-		--color-success: #34d399;
-		--color-success-strong: #10b981;
-		--color-success-border: #064e3b;
-		--color-success-bg: #022c22;
-
-		--color-danger: #ff9090;
-		--color-danger-strong: #ef4444;
-		--color-danger-border: #7f1d1d;
-		--color-danger-bg: #450a0a;
-
-		--color-warning: #fbbf24;
-		--color-warning-strong: #f59e0b;
-		--color-warning-border: #78350f;
-		--color-warning-bg: #451a03;
-
-		--color-info: #80bdfc;
-		--color-info-strong: #3b82f6;
-		--color-info-border: #1e3a8a;
-		--color-info-bg: #172554;
-
-		--color-quiet: #c8c8c8;
-		--color-quiet-strong: #a3a3a3;
-		--color-quiet-border: #404040;
-		--color-quiet-bg: #333333;
-
-		--shadow-card: 0 1px 6px rgba(0, 0, 0, 0.4);
-		--shadow-focus: 0 0 0 3px oklch(from var(--when-color-primary) l c h / 0.45);
-	}
+:root[data-theme='dark'] {
+	color-scheme: dark;
 }
 
 html,

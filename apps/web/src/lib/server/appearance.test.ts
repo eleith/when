@@ -4,6 +4,38 @@ import { validConfig } from './__fixtures__/valid-config';
 
 const base = validConfig.user.appearance;
 
+const customColors = {
+	primary_light_color: '#123456',
+	primary_dark_color: '#abcdef',
+	background_light_color: '#f1f2f3',
+	background_dark_color: '#102030',
+	text_light_color: '#234567',
+	text_dark_color: '#fefefe'
+};
+
+test('configured light and dark colors share one scheme-aware palette', () => {
+	const html = themeStyleTag({ ...base, ...customColors });
+
+	expect(html).toContain('--when-color-primary: light-dark(#123456, #abcdef);');
+	expect(html).toContain('--when-color-text: light-dark(#234567, #fefefe);');
+	expect(html).toContain('--when-color-surface-page: light-dark(#f1f2f3, #102030);');
+	expect(html).toContain('--when-color-text-on-primary: light-dark(#ffffff, #000000);');
+	expect(html).not.toContain('@media');
+	expect(html.match(/:root/g)).toHaveLength(1);
+	expect(styleTagCounts(html)).toEqual({ opened: 1, closed: 1 });
+});
+
+test('each scheme keeps its configured text on primary when it has enough contrast', () => {
+	const html = themeStyleTag({
+		...base,
+		...customColors,
+		text_light_color: '#fefefe',
+		text_dark_color: '#234567'
+	});
+
+	expect(html).toContain('--when-color-text-on-primary: light-dark(#fefefe, #234567);');
+});
+
 // A stray `</style` would end the element early and put the rest in the document.
 function styleTagCounts(html: string) {
 	return {

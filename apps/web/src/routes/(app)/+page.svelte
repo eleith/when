@@ -1,5 +1,6 @@
 <script lang="ts">
 	import IconShieldCheck from 'virtual:icons/ph/shield-check';
+	import ThemeToggle from '$lib/components/ThemeToggle.svelte';
 
 	let { data } = $props();
 </script>
@@ -9,18 +10,28 @@
 </svelte:head>
 
 <main class="landing">
-	{#if data.user.appearance.avatar_path}
-		<div class="avatar-container">
-			<img src={data.user.appearance.avatar_path} alt={data.user.name} class="avatar" />
-			{#if data.isAdmin}
-				<a href="/admin" class="admin-badge" title="Admin dashboard" aria-label="Admin dashboard">
-					<IconShieldCheck aria-hidden="true" />
-				</a>
+	<header class="profile-header">
+		<div class="profile">
+			{#if data.user.appearance.avatar_path}
+				<div class="avatar-container">
+					<img src={data.user.appearance.avatar_path} alt={data.user.name} class="avatar" />
+					{#if data.isAdmin}
+						<a
+							href="/admin"
+							class="admin-badge"
+							title="Admin dashboard"
+							aria-label="Admin dashboard"
+						>
+							<IconShieldCheck aria-hidden="true" />
+						</a>
+					{/if}
+				</div>
 			{/if}
+			<h1>{data.user.appearance.title}</h1>
+			<p class="subtitle">{data.user.appearance.description}</p>
 		</div>
-	{/if}
-	<h1>{data.user.appearance.title}</h1>
-	<p class="subtitle">{data.user.appearance.description}</p>
+		<ThemeToggle />
+	</header>
 
 	{#if data.eventTypes.length === 0}
 		<p class="empty">No meeting types are currently available.</p>
@@ -65,6 +76,18 @@
 		margin: 0 auto;
 		padding: var(--space-9) var(--space-7);
 		color: var(--when-color-text);
+	}
+
+	.profile-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: flex-start;
+		gap: var(--space-5);
+	}
+
+	.profile {
+		flex: 1;
+		min-width: 0;
 	}
 
 	.avatar-container {

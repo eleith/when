@@ -921,45 +921,27 @@
 
 	.state-info {
 		background: var(--color-info-bg);
-		color: var(--color-info-strong);
+		color: light-dark(var(--color-info-strong), var(--color-info));
 	}
 
 	.state-active {
 		background: var(--color-success-bg);
-		color: var(--color-success-strong);
+		color: light-dark(var(--color-success-strong), var(--color-success));
 	}
 
 	.state-warning {
 		background: var(--color-warning-bg);
-		color: var(--color-warning-strong);
+		color: light-dark(var(--color-warning-strong), var(--color-warning));
 	}
 
 	.state-danger {
 		background: var(--color-danger-bg);
-		color: var(--color-danger-strong);
+		color: light-dark(var(--color-danger-strong), var(--color-danger));
 	}
 
 	.state-quiet {
 		background: var(--color-quiet-bg);
-		color: var(--color-quiet-strong);
-	}
-
-	@media (prefers-color-scheme: dark) {
-		.state-info {
-			color: var(--color-info);
-		}
-		.state-active {
-			color: var(--color-success);
-		}
-		.state-warning {
-			color: var(--color-warning);
-		}
-		.state-danger {
-			color: var(--color-danger);
-		}
-		.state-quiet {
-			color: var(--color-quiet);
-		}
+		color: light-dark(var(--color-quiet-strong), var(--color-quiet));
 	}
 
 	.event-name {
