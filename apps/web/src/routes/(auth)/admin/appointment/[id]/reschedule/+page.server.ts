@@ -40,6 +40,7 @@ export const actions: Actions = {
 			cfg,
 			found.event_type_id,
 			eventType,
+			'host',
 			slotStr,
 			duration,
 			found.start_time

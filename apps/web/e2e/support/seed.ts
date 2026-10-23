@@ -21,6 +21,7 @@ function unusedStart(): Date {
 }
 
 export interface SeedAppointmentOptions {
+	eventTypeId?: string;
 	status?: AppointmentStatus;
 	start?: Date;
 	durationMinutes?: number;
@@ -35,11 +36,11 @@ export async function seedAppointment(options: SeedAppointmentOptions = {}): Pro
 	const db = openDb(APP_DB_PATH);
 
 	try {
-		return await db
+		const appointment = await db
 			.insertInto('appointments')
 			.values({
 				id,
-				event_type_id: CHAT_MEETING.slug,
+				event_type_id: options.eventTypeId ?? CHAT_MEETING.slug,
 				start_time: start.toISOString(),
 				end_time: new Date(start.getTime() + durationMinutes * MINUTE_MS).toISOString(),
 				guest_name: options.guestName ?? `Guest ${id.slice(4, 12)}`,
@@ -62,6 +63,7 @@ export async function seedAppointment(options: SeedAppointmentOptions = {}): Pro
 			})
 			.returningAll()
 			.executeTakeFirstOrThrow();
+		return appointment;
 	} finally {
 		await db.destroy();
 	}

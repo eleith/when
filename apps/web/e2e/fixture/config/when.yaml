@@ -55,6 +55,18 @@ meetings:
       attach:
         auto: false
 
+  host-rules:
+    title: 'Host availability rules fixture'
+    visibility: 'unlisted'
+    duration_minutes: 30
+    require_approval: true
+    show_slots: true
+    schedule: 'standard'
+    booking_calendar: 'main'
+    padding_before_minutes: 15
+    padding_after_minutes: 15
+    daily_booking_limit: 1
+
 url:
   app: 'http://localhost:4183'
   worker: 'http://127.0.0.1:9'

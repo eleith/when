@@ -82,6 +82,7 @@ describe('/admin/appointment/[id]/reschedule book action', () => {
 			validConfig,
 			row.event_type_id,
 			validConfig.meetings[row.event_type_id],
+			'host',
 			NEW_SLOT,
 			60,
 			CURRENT

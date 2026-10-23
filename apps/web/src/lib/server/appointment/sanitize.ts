@@ -1,5 +1,6 @@
 import { durationsOf, parseGuestAnswers, type Meeting } from '@when/config';
 import { parseActionLog, type ActionLogEntry, type Appointment } from '@when/db';
+import { resolveAvailabilityLimits } from '../availability/settings';
 
 export interface PublicEventType extends Pick<
 	Meeting,
@@ -37,6 +38,7 @@ export function toPublicEventType(
 	eventType: Meeting,
 	isAdmin: boolean
 ): PublicEventType {
+	const limits = resolveAvailabilityLimits(eventType, isAdmin ? 'host' : 'guest');
 	return {
 		slug,
 		title: eventType.title,
@@ -47,8 +49,8 @@ export function toPublicEventType(
 		require_approval: eventType.require_approval,
 		location: isAdmin ? eventType.location : undefined,
 		show_slots: eventType.show_slots,
-		padding_before_minutes: eventType.padding_before_minutes,
-		padding_after_minutes: eventType.padding_after_minutes,
+		padding_before_minutes: limits.buffer_before,
+		padding_after_minutes: limits.buffer_after,
 		notice_minutes: eventType.notice_minutes
 	};
 }

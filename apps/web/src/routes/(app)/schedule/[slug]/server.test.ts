@@ -111,18 +111,25 @@ describe('/schedule/[slug] load — deep-link canonicalization', () => {
 		expect(r.location).toBe('/schedule/30-min-chat?duration=60');
 	});
 
-	test('returns page data unchanged when the query is already canonical', async () => {
-		const loaded = await load(loadEvent(`?slot=${SLOT}`));
-		const result = loaded as LoadResult;
-		expect(result.eventType.slug).toBe('30-min-chat');
-		expect(result.isAdmin).toBe(false);
-		expect(h.loadAvailability).toHaveBeenCalledExactlyOnceWith(
-			h.db,
-			h.cfg.current,
-			'30-min-chat',
-			h.cfg.current.meetings['30-min-chat']
-		);
-	});
+	test.for([
+		{ viewer: 'guest', session: null, isAdmin: false },
+		{ viewer: 'host', session: { user: { name: 'Host' } }, isAdmin: true }
+	])(
+		'returns canonical page data and loads $viewer availability',
+		async ({ viewer, session, isAdmin }) => {
+			const loaded = await load(loadEvent(`?slot=${SLOT}`, session));
+			const result = loaded as LoadResult;
+			expect(result.eventType.slug).toBe('30-min-chat');
+			expect(result.isAdmin).toBe(isAdmin);
+			expect(h.loadAvailability).toHaveBeenCalledExactlyOnceWith(
+				h.db,
+				h.cfg.current,
+				'30-min-chat',
+				h.cfg.current.meetings['30-min-chat'],
+				viewer
+			);
+		}
+	);
 });
 
 describe('/schedule/[slug] book action', () => {
@@ -189,6 +196,28 @@ describe('/schedule/[slug] book action', () => {
 			h.cfg.current,
 			'30-min-chat',
 			h.cfg.current.meetings['30-min-chat'],
+			'guest',
+			SLOT,
+			30
+		);
+		expect(h.createAppointment).not.toHaveBeenCalled();
+	});
+
+	test('ignores forged host flags and checks guest availability', async () => {
+		h.parseForm.mockReturnValue(validGuest);
+		h.resolveDuration.mockReturnValue(30);
+		h.isNewSlotBookable.mockResolvedValue(false);
+		const fd = validForm();
+		fd.set('viewer', 'host');
+		fd.set('isAdmin', 'true');
+		const response = await actions.default(bookEvent(fd));
+		expect((response as Failure)?.status).toBe(409);
+		expect(h.isNewSlotBookable).toHaveBeenCalledExactlyOnceWith(
+			h.db,
+			h.cfg.current,
+			'30-min-chat',
+			h.cfg.current.meetings['30-min-chat'],
+			'guest',
 			SLOT,
 			30
 		);
@@ -211,6 +240,7 @@ describe('/schedule/[slug] book action', () => {
 			h.cfg.current,
 			'30-min-chat',
 			h.cfg.current.meetings['30-min-chat'],
+			'guest',
 			SLOT,
 			60
 		);

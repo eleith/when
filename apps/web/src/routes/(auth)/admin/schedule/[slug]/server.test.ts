@@ -62,6 +62,7 @@ describe('/admin/schedule/[slug] book action', () => {
 			validConfig,
 			'30-min-chat',
 			validConfig.meetings['30-min-chat'],
+			'host',
 			SLOT,
 			60
 		);

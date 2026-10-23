@@ -69,7 +69,7 @@ afterEach(async () => {
 describe('per-duration availability', () => {
 	test('precomputes one slot map per offered length', async () => {
 		const cfg = makeConfig([30, 60]);
-		const availability = await loadAvailability(db, cfg, CHAT, cfg.meetings[CHAT]);
+		const availability = await loadAvailability(db, cfg, CHAT, cfg.meetings[CHAT], 'guest');
 		expect(availability.durations).toEqual([30, 60]);
 		expect(Object.keys(availability.slotsByDuration)).toEqual(['30', '60']);
 		expect(availability.slotsByDuration[30][DAY].length).toBeGreaterThan(0);
@@ -78,7 +78,7 @@ describe('per-duration availability', () => {
 
 	test('only the short length fits the edge of the working window', async () => {
 		const cfg = makeConfig([30, 60]);
-		const availability = await loadAvailability(db, cfg, CHAT, cfg.meetings[CHAT]);
+		const availability = await loadAvailability(db, cfg, CHAT, cfg.meetings[CHAT], 'guest');
 		expect(availability.slotsByDuration[30][DAY]).toContain(EDGE_START);
 		expect(availability.slotsByDuration[60][DAY]).not.toContain(EDGE_START);
 	});
@@ -86,13 +86,14 @@ describe('per-duration availability', () => {
 	test('both submit checks use the chosen configured length', async () => {
 		const cfg = makeConfig([30, 60]);
 		const meeting = cfg.meetings[CHAT];
-		const newShort = await isNewSlotBookable(db, cfg, CHAT, meeting, EDGE_START, 30);
-		const newLong = await isNewSlotBookable(db, cfg, CHAT, meeting, EDGE_START, 60);
+		const newShort = await isNewSlotBookable(db, cfg, CHAT, meeting, 'guest', EDGE_START, 30);
+		const newLong = await isNewSlotBookable(db, cfg, CHAT, meeting, 'guest', EDGE_START, 60);
 		const movedShort = await isRescheduleSlotBookable(
 			db,
 			cfg,
 			CHAT,
 			meeting,
+			'guest',
 			EDGE_START,
 			30,
 			`${DAY}T10:00:00Z`
@@ -102,6 +103,7 @@ describe('per-duration availability', () => {
 			cfg,
 			CHAT,
 			meeting,
+			'guest',
 			EDGE_START,
 			60,
 			`${DAY}T10:00:00Z`
@@ -112,12 +114,21 @@ describe('per-duration availability', () => {
 	test('unoffered lengths stay rejected even when they would fit', async () => {
 		const cfg = makeConfig([30]);
 		const meeting = cfg.meetings[CHAT];
-		const created = await isNewSlotBookable(db, cfg, CHAT, meeting, `${DAY}T10:00:00Z`, 45);
+		const created = await isNewSlotBookable(
+			db,
+			cfg,
+			CHAT,
+			meeting,
+			'guest',
+			`${DAY}T10:00:00Z`,
+			45
+		);
 		const moved = await isRescheduleSlotBookable(
 			db,
 			cfg,
 			CHAT,
 			meeting,
+			'guest',
 			`${DAY}T10:00:00Z`,
 			45,
 			`${DAY}T11:00:00Z`
@@ -129,12 +140,13 @@ describe('per-duration availability', () => {
 	test('preserves exact offered-slot strings rather than accepting equivalent offset forms', async () => {
 		const cfg = makeConfig([30]);
 		const slot = `${DAY}T12:00:00+02:00`;
-		const created = await isNewSlotBookable(db, cfg, CHAT, cfg.meetings[CHAT], slot, 30);
+		const created = await isNewSlotBookable(db, cfg, CHAT, cfg.meetings[CHAT], 'guest', slot, 30);
 		const moved = await isRescheduleSlotBookable(
 			db,
 			cfg,
 			CHAT,
 			cfg.meetings[CHAT],
+			'guest',
 			slot,
 			30,
 			`${DAY}T11:00:00Z`
@@ -147,13 +159,13 @@ describe('per-duration availability', () => {
 		const cfg = makeConfig([30]);
 		cfg.meetings[CHAT].booking_calendar = 'personal';
 		cfg.meetings[CHAT].additional_busy_calendars = ['work'];
-		await loadAvailability(db, cfg, CHAT, cfg.meetings[CHAT]);
+		await loadAvailability(db, cfg, CHAT, cfg.meetings[CHAT], 'guest');
 		expect(vi.mocked(getBusyIntervals).mock.calls[0][1]).toEqual(['personal', 'work']);
 	});
 
 	test('a single-length meeting keeps one map', async () => {
 		const cfg = makeConfig([30]);
-		const availability = await loadAvailability(db, cfg, CHAT, cfg.meetings[CHAT]);
+		const availability = await loadAvailability(db, cfg, CHAT, cfg.meetings[CHAT], 'guest');
 		expect(availability.durations).toEqual([30]);
 		expect(Object.keys(availability.slotsByDuration)).toEqual(['30']);
 	});
@@ -161,7 +173,7 @@ describe('per-duration availability', () => {
 	test('uses a supplied transaction connection without reacquiring the database', async () => {
 		const cfg = makeConfig([30]);
 		const availability = await withWriteTransaction(db, async (connection) => {
-			const result = await loadAvailability(connection, cfg, CHAT, cfg.meetings[CHAT]);
+			const result = await loadAvailability(connection, cfg, CHAT, cfg.meetings[CHAT], 'guest');
 			return result;
 		});
 		expect(availability.slotsByDuration[30][DAY]).toContain(EDGE_START);
@@ -171,12 +183,13 @@ describe('per-duration availability', () => {
 describe('busy-data read windows', () => {
 	test('picker and reschedule reads retain the full booking horizon', async () => {
 		const cfg = makeConfig([30]);
-		await loadAvailability(db, cfg, CHAT, cfg.meetings[CHAT]);
+		await loadAvailability(db, cfg, CHAT, cfg.meetings[CHAT], 'guest');
 		await isRescheduleSlotBookable(
 			db,
 			cfg,
 			CHAT,
 			cfg.meetings[CHAT],
+			'guest',
 			EDGE_START,
 			30,
 			`${DAY}T10:00:00Z`
@@ -192,7 +205,7 @@ describe('busy-data read windows', () => {
 		const cfg = makeConfig([30]);
 		cfg.user.timezone = 'America/New_York';
 		h.nowMs = Date.UTC(2030, 2, 10);
-		await isNewSlotBookable(db, cfg, CHAT, cfg.meetings[CHAT], '2030-03-10T13:00:00Z', 30);
+		await isNewSlotBookable(db, cfg, CHAT, cfg.meetings[CHAT], 'guest', '2030-03-10T13:00:00Z', 30);
 		expect(vi.mocked(getBusyIntervals).mock.calls[0][2]).toEqual({
 			start: '2030-03-10T05:00:00Z',
 			end: '2030-03-11T04:00:00Z'
@@ -208,12 +221,13 @@ describe('busy-data read windows', () => {
 			{ start: '2030-06-04T00:15:00Z', end: '2030-06-04T00:45:00Z' }
 		]);
 		const slot = `${DAY}T23:00:00Z`;
-		const created = await isNewSlotBookable(db, cfg, CHAT, cfg.meetings[CHAT], slot, 30);
+		const created = await isNewSlotBookable(db, cfg, CHAT, cfg.meetings[CHAT], 'guest', slot, 30);
 		const moved = await isRescheduleSlotBookable(
 			db,
 			cfg,
 			CHAT,
 			cfg.meetings[CHAT],
+			'guest',
 			slot,
 			30,
 			`${DAY}T21:00:00Z`
@@ -233,6 +247,7 @@ describe('busy-data read windows', () => {
 			cfg,
 			CHAT,
 			cfg.meetings[CHAT],
+			'guest',
 			`${DAY}T10:00:00Z`,
 			30
 		);
@@ -245,12 +260,13 @@ describe('active appointments and self-exclusion', () => {
 		const cfg = makeConfig([30]);
 		cfg.meetings.lunch = { ...cfg.meetings[CHAT] };
 		await book('lunch', `${DAY}T10:00:00Z`, `${DAY}T10:30:00Z`);
-		const availability = await loadAvailability(db, cfg, CHAT, cfg.meetings[CHAT]);
+		const availability = await loadAvailability(db, cfg, CHAT, cfg.meetings[CHAT], 'guest');
 		const bookable = await isNewSlotBookable(
 			db,
 			cfg,
 			CHAT,
 			cfg.meetings[CHAT],
+			'guest',
 			`${DAY}T10:00:00Z`,
 			30
 		);
@@ -263,7 +279,7 @@ describe('active appointments and self-exclusion', () => {
 		cfg.meetings.lunch = { ...cfg.meetings[CHAT] };
 		cfg.meetings[CHAT].daily_booking_limit = 1;
 		await book('lunch', `${DAY}T10:00:00Z`, `${DAY}T10:30:00Z`);
-		const availability = await loadAvailability(db, cfg, CHAT, cfg.meetings[CHAT]);
+		const availability = await loadAvailability(db, cfg, CHAT, cfg.meetings[CHAT], 'guest');
 		expect(availability.slotsByDuration[30][DAY].length).toBeGreaterThan(0);
 		expect(availability.slotsByDuration[30][DAY]).not.toContain(`${DAY}T10:00:00Z`);
 	});
@@ -274,12 +290,22 @@ describe('active appointments and self-exclusion', () => {
 		await book(CHAT, `${DAY}T10:00:00Z`, `${DAY}T10:30:00Z`);
 		await book('lunch', `${DAY}T11:00:00Z`, `${DAY}T11:30:00Z`);
 		const own = `${DAY}T10:00:00Z`;
-		const ownSlot = await isRescheduleSlotBookable(db, cfg, CHAT, cfg.meetings[CHAT], own, 30, own);
+		const ownSlot = await isRescheduleSlotBookable(
+			db,
+			cfg,
+			CHAT,
+			cfg.meetings[CHAT],
+			'guest',
+			own,
+			30,
+			own
+		);
 		const otherSlot = await isRescheduleSlotBookable(
 			db,
 			cfg,
 			CHAT,
 			cfg.meetings[CHAT],
+			'guest',
 			`${DAY}T11:00:00Z`,
 			30,
 			own
@@ -298,10 +324,170 @@ describe('active appointments and self-exclusion', () => {
 			cfg,
 			CHAT,
 			cfg.meetings[CHAT],
+			'guest',
 			`${DAY}T13:00:00Z`,
 			30,
 			own
 		);
 		expect(moved).toBe(false);
 	});
+});
+
+describe('viewer-specific availability limits', () => {
+	test.each([
+		['before', '09:30'],
+		['after', '10:30']
+	])('only hosts can book adjacent %s an existing appointment', async (_side, time) => {
+		const cfg = makeConfig([30]);
+		const meeting = cfg.meetings[CHAT];
+		meeting.padding_before_minutes = 15;
+		meeting.padding_after_minutes = 15;
+		await book(CHAT, `${DAY}T10:00:00Z`, `${DAY}T10:30:00Z`);
+		const slot = `${DAY}T${time}:00Z`;
+
+		for (const viewer of ['guest', 'host'] as const) {
+			const availability = await loadAvailability(db, cfg, CHAT, meeting, viewer);
+			const created = await isNewSlotBookable(db, cfg, CHAT, meeting, viewer, slot, 30);
+			const moved = await isRescheduleSlotBookable(
+				db,
+				cfg,
+				CHAT,
+				meeting,
+				viewer,
+				slot,
+				30,
+				`${DAY}T14:00:00Z`
+			);
+			const expected = viewer === 'host';
+			expect(availability.slotsByDuration[30][DAY].includes(slot), viewer).toBe(expected);
+			expect([created, moved], viewer).toEqual([expected, expected]);
+		}
+	});
+
+	test.each(['appointment', 'remote'] as const)(
+		'actual overlap with a foreign %s blocks both viewers',
+		async (source) => {
+			const cfg = makeConfig([30]);
+			const meeting = cfg.meetings[CHAT];
+			meeting.padding_before_minutes = 15;
+			meeting.padding_after_minutes = 15;
+			const slot = `${DAY}T10:00:00Z`;
+			if (source === 'appointment') {
+				cfg.meetings.lunch = { ...meeting };
+				await book('lunch', slot, `${DAY}T10:30:00Z`);
+			} else {
+				meeting.additional_busy_calendars = ['foreign'];
+				await replaceCalendarBusy(db, 'foreign', [
+					{ start: `${DAY}T10:10:00Z`, end: `${DAY}T10:20:00Z` }
+				]);
+			}
+
+			for (const viewer of ['guest', 'host'] as const) {
+				const availability = await loadAvailability(db, cfg, CHAT, meeting, viewer);
+				const created = await isNewSlotBookable(db, cfg, CHAT, meeting, viewer, slot, 30);
+				const moved = await isRescheduleSlotBookable(
+					db,
+					cfg,
+					CHAT,
+					meeting,
+					viewer,
+					slot,
+					30,
+					slot
+				);
+				expect(availability.slotsByDuration[30][DAY], viewer).not.toContain(slot);
+				expect([created, moved], viewer).toEqual([false, false]);
+			}
+		}
+	);
+
+	test('host-created appointments still block guests and count toward their daily cap, including self-exclusion', async () => {
+		const cfg = makeConfig([30]);
+		const meeting = cfg.meetings[CHAT];
+		meeting.daily_booking_limit = 1;
+		const own = `${DAY}T10:00:00Z`;
+		const free = `${DAY}T13:00:00Z`;
+		await book(CHAT, own, `${DAY}T10:30:00Z`);
+		await db
+			.updateTable('appointments')
+			.set({
+				action_log: JSON.stringify([{ action: 'create', actor: 'host', at: `${DAY}T00:00:00Z` }])
+			})
+			.where('id', '=', `appt-${CHAT}`)
+			.execute();
+
+		for (const viewer of ['guest', 'host'] as const) {
+			const availability = await loadAvailability(db, cfg, CHAT, meeting, viewer);
+			const rescheduleAvailability = await loadAvailability(db, cfg, CHAT, meeting, viewer, own);
+			const created = await isNewSlotBookable(db, cfg, CHAT, meeting, viewer, free, 30);
+			const moved = await isRescheduleSlotBookable(db, cfg, CHAT, meeting, viewer, free, 30, own);
+			const occupied = await isNewSlotBookable(db, cfg, CHAT, meeting, viewer, own, 30);
+			const retained = await isRescheduleSlotBookable(db, cfg, CHAT, meeting, viewer, own, 30, own);
+			const expected = viewer === 'host';
+			if (viewer === 'guest') {
+				expect(availability.slotsByDuration[30][DAY]).toBeUndefined();
+				expect(rescheduleAvailability.slotsByDuration[30][DAY]).toBeUndefined();
+			} else {
+				expect(availability.slotsByDuration[30][DAY]).toContain(free);
+				expect(availability.slotsByDuration[30][DAY]).not.toContain(own);
+				expect(rescheduleAvailability.slotsByDuration[30][DAY]).toContain(own);
+				expect(rescheduleAvailability.slotsByDuration[30][DAY]).toContain(free);
+			}
+			expect([created, moved, occupied, retained], viewer).toEqual([
+				expected,
+				expected,
+				false,
+				expected
+			]);
+		}
+
+		// Removing the cap leaves the host-created row's actual busy interval intact.
+		meeting.daily_booking_limit = null;
+		const uncappedGuest = await loadAvailability(db, cfg, CHAT, meeting, 'guest');
+		expect(uncappedGuest.slotsByDuration[30][DAY]).toContain(free);
+		expect(uncappedGuest.slotsByDuration[30][DAY]).not.toContain(own);
+	});
+
+	test.each(['guest', 'host'] as const)(
+		'%s still obeys working hours, notice, grid, lookahead, and offered durations',
+		async (viewer) => {
+			const cfg = makeConfig([30, 60]);
+			const meeting = cfg.meetings[CHAT];
+			meeting.padding_before_minutes = 15;
+			meeting.padding_after_minutes = 15;
+			meeting.daily_booking_limit = 1;
+			meeting.notice_minutes = 600;
+			const availability = await loadAvailability(db, cfg, CHAT, meeting, viewer);
+			expect(availability.durations).toEqual([30, 60]);
+			expect(Object.keys(availability.slotsByDuration)).toEqual(['30', '60']);
+			expect(availability.slotsByDuration[30][DAY]).toContain(`${DAY}T10:00:00Z`);
+			expect(availability.slotsByDuration[30][DAY]).toContain(EDGE_START);
+
+			const rejected = [
+				{ rule: 'working window cutoff', slot: EDGE_START, duration: 60 },
+				{ rule: 'notice', slot: `${DAY}T09:30:00Z`, duration: 30 },
+				{ rule: 'slot grid', slot: `${DAY}T10:15:00Z`, duration: 30 },
+				{ rule: 'lookahead', slot: '2030-06-11T10:00:00Z', duration: 30 },
+				{ rule: 'unconfigured duration', slot: `${DAY}T11:00:00Z`, duration: 45 }
+			];
+			for (const { rule, slot, duration } of rejected) {
+				const created = await isNewSlotBookable(db, cfg, CHAT, meeting, viewer, slot, duration);
+				const moved = await isRescheduleSlotBookable(
+					db,
+					cfg,
+					CHAT,
+					meeting,
+					viewer,
+					slot,
+					duration,
+					`${DAY}T14:00:00Z`
+				);
+				expect(
+					availability.slotsByDuration[duration]?.[slot.slice(0, 10)] ?? [],
+					rule
+				).not.toContain(slot);
+				expect([created, moved], rule).toEqual([false, false]);
+			}
+		}
+	);
 });

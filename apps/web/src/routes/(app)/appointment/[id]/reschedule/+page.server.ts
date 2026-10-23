@@ -46,6 +46,7 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 		cfg,
 		row.event_type_id,
 		eventType,
+		isAdmin ? 'host' : 'guest',
 		row.start_time
 	);
 
@@ -101,6 +102,7 @@ export const actions: Actions = {
 			cfg,
 			found.event_type_id,
 			eventType,
+			'guest',
 			slotStr,
 			duration,
 			found.start_time

@@ -72,6 +72,38 @@ describe('toPublicEventType', () => {
 		expect(res.notice_minutes).toBe(60);
 	});
 
+	test('projects effective host padding without changing durations, notice, privacy, or config', () => {
+		const cfg = structuredClone(validConfig);
+		const meeting = cfg.meetings['30-min-chat'];
+		Object.assign(meeting, {
+			location: baseEventType.location,
+			padding_before_minutes: 15,
+			padding_after_minutes: 10,
+			daily_booking_limit: 1,
+			notice_minutes: 60,
+			additional_duration_minutes: [15, 60]
+		});
+		const original = structuredClone(cfg);
+
+		const guest = toPublicEventType('chat', meeting, false);
+		const host = toPublicEventType('chat', meeting, true);
+
+		expect(guest.padding_before_minutes).toBe(15);
+		expect(guest.padding_after_minutes).toBe(10);
+		expect(guest.location).toBeUndefined();
+		expect(guest.duration_minutes).toBe(30);
+		expect(guest.durations).toEqual([30, 15, 60]);
+		expect(guest.notice_minutes).toBe(60);
+		expect(host).toEqual({
+			...guest,
+			location: meeting.location,
+			padding_before_minutes: 0,
+			padding_after_minutes: 0
+		});
+		expect(toPublicEventType('chat', meeting, false)).toEqual(guest);
+		expect(cfg).toEqual(original);
+	});
+
 	test('maps show_slots', () => {
 		const res = toPublicEventType('chat', { ...baseEventType, show_slots: true }, false);
 		expect(res.show_slots).toBe(true);

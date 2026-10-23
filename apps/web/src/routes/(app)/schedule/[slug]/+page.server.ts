@@ -52,7 +52,8 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 		getDb(),
 		cfg,
 		params.slug,
-		eventType
+		eventType,
+		isAdmin ? 'host' : 'guest'
 	);
 
 	return {
@@ -97,6 +98,7 @@ export const actions: Actions = {
 			cfg,
 			params.slug,
 			eventType,
+			'guest',
 			slotStr,
 			duration
 		);

@@ -41,6 +41,7 @@ export const actions: Actions = {
 			cfg,
 			params.slug,
 			eventType,
+			'host',
 			slotStr,
 			duration
 		);

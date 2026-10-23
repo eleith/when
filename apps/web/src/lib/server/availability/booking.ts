@@ -9,6 +9,7 @@ import { loadAppointmentBlocks } from './blocks';
 import { resolveAvailabilitySettings } from './settings';
 import { buildBaseWindows, candidateDates } from './windows';
 import type { AvailabilitySettings } from './types';
+import type { Viewer } from '../appointment/actions';
 
 export interface Availability {
 	settings: AvailabilitySettings;
@@ -23,6 +24,7 @@ export async function loadAvailability(
 	cfg: WhenConfiguration,
 	slug: string,
 	eventType: Meeting,
+	viewer: Viewer,
 	excludeStart: string | null = null
 ): Promise<Availability> {
 	const { options, allowedDurations } = await readAvailabilityInputs(
@@ -30,6 +32,7 @@ export async function loadAvailability(
 		cfg,
 		slug,
 		eventType,
+		viewer,
 		excludeStart
 	);
 	const { settings, rangeStart, rangeEnd, userTz } = options;
@@ -62,6 +65,7 @@ export async function isNewSlotBookable(
 	cfg: WhenConfiguration,
 	slug: string,
 	eventType: Meeting,
+	viewer: Viewer,
 	slot: string,
 	duration: number
 ): Promise<boolean> {
@@ -71,6 +75,7 @@ export async function isNewSlotBookable(
 		cfg,
 		slug,
 		eventType,
+		viewer,
 		null,
 		busyWindow
 	);
@@ -82,6 +87,7 @@ export async function isRescheduleSlotBookable(
 	cfg: WhenConfiguration,
 	slug: string,
 	eventType: Meeting,
+	viewer: Viewer,
 	slot: string,
 	duration: number,
 	excludeStart: string
@@ -91,6 +97,7 @@ export async function isRescheduleSlotBookable(
 		cfg,
 		slug,
 		eventType,
+		viewer,
 		excludeStart
 	);
 	return isOfferedSlot(options, allowedDurations, slot, duration);
@@ -101,10 +108,11 @@ async function readAvailabilityInputs(
 	cfg: WhenConfiguration,
 	slug: string,
 	eventType: Meeting,
+	viewer: Viewer,
 	excludeStart: string | null,
 	remoteBusyWindow?: BusyInterval
 ): Promise<{ options: ComputeOptions; allowedDurations: number[] }> {
-	const settings = resolveAvailabilitySettings(cfg, eventType);
+	const settings = resolveAvailabilitySettings(cfg, eventType, viewer);
 	const now = Temporal.Instant.fromEpochMilliseconds(systemClock.nowMs());
 	const rangeEnd = now.add({ hours: 24 * settings.maximum_lookahead });
 	const blocks = await loadAppointmentBlocks(

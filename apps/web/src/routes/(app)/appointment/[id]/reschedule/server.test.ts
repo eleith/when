@@ -135,19 +135,27 @@ describe('/appointment/[id]/reschedule load', () => {
 		expect(h.loadAvailability).not.toHaveBeenCalled();
 	});
 
-	test('returns the appointment and loads availability around its current slot', async () => {
-		const loaded = await load(loadEvent());
-		const result = loaded as LoadResult;
-		expect(result.reschedule.appt).toEqual({ id: 'appt-1' });
-		expect(result.reschedule.error).toBeNull();
-		expect(h.loadAvailability).toHaveBeenCalledWith(
-			h.db,
-			validConfig,
-			'30-min-chat',
-			validConfig.meetings['30-min-chat'],
-			CURRENT
-		);
-	});
+	test.for([
+		{ viewer: 'guest', session: null, isAdmin: false },
+		{ viewer: 'host', session: { user: { name: 'Host' } }, isAdmin: true }
+	])(
+		'returns the appointment and loads $viewer availability excluding self',
+		async ({ viewer, session, isAdmin }) => {
+			const loaded = await load(loadEvent('tok-1', session));
+			const result = loaded as LoadResult;
+			expect(result.reschedule.appt).toEqual({ id: 'appt-1' });
+			expect(result.reschedule.error).toBeNull();
+			expect(result.isAdmin).toBe(isAdmin);
+			expect(h.loadAvailability).toHaveBeenCalledExactlyOnceWith(
+				h.db,
+				validConfig,
+				'30-min-chat',
+				validConfig.meetings['30-min-chat'],
+				viewer,
+				CURRENT
+			);
+		}
+	);
 
 	test('surfaces a classify error and nulls the appointment', async () => {
 		h.classify.mockReturnValue({ kind: 'error', code: 'too_late' });
@@ -220,6 +228,25 @@ describe('/appointment/[id]/reschedule book action', () => {
 			validConfig,
 			'30-min-chat',
 			validConfig.meetings['30-min-chat'],
+			'guest',
+			NEW_SLOT,
+			30,
+			CURRENT
+		);
+		expect(h.reschedule).not.toHaveBeenCalled();
+	});
+
+	test('ignores forged host flags and checks guest availability excluding self', async () => {
+		h.parseForm.mockReturnValue({ ok: true, data: {} });
+		h.isRescheduleSlotBookable.mockResolvedValue(false);
+		const result = await book(form({ viewer: 'host', isAdmin: 'true' }));
+		expect(result.status).toBe(409);
+		expect(h.isRescheduleSlotBookable).toHaveBeenCalledExactlyOnceWith(
+			h.db,
+			validConfig,
+			'30-min-chat',
+			validConfig.meetings['30-min-chat'],
+			'guest',
 			NEW_SLOT,
 			30,
 			CURRENT
@@ -242,6 +269,7 @@ describe('/appointment/[id]/reschedule book action', () => {
 			validConfig,
 			'30-min-chat',
 			validConfig.meetings['30-min-chat'],
+			'guest',
 			NEW_SLOT,
 			60,
 			CURRENT
