@@ -1,10 +1,9 @@
 import { define } from 'gunshi';
-import { initOpenWorkflow, testEmail } from '@when/jobs';
+import { testEmail } from '@when/jobs';
 import { requireConfigPath } from '../../utils/config-path.ts';
 import { loadConfigFully } from '../../utils/load.ts';
 import { pass, fail } from '../../utils/report.ts';
-
-const RESULT_TIMEOUT_MS = 30_000;
+import { runInWorker } from '../../utils/worker.ts';
 
 export const testCommand = define({
 	name: 'test',
@@ -29,32 +28,7 @@ export async function runEmailTest(configPath: string, address: string): Promise
 	const config = await loadConfigFully(configPath);
 	if (!config) return;
 
-	const reachable = await workerReachable(config.url.worker);
-	if (!reachable) return;
-
-	try {
-		const client = initOpenWorkflow({ dbPath: config.database.queue });
-		const handle = await client.runWorkflow(
-			testEmail,
-			{ to: address },
-			{ idempotencyKey: crypto.randomUUID() }
-		);
-		await handle.result({ timeoutMs: RESULT_TIMEOUT_MS });
-		pass(`test email sent to ${address}`);
-	} catch (err) {
-		fail(`test email failed — ${err instanceof Error ? err.message : String(err)}`);
-	}
-}
-
-async function workerReachable(workerUrl: string): Promise<boolean> {
-	const url = `${workerUrl.replace(/\/$/, '')}/healthz`;
-	try {
-		const res = await fetch(url);
-		if (res.ok) return true;
-		fail(`worker unreachable at ${url} (status ${res.status}) — start the worker first`);
-		return false;
-	} catch {
-		fail(`worker unreachable at ${url} — start the worker first`);
-		return false;
-	}
+	const run = await runInWorker(config, testEmail, { to: address });
+	if (run.ok) pass(`test email sent to ${address}`);
+	else fail(`test email failed — ${run.message}`);
 }

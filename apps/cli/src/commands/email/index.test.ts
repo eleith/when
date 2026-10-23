@@ -4,6 +4,7 @@ import { writeFileSync, unlinkSync } from 'node:fs';
 import { initOpenWorkflow } from '@when/jobs';
 import { emailCommand } from './index.ts';
 import { testCommand } from './test.ts';
+import * as worker from '../../utils/worker.ts';
 
 vi.mock('@when/jobs', () => ({
 	initOpenWorkflow: vi.fn(),
@@ -61,11 +62,12 @@ function ctx(values: Record<string, unknown>) {
 }
 
 function mockWorkflow(result: () => Promise<unknown>) {
-	const runWorkflow = vi.fn().mockResolvedValue({ result: vi.fn(result) });
+	const handle = { result: vi.fn(result), cancel: vi.fn() };
+	const runWorkflow = vi.fn().mockResolvedValue(handle);
 	vi.mocked(initOpenWorkflow).mockReturnValue({
 		runWorkflow
 	} as unknown as ReturnType<typeof initOpenWorkflow>);
-	return runWorkflow;
+	return { runWorkflow, handle };
 }
 
 describe('email command', () => {
@@ -106,10 +108,19 @@ describe('email command', () => {
 
 	test('sends the test email when the worker is reachable and the job succeeds', async () => {
 		vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 200 }));
-		const runWorkflow = mockWorkflow(async () => 'sent');
+		const workerRun = vi.spyOn(worker, 'runInWorker');
+		const { runWorkflow, handle } = mockWorkflow(async () => 'sent');
 		await testCommand.run!(ctx({ address: 'me@example.com', config: path }));
+		expect(workerRun).toHaveBeenCalledExactlyOnceWith(
+			expect.objectContaining({
+				url: expect.objectContaining({ worker: 'http://localhost:9099' })
+			}),
+			expect.objectContaining({ name: 'test-email' }),
+			{ to: 'me@example.com' }
+		);
+		expect(handle.result).toHaveBeenCalledExactlyOnceWith({ timeoutMs: 30_000 });
 		expect(process.exitCode).toBeUndefined();
-		expect(runWorkflow).toHaveBeenCalledWith(
+		expect(runWorkflow).toHaveBeenCalledExactlyOnceWith(
 			expect.objectContaining({ name: 'test-email' }),
 			{ to: 'me@example.com' },
 			expect.objectContaining({ idempotencyKey: expect.any(String) })
@@ -134,6 +145,46 @@ describe('email command', () => {
 		});
 		await testCommand.run!(ctx({ address: 'me@example.com', config: path }));
 		expect(process.exitCode).toBe(1);
-		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('test email failed'));
+		expect(errorSpy).toHaveBeenCalledWith('❌ test email failed — SMTP 535');
+	});
+
+	test('a timed-out wait preserves the error without resubmitting or canceling the job', async () => {
+		vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 200 }));
+		const message = 'Timed out waiting for workflow run 123 to finish';
+		const { runWorkflow, handle } = mockWorkflow(async () => {
+			throw new Error(message);
+		});
+
+		await testCommand.run!(ctx({ address: 'me@example.com', config: path }));
+
+		expect(process.exitCode).toBe(1);
+		expect(errorSpy).toHaveBeenCalledWith(`❌ test email failed — ${message}`);
+		expect(runWorkflow).toHaveBeenCalledTimes(1);
+		expect(handle.result).toHaveBeenCalledExactlyOnceWith({ timeoutMs: 30_000 });
+		expect(handle.cancel).not.toHaveBeenCalled();
+	});
+
+	test('an unhealthy worker reports its HTTP status without enqueueing', async () => {
+		vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 503 }));
+
+		await testCommand.run!(ctx({ address: 'me@example.com', config: path }));
+
+		expect(process.exitCode).toBe(1);
+		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('status 503'));
+		expect(initOpenWorkflow).not.toHaveBeenCalled();
+	});
+
+	test('a queue rejection preserves its error without waiting or retrying', async () => {
+		vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 200 }));
+		const { runWorkflow, handle } = mockWorkflow(async () => 'sent');
+		runWorkflow.mockRejectedValue(new Error('queue unavailable'));
+
+		await testCommand.run!(ctx({ address: 'me@example.com', config: path }));
+
+		expect(process.exitCode).toBe(1);
+		expect(errorSpy).toHaveBeenCalledWith('❌ test email failed — queue unavailable');
+		expect(runWorkflow).toHaveBeenCalledTimes(1);
+		expect(handle.result).not.toHaveBeenCalled();
+		expect(handle.cancel).not.toHaveBeenCalled();
 	});
 });

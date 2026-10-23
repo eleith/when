@@ -25,7 +25,8 @@ export async function runInWorker<I, R>(
 	try {
 		const client = initOpenWorkflow({ dbPath: config.database.queue });
 		const handle = await client.runWorkflow(spec, input, { idempotencyKey: crypto.randomUUID() });
-		return { ok: true, value: await handle.result({ timeoutMs: RESULT_TIMEOUT_MS }) };
+		const value = await handle.result({ timeoutMs: RESULT_TIMEOUT_MS });
+		return { ok: true, value };
 	} catch (err) {
 		return { ok: false, message: err instanceof Error ? err.message : String(err) };
 	}
