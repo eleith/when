@@ -59,19 +59,17 @@ function notice(target: string, status: NoticeStatus, detail?: string) {
 
 export const actions: Actions = {
 	discover: async ({ request }) => {
-		const name = String((await request.formData()).get('provider') ?? '');
+		const form = await request.formData();
+		const name = String(form.get('provider') ?? '');
 		const result = await discoverCalendars(getConfig(), name);
-		return result.ok
-			? { discovered: { provider: name, field: result.field, calendars: result.calendars } }
-			: notice(`provider:${name}`, 'down', result.message);
+		return { discoveryResult: { provider: name, ...result } };
 	},
 
 	testCalendar: async ({ request }) => {
-		const name = String((await request.formData()).get('calendar') ?? '');
+		const form = await request.formData();
+		const name = String(form.get('calendar') ?? '');
 		const result = await probeCalendar(getConfig(), name);
-		return result.ok
-			? notice(`calendar:${name}`, 'up', result.message)
-			: notice(`calendar:${name}`, 'down', result.message);
+		return { calendarTestResult: { calendar: name, ...result } };
 	},
 
 	worker: async () => {

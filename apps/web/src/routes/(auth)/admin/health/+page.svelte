@@ -7,16 +7,7 @@
 	import { timeAgo } from '$lib/datetime';
 	import type { SubmitFunction } from './$types';
 
-	interface DiscoveredCalendar {
-		id: string;
-		name: string;
-		primary: boolean;
-	}
-
 	let { data, form } = $props();
-
-	let listingProvider = $state('');
-	let listing = $state<{ field: string; calendars: DiscoveredCalendar[] } | null>(null);
 
 	let pending = $state('');
 	let pendingTarget = $derived(
@@ -34,26 +25,6 @@
 			};
 		};
 	}
-
-	function listCalendars(provider: string): SubmitFunction {
-		return () => {
-			pending = `discover:provider:${provider}`;
-			listingProvider = provider;
-			listing = null;
-			return async ({ result, update }) => {
-				await update();
-				pending = '';
-				if (result.type !== 'success') listingProvider = '';
-			};
-		};
-	}
-
-	$effect(() => {
-		const discovered = form?.discovered;
-		if (!discovered) return;
-		listingProvider = discovered.provider;
-		listing = { field: discovered.field, calendars: discovered.calendars };
-	});
 </script>
 
 <svelte:head>
@@ -79,8 +50,6 @@
 			<p class="banner-text">
 				{#if !outcome}
 					down: {problem}
-				{:else if outcome.status === 'up' && kind === 'calendar'}
-					up: {outcome.detail}
 				{:else if outcome.status === 'up'}
 					up
 				{:else if kind === 'worker'}
@@ -107,6 +76,8 @@
 			<ul class="list">
 				{#each data.providers as provider (provider.name)}
 					{@const unconnected = provider.usesOAuth && !provider.connected}
+					{@const discovery =
+						form?.discoveryResult?.provider === provider.name ? form.discoveryResult : null}
 					<li class="card">
 						{@render notice(
 							`provider:${provider.name}`,
@@ -139,22 +110,17 @@
 								<dd><code>{provider.endpoint.url}</code></dd>
 							</dl>
 
-							{#if listingProvider === provider.name}
+							{#if discovery?.ok && pending !== `discover:provider:${provider.name}`}
 								<div class="found">
 									<h3 class="found-title">Available calendars</h3>
-									{#if !listing}
-										<p class="found-loading">
-											<span class="spinner"><IconSpinner aria-hidden="true" /></span>
-											Asking {provider.name}…
-										</p>
-									{:else if listing.calendars.length === 0}
+									{#if discovery.calendars.length === 0}
 										<p class="found-empty">This provider exposes no calendars.</p>
 									{:else}
 										<ul class="found-list">
-											{#each listing.calendars as calendar (calendar.id)}
+											{#each discovery.calendars as calendar (calendar.id)}
 												<li class="found-item">
 													<span class="found-name">{calendar.name}</span>
-													<code class="found-value">{listing.field}: {calendar.id}</code>
+													<code class="found-value">{discovery.field}: {calendar.id}</code>
 												</li>
 											{/each}
 										</ul>
@@ -182,15 +148,19 @@
 									<form
 										method="POST"
 										action="?/discover"
-										use:enhance={listCalendars(provider.name)}
+										use:enhance={run(`discover:provider:${provider.name}`)}
 									>
 										<input type="hidden" name="provider" value={provider.name} />
 										<button
 											type="submit"
 											class="button"
+											class:busy={pending === `discover:provider:${provider.name}`}
 											disabled={pending === `discover:provider:${provider.name}`}
 										>
-											List calendars
+											<span class="label">List calendars</span>
+											{#if pending === `discover:provider:${provider.name}`}
+												<span class="spinner"><IconSpinner aria-hidden="true" /></span>
+											{/if}
 										</button>
 									</form>
 									<form
@@ -215,7 +185,16 @@
 							{/if}
 						</div>
 						{#if form?.providerTestResult?.provider === provider.name && pending !== `test:provider:${provider.name}`}
-							<p class="provider-test-result" role="status">{form.providerTestResult.message}</p>
+							<p
+								class="provider-test-result"
+								class:feedback-error={!form.providerTestResult.ok}
+								role="status"
+							>
+								{form.providerTestResult.message}
+							</p>
+						{/if}
+						{#if discovery && !discovery.ok && pending !== `discover:provider:${provider.name}`}
+							<p class="discovery-result feedback-error" role="status">{discovery.message}</p>
 						{/if}
 					</li>
 				{/each}
@@ -289,6 +268,15 @@
 								</form>
 							</div>
 						</div>
+						{#if form?.calendarTestResult?.calendar === calendar.name && pending !== `test:calendar:${calendar.name}`}
+							<p
+								class="calendar-test-result"
+								class:feedback-error={!form.calendarTestResult.ok}
+								role="status"
+							>
+								{form.calendarTestResult.message}
+							</p>
+						{/if}
 					</li>
 				{/each}
 			</ul>
@@ -379,7 +367,9 @@
 				</form>
 			</div>
 			{#if form?.emailResult && pending !== 'smtp'}
-				<p class="email-result" role="status">{form.emailResult.message}</p>
+				<p class="email-result" class:feedback-error={!form.emailResult.ok} role="status">
+					{form.emailResult.message}
+				</p>
 			{/if}
 		</div>
 
@@ -478,10 +468,23 @@
 	}
 
 	.email-result,
-	.provider-test-result {
+	.provider-test-result,
+	.calendar-test-result,
+	.discovery-result {
 		margin: 0;
 		padding: var(--space-4) var(--space-5);
+		border-top: 1px solid var(--color-border);
+		background: var(--color-surface-muted);
+		color: var(--color-text-secondary);
+		font-size: var(--font-size-md);
+		line-height: 1.5;
+		white-space: pre-wrap;
 		overflow-wrap: anywhere;
+	}
+
+	.feedback-error {
+		border-color: var(--color-danger-border);
+		background: var(--color-danger-bg);
 	}
 
 	.banner-error {
@@ -579,15 +582,6 @@
 		font-size: var(--font-size-md);
 		font-weight: 400;
 		color: var(--when-color-text);
-	}
-
-	.found-loading {
-		display: flex;
-		align-items: center;
-		gap: var(--space-3);
-		margin: 0;
-		font-size: var(--font-size-md);
-		color: var(--color-text-muted);
 	}
 
 	.spinner {

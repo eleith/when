@@ -46,7 +46,13 @@ vi.mock('$lib/server/worker', () => ({
 }));
 
 import { sendTestEmail, type SendResult } from '$lib/server/email/status';
-import { probeProvider, type ProbeResult } from '$lib/server/providers/status';
+import {
+	discoverCalendars,
+	probeProvider,
+	type DiscoveryResult,
+	type ProbeResult
+} from '$lib/server/providers/status';
+import { probeCalendar, type CalendarProbeResult } from '$lib/server/calendar/status';
 import { actions, load } from './+page.server';
 
 type LoadResult = Exclude<Awaited<ReturnType<typeof load>>, void>;
@@ -120,9 +126,73 @@ describe('admin/health provider auth action', () => {
 	);
 });
 
+function calendarEvent(calendar: string): Parameters<typeof actions.testCalendar>[0] {
+	const form = new FormData();
+	form.set('calendar', calendar);
+	const request = new Request('https://book.example.com/admin/health?/testCalendar', {
+		method: 'POST',
+		body: form
+	});
+	return { request } as Parameters<typeof actions.testCalendar>[0];
+}
+
+describe('admin/health calendar test action', () => {
+	test.each<[string, CalendarProbeResult]>([
+		['work', { ok: true, message: '3 busy intervals over the next 30 days.' }],
+		['personal', { ok: false, message: 'wait timed out' }],
+		['shared', { ok: false, message: '401 Authentication failed' }]
+	])('preserves the calendar target and raw test result for %s', async (calendar, probeResult) => {
+		vi.mocked(probeCalendar).mockResolvedValueOnce(probeResult);
+
+		const result = await actions.testCalendar(calendarEvent(calendar));
+
+		expect(probeCalendar).toHaveBeenLastCalledWith(validConfig, calendar);
+		expect(result).toEqual({ calendarTestResult: { calendar, ...probeResult } });
+	});
+});
+
+function discoveryEvent(provider: string): Parameters<typeof actions.discover>[0] {
+	const form = new FormData();
+	form.set('provider', provider);
+	const request = new Request('https://book.example.com/admin/health?/discover', {
+		method: 'POST',
+		body: form
+	});
+	return { request } as Parameters<typeof actions.discover>[0];
+}
+
+describe('admin/health discovery action', () => {
+	test.each<[string, DiscoveryResult]>([
+		[
+			'dav',
+			{
+				ok: true,
+				field: 'href',
+				calendars: [
+					{ id: 'calendars/owner/work/', name: 'Work', primary: true },
+					{ id: 'calendars/owner/personal/', name: 'Personal', primary: false }
+				]
+			}
+		],
+		['cloud', { ok: true, field: 'id', calendars: [] }],
+		['video', { ok: false, message: '401 Authentication failed' }]
+	])(
+		'preserves the provider and complete discovery result for %s without a notice',
+		async (provider, discoveryResult) => {
+			vi.mocked(discoverCalendars).mockResolvedValueOnce(discoveryResult);
+
+			const result = await actions.discover(discoveryEvent(provider));
+
+			expect(discoverCalendars).toHaveBeenLastCalledWith(validConfig, provider);
+			expect(result).toEqual({ discoveryResult: { provider, ...discoveryResult } });
+		}
+	);
+});
+
 describe('admin/health +page.server load', () => {
 	test('returns meeting types from config', async () => {
-		const result = (await load(loadEvent())) as LoadResult;
+		const loaded = await load(loadEvent());
+		const result = loaded as LoadResult;
 		expect(result.meetings).toBeDefined();
 		expect(result.meetings.length).toBe(1);
 		expect(result.meetings[0]).toMatchObject({

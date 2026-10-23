@@ -227,3 +227,153 @@ test('a stored provider failure stays down separately from the current auth test
 		/<p class="provider-test-result[^"]*" role="status">Authenticated\.<\/p>/
 	);
 });
+
+test('calendar test failure is escaped footer feedback only on its target, not refresh health', async () => {
+	const pageData: PageData = {
+		...data,
+		providers: [],
+		calendars: [data.calendars[0], { ...data.calendars[0], name: 'personal' }]
+	};
+	const form: ActionData = {
+		calendarTestResult: { calendar: 'work', ok: false, message: 'wait timed out: <b>sentinel</b>' }
+	};
+
+	const rendered = await render(HealthPage, { props: { data: pageData, form } });
+	const html = rendered.body.replace(/<!--[\s\S]*?-->/g, '');
+	const [calendarCard, otherCard] = html.match(/<li class="card[^"]*"[^>]*>[\s\S]*?<\/li>/g) ?? [];
+
+	expect(calendarCard).toContain('>work</h2>');
+	expect(calendarCard).toMatch(
+		/<\/div>\s*<p class="calendar-test-result[^"]*\bfeedback-error\b[^"]*" role="status">wait timed out: &lt;b>sentinel&lt;\/b><\/p>\s*<\/li>/
+	);
+	expect(calendarCard).toContain('refresh freshness unknown');
+	expect(calendarCard).toMatch(/<dt[^>]*>Last refresh<\/dt>\s*<dd[^>]*>unknown<\/dd>/);
+	expect(calendarCard).not.toContain('role="alert"');
+	expect(html).not.toContain('<b>sentinel</b>');
+	expect(otherCard).toContain('>personal</h2>');
+	expect(otherCard).not.toContain('role="status"');
+	expect(otherCard).not.toContain('wait timed out');
+});
+
+test('calendar test success keeps count detail separate from a recorded refresh failure', async () => {
+	const pageData: PageData = {
+		...data,
+		providers: [],
+		calendars: [{ ...data.calendars[0], health: 'bad', reason: 'Earlier refresh failure' }]
+	};
+	const form: ActionData = {
+		calendarTestResult: {
+			calendar: 'work',
+			ok: true,
+			message: '3 busy intervals over the next 30 days.'
+		}
+	};
+
+	const rendered = await render(HealthPage, { props: { data: pageData, form } });
+	const html = rendered.body.replace(/<!--[\s\S]*?-->/g, '');
+	const calendarCard = html.match(/<li class="card[^"]*"[^>]*>[\s\S]*?<\/li>/)?.[0] ?? '';
+	const banner = calendarCard.match(/<aside\b[^>]*role="alert"[^>]*>[\s\S]*?<\/aside>/)?.[0] ?? '';
+
+	expect(banner).toContain('down: Earlier refresh failure');
+	expect(banner).not.toContain('busy intervals');
+	expect(calendarCard).toMatch(/<dt[^>]*>Status<\/dt>\s*<dd class="failed[^"]*">down<\/dd>/);
+	expect(calendarCard).toMatch(/<dt[^>]*>Last refresh<\/dt>\s*<dd[^>]*>unknown<\/dd>/);
+	expect(calendarCard).toMatch(
+		/<p class="calendar-test-result[^"]*" role="status">3 busy intervals over the next 30 days\.<\/p>/
+	);
+	expect(calendarCard).not.toContain('feedback-error');
+});
+
+test('discovery lists actual calendar names and config fields only on the matching provider', async () => {
+	const pageData: PageData = {
+		...data,
+		providers: [data.providers[0], { ...data.providers[0], name: 'other' }],
+		calendars: []
+	};
+	const form: ActionData = {
+		discoveryResult: {
+			provider: 'dav',
+			ok: true,
+			field: 'href',
+			calendars: [
+				{ id: 'calendars/owner/work/', name: 'Work <team>', primary: true },
+				{ id: 'calendars/owner/personal/', name: 'Personal', primary: false }
+			]
+		}
+	};
+
+	const rendered = await render(HealthPage, { props: { data: pageData, form } });
+	const html = rendered.body.replace(/<!--[\s\S]*?-->/g, '');
+	const [providerCard, otherCard] = html.split(/<li class="card[^"]*"[^>]*>/).slice(1);
+
+	expect(providerCard).toContain('>dav</h2>');
+	expect(providerCard).toContain('Available calendars');
+	expect(providerCard).toContain('Work &lt;team>');
+	expect(providerCard).not.toContain('Work <team>');
+	expect(providerCard).toContain('href: calendars/owner/work/');
+	expect(providerCard).toContain('Personal');
+	expect(providerCard).toContain('href: calendars/owner/personal/');
+	expect(providerCard).not.toContain('This provider exposes no calendars.');
+	expect(providerCard).not.toContain('Asking the worker');
+	expect(otherCard).toContain('>other</h2>');
+	expect(otherCard).not.toContain('Available calendars');
+	expect(otherCard).not.toContain('calendars/owner/work/');
+});
+
+test('only a successful empty discovery shows the empty calendars copy', async () => {
+	const form: ActionData = {
+		discoveryResult: { provider: 'dav', ok: true, field: 'href', calendars: [] }
+	};
+
+	const rendered = await render(HealthPage, { props: { data, form } });
+	const html = rendered.body.replace(/<!--[\s\S]*?-->/g, '');
+
+	expect(html).toContain('Available calendars');
+	expect(html).toContain('This provider exposes no calendars.');
+	expect(html).not.toContain('discovery-result');
+	expect(html).not.toContain('Asking the worker');
+});
+
+test('failed discovery shows its escaped error at the footer, never an empty or loading panel', async () => {
+	const form: ActionData = {
+		discoveryResult: {
+			provider: 'dav',
+			ok: false,
+			message: '401 Authentication failed: <b>sentinel</b>'
+		}
+	};
+
+	const rendered = await render(HealthPage, { props: { data, form } });
+	const html = rendered.body.replace(/<!--[\s\S]*?-->/g, '');
+	const providerCard = html.match(/<li class="card[^"]*"[^>]*>[\s\S]*?<\/li>/)?.[0] ?? '';
+	const banner = providerCard.match(/<aside\b[^>]*role="alert"[^>]*>[\s\S]*?<\/aside>/)?.[0] ?? '';
+
+	expect(providerCard).toMatch(
+		/<\/div>\s*<p class="discovery-result[^"]*\bfeedback-error\b[^"]*" role="status">401 Authentication failed: &lt;b>sentinel&lt;\/b><\/p>\s*<\/li>/
+	);
+	expect(banner).toContain('down: Authentication denied');
+	expect(banner).not.toContain('sentinel');
+	expect(html).not.toContain('<b>sentinel</b>');
+	expect(html).not.toContain('Available calendars');
+	expect(html).not.toContain('This provider exposes no calendars.');
+	expect(html).not.toContain('Asking the worker');
+	expect(html).not.toMatch(/class="[^"]*\bspinner\b/);
+});
+
+test('discovery does not leak results from another provider or persist after a different action', async () => {
+	const forms: ActionData[] = [
+		null,
+		{ discoveryResult: { provider: 'other', ok: true, field: 'href', calendars: [] } },
+		{ providerTestResult: { provider: 'dav', ok: true, message: 'Authenticated.' } }
+	];
+
+	for (const form of forms) {
+		const rendered = await render(HealthPage, { props: { data, form } });
+		const html = rendered.body.replace(/<!--[\s\S]*?-->/g, '');
+
+		expect(html).not.toContain('Available calendars');
+		expect(html).not.toContain('This provider exposes no calendars.');
+		expect(html).not.toContain('discovery-result');
+		expect(html).not.toContain('Asking the worker');
+	}
+});
