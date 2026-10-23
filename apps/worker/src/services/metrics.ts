@@ -1,8 +1,6 @@
 import { collectDefaultMetrics, Counter, Histogram, Gauge, Registry } from 'prom-client';
-import { getOpenWorkflow } from '@when/jobs';
-import type { OpenWorkflow, Workflow } from 'openworkflow';
-
-type WorkflowSpec<Input, Output> = Workflow<Input, Output, Input>['spec'];
+import { getOpenWorkflow, type WorkflowSpec } from '@when/jobs';
+import type { Workflow } from 'openworkflow';
 
 export const register = new Registry();
 register.setDefaultLabels({ app: 'when', service: 'worker' });
@@ -44,7 +42,7 @@ for (const metric of metricsToPrune) {
 
 export const jobsTotal = new Counter({
 	name: 'when_jobs_total',
-	help: 'Workflow handler executions by return (success) or escape (failure, including durable suspension), not terminal job outcomes.',
+	help: 'Handler executions by return or escape (including durable suspension), not terminal workflow outcomes.',
 	labelNames: ['job_name', 'status'],
 	registers: [register]
 });
@@ -91,24 +89,19 @@ export const calendarRefreshTotal = new Counter({
 	registers: [register]
 });
 
-type WorkflowHandlerArgs<I> = Omit<
-	Parameters<Parameters<OpenWorkflow['implementWorkflow']>[1]>[0],
-	'input'
-> & { input: I };
-
 export function implementObservedWorkflow<I, R>(
 	spec: WorkflowSpec<I, R>,
-	handler: (args: WorkflowHandlerArgs<I>) => Promise<R> | R
+	handler: Workflow<I, R, I>['fn']
 ): void {
 	getOpenWorkflow().implementWorkflow(spec, async (args) => {
 		jobsActive.inc({ job_name: spec.name });
 		const timer = jobDuration.startTimer({ job_name: spec.name });
 		try {
-			const result = await handler(args as unknown as WorkflowHandlerArgs<I>);
-			jobsTotal.inc({ job_name: spec.name, status: 'success' });
+			const result = await handler(args);
+			jobsTotal.inc({ job_name: spec.name, status: 'returned' });
 			return result;
 		} catch (err) {
-			jobsTotal.inc({ job_name: spec.name, status: 'failure' });
+			jobsTotal.inc({ job_name: spec.name, status: 'escaped' });
 			throw err;
 		} finally {
 			jobsActive.dec({ job_name: spec.name });

@@ -50,7 +50,8 @@ describe('GET /metrics scrape aggregator endpoint', () => {
 		} as unknown as RequestEvent);
 
 		expect(res.status).toBe(401);
-		expect(await res.text()).toBe('Unauthorized');
+		const text = await res.text();
+		expect(text).toBe('Unauthorized');
 	});
 
 	test('returns 200 with merged metrics and stripped worker comments on success', async () => {
@@ -65,7 +66,7 @@ describe('GET /metrics scrape aggregator endpoint', () => {
 		const mockFetch = vi.fn().mockResolvedValue({
 			ok: true,
 			text: async () =>
-				`# HELP when_jobs_total Total jobs.\n# TYPE when_jobs_total counter\nwhen_jobs_total{job_name="sendAppointmentEmail",status="success"} 12`
+				`# HELP when_jobs_total Total jobs.\n# TYPE when_jobs_total counter\nwhen_jobs_total{job_name="sendAppointmentEmail",status="returned"} 12`
 		});
 
 		const res = await GET({
@@ -83,6 +84,7 @@ describe('GET /metrics scrape aggregator endpoint', () => {
 		expect(text).toContain('when_booking_attempts_total');
 		// Worker metrics should be present
 		expect(text).toContain('when_jobs_total');
+		expect(text).toContain('status="returned"');
 		// Helper/type comments from worker metrics must be stripped
 		expect(text).not.toContain('# HELP when_jobs_total');
 		expect(text).not.toContain('# TYPE when_jobs_total');
