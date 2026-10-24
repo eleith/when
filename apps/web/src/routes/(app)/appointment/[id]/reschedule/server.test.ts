@@ -170,11 +170,21 @@ describe('/appointment/[id]/reschedule load', () => {
 	});
 
 	test.for([
-		{ role: 'guest', session: null },
-		{ role: 'host', session: { user: { name: 'Host' } } }
+		{
+			role: 'guest',
+			session: null,
+			formAction: '/appointment/appt-1/reschedule',
+			guestFieldsDisabled: false
+		},
+		{
+			role: 'host',
+			session: { user: { name: 'Host' } },
+			formAction: '/admin/appointment/appt-1/reschedule',
+			guestFieldsDisabled: true
+		}
 	])(
 		'returns the appointment and loads $role availability excluding self',
-		async ({ role, session }) => {
+		async ({ role, session, formAction, guestFieldsDisabled }) => {
 			const loaded = await load(loadEvent('tok-1', session));
 			const result = loaded as LoadResult;
 			expect(result.reschedule.appt).toEqual({ id: 'appt-1' });
@@ -196,6 +206,8 @@ describe('/appointment/[id]/reschedule load', () => {
 			);
 			expect(h.toPublicEventType.mock.calls[0][3]).toBe(availability.bookingDurations);
 			expect(result.role).toBe(role);
+			expect(result.formAction).toBe(formAction);
+			expect(result.guestFieldsDisabled).toBe(guestFieldsDisabled);
 			expect(result).not.toHaveProperty('viewer');
 			expect(result).not.toHaveProperty('isAdmin');
 			expect(result).not.toHaveProperty('isHost');
@@ -216,6 +228,16 @@ describe('/appointment/[id]/reschedule load', () => {
 		const result = loaded as LoadResult;
 		expect(result.reschedule.error).toBe('too_late');
 		expect(result.reschedule.appt).toBeNull();
+		expect(result.guestFieldsDisabled).toBe(false);
+	});
+
+	test('does not disable an unrendered guest form for a host reschedule error', async () => {
+		h.classify.mockReturnValue({ kind: 'error', code: 'too_late' });
+		const loaded = await load(loadEvent('tok-1', { user: { name: 'Host' } }));
+		const result = loaded as LoadResult;
+		expect(result.reschedule.appt).toBeNull();
+		expect(result.formAction).toBe('/admin/appointment/appt-1/reschedule');
+		expect(result.guestFieldsDisabled).toBe(false);
 	});
 });
 

@@ -93,6 +93,9 @@ test('host rescheduling shows validation and conflict errors without losing the 
 	await page.getByRole('radio', { name: /0?3:30\s*PM\s*–\s*0?5:00\s*PM/i }).click();
 	await page.getByRole('button', { name: 'Confirm', exact: true }).click();
 	const reason = 'Keep this explanation while choosing another time';
+	await expect(page.getByLabel('What is your name?')).toBeDisabled();
+	await expect(page.getByLabel('What is your email?')).toBeDisabled();
+	await expect(page.getByLabel('Reason for rescheduling')).toBeEnabled();
 	await page.getByLabel('Reason for rescheduling').fill(reason);
 	const slot = await page.locator('input[name="slot"]').inputValue();
 	await expect(page.locator('input[name="duration"]')).toHaveValue('90');

@@ -261,7 +261,9 @@ test('guest can change a booked host-only 90 to configured 25, but cannot invent
 	await expect(page.locator('#appointment-form')).toHaveAttribute('action', publicPath);
 	await expect(page.locator('input[name="duration"]')).toHaveValue('25');
 	await expect(page.getByLabel('What is your name?')).toHaveValue(original.guest_name);
+	await expect(page.getByLabel('What is your name?')).toBeEnabled();
 	await expect(page.getByLabel('What is your email?')).toHaveValue(original.guest_email!);
+	await expect(page.getByLabel('What is your email?')).toBeEnabled();
 	const slot = await page.locator('input[name="slot"]').inputValue();
 	await page.getByLabel('Reason for rescheduling').fill(reason);
 	await page.getByRole('button', { name: 'Confirm Reschedule', exact: true }).click();

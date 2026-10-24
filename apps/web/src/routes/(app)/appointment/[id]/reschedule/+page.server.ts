@@ -51,9 +51,15 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 		row
 	);
 
+	const formAction =
+		role === 'host'
+			? `/admin/appointment/${row.id}/reschedule`
+			: `/appointment/${row.id}/reschedule`;
 	return {
 		eventType: toPublicEventType(row.event_type_id, eventType, role, bookingDurations),
 		formFields: resolveFormFields(eventType),
+		formAction,
+		guestFieldsDisabled: role === 'host' && rescheduleError === null,
 		availability: { slotsByDuration, workingWindows, busyBlocks },
 		reschedule: {
 			appt: rescheduleError ? null : toPublicAppointment(row, role),

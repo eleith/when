@@ -17,7 +17,6 @@
 	import { getPreferredTimezone } from '$lib/preferredTimezone.svelte';
 	import type { GuestAnswer, Appearance, FormField } from '@when/config';
 	import type { PublicEventType } from '$lib/server/appointment/sanitize';
-	import type { AppointmentRole } from '$lib/server/appointment/actions';
 
 	// Shared shape served by both the new-appointment route and the reschedule route.
 	export interface AppointmentWizardData {
@@ -47,7 +46,8 @@
 			error: string | null;
 			token: string | null;
 		} | null;
-		role: AppointmentRole;
+		formAction: string;
+		guestFieldsDisabled: boolean;
 	}
 
 	interface Props {
@@ -57,8 +57,6 @@
 	}
 
 	let { data, form, deepLink = false }: Props = $props();
-
-	const isHost = $derived(data.role === 'host');
 
 	const rescheduleAppt = $derived(data.reschedule?.appt ?? null);
 	const rescheduleError = $derived(data.reschedule?.error ?? null);
@@ -84,20 +82,6 @@
 	let isGuestFormValid = $state(false);
 	let durationOpen = $state(false);
 
-	let formAction = $derived.by(() => {
-		if (isHost) {
-			if (rescheduleAppt) {
-				return `/admin/appointment/${rescheduleAppt.id}/reschedule`;
-			} else {
-				return `/admin/schedule/${data.eventType.slug}`;
-			}
-		}
-		if (rescheduleAppt) {
-			return `/appointment/${rescheduleAppt.id}/reschedule`;
-		}
-		return `/schedule/${data.eventType.slug}`;
-	});
-
 	let previousAppointmentHref = $derived(
 		rescheduleAppt
 			? `/appointment/${rescheduleAppt.id}?token=${encodeURIComponent(rescheduleToken || '')}`
@@ -118,8 +102,6 @@
 		});
 		return t ? Math.round(t.totalMs / 3600000) : 0;
 	});
-
-	let fieldsDisabled = $derived(isHost && !!rescheduleAppt);
 
 	// Set the viewer timezone before the URL sync applies a deep-linked slot, so it
 	// resolves to the right day. The effect re-applies once tz resolves client-side.
@@ -270,9 +252,9 @@
 							formFields={data.formFields}
 							{rescheduleAppt}
 							{rescheduleToken}
-							{fieldsDisabled}
+							fieldsDisabled={data.guestFieldsDisabled}
 							{form}
-							{formAction}
+							formAction={data.formAction}
 							requireApproval={data.eventType.require_approval}
 							onvaliditychange={(v) => (isGuestFormValid = v)}
 						/>

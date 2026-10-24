@@ -163,47 +163,52 @@ describe('/schedule/[slug] load — deep-link canonicalization', () => {
 	});
 
 	test.for([
-		{ role: 'guest', session: null },
-		{ role: 'host', session: { user: { name: 'Host' } } }
-	])('returns canonical page data and loads $role availability', async ({ role, session }) => {
-		h.cfg.current = structuredClone(validConfig);
-		Object.assign(h.cfg.current.meetings['30-min-chat'], {
-			location: 'Private host location',
-			padding_before_minutes: 15,
-			padding_after_minutes: 10
-		});
-		const loaded = await load(loadEvent(`?slot=${SLOT}`, session));
-		const result = loaded as LoadResult;
-		const availability = await h.loadAvailability.mock.results[0].value;
-		expect(toPublicEventType).toHaveBeenCalledExactlyOnceWith(
-			'30-min-chat',
-			h.cfg.current.meetings['30-min-chat'],
-			role,
-			availability.bookingDurations
-		);
-		expect(vi.mocked(toPublicEventType).mock.calls[0][3]).toBe(availability.bookingDurations);
-		expect(result.eventType.duration_minutes).toBe(availability.bookingDurations.defaultDuration);
-		expect(result.eventType.durations).toBe(availability.bookingDurations.durations);
-		expect(result.availability.slotsByDuration).toBe(availability.slotsByDuration);
-		expect(Object.keys(result.availability.slotsByDuration).map(Number)).toEqual(
-			[...result.eventType.durations].sort((a, b) => a - b)
-		);
-		expect(result.eventType.slug).toBe('30-min-chat');
-		expect(result.eventType.location).toBe(role === 'host' ? 'Private host location' : undefined);
-		expect(result.eventType.padding_before_minutes).toBe(role === 'host' ? 0 : 15);
-		expect(result.eventType.padding_after_minutes).toBe(role === 'host' ? 0 : 10);
-		expect(result.role).toBe(role);
-		expect(result).not.toHaveProperty('viewer');
-		expect(result).not.toHaveProperty('isAdmin');
-		expect(result).not.toHaveProperty('isHost');
-		expect(h.loadAvailability).toHaveBeenCalledExactlyOnceWith(
-			h.db,
-			h.cfg.current,
-			'30-min-chat',
-			h.cfg.current.meetings['30-min-chat'],
-			role
-		);
-	});
+		{ role: 'guest', session: null, formAction: '/schedule/30-min-chat' },
+		{ role: 'host', session: { user: { name: 'Host' } }, formAction: '/admin/schedule/30-min-chat' }
+	])(
+		'returns canonical page data and loads $role availability',
+		async ({ role, session, formAction }) => {
+			h.cfg.current = structuredClone(validConfig);
+			Object.assign(h.cfg.current.meetings['30-min-chat'], {
+				location: 'Private host location',
+				padding_before_minutes: 15,
+				padding_after_minutes: 10
+			});
+			const loaded = await load(loadEvent(`?slot=${SLOT}`, session));
+			const result = loaded as LoadResult;
+			const availability = await h.loadAvailability.mock.results[0].value;
+			expect(toPublicEventType).toHaveBeenCalledExactlyOnceWith(
+				'30-min-chat',
+				h.cfg.current.meetings['30-min-chat'],
+				role,
+				availability.bookingDurations
+			);
+			expect(vi.mocked(toPublicEventType).mock.calls[0][3]).toBe(availability.bookingDurations);
+			expect(result.eventType.duration_minutes).toBe(availability.bookingDurations.defaultDuration);
+			expect(result.eventType.durations).toBe(availability.bookingDurations.durations);
+			expect(result.availability.slotsByDuration).toBe(availability.slotsByDuration);
+			expect(Object.keys(result.availability.slotsByDuration).map(Number)).toEqual(
+				[...result.eventType.durations].sort((a, b) => a - b)
+			);
+			expect(result.eventType.slug).toBe('30-min-chat');
+			expect(result.eventType.location).toBe(role === 'host' ? 'Private host location' : undefined);
+			expect(result.eventType.padding_before_minutes).toBe(role === 'host' ? 0 : 15);
+			expect(result.eventType.padding_after_minutes).toBe(role === 'host' ? 0 : 10);
+			expect(result.role).toBe(role);
+			expect(result.formAction).toBe(formAction);
+			expect(result.guestFieldsDisabled).toBe(false);
+			expect(result).not.toHaveProperty('viewer');
+			expect(result).not.toHaveProperty('isAdmin');
+			expect(result).not.toHaveProperty('isHost');
+			expect(h.loadAvailability).toHaveBeenCalledExactlyOnceWith(
+				h.db,
+				h.cfg.current,
+				'30-min-chat',
+				h.cfg.current.meetings['30-min-chat'],
+				role
+			);
+		}
+	);
 });
 
 describe('/schedule/[slug] book action', () => {

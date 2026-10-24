@@ -57,9 +57,13 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 		role
 	);
 
+	const formAction =
+		role === 'host' ? `/admin/schedule/${params.slug}` : `/schedule/${params.slug}`;
 	return {
 		eventType: toPublicEventType(params.slug, eventType, role, bookingDurations),
 		formFields: resolveFormFields(eventType),
+		formAction,
+		guestFieldsDisabled: false,
 		availability: { slotsByDuration, workingWindows, busyBlocks },
 		reschedule: null,
 		role
