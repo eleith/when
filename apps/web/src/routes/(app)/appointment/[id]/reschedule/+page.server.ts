@@ -42,17 +42,17 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 	});
 	const rescheduleError = ctx.kind === 'error' ? ctx.code : null;
 
-	const { slotsByDuration, workingWindows, busyBlocks } = await loadAvailability(
+	const { bookingDurations, slotsByDuration, workingWindows, busyBlocks } = await loadAvailability(
 		getDb(),
 		cfg,
 		row.event_type_id,
 		eventType,
 		role,
-		row.start_time
+		row
 	);
 
 	return {
-		eventType: toPublicEventType(row.event_type_id, eventType, role),
+		eventType: toPublicEventType(row.event_type_id, eventType, role, bookingDurations),
 		formFields: resolveFormFields(eventType),
 		availability: { slotsByDuration, workingWindows, busyBlocks },
 		reschedule: {
@@ -94,7 +94,7 @@ export const actions: Actions = {
 		if (!reasonResult.ok) return fail(400, { error: reasonResult.error });
 		const reason = reasonResult.reason;
 
-		const duration = resolveDuration(eventType, form);
+		const duration = resolveDuration(eventType, 'guest', form, found);
 		if (duration === null) return fail(400, { error: 'Please pick a valid meeting length.' });
 
 		// Re-validate the slot is currently bookable, ignoring the appointment's own current slot.
@@ -106,7 +106,7 @@ export const actions: Actions = {
 			'guest',
 			slotStr,
 			duration,
-			found.start_time
+			found
 		);
 		if (!bookable) {
 			return fail(409, { error: 'That time is no longer available. Please pick another.' });

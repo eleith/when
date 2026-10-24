@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import { toPublicEventType, toPublicAppointment } from './sanitize';
+import { resolveBookingDurations } from './duration';
 import type { Meeting } from '@when/config';
 import type { Appointment } from '@when/db';
 import { validConfig } from '$lib/server/__fixtures__/valid-config';
@@ -40,39 +41,40 @@ const baseRow: Appointment = {
 
 describe('toPublicEventType', () => {
 	test('hides location for guests', () => {
-		const res = toPublicEventType('chat', baseEventType, 'guest');
+		const profile = resolveBookingDurations(baseEventType, 'guest');
+		const res = toPublicEventType('chat', baseEventType, 'guest', profile);
 		expect(res.location).toBeUndefined();
 	});
 
 	test('shows location for hosts', () => {
-		const res = toPublicEventType('chat', baseEventType, 'host');
+		const profile = resolveBookingDurations(baseEventType, 'host');
+		const res = toPublicEventType('chat', baseEventType, 'host', profile);
 		expect(res.location).toBe('https://meet.example.com/jane');
 	});
 
 	test('applies default padding and notice values', () => {
-		const res = toPublicEventType('chat', baseEventType, 'guest');
+		const profile = resolveBookingDurations(baseEventType, 'guest');
+		const res = toPublicEventType('chat', baseEventType, 'guest', profile);
 		expect(res.padding_before_minutes).toBe(0);
 		expect(res.padding_after_minutes).toBe(0);
 		expect(res.notice_minutes).toBe(120);
 	});
 
 	test('passes through explicit padding and notice values', () => {
-		const res = toPublicEventType(
-			'chat',
-			{
-				...baseEventType,
-				padding_before_minutes: 15,
-				padding_after_minutes: 10,
-				notice_minutes: 60
-			},
-			'guest'
-		);
+		const meeting = {
+			...baseEventType,
+			padding_before_minutes: 15,
+			padding_after_minutes: 10,
+			notice_minutes: 60
+		};
+		const profile = resolveBookingDurations(meeting, 'guest');
+		const res = toPublicEventType('chat', meeting, 'guest', profile);
 		expect(res.padding_before_minutes).toBe(15);
 		expect(res.padding_after_minutes).toBe(10);
 		expect(res.notice_minutes).toBe(60);
 	});
 
-	test('projects effective host padding without changing durations, notice, privacy, or config', () => {
+	test('projects effective host padding and role-specific choices without changing notice, privacy, or config', () => {
 		const cfg = structuredClone(validConfig);
 		const meeting = cfg.meetings['30-min-chat'];
 		Object.assign(meeting, {
@@ -84,9 +86,10 @@ describe('toPublicEventType', () => {
 			additional_duration_minutes: [15, 60]
 		});
 		const original = structuredClone(cfg);
-
-		const guest = toPublicEventType('chat', meeting, 'guest');
-		const host = toPublicEventType('chat', meeting, 'host');
+		const guestProfile = resolveBookingDurations(meeting, 'guest');
+		const hostProfile = resolveBookingDurations(meeting, 'host');
+		const guest = toPublicEventType('chat', meeting, 'guest', guestProfile);
+		const host = toPublicEventType('chat', meeting, 'host', hostProfile);
 
 		expect(guest.padding_before_minutes).toBe(15);
 		expect(guest.padding_after_minutes).toBe(10);
@@ -96,21 +99,64 @@ describe('toPublicEventType', () => {
 		expect(guest.notice_minutes).toBe(60);
 		expect(host).toEqual({
 			...guest,
+			durations: [15, 30, 45, 60, 90, 120, 180, 240, 300],
 			location: meeting.location,
 			padding_before_minutes: 0,
 			padding_after_minutes: 0
 		});
-		expect(toPublicEventType('chat', meeting, 'guest')).toEqual(guest);
+		expect(host.durations).toBe(hostProfile.durations);
+		expect(guest.durations).toBe(guestProfile.durations);
+		expect(toPublicEventType('chat', meeting, 'guest', guestProfile)).toEqual(guest);
 		expect(cfg).toEqual(original);
 	});
 
+	test.each(['guest', 'host'] as const)(
+		'%s consumes the supplied profile default and exact choice array instead of recomputing them',
+		(role) => {
+			const meeting = { ...baseEventType, duration_minutes: 60, additional_duration_minutes: [15] };
+			const profile = { defaultDuration: 85, durations: [60, 15, 85] };
+			const originalMeeting = structuredClone(meeting);
+			const originalProfile = structuredClone(profile);
+			const res = toPublicEventType('chat', meeting, role, profile);
+			expect(res.duration_minutes).toBe(85);
+			expect(res.durations).toBe(profile.durations);
+			expect(res.durations).toEqual([60, 15, 85]);
+			expect(meeting).toEqual(originalMeeting);
+			expect(profile).toEqual(originalProfile);
+		}
+	);
+
+	test('creation projects configured 60 as default even though the host choices start at 15', () => {
+		const meeting = { ...baseEventType, duration_minutes: 60 };
+		const profile = resolveBookingDurations(meeting, 'host');
+		const res = toPublicEventType('chat', meeting, 'host', profile);
+		expect(res.duration_minutes).toBe(60);
+		expect(res.durations[0]).toBe(15);
+	});
+
+	test.each(['guest', 'host'] as const)(
+		'%s reschedule projects actual current 90 instead of configured 30',
+		(role) => {
+			const current = { ...baseRow, end_time: '2026-05-01T16:30:00Z' };
+			const profile = resolveBookingDurations(baseEventType, role, current);
+			const res = toPublicEventType('chat', baseEventType, role, profile);
+			expect(res.duration_minutes).toBe(90);
+			expect(res.durations).toBe(profile.durations);
+			expect(res.durations).toContain(30);
+			expect(res.durations).toContain(90);
+		}
+	);
+
 	test('maps show_slots', () => {
-		const res = toPublicEventType('chat', { ...baseEventType, show_slots: true }, 'guest');
+		const meeting = { ...baseEventType, show_slots: true };
+		const profile = resolveBookingDurations(meeting, 'guest');
+		const res = toPublicEventType('chat', meeting, 'guest', profile);
 		expect(res.show_slots).toBe(true);
 	});
 
 	test('passes through require_approval', () => {
-		const res = toPublicEventType('chat', baseEventType, 'guest');
+		const profile = resolveBookingDurations(baseEventType, 'guest');
+		const res = toPublicEventType('chat', baseEventType, 'guest', profile);
 		expect(res.require_approval).toBe(false);
 	});
 });

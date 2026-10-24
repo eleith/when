@@ -19,7 +19,10 @@ vi.mock('$lib/server/availability/booking', () => ({
 	isRescheduleSlotBookable: h.isRescheduleSlotBookable
 }));
 vi.mock('$lib/server/appointment/reschedule', () => ({ rescheduleAppointment: h.reschedule }));
-vi.mock('$lib/server/appointment/duration', () => ({ resolveDuration: h.resolveDuration }));
+vi.mock('$lib/server/appointment/duration', async (importOriginal) => {
+	const original = await importOriginal<typeof import('$lib/server/appointment/duration')>();
+	return { ...original, resolveDuration: h.resolveDuration };
+});
 vi.mock('$lib/server/appointment/form.server', async (io) => {
 	const original = await io<typeof import('$lib/server/appointment/form.server')>();
 	return { ...original, validateReason: h.validateReason };
@@ -35,6 +38,7 @@ const row = {
 	id: 'appt-1',
 	event_type_id: '30-min-chat',
 	start_time: CURRENT,
+	end_time: '2099-05-01T16:30:00Z',
 	cancel_token: 'own-token',
 	status: 'confirmed'
 };
@@ -74,9 +78,21 @@ beforeEach(() => {
 
 describe('/admin/appointment/[id]/reschedule book action', () => {
 	test('needs no guest token, delegates the chosen length excluding self, and reschedules as host', async () => {
-		const result = await caught(() => actions.default(bookEvent()));
+		const event = bookEvent();
+		const form = await event.request.formData();
+		form.set('role', 'guest');
+		form.set('currentDuration', '240');
+		form.set('end_time', '2099-05-01T19:00:00Z');
+		const result = await caught(() => actions.default(event));
 		expect(result).toMatchObject({ status: 303, location: '/appointment/appt-2' });
 		expect(h.findAppointment).toHaveBeenCalledExactlyOnceWith(h.db, row.id);
+		expect(h.resolveDuration).toHaveBeenCalledExactlyOnceWith(
+			validConfig.meetings[row.event_type_id],
+			'host',
+			form,
+			row
+		);
+		expect(h.resolveDuration.mock.calls[0][3]).toBe(row);
 		expect(h.isRescheduleSlotBookable).toHaveBeenCalledExactlyOnceWith(
 			h.db,
 			validConfig,
@@ -85,8 +101,9 @@ describe('/admin/appointment/[id]/reschedule book action', () => {
 			'host',
 			NEW_SLOT,
 			60,
-			CURRENT
+			row
 		);
+		expect(h.isRescheduleSlotBookable.mock.calls[0][7]).toBe(row);
 		expect(h.validateReason).toHaveBeenCalledWith(expect.any(FormData), 'rescheduling');
 		expect(h.reschedule).toHaveBeenCalledExactlyOnceWith(
 			expect.objectContaining({ db: h.db, cfg: validConfig }),

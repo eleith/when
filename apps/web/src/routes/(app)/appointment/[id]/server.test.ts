@@ -1,12 +1,24 @@
-import { describe, expect, test, vi } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { actions, load } from './+page.server';
 import { validConfig } from '$lib/server/__fixtures__/valid-config';
 import type { Appointment } from '@when/db';
 import type { AppointmentRole } from '$lib/server/appointment/actions';
+import { resolveBookingDurations } from '$lib/server/appointment/duration';
+import { toPublicEventType } from '$lib/server/appointment/sanitize';
 
 const h = vi.hoisted(() => ({ cancelAppointment: vi.fn() }));
 
 vi.mock('$lib/server/appointment/cancel', () => ({ cancelAppointment: h.cancelAppointment }));
+vi.mock('$lib/server/appointment/duration', async (importOriginal) => {
+	const original = await importOriginal<typeof import('$lib/server/appointment/duration')>();
+	return { ...original, resolveBookingDurations: vi.fn(original.resolveBookingDurations) };
+});
+vi.mock('$lib/server/appointment/sanitize', async (importOriginal) => {
+	const original = await importOriginal<typeof import('$lib/server/appointment/sanitize')>();
+	return { ...original, toPublicEventType: vi.fn(original.toPublicEventType) };
+});
+
+beforeEach(() => vi.clearAllMocks());
 
 const mockDb = {
 	selectFrom: vi.fn(),
@@ -41,6 +53,11 @@ const mockAppt: Appointment = {
 	updated_at: ''
 };
 
+const bookedAppointment: Appointment = {
+	...mockAppt,
+	id: 'appt-long',
+	end_time: '2099-05-01T16:30:00Z'
+};
 // transitions.ts appends the move to the old row's log and copies that whole log onto the
 // new row, so a later row carries every earlier move as well as its own.
 function moves(...pairs: [previousId: string, nextId: string][]) {
@@ -117,6 +134,7 @@ vi.mock('@when/db', async (importOriginal) => {
 		...actual,
 		findAppointment: async (_db: unknown, id: string) => {
 			if (id === 'appt-1') return mockAppt;
+			if (id === bookedAppointment.id) return bookedAppointment;
 			if (id === 'appt-pending')
 				return {
 					...mockAppt,
@@ -179,6 +197,37 @@ function loadAppointment(id: string, token: string | null, role: AppointmentRole
 }
 
 describe('/appointment/[id] server load', () => {
+	test.for([
+		{
+			row: bookedAppointment,
+			meeting: validConfig.meetings['30-min-chat'],
+			role: 'guest' as const
+		},
+		{ row: bookedAppointment, meeting: validConfig.meetings['30-min-chat'], role: 'host' as const }
+	])(
+		'projects $row.id with an explicit $role profile based on its booked length',
+		async ({ row, meeting, role }) => {
+			const result = await loadAppointment(
+				row.id,
+				role === 'guest' ? row.cancel_token : null,
+				role
+			);
+			expect(resolveBookingDurations).toHaveBeenCalledExactlyOnceWith(meeting, role, row);
+			expect(vi.mocked(resolveBookingDurations).mock.calls[0][2]).toBe(row);
+			const bookingDurations = vi.mocked(resolveBookingDurations).mock.results[0].value;
+			expect(toPublicEventType).toHaveBeenCalledExactlyOnceWith(
+				row.event_type_id,
+				meeting,
+				role,
+				bookingDurations
+			);
+			expect(vi.mocked(toPublicEventType).mock.calls[0][3]).toBe(bookingDurations);
+			expect(result.eventType.duration_minutes).toBe(90);
+			expect(result.eventType.durations).toBe(bookingDurations.durations);
+			expect(result.eventType.durations).toContain(90);
+		}
+	);
+
 	test.for(['guest', 'host'] as const)(
 		'reports %s and applies the same role to privacy and actions',
 		async (role) => {
@@ -430,15 +479,19 @@ describe('/appointment/[id] cancel action — characterization', () => {
 	});
 
 	test('another row token in the chain cannot cancel this row', async () => {
-		expect(await cancelWith('chain-3', 'tok-1')).toMatchObject({ status: 403 });
-		expect(await cancelWith('chain-3', 'tok-2')).toMatchObject({ status: 403 });
+		const first = await cancelWith('chain-3', 'tok-1');
+		const second = await cancelWith('chain-3', 'tok-2');
+		expect(first).toMatchObject({ status: 403 });
+		expect(second).toMatchObject({ status: 403 });
 	});
 
 	test('an empty token cannot cancel', async () => {
-		expect(await cancelWith('chain-3', '')).toMatchObject({ status: 403 });
+		const result = await cancelWith('chain-3', '');
+		expect(result).toMatchObject({ status: 403 });
 	});
 
 	test('an unknown appointment is a 404, not a token check', async () => {
-		expect(await cancelWith('nope', 'tok-3')).toMatchObject({ status: 404 });
+		const result = await cancelWith('nope', 'tok-3');
+		expect(result).toMatchObject({ status: 404 });
 	});
 });

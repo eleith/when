@@ -4,4 +4,6 @@
 	let { data, form } = $props();
 </script>
 
-<AppointmentWizard {data} {form} deepLink />
+{#key `${data.eventType.slug}:${data.role}`}
+	<AppointmentWizard {data} {form} deepLink />
+{/key}

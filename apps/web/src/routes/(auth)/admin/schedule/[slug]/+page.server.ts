@@ -31,7 +31,7 @@ export const actions: Actions = {
 		}
 		const { name, email, answers, location: resolvedLocation } = parsed.data;
 
-		const duration = resolveDuration(eventType, form);
+		const duration = resolveDuration(eventType, 'host', form);
 		if (duration === null) {
 			return fail(400, { error: 'Please pick a valid meeting length.' });
 		}

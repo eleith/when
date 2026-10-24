@@ -12,7 +12,10 @@ const h = vi.hoisted(() => ({
 vi.mock('$lib/server/state', () => ({ getConfig: () => validConfig, getDb: () => h.db }));
 vi.mock('$lib/server/availability/booking', () => ({ isNewSlotBookable: h.isNewSlotBookable }));
 vi.mock('$lib/server/appointment/create', () => ({ createAppointment: h.createAppointment }));
-vi.mock('$lib/server/appointment/duration', () => ({ resolveDuration: h.resolveDuration }));
+vi.mock('$lib/server/appointment/duration', async (importOriginal) => {
+	const original = await importOriginal<typeof import('$lib/server/appointment/duration')>();
+	return { ...original, resolveDuration: h.resolveDuration };
+});
 vi.mock('$lib/server/appointment/form.server', async (io) => {
 	const original = await io<typeof import('$lib/server/appointment/form.server')>();
 	return { ...original, parseAndValidateAppointmentForm: h.parseForm };
@@ -55,8 +58,17 @@ beforeEach(() => {
 
 describe('/admin/schedule/[slug] book action', () => {
 	test('delegates the chosen length and books as host with the configured timezone fallback', async () => {
-		const result = await caught(() => actions.default(bookEvent()));
+		const event = bookEvent();
+		const form = await event.request.formData();
+		form.set('role', 'guest');
+		form.set('currentDuration', '300');
+		const result = await caught(() => actions.default(event));
 		expect(result).toMatchObject({ status: 303, location: '/appointment/new-1' });
+		expect(h.resolveDuration).toHaveBeenCalledExactlyOnceWith(
+			validConfig.meetings['30-min-chat'],
+			'host',
+			form
+		);
 		expect(h.isNewSlotBookable).toHaveBeenCalledExactlyOnceWith(
 			h.db,
 			validConfig,

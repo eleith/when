@@ -1,6 +1,9 @@
 import { describe, expect, test, vi, beforeEach } from 'vitest';
 import { validConfig } from '$lib/server/__fixtures__/valid-config';
 import type { Appointment } from '@when/db';
+import type { Meeting } from '@when/config';
+import type { AppointmentRole } from '$lib/server/appointment/actions';
+import { resolveBookingDurations } from '$lib/server/appointment/duration';
 
 const h = vi.hoisted(() => ({
 	db: {},
@@ -46,11 +49,18 @@ vi.mock('$lib/server/appointment/form.server', async (io) => {
 		validateReason: h.validateReason
 	};
 });
-vi.mock('$lib/server/appointment/duration', () => ({ resolveDuration: h.resolveDuration }));
-vi.mock('$lib/server/appointment/sanitize', () => ({
-	toPublicAppointment: h.toPublicAppointment,
-	toPublicEventType: h.toPublicEventType
-}));
+vi.mock('$lib/server/appointment/duration', async (importOriginal) => {
+	const original = await importOriginal<typeof import('$lib/server/appointment/duration')>();
+	return { ...original, resolveDuration: h.resolveDuration };
+});
+vi.mock('$lib/server/appointment/sanitize', async (importOriginal) => {
+	const original = await importOriginal<typeof import('$lib/server/appointment/sanitize')>();
+	return {
+		...original,
+		toPublicAppointment: h.toPublicAppointment,
+		toPublicEventType: h.toPublicEventType.mockImplementation(original.toPublicEventType)
+	};
+});
 vi.mock('@when/config', async (io) => {
 	const original = await io<typeof import('@when/config')>();
 	return {
@@ -73,6 +83,7 @@ function appt(): Appointment {
 		id: 'appt-1',
 		event_type_id: '30-min-chat',
 		start_time: CURRENT,
+		end_time: '2099-05-01T16:30:00Z',
 		cancel_token: 'tok-1',
 		status: 'confirmed'
 	} as unknown as Appointment;
@@ -122,13 +133,31 @@ beforeEach(() => {
 	h.row.current = appt();
 	h.viewAllowed.mockResolvedValue(true);
 	h.classify.mockReturnValue({ kind: 'ok' });
-	h.loadAvailability.mockResolvedValue({ slotsByDuration: {}, workingWindows: [], busyBlocks: [] });
+	h.loadAvailability.mockImplementation(
+		async (
+			_db,
+			_cfg,
+			_slug,
+			meeting: Meeting,
+			role: AppointmentRole,
+			currentAppointment: Appointment
+		) => {
+			const bookingDurations = resolveBookingDurations(meeting, role, currentAppointment);
+			return {
+				bookingDurations,
+				slotsByDuration: Object.fromEntries(
+					bookingDurations.durations.map((duration) => [duration, {}])
+				),
+				workingWindows: [],
+				busyBlocks: []
+			};
+		}
+	);
 	h.isRescheduleSlotBookable.mockResolvedValue(true);
 	h.resolveTimezone.mockReturnValue('UTC');
 	h.validateReason.mockReturnValue({ ok: true, reason: null });
 	h.resolveDuration.mockReturnValue(30);
 	h.toPublicAppointment.mockReturnValue({ id: 'appt-1' });
-	h.toPublicEventType.mockReturnValue({ slug: '30-min-chat' });
 });
 
 describe('/appointment/[id]/reschedule load', () => {
@@ -151,13 +180,21 @@ describe('/appointment/[id]/reschedule load', () => {
 			expect(result.reschedule.appt).toEqual({ id: 'appt-1' });
 			expect(result.reschedule.error).toBeNull();
 			expect(result.reschedule.token).toBe('tok-1');
-			expect(result.eventType).toEqual({ slug: '30-min-chat' });
+			const availability = await h.loadAvailability.mock.results[0].value;
+			expect(result.eventType).toMatchObject({ slug: '30-min-chat', duration_minutes: 90 });
+			expect(result.eventType.durations).toBe(availability.bookingDurations.durations);
+			expect(result.availability.slotsByDuration).toBe(availability.slotsByDuration);
+			expect(Object.keys(result.availability.slotsByDuration).map(Number)).toEqual(
+				[...result.eventType.durations].sort((a, b) => a - b)
+			);
 			expect(h.toPublicAppointment).toHaveBeenCalledExactlyOnceWith(h.row.current, role);
 			expect(h.toPublicEventType).toHaveBeenCalledExactlyOnceWith(
 				'30-min-chat',
 				validConfig.meetings['30-min-chat'],
-				role
+				role,
+				availability.bookingDurations
 			);
+			expect(h.toPublicEventType.mock.calls[0][3]).toBe(availability.bookingDurations);
 			expect(result.role).toBe(role);
 			expect(result).not.toHaveProperty('viewer');
 			expect(result).not.toHaveProperty('isAdmin');
@@ -168,7 +205,7 @@ describe('/appointment/[id]/reschedule load', () => {
 				'30-min-chat',
 				validConfig.meetings['30-min-chat'],
 				role,
-				CURRENT
+				h.row.current
 			);
 		}
 	);
@@ -247,7 +284,7 @@ describe('/appointment/[id]/reschedule book action', () => {
 			'guest',
 			NEW_SLOT,
 			30,
-			CURRENT
+			h.row.current
 		);
 		expect(h.reschedule).not.toHaveBeenCalled();
 	});
@@ -255,8 +292,22 @@ describe('/appointment/[id]/reschedule book action', () => {
 	test('ignores forged host flags and checks guest availability excluding self', async () => {
 		h.parseForm.mockReturnValue({ ok: true, data: {} });
 		h.isRescheduleSlotBookable.mockResolvedValue(false);
-		const result = await book(form({ viewer: 'host', role: 'host', isAdmin: 'true' }));
+		const fd = form({
+			viewer: 'host',
+			role: 'host',
+			isAdmin: 'true',
+			currentDuration: '240',
+			end_time: '2099-05-01T19:00:00Z'
+		});
+		const result = await book(fd);
 		expect(result.status).toBe(409);
+		expect(h.resolveDuration).toHaveBeenCalledExactlyOnceWith(
+			validConfig.meetings['30-min-chat'],
+			'guest',
+			fd,
+			h.row.current
+		);
+		expect(h.resolveDuration.mock.calls[0][3]).toBe(h.row.current);
 		expect(h.isRescheduleSlotBookable).toHaveBeenCalledExactlyOnceWith(
 			h.db,
 			validConfig,
@@ -265,8 +316,9 @@ describe('/appointment/[id]/reschedule book action', () => {
 			'guest',
 			NEW_SLOT,
 			30,
-			CURRENT
+			h.row.current
 		);
+		expect(h.isRescheduleSlotBookable.mock.calls[0][7]).toBe(h.row.current);
 		expect(h.reschedule).not.toHaveBeenCalled();
 	});
 
@@ -280,13 +332,25 @@ describe('/appointment/[id]/reschedule book action', () => {
 				appointment: { id: 'appt-2', cancel_token: 'tok-2' }
 			});
 			const session = forged ? { user: { name: 'Host' } } : null;
-			const event = bookEvent(
-				form(forged ? { viewer: 'host', role: 'host', isAdmin: 'true' } : {}),
-				session
+			const fd = form(
+				forged ? { viewer: 'host', role: 'host', isAdmin: 'true', currentDuration: '240' } : {}
 			);
+			const event = bookEvent(fd, session);
 			const r = await caught(() => actions.default(event));
 			expect(r.status).toBe(303);
 			expect(r.location).toBe('/appointment/appt-2?token=tok-2');
+			expect(h.resolveDuration).toHaveBeenCalledExactlyOnceWith(
+				validConfig.meetings['30-min-chat'],
+				'guest',
+				fd,
+				h.row.current
+			);
+			expect(event.cookies.set).toHaveBeenCalledWith('submitted', 'reschedule', {
+				path: '/',
+				maxAge: 10,
+				httpOnly: true,
+				sameSite: 'lax'
+			});
 			expect(h.isRescheduleSlotBookable).toHaveBeenCalledExactlyOnceWith(
 				h.db,
 				validConfig,
@@ -295,7 +359,7 @@ describe('/appointment/[id]/reschedule book action', () => {
 				'guest',
 				NEW_SLOT,
 				60,
-				CURRENT
+				h.row.current
 			);
 			expect(h.reschedule).toHaveBeenCalledWith(
 				expect.anything(),

@@ -2,10 +2,10 @@ import { error, fail, redirect } from '@sveltejs/kit';
 import { isNewSlotBookable, loadAvailability } from '$lib/server/availability/booking';
 import { logger } from '$lib/server/logger';
 import { getConfig, getDb } from '$lib/server/state';
-import { durationsOf, resolveFormFields } from '@when/config';
+import { resolveFormFields } from '@when/config';
 import { createAppointment } from '$lib/server/appointment/create';
 import type { AppointmentRole } from '$lib/server/appointment/actions';
-import { resolveDuration } from '$lib/server/appointment/duration';
+import { resolveBookingDurations, resolveDuration } from '$lib/server/appointment/duration';
 import {
 	parseAndValidateAppointmentForm,
 	parseSlot,
@@ -26,12 +26,12 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 
 	// Strip malformed/unknown deep-link params up front by redirecting to the canonical URL.
 	const clean = normalizeDeepLinkParams(url.searchParams);
-	const durations = durationsOf(eventType);
+	const canonicalDurations = resolveBookingDurations(eventType, role);
 	const expected: [string, string][] = [];
 	if (
 		clean.duration !== undefined &&
-		durations.includes(clean.duration) &&
-		clean.duration !== durations[0]
+		canonicalDurations.durations.includes(clean.duration) &&
+		clean.duration !== canonicalDurations.defaultDuration
 	) {
 		expected.push(['duration', String(clean.duration)]);
 	}
@@ -49,7 +49,7 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 		redirect(307, query ? `${url.pathname}?${query}` : url.pathname);
 	}
 
-	const { slotsByDuration, workingWindows, busyBlocks } = await loadAvailability(
+	const { bookingDurations, slotsByDuration, workingWindows, busyBlocks } = await loadAvailability(
 		getDb(),
 		cfg,
 		params.slug,
@@ -58,7 +58,7 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 	);
 
 	return {
-		eventType: toPublicEventType(params.slug, eventType, role),
+		eventType: toPublicEventType(params.slug, eventType, role, bookingDurations),
 		formFields: resolveFormFields(eventType),
 		availability: { slotsByDuration, workingWindows, busyBlocks },
 		reschedule: null,
@@ -88,7 +88,7 @@ export const actions: Actions = {
 		}
 		const { name, email, answers, location: resolvedLocation } = parsed.data;
 
-		const duration = resolveDuration(eventType, form);
+		const duration = resolveDuration(eventType, 'guest', form);
 		if (duration === null) {
 			bookingAttemptsTotal.inc({ event_type_id: params.slug, status: 'invalid_input' });
 			return fail(400, { error: 'Please pick a valid meeting length.' });

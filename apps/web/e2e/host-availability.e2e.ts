@@ -110,7 +110,7 @@ test('host adds beside a busy appointment despite guest buffers and daily cap', 
 	expect(overlapRejected).toMatchObject({ type: 'failure', status: 409 });
 	const unsupported = await page.request.post(`/admin/schedule/${slug}`, {
 		...postOptions,
-		form: { ...form, slot: `${day}T15:00:00Z`, duration: '45' }
+		form: { ...form, slot: `${day}T15:00:00Z`, duration: '75' }
 	});
 	const durationRejected = await unsupported.json();
 	expect(durationRejected).toMatchObject({ type: 'failure', status: 400 });

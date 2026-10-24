@@ -1,7 +1,7 @@
 import type { Kysely } from 'kysely';
-import { getBusyIntervals, type BusyInterval, type Database } from '@when/db';
+import { getBusyIntervals, type Appointment, type BusyInterval, type Database } from '@when/db';
 import { busyCalendarsFor } from '@when/calendar';
-import { durationsOf, type Meeting, type WhenConfiguration } from '@when/config';
+import type { Meeting, WhenConfiguration } from '@when/config';
 import { systemClock } from '$lib/server/clock';
 import { computeSlots, type ComputeOptions } from './calc';
 import { mergeBlocks } from './intervals';
@@ -10,10 +10,11 @@ import { resolveAvailabilitySettings } from './settings';
 import { buildBaseWindows, candidateDates } from './windows';
 import type { AvailabilitySettings } from './types';
 import type { AppointmentRole } from '../appointment/actions';
+import { resolveBookingDurations, type BookingDurations } from '../appointment/duration';
 
 export interface Availability {
 	settings: AvailabilitySettings;
-	durations: number[];
+	bookingDurations: BookingDurations;
 	slotsByDuration: Record<number, Record<string, string[]>>;
 	workingWindows: { start: string; end: string }[];
 	busyBlocks: { start: string; end: string }[];
@@ -25,19 +26,19 @@ export async function loadAvailability(
 	slug: string,
 	eventType: Meeting,
 	role: AppointmentRole,
-	excludeStart: string | null = null
+	currentAppointment: Pick<Appointment, 'start_time' | 'end_time'> | null = null
 ): Promise<Availability> {
-	const { options, allowedDurations } = await readAvailabilityInputs(
+	const { options, bookingDurations } = await readAvailabilityInputs(
 		db,
 		cfg,
 		slug,
 		eventType,
 		role,
-		excludeStart
+		currentAppointment
 	);
 	const { settings, rangeStart, rangeEnd, userTz } = options;
 	const slotsByDuration: Record<number, Record<string, string[]>> = {};
-	for (const duration of allowedDurations) {
+	for (const duration of bookingDurations.durations) {
 		const slots = computeSlots({ ...options, settings: { ...settings, duration } });
 		const byDate: Record<string, string[]> = {};
 		for (const slot of slots) {
@@ -56,7 +57,7 @@ export async function loadAvailability(
 	const busyBlocks = mergeBlocks([...options.existingAppointments, ...options.remoteBusy]).map(
 		(block) => ({ start: block.start.toString(), end: block.end.toString() })
 	);
-	return { settings, durations: allowedDurations, slotsByDuration, workingWindows, busyBlocks };
+	return { settings, bookingDurations, slotsByDuration, workingWindows, busyBlocks };
 }
 
 // Keep creation's day-bounded busy read distinct from rescheduling's full horizon.
@@ -70,7 +71,7 @@ export async function isNewSlotBookable(
 	duration: number
 ): Promise<boolean> {
 	const busyWindow = slotDayWindow(slot, cfg.user.timezone);
-	const { options, allowedDurations } = await readAvailabilityInputs(
+	const { options, bookingDurations } = await readAvailabilityInputs(
 		db,
 		cfg,
 		slug,
@@ -79,7 +80,7 @@ export async function isNewSlotBookable(
 		null,
 		busyWindow
 	);
-	return isOfferedSlot(options, allowedDurations, slot, duration);
+	return isOfferedSlot(options, bookingDurations.durations, slot, duration);
 }
 
 export async function isRescheduleSlotBookable(
@@ -90,17 +91,17 @@ export async function isRescheduleSlotBookable(
 	role: AppointmentRole,
 	slot: string,
 	duration: number,
-	excludeStart: string
+	currentAppointment: Pick<Appointment, 'start_time' | 'end_time'>
 ): Promise<boolean> {
-	const { options, allowedDurations } = await readAvailabilityInputs(
+	const { options, bookingDurations } = await readAvailabilityInputs(
 		db,
 		cfg,
 		slug,
 		eventType,
 		role,
-		excludeStart
+		currentAppointment
 	);
-	return isOfferedSlot(options, allowedDurations, slot, duration);
+	return isOfferedSlot(options, bookingDurations.durations, slot, duration);
 }
 
 async function readAvailabilityInputs(
@@ -109,10 +110,11 @@ async function readAvailabilityInputs(
 	slug: string,
 	eventType: Meeting,
 	role: AppointmentRole,
-	excludeStart: string | null,
+	currentAppointment: Pick<Appointment, 'start_time' | 'end_time'> | null,
 	remoteBusyWindow?: BusyInterval
-): Promise<{ options: ComputeOptions; allowedDurations: number[] }> {
+): Promise<{ options: ComputeOptions; bookingDurations: BookingDurations }> {
 	const settings = resolveAvailabilitySettings(cfg, eventType, role);
+	const bookingDurations = resolveBookingDurations(eventType, role, currentAppointment);
 	const now = Temporal.Instant.fromEpochMilliseconds(systemClock.nowMs());
 	const rangeEnd = now.add({ hours: 24 * settings.maximum_lookahead });
 	const blocks = await loadAppointmentBlocks(
@@ -121,7 +123,7 @@ async function readAvailabilityInputs(
 		now,
 		rangeEnd,
 		cfg.user.timezone,
-		excludeStart
+		currentAppointment?.start_time ?? null
 	);
 	const busyWindow = remoteBusyWindow ?? { start: now.toString(), end: rangeEnd.toString() };
 	const remote = await getBusyIntervals(db, busyCalendarsFor(eventType), busyWindow);
@@ -140,7 +142,7 @@ async function readAvailabilityInputs(
 			remoteBusy,
 			perDayCount: blocks.perDayCount
 		},
-		allowedDurations: durationsOf(eventType)
+		bookingDurations
 	};
 }
 

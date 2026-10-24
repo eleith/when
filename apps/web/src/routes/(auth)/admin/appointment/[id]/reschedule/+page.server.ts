@@ -31,7 +31,7 @@ export const actions: Actions = {
 		if (!reasonResult.ok) return fail(400, { error: reasonResult.error });
 		const reason = reasonResult.reason;
 
-		const duration = resolveDuration(eventType, form);
+		const duration = resolveDuration(eventType, 'host', form, found);
 		if (duration === null) return fail(400, { error: 'Please pick a valid meeting length.' });
 
 		// Re-validate the slot is currently bookable, ignoring the appointment's own current slot.
@@ -43,7 +43,7 @@ export const actions: Actions = {
 			'host',
 			slotStr,
 			duration,
-			found.start_time
+			found
 		);
 		if (!bookable) {
 			return fail(409, { error: 'That time is no longer available. Please pick another.' });

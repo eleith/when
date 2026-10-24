@@ -18,6 +18,7 @@ import {
 	type Appointment
 } from '@when/db';
 import { toPublicAppointment, toPublicEventType } from '$lib/server/appointment/sanitize';
+import { resolveBookingDurations } from '$lib/server/appointment/duration';
 import type { Actions, PageServerLoad } from './$types';
 import { cancelAppointment } from '$lib/server/appointment/cancel';
 import { validateReason } from '$lib/server/appointment/form.server';
@@ -133,10 +134,12 @@ export const load: PageServerLoad = async ({ params, url, locals, cookies }) => 
 		row.video_chat_request !== 'suppress' &&
 		(row.video_chat_request === 'generate' || automaticVideoChat);
 
+	const bookingDurations = resolveBookingDurations(resolvedEventType, role, row);
+
 	return {
 		appointment,
 		videoChatRequested,
-		eventType: toPublicEventType(row.event_type_id, resolvedEventType, role),
+		eventType: toPublicEventType(row.event_type_id, resolvedEventType, role, bookingDurations),
 		calendarLinks,
 		actions,
 		flash: flash ?? null,

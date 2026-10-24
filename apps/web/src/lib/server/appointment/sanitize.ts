@@ -1,7 +1,8 @@
-import { durationsOf, parseGuestAnswers, type Meeting } from '@when/config';
+import { parseGuestAnswers, type Meeting } from '@when/config';
 import { parseActionLog, type ActionLogEntry, type Appointment } from '@when/db';
 import { resolveAvailabilityLimits } from '../availability/settings';
 import type { AppointmentRole } from './actions';
+import type { BookingDurations } from './duration';
 
 export interface PublicEventType extends Pick<
 	Meeting,
@@ -16,8 +17,8 @@ export interface PublicEventType extends Pick<
 	| 'notice_minutes'
 > {
 	slug: string; // the meeting's config key, which is its booking page URL
-	duration_minutes: number; // the default length
-	durations: number[]; // every offered length, default first
+	duration_minutes: number; // the effective default: configured for booking, current for rescheduling
+	durations: number[]; // every offered length, independent of the default's position
 }
 
 export interface PublicAppointment {
@@ -37,14 +38,15 @@ export interface PublicAppointment {
 export function toPublicEventType(
 	slug: string,
 	eventType: Meeting,
-	role: AppointmentRole
+	role: AppointmentRole,
+	bookingDurations: BookingDurations
 ): PublicEventType {
 	const limits = resolveAvailabilityLimits(eventType, role);
 	return {
 		slug,
 		title: eventType.title,
-		duration_minutes: eventType.duration_minutes,
-		durations: durationsOf(eventType),
+		duration_minutes: bookingDurations.defaultDuration,
+		durations: bookingDurations.durations,
 		description: eventType.description,
 		visibility: eventType.visibility,
 		require_approval: eventType.require_approval,

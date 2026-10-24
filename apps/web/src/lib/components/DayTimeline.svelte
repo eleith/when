@@ -280,8 +280,8 @@
 	}
 </script>
 
-{#if viewDate && timeline}
-	<div class="timeline-container">
+<div class="timeline-container">
+	{#if viewDate}
 		<div class="slots-header">
 			<button
 				type="button"
@@ -330,6 +330,8 @@
 				</div>
 			{/if}
 		</div>
+	{/if}
+	{#if timeline}
 		<div class="timeline-scroll">
 			<div class="timeline" style:height="{(timeline.totalMs / 3600000) * 96}px">
 				{#each timeline.labels as { label, top } (label)}
@@ -392,12 +394,18 @@
 				</div>
 			</div>
 		</div>
-	</div>
-{:else}
-	<div class="timeline-container empty-state">
-		<p>Select a highlighted date to see available times.</p>
-	</div>
-{/if}
+	{:else}
+		<div class="empty-state">
+			<p>
+				{#if viewDate}
+					No available times on this date.
+				{:else}
+					Select a highlighted date to see available times.
+				{/if}
+			</p>
+		</div>
+	{/if}
+</div>
 
 {#snippet discreteSlots()}
 	{#if timeline}

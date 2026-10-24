@@ -1,11 +1,15 @@
 import { describe, expect, test, vi, beforeEach } from 'vitest';
 import { validConfig } from '$lib/server/__fixtures__/valid-config';
-import type { WhenConfiguration } from '@when/config';
+import type { Meeting, WhenConfiguration } from '@when/config';
+import type { AppointmentRole } from '$lib/server/appointment/actions';
+import { resolveBookingDurations } from '$lib/server/appointment/duration';
+import { toPublicEventType } from '$lib/server/appointment/sanitize';
 
 const h = vi.hoisted(() => ({
 	cfg: { current: null as unknown as WhenConfiguration },
 	loadAvailability: vi.fn(),
 	db: {},
+	getDb: vi.fn(),
 	isNewSlotBookable: vi.fn(),
 	createAppointment: vi.fn(),
 	parseForm: vi.fn(),
@@ -13,7 +17,7 @@ const h = vi.hoisted(() => ({
 	resolveDuration: vi.fn()
 }));
 
-vi.mock('$lib/server/state', () => ({ getConfig: () => h.cfg.current, getDb: () => h.db }));
+vi.mock('$lib/server/state', () => ({ getConfig: () => h.cfg.current, getDb: h.getDb }));
 vi.mock('$lib/server/availability/booking', () => ({
 	loadAvailability: h.loadAvailability,
 	isNewSlotBookable: h.isNewSlotBookable
@@ -27,7 +31,14 @@ vi.mock('$lib/server/appointment/form.server', async (io) => {
 		resolveTimezone: h.resolveTimezone
 	};
 });
-vi.mock('$lib/server/appointment/duration', () => ({ resolveDuration: h.resolveDuration }));
+vi.mock('$lib/server/appointment/duration', async (importOriginal) => {
+	const original = await importOriginal<typeof import('$lib/server/appointment/duration')>();
+	return { ...original, resolveDuration: h.resolveDuration };
+});
+vi.mock('$lib/server/appointment/sanitize', async (importOriginal) => {
+	const original = await importOriginal<typeof import('$lib/server/appointment/sanitize')>();
+	return { ...original, toPublicEventType: vi.fn(original.toPublicEventType) };
+});
 
 import { load, actions } from './+page.server';
 
@@ -67,7 +78,20 @@ beforeEach(() => {
 	vi.clearAllMocks();
 	h.cfg.current = validConfig;
 	h.resolveTimezone.mockReturnValue('UTC');
-	h.loadAvailability.mockResolvedValue({ slotsByDuration: {}, workingWindows: [], busyBlocks: [] });
+	h.getDb.mockReturnValue(h.db);
+	h.loadAvailability.mockImplementation(
+		async (_db, _cfg, _slug, meeting: Meeting, role: AppointmentRole) => {
+			const bookingDurations = resolveBookingDurations(meeting, role);
+			return {
+				bookingDurations,
+				slotsByDuration: Object.fromEntries(
+					bookingDurations.durations.map((duration) => [duration, {}])
+				),
+				workingWindows: [],
+				busyBlocks: []
+			};
+		}
+	);
 });
 
 describe('/schedule/[slug] load — deep-link canonicalization', () => {
@@ -82,9 +106,11 @@ describe('/schedule/[slug] load — deep-link canonicalization', () => {
 		const r = await caught(() => load(loadEvent('?foo=bar')));
 		expect(r.status).toBe(307);
 		expect(r.location).toBe('/schedule/30-min-chat');
+		expect(h.getDb).not.toHaveBeenCalled();
+		expect(h.loadAvailability).not.toHaveBeenCalled();
 	});
 
-	test('strips the default duration (durations[0]) from the query', async () => {
+	test('strips the configured default duration from the query', async () => {
 		const r = await caught(() => load(loadEvent('?duration=30')));
 		expect(r.status).toBe(307);
 		expect(r.location).toBe('/schedule/30-min-chat');
@@ -112,6 +138,30 @@ describe('/schedule/[slug] load — deep-link canonicalization', () => {
 		expect(r.location).toBe('/schedule/30-min-chat?duration=60');
 	});
 
+	test('canonicalizes the configured default of 60 before reading availability, not the host palette minimum', async () => {
+		h.cfg.current = structuredClone(validConfig);
+		h.cfg.current.meetings['30-min-chat'].duration_minutes = 60;
+		const session = { user: { name: 'Host' } };
+		const redirect = await caught(() => load(loadEvent('?duration=60', session)));
+		expect(redirect).toMatchObject({ status: 307, location: '/schedule/30-min-chat' });
+		expect(h.getDb).not.toHaveBeenCalled();
+		expect(h.loadAvailability).not.toHaveBeenCalled();
+		const loaded = await load(loadEvent('?duration=15', session));
+		const result = loaded as LoadResult;
+		expect(result.eventType.duration_minutes).toBe(60);
+		expect(result.eventType.durations[0]).toBe(15);
+	});
+
+	test('keeps a host-only duration=90 for hosts but strips it for guests before availability', async () => {
+		const redirect = await caught(() => load(loadEvent('?duration=90')));
+		expect(redirect).toMatchObject({ status: 307, location: '/schedule/30-min-chat' });
+		expect(h.getDb).not.toHaveBeenCalled();
+		expect(h.loadAvailability).not.toHaveBeenCalled();
+		const loaded = await load(loadEvent('?duration=90', { user: { name: 'Host' } }));
+		const result = loaded as LoadResult;
+		expect(result.eventType.durations).toContain(90);
+	});
+
 	test.for([
 		{ role: 'guest', session: null },
 		{ role: 'host', session: { user: { name: 'Host' } } }
@@ -124,6 +174,20 @@ describe('/schedule/[slug] load — deep-link canonicalization', () => {
 		});
 		const loaded = await load(loadEvent(`?slot=${SLOT}`, session));
 		const result = loaded as LoadResult;
+		const availability = await h.loadAvailability.mock.results[0].value;
+		expect(toPublicEventType).toHaveBeenCalledExactlyOnceWith(
+			'30-min-chat',
+			h.cfg.current.meetings['30-min-chat'],
+			role,
+			availability.bookingDurations
+		);
+		expect(vi.mocked(toPublicEventType).mock.calls[0][3]).toBe(availability.bookingDurations);
+		expect(result.eventType.duration_minutes).toBe(availability.bookingDurations.defaultDuration);
+		expect(result.eventType.durations).toBe(availability.bookingDurations.durations);
+		expect(result.availability.slotsByDuration).toBe(availability.slotsByDuration);
+		expect(Object.keys(result.availability.slotsByDuration).map(Number)).toEqual(
+			[...result.eventType.durations].sort((a, b) => a - b)
+		);
 		expect(result.eventType.slug).toBe('30-min-chat');
 		expect(result.eventType.location).toBe(role === 'host' ? 'Private host location' : undefined);
 		expect(result.eventType.padding_before_minutes).toBe(role === 'host' ? 0 : 15);
@@ -221,7 +285,13 @@ describe('/schedule/[slug] book action', () => {
 		fd.set('viewer', 'host');
 		fd.set('role', 'host');
 		fd.set('isAdmin', 'true');
+		fd.set('currentDuration', '90');
 		const response = await actions.default(bookEvent(fd));
+		expect(h.resolveDuration).toHaveBeenCalledExactlyOnceWith(
+			h.cfg.current.meetings['30-min-chat'],
+			'guest',
+			fd
+		);
 		expect((response as Failure)?.status).toBe(409);
 		expect(h.isNewSlotBookable).toHaveBeenCalledExactlyOnceWith(
 			h.db,
@@ -248,12 +318,24 @@ describe('/schedule/[slug] book action', () => {
 			fd.set('viewer', 'host');
 			fd.set('role', 'host');
 			fd.set('isAdmin', 'true');
+			fd.set('currentDuration', '90');
 		}
 		const session = forged ? { user: { name: 'Host' } } : null;
 		const event = bookEvent(fd, session);
 		const r = await caught(() => actions.default(event));
 		expect(r.status).toBe(303);
 		expect(r.location).toBe('/appointment/new-1?token=tok%20new');
+		expect(h.resolveDuration).toHaveBeenCalledExactlyOnceWith(
+			h.cfg.current.meetings['30-min-chat'],
+			'guest',
+			fd
+		);
+		expect(event.cookies.set).toHaveBeenCalledWith('submitted', 'request', {
+			path: '/',
+			maxAge: 10,
+			httpOnly: true,
+			sameSite: 'lax'
+		});
 		expect(h.isNewSlotBookable).toHaveBeenCalledExactlyOnceWith(
 			h.db,
 			h.cfg.current,

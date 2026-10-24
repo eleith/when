@@ -2,6 +2,7 @@
 	import { page } from '$app/state';
 	import DatePicker from '$lib/components/DatePicker.svelte';
 	import DayTimeline from '$lib/components/DayTimeline.svelte';
+	import DurationDialog from '$lib/components/DurationDialog.svelte';
 	import CalendarSkeleton from '$lib/components/CalendarSkeleton.svelte';
 	import TimelineSkeleton from '$lib/components/TimelineSkeleton.svelte';
 	import RescheduleBanner from '$lib/components/RescheduleBanner.svelte';
@@ -68,7 +69,10 @@
 	const durations = data.eventType.durations;
 	// svelte-ignore state_referenced_locally
 	const slotsByDuration = data.availability.slotsByDuration;
-	const initialDuration = durations.includes(durationParam) ? durationParam : durations[0];
+	// svelte-ignore state_referenced_locally
+	const initialDuration = durations.includes(durationParam)
+		? durationParam
+		: data.eventType.duration_minutes;
 
 	const flow = createAppointmentFlow({ slotsByDuration, durations, initialDuration });
 	const ptz = getPreferredTimezone();
@@ -78,6 +82,7 @@
 	let selectedSlot = $derived(flow.selectedSlot);
 	let userTz = $derived(flow.userTz);
 	let isGuestFormValid = $state(false);
+	let durationOpen = $state(false);
 
 	let formAction = $derived.by(() => {
 		if (isHost) {
@@ -129,7 +134,7 @@
 	const urlSync = createAppointmentUrlSync(flow, {
 		deepLink,
 		tz: ptz.current ?? data.user.timezone,
-		defaultDuration: durations[0]
+		defaultDuration: data.eventType.duration_minutes
 	});
 	let linkNotice = $derived(urlSync.notice);
 </script>
@@ -161,6 +166,18 @@
 </header>
 
 <main class="appointment">
+	{#if !rescheduleError && durations.length > 1 && (step === 1 || flow.availableDates.size === 0)}
+		<button
+			type="button"
+			class="duration-trigger"
+			onclick={() => (durationOpen = true)}
+			aria-label="Change duration, currently {flow.duration} minutes"
+			aria-haspopup="dialog"
+		>
+			Change duration · {flow.duration} min
+		</button>
+	{/if}
+
 	{#if rescheduleError}
 		<div class="card reschedule-error-card">
 			<h1 class="error-title">Can't reschedule this appointment</h1>
@@ -274,12 +291,42 @@
 	{/if}
 </main>
 
+<DurationDialog
+	bind:open={durationOpen}
+	{durations}
+	value={flow.duration}
+	onSelect={flow.setDuration}
+/>
+
 <style>
 	.appointment {
 		max-width: 960px;
 		margin: 0 auto;
 		padding: var(--space-8) var(--space-6) var(--space-10);
 		color: var(--when-color-text);
+	}
+
+	.duration-trigger {
+		display: block;
+		min-height: calc(var(--space-8) + var(--space-4));
+		margin: var(--space-4) auto;
+		padding: var(--space-2) var(--space-4);
+		background: var(--color-surface);
+		border: none;
+		border-radius: var(--radius);
+		font: inherit;
+		font-size: var(--font-size-sm);
+		color: var(--when-color-primary);
+		cursor: pointer;
+	}
+
+	.duration-trigger:hover {
+		background: var(--color-surface-active);
+	}
+
+	.duration-trigger:focus-visible {
+		outline: none;
+		box-shadow: var(--shadow-focus);
 	}
 
 	.empty {
