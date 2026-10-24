@@ -1,8 +1,103 @@
 import { describe, expect, test } from 'vitest';
 import { appointmentEditedByHost } from './appointment-edited-by-host.js';
 import { sampleInput } from '../__fixtures__/appointment.js';
+import { fmtWhen } from '../format.js';
 
 describe('appointmentEditedByHost', () => {
+	test.each(['confirmed', 'pending'] as const)(
+		'duration edited from 90 to 120 minutes on a %s appointment keeps the existing recipient policy',
+		(status) => {
+			const previousAppointment = {
+				...sampleInput.appointment,
+				status,
+				end_time: '2026-01-05T16:30:00Z',
+				ics_sequence: 3,
+				note: 'Bring a laptop.',
+				video_chat: 'https://meet.example.com/room-123'
+			};
+			const input = {
+				...sampleInput,
+				appointment: {
+					...previousAppointment,
+					end_time: '2026-01-05T17:00:00Z',
+					ics_sequence: 4,
+					action_log: JSON.stringify([
+						{
+							action: 'edit',
+							actor: 'host',
+							at: '2026-01-02T10:00:00Z',
+							payload: {
+								metadata: {
+									changes: ['duration_updated'],
+									previous_duration: 90,
+									duration: 120
+								}
+							}
+						}
+					])
+				}
+			};
+
+			const messages = appointmentEditedByHost(input);
+			expect(messages.map((message) => message.role)).toEqual(
+				status === 'confirmed' ? ['guest', 'host'] : ['host']
+			);
+
+			const host = messages[messages.length - 1];
+			expect(host.to).toBe('owner@acme.test');
+			expect(host.content.subject).toBe('Updated details: 30-min with Jane Doe');
+			expect(host.content.paragraphs).toEqual([
+				'You updated the details for the appointment with Jane Doe <jane@example.com>.',
+				'You updated the duration of the appointment.'
+			]);
+			expect(host.content.rows).toContainEqual({
+				label: 'When',
+				value: fmtWhen(
+					previousAppointment.start_time,
+					'2026-01-05T17:00:00Z',
+					input.cfg.user.timezone
+				)
+			});
+			expect(host.content.rows).not.toContainEqual({
+				label: 'When',
+				value: fmtWhen(
+					previousAppointment.start_time,
+					previousAppointment.end_time,
+					input.cfg.user.timezone
+				)
+			});
+			expect(host.content.rows).toContainEqual({ label: 'Note', value: previousAppointment.note });
+			expect(host.content.rows).toContainEqual({
+				label: 'Video link',
+				value: previousAppointment.video_chat
+			});
+			expect(host.ics).toBeUndefined();
+
+			if (status === 'confirmed') {
+				const [guest] = messages;
+				expect(guest.to).toBe('jane@example.com');
+				expect(guest.content.subject).toBe('Updated details: 30-min with Acme Scheduling');
+				expect(guest.content.heading).toBe('Appointment details updated');
+				expect(guest.content.paragraphs).toEqual(['The duration of your appointment was updated.']);
+				expect(guest.content.rows).toContainEqual({
+					label: 'When',
+					value: fmtWhen(
+						previousAppointment.start_time,
+						'2026-01-05T17:00:00Z',
+						'America/Los_Angeles'
+					)
+				});
+				const ics = guest.ics?.content;
+				expect(ics).toContain('METHOD:REQUEST');
+				expect(ics).toContain('UID:appt-1');
+				expect(ics).toMatch(/^DTSTART(?:;[^:\r\n]+)?:20260105T150000Z\r?$/m);
+				expect(ics).toMatch(/^DTEND(?:;[^:\r\n]+)?:20260105T170000Z\r?$/m);
+				expect(ics).not.toContain('20260105T163000Z');
+				expect(ics).toContain('SEQUENCE:4');
+			}
+		}
+	);
+
 	test('note added on a confirmed appointment (notifies both, has guest ics)', () => {
 		const action_log = JSON.stringify([
 			{

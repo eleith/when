@@ -1,5 +1,6 @@
 import { resolveAppointmentActions, isTerminalStatus, type AppointmentRole } from './actions';
 import { isRescheduleAllowed, isViewable } from './access';
+import { resolveBookingDurations } from './duration';
 import { enqueueAppointmentReconciliation } from '../workflow';
 import type { AppointmentContext } from './context';
 import {
@@ -72,6 +73,12 @@ export async function rescheduleAppointment(
 				eventType
 			}).reschedule;
 			if (!gate.allowed) return { ok: false, reason: 'gated' } as const;
+			// A concurrent duration edit can revoke the old booked-length exception.
+			if (eventType) {
+				const duration = (Date.parse(input.newEnd) - Date.parse(input.newStart)) / 60_000;
+				const profile = resolveBookingDurations(eventType, input.initiator, appointment);
+				if (!profile.durations.includes(duration)) return { ok: false, reason: 'gated' } as const;
+			}
 
 			const details = rescheduleDetails(appointment, input, eventType);
 			const moved = await rescheduleAppointmentTransition(

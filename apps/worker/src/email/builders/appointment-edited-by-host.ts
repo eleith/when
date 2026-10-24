@@ -53,6 +53,10 @@ export function appointmentEditedByHost(i: AppointmentEmailInput): AppointmentEm
 		paragraphs.push('The video link of your appointment was removed.');
 	}
 
+	if (changes.includes('duration_updated')) {
+		paragraphs.push('The duration of your appointment was updated.');
+	}
+
 	if (paragraphs.length === 0) {
 		paragraphs.push('The details of your appointment were updated.');
 	}
@@ -77,6 +81,9 @@ export function appointmentEditedByHost(i: AppointmentEmailInput): AppointmentEm
 	];
 
 	const hostParagraphs = [`You updated the details for the appointment with ${guestLabel(a)}.`];
+	if (changes.includes('duration_updated')) {
+		hostParagraphs.push('You updated the duration of the appointment.');
+	}
 
 	const guestEmail = {
 		subject: '',

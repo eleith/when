@@ -6,6 +6,7 @@ import { declineAppointment } from '$lib/server/appointment/decline';
 import { cancelAppointment } from '$lib/server/appointment/cancel';
 import { purgeAppointment } from '$lib/server/appointment/purge';
 import { editAppointment } from '$lib/server/appointment/edit';
+import { changeAppointmentDuration } from '$lib/server/appointment/change-duration';
 import { validateReason } from '$lib/server/appointment/form.server';
 import { appointmentContext } from '$lib/server/appointment/context';
 import { rotateGuestTokenTransition } from '$lib/server/appointment/transitions';
@@ -140,6 +141,46 @@ export const actions: Actions = {
 		}
 
 		return { success: 'edited' };
+	},
+
+	changeDuration: async ({ params, request }) => {
+		const form = await request.formData();
+		const value = form.get('duration');
+		if (typeof value !== 'string' || !value.trim()) {
+			return fail(400, { error: 'Please pick a valid meeting length.' });
+		}
+		const durationMinutes = Number(value);
+		if (!Number.isSafeInteger(durationMinutes) || durationMinutes <= 0) {
+			return fail(400, { error: 'Please pick a valid meeting length.' });
+		}
+		const result = await changeAppointmentDuration(appointmentContext(), {
+			appointmentId: params.id,
+			durationMinutes
+		});
+		if (!result.ok) {
+			switch (result.reason) {
+				case 'not_found':
+					return fail(404, { error: 'Appointment not found.' });
+				case 'not_configured':
+					return fail(409, { error: 'This meeting type no longer exists.' });
+				case 'invalid_duration':
+					return fail(400, { error: 'Please pick a valid meeting length.' });
+				case 'past_end':
+					return fail(400, { error: 'Choose a length that ends in the future.' });
+				case 'gated':
+					return fail(400, { error: 'This appointment cannot be edited.' });
+				case 'busy':
+					return fail(409, { error: 'That length overlaps another appointment or busy event.' });
+				case 'enqueue_failed':
+					return fail(500, {
+						error:
+							'The duration was saved, but calendar and email update submission could not be confirmed.',
+						durationSaved: true
+					});
+			}
+		}
+		if (result.outcome === 'unchanged') return { success: 'no_change' };
+		return { success: 'duration_changed' };
 	},
 
 	generateVideoChat: async ({ params }) => {

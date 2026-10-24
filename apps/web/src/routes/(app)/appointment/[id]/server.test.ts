@@ -143,6 +143,14 @@ vi.mock('@when/db', async (importOriginal) => {
 					note: 'Private prep',
 					video_chat: 'Private video'
 				};
+			if (id === 'appt-pending-ended')
+				return {
+					...mockAppt,
+					id,
+					status: 'pending',
+					start_time: '2000-01-01T15:00:00Z',
+					end_time: '2000-01-01T15:30:00Z'
+				};
 			if (id === 'appt-auto-video') return { ...automaticVideoAppointment, id };
 			if (id === 'appt-auto-phone')
 				return {
@@ -212,6 +220,9 @@ describe('/appointment/[id] server load', () => {
 				role === 'guest' ? row.cancel_token : null,
 				role
 			);
+			expect(result.canEditDuration).toBe(role === 'host');
+			expect(result).not.toHaveProperty('meetingConfigured');
+			expect(result.role).toBe(role);
 			expect(resolveBookingDurations).toHaveBeenCalledExactlyOnceWith(meeting, role, row);
 			expect(vi.mocked(resolveBookingDurations).mock.calls[0][2]).toBe(row);
 			const bookingDurations = vi.mocked(resolveBookingDurations).mock.results[0].value;
@@ -233,6 +244,7 @@ describe('/appointment/[id] server load', () => {
 		async (role) => {
 			const result = await loadAppointment('appt-pending', 'tok-abc', role);
 			expect(result.role).toBe(role);
+			expect(result.canEditDuration).toBe(role === 'host');
 			expect(result).not.toHaveProperty('viewer');
 			expect(result).not.toHaveProperty('isAdmin');
 			expect(result).not.toHaveProperty('isHost');
@@ -243,6 +255,15 @@ describe('/appointment/[id] server load', () => {
 			expect(result.actions.decline.allowed).toBe(role === 'host');
 		}
 	);
+
+	test('does not allow the host to edit the duration of an ended pending appointment', async () => {
+		const result = await loadAppointment('appt-pending-ended', null, 'host');
+
+		expect(result.role).toBe('host');
+		expect(result.appointment.status).toBe('pending');
+		expect(result.clockStatus).toBe('concluded');
+		expect(result.canEditDuration).toBe(false);
+	});
 
 	test('renders successfully for guest when event type is active', async () => {
 		const mockLocals = {

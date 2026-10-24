@@ -24,6 +24,7 @@
 		onGenerateVideoChat?: () => void;
 		onRemoveVideoChat?: () => void;
 		onEditVideoChat?: () => void;
+		onEditDuration?: () => void;
 		isEditable?: boolean;
 	}
 
@@ -43,6 +44,7 @@
 		onGenerateVideoChat,
 		onRemoveVideoChat,
 		onEditVideoChat,
+		onEditDuration,
 		isEditable = false
 	}: Props = $props();
 
@@ -122,6 +124,20 @@
 						<div {...wrapperProps}>
 							<div {...props} class="ba-menu">
 								{#if isHost && isEditable}
+									{#if onEditDuration}
+										<DropdownMenu.Item
+											onSelect={() => {
+												menuOpen = false;
+												onEditDuration();
+											}}
+										>
+											{#snippet child({ props: itemProps })}
+												<button {...itemProps} type="button" class="action-item"
+													>Change duration</button
+												>
+											{/snippet}
+										</DropdownMenu.Item>
+									{/if}
 									{#if onEditNote && !hasNote}
 										<DropdownMenu.Item
 											onSelect={() => {

@@ -1,6 +1,6 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { shouldAttachVideoChat } from '@when/video-chat';
-import { isViewAllowed } from '$lib/server/appointment/access';
+import { isEditAllowed, isViewAllowed } from '$lib/server/appointment/access';
 import {
 	isActiveStatus,
 	resolveAppointmentActions,
@@ -140,6 +140,7 @@ export const load: PageServerLoad = async ({ params, url, locals, cookies }) => 
 		appointment,
 		videoChatRequested,
 		eventType: toPublicEventType(row.event_type_id, resolvedEventType, role, bookingDurations),
+		canEditDuration: isHost && Boolean(eventType) && isEditAllowed(row, now),
 		calendarLinks,
 		actions,
 		flash: flash ?? null,

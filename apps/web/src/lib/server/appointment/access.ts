@@ -51,6 +51,10 @@ export function isRescheduleAllowed(
 	return now.getTime() + minimumNoticeMinutes * 60 * 1000 <= startMs;
 }
 
+export function isEditAllowed(row: Pick<Appointment, 'end_time' | 'status'>, now: Date): boolean {
+	return ACTIVE_STATUSES.has(row.status) && now.getTime() < Date.parse(row.end_time);
+}
+
 export type ViewableRow = WindowedRow & Pick<Appointment, 'origin_id' | 'cancel_token'>;
 
 export async function isViewAllowed(

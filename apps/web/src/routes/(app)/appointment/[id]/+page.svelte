@@ -13,6 +13,7 @@
 	import IconPencilSimple from 'virtual:icons/ph/pencil-simple';
 	import IconVideo from 'virtual:icons/ph/video-conference';
 	import AppointmentActions from '$lib/components/AppointmentActions.svelte';
+	import DurationEditor from '$lib/components/DurationEditor.svelte';
 	import AppointmentLog from '$lib/components/AppointmentLog.svelte';
 	import AppointmentQuestions from '$lib/components/AppointmentQuestions.svelte';
 	import AddToCalendar from '$lib/components/AddToCalendar.svelte';
@@ -26,6 +27,7 @@
 	let editNoteDialogOpen = $state(false);
 	let editLocationDialogOpen = $state(false);
 	let editVideoChatDialogOpen = $state(false);
+	let editDurationDialogOpen = $state(false);
 	let changingVideoChat = $state(false);
 	let videoChatError = $state<{ message?: string } | null>(null);
 	let cancelReason = $state('I can no longer attend');
@@ -311,6 +313,7 @@
 					onGenerateVideoChat={handleGenerateVideoChat}
 					onRemoveVideoChat={handleRemoveVideoChat}
 					onEditVideoChat={() => (editVideoChatDialogOpen = true)}
+					onEditDuration={data.canEditDuration ? () => (editDurationDialogOpen = true) : undefined}
 					{isEditable}
 				/>
 			{/if}
@@ -571,6 +574,15 @@
 		</div>
 	{/if}
 </main>
+
+{#if data.canEditDuration}
+	<DurationEditor
+		bind:open={editDurationDialogOpen}
+		appointmentId={data.appointment.id}
+		currentDuration={data.eventType.duration_minutes}
+		durations={data.eventType.durations}
+	/>
+{/if}
 
 <Dialog.Root bind:open={cancelDialogOpen}>
 	<Dialog.Portal>

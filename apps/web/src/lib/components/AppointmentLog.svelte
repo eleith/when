@@ -124,6 +124,14 @@
 										Note updated
 									{:else if changes.includes('note_removed')}
 										Note removed
+									{:else if changes.includes('duration_updated')}
+										{@const previousDuration = entry.payload?.metadata?.previous_duration}
+										{@const duration = entry.payload?.metadata?.duration}
+										{#if typeof previousDuration === 'number' && Number.isFinite(previousDuration) && previousDuration > 0 && typeof duration === 'number' && Number.isFinite(duration) && duration > 0}
+											Duration changed from {previousDuration} to {duration} minutes
+										{:else}
+											Duration changed
+										{/if}
 									{:else}
 										Details updated
 									{/if}
