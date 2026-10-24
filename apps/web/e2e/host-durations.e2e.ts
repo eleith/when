@@ -411,8 +411,10 @@ test('an enhanced host booking conflict preserves entered fields and the chosen 
 	const response = await responsePromise;
 	const result = await response.json();
 	expect(result).toMatchObject({ type: 'failure', status: 409 });
-	// Default enhance does not apply a different route's failure to the current page's form prop.
 	expect(result.data).toContain('That time is no longer available. Please pick another.');
+	await expect(page.getByRole('alert')).toHaveText(
+		'That time is no longer available. Please pick another.'
+	);
 	await expect(page.getByRole('heading', { name: 'Step 3 of 3: Enter your info' })).toBeVisible();
 	await expect(page.getByLabel('What is your name?')).toHaveValue(name);
 	await expect(page.getByLabel('What is your email?')).toHaveValue(email);

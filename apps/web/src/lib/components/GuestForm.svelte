@@ -1,6 +1,7 @@
 <!-- Step 3: the guest fills in their details. Owns all guest-field state and posts the booking. -->
 <script lang="ts">
-	import { enhance } from '$app/forms';
+	import { applyAction, enhance } from '$app/forms';
+	import type { SubmitFunction } from '@sveltejs/kit';
 	import { evaluateVisibility } from '$lib/forms/conditional';
 	import { defaultFieldValue } from '$lib/forms/defaults';
 	import FormFieldControl from '$lib/components/FormFieldControl.svelte';
@@ -93,6 +94,16 @@
 	$effect(() => {
 		onvaliditychange?.(isFormValid);
 	});
+
+	const enhanceWithFeedback: SubmitFunction =
+		() =>
+		async ({ result, update }) => {
+			if (result.type === 'failure') {
+				await applyAction(result);
+				return;
+			}
+			await update();
+		};
 </script>
 
 <div class="appointment-form">
@@ -100,7 +111,7 @@
 		<p class="form-error" role="alert">{form.error}</p>
 	{/if}
 
-	<form id="appointment-form" method="POST" action={formAction} use:enhance>
+	<form id="appointment-form" method="POST" action={formAction} use:enhance={enhanceWithFeedback}>
 		<input type="hidden" name="slot" value={selectedSlot} />
 		<input type="hidden" name="timezone" value={userTz} />
 		<input type="hidden" name="duration" value={flow.duration} />
