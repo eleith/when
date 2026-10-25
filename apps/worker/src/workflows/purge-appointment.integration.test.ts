@@ -9,6 +9,7 @@ import type { WhenConfiguration } from '@when/config';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { setWorkerContext } from '../services/context.js';
 import type { Logger } from '../services/logger.js';
+import { tickAndSettle } from './__fixtures__/tick-and-settle.js';
 import { runPurgeAppointment } from './purge-appointment.js';
 
 const config = {
@@ -146,8 +147,7 @@ async function runNextPurgePass(queue: Queue, id: string) {
 	if (before.availableAt && before.availableAt.getTime() > Date.now()) {
 		vi.setSystemTime(before.availableAt);
 	}
-	const ticked = await queue.worker.tick();
-	await queue.worker.stop();
+	const ticked = await tickAndSettle(queue);
 	expect(ticked).toBe(1);
 	const run = await readRun(queue, id);
 	return run;
@@ -247,8 +247,7 @@ test('thirty native calendar failures retain current/later rows without redoing 
 			['later', 'purged', 'https://talk.example.com/call/later']
 		]);
 		expect(logger.warn).not.toHaveBeenCalled();
-		const ticked = await queue.worker.tick();
-		await queue.worker.stop();
+		const ticked = await tickAndSettle(queue);
 		expect(ticked).toBe(0);
 	} finally {
 		await queue.close();
@@ -273,8 +272,7 @@ test('reopens a file queue during retry delay without replaying earlier cleanup'
 		await queue.close();
 		queue = openQueue(path);
 		const reopened = await readRun(queue, id);
-		const ticked = await queue.worker.tick();
-		await queue.worker.stop();
+		const ticked = await tickAndSettle(queue);
 		const unchanged = await attempts(queue, id);
 		expect(reopened).toEqual(parked);
 		expect(ticked).toBe(0);

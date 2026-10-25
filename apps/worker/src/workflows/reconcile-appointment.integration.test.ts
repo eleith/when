@@ -2,7 +2,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
-import { OpenWorkflow, type Worker } from 'openworkflow';
+import { OpenWorkflow } from 'openworkflow';
 import { BackendSqlite } from 'openworkflow/sqlite';
 import {
 	generateVideoChat,
@@ -20,6 +20,7 @@ import { clearLogoCache } from '../email/logo.js';
 import * as status from '../email/status.js';
 import { setWorkerContext, type WorkerContext } from '../services/context.js';
 import { createLogger } from '../services/logger.js';
+import { tickAndSettle } from './__fixtures__/tick-and-settle.js';
 import { runReconcileAppointment } from './reconcile-appointment.js';
 import { notifyAppointment, runNotifyAppointment } from './notify-appointment.js';
 import { runGenerateVideoChat } from './generate-video-chat.js';
@@ -134,11 +135,10 @@ async function attempts(queue: Queue, workflowRunId: string, stepName?: string) 
 	expect(page.pagination.next).toBeNull();
 	return page.data.filter((attempt) => !stepName || attempt.stepName === stepName);
 }
-async function driveUntil(worker: Worker, assertion: () => Promise<void>) {
+async function driveUntil(queue: Queue, assertion: () => Promise<void>) {
 	await vi.waitFor(
 		async () => {
-			await worker.tick();
-			await worker.stop();
+			await tickAndSettle(queue);
 			await assertion();
 		},
 		{ timeout: 5000, interval: 5 }
@@ -149,7 +149,7 @@ async function children(queue: Queue) {
 	return workflowRuns.filter((run) => run.workflowName === deliverAppointmentEmail.name);
 }
 async function startParentAndExpectChildren(queue: Queue, count = 2) {
-	await driveUntil(queue.worker, async () => {
+	await driveUntil(queue, async () => {
 		const deliveries = await children(queue);
 		expect(deliveries).toHaveLength(count);
 		expect(deliveries.every((run) => run.status === 'pending')).toBe(true);
@@ -162,7 +162,7 @@ async function notificationId(queue: Queue) {
 	return notice.id;
 }
 async function finish(queue: Queue, parentId: string, state = 'completed') {
-	await driveUntil(queue.worker, async () => {
+	await driveUntil(queue, async () => {
 		const workflowRun = await queue.backend.getWorkflowRun({ workflowRunId: parentId });
 		expect(workflowRun).toMatchObject({
 			status: state
@@ -248,8 +248,7 @@ describe('appointment email reconciliation with native children', () => {
 					appointmentId: input.appointmentId,
 					emailKind: kind
 				});
-				await queue.worker.tick();
-				await queue.worker.stop();
+				await tickAndSettle(queue);
 				const workflowRuns = await runs(queue);
 				const generators = workflowRuns.filter(
 					(run) => run.workflowName === generateVideoChat.name
@@ -302,8 +301,7 @@ describe('appointment email reconciliation with native children', () => {
 				...input,
 				emailKind: 'confirmed'
 			});
-			await queue.worker.tick();
-			await queue.worker.stop();
+			await tickAndSettle(queue);
 			const preparation = await attempts(queue, parent.workflowRun.id, 'prepare-reconciliation');
 			expect(preparation[0]).toMatchObject({
 				status: 'completed',
@@ -333,7 +331,7 @@ describe('appointment email reconciliation with native children', () => {
 				.execute();
 			queue = openQueue(join(directory, 'queue.sqlite'), undefined, registerGeneration);
 			const replayProducer = vi.spyOn(queue.client, 'runWorkflow');
-			await driveUntil(queue.worker, async () => {
+			await driveUntil(queue, async () => {
 				const workflowRuns = await runs(queue);
 				expect(workflowRuns.every((run) => run.status === 'completed')).toBe(true);
 			});
@@ -875,8 +873,7 @@ describe('appointment email reconciliation with native children', () => {
 			});
 			try {
 				const parent = await queue.client.runWorkflow(reconcileAppointment, input);
-				await queue.worker.tick();
-				await queue.worker.stop();
+				await tickAndSettle(queue);
 				const before = await attempts(queue, parent.workflowRun.id, 'request-video-chat');
 				expect(before).toEqual([]);
 				await queue.close();
@@ -1018,7 +1015,7 @@ describe('appointment email reconciliation with native children', () => {
 		});
 		try {
 			const parent = await queue.client.runWorkflow(reconcileAppointment, input);
-			await driveUntil(queue.worker, async () => {
+			await driveUntil(queue, async () => {
 				const parkedRuns = await runs(queue);
 				const [parkedGenerator] = parkedRuns.filter(
 					(run) => run.workflowName === generateVideoChat.name
@@ -1062,8 +1059,7 @@ describe('appointment email reconciliation with native children', () => {
 		try {
 			const parent = await queue.client.runWorkflow(reconcileAppointment, input);
 			await startParentAndExpectChildren(queue);
-			const ticked = await queue.worker.tick();
-			await queue.worker.stop();
+			const ticked = await tickAndSettle(queue);
 			expect(ticked).toBe(1);
 			expect(send).toHaveBeenCalledTimes(1);
 			const states = await emailStates();
@@ -1123,7 +1119,7 @@ describe('appointment email reconciliation with native children', () => {
 		try {
 			const parent = await queue.client.runWorkflow(reconcileAppointment, input);
 			await startParentAndExpectChildren(queue, 1);
-			await driveUntil(queue.worker, async () => {
+			await driveUntil(queue, async () => {
 				const [child] = await children(queue);
 				expect(child).toMatchObject({ status: 'pending', workerId: null });
 				const stepAttempts = await attempts(queue, child.id, 'smtp:status');

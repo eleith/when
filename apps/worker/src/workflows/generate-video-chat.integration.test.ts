@@ -2,7 +2,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
-import { OpenWorkflow, type Worker } from 'openworkflow';
+import { OpenWorkflow } from 'openworkflow';
 import { BackendSqlite } from 'openworkflow/sqlite';
 import { generateVideoChat, getOpenWorkflow, reconcileAppointment } from '@when/jobs';
 import {
@@ -19,6 +19,7 @@ import type { SendResult } from '../email/smtp.js';
 import { getWorkerContext, setWorkerContext } from '../services/context.js';
 import { scanOnce } from '../calendar/sync.js';
 import { createLogger } from '../services/logger.js';
+import { tickAndSettle } from './__fixtures__/tick-and-settle.js';
 import { runGenerateVideoChat } from './generate-video-chat.js';
 import { notifyAppointment, runNotifyAppointment } from './notify-appointment.js';
 import { runReconcileAppointment } from './reconcile-appointment.js';
@@ -156,18 +157,17 @@ async function attempts(queue: Queue, workflowRunId: string, stepName: string) {
 	expect(page.pagination.next).toBeNull();
 	return page.data.filter((attempt) => attempt.stepName === stepName);
 }
-async function driveUntil(worker: Worker, assertion: () => Promise<void>) {
+async function driveUntil(queue: Queue, assertion: () => Promise<void>) {
 	await vi.waitFor(
 		async () => {
-			await worker.tick();
-			await worker.stop();
+			await tickAndSettle(queue);
 			await assertion();
 		},
 		{ timeout: 5000, interval: 5 }
 	);
 }
 async function finishAll(queue: Queue) {
-	await driveUntil(queue.worker, async () => {
+	await driveUntil(queue, async () => {
 		const workflowRuns = await runs(queue);
 		expect(workflowRuns.every((run) => run.status === 'completed')).toBe(true);
 	});
@@ -285,7 +285,7 @@ describe('durable background video generation with native concurrency one', () =
 					appointmentId,
 					emailKind: 'confirmed'
 				});
-				await driveUntil(queue.worker, async () => {
+				await driveUntil(queue, async () => {
 					const workflowRuns = await runs(queue);
 					const generator = workflowRuns.find((run) => run.workflowName === generateVideoChat.name);
 					expect(generator).toBeDefined();
@@ -356,7 +356,7 @@ describe('durable background video generation with native concurrency one', () =
 				appointmentId,
 				notificationKind: 'pending'
 			});
-			await driveUntil(queue.worker, async () => {
+			await driveUntil(queue, async () => {
 				const workflowRuns = await runs(queue);
 				const parkedDelivery = workflowRuns.find(
 					(run) =>
@@ -460,7 +460,7 @@ describe('durable background video generation with native concurrency one', () =
 				appointmentId,
 				notificationKind: 'pending'
 			});
-			await driveUntil(queue.worker, async () => {
+			await driveUntil(queue, async () => {
 				const publication = await attempts(queue, generation.workflowRun.id, 'publish-video-chat');
 				expect(publication.map((attempt) => attempt.status)).toEqual(['failed']);
 			});
@@ -639,7 +639,7 @@ describe('durable background video generation with native concurrency one', () =
 				appointmentId,
 				notificationKind: 'confirmed'
 			});
-			await driveUntil(queue.worker, async () => {
+			await driveUntil(queue, async () => {
 				const reads = await attempts(queue, generation.workflowRun.id, 'read-pending-video-chat');
 				expect(reads.map((attempt) => attempt.status)).toEqual(['failed']);
 			});
@@ -650,7 +650,7 @@ describe('durable background video generation with native concurrency one', () =
 			for (const state of ['absent', 'failed'] as const) {
 				conference = state;
 				expectedReadAttempts += 1;
-				await driveUntil(queue.worker, async () => {
+				await driveUntil(queue, async () => {
 					const reads = await attempts(queue, generation.workflowRun.id, 'read-pending-video-chat');
 					expect(reads).toHaveLength(expectedReadAttempts);
 					expect(reads.every((attempt) => attempt.status === 'failed')).toBe(true);
@@ -727,7 +727,7 @@ describe('durable background video generation with native concurrency one', () =
 				appointmentId,
 				notificationKind: 'video-chat-added'
 			});
-			await driveUntil(queue.worker, async () => {
+			await driveUntil(queue, async () => {
 				const workflowRuns = await runs(queue);
 				const deliveries = workflowRuns.filter(
 					(run) => run.workflowName === deliverAppointmentEmail.name
@@ -847,7 +847,7 @@ describe('durable background video generation with native concurrency one', () =
 				appointmentId,
 				notificationKind: 'confirmed'
 			});
-			await driveUntil(queue.worker, async () => {
+			await driveUntil(queue, async () => {
 				const current = await queue.backend.getWorkflowRun({
 					workflowRunId: generation.workflowRun.id
 				});
@@ -880,8 +880,7 @@ describe('durable background video generation with native concurrency one', () =
 				appointmentId,
 				notificationKind: 'video-chat-added'
 			});
-			await queue.worker.tick();
-			await queue.worker.stop();
+			await tickAndSettle(queue);
 			const parked = await queue.backend.getWorkflowRun({
 				workflowRunId: generation.workflowRun.id
 			});
@@ -944,8 +943,7 @@ describe('durable background video generation with native concurrency one', () =
 				appointmentId,
 				notificationKind: 'video-chat-added'
 			});
-			await queue.worker.tick();
-			await queue.worker.stop();
+			await tickAndSettle(queue);
 			const savedPublication = await attempts(
 				queue,
 				generation.workflowRun.id,
@@ -1016,8 +1014,7 @@ describe('durable background video generation with native concurrency one', () =
 					appointmentId,
 					notificationKind: kind
 				});
-				await queue.worker.tick();
-				await queue.worker.stop();
+				await tickAndSettle(queue);
 				const savedRequest = await attempts(queue, generation.workflowRun.id, requestStep);
 				expect(savedRequest).toHaveLength(1);
 				expect(savedRequest[0]).toMatchObject({
@@ -1067,7 +1064,7 @@ describe('durable background video generation with native concurrency one', () =
 				appointmentId,
 				emailKind: 'edited-by-host'
 			});
-			await driveUntil(queue.worker, async () => {
+			await driveUntil(queue, async () => {
 				const workflowRuns = await runs(queue);
 				const [generator] = workflowRuns.filter(
 					(run) => run.workflowName === generateVideoChat.name
@@ -1137,7 +1134,7 @@ describe('durable background video generation with native concurrency one', () =
 					emailKind: 'edited-by-host',
 					cleanupVideoChatUrl: failRead ? uri : undefined
 				});
-				await driveUntil(queue.worker, async () => {
+				await driveUntil(queue, async () => {
 					const currentRuns = await runs(queue);
 					expect(
 						currentRuns.filter((run) => run.workflowName === deliverAppointmentEmail.name)
@@ -1164,7 +1161,7 @@ describe('durable background video generation with native concurrency one', () =
 					expect(oldCleanup.map((attempt) => attempt.status)).toEqual(['completed']);
 					expect(getGoogleEvent).toHaveBeenCalledTimes(2);
 				}
-				await driveUntil(queue.worker, async () => {
+				await driveUntil(queue, async () => {
 					const parentRun = await queue.backend.getWorkflowRun({
 						workflowRunId: parent.workflowRun.id
 					});
@@ -1183,8 +1180,7 @@ describe('durable background video generation with native concurrency one', () =
 				expect(pushAppointment).not.toHaveBeenCalled();
 				await queue.close();
 				queue = openQueue();
-				const ticked = await queue.worker.tick();
-				await queue.worker.stop();
+				const ticked = await tickAndSettle(queue);
 				expect(ticked).toBe(0);
 				const persisted = await findAppointment(db, appointmentId);
 				expect(persisted).toMatchObject({
@@ -1267,8 +1263,7 @@ describe('durable background video generation with native concurrency one', () =
 				appointmentId,
 				notificationKind: 'video-chat-added'
 			});
-			await queue.worker.tick();
-			await queue.worker.stop();
+			await tickAndSettle(queue);
 			const savedBooking = await attempts(queue, generation.workflowRun.id, 'book-google-event');
 			expect(savedBooking[0]).toMatchObject({
 				status: 'completed',
@@ -1360,8 +1355,7 @@ describe('durable background video generation with native concurrency one', () =
 					appointmentId,
 					notificationKind: 'video-chat-added'
 				});
-				await queue.worker.tick();
-				await queue.worker.stop();
+				await tickAndSettle(queue);
 				const savedBooking = await attempts(queue, generation.workflowRun.id, 'book-google-event');
 				expect(savedBooking).toHaveLength(1);
 				expect(savedBooking[0]).toMatchObject({
@@ -1413,8 +1407,7 @@ describe('durable background video generation with native concurrency one', () =
 					appointmentId,
 					notificationKind: 'video-chat-added'
 				});
-				await queue.worker.tick();
-				await queue.worker.stop();
+				await tickAndSettle(queue);
 				const booking = await attempts(queue, generation.workflowRun.id, 'book-google-event');
 				expect(booking[0]).toMatchObject({
 					status: 'completed',

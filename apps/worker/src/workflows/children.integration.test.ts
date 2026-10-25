@@ -1,10 +1,11 @@
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { OpenWorkflow, defineWorkflowSpec, type RetryPolicy, type Worker } from 'openworkflow';
+import { OpenWorkflow, defineWorkflowSpec, type RetryPolicy } from 'openworkflow';
 import { BackendSqlite } from 'openworkflow/sqlite';
 import { reconcileAppointment } from '@when/jobs';
 import { describe, expect, test, vi } from 'vitest';
+import { tickAndSettle } from './__fixtures__/tick-and-settle.js';
 
 type Role = 'guest' | 'host';
 const roles: Role[] = ['guest', 'host'];
@@ -96,12 +97,10 @@ async function readRun(queue: Queue, workflowRunId: string) {
 	return run!;
 }
 
-async function driveUntil(worker: Worker, assertion: () => Promise<void>) {
+async function driveUntil(queue: Queue, assertion: () => Promise<void>) {
 	await vi.waitFor(
 		async () => {
-			await worker.tick();
-			// Observe a finished/parked pass, not an intermediate database write.
-			await worker.stop();
+			await tickAndSettle(queue);
 			await assertion();
 		},
 		{ timeout: 3000, interval: 5 }
@@ -110,8 +109,8 @@ async function driveUntil(worker: Worker, assertion: () => Promise<void>) {
 
 // No background poll loop: each tick admits work only when the assertion needs it.
 async function admitted(queue: Queue, parentId: string) {
-	expect(await queue.worker.tick()).toBe(1);
-	await queue.worker.stop();
+	const ticked = await tickAndSettle(queue);
+	expect(ticked).toBe(1);
 	await vi.waitFor(
 		async () => {
 			const parent = await readRun(queue, parentId);
@@ -169,7 +168,7 @@ describe('native parallel child workflows at concurrency one', () => {
 			expect(queue.parent.retryPolicy?.maximumAttempts).toBe(3);
 			const parent = await queue.client.runWorkflow(queue.parent, {});
 			await admitted(queue, parent.workflowRun.id);
-			await driveUntil(queue.worker, async () => {
+			await driveUntil(queue, async () => {
 				expect(await readRun(queue, parent.workflowRun.id)).toMatchObject({
 					status: 'completed',
 					output: ['sent', 'sent']
@@ -202,7 +201,7 @@ describe('native parallel child workflows at concurrency one', () => {
 			try {
 				const parent = await queue.client.runWorkflow(queue.parent, {});
 				await admitted(queue, parent.workflowRun.id);
-				await driveUntil(queue.worker, async () => {
+				await driveUntil(queue, async () => {
 					expect(await childFor(queue, failedRole)).toMatchObject({
 						status: 'failed',
 						output: null,
@@ -229,7 +228,7 @@ describe('native parallel child workflows at concurrency one', () => {
 				expect(await queue.client.sendSignal({ signal: `release:${siblingRole}` })).toEqual({
 					workflowRunIds: [sibling.id]
 				});
-				await driveUntil(queue.worker, async () => {
+				await driveUntil(queue, async () => {
 					expect(await readRun(queue, sibling.id)).toMatchObject({
 						status: 'completed',
 						output: 'sent'
@@ -259,7 +258,7 @@ describe('native parallel child workflows at concurrency one', () => {
 		try {
 			const parent = await queue.client.runWorkflow(queue.parent, {});
 			await admitted(queue, parent.workflowRun.id);
-			await driveUntil(queue.worker, async () => {
+			await driveUntil(queue, async () => {
 				expect((await runs(queue)).map((run) => run.status)).toEqual([
 					'failed',
 					'failed',
@@ -283,7 +282,7 @@ describe('native parallel child workflows at concurrency one', () => {
 			const parent = await queue.client.runWorkflow(queue.parent, {});
 			const parentId = parent.workflowRun.id;
 			await admitted(queue, parentId);
-			await driveUntil(queue.worker, async () => {
+			await driveUntil(queue, async () => {
 				const host = await childFor(queue, 'host');
 				expect(host).toMatchObject({ status: 'pending', workerId: null });
 				expect(await attempts(queue, host.id, 'smtp')).toHaveLength(1);
@@ -291,7 +290,7 @@ describe('native parallel child workflows at concurrency one', () => {
 			const childIds = (await runs(queue)).map((run) => run.id).sort();
 			await queue.close();
 			queue = openQueue(join(directory, 'queue.sqlite'), delivery);
-			await driveUntil(queue.worker, async () => {
+			await driveUntil(queue, async () => {
 				const host = await childFor(queue, 'host');
 				expect(host).toMatchObject({ status: 'pending', workerId: null });
 				expect(await attempts(queue, host.id, 'status')).toHaveLength(1);
@@ -303,7 +302,7 @@ describe('native parallel child workflows at concurrency one', () => {
 			const savedGuest = await attempts(queue, (await childFor(queue, 'guest')).id);
 			await queue.close();
 			queue = openQueue(join(directory, 'queue.sqlite'), delivery);
-			await driveUntil(queue.worker, async () => {
+			await driveUntil(queue, async () => {
 				expect(await readRun(queue, parentId)).toMatchObject({
 					status: 'completed',
 					output: ['sent', 'sent']
@@ -341,13 +340,13 @@ describe('native parallel child workflows at concurrency one', () => {
 			try {
 				const parent = await queue.client.runWorkflow(queue.parent, {});
 				await admitted(queue, parent.workflowRun.id);
-				await driveUntil(queue.worker, async () => {
+				await driveUntil(queue, async () => {
 					const host = await childFor(queue, 'host');
 					expect(host).toMatchObject({ status: 'running', workerId: null });
 					expect(await attempts(queue, host.id, 'release')).toHaveLength(1);
 				});
 				if (mode === 'cancel') await parent.cancel();
-				await driveUntil(queue.worker, async () => {
+				await driveUntil(queue, async () => {
 					expect((await readRun(queue, parent.workflowRun.id)).status).toBe(
 						mode === 'cancel' ? 'canceled' : 'failed'
 					);
@@ -358,7 +357,7 @@ describe('native parallel child workflows at concurrency one', () => {
 				const host = await childFor(queue, 'host');
 				expect(host.status).toBe('running');
 				await queue.client.sendSignal({ signal: 'release:host' });
-				await driveUntil(queue.worker, async () => {
+				await driveUntil(queue, async () => {
 					expect(await readRun(queue, host.id)).toMatchObject({
 						status: 'completed',
 						output: 'sent'
