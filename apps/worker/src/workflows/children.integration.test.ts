@@ -161,37 +161,6 @@ function fakeDelivery(
 }
 
 describe('native parallel child workflows at concurrency one', () => {
-	test('admits both children, parks the parent and gives each child its full native budget', async () => {
-		const delivery = fakeDelivery({ guest: 2, host: 4 });
-		const queue = openQueue(':memory:', delivery);
-		try {
-			expect(queue.parent.retryPolicy?.maximumAttempts).toBe(3);
-			const parent = await queue.client.runWorkflow(queue.parent, {});
-			await admitted(queue, parent.workflowRun.id);
-			await driveUntil(queue, async () => {
-				expect(await readRun(queue, parent.workflowRun.id)).toMatchObject({
-					status: 'completed',
-					output: ['sent', 'sent']
-				});
-			});
-			expect(await parent.result({ timeoutMs: 500 })).toEqual(['sent', 'sent']);
-			expect(delivery.sends).toEqual({ guest: 3, host: 5 });
-			for (const role of roles) {
-				const child = await childFor(queue, role);
-				expect(child).toMatchObject({ status: 'completed', output: 'sent' });
-				const smtp = await attempts(queue, child.id, 'smtp');
-				expect(smtp.filter((attempt) => attempt.status === 'failed')).toHaveLength(
-					role === 'guest' ? 2 : 4
-				);
-				expect(smtp.filter((attempt) => attempt.status === 'completed')).toHaveLength(1);
-			}
-			expect(await runs(queue)).toHaveLength(3);
-			expect(await attempts(queue, parent.workflowRun.id)).toHaveLength(2);
-		} finally {
-			await queue.close();
-		}
-	});
-
 	test.each(roles)(
 		'%s exhaustion leaves its sibling independent and eventually fails the parent',
 		async (failedRole) => {
@@ -251,28 +220,6 @@ describe('native parallel child workflows at concurrency one', () => {
 			}
 		}
 	);
-
-	test('both children can exhaust five attempts independently', async () => {
-		const delivery = fakeDelivery({ guest: 5, host: 5 });
-		const queue = openQueue(':memory:', delivery);
-		try {
-			const parent = await queue.client.runWorkflow(queue.parent, {});
-			await admitted(queue, parent.workflowRun.id);
-			await driveUntil(queue, async () => {
-				expect((await runs(queue)).map((run) => run.status)).toEqual([
-					'failed',
-					'failed',
-					'failed'
-				]);
-			});
-			expect(delivery.sends).toEqual({ guest: 5, host: 5 });
-			for (const role of roles) {
-				expect(await attempts(queue, (await childFor(queue, role)).id, 'smtp')).toHaveLength(5);
-			}
-		} finally {
-			await queue.close();
-		}
-	});
 
 	test('reopens a file-backed queue during child retry without duplicating children or saved SMTP success', async () => {
 		const directory = await mkdtemp(join(tmpdir(), 'when-children-'));

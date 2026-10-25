@@ -10,66 +10,27 @@ afterEach(() => {
 	logo.clearLogoCache();
 });
 
-const base = {
-	appointment: sampleInput.appointment,
-	eventType: sampleInput.eventType
-};
-const run = (kind: AppointmentEmailKind) => dispatch({ kind, ...base }, sampleInput.cfg);
-
-describe('dispatch', () => {
-	test('confirmed → guest then host', async () => {
-		const e = await run('confirmed');
-		expect(e.map((x) => x.to)).toEqual(['jane@example.com', 'owner@acme.test']);
-	});
-
-	test('pending fans out to both the guest and host builders', async () => {
-		const e = await run('pending');
-		expect(e.map((x) => x.to)).toEqual(['jane@example.com', 'owner@acme.test']);
-		expect(e[0].subject).toContain('Appointment request received');
-		expect(e[1].subject).toContain('Appointment request:');
-	});
-
-	test('declined → two envelopes, no ics', async () => {
-		const e = await run('declined');
-		expect(e).toHaveLength(2);
-		expect(e.every((x) => x.attachments === undefined)).toBe(true);
-	});
-
-	test('cancelled-by-guest → the guest gets a CANCEL ics', async () => {
-		const [guest] = await run('cancelled-by-guest');
-		expect(guest.attachments?.[0].content).toContain('METHOD:CANCEL');
-	});
-
-	test('no-email appointment yields only the host envelope', async () => {
-		const noEmail = {
-			kind: 'confirmed' as const,
-			appointment: { ...sampleInput.appointment, guest_email: null },
-			eventType: sampleInput.eventType
-		};
-		const e = await dispatch(noEmail, sampleInput.cfg);
-		expect(e.map((x) => x.to)).toEqual(['owner@acme.test']);
-	});
-
-	test('every kind produces at least one addressed envelope', async () => {
-		const kinds: AppointmentEmailKind[] = [
-			'confirmed',
-			'pending',
-			'cancelled-by-guest',
-			'cancelled-by-host',
-			'rescheduled-by-guest',
-			'rescheduled-by-host',
-			'declined',
-			'edited-by-host'
-		];
-		for (const kind of kinds) {
-			const e = await run(kind);
-			expect(e.length).toBeGreaterThan(0);
-			expect(e.every((x) => x.to && x.subject && x.html && x.text)).toBe(true);
-		}
-	});
-});
+const base = { appointment: sampleInput.appointment };
+const prepare = (kind: AppointmentEmailKind) =>
+	prepareAppointmentEmails({ kind, ...base }, sampleInput.cfg);
 
 describe('prepareAppointmentEmails', () => {
+	test('pending selects the request-received and host-review messages', async () => {
+		const [guest, host] = await prepare('pending');
+		expect(guest.envelope.subject).toContain('Appointment request received');
+		expect(host.envelope.subject).toContain('Appointment request:');
+	});
+
+	test('declined prepares two envelopes without ICS attachments', async () => {
+		const prepared = await prepare('declined');
+		expect(prepared.map(({ envelope }) => envelope.attachments)).toEqual([undefined, undefined]);
+	});
+
+	test('guest cancellation includes a CANCEL invite for the guest', async () => {
+		const [guest] = await prepare('cancelled-by-guest');
+		expect(guest.envelope.attachments?.[0].content).toContain('METHOD:CANCEL');
+	});
+
 	test.each<AppointmentEmailKind>([
 		'confirmed',
 		'pending',
@@ -80,7 +41,7 @@ describe('prepareAppointmentEmails', () => {
 		'declined',
 		'edited-by-host'
 	])('%s preserves builder roles and renders addressed envelopes', async (kind) => {
-		const prepared = await prepareAppointmentEmails({ kind, ...base }, sampleInput.cfg);
+		const prepared = await prepare(kind);
 		expect(prepared.map(({ role, envelope }) => ({ role, to: envelope.to }))).toEqual([
 			{ role: 'guest', to: 'jane@example.com' },
 			{ role: 'host', to: 'owner@acme.test' }
@@ -167,8 +128,10 @@ describe('prepareAppointmentEmails', () => {
 			expect(envelope.html).toContain(`cid:${logo.BRAND_LOGO_CID}`);
 		}
 	});
+});
 
-	test('dispatch returns the same envelopes and prepares only once per call', async () => {
+describe('dispatch', () => {
+	test('returns the prepared envelopes and prepares only once per call', async () => {
 		const input = { kind: 'pending' as const, ...base };
 		const prepared = await prepareAppointmentEmails(input, sampleInput.cfg);
 		const fetchLogo = vi.spyOn(logo, 'fetchBrandLogo');

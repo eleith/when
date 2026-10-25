@@ -518,18 +518,22 @@ describe('appointment email reconciliation with native children', () => {
 		}
 	);
 
-	test('retries transient SMTP failures and logs done only after both roles recover', async () => {
-		const counts = failingMailer({ guest: 2, host: 2 });
+	test('allows recovery on the fifth SMTP attempt and logs done only after both roles recover', async () => {
+		const failures = { guest: 2, host: 4 };
+		const counts = failingMailer(failures);
 		const queue = openQueue();
 		try {
+			expect(reconcileAppointment.retryPolicy?.maximumAttempts).toBe(3);
 			const parent = await queue.client.runWorkflow(reconcileAppointment, input);
 			await startParentAndExpectChildren(queue);
+			const parked = await queue.backend.getWorkflowRun({ workflowRunId: parent.workflowRun.id });
+			expect(parked).toMatchObject({ status: 'running', workerId: null });
 			await finish(queue, parent.workflowRun.id);
 			const reconciliationResult = await parent.result({ timeoutMs: 500 });
 			expect(reconciliationResult).toBe('reconciled');
-			expect(counts).toEqual({ guest: 3, host: 3 });
+			expect(counts).toEqual({ guest: 3, host: 5 });
 			const states = await emailStates();
-			expect(states).toEqual(['failed', 'failed', 'failed', 'failed', 'done']);
+			expect(states).toEqual([...Array(6).fill('failed'), 'done']);
 			const serviceStatus = await db
 				.selectFrom('service_status')
 				.select(['error', 'via'])
@@ -538,10 +542,11 @@ describe('appointment email reconciliation with native children', () => {
 			expect(serviceStatus).toEqual({ error: null, via: 'send' });
 			const deliveryRuns = await children(queue);
 			for (const child of deliveryRuns) {
+				const role = (child.input as { role: RecipientRole }).role;
+				expect(child).toMatchObject({ status: 'completed', output: 'sent' });
 				const stepAttempts = await attempts(queue, child.id, 'smtp');
 				expect(stepAttempts.map((attempt) => attempt.status)).toEqual([
-					'failed',
-					'failed',
+					...Array(failures[role]).fill('failed'),
 					'completed'
 				]);
 			}
