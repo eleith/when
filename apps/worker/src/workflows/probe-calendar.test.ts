@@ -23,7 +23,7 @@ const config = {
 	}
 } as unknown as WhenConfiguration;
 
-const emptyReport = `<?xml version="1.0"?><multistatus xmlns:C="urn:ietf:params:xml:ns:caldav"></multistatus>`;
+const emptyReport = `<?xml version="1.0"?><multistatus xmlns="DAV:"></multistatus>`;
 
 let db: WorkerContext['db'];
 

@@ -11,6 +11,9 @@ import type {
 import { originId, type Appointment } from '@when/db';
 import type { ExpandWindow } from '../expand.js';
 import { buildIcs } from '../ics.js';
+import { readCalDavReport, decodeXmlEntities } from './caldav-report.js';
+
+export { readCalDavReport } from './caldav-report.js';
 
 export interface CalDavConfig {
 	url: string;
@@ -56,7 +59,7 @@ export async function fetchCalDavBusy(
 		throw new Error(`CalDAV REPORT ${cfg.url} failed: ${res.status} ${res.statusText}`);
 	}
 	const xml = await res.text();
-	const blobs = extractCalendarData(xml);
+	const blobs = readCalDavReport(xml);
 	const out: BusyEvent[] = [];
 	for (const ics of blobs) {
 		out.push(...parseBusyEvents(ics));
@@ -124,29 +127,8 @@ export function buildReportBody(start: Temporal.Instant, end: Temporal.Instant):
 </C:calendar-query>`;
 }
 
-export function extractCalendarData(xml: string): string[] {
-	// CalDAV XML responses are structurally predictable; regex extraction
-	// avoids pulling in a full XML parser for this single-purpose operation.
-	const re = /<[A-Za-z0-9]*:?calendar-data[^>]*>([\s\S]*?)<\/[A-Za-z0-9]*:?calendar-data>/g;
-	const out: string[] = [];
-	let m: RegExpExecArray | null;
-	while ((m = re.exec(xml))) {
-		out.push(decodeXmlEntities(m[1]).trim());
-	}
-	return out;
-}
-
 function formatCalDavInstant(i: Temporal.Instant): string {
 	return i.toString().replace(/\.\d+/, '').replace(/[-:]/g, '');
-}
-
-function decodeXmlEntities(s: string): string {
-	return s
-		.replace(/&lt;/g, '<')
-		.replace(/&gt;/g, '>')
-		.replace(/&quot;/g, '"')
-		.replace(/&apos;/g, "'")
-		.replace(/&amp;/g, '&');
 }
 
 export class CalDavAdapter implements CalendarAdapter {

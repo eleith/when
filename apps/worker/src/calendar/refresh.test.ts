@@ -37,9 +37,10 @@ const workCal: ResolvedCalendar = {
 };
 
 const oneEvent = (uid: string) => `<?xml version="1.0"?>
-<multistatus xmlns:C="urn:ietf:params:xml:ns:caldav">
+<multistatus xmlns="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav">
   <response>
-    <C:calendar-data>BEGIN:VCALENDAR
+    <href>/work/event.ics</href>
+    <propstat><prop><C:calendar-data>BEGIN:VCALENDAR
 VERSION:2.0
 PRODID:-//x//EN
 BEGIN:VEVENT
@@ -49,7 +50,7 @@ DTSTART:20260415T140000Z
 DTEND:20260415T150000Z
 SUMMARY:Test event
 END:VEVENT
-END:VCALENDAR</C:calendar-data>
+END:VCALENDAR</C:calendar-data></prop><status>HTTP/1.1 200 OK</status></propstat>
   </response>
 </multistatus>`;
 
@@ -165,6 +166,45 @@ test('refreshCalendar keeps stale data and records the error on provider failure
 		expect(status.error).toContain('500');
 		expect(status.last_ok_at).toBe(lastOk);
 		expect(status.via).toBe('test');
+	} finally {
+		await ctx.db.destroy();
+	}
+});
+
+test('a partial CalDAV response preserves the mirror; a successful empty report clears it', async () => {
+	const ctx = await ctxWithDb();
+	const stale = { start: '2026-04-10T09:00:00Z', end: '2026-04-10T09:30:00Z' };
+	try {
+		await replaceCalendarBusy(ctx.db, 'work', [stale]);
+		const partial = oneEvent('remote-1').replace(
+			'</multistatus>',
+			`<response><href>/work/unavailable.ics</href><propstat>
+			<prop><C:calendar-data /></prop><status>HTTP/1.1 404 Not Found</status>
+			</propstat></response></multistatus>`
+		);
+		const fetch = vi
+			.spyOn(globalThis, 'fetch')
+			.mockResolvedValue(new Response(partial, { status: 207 }));
+
+		const failed = await refreshCalendar(ctx, workCal, window);
+		const retained = await ctx.db
+			.selectFrom('external_calendar_busy')
+			.select(['start_time', 'end_time'])
+			.execute();
+		expect(failed).toEqual({ ok: false, error: expect.stringContaining('404') });
+		expect(retained).toEqual([{ start_time: stale.start, end_time: stale.end }]);
+
+		fetch.mockResolvedValue(new Response('<d:multistatus xmlns:d="DAV:" />', { status: 207 }));
+		const refreshed = await refreshCalendar(ctx, workCal, window);
+		const empty = await ctx.db.selectFrom('external_calendar_busy').selectAll().execute();
+		const status = await ctx.db
+			.selectFrom('service_status')
+			.select('error')
+			.where('kind', '=', 'calendar')
+			.executeTakeFirstOrThrow();
+		expect(refreshed).toEqual({ ok: true, busyCount: 0 });
+		expect(empty).toEqual([]);
+		expect(status.error).toBeNull();
 	} finally {
 		await ctx.db.destroy();
 	}

@@ -1,7 +1,7 @@
 import { expect, test, vi, beforeEach } from 'vitest';
 import {
 	buildReportBody,
-	extractCalendarData,
+	readCalDavReport,
 	fetchCalDavBusy,
 	verifyCalDavProvider,
 	discoverCalDavCalendars
@@ -26,76 +26,111 @@ test('buildReportBody strips fractional seconds', () => {
 	expect(body).toContain('start="20260401T000000Z"');
 });
 
-test('extractCalendarData picks up prefixed calendar-data blocks', () => {
-	const xml = `<?xml version="1.0"?>
-<D:multistatus xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav">
-  <D:response>
-    <D:href>/cal/1.ics</D:href>
-    <D:propstat>
-      <D:prop>
-        <C:calendar-data>BEGIN:VCALENDAR
-VERSION:2.0
-PRODID:-//x//EN
-BEGIN:VEVENT
-UID:1@x
-DTSTAMP:20260101T000000Z
-DTSTART:20260415T140000Z
-DTEND:20260415T150000Z
-SUMMARY:A
-END:VEVENT
-END:VCALENDAR</C:calendar-data>
-      </D:prop>
-    </D:propstat>
-  </D:response>
-</D:multistatus>`;
-	const blobs = extractCalendarData(xml);
-	expect(blobs).toHaveLength(1);
-	expect(blobs[0]).toContain('UID:1@x');
+const multistatus = (responses = '') =>
+	`<?xml version="1.0"?><d:multistatus xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav">${responses}</d:multistatus>`;
+const resource = (data: string, status = '200 OK') =>
+	`<d:response><d:href>/cal/1.ics</d:href><d:propstat><d:prop><c:calendar-data>${data}</c:calendar-data></d:prop><d:status>HTTP/1.1 ${status}</d:status></d:propstat></d:response>`;
+const remoteIcs = [
+	'BEGIN:VCALENDAR',
+	'VERSION:2.0',
+	'PRODID:-//x//EN',
+	'BEGIN:VEVENT',
+	'UID:remote-1@x',
+	'DTSTAMP:20260101T000000Z',
+	'DTSTART:20260415T140000Z',
+	'DTEND:20260415T150000Z',
+	'SUMMARY:Remote',
+	'END:VEVENT',
+	'END:VCALENDAR'
+].join('\r\n');
+
+test.each([' ', '\t', '\r', '\n'])(
+	'readCalDavReport accepts XML declaration whitespace %j around equals signs',
+	(whitespace) => {
+		const declaration = `<?xml version${whitespace}=${whitespace}"1.0" encoding${whitespace}=${whitespace}'UTF-8' standalone${whitespace}=${whitespace}"yes"?>`;
+		const xml = multistatus(resource(remoteIcs)).replace('<?xml version="1.0"?>', declaration);
+		expect(readCalDavReport(xml)).toEqual([remoteIcs]);
+	}
+);
+
+test('readCalDavReport decodes Nextcloud numeric CRs and entities exactly once', () => {
+	const ics = remoteIcs.replace('SUMMARY:Remote', 'SUMMARY:Tea & biscuits < &amp; &#13;');
+	const encoded = ics.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('\r', '&#13;');
+	expect(readCalDavReport(multistatus(resource(encoded)))).toEqual([ics]);
+	expect(
+		readCalDavReport(multistatus(resource('SUMMARY:&#x54;ea &quot;x&quot; &apos;y&apos; &gt;')))
+	).toEqual([`SUMMARY:Tea "x" 'y' >`]);
 });
 
-test('extractCalendarData picks up unprefixed calendar-data blocks', () => {
-	const xml = `<multistatus>
-  <response>
-    <calendar-data>BEGIN:VCALENDAR
-END:VCALENDAR</calendar-data>
-  </response>
-</multistatus>`;
-	const blobs = extractCalendarData(xml);
-	expect(blobs).toHaveLength(1);
-	expect(blobs[0]).toBe('BEGIN:VCALENDAR\nEND:VCALENDAR');
+test('readCalDavReport preserves literal entities and DAV-looking tags inside CDATA', () => {
+	const literal = 'SUMMARY:&amp; &#13; </c:calendar-data><d:response>not XML</d:response>';
+	const data = `<![CDATA[${literal}]]>&amp;<![CDATA[&lt;]]>`;
+	expect(readCalDavReport(multistatus(resource(data)))).toEqual([`${literal}&&lt;`]);
+	// A CDATA section is not a resource, even when it contains a complete response.
+	expect(() => readCalDavReport(multistatus(`<![CDATA[${resource('fake')}]]>`))).toThrow(
+		/CalDAV REPORT/
+	);
 });
 
-test('extractCalendarData decodes XML entities inside the iCal block', () => {
-	const xml = `<C:calendar-data>SUMMARY:Tea &amp; biscuits</C:calendar-data>`;
-	expect(extractCalendarData(xml)).toEqual(['SUMMARY:Tea & biscuits']);
+test('readCalDavReport accepts default namespaces and genuine empty MultiStatus', () => {
+	const xml = `<multistatus xmlns="DAV:"><response><href>/cal/1.ics</href><propstat>
+		<prop><calendar-data xmlns="urn:ietf:params:xml:ns:caldav">${remoteIcs}</calendar-data></prop>
+		<status>HTTP/1.1 200 OK</status></propstat></response></multistatus>`;
+	expect(readCalDavReport(xml)).toEqual([remoteIcs]);
+	expect(readCalDavReport(multistatus())).toEqual([]);
+	expect(readCalDavReport('<multistatus xmlns="DAV:"/>')).toEqual([]);
 });
 
-test('extractCalendarData returns empty array when no calendar-data', () => {
-	expect(extractCalendarData('<multistatus></multistatus>')).toEqual([]);
+test.each([
+	['non-XML body', 'upstream unavailable'],
+	['non-MultiStatus XML', '<html><body>upstream unavailable</body></html>'],
+	['truncated response', multistatus(resource(remoteIcs)).slice(0, -16)],
+	['mismatched closing tag', multistatus(resource(remoteIcs)).replace('</d:prop>', '</d:wrong>')],
+	[
+		'missing calendar-data',
+		multistatus(
+			resource(remoteIcs).replace(
+				/<c:calendar-data>[^]*?<\/c:calendar-data>/,
+				'<d:getetag>etag</d:getetag>'
+			)
+		)
+	],
+	[
+		'missing status',
+		multistatus(resource(remoteIcs).replace('<d:status>HTTP/1.1 200 OK</d:status>', ''))
+	],
+	['DTD', '<!DOCTYPE multistatus [<!ENTITY x "value">]>' + multistatus()],
+	['unknown entity', multistatus(resource('SUMMARY:&unknown;'))]
+])('readCalDavReport rejects %s instead of claiming no busy events', (_name, xml) => {
+	expect(() => readCalDavReport(xml)).toThrow(/CalDAV (?:REPORT|XML)/);
+});
+
+test.each([
+	[
+		'resource failure',
+		'<d:response><d:href>/cal/failed.ics</d:href><d:status>HTTP/1.1 403 Forbidden</d:status></d:response>'
+	],
+	['calendar-data property failure', resource('', '404 Not Found')]
+])('fetchCalDavBusy rejects a partial 207 with %s', async (_name, failed) => {
+	vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+		new Response(multistatus(resource(remoteIcs) + failed), { status: 207 })
+	);
+	await expect(
+		fetchCalDavBusy(
+			{ url: 'https://cal.example.com/cal/', username: 'a', password: 'b' },
+			{ start: inst('2026-04-01T00:00:00Z'), end: inst('2026-05-01T00:00:00Z') }
+		)
+	).rejects.toThrow(/CalDAV REPORT.*(?:403|404)/);
 });
 
 test('fetchCalDavBusy sends a REPORT request with basic auth', async () => {
 	let captured: { url: string; init: RequestInit } | null = null;
 	vi.spyOn(globalThis, 'fetch').mockImplementation(async (url, init) => {
 		captured = { url: String(url), init: init as RequestInit };
-		return new Response(
-			`<multistatus xmlns:C="urn:ietf:params:xml:ns:caldav">
-				<response>
-					<C:calendar-data>BEGIN:VCALENDAR
-VERSION:2.0
-PRODID:-//x//EN
-BEGIN:VEVENT
-UID:remote-1@x
-DTSTAMP:20260101T000000Z
-DTSTART:20260415T140000Z
-DTEND:20260415T150000Z
-SUMMARY:Remote
-END:VEVENT
-END:VCALENDAR</C:calendar-data>
-				</response>
-			</multistatus>`,
-			{ status: 207 }
-		);
+		// Nextcloud's expanded calendar-data uses numeric CR entities before literal LF.
+		return new Response(multistatus(resource(remoteIcs.replaceAll('\r', '&#13;'))), {
+			status: 207
+		});
 	});
 
 	const events = await fetchCalDavBusy(
@@ -105,6 +140,7 @@ END:VCALENDAR</C:calendar-data>
 
 	expect(events).toHaveLength(1);
 	expect(events[0].uid).toBe('remote-1@x');
+	expect(events[0].start.toString()).toBe('2026-04-15T14:00:00Z');
 	expect(captured).not.toBeNull();
 	const init = captured!.init;
 	expect(init.method).toBe('REPORT');
@@ -174,6 +210,13 @@ test('discoverCalDavCalendars returns calendar paths relative to the base', asyn
 		{ displayName: 'Work', path: 'calendars/u/work/' },
 		{ displayName: 'Personal', path: 'calendars/u/personal/' }
 	]);
+});
+
+test('discovery display names also decode numeric and named entities once', async () => {
+	const xml = calDavXml('/dav');
+	xml.calendars = xml.calendars.replace('>Work<', '>Work &#38; &amp;lt;<');
+	mockPropfind(xml);
+	expect((await discoverCalDavCalendars(davService))[0].displayName).toBe('Work & &lt;');
 });
 
 test('discoverCalDavCalendars targets the Nextcloud dav base', async () => {

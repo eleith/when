@@ -22,9 +22,10 @@ const workCal: ResolvedCalendar = {
 };
 
 const twoEvents = `<?xml version="1.0"?>
-<multistatus xmlns:C="urn:ietf:params:xml:ns:caldav">
+<multistatus xmlns="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav">
   <response>
-    <C:calendar-data>BEGIN:VCALENDAR
+    <href>/work/events.ics</href>
+    <propstat><prop><C:calendar-data>BEGIN:VCALENDAR
 VERSION:2.0
 PRODID:-//x//EN
 BEGIN:VEVENT
@@ -41,7 +42,7 @@ DTSTART:20260415T140000Z
 DTEND:20260415T153000Z
 SUMMARY:Other
 END:VEVENT
-END:VCALENDAR</C:calendar-data>
+END:VCALENDAR</C:calendar-data></prop><status>HTTP/1.1 200 OK</status></propstat>
   </response>
 </multistatus>`;
 
