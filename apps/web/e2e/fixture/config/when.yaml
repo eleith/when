@@ -61,6 +61,35 @@ meetings:
       attach:
         auto: false
 
+  conditional-form:
+    title: 'Phone consultation'
+    visibility: 'unlisted'
+    duration_minutes: 30
+    require_approval: true
+    schedule: 'standard'
+    booking_calendar: 'main'
+    form_fields:
+      - name: 'name'
+        type: 'guest_name'
+        label: 'Your name'
+        required: true
+      - name: 'phone'
+        type: 'phone'
+        label: 'Phone number'
+        required: true
+      - name: 'focus'
+        type: 'choice'
+        label: 'Meeting focus'
+        required: true
+        choices: ['General question', 'Project review']
+      - name: 'details'
+        type: 'paragraph'
+        label: 'Project details'
+        required: true
+        show_when:
+          - field: 'focus'
+            equals: 'Project review'
+
   host-rules:
     title: 'Host availability rules fixture'
     visibility: 'unlisted'

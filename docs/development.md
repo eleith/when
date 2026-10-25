@@ -93,7 +93,7 @@ E2E covers what only a browser and a real server round trip can prove: SSR throu
 hydration, form actions and redirects, the auth gate as an HTTP boundary, and the client
 router reconciling URL state. Availability maths, validation and templates stay in Vitest,
 where they are cheaper. Browser scenarios also cover guest capabilities, host editing,
-and theme initialization.
+conditional forms, timezone persistence, and theme initialization.
 
 It builds once, then runs the production adapter handler in one isolated server per
 Playwright worker (four by default, overridable with `--workers`). Each server has its
@@ -127,10 +127,8 @@ the run directory is removed.
 
 A failed test retains a screenshot and server output in `apps/web/test-results/`; the
 first retry also records a Playwright trace. CI rejects retry-recovered flaky tests.
-GitHub CI uploads failure artifacts for seven days. During the isolation rollout, an
-HTTP 500 and a socket reset occurred in separate runs. Subsequent full and repeated
-runs passed, but neither failure has an established root cause; a recurrence needs
-investigation, not additional retries.
+Inspect the screenshot, server log, and trace when a test fails. A later passing run
+does not explain an earlier failure; investigate its cause rather than adding retries.
 
 Repeat scheduling tests locally without retries to check isolation, for example:
 

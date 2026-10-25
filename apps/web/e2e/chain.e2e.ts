@@ -5,7 +5,7 @@ import { signInAsAdmin } from './support/auth.ts';
 import { seedAppointment } from './support/seed.ts';
 import { pickLastBookableDay, pickSlotFromEndOfDay } from './support/wizard.ts';
 
-test('a stale link shows the rescheduled state and links to the live appointment', async ({
+test('a stale link shows the move but cannot authorize access to the new appointment', async ({
 	page
 }) => {
 	const original = await seedAppointment({ status: 'confirmed' });

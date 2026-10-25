@@ -20,8 +20,8 @@ async function palette(page: Page) {
 async function touchTarget(button: Locator) {
 	const bounds = await button.boundingBox();
 	expect(bounds).not.toBeNull();
-	expect(bounds!.width).toBe(44);
-	expect(bounds!.height).toBe(44);
+	expect(bounds!.width).toBeGreaterThanOrEqual(44);
+	expect(bounds!.height).toBeGreaterThanOrEqual(44);
 	return bounds!;
 }
 

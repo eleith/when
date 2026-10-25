@@ -48,5 +48,9 @@ test('an admin page renders and hydrates under the policy', async ({ page }) => 
 
 	const response = await page.request.get('/admin');
 	expect(response.headers()['referrer-policy']).toBe('strict-origin-when-cross-origin');
+
+	// A server-rendered page alone would still pass with hydration blocked by CSP.
+	await page.getByRole('button', { name: 'Switch to dark theme' }).click();
+	await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
 	expect(violations).toEqual([]);
 });
