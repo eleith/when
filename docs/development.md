@@ -35,51 +35,108 @@ pnpm dev:docker
 ## Scripts
 
 Each package exposes the same script names; run one with `pnpm --filter @when/<pkg> <script>`,
-or across the workspace from the root.
+or across the workspace with `pnpm -r <script>`. Root `build`, `check`, `lint`, and
+`format` target the web app; root `test` and `test:coverage` run every workspace package.
 
 - `build` — compile / typecheck the package.
 - `check` — typecheck (`tsc --noEmit`, or `svelte-check` for web).
 - `lint` — Prettier (covers Markdown too) + ESLint.
 - `test` / `test:coverage` — Vitest.
 
-Run the test suites from the root:
+Build shared packages after installing dependencies or changing package source, then run
+from the root:
 
 ```sh
-pnpm test        # unit tests (Vitest)
-pnpm test:e2e    # Playwright (requires browsers installed)
+pnpm build:packages
+pnpm test           # all workspace Vitest suites, including integration tests
+pnpm test:coverage  # the same suites with coverage
+pnpm test:e2e       # Playwright (requires browsers installed)
 ```
+
+For a focused feedback loop, use `pnpm --filter @when/<pkg> test <file>`.
 
 ## Testing
 
-Unit tests are co-located `*.test.ts` files next to the code. Keep domain logic testable
-by **injecting dependencies** rather than reaching for globals — a `Clock` for time, a
-fake `Mailer` for email, a fake workflow `step` for jobs. End-to-end tests live in
+Vitest tests are co-located `*.test.ts` files next to the code. Integration tests use
+`*.integration.test.ts` and run in the same suite. End-to-end tests live in
 `apps/web/e2e` (Playwright).
+
+### What earns a test its place
+
+Prefer readable, focused regression protection over a coverage percentage. Existing
+coverage thresholds are guardrails, not a target to maximize.
+
+- **Name the behavior and observe its outcome.** Assert the saved row, returned result,
+  rendered text, or external request that matters. A test claiming to distinguish two
+  outcomes needs fixture data that makes those outcomes distinguishable.
+- **Use the cheapest layer that proves the contract.** Pure calculations and validation
+  belong in unit tests; transactions, migrations, and durable retries need real SQLite
+  or workflow integration; hydration and browser navigation need Playwright.
+- **Mock at boundaries, not through the behavior being tested.** Inject a `Clock`, fake
+  `Mailer`, or fake provider. Use the real workflow engine when the claim concerns
+  checkpoint persistence or retry policy.
+- **Make setup explicit and isolated.** Prefer small named fixtures with scenario-specific
+  overrides. Do not rely on test ordering, another test's rows, developer config, or a
+  shared temporary filename.
+- **Permit harmless refactoring.** Assert accessible behavior and meaningful copy rather
+  than source strings, incidental wrappers, object identity, or exact CSS dimensions.
+  Exact output is appropriate when it is the contract, such as an ICS field or escaping.
+- **Budget runtime and duplication.** Keep each behavior at its lowest sufficient layer;
+  an E2E journey need not repeat a unit-test matrix. Measure slow scenarios before
+  deleting them: remove unnecessary waits before sacrificing integration evidence.
+- **Keep failures actionable.** Test names should explain the expectation. Use bounded,
+  condition-based waits, retain diagnostics, and investigate retry-recovered failures.
 
 ### End-to-end
 
 E2E covers what only a browser and a real server round trip can prove: SSR through
 hydration, form actions and redirects, the auth gate as an HTTP boundary, and the client
 router reconciling URL state. Availability maths, validation and templates stay in Vitest,
-where they are cheaper. Five specs — booking, deep links, auth, approval, cancellation.
+where they are cheaper. Browser scenarios also cover guest capabilities, host editing,
+and theme initialization.
 
-It runs a production build against a self-contained fixture, never your own setup.
-`playwright.config.ts` builds and previews on port **4183** with `CONFIG_PATH` pointed at
-`e2e/fixture/config/when.yaml`, which also makes `e2e/fixture/` the deployment root, so the
-suite's SQLite files land in `e2e/fixture/data/` (gitignored, dropped before every run)
-rather than `apps/web/data/`. `AUTH_SECRET` comes from `webServer.env`,
-because `vite preview` feeds `.env` into `$env/dynamic/private` only, never `process.env`.
-Your `config/when.yaml`, `data/` and dev server on 5173 are untouched.
+It builds once, then runs the production adapter handler in one isolated server per
+Playwright worker (four by default, overridable with `--workers`). Each server has its
+own OS-assigned localhost port, copied fixture config, and app/queue databases under a
+unique `e2e/fixture/data/run-*` directory. Setup copies the web source, static assets,
+package manifest and build configs into a fresh project there, sharing only installed
+dependencies. It uses the normal Vite/SvelteKit configuration in every build phase;
+no previous build output is copied or required. Keep the explicit input list in
+`e2e/setup.ts` in step with any new local imports in the build configs.
 
-Two rules keep it stable, both learned the hard way:
+Kit and adapter build output stay inside the run directory, so another build cannot
+replace a running test server's route chunks. The build and servers do not load
+developer dotenv files or inherit application settings. Your `config/when.yaml`,
+`data/`, build output, and dev server remain untouched; no existing server is reused.
 
-- **Derive, never hardcode.** Availability is computed from the wall clock, so specs pick
-  the first available day and read times back out of the page. The only literal date is the
-  one the deep-link spec deliberately wants to be unavailable.
-- **Assert on the row you seeded, never on totals.** Workers share one database.
-  `e2e/support/seed.ts` writes appointments directly for states the UI cannot reach (a
-  pending request, a past booking), giving each a unique id, token and start time — live
-  rows are unique on `(event_type_id, start_time)`.
+Specs import `test` and `expect` from `./support/test.ts`. Its automatic fixture clears
+appointment, busy-mirror, service-status and queue rows before each test, preserving
+migration bookkeeping and live database connections. No background worker runs: tests
+assert queue admission, not email delivery or calendar publication. Servers stop before
+the run directory is removed.
+
+- **Use the fixture's URL.** `page` and `request` receive the worker's `baseURL`; pass it
+  explicitly to additional browser contexts, cookies, and Origin headers. Never hardcode
+  a port.
+- **Derive dates.** Pick an available slot from the page, or use `support/dates.ts` for a
+  future weekday and explicit scenario times. Tests need not reserve separate dates or
+  slots for other tests, repeats, or retries.
+- **Assert the intended result.** `support/seed.ts` creates states needed by a scenario;
+  `support/database.ts` reads back the specific appointment and queued workflow. Use
+  persisted assertions when a heading alone cannot prove what was saved.
+
+A failed test retains a screenshot and server output in `apps/web/test-results/`; the
+first retry also records a Playwright trace. CI rejects retry-recovered flaky tests.
+GitHub CI uploads failure artifacts for seven days. During the isolation rollout, an
+HTTP 500 and a socket reset occurred in separate runs. Subsequent full and repeated
+runs passed, but neither failure has an established root cause; a recurrence needs
+investigation, not additional retries.
+
+Repeat scheduling tests locally without retries to check isolation, for example:
+
+```sh
+pnpm --filter @when/web test:e2e booking.e2e.ts chain.e2e.ts --repeat-each=3 --retries=0
+```
 
 Running it needs `pnpm build:packages` first: `vite build` resolves `@when/*` to `dist/`,
 not source. Browsers install once per Playwright version, and the version matters —

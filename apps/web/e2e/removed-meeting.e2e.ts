@@ -1,34 +1,24 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support/test.ts';
 import { openDb } from '@when/db';
 import { signInAsAdmin } from './support/auth.ts';
 import { APP_DB_PATH, readAppointment } from './support/database.ts';
 import { seedAppointment } from './support/seed.ts';
+import { futureWeekday } from './support/dates.ts';
 
-const postOptions = {
-	headers: { origin: 'http://localhost:4183', accept: 'application/json' },
+const postOptions = (origin: string) => ({
+	headers: { origin, accept: 'application/json' },
 	maxRedirects: 0
-};
-
-function futureWeekday(retry: number): string {
-	const date = new Date();
-	date.setUTCDate(date.getUTCDate() + 52);
-	for (let index = 0; index <= retry; index++) {
-		if (index > 0) date.setUTCDate(date.getUTCDate() + 1);
-		while (date.getUTCDay() === 0 || date.getUTCDay() === 6) {
-			date.setUTCDate(date.getUTCDate() + 1);
-		}
-	}
-	return date.toISOString().slice(0, 10);
-}
+});
 
 test('host sees a marked historical fallback from a real booking snapshot, while guests remain denied', async ({
+	baseURL,
 	page,
 	request
-}, testInfo) => {
+}) => {
 	await signInAsAdmin(page);
-	const day = futureWeekday(testInfo.retry);
+	const day = futureWeekday();
 	const created = await page.request.post('/admin/schedule/chat', {
-		...postOptions,
+		...postOptions(baseURL!),
 		form: {
 			slot: `${day}T13:30:00Z`,
 			duration: '30',
@@ -39,7 +29,7 @@ test('host sees a marked historical fallback from a real booking snapshot, while
 	});
 	const redirect = await created.json();
 	expect(redirect).toMatchObject({ type: 'redirect', status: 303 });
-	const id = new URL(redirect.location, 'http://localhost:4183').pathname.split('/').at(-1)!;
+	const id = new URL(redirect.location, baseURL!).pathname.split('/').at(-1)!;
 	const booked = await readAppointment(id);
 	const snapshot = JSON.parse(booked.meeting_snapshot!);
 	expect(snapshot).toEqual({
@@ -80,13 +70,13 @@ test('host sees a marked historical fallback from a real booking snapshot, while
 	await expect(page.getByRole('link', { name: 'Admin dashboard', exact: true })).toBeVisible();
 
 	const duration = await page.request.post(`/admin/appointment/${id}?/changeDuration`, {
-		...postOptions,
+		...postOptions(baseURL!),
 		form: { duration: '60' }
 	});
 	const durationResult = await duration.json();
 	expect(durationResult).toMatchObject({ type: 'failure', status: 409 });
 	const move = await page.request.post(`/admin/appointment/${id}/reschedule`, {
-		...postOptions,
+		...postOptions(baseURL!),
 		form: { slot: `${day}T15:00:00Z`, duration: '30', reschedule_reason: 'Not available' }
 	});
 	const moveResult = await move.json();

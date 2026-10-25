@@ -1,19 +1,8 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './support/test.ts';
 import { signInAsAdmin } from './support/auth.ts';
 import { readAppointment } from './support/database.ts';
 import { seedAppointment } from './support/seed.ts';
-
-function futureWeekday(offset: number, weekdayIndex = 0): string {
-	const date = new Date();
-	date.setUTCDate(date.getUTCDate() + offset);
-	for (let index = 0; index <= weekdayIndex; index++) {
-		if (index > 0) date.setUTCDate(date.getUTCDate() + 1);
-		while (date.getUTCDay() === 0 || date.getUTCDay() === 6) {
-			date.setUTCDate(date.getUTCDate() + 1);
-		}
-	}
-	return date.toISOString().slice(0, 10);
-}
+import { futureWeekday } from './support/dates.ts';
 
 async function changeNextSubmittedField(page: Page, name: string, value: string) {
 	// Reach server validation while keeping the visible, client-valid input unchanged.
@@ -34,8 +23,8 @@ async function changeNextSubmittedField(page: Page, name: string, value: string)
 
 test('host creation shows server field errors and preserves inputs for a successful retry', async ({
 	page
-}, testInfo) => {
-	const day = futureWeekday(5 + testInfo.retry * 7);
+}) => {
+	const day = futureWeekday();
 	await signInAsAdmin(page);
 	await page.goto(`/schedule/chat?date=${day}`);
 	await page.getByRole('radio', { name: /0?9:00\s*AM\s*–\s*0?9:30\s*AM/i }).click();
@@ -78,8 +67,8 @@ test('host creation shows server field errors and preserves inputs for a success
 
 test('host rescheduling shows validation and conflict errors without losing the reason or duration', async ({
 	page
-}, testInfo) => {
-	const day = futureWeekday(52, testInfo.retry);
+}) => {
+	const day = futureWeekday();
 	const original = await seedAppointment({
 		status: 'confirmed',
 		start: new Date(`${day}T14:00:00Z`),

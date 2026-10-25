@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support/test.ts';
 import { ADMIN, signInAsAdmin } from './support/auth.ts';
 
 test('an admin page sends a signed-out visitor to sign in', async ({ page }) => {

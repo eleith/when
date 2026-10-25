@@ -1,13 +1,10 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support/test.ts';
 import { pickLastBookableDay, pickSlotFromEndOfDay } from './support/wizard.ts';
 
 async function pickASlot(page: import('@playwright/test').Page): Promise<string> {
 	await page.goto('/schedule/chat');
-	// The last bookable day is wholly in the future and, in every month with more than
-	// one, is not the day booking.e2e.ts consumes slots on. The one-slot inset keeps the
-	// two clear of each other even when it is.
 	await pickLastBookableDay(page);
-	await pickSlotFromEndOfDay(page, 1);
+	await pickSlotFromEndOfDay(page);
 	await page.getByRole('button', { name: 'Confirm' }).click();
 	return page.locator('input[name="slot"]').inputValue();
 }

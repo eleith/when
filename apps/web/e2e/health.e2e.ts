@@ -1,4 +1,4 @@
-import { expect, test, type Locator, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from './support/test.ts';
 import { signInAsAdmin } from './support/auth.ts';
 
 test('an unreachable worker shows plain SMTP test feedback without retrying', async ({ page }) => {

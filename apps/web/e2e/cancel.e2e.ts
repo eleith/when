@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support/test.ts';
 import { parseActionLog } from '@when/db';
 import { readAppointment, readQueuedWorkflows } from './support/database.ts';
 import { CHAT_MEETING, seedAppointment } from './support/seed.ts';

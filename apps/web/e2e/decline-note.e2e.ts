@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support/test.ts';
 import { appendActionLogSql, openDb, parseActionLog } from '@when/db';
 import { signInAsAdmin } from './support/auth.ts';
 import { APP_DB_PATH, readAppointment, readQueuedWorkflows } from './support/database.ts';

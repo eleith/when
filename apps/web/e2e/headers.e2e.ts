@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './support/test.ts';
 import { signInAsAdmin } from './support/auth.ts';
 
 function collectCspViolations(page: Page): string[] {

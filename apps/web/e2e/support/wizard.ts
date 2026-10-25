@@ -40,18 +40,9 @@ export async function pickLastBookableDay(page: Page): Promise<void> {
 	await page.getByRole('button', { name: 'Continue' }).click();
 }
 
-/**
- * Select the slot `slotsFromEnd` back from the end of the available bookable slots.
- *
- * Available slots are rendered as accessible radio buttons in the timeline track.
- */
-export async function pickSlotFromEndOfDay(page: Page, slotsFromEnd = 0): Promise<void> {
-	const slots = page.getByRole('radio');
-	const count = await slots.count();
-	if (count === 0) throw new Error('the day rendered no bookable slots');
-
-	const targetIndex = Math.max(0, count - 1 - slotsFromEnd);
-	await slots.nth(targetIndex).click();
+// Available slots are rendered as accessible radio buttons in the timeline track.
+export async function pickSlotFromEndOfDay(page: Page): Promise<void> {
+	await page.getByRole('radio').last().click();
 
 	await expect(page.locator('.slot-block.selected')).toBeVisible();
 }

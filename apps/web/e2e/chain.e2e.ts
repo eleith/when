@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support/test.ts';
 import { parseActionLog } from '@when/db';
 import { readAppointment } from './support/database.ts';
 import { signInAsAdmin } from './support/auth.ts';
@@ -13,7 +13,7 @@ test('a stale link shows the rescheduled state and links to the live appointment
 
 	await page.goto(`/appointment/${original.id}/reschedule?token=${original.cancel_token}`);
 	await pickLastBookableDay(page);
-	await pickSlotFromEndOfDay(page, 3 + test.info().retry);
+	await pickSlotFromEndOfDay(page);
 	await page.getByRole('button', { name: 'Confirm' }).click();
 	await page.locator('textarea[name="reschedule_reason"]').fill('Something came up');
 	await page
@@ -43,7 +43,7 @@ test('the live token is a master key over the appointment history', async ({ pag
 
 	await page.goto(`/appointment/${original.id}/reschedule?token=${original.cancel_token}`);
 	await pickLastBookableDay(page);
-	await pickSlotFromEndOfDay(page, 6 + test.info().retry);
+	await pickSlotFromEndOfDay(page);
 	await page.getByRole('button', { name: 'Confirm' }).click();
 	await page.locator('textarea[name="reschedule_reason"]').fill('Moving again');
 	await page
@@ -117,11 +117,11 @@ test('rotating the guest link kills the old one and issues a working replacement
 	expect(fresh.status()).toBe(200);
 });
 
-test('a signed-out visitor cannot rotate a guest link', async ({ request }) => {
+test('a signed-out visitor cannot rotate a guest link', async ({ request, baseURL }) => {
 	const appointment = await seedAppointment({ status: 'confirmed' });
 
 	const response = await request.post(`/admin/appointment/${appointment.id}?/rotate`, {
-		headers: { origin: 'http://localhost:4183' },
+		headers: { origin: baseURL! },
 		form: {}
 	});
 

@@ -1,21 +1,13 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support/test.ts';
 import { signInAsAdmin } from './support/auth.ts';
 import { readAppointment } from './support/database.ts';
 import { seedAppointment } from './support/seed.ts';
-
-function futureWeekday(retry: number): string {
-	const date = new Date();
-	date.setUTCDate(date.getUTCDate() + 2 + retry * 7);
-	while (date.getUTCDay() === 0 || date.getUTCDay() === 6) {
-		date.setUTCDate(date.getUTCDate() + 1);
-	}
-	return date.toISOString().slice(0, 10);
-}
+import { futureWeekday } from './support/dates.ts';
 
 test('general notes and existing bulk cancellation use the same counter without changing requiredness', async ({
 	page
-}, testInfo) => {
-	const day = futureWeekday(testInfo.retry);
+}) => {
+	const day = futureWeekday();
 	const appointment = await seedAppointment({
 		status: 'confirmed',
 		start: new Date(`${day}T23:00:00Z`)
@@ -56,8 +48,8 @@ test('general notes and existing bulk cancellation use the same counter without 
 
 test('rescheduling still requires a reason and shows the shared 500-character counter', async ({
 	page
-}, testInfo) => {
-	const day = futureWeekday(testInfo.retry);
+}) => {
+	const day = futureWeekday();
 	const appointment = await seedAppointment({
 		status: 'pending',
 		start: new Date(`${day}T14:00:00Z`)

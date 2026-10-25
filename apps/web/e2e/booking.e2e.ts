@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support/test.ts';
 import { readAppointment, readQueuedWorkflows } from './support/database.ts';
 import { CHAT_MEETING } from './support/seed.ts';
 import { pickFirstBookableDay, pickSlotFromEndOfDay } from './support/wizard.ts';
@@ -11,8 +11,7 @@ test('a guest books a meeting from the home page', async ({ page }) => {
 	await pickFirstBookableDay(page);
 
 	await expect(page.getByRole('heading', { name: 'Step 2 of 3: Pick a time' })).toBeVisible();
-	// A booked slot is gone for good, so each attempt must aim one slot further back.
-	await pickSlotFromEndOfDay(page, test.info().retry + test.info().repeatEachIndex);
+	await pickSlotFromEndOfDay(page);
 	await page.getByRole('button', { name: 'Confirm' }).click();
 
 	await expect(page.getByRole('heading', { name: 'Step 3 of 3: Enter your info' })).toBeVisible();

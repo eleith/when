@@ -12,12 +12,11 @@ export const CHAT_MEETING = {
 	durationMinutes: 30
 };
 
-// Live rows are unique on (event_type_id, start_time), and workers are separate processes.
-// A month out so seeds never occupy the near days the booking spec picks from.
+// Live rows in the same test are unique on (event_type_id, start_time).
+// A month out so seeds do not occupy the near days a booking journey picks.
 let seedsInThisWorker = 0;
 function unusedStart(): Date {
-	const offsetSeconds = (process.pid % 10_000) * 10 + seedsInThisWorker++;
-	return new Date(Date.now() + 30 * DAY_MS + offsetSeconds * 1000);
+	return new Date(Date.now() + 30 * DAY_MS + seedsInThisWorker++ * MINUTE_MS);
 }
 
 export interface SeedAppointmentOptions {
@@ -44,7 +43,7 @@ export async function seedAppointment(options: SeedAppointmentOptions = {}): Pro
 				start_time: start.toISOString(),
 				end_time: new Date(start.getTime() + durationMinutes * MINUTE_MS).toISOString(),
 				guest_name: options.guestName ?? `Guest ${id.slice(4, 12)}`,
-				guest_email: options.guestEmail ?? 'guest@example.test',
+				guest_email: options.guestEmail === undefined ? 'guest@example.test' : options.guestEmail,
 				guest_answers: null,
 				guest_timezone: 'UTC',
 				location: null,

@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './support/test.ts';
 import { openDb } from '@when/db';
 import { signInAsAdmin } from './support/auth.ts';
 import { APP_DB_PATH, readAppointment } from './support/database.ts';

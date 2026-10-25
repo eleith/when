@@ -1,4 +1,4 @@
-import { expect, test, type Locator, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from './support/test.ts';
 import { signInAsAdmin } from './support/auth.ts';
 import { CHAT_MEETING, seedAppointment } from './support/seed.ts';
 

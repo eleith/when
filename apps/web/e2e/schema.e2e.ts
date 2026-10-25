@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support/test.ts';
 import { signInAsAdmin } from './support/auth.ts';
 
 test('schema.json is public, production-packaged, and independent of instance configuration', async ({

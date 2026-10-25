@@ -1,13 +1,33 @@
 import { DatabaseSync } from 'node:sqlite';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 import { findAppointment, openDb, type Appointment } from '@when/db';
 
-// The fixture config makes `e2e/fixture/` the deployment root, so both databases
-// land under its `data/` at the paths `database.app` and `database.queue` default to.
-export const APP_DB_PATH = fileURLToPath(new URL('../fixture/data/when.sqlite', import.meta.url));
-const QUEUE_DB_PATH = fileURLToPath(
-	new URL('../fixture/data/openworkflow.sqlite', import.meta.url)
-);
+import { workerDirectory } from './paths.ts';
+
+// Specs are also imported for collection, before global setup. Paths are only used
+// inside workers, where Playwright provides TEST_WORKER_INDEX and inherits the run dir.
+const dataDirectory =
+	process.env.TEST_WORKER_INDEX === undefined ? '' : join(workerDirectory(), 'data');
+export const APP_DB_PATH = dataDirectory ? join(dataDirectory, 'when.sqlite') : '';
+const QUEUE_DB_PATH = dataDirectory ? join(dataDirectory, 'openworkflow.sqlite') : '';
+
+export function resetDatabases(): void {
+	workerDirectory(); // Fail rather than silently falling back to a developer database.
+	for (const [path, tables] of [
+		[APP_DB_PATH, ['appointments', 'external_calendar_busy', 'service_status']],
+		[QUEUE_DB_PATH, ['workflow_signals', 'workflow_schedules', 'step_attempts', 'workflow_runs']]
+	] as const) {
+		const db = new DatabaseSync(path);
+		try {
+			// Keep migration bookkeeping and schemas; no background worker runs in E2E.
+			db.exec('PRAGMA foreign_keys = ON; BEGIN; PRAGMA defer_foreign_keys = ON;');
+			for (const table of tables) db.exec(`DELETE FROM ${table}`);
+			db.exec('COMMIT');
+		} finally {
+			db.close();
+		}
+	}
+}
 
 /**
  * The stored row behind an appointment page. The pages render a lossy view of it —

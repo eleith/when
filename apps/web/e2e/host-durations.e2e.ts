@@ -1,27 +1,16 @@
-import { expect, test, type Page, type Request } from '@playwright/test';
+import { expect, test, type Page, type Request } from './support/test.ts';
 import { signInAsAdmin } from './support/auth.ts';
 import { readAppointment } from './support/database.ts';
 import { seedAppointment } from './support/seed.ts';
+import { futureWeekday } from './support/dates.ts';
 
 const slug = 'host-durations';
 const hostDurations = [15, 25, 30, 45, 60, 90, 120, 180, 240, 300];
-const postOptions = {
-	headers: { origin: 'http://localhost:4183', accept: 'application/json' },
+const postOptions = (origin: string) => ({
+	headers: { origin, accept: 'application/json' },
 	maxRedirects: 0
-};
+});
 const forgedHost = { role: 'host', viewer: 'host', isAdmin: 'true' };
-
-function futureWeekday(offset: number, retry: number): string {
-	const date = new Date();
-	date.setUTCDate(date.getUTCDate() + offset);
-	for (let attempt = 0; attempt <= retry; attempt++) {
-		if (attempt > 0) date.setUTCDate(date.getUTCDate() + 1);
-		while (date.getUTCDay() === 0 || date.getUTCDay() === 6) {
-			date.setUTCDate(date.getUTCDate() + 1);
-		}
-	}
-	return date.toISOString().slice(0, 10);
-}
 
 function durationTrigger(page: Page, current: number) {
 	return page.getByRole('button', {
@@ -38,10 +27,11 @@ async function chooseDuration(page: Page, current: number, next: number): Promis
 }
 
 test('host uses the configured default and finite palette, recovering locally from no availability', async ({
+	baseURL,
 	page,
 	request
-}, testInfo) => {
-	const day = futureWeekday(14, testInfo.retry);
+}) => {
+	const day = futureWeekday();
 	await signInAsAdmin(page);
 	await page.goto(`/schedule/${slug}?date=${day}`);
 	await expect(durationTrigger(page, 60)).toBeVisible();
@@ -104,7 +94,7 @@ test('host uses the configured default and finite palette, recovering locally fr
 	for (const client of [request, page.request]) {
 		// Neither a forged current length nor a real host cookie promotes the public action.
 		const rejected = await client.post(`/schedule/${slug}`, {
-			...postOptions,
+			...postOptions(baseURL!),
 			form: { ...form, ...forgedHost, currentDuration: '90' }
 		});
 		const result = await rejected.json();
@@ -128,11 +118,11 @@ test('host uses the configured default and finite palette, recovering locally fr
 });
 
 test('rescheduling defaults to the trusted current 90 for both roles and omission preserves it', async ({
+	baseURL,
 	page,
 	request
-}, testInfo) => {
-	// Between the existing host-availability cases at roughly 40 and 50 days.
-	const day = futureWeekday(45, testInfo.retry);
+}) => {
+	const day = futureWeekday();
 	const original = await seedAppointment({
 		eventTypeId: slug,
 		status: 'confirmed',
@@ -162,11 +152,11 @@ test('rescheduling defaults to the trusted current 90 for both roles and omissio
 		reschedule_reason: 'Keep the booked length at a new time'
 	};
 	const forged = { ...form, ...forgedHost, currentDuration: '120', duration: '120' };
-	const rejected = await request.post(publicPath, { ...postOptions, form: forged });
+	const rejected = await request.post(publicPath, { ...postOptions(baseURL!), form: forged });
 	const rejectedResult = await rejected.json();
 	expect(rejectedResult).toMatchObject({ type: 'failure', status: 400 });
 	const sameStart = await request.post(publicPath, {
-		...postOptions,
+		...postOptions(baseURL!),
 		form: { ...form, slot: original.start_time, duration: '25' }
 	});
 	const sameStartResult = await sameStart.json();
@@ -180,11 +170,14 @@ test('rescheduling defaults to the trusted current 90 for both roles and omissio
 		hostDurations.map((duration) => `${duration} minutes`)
 	);
 	await dialog.getByRole('button', { name: 'Close', exact: true }).click();
-	const hostOnPublic = await page.request.post(publicPath, { ...postOptions, form: forged });
+	const hostOnPublic = await page.request.post(publicPath, {
+		...postOptions(baseURL!),
+		form: forged
+	});
 	const hostOnPublicResult = await hostOnPublic.json();
 	expect(hostOnPublicResult).toMatchObject({ type: 'failure', status: 400 });
 	const hostSameStart = await page.request.post(`/admin/appointment/${original.id}/reschedule`, {
-		...postOptions,
+		...postOptions(baseURL!),
 		form: { ...form, slot: original.start_time, duration: '25' }
 	});
 	const hostSameStartResult = await hostSameStart.json();
@@ -194,13 +187,13 @@ test('rescheduling defaults to the trusted current 90 for both roles and omissio
 
 	// Omit duration entirely; even a forged currentDuration must not replace the row's length.
 	const moved = await request.post(publicPath, {
-		...postOptions,
+		...postOptions(baseURL!),
 		form: { ...form, ...forgedHost, currentDuration: '120' }
 	});
 	const redirect = await moved.json();
 	expect(redirect).toMatchObject({ type: 'redirect', status: 303 });
 	expect(redirect.location).toMatch(/^\/appointment\/[^/?]+\?token=.+/);
-	const id = new URL(redirect.location, 'http://localhost:4183').pathname.split('/').at(-1)!;
+	const id = new URL(redirect.location, baseURL!).pathname.split('/').at(-1)!;
 	expect(id).not.toBe(original.id);
 	const old = await readAppointment(original.id);
 	const next = await readAppointment(id);
@@ -222,10 +215,11 @@ test('rescheduling defaults to the trusted current 90 for both roles and omissio
 });
 
 test('guest can change a booked host-only 90 to configured 25, but cannot invent 75', async ({
+	baseURL,
 	page,
 	request
-}, testInfo) => {
-	const day = futureWeekday(24, testInfo.retry);
+}) => {
+	const day = futureWeekday();
 	const original = await seedAppointment({
 		eventTypeId: slug,
 		status: 'confirmed',
@@ -235,7 +229,7 @@ test('guest can change a booked host-only 90 to configured 25, but cannot invent
 	const publicPath = `/appointment/${original.id}/reschedule`;
 	const reason = 'Use the shorter configured length';
 	const rejected = await request.post(publicPath, {
-		...postOptions,
+		...postOptions(baseURL!),
 		form: {
 			slot: `${day}T10:30:00Z`,
 			duration: '75',
@@ -287,10 +281,11 @@ test('guest can change a booked host-only 90 to configured 25, but cannot invent
 });
 
 test('an empty weekend timeline keeps its duration toolbar usable without fetching', async ({
+	baseURL,
 	page
-}, testInfo) => {
+}) => {
 	const saturday = new Date();
-	saturday.setUTCDate(saturday.getUTCDate() + 7 + testInfo.retry * 7);
+	saturday.setUTCDate(saturday.getUTCDate() + 7);
 	while (saturday.getUTCDay() !== 6) {
 		saturday.setUTCDate(saturday.getUTCDate() + 1);
 	}
@@ -300,7 +295,7 @@ test('an empty weekend timeline keeps its duration toolbar usable without fetchi
 		{
 			name: 'tz',
 			value: encodeURIComponent('Pacific/Kiritimati'),
-			url: 'http://localhost:4183'
+			url: baseURL!
 		}
 	]);
 	// Friday's UTC window reaches Saturday here, letting the public UI open that day.
@@ -345,8 +340,8 @@ test('an empty weekend timeline keeps its duration toolbar usable without fetchi
 
 test('client navigation between meeting slugs replaces duration defaults, choices and maps', async ({
 	page
-}, testInfo) => {
-	const day = futureWeekday(20, testInfo.retry);
+}) => {
+	const day = futureWeekday();
 	await signInAsAdmin(page);
 	await page.goto(`/schedule/${slug}?date=${day}`);
 	await chooseDuration(page, 60, 90);
@@ -386,8 +381,8 @@ test('client navigation between meeting slugs replaces duration defaults, choice
 
 test('an enhanced host booking conflict preserves entered fields and the chosen length', async ({
 	page
-}, testInfo) => {
-	const day = futureWeekday(34, testInfo.retry);
+}) => {
+	const day = futureWeekday();
 	await signInAsAdmin(page);
 	await page.goto(`/schedule/${slug}?date=${day}`);
 	await chooseDuration(page, 60, 90);

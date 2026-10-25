@@ -1,27 +1,16 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './support/test.ts';
 import { parseActionLog } from '@when/db';
 import { signInAsAdmin } from './support/auth.ts';
 import { readAppointment, readQueuedWorkflows } from './support/database.ts';
 import { seedAppointment } from './support/seed.ts';
+import { futureWeekday } from './support/dates.ts';
 
-const postOptions = {
-	headers: { origin: 'http://localhost:4183', accept: 'application/json' },
+const postOptions = (origin: string) => ({
+	headers: { origin, accept: 'application/json' },
 	maxRedirects: 0
-};
+});
 const savedWarning =
 	'The duration was saved, but calendar and email update submission could not be confirmed.';
-
-function futureWeekday(offset: number, retry: number): string {
-	const date = new Date();
-	date.setUTCDate(date.getUTCDate() + offset);
-	for (let attempt = 0; attempt <= retry; attempt++) {
-		if (attempt > 0) date.setUTCDate(date.getUTCDate() + 1);
-		while (date.getUTCDay() === 0 || date.getUTCDay() === 6) {
-			date.setUTCDate(date.getUTCDate() + 1);
-		}
-	}
-	return date.toISOString().slice(0, 10);
-}
 
 function durationAction(id: string): string {
 	return `/admin/appointment/${id}?/changeDuration`;
@@ -35,12 +24,12 @@ async function openDurationEditor(page: Page) {
 	return dialog;
 }
 
-// Evening intervals keep these edits disjoint from the older daytime scheduling cases.
 test('host extends in place outside working hours, touching a neighbor despite buffers and cap', async ({
+	baseURL,
 	page,
 	request
 }, testInfo) => {
-	const day = futureWeekday(17, testInfo.retry);
+	const day = futureWeekday();
 	const original = await seedAppointment({
 		eventTypeId: 'host-rules',
 		status: 'confirmed',
@@ -58,7 +47,7 @@ test('host extends in place outside working hours, touching a neighbor despite b
 	await expect(page.getByRole('dialog', { name: 'Change duration', exact: true })).toHaveCount(0);
 	await page.keyboard.press('Escape');
 	const forbidden = await request.post(actionPath, {
-		...postOptions,
+		...postOptions(baseURL!),
 		form: { duration: '90', token: original.cancel_token, role: 'host', isAdmin: 'true' }
 	});
 	expect(forbidden.status()).toBe(403);
@@ -130,9 +119,10 @@ test('host extends in place outside working hours, touching a neighbor despite b
 });
 
 test('actual overlap stays inline and the same dialog can shorten to configured 25, not invented 75', async ({
+	baseURL,
 	page
-}, testInfo) => {
-	const day = futureWeekday(28, testInfo.retry);
+}) => {
+	const day = futureWeekday();
 	const original = await seedAppointment({
 		eventTypeId: 'host-durations',
 		status: 'confirmed',
@@ -147,7 +137,7 @@ test('actual overlap stays inline and the same dialog can shorten to configured 
 	const actionPath = durationAction(original.id);
 	await signInAsAdmin(page);
 	const unsupported = await page.request.post(actionPath, {
-		...postOptions,
+		...postOptions(baseURL!),
 		form: {
 			duration: '75',
 			currentDuration: '75',
@@ -203,7 +193,7 @@ test('actual overlap stays inline and the same dialog can shorten to configured 
 	expect(unchangedNeighbor).toEqual(neighbor);
 
 	const noOp = await page.request.post(actionPath, {
-		...postOptions,
+		...postOptions(baseURL!),
 		form: { duration: '25', id: neighbor.id, start_time: `${day}T09:00:00Z` }
 	});
 	const noOpResult = await noOp.json();
@@ -217,6 +207,7 @@ test('actual overlap stays inline and the same dialog can shorten to configured 
 });
 
 test('in-progress edits require a future end; ended pending appointments have no editor', async ({
+	baseURL,
 	page
 }) => {
 	// Only this case uses a live interval: 15 ends five minutes ago, 30 ten minutes ahead.
@@ -273,7 +264,7 @@ test('in-progress edits require a future end; ended pending appointments have no
 	await expect(page.getByRole('menuitem', { name: 'Change duration', exact: true })).toHaveCount(0);
 	await expect(page.getByRole('dialog', { name: 'Change duration', exact: true })).toHaveCount(0);
 	const gated = await page.request.post(durationAction(endedPending.id), {
-		...postOptions,
+		...postOptions(baseURL!),
 		form: { duration: '90' }
 	});
 	const gatedResult = await gated.json();
@@ -286,7 +277,7 @@ test('in-progress edits require a future end; ended pending appointments have no
 test('a saved-warning receipt waits for explicit reload and cannot blindly resubmit', async ({
 	page
 }, testInfo) => {
-	const day = futureWeekday(38, testInfo.retry);
+	const day = futureWeekday();
 	const original = await seedAppointment({
 		eventTypeId: 'host-rules',
 		status: 'confirmed',
@@ -364,8 +355,8 @@ test('a saved-warning receipt waits for explicit reload and cannot blindly resub
 
 test('an aborted action reports uncertainty, not rollback, and never automatically repeats', async ({
 	page
-}, testInfo) => {
-	const day = futureWeekday(8, testInfo.retry);
+}) => {
+	const day = futureWeekday();
 	const original = await seedAppointment({
 		eventTypeId: 'host-rules',
 		status: 'confirmed',
@@ -404,8 +395,8 @@ test('an aborted action reports uncertainty, not rollback, and never automatical
 
 test('known saved survives unavailable refresh until the user explicitly acknowledges it', async ({
 	page
-}, testInfo) => {
-	const day = futureWeekday(55, testInfo.retry);
+}) => {
+	const day = futureWeekday();
 	const original = await seedAppointment({
 		eventTypeId: 'host-rules',
 		status: 'confirmed',
