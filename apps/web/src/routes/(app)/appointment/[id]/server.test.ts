@@ -4,7 +4,6 @@ import { validConfig } from '$lib/server/__fixtures__/valid-config';
 import type { Appointment } from '@when/db';
 import type { AppointmentRole } from '$lib/server/appointment/actions';
 import { resolveBookingDurations } from '$lib/server/appointment/duration';
-import { toPublicEventType } from '$lib/server/appointment/sanitize';
 
 const h = vi.hoisted(() => ({ cancelAppointment: vi.fn() }));
 
@@ -12,10 +11,6 @@ vi.mock('$lib/server/appointment/cancel', () => ({ cancelAppointment: h.cancelAp
 vi.mock('$lib/server/appointment/duration', async (importOriginal) => {
 	const original = await importOriginal<typeof import('$lib/server/appointment/duration')>();
 	return { ...original, resolveBookingDurations: vi.fn(original.resolveBookingDurations) };
-});
-vi.mock('$lib/server/appointment/sanitize', async (importOriginal) => {
-	const original = await importOriginal<typeof import('$lib/server/appointment/sanitize')>();
-	return { ...original, toPublicEventType: vi.fn(original.toPublicEventType) };
 });
 
 beforeEach(() => vi.clearAllMocks());
@@ -48,9 +43,21 @@ const mockAppt: Appointment = {
 	calendar_synced_revision: null,
 	has_possible_conflict: 0,
 	ics_sequence: 0,
-	meeting_snapshot: JSON.stringify(validConfig.meetings['30-min-chat']),
+	meeting_snapshot: JSON.stringify({
+		title: validConfig.meetings['30-min-chat'].title,
+		duration_minutes: 30,
+		description: validConfig.meetings['30-min-chat'].description,
+		slug: '30-min-chat'
+	}),
 	created_at: '',
 	updated_at: ''
+};
+
+const unusableSnapshots: Record<string, string | null> = {
+	'appt-deleted-no-snapshot': null,
+	'appt-deleted-invalid-json': '{broken',
+	'appt-deleted-invalid-title': JSON.stringify({ title: 42 }),
+	'appt-deleted-primitive': 'null'
 };
 
 const bookedAppointment: Appointment = {
@@ -181,7 +188,21 @@ vi.mock('@when/db', async (importOriginal) => {
 					start_time: '2020-01-01T00:00:00Z',
 					end_time: '2099-01-01T00:00:00Z'
 				};
-			if (id === 'appt-deleted') return { ...mockAppt, id: 'appt-deleted', event_type_id: 'gone' };
+			if (id === 'appt-deleted')
+				return {
+					...mockAppt,
+					id,
+					event_type_id: 'gone',
+					video_chat_request: 'generate',
+					end_time: bookedAppointment.end_time
+				};
+			if (id in unusableSnapshots)
+				return {
+					...mockAppt,
+					id,
+					event_type_id: 'gone',
+					meeting_snapshot: unusableSnapshots[id]
+				};
 			return chain[id] ?? null;
 		},
 		findChainTip: async (_db: unknown, origin: string) =>
@@ -226,16 +247,11 @@ describe('/appointment/[id] server load', () => {
 			expect(resolveBookingDurations).toHaveBeenCalledExactlyOnceWith(meeting, role, row);
 			expect(vi.mocked(resolveBookingDurations).mock.calls[0][2]).toBe(row);
 			const bookingDurations = vi.mocked(resolveBookingDurations).mock.results[0].value;
-			expect(toPublicEventType).toHaveBeenCalledExactlyOnceWith(
-				row.event_type_id,
-				meeting,
-				role,
-				bookingDurations
-			);
-			expect(vi.mocked(toPublicEventType).mock.calls[0][3]).toBe(bookingDurations);
-			expect(result.eventType.duration_minutes).toBe(90);
-			expect(result.eventType.durations).toBe(bookingDurations.durations);
-			expect(result.eventType.durations).toContain(90);
+			expect(result.bookingDurations).toBe(bookingDurations);
+			expect(result.bookingDurations?.defaultDuration).toBe(90);
+			expect(result.bookingDurations?.durations).toContain(90);
+			expect(result.meeting).toEqual({ title: meeting.title, description: meeting.description });
+			expect(result.meetingUnavailable).toBe(false);
 		}
 	);
 
@@ -284,7 +300,7 @@ describe('/appointment/[id] server load', () => {
 		} as unknown as Parameters<typeof load>[0])) as Exclude<Awaited<ReturnType<typeof load>>, void>;
 
 		expect(result.appointment.id).toBe('appt-1');
-		expect(result.eventType.slug).toBe('30-min-chat');
+		expect(result.meeting.title).toBe(validConfig.meetings['30-min-chat'].title);
 		expect(result.actions.cancel.allowed).toBe(true);
 	});
 
@@ -331,33 +347,40 @@ describe('/appointment/[id] server load', () => {
 		).rejects.toThrow();
 	});
 
-	test('renders for admin when event type is deleted from config (loads via snapshot)', async () => {
-		const mockLocals = {
-			auth: vi.fn().mockResolvedValue({ user: { name: 'admin' } })
-		};
-
-		const url = new URL('http://localhost/appointment/appt-deleted');
-		const mockCookies = {
-			get: vi.fn().mockReturnValue(undefined),
-			delete: vi.fn()
-		};
-
-		const result = (await load({
-			url,
-			locals: mockLocals,
-			params: { id: 'appt-deleted' },
-			cookies: mockCookies
-		} as unknown as Parameters<typeof load>[0])) as Exclude<Awaited<ReturnType<typeof load>>, void>;
-
+	test('shows the host real partial snapshot details without treating them as configuration', async () => {
+		const result = await loadAppointment('appt-deleted', null, 'host');
 		expect(result.appointment.id).toBe('appt-deleted');
-		// Should parse and return details from mockAppt.meeting_snapshot
-		expect(result.eventType.title).toBe('30 minute chat');
-		// Actions must be locked down to disabled
-		expect(result.actions.cancel.allowed).toBe(false);
-		expect(result.actions.reschedule.allowed).toBe(false);
-		// Delete must be allowed (constraints lifted)
+		expect(result.appointment.end_time).toBe(bookedAppointment.end_time);
+		expect(result.meeting).toEqual({
+			title: validConfig.meetings['30-min-chat'].title,
+			description: validConfig.meetings['30-min-chat'].description
+		});
+		expect(result.meetingUnavailable).toBe(true);
+		expect(result.bookingDurations).toBeNull();
+		expect(resolveBookingDurations).not.toHaveBeenCalled();
+		for (const action of [
+			'cancel',
+			'reschedule',
+			'accept',
+			'decline',
+			'generateVideoChat'
+		] as const) {
+			expect(result.actions[action].allowed).toBe(false);
+		}
+		expect(result.canEditDuration).toBe(false);
+		expect(result.calendarLinks).toBeNull();
+		expect(result.videoChatRequested).toBe(false);
 		expect(result.deleteCheck?.terminal).toBe(true);
 	});
+
+	test.for(Object.keys(unusableSnapshots))(
+		'returns a deliberate 404 for unusable snapshot %s',
+		async (id) => {
+			const response = loadAppointment(id, null, 'host');
+			await expect(response).rejects.toMatchObject({ status: 404 });
+			expect(resolveBookingDurations).not.toHaveBeenCalled();
+		}
+	);
 
 	test('computes clockStatus upcoming and builds calendarLinks for upcoming appointments', async () => {
 		const result = await loadAppointment('appt-1', 'tok-abc');

@@ -134,7 +134,10 @@
 		return status;
 	});
 	let isEditable = $derived(
-		displayStatus === 'pending' || displayStatus === 'confirmed' || displayStatus === 'in_progress'
+		!data.meetingUnavailable &&
+			(displayStatus === 'pending' ||
+				displayStatus === 'confirmed' ||
+				displayStatus === 'in_progress')
 	);
 	let stateTone = $derived.by(() => {
 		if (
@@ -199,6 +202,15 @@
 </svelte:head>
 
 <main class="page" class:has-cta={!!data.calendarLinks || showDecideCta}>
+	{#if data.meetingUnavailable}
+		<aside class="banner banner-danger" role="alert">
+			<span class="banner-icon"><IconWarningCircle aria-hidden="true" /></span>
+			<p class="banner-text">
+				This meeting type is no longer configured. Showing saved appointment details; booking and
+				editing actions are unavailable.
+			</p>
+		</aside>
+	{/if}
 	{#if form?.error}
 		<aside class="banner banner-danger" role="alert">
 			<span class="banner-icon"><IconWarningCircle aria-hidden="true" /></span>
@@ -291,9 +303,9 @@
 	<article class="card">
 		<section class="card-section card-section-header">
 			<div class="event-heading">
-				<h1 class="event-name">{data.eventType.title}</h1>
-				{#if data.eventType.description}
-					<p class="event-meta">{data.eventType.description}</p>
+				<h1 class="event-name">{data.meeting.title}</h1>
+				{#if data.meeting.description}
+					<p class="event-meta">{data.meeting.description}</p>
 				{/if}
 			</div>
 			{#if (hasActions || isHost) && status !== 'purged'}
@@ -575,12 +587,12 @@
 	{/if}
 </main>
 
-{#if data.canEditDuration}
+{#if data.canEditDuration && data.bookingDurations}
 	<DurationEditor
 		bind:open={editDurationDialogOpen}
 		appointmentId={data.appointment.id}
-		currentDuration={data.eventType.duration_minutes}
-		durations={data.eventType.durations}
+		currentDuration={data.bookingDurations.defaultDuration}
+		durations={data.bookingDurations.durations}
 	/>
 {/if}
 

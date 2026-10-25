@@ -17,7 +17,8 @@ import {
 	parseActionLog,
 	type Appointment
 } from '@when/db';
-import { toPublicAppointment, toPublicEventType } from '$lib/server/appointment/sanitize';
+import { toPublicAppointment } from '$lib/server/appointment/sanitize';
+import { readMeetingSnapshot } from '$lib/server/appointment/snapshot';
 import { resolveBookingDurations } from '$lib/server/appointment/duration';
 import type { Actions, PageServerLoad } from './$types';
 import { cancelAppointment } from '$lib/server/appointment/cancel';
@@ -60,20 +61,13 @@ export const load: PageServerLoad = async ({ params, url, locals, cookies }) => 
 	const cfg = getConfig();
 	const eventType = cfg.meetings[row.event_type_id];
 
-	let resolvedEventType = eventType;
-	if (!resolvedEventType && isHost && row.meeting_snapshot) {
-		try {
-			resolvedEventType = JSON.parse(row.meeting_snapshot);
-		} catch {
-			// fallback
-		}
-	}
+	if (!eventType && !isHost) error(404);
+	const meeting = eventType
+		? { title: eventType.title, description: eventType.description }
+		: readMeetingSnapshot(row.meeting_snapshot);
+	if (!meeting) error(404, 'Saved meeting details are unavailable.');
 
-	if (!resolvedEventType) {
-		error(404);
-	}
-
-	let actions = resolveAppointmentActions({ row, role, now, eventType: resolvedEventType });
+	let actions = resolveAppointmentActions({ row, role, now, eventType });
 	if (!eventType) {
 		actions = {
 			cancel: { allowed: false, reason: 'terminal_status' },
@@ -90,9 +84,9 @@ export const load: PageServerLoad = async ({ params, url, locals, cookies }) => 
 	const bookedUrl = `${url.origin}/appointment/${row.id}${tokenEnc ? `?token=${tokenEnc}` : ''}`;
 	const icsUrl = `${url.origin}/appointment/${row.id}/ics${tokenEnc ? `?token=${tokenEnc}` : ''}`;
 
-	const eventName = resolvedEventType?.title ?? row.event_type_id;
+	const eventName = meeting.title;
 	const calendarLinks =
-		row.status === 'confirmed' && clockStatus !== 'concluded'
+		eventType && row.status === 'confirmed' && clockStatus !== 'concluded'
 			? buildAddToCalendarLinks(
 					{
 						start: row.start_time,
@@ -129,17 +123,20 @@ export const load: PageServerLoad = async ({ params, url, locals, cookies }) => 
 		: false;
 	const videoChatRequested =
 		isHost &&
+		Boolean(eventType) &&
 		isActiveStatus(row.status) &&
 		!row.video_chat &&
 		row.video_chat_request !== 'suppress' &&
 		(row.video_chat_request === 'generate' || automaticVideoChat);
 
-	const bookingDurations = resolveBookingDurations(resolvedEventType, role, row);
+	const bookingDurations = eventType ? resolveBookingDurations(eventType, role, row) : null;
 
 	return {
 		appointment,
 		videoChatRequested,
-		eventType: toPublicEventType(row.event_type_id, resolvedEventType, role, bookingDurations),
+		meeting,
+		meetingUnavailable: !eventType,
+		bookingDurations,
 		canEditDuration: isHost && Boolean(eventType) && isEditAllowed(row, now),
 		calendarLinks,
 		actions,
