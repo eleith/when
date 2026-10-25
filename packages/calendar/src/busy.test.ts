@@ -38,7 +38,7 @@ BEGIN:VEVENT
 UID:other-party-1
 DTSTAMP:20260101T000000Z
 DTSTART:20260415T140000Z
-DTEND:20260415T150000Z
+DTEND:20260415T153000Z
 SUMMARY:Other
 END:VEVENT
 END:VCALENDAR</C:calendar-data>
@@ -62,6 +62,7 @@ test('drops our own event by uid but keeps a genuine event at the same time', as
 	});
 	expect(intervals).toHaveLength(1);
 	expect(intervals[0].start.toString()).toBe('2026-04-15T14:00:00Z');
+	expect(intervals[0].end.toString()).toBe('2026-04-15T15:30:00Z');
 });
 
 test('propagates a provider failure to the caller', async () => {

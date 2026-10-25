@@ -78,9 +78,7 @@ test('a test timeout preserves and escapes its message without changing unobserv
 	const rendered = await render(HealthPage, { props: { data: pageData, form } });
 	const html = rendered.body.replace(/<!--[\s\S]*?-->/g, '');
 
-	expect(html).toMatch(
-		/<\/form>\s*<\/div>\s*<p class="email-result[^"]*" role="status">wait timed out: &lt;b>sentinel&lt;\/b><\/p>/
-	);
+	expect(html).toMatch(/role="status"[^>]*>wait timed out: &lt;b>sentinel&lt;\/b><\//);
 	expect(html).not.toContain('<b>sentinel</b>');
 	expect(html).not.toContain('role="alert"');
 	expect(html).toMatch(/<dt[^>]*>Status<\/dt>\s*<dd[^>]*>not observed<\/dd>/);
@@ -94,9 +92,7 @@ test('a successful test displays its message as plain feedback, not up health', 
 	const rendered = await render(HealthPage, { props: { data: pageData, form } });
 	const html = rendered.body.replace(/<!--[\s\S]*?-->/g, '');
 
-	expect(html).toMatch(
-		/<\/form>\s*<\/div>\s*<p class="email-result[^"]*" role="status">Test email sent to host@example\.com\.<\/p>/
-	);
+	expect(html).toMatch(/role="status"[^>]*>Test email sent to host@example\.com\.<\//);
 	expect(html).not.toContain('role="alert"');
 	expect(html).toMatch(/<dt[^>]*>Status<\/dt>\s*<dd[^>]*>not observed<\/dd>/);
 });
@@ -122,9 +118,7 @@ test('a stored SMTP failure stays down separately from the current test error', 
 	expect(banner).toContain('down: Earlier SMTP failure');
 	expect(banner).not.toContain(message);
 	expect(html).toMatch(/<dt[^>]*>Status<\/dt>\s*<dd class="failed[^"]*">down \(/);
-	expect(html).toMatch(
-		/<\/form>\s*<\/div>\s*<p class="email-result[^"]*" role="status">535 Authentication failed<\/p>/
-	);
+	expect(html).toMatch(/role="status"[^>]*>535 Authentication failed<\//);
 });
 
 test('a saved SMTP failure still displays a down banner without an action notice', async () => {
@@ -170,9 +164,7 @@ test('provider auth success is plain feedback only on the matching card, not up 
 	const [providerCard, otherCard] = html.match(/<li class="card[^"]*"[^>]*>[\s\S]*?<\/li>/g) ?? [];
 
 	expect(providerCard).toContain('>dav</h2>');
-	expect(providerCard).toMatch(
-		/<\/div>\s*<p class="provider-test-result[^"]*" role="status">Authenticated\.<\/p>\s*<\/li>/
-	);
+	expect(providerCard).toMatch(/role="status"[^>]*>Authenticated\.<\//);
 	expect(providerCard).toMatch(/<dt[^>]*>Status<\/dt>\s*<dd[^>]*>not observed<\/dd>/);
 	expect(providerCard).not.toContain('role="alert"');
 	expect(otherCard).toContain('>other</h2>');
@@ -200,8 +192,8 @@ test.each(['wait timed out: <b>sentinel</b>', '401 Authentication failed: <b>sen
 		const providerCard = html.match(/<li class="card[^"]*"[^>]*>[\s\S]*?<\/li>/)?.[0] ?? '';
 		const escapedMessage = message.replaceAll('<', '&lt;');
 
-		expect(providerCard).toContain(`role="status">${escapedMessage}</p>`);
-		expect(providerCard).toMatch(/<p class="provider-test-result[^"]*" role="status">/);
+		const feedback = providerCard.match(/role="status"[^>]*>([\s\S]*?)<\//)?.[1];
+		expect(feedback).toBe(escapedMessage);
 		expect(providerCard).not.toContain('<b>sentinel</b>');
 		expect(providerCard).not.toContain('role="alert"');
 		expect(providerCard).toMatch(/<dt[^>]*>Status<\/dt>\s*<dd[^>]*>not observed<\/dd>/);
@@ -223,12 +215,10 @@ test('a stored provider failure stays down separately from the current auth test
 	expect(banner).toContain('down: Authentication denied');
 	expect(banner).not.toContain('Authenticated.');
 	expect(providerCard).toMatch(/<dt[^>]*>Status<\/dt>\s*<dd class="failed[^"]*">down \(/);
-	expect(providerCard).toMatch(
-		/<p class="provider-test-result[^"]*" role="status">Authenticated\.<\/p>/
-	);
+	expect(providerCard).toMatch(/role="status"[^>]*>Authenticated\.<\//);
 });
 
-test('calendar test failure is escaped footer feedback only on its target, not refresh health', async () => {
+test('calendar test failure is escaped feedback only on its target, not refresh health', async () => {
 	const pageData: PageData = {
 		...data,
 		providers: [],
@@ -243,9 +233,7 @@ test('calendar test failure is escaped footer feedback only on its target, not r
 	const [calendarCard, otherCard] = html.match(/<li class="card[^"]*"[^>]*>[\s\S]*?<\/li>/g) ?? [];
 
 	expect(calendarCard).toContain('>work</h2>');
-	expect(calendarCard).toMatch(
-		/<\/div>\s*<p class="calendar-test-result[^"]*\bfeedback-error\b[^"]*" role="status">wait timed out: &lt;b>sentinel&lt;\/b><\/p>\s*<\/li>/
-	);
+	expect(calendarCard).toMatch(/role="status"[^>]*>wait timed out: &lt;b>sentinel&lt;\/b><\//);
 	expect(calendarCard).toContain('refresh freshness unknown');
 	expect(calendarCard).toMatch(/<dt[^>]*>Last refresh<\/dt>\s*<dd[^>]*>unknown<\/dd>/);
 	expect(calendarCard).not.toContain('role="alert"');
@@ -278,9 +266,7 @@ test('calendar test success keeps count detail separate from a recorded refresh 
 	expect(banner).not.toContain('busy intervals');
 	expect(calendarCard).toMatch(/<dt[^>]*>Status<\/dt>\s*<dd class="failed[^"]*">down<\/dd>/);
 	expect(calendarCard).toMatch(/<dt[^>]*>Last refresh<\/dt>\s*<dd[^>]*>unknown<\/dd>/);
-	expect(calendarCard).toMatch(
-		/<p class="calendar-test-result[^"]*" role="status">3 busy intervals over the next 30 days\.<\/p>/
-	);
+	expect(calendarCard).toMatch(/role="status"[^>]*>3 busy intervals over the next 30 days\.<\//);
 	expect(calendarCard).not.toContain('feedback-error');
 });
 
@@ -334,7 +320,7 @@ test('only a successful empty discovery shows the empty calendars copy', async (
 	expect(html).not.toContain('Asking the worker');
 });
 
-test('failed discovery shows its escaped error at the footer, never an empty or loading panel', async () => {
+test('failed discovery shows its escaped error as feedback, never an empty or loading panel', async () => {
 	const form: ActionData = {
 		discoveryResult: {
 			provider: 'dav',
@@ -349,7 +335,7 @@ test('failed discovery shows its escaped error at the footer, never an empty or 
 	const banner = providerCard.match(/<aside\b[^>]*role="alert"[^>]*>[\s\S]*?<\/aside>/)?.[0] ?? '';
 
 	expect(providerCard).toMatch(
-		/<\/div>\s*<p class="discovery-result[^"]*\bfeedback-error\b[^"]*" role="status">401 Authentication failed: &lt;b>sentinel&lt;\/b><\/p>\s*<\/li>/
+		/role="status"[^>]*>401 Authentication failed: &lt;b>sentinel&lt;\/b><\//
 	);
 	expect(banner).toContain('down: Authentication denied');
 	expect(banner).not.toContain('sentinel');

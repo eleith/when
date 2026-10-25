@@ -1,17 +1,20 @@
-import { describe, expect, test, afterEach } from 'vitest';
-import { readFileSync, writeFileSync, unlinkSync } from 'node:fs';
+import { describe, expect, test, beforeEach, afterEach } from 'vitest';
+import { mkdtempSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { ConfigEditor } from './editor.js';
 
 describe('ConfigEditor', () => {
-	const tempPath = join(process.cwd(), 'temp-editor-test.yaml');
+	let tempDir: string;
+	let tempPath: string;
+
+	beforeEach(() => {
+		tempDir = mkdtempSync(join(tmpdir(), 'when-config-editor-'));
+		tempPath = join(tempDir, 'when.yaml');
+	});
 
 	afterEach(() => {
-		try {
-			unlinkSync(tempPath);
-		} catch {
-			/* ignore */
-		}
+		rmSync(tempDir, { recursive: true, force: true });
 	});
 
 	test('gets and sets nested values using dot notation', () => {
