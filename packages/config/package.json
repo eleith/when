@@ -8,6 +8,10 @@
 			"development": "./src/index.ts",
 			"types": "./dist/src/index.d.ts",
 			"import": "./dist/src/index.js"
+		},
+		"./schema.json": {
+			"development": "./src/config.schema.json",
+			"default": "./dist/src/config.schema.json"
 		}
 	},
 	"files": [
