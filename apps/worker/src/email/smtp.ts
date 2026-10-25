@@ -44,7 +44,15 @@ export function createMailer(config: WhenConfiguration, logger: Logger): Mailer 
 				logger.info('email sent');
 				return { ok: true };
 			} catch (err) {
-				logger.error({ error: String(err) }, 'SMTP send failed');
+				// Provider text can contain guest data; log only a validated SMTP failure code.
+				let responseCode: number | undefined;
+				if (err && typeof err === 'object' && 'responseCode' in err) {
+					const code = err.responseCode;
+					if (typeof code === 'number' && Number.isInteger(code) && code >= 400 && code <= 599) {
+						responseCode = code;
+					}
+				}
+				logger.error({ responseCode }, 'SMTP send failed');
 				return { ok: false, reason: String(err) };
 			}
 		}

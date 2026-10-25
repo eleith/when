@@ -1,7 +1,8 @@
-import { describe, expect, test, vi } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 import type { WhenConfiguration } from '@when/config';
-import { createMailer, isSecurePort } from './smtp.js';
-import { createLogger } from '../services/logger.js';
+import { createMailer } from './smtp.js';
+import type { Logger } from '../services/logger.js';
+import type { Envelope } from './recipients.js';
 
 interface TransportOptions {
 	secure: boolean;
@@ -26,12 +27,37 @@ vi.mock('nodemailer', () => ({
 const configForPort = (port: number) =>
 	({
 		user: { name: 'Jane Doe', email: 'owner@acme.test' },
-		smtp: { host: 'smtp.test', port, username: 'u', password: 'p' }
+		smtp: { host: 'smtp.test', port, username: 'u', password: 'p', from: 'bookings@acme.test' }
 	}) as unknown as WhenConfiguration;
 
+const logger = { info: vi.fn(), error: vi.fn() };
+const envelope: Envelope = {
+	to: 'guest@example.test',
+	subject: 'New appointment: chat with Booker McBookface',
+	text: 'Your appointment is confirmed.',
+	html: '<p>Your appointment is confirmed.</p>',
+	attachments: [
+		{
+			filename: 'invite.ics',
+			content: 'BEGIN:VCALENDAR\r\nEND:VCALENDAR',
+			contentType: 'text/calendar; method=REQUEST'
+		},
+		{
+			filename: 'logo.png',
+			content: 'cG5n',
+			contentType: 'image/png',
+			cid: 'brand-logo',
+			encoding: 'base64'
+		}
+	]
+};
+
+beforeEach(() => {
+	vi.clearAllMocks();
+});
+
 function mailerForPort(port: number) {
-	createTransport.mockClear();
-	createMailer(configForPort(port), createLogger());
+	createMailer(configForPort(port), logger as unknown as Logger);
 	return createTransport.mock.calls[0][0];
 }
 
@@ -44,35 +70,72 @@ describe('smtp', () => {
 		expect(mailerForPort(port)).toMatchObject({ secure: false, requireTLS: true });
 	});
 
-	test('isSecurePort is true only for 465', () => {
-		expect(isSecurePort(465)).toBe(true);
-		expect(isSecurePort(587)).toBe(false);
-		expect(isSecurePort(25)).toBe(false);
+	test('forwards the rendered envelope and attachments, returning success without logging identity', async () => {
+		const sendMail = vi.fn().mockResolvedValue({ accepted: [envelope.to], messageId: 'sent-id' });
+		createTransport.mockReturnValueOnce({ sendMail });
+		const mailer = createMailer(configForPort(587), logger as unknown as Logger);
+
+		const result = await mailer.send(envelope);
+
+		expect(createTransport).toHaveBeenCalledWith({
+			host: 'smtp.test',
+			port: 587,
+			secure: false,
+			requireTLS: true,
+			auth: { user: 'u', pass: 'p' }
+		});
+		expect(sendMail).toHaveBeenCalledExactlyOnceWith({
+			from: 'Jane Doe <bookings@acme.test>',
+			...envelope
+		});
+		expect(result).toEqual({ ok: true });
+		expect(logger.info).toHaveBeenCalledExactlyOnceWith('email sent');
+		expect(logger.error).not.toHaveBeenCalled();
 	});
 
-	test('createMailer builds a mailer from the smtp config', () => {
-		const mailer = createMailer(configForPort(587), createLogger());
-		expect(typeof mailer.send).toBe('function');
+	test('returns the provider failure but logs only its numeric SMTP status', async () => {
+		const response = `550 5.1.1 <${envelope.to}>: Recipient address rejected`;
+		const error = Object.assign(
+			new Error(`Can't send mail - all recipients were rejected: ${response}`),
+			{
+				code: 'EENVELOPE',
+				responseCode: 550,
+				response,
+				command: `RCPT TO:<${envelope.to}>`,
+				rejected: [envelope.to]
+			}
+		);
+		const sendMail = vi.fn().mockRejectedValue(error);
+		createTransport.mockReturnValueOnce({ sendMail });
+		const mailer = createMailer(configForPort(587), logger as unknown as Logger);
+
+		const result = await mailer.send(envelope);
+
+		expect(sendMail).toHaveBeenCalledTimes(1);
+		expect(result).toEqual({ ok: false, reason: String(error) });
+		expect(logger.error).toHaveBeenCalledExactlyOnceWith({ responseCode: 550 }, 'SMTP send failed');
+		expect(logger.info).not.toHaveBeenCalled();
 	});
 
-	test.for([true, false])('a send logs no guest identity (delivered: %s)', async (delivered) => {
-		createTransport.mockReturnValueOnce({
-			sendMail: () => (delivered ? undefined : Promise.reject(new Error('550 no such user')))
-		});
-		const logs: unknown[] = [];
-		const capture = (payload: unknown) => void logs.push(payload);
-		const mailer = createMailer(configForPort(587), {
-			info: capture,
-			error: capture
-		} as unknown as Parameters<typeof createMailer>[1]);
+	test.each([
+		{ name: 'a connection failure without SMTP status', error: new Error('connect ECONNREFUSED') },
+		{
+			name: 'a provider failure with private text in its status',
+			error: Object.assign(new Error(`Recipient ${envelope.to} rejected`), {
+				responseCode: `550 ${envelope.to}`
+			})
+		}
+	])('logs no unsafe metadata for $name, preserving its detailed reason', async ({ error }) => {
+		createTransport.mockReturnValueOnce({ sendMail: vi.fn().mockRejectedValue(error) });
+		const mailer = createMailer(configForPort(587), logger as unknown as Logger);
 
-		await mailer.send({
-			to: 'guest@example.test',
-			subject: 'New appointment: chat with Booker McBookface',
-			text: 'body'
-		});
+		const result = await mailer.send(envelope);
 
-		expect(JSON.stringify(logs)).not.toContain('guest@example.test');
-		expect(JSON.stringify(logs)).not.toContain('Booker McBookface');
+		expect(result).toEqual({ ok: false, reason: String(error) });
+		expect(logger.error).toHaveBeenCalledExactlyOnceWith(
+			{ responseCode: undefined },
+			'SMTP send failed'
+		);
+		expect(logger.info).not.toHaveBeenCalled();
 	});
 });
