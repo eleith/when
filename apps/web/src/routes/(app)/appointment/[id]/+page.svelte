@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Dialog } from 'bits-ui';
-	import { deserialize } from '$app/forms';
+	import { applyAction, deserialize, enhance } from '$app/forms';
+	import type { SubmitFunction } from '@sveltejs/kit';
 	import { invalidateAll } from '$app/navigation';
 	import { tick } from 'svelte';
 	import IconCalendarBlank from 'virtual:icons/ph/calendar-blank';
@@ -14,16 +15,22 @@
 	import IconVideo from 'virtual:icons/ph/video-conference';
 	import AppointmentActions from '$lib/components/AppointmentActions.svelte';
 	import DurationEditor from '$lib/components/DurationEditor.svelte';
+	import CharacterCount from '$lib/components/CharacterCount.svelte';
 	import AppointmentLog from '$lib/components/AppointmentLog.svelte';
 	import AppointmentQuestions from '$lib/components/AppointmentQuestions.svelte';
 	import AddToCalendar from '$lib/components/AddToCalendar.svelte';
 	import { formatDateShort, formatWeekday, formatTimeRange, formatTzShort } from '$lib/datetime';
+	import { LIMIT_LONG, LIMIT_REASON } from '$lib/forms/validation';
 
 	let { data, form } = $props();
 
 	const isHost = $derived(data.role === 'host');
 
 	let cancelDialogOpen = $state(false);
+	let declineDialogOpen = $state(false);
+	let declining = $state(false);
+	let declineNote = $state('');
+	let declineTextareaEl = $state<HTMLTextAreaElement | null>(null);
 	let editNoteDialogOpen = $state(false);
 	let editLocationDialogOpen = $state(false);
 	let editVideoChatDialogOpen = $state(false);
@@ -38,6 +45,27 @@
 	let noteTextareaEl = $state<HTMLTextAreaElement | null>(null);
 	let locationInputEl = $state<HTMLInputElement | null>(null);
 	let videoChatInputEl = $state<HTMLInputElement | null>(null);
+
+	const submitDecline: SubmitFunction = ({ cancel }) => {
+		if (declining) {
+			cancel();
+			return;
+		}
+		declining = true;
+		return async ({ result, update }) => {
+			try {
+				if (result.type === 'failure') {
+					await applyAction(result);
+				} else {
+					// A cross-route success must also clear any earlier form error.
+					if (result.type === 'success') await applyAction(result);
+					await update();
+				}
+			} finally {
+				declining = false;
+			}
+		};
+	};
 
 	async function handleGenerateVideoChat() {
 		await submitVideoChatChange('generateVideoChat', new FormData());
@@ -84,6 +112,15 @@
 	});
 
 	$effect(() => {
+		if (declineDialogOpen) {
+			declineNote = '';
+			tick().then(() => {
+				declineTextareaEl?.focus();
+			});
+		}
+	});
+
+	$effect(() => {
 		if (editNoteDialogOpen) {
 			editNoteValue = data.appointment.note ?? '';
 			tick().then(() => {
@@ -115,6 +152,10 @@
 
 	$effect(() => {
 		if (data.appointment.status === 'cancelled') cancelDialogOpen = false;
+	});
+
+	$effect(() => {
+		if (data.appointment.status === 'declined') declineDialogOpen = false;
 	});
 
 	$effect(() => {
@@ -166,6 +207,7 @@
 	);
 
 	let cancelEntry = $derived(data.appointment.action_log.findLast((e) => e.action === 'cancel'));
+	let declineEntry = $derived(data.appointment.action_log.findLast((e) => e.action === 'decline'));
 	let rescheduleEntry = $derived(
 		data.appointment.action_log.findLast(
 			(e) => e.action === 'reschedule' && e.payload?.metadata?.next_id === data.appointment.id
@@ -173,7 +215,11 @@
 	);
 
 	let notes = $derived(
-		[status === 'cancelled' ? cancelEntry : undefined, rescheduleEntry]
+		[
+			status === 'cancelled' ? cancelEntry : undefined,
+			rescheduleEntry,
+			status === 'declined' ? declineEntry : undefined
+		]
 			.filter((e) => e?.payload?.note)
 			.map((e) => ({ actor: e!.actor, kind: e!.action, text: e!.payload!.note! }))
 	);
@@ -211,7 +257,7 @@
 			</p>
 		</aside>
 	{/if}
-	{#if form?.error}
+	{#if form?.error && !declineDialogOpen}
 		<aside class="banner banner-danger" role="alert">
 			<span class="banner-icon"><IconWarningCircle aria-hidden="true" /></span>
 			<p class="banner-text">{form.error}</p>
@@ -359,7 +405,7 @@
 						{#each notes as note, i (i)}
 							<div class="state-note-line">
 								{#if note.actor === 'host'}Host{:else if note.actor === 'guest'}Guest{:else}System{/if}:
-								{note.text}
+								<span class="state-note-text">{note.text}</span>
 							</div>
 						{/each}
 					</div>
@@ -559,13 +605,15 @@
 		{:else if showDecideCta}
 			<section class="card-section card-cta decide-cta">
 				{#if data.actions.decline.allowed}
-					<form
-						method="POST"
-						action="/admin/appointment/{data.appointment.id}?/decline"
-						class="decide-form"
-					>
-						<button type="submit" class="decide-btn decide-decline">Decline</button>
-					</form>
+					<div class="decide-form">
+						<button
+							type="button"
+							class="decide-btn decide-decline"
+							onclick={() => (declineDialogOpen = true)}
+						>
+							Decline
+						</button>
+					</div>
 				{/if}
 				{#if data.actions.accept.allowed}
 					<form
@@ -596,6 +644,86 @@
 	/>
 {/if}
 
+<Dialog.Root
+	bind:open={
+		() => declineDialogOpen,
+		(open) => {
+			if (!declining) declineDialogOpen = open;
+		}
+	}
+>
+	<Dialog.Portal>
+		<Dialog.Overlay>
+			{#snippet child({ props })}
+				<div {...props} class="dialog-overlay"></div>
+			{/snippet}
+		</Dialog.Overlay>
+		<Dialog.Content>
+			{#snippet child({ props })}
+				<div {...props} class="dialog-content cancel-dialog">
+					<Dialog.Title>
+						{#snippet child({ props: titleProps })}
+							<h2 {...titleProps} class="cancel-dialog-title">Decline appointment</h2>
+						{/snippet}
+					</Dialog.Title>
+
+					{#if form?.error}
+						<aside class="banner banner-danger" role="alert">
+							<span class="banner-icon"><IconWarningCircle aria-hidden="true" /></span>
+							<p class="banner-text">{form.error}</p>
+						</aside>
+					{/if}
+
+					<form
+						method="POST"
+						action="/admin/appointment/{data.appointment.id}?/decline"
+						use:enhance={submitDecline}
+						aria-busy={declining}
+					>
+						<Dialog.Description>
+							{#snippet child({ props: descriptionProps })}
+								<label {...descriptionProps} for="decline-note" class="note-label"
+									>Note (optional)</label
+								>
+							{/snippet}
+						</Dialog.Description>
+						<textarea
+							id="decline-note"
+							name="decline_note"
+							class="cancel-reason-input counted-input"
+							maxlength={LIMIT_REASON}
+							rows="3"
+							bind:value={declineNote}
+							bind:this={declineTextareaEl}
+							disabled={declining}
+						></textarea>
+						<div class="note-count">
+							<CharacterCount value={declineNote} limit={LIMIT_REASON} />
+						</div>
+						<div class="cancel-dialog-actions">
+							<button type="submit" class="dialog-btn-danger" disabled={declining}>
+								Decline
+							</button>
+							<Dialog.Close>
+								{#snippet child({ props: closeProps })}
+									<button
+										{...closeProps}
+										type="button"
+										class="dialog-btn-secondary"
+										disabled={declining}
+									>
+										Close
+									</button>
+								{/snippet}
+							</Dialog.Close>
+						</div>
+					</form>
+				</div>
+			{/snippet}
+		</Dialog.Content>
+	</Dialog.Portal>
+</Dialog.Root>
+
 <Dialog.Root bind:open={cancelDialogOpen}>
 	<Dialog.Portal>
 		<Dialog.Overlay>
@@ -608,20 +736,9 @@
 				<div {...props} class="dialog-content cancel-dialog">
 					<Dialog.Title>
 						{#snippet child({ props: titleProps })}
-							<h2 {...titleProps} class="cancel-dialog-title">
-								Provide your reason for cancelling
-							</h2>
+							<h2 {...titleProps} class="cancel-dialog-title">Cancel appointment</h2>
 						{/snippet}
 					</Dialog.Title>
-
-					<p class="cancel-dialog-desc">
-						{#if isHost}
-							<strong>{data.appointment.guest_name}</strong> will be notified by email. This can't be
-							undone.
-						{:else}
-							You'll both be notified by email. This can't be undone.
-						{/if}
-					</p>
 
 					<form
 						method="POST"
@@ -629,19 +746,30 @@
 							? `/admin/appointment/${data.appointment.id}?/cancel`
 							: `?token=${encodeURIComponent(data.token)}&/cancel`}
 					>
+						<Dialog.Description>
+							{#snippet child({ props: descriptionProps })}
+								<label {...descriptionProps} for="appointment-cancel-reason" class="note-label"
+									>Reason (required)</label
+								>
+							{/snippet}
+						</Dialog.Description>
 						<textarea
+							id="appointment-cancel-reason"
 							name="reason"
-							class="cancel-reason-input"
+							class="cancel-reason-input counted-input"
 							placeholder="I can no longer attend"
-							maxlength="500"
+							maxlength={LIMIT_REASON}
 							rows="3"
 							required
 							bind:value={cancelReason}
 							bind:this={reasonTextarea}
 						></textarea>
+						<div class="note-count">
+							<CharacterCount value={cancelReason} limit={LIMIT_REASON} />
+						</div>
 						<input type="hidden" name="token" value={data.token} />
 						<div class="cancel-dialog-actions">
-							<button type="submit" class="dialog-btn-danger">Submit</button>
+							<button type="submit" class="dialog-btn-danger">Cancel</button>
 							<Dialog.Close>
 								{#snippet child({ props: closeProps })}
 									<button {...closeProps} type="button" class="dialog-btn-secondary">Close</button>
@@ -673,21 +801,27 @@
 						{/snippet}
 					</Dialog.Title>
 
-					<p class="cancel-dialog-desc">
-						This note will be included in the calendar ICS and email notifications sent to the
-						guest.
-					</p>
-
 					<form method="POST" action="/admin/appointment/{data.appointment.id}?/edit">
+						<Dialog.Description>
+							{#snippet child({ props: descriptionProps })}
+								<label {...descriptionProps} for="appointment-note" class="note-label"
+									>Note (optional)</label
+								>
+							{/snippet}
+						</Dialog.Description>
 						<textarea
+							id="appointment-note"
 							name="note"
-							class="cancel-reason-input"
+							class="cancel-reason-input counted-input"
 							placeholder="e.g., Note or instructions for the guest"
-							maxlength="1000"
+							maxlength={LIMIT_LONG}
 							rows="5"
 							bind:value={editNoteValue}
 							bind:this={noteTextareaEl}
 						></textarea>
+						<div class="note-count">
+							<CharacterCount value={editNoteValue} limit={LIMIT_LONG} />
+						</div>
 						<div class="cancel-dialog-actions edit-note-actions">
 							<button type="submit" class="dialog-btn-primary">Save</button>
 							{#if data.appointment.note}
@@ -1305,6 +1439,22 @@
 		color: var(--when-color-text);
 	}
 
+	.note-label {
+		display: block;
+		margin-bottom: var(--space-2);
+		font-size: var(--font-size-sm);
+		font-weight: 600;
+		color: var(--color-text-secondary);
+	}
+
+	.counted-input {
+		margin-bottom: 0;
+	}
+
+	.note-count {
+		margin-bottom: var(--space-4);
+	}
+
 	.cancel-reason-input:focus {
 		outline: none;
 		border-color: var(--when-color-primary);
@@ -1464,6 +1614,10 @@
 
 	.state-note-line {
 		color: inherit;
+	}
+
+	.state-note-text {
+		white-space: pre-wrap;
 	}
 
 	:global(.questions-section[open] + .log-section) {

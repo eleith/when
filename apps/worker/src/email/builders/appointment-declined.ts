@@ -14,6 +14,7 @@ import {
 } from '../recipients.js';
 import type { EmailContent } from '../content.js';
 import type { AppointmentEmailInput } from '../types.js';
+import { parseActionLog } from '@when/db';
 
 export function appointmentDeclined(i: AppointmentEmailInput): AppointmentEmailMessage[] {
 	const a = i.appointment;
@@ -21,12 +22,14 @@ export function appointmentDeclined(i: AppointmentEmailInput): AppointmentEmailM
 	const eventName = eventTypeName(i.eventType, a);
 	const guestWhen = whenForGuest(i);
 	const hostWhen = whenForHost(i);
+	const decline = parseActionLog(a.action_log).findLast((e) => e.action === 'decline');
+	const noteParagraphs = decline?.payload?.note ? [`Note: ${decline.payload.note}`] : [];
 
 	const guest: EmailContent = {
 		brand,
 		subject: `Declined: ${eventName} with ${brand.name}`,
 		heading: 'Your appointment request was declined.',
-		paragraphs: [],
+		paragraphs: noteParagraphs,
 		rows: [
 			{ label: 'What', value: eventName },
 			{ label: 'When', value: guestWhen }
@@ -38,7 +41,7 @@ export function appointmentDeclined(i: AppointmentEmailInput): AppointmentEmailM
 		brand,
 		subject: `Declined: ${eventName} from ${a.guest_name}`,
 		heading: 'Appointment declined',
-		paragraphs: [`You declined the request from ${guestLabel(a)}.`],
+		paragraphs: [`You declined the request from ${guestLabel(a)}.`, ...noteParagraphs],
 		rows: [
 			{ label: 'What', value: eventName },
 			{ label: 'When', value: hostWhen },

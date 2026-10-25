@@ -110,7 +110,7 @@
 										</h1>
 										<% it.paragraphs.forEach(function (p) { %>
 										<p style="margin: 0 0 16px; font-size: 16px; line-height: 1.6; color: <%= it.theme.bodyText %>; word-break: break-word;">
-											<%= p %>
+											<span style="white-space: pre-line"><%= p %></span>
 										</p>
 										<% }) %> <% const rows = it.rows.filter(function (r) { return r.value; }); %> <% if
 										(rows.length) { %>

@@ -136,6 +136,21 @@ export function parseAndValidateAppointmentForm(
 	return { ok: true, data: { name, email, location, answers } };
 }
 
+export type ValidateDeclineNoteResult =
+	| { ok: true; note: string | undefined }
+	| { ok: false; error: string };
+
+export function validateDeclineNote(form: FormData): ValidateDeclineNoteResult {
+	const value = form.get('decline_note');
+	if (value === null) return { ok: true, note: undefined };
+	if (typeof value !== 'string') return { ok: false, error: 'Please enter a text note.' };
+	const note = cleanGuestText(value, true);
+	if (note.length > LIMIT_REASON) {
+		return { ok: false, error: `Decline note must be ${LIMIT_REASON} characters or fewer.` };
+	}
+	return { ok: true, note: note || undefined };
+}
+
 export type ReasonPurpose = 'cancelling' | 'rescheduling';
 
 export type ValidateReasonResult = { ok: true; reason: string } | { ok: false; error: string };

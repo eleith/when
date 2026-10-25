@@ -80,14 +80,19 @@ export function toPublicAppointment(row: Appointment, role: AppointmentRole): Pu
 	const isConfirmed = row.status === 'confirmed';
 
 	const publicLog = action_log
-		.filter((e) => e.action === 'cancel' || e.action === 'reschedule')
+		.filter(
+			(e) =>
+				e.action === 'cancel' ||
+				e.action === 'reschedule' ||
+				(row.status === 'declined' && e.action === 'decline')
+		)
 		.map((e) => ({
 			action: e.action,
 			actor: e.actor,
 			at: e.at,
 			payload: {
 				note: e.payload?.note || undefined,
-				metadata: e.payload?.metadata || undefined
+				metadata: e.action === 'decline' ? undefined : e.payload?.metadata || undefined
 			}
 		})) as ActionLogEntry[];
 

@@ -161,6 +161,133 @@ describe('toPublicEventType', () => {
 	});
 });
 
+describe('toPublicAppointment decline note privacy', () => {
+	const at = '2026-05-01T13:00:00Z';
+	const declineNote = 'Sorry, not this time.\nPlease try Friday — merci.';
+	const declineEntry = {
+		action: 'decline',
+		actor: 'host',
+		at,
+		payload: {
+			note: declineNote,
+			field: 'private-field',
+			from: 'private-before',
+			to: 'private-after',
+			metadata: { internal_id: 'private-id', token: 'private-token' }
+		}
+	};
+
+	test('exposes only the decline action, actor, time, and note to the declined guest', () => {
+		const row: Appointment = {
+			...baseRow,
+			status: 'declined',
+			action_log: JSON.stringify([
+				{ action: 'confirm', actor: 'host', at },
+				{ action: 'edit', actor: 'host', at, payload: { note: 'Private edit history' } },
+				{ action: 'rotate', actor: 'host', at },
+				declineEntry
+			])
+		};
+		const original = structuredClone(row);
+
+		const guest = toPublicAppointment(row, 'guest');
+
+		expect(guest.note).toBeNull();
+		expect(guest.location).toBeNull();
+		expect(guest.video_chat).toBeNull();
+		expect(guest.action_log).toStrictEqual([
+			{
+				action: 'decline',
+				actor: 'host',
+				at,
+				payload: { note: declineNote, metadata: undefined }
+			}
+		]);
+		expect(guest).not.toHaveProperty('cancel_token');
+		expect(row).toEqual(original);
+
+		const host = toPublicAppointment(row, 'host');
+		expect(host.note).toBe(baseRow.note);
+		expect(host.action_log).toEqual(JSON.parse(row.action_log!));
+	});
+
+	test.each(['pending', 'confirmed', 'cancelled', 'rescheduled', 'purged'] as const)(
+		'never exposes inherited decline history on a %s row',
+		(status) => {
+			const row: Appointment = {
+				...baseRow,
+				status,
+				action_log: JSON.stringify([declineEntry])
+			};
+
+			const guest = toPublicAppointment(row, 'guest');
+			const host = toPublicAppointment(row, 'host');
+
+			expect(guest.action_log).toEqual([]);
+			expect(guest.note).toBe(status === 'confirmed' ? baseRow.note : null);
+			expect(host.action_log).toEqual([declineEntry]);
+			expect(host.note).toBe(baseRow.note);
+		}
+	);
+
+	test('a decline without a note does not fall back to the general appointment note', () => {
+		const row: Appointment = {
+			...baseRow,
+			status: 'declined',
+			action_log: JSON.stringify([{ action: 'decline', actor: 'host', at }])
+		};
+
+		const guest = toPublicAppointment(row, 'guest');
+
+		expect(guest.note).toBeNull();
+		expect(guest.action_log).toStrictEqual([
+			{ action: 'decline', actor: 'host', at, payload: { note: undefined, metadata: undefined } }
+		]);
+	});
+
+	test('keeps decline and cancellation notes distinct and preserves only existing public move metadata', () => {
+		const moveMetadata = { previous_id: 'old-row', next_id: 'new-row' };
+		const row: Appointment = {
+			...baseRow,
+			status: 'declined',
+			action_log: JSON.stringify([
+				{
+					action: 'cancel',
+					actor: 'guest',
+					at,
+					payload: { note: 'Guest cancellation reason' }
+				},
+				{
+					action: 'reschedule',
+					actor: 'host',
+					at,
+					payload: { note: 'Move reason', metadata: moveMetadata }
+				},
+				declineEntry
+			])
+		};
+
+		const guest = toPublicAppointment(row, 'guest');
+
+		expect(guest.note).toBeNull();
+		expect(guest.action_log).toStrictEqual([
+			{
+				action: 'cancel',
+				actor: 'guest',
+				at,
+				payload: { note: 'Guest cancellation reason', metadata: undefined }
+			},
+			{
+				action: 'reschedule',
+				actor: 'host',
+				at,
+				payload: { note: 'Move reason', metadata: moveMetadata }
+			},
+			{ action: 'decline', actor: 'host', at, payload: { note: declineNote, metadata: undefined } }
+		]);
+	});
+});
+
 describe('toPublicAppointment', () => {
 	test('shows location, note, and video_chat for hosts', () => {
 		const res = toPublicAppointment(baseRow, 'host');

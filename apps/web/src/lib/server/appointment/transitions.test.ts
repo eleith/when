@@ -307,6 +307,143 @@ test('declineAppointmentTransition queues a delete when a re-approval revert car
 	}
 });
 
+test.each([false, true])(
+	'declineAppointmentTransition atomically appends a note and preserves the row (inherited event: %s)',
+	async (inheritedEvent) => {
+		const db = await makeDb();
+		try {
+			const previous = { action: 'confirm', actor: 'host', at: '2025-12-01T12:00:00Z' };
+			await insert(db, {
+				id: 'noted',
+				status: 'pending',
+				cancel_token: 'same-token',
+				origin_id: 'same-origin',
+				note: 'General preparation note',
+				external_event_id: inheritedEvent ? 'inherited-event' : null,
+				external_calendar_id: inheritedEvent ? 'work' : null,
+				calendar_revision: 4,
+				calendar_synced_revision: 4,
+				ics_sequence: 2,
+				action_log: JSON.stringify([previous])
+			});
+			const before = await fetchRow(db, 'noted');
+			const note = 'Not available.\nPlease pick another day — désolé.';
+			const at = '2026-01-01T15:00:00Z';
+
+			const result = await declineAppointmentTransition(db, before.id, at, note);
+
+			const after = await fetchRow(db, before.id);
+			expect(result).toEqual({ ok: true });
+			expect(after).toEqual({
+				...before,
+				status: 'declined',
+				calendar_revision: 5,
+				ics_sequence: 3,
+				action_log: JSON.stringify([
+					previous,
+					{ action: 'decline', actor: 'host', at, payload: { note } }
+				]),
+				updated_at: after.updated_at
+			});
+
+			const repeated = await declineAppointmentTransition(
+				db,
+				before.id,
+				'2026-01-01T16:00:00Z',
+				'A second note must not replace the first'
+			);
+			const afterRepeat = await fetchRow(db, before.id);
+			expect(repeated).toEqual({ ok: false, reason: 'conflict' });
+			expect(afterRepeat).toEqual(after);
+		} finally {
+			await db.destroy();
+		}
+	}
+);
+
+test.each(['confirmed', 'cancelled', 'declined', 'rescheduled', 'purged'])(
+	'declineAppointmentTransition leaves a %s row entirely unchanged even when given a note',
+	async (status) => {
+		const db = await makeDb();
+		try {
+			await insert(db, {
+				id: 'gated',
+				status,
+				cancel_token: 'original-token',
+				note: 'Original note',
+				calendar_revision: 3,
+				ics_sequence: 2
+			});
+			const before = await fetchRow(db, 'gated');
+
+			const result = await declineAppointmentTransition(
+				db,
+				before.id,
+				'2026-01-01T15:00:00Z',
+				'Do not save this'
+			);
+
+			const after = await fetchRow(db, before.id);
+			expect(result).toEqual({ ok: false, reason: 'conflict' });
+			expect(after).toEqual(before);
+		} finally {
+			await db.destroy();
+		}
+	}
+);
+
+test('declineAppointmentTransition with a note reports a missing row', async () => {
+	const db = await makeDb();
+	try {
+		const result = await declineAppointmentTransition(
+			db,
+			'missing',
+			'2026-01-01T15:00:00Z',
+			'No appointment to annotate'
+		);
+
+		expect(result).toEqual({ ok: false, reason: 'not_found' });
+	} finally {
+		await db.destroy();
+	}
+});
+
+test('accept and noted decline racing on a pending row commit only the winning decision', async () => {
+	const db = await makeDb();
+	try {
+		await insert(db, {
+			id: 'race',
+			status: 'pending',
+			cancel_token: 'same-token',
+			note: 'General note'
+		});
+		const at = '2026-01-01T15:00:00Z';
+		const note = 'Decline reason';
+
+		const [accepted, declined] = await Promise.all([
+			confirmAppointment(db, 'race', at),
+			declineAppointmentTransition(db, 'race', at, note)
+		]);
+
+		const row = await fetchRow(db, 'race');
+		expect([accepted.ok, declined.ok].filter(Boolean)).toHaveLength(1);
+		expect(accepted.ok ? declined : accepted).toEqual({ ok: false, reason: 'conflict' });
+		expect(row.status).toBe(accepted.ok ? 'confirmed' : 'declined');
+		expect(row.calendar_revision).toBe(1);
+		expect(row.ics_sequence).toBe(accepted.ok ? 0 : 1);
+		expect(row.id).toBe('race');
+		expect(row.cancel_token).toBe('same-token');
+		expect(row.note).toBe('General note');
+		expect(JSON.parse(row.action_log!)).toEqual([
+			accepted.ok
+				? { action: 'confirm', actor: 'host', at }
+				: { action: 'decline', actor: 'host', at, payload: { note } }
+		]);
+	} finally {
+		await db.destroy();
+	}
+});
+
 test('rotateGuestTokenTransition replaces the token and records the move', async () => {
 	const db = await makeDb();
 	try {

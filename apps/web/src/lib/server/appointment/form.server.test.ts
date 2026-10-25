@@ -1,6 +1,11 @@
 import { describe, expect, test } from 'vitest';
 import type { Meeting, FormField } from '@when/config';
-import { parseAndValidateAppointmentForm, resolveTimezone, validateReason } from './form.server';
+import {
+	parseAndValidateAppointmentForm,
+	resolveTimezone,
+	validateDeclineNote,
+	validateReason
+} from './form.server';
 import { validConfig } from '$lib/server/__fixtures__/valid-config';
 
 const baseEvent: Meeting = {
@@ -216,6 +221,77 @@ describe('validateReason', () => {
 		expect(validateReason(fd({ reason: long }), 'cancelling').ok).toBe(false);
 		expect(validateReason(fd({ reschedule_reason: long }), 'rescheduling').ok).toBe(false);
 		expect(validateReason(fd({ reason: 'x'.repeat(500) }), 'cancelling').ok).toBe(true);
+	});
+});
+
+describe('validateDeclineNote', () => {
+	test.each([
+		['missing', null],
+		['empty', ''],
+		['whitespace', ' \t\r\n '],
+		['controls only', '\u0000\u0007\u007f']
+	] as const)('allows %s without a note', (_label, value) => {
+		const form = new FormData();
+		if (value !== null) form.set('decline_note', value);
+
+		expect(validateDeclineNote(form)).toEqual({ ok: true, note: undefined });
+	});
+
+	test('cleans controls and normalizes newlines while preserving plain multiline text', () => {
+		const form = fd({
+			decline_note: ' \u0000Sorry\r\n\tPlease try Friday.\rMerci — またね 👋\u0007\u007f '
+		});
+
+		expect(validateDeclineNote(form)).toEqual({
+			ok: true,
+			note: 'Sorry\n\tPlease try Friday.\nMerci — またね 👋'
+		});
+	});
+
+	test('treats markup as plain text, not as a separate content format', () => {
+		const note = '<b>Sorry</b>\n**Try another time**';
+
+		expect(validateDeclineNote(fd({ decline_note: note }))).toEqual({ ok: true, note });
+	});
+
+	test.each(['x'.repeat(500), '界'.repeat(500), '👋'.repeat(250)])(
+		'accepts a note at the 500-character string-length limit',
+		(note) => {
+			expect(validateDeclineNote(fd({ decline_note: note }))).toEqual({ ok: true, note });
+		}
+	);
+
+	test.each(['x'.repeat(501), '界'.repeat(501), '👋'.repeat(250) + 'x'])(
+		'rejects a note beyond the 500-character string-length limit',
+		(note) => {
+			expect(validateDeclineNote(fd({ decline_note: note }))).toEqual({
+				ok: false,
+				error: 'Decline note must be 500 characters or fewer.'
+			});
+		}
+	);
+
+	test('measures length after trimming, control removal, and CRLF normalization', () => {
+		const note = 'x'.repeat(498) + '\ny';
+		const form = fd({ decline_note: ` \u0007${'x'.repeat(498)}\r\ny\u007f ` });
+
+		expect(validateDeclineNote(form)).toEqual({ ok: true, note });
+	});
+
+	test('rejects a file rather than converting it to a note', () => {
+		const form = new FormData();
+		form.set('decline_note', new File(['Sorry'], 'note.txt', { type: 'text/plain' }));
+
+		expect(validateDeclineNote(form)).toEqual({
+			ok: false,
+			error: 'Please enter a text note.'
+		});
+	});
+
+	test('does not read general notes or cancellation/reschedule reasons', () => {
+		const form = fd({ note: 'Private prep', reason: 'Cancel', reschedule_reason: 'Move' });
+
+		expect(validateDeclineNote(form)).toEqual({ ok: true, note: undefined });
 	});
 });
 

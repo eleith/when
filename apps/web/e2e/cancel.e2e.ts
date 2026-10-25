@@ -18,13 +18,19 @@ test('a guest cancels a confirmed appointment', async ({ page }) => {
 	await page.goto(`/appointment/${appointment.id}?token=${appointment.cancel_token}`);
 	await page.getByRole('button', { name: 'Appointment actions' }).click();
 	await page.getByRole('menuitem', { name: 'Cancel' }).click();
-	await page.locator('textarea[name="reason"]').fill('Something came up');
-	await page.getByRole('button', { name: 'Submit' }).click();
+	const dialog = page.getByRole('dialog', { name: 'Cancel appointment', exact: true });
+	const reason = dialog.getByLabel('Reason (required)', { exact: true });
+	await expect(reason).toHaveAttribute('required', '');
+	await expect(reason).toHaveAttribute('maxlength', '500');
+	const initialReason = await reason.inputValue();
+	await expect(dialog.getByText(`${initialReason.length}/500`, { exact: true })).toBeVisible();
+	await reason.fill('Something came up');
+	await expect(dialog.getByText('17/500', { exact: true })).toBeVisible();
+	await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
 
 	await expect(page.getByRole('heading', { name: 'Cancelled', exact: true })).toBeVisible();
 
-	// The reason never appears on the page, so the row is the only place it can be
-	// proved to have survived the form post.
+	// The action explanation is stored in history, not the general appointment note.
 	const row = await readAppointment(appointment.id);
 	expect(row.status).toBe('cancelled');
 	expect(parseActionLog(row.action_log).at(-1)).toMatchObject({

@@ -208,7 +208,8 @@ export async function purgeChainTransition(
 export async function declineAppointmentTransition(
 	db: Kysely<Database>,
 	id: string,
-	now: string
+	now: string,
+	note?: string
 ): Promise<TransitionOutcome> {
 	const result = await db
 		.updateTable('appointments')
@@ -216,7 +217,12 @@ export async function declineAppointmentTransition(
 			status: 'declined',
 			ics_sequence: sql`ics_sequence + 1`,
 			calendar_revision: sql`calendar_revision + 1`,
-			action_log: appendActionLogSql({ action: 'decline', actor: 'host', at: now }),
+			action_log: appendActionLogSql({
+				action: 'decline',
+				actor: 'host',
+				at: now,
+				payload: note ? { note } : undefined
+			}),
 			updated_at: sql`CURRENT_TIMESTAMP`
 		})
 		.where('id', '=', id)

@@ -2,7 +2,8 @@ import { describe, expect, test, vi, beforeEach } from 'vitest';
 import { actions, load } from './+page.server';
 import { requestVideoChat } from '$lib/server/appointment/request-video-chat';
 import { changeAppointmentDuration } from '$lib/server/appointment/change-duration';
-import type { Appointment } from '@when/db';
+import { declineAppointment } from '$lib/server/appointment/decline';
+import { findAppointment, type Appointment } from '@when/db';
 import type { RequestEvent } from './$types';
 
 vi.mock('$lib/server/appointment/context', () => ({ appointmentContext: () => context }));
@@ -12,12 +13,30 @@ vi.mock('$lib/server/appointment/change-duration', async (importOriginal) => {
 	return { ...original, changeAppointmentDuration: vi.fn() };
 });
 
+vi.mock('$lib/server/appointment/decline', () => ({ declineAppointment: vi.fn() }));
+vi.mock('$lib/server/state', async (importOriginal) => {
+	const original = await importOriginal<typeof import('$lib/server/state')>();
+	return { ...original, getDb: () => context.db };
+});
+vi.mock('@when/db', async (importOriginal) => {
+	const original = await importOriginal<typeof import('@when/db')>();
+	return { ...original, findAppointment: vi.fn() };
+});
+
+const declineRow = {
+	id: 'appt-1',
+	status: 'pending',
+	note: 'Private preparation note'
+} as Appointment;
 const context = { db: {}, cfg: {}, clock: {} };
 const event = { params: { id: 'appt-1' } } as unknown as RequestEvent;
 
 beforeEach(() => {
 	vi.mocked(requestVideoChat).mockReset();
 	vi.mocked(changeAppointmentDuration).mockReset();
+	vi.mocked(declineAppointment).mockReset();
+	vi.mocked(findAppointment).mockReset();
+	vi.mocked(findAppointment).mockResolvedValue(declineRow);
 });
 
 describe('admin appointment load', () => {
@@ -78,6 +97,147 @@ describe('generateVideoChat action', () => {
 			}
 		});
 	});
+});
+
+describe('decline action', () => {
+	function declineWith(form: FormData) {
+		return actions.decline({
+			params: { id: 'appt-1' },
+			request: new Request('http://localhost', { method: 'POST', body: form })
+		} as unknown as RequestEvent);
+	}
+
+	test('finds the route row before reading or validating the form', async () => {
+		vi.mocked(findAppointment).mockResolvedValue(undefined);
+		const formData = vi.fn();
+
+		const result = await actions.decline({
+			params: { id: 'appt-1' },
+			request: { formData }
+		} as unknown as RequestEvent);
+
+		expect(result).toEqual({ status: 404, data: { error: 'Appointment not found.' } });
+		expect(findAppointment).toHaveBeenCalledExactlyOnceWith(context.db, 'appt-1');
+		expect(formData).not.toHaveBeenCalled();
+		expect(declineAppointment).not.toHaveBeenCalled();
+	});
+
+	test.each([
+		['missing', null],
+		['empty', ''],
+		['whitespace', ' \t\r\n '],
+		['controls only', '\u0000\u0007\u007f']
+	] as const)(
+		'allows a %s optional note and ignores forged roles and other note fields',
+		async (_label, value) => {
+			vi.mocked(declineAppointment).mockResolvedValue({
+				ok: true,
+				appointment: { ...declineRow, status: 'declined' }
+			});
+			const form = new FormData();
+			if (value !== null) form.set('decline_note', value);
+			for (const [key, forged] of Object.entries({
+				id: 'forged-id',
+				appointmentId: 'forged-id',
+				role: 'guest',
+				viewer: 'guest',
+				actor: 'guest',
+				isAdmin: 'false',
+				note: 'Forged general note',
+				reason: 'Forged cancellation reason',
+				reschedule_reason: 'Forged move reason',
+				status: 'confirmed'
+			})) {
+				form.set(key, forged);
+			}
+
+			const result = await declineWith(form);
+
+			expect(findAppointment).toHaveBeenCalledExactlyOnceWith(context.db, 'appt-1');
+			expect(declineAppointment).toHaveBeenCalledExactlyOnceWith(context, {
+				appointment: declineRow,
+				note: undefined
+			});
+			expect(result).toEqual({ success: 'declined' });
+		}
+	);
+
+	test.each([
+		[' \u0000Sorry\r\nTry Friday — またね 👋\u0007\u007f ', 'Sorry\nTry Friday — またね 👋'],
+		['x'.repeat(500), 'x'.repeat(500)],
+		['界'.repeat(500), '界'.repeat(500)],
+		[` ${'x'.repeat(498)}\r\ny\u0007 `, 'x'.repeat(498) + '\ny']
+	])('passes only the cleaned decline note and fetched row to the service', async (raw, note) => {
+		vi.mocked(declineAppointment).mockResolvedValue({
+			ok: true,
+			appointment: { ...declineRow, status: 'declined' }
+		});
+		const form = new FormData();
+		form.set('decline_note', raw);
+		form.set('note', 'Do not replace the general appointment note');
+		form.set('reason', 'Not a cancellation');
+		form.set('role', 'guest');
+		form.set('appointmentId', 'forged-id');
+
+		const result = await declineWith(form);
+
+		expect(findAppointment).toHaveBeenCalledExactlyOnceWith(context.db, 'appt-1');
+		expect(declineAppointment).toHaveBeenCalledExactlyOnceWith(context, {
+			appointment: declineRow,
+			note
+		});
+		expect(result).toEqual({ success: 'declined' });
+	});
+
+	test.each([
+		['501 characters', 'x'.repeat(501), 'Decline note must be 500 characters or fewer.'],
+		['501 Unicode characters', '界'.repeat(501), 'Decline note must be 500 characters or fewer.'],
+		['file', new File(['Sorry'], 'note.txt'), 'Please enter a text note.']
+	] as const)('rejects a %s note without calling decline', async (_label, value, error) => {
+		const form = new FormData();
+		form.set('decline_note', value);
+
+		const result = await declineWith(form);
+
+		expect(findAppointment).toHaveBeenCalledExactlyOnceWith(context.db, 'appt-1');
+		expect(result).toEqual({ status: 400, data: { error } });
+		expect(result).not.toHaveProperty('success');
+		expect(declineAppointment).not.toHaveBeenCalled();
+	});
+
+	test('does not call decline when reading the submitted form fails', async () => {
+		const error = new Error('Invalid form body');
+		const formData = vi.fn().mockRejectedValue(error);
+
+		const declining = actions.decline({
+			params: { id: 'appt-1' },
+			request: { formData }
+		} as unknown as RequestEvent);
+
+		await expect(declining).rejects.toBe(error);
+		expect(declineAppointment).not.toHaveBeenCalled();
+	});
+
+	test.each(['gated', 'conflict'] as const)(
+		'maps a %s service result without claiming success',
+		async (reason) => {
+			vi.mocked(declineAppointment).mockResolvedValue({ ok: false, reason });
+			const form = new FormData();
+			form.set('decline_note', 'Sorry, another time.');
+
+			const result = await declineWith(form);
+
+			expect(declineAppointment).toHaveBeenCalledExactlyOnceWith(context, {
+				appointment: declineRow,
+				note: 'Sorry, another time.'
+			});
+			expect(result).toEqual({
+				status: 409,
+				data: { error: 'This appointment can no longer be declined.' }
+			});
+			expect(result).not.toHaveProperty('success');
+		}
+	);
 });
 
 describe('changeDuration action', () => {

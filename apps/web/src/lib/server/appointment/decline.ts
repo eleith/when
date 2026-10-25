@@ -6,6 +6,7 @@ import { getAppointment, type Appointment } from '@when/db';
 
 export interface DeclineAppointmentInput {
 	appointment: Appointment;
+	note?: string;
 }
 
 export type DeclineAppointmentResult =
@@ -26,11 +27,11 @@ export async function declineAppointment(
 	}).decline;
 	if (!gate.allowed) return { ok: false, reason: 'gated' };
 
-	// Decline never touches the calendar (pending appointments aren't synced), so no sync.
 	const result = await declineAppointmentTransition(
 		ctx.db,
 		input.appointment.id,
-		ctx.clock.now().toISOString()
+		ctx.clock.now().toISOString(),
+		input.note
 	);
 	if (!result.ok) return { ok: false, reason: 'conflict' };
 

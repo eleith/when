@@ -7,7 +7,7 @@ import { cancelAppointment } from '$lib/server/appointment/cancel';
 import { purgeAppointment } from '$lib/server/appointment/purge';
 import { editAppointment } from '$lib/server/appointment/edit';
 import { changeAppointmentDuration } from '$lib/server/appointment/change-duration';
-import { validateReason } from '$lib/server/appointment/form.server';
+import { validateDeclineNote, validateReason } from '$lib/server/appointment/form.server';
 import { appointmentContext } from '$lib/server/appointment/context';
 import { rotateGuestTokenTransition } from '$lib/server/appointment/transitions';
 import { requestVideoChat } from '$lib/server/appointment/request-video-chat';
@@ -31,11 +31,17 @@ export const actions: Actions = {
 		return { success: 'accepted' };
 	},
 
-	decline: async ({ params }) => {
+	decline: async ({ params, request }) => {
 		const row = await findAppointment(getDb(), params.id);
 		if (!row) return fail(404, { error: 'Appointment not found.' });
+		const form = await request.formData();
+		const noteResult = validateDeclineNote(form);
+		if (!noteResult.ok) return fail(400, { error: noteResult.error });
 
-		const result = await declineAppointment(appointmentContext(), { appointment: row });
+		const result = await declineAppointment(appointmentContext(), {
+			appointment: row,
+			note: noteResult.note
+		});
 		if (!result.ok) {
 			return fail(409, { error: 'This appointment can no longer be declined.' });
 		}

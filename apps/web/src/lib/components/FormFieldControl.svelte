@@ -1,6 +1,7 @@
 <!-- One labelled guest-input, rendered per configured form field type. -->
 <script lang="ts">
 	import type { FormField } from '@when/config';
+	import CharacterCount from './CharacterCount.svelte';
 	import {
 		PHONE_PATTERN,
 		LIMIT_SHORT,
@@ -136,7 +137,7 @@
 			onblur={() => (touched = true)}
 		></textarea>
 		{#if !disabled}
-			<span class="count">{value.length}/{maxLen}</span>
+			<CharacterCount {value} limit={maxLen} />
 		{/if}
 	{:else if field.type === 'choice' || (field.type === 'event_location' && field.choices)}
 		<select
@@ -234,14 +235,6 @@
 	.field textarea:user-invalid:focus {
 		border-color: var(--color-danger);
 		box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.2);
-	}
-
-	.count {
-		display: block;
-		margin-top: var(--space-1);
-		text-align: right;
-		font-size: var(--font-size-xs);
-		color: var(--color-text-muted);
 	}
 
 	.error {

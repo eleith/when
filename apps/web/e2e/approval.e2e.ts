@@ -37,15 +37,28 @@ test('the host declines a request', async ({ page }) => {
 
 	await signInAsAdmin(page);
 	await page.goto(`/appointment/${appointment.id}`);
-	await page.getByRole('button', { name: 'Decline' }).click();
+	await page.getByRole('button', { name: 'Decline', exact: true }).click();
+	const dialog = page.getByRole('dialog', { name: 'Decline appointment', exact: true });
+	await expect(dialog).toBeVisible();
+	const note = dialog.getByLabel('Note (optional)', { exact: true });
+	await expect(note).toHaveAttribute('name', 'decline_note');
+	await expect(note).toHaveAttribute('maxlength', '500');
+	await expect(note).not.toHaveAttribute('required');
+	await expect(note).toHaveValue('');
+	await expect(dialog.getByText('0/500', { exact: true })).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'Pending', exact: true })).toBeVisible();
+	await dialog.getByRole('button', { name: 'Decline', exact: true }).click();
 
+	await expect(dialog).not.toBeVisible();
 	await expect(page.getByRole('heading', { name: 'Declined', exact: true })).toBeVisible();
 
 	const row = await readAppointment(appointment.id);
 	expect(row.status).toBe('declined');
-	expect(parseActionLog(row.action_log).at(-1)).toMatchObject({
+	const decline = parseActionLog(row.action_log).at(-1);
+	expect(decline).toMatchObject({
 		action: 'decline',
 		actor: 'host'
 	});
+	expect(decline?.payload?.note).toBeUndefined();
 	expect(readQueuedWorkflows(`${appointment.id}:declined:${row.ics_sequence}`)).toHaveLength(1);
 });

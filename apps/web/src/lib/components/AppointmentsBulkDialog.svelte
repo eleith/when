@@ -2,6 +2,8 @@
 <script lang="ts">
 	import IconX from 'virtual:icons/ph/x';
 	import { Dialog } from 'bits-ui';
+	import CharacterCount from './CharacterCount.svelte';
+	import { LIMIT_REASON } from '$lib/forms/validation';
 
 	interface Props {
 		open: boolean;
@@ -68,9 +70,6 @@
 							</Dialog.Close>
 						</form>
 					{:else if action === 'cancel'}
-						<p class="dialog-desc">
-							Are you sure you want to cancel these {selectedIds.length} selected appointments?
-						</p>
 						<form method="POST" action="/admin/appointments?/bulkCancel" class="dialog-form">
 							{#each selectedIds as id (id)}
 								<input type="hidden" name="ids" value={id} />
@@ -82,8 +81,10 @@
 									name="reason"
 									bind:value={cancelReason}
 									class="form-textarea"
+									maxlength={LIMIT_REASON}
 									required
 								></textarea>
+								<CharacterCount value={cancelReason} limit={LIMIT_REASON} />
 							</div>
 							<div class="dialog-actions">
 								<button type="submit" class="btn-confirm btn-confirm-danger">Yes, cancel</button>
