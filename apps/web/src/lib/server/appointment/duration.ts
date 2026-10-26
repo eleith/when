@@ -19,10 +19,8 @@ export function resolveBookingDurations(
 		: eventType.duration_minutes;
 	const choices = durationsOf(eventType);
 	if (role === 'host') choices.push(...HOST_DURATIONS);
-	// Keeping a booked length is not permission to choose another host-only length.
 	choices.push(defaultDuration);
-	const durations = [...new Set(choices)];
-	if (role === 'host') durations.sort((a, b) => a - b);
+	const durations = [...new Set(choices)].sort((a, b) => a - b);
 	return { defaultDuration, durations };
 }
 

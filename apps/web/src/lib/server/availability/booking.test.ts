@@ -521,14 +521,14 @@ describe('role-specific availability limits', () => {
 });
 
 describe('booking duration profiles', () => {
-	test('new hosts get a map for every palette and configured extra while guests keep configured order', async () => {
+	test('role-specific duration maps follow numeric choices without changing the configured default', async () => {
 		const cfg = makeConfig([60, 75, 17, 15]);
 		const meeting = cfg.meetings[CHAT];
 		const original = structuredClone(cfg);
 		for (const role of ['guest', 'host'] as const) {
 			const availability = await loadAvailability(db, cfg, CHAT, meeting, role);
 			const durations =
-				role === 'host' ? [15, 17, 30, 45, 60, 75, 90, 120, 180, 240, 300] : [60, 75, 17, 15];
+				role === 'host' ? [15, 17, 30, 45, 60, 75, 90, 120, 180, 240, 300] : [15, 17, 60, 75];
 			expect(availability.bookingDurations).toEqual({ defaultDuration: 60, durations });
 			expect(availability.bookingDurations).toEqual(resolveBookingDurations(meeting, role));
 			expect(Object.keys(availability.slotsByDuration).map(Number)).toEqual(

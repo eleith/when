@@ -163,8 +163,8 @@ test('rescheduling defaults to the trusted current 90 for both roles and omissio
 	await durationTrigger(page, 90).click();
 	const dialog = page.getByRole('dialog', { name: 'How long?' });
 	await expect(dialog.locator('.duration-row')).toHaveText([
-		'60 minutes',
 		'25 minutes',
+		'60 minutes',
 		'90 minutes'
 	]);
 	await expect(dialog.getByRole('button', { name: '120 minutes', exact: true })).toHaveCount(0);

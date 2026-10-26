@@ -40,12 +40,12 @@ describe('resolveBookingDurations', () => {
 		expect(resolveBookingDurations(meeting, 'host')).toEqual(profile);
 	});
 
-	test('guest choices retain configured order, not the host palette or numeric order', () => {
+	test('guest choices are numerically ordered without changing the configured default or adding host choices', () => {
 		const meeting = { ...base, duration_minutes: 60, additional_duration_minutes: [15, 75, 30] };
 		const original = structuredClone(meeting);
 		expect(resolveBookingDurations(meeting, 'guest')).toEqual({
 			defaultDuration: 60,
-			durations: [60, 15, 75, 30]
+			durations: [15, 30, 60, 75]
 		});
 		expect(meeting).toEqual(original);
 	});
@@ -81,11 +81,11 @@ describe('resolveBookingDurations', () => {
 		}
 	);
 
-	test('retaining a configured guest length does not duplicate or reorder it', () => {
+	test('rescheduling retains the booked default independently of the sorted choices', () => {
 		const meeting = { ...base, duration_minutes: 60, additional_duration_minutes: [15, 30] };
 		expect(resolveBookingDurations(meeting, 'guest', currentDuration(30))).toEqual({
 			defaultDuration: 30,
-			durations: [60, 15, 30]
+			durations: [15, 30, 60]
 		});
 	});
 

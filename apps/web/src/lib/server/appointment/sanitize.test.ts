@@ -95,7 +95,7 @@ describe('toPublicEventType', () => {
 		expect(guest.padding_after_minutes).toBe(10);
 		expect(guest.location).toBeUndefined();
 		expect(guest.duration_minutes).toBe(30);
-		expect(guest.durations).toEqual([30, 15, 60]);
+		expect(guest.durations).toEqual([15, 30, 60]);
 		expect(guest.notice_minutes).toBe(60);
 		expect(host).toEqual({
 			...guest,
