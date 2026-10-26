@@ -331,6 +331,9 @@ importers:
 
   packages/calendar:
     dependencies:
+      '@rgrove/parse-xml':
+        specifier: 5.0.0
+        version: 5.0.0
       '@when/config':
         specifier: workspace:*
         version: link:../config
@@ -990,6 +993,10 @@ packages:
 
   '@polka/url@1.0.0-next.29':
     resolution: {integrity: sha512-wwQAWhWSuHaag8c4q/KN/vCoeOJYshAIvMQwD4GpSb3OiZklFfvAgmj0VCBBImRpuF/aFgIRzllXlVX93Jevww==}
+
+  '@rgrove/parse-xml@5.0.0':
+    resolution: {integrity: sha512-SgHFyisNAkS2ZbM8SCriUm1N0bxLiz0POKvpDeAtrnLrXaYG1PawNwu1rSjmE/vcVHbZzYWNgVP6xkep6R4uXg==}
+    engines: {node: '>=22.12.0'}
 
   '@rolldown/binding-android-arm64@1.0.3':
     resolution: {integrity: sha512-454rs7jHngixp/NMxd5srYD57OnzSlZ/eFTETjORQHLwJG1lRtmNOJcBerZlfu4GjKqeq8aCCIQrMdHyhI51Hw==}
@@ -3043,6 +3050,8 @@ snapshots:
   '@pnpm/deps.graph-sequencer@1100.0.1': {}
 
   '@polka/url@1.0.0-next.29': {}
+
+  '@rgrove/parse-xml@5.0.0': {}
 
   '@rolldown/binding-android-arm64@1.0.3':
     optional: true

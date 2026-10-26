@@ -45,17 +45,32 @@ Explicit timezone-referenced date-times are still resolved by the server and ret
 in UTC. Durations on concrete occurrences use elapsed UTC time, including 24-hour days;
 no server-local Date arithmetic is used. Outgoing ICS generation and publishing are unchanged.
 
-### CalDAV import ceilings
+### CalDAV XML parsing
 
-REPORT source text is limited to 16 × 1024 × 1024 UTF-16 code units, not bytes.
+REPORT imports and PROPFIND discovery share one `@rgrove/parse-xml` boundary for
+XML 1.0 syntax, entity decoding, and namespace-aware field selection. REPORT checks
+resource/property statuses and payload cardinality before importing busy times.
+Discovery reads principal, home-set, and calendar properties from the same tree;
+hrefs and display names must be text-only and are XML-decoded once, without adding
+a percent-decoding step. Missing discovery properties retain the base-URL and
+unnamed-calendar fallbacks, but malformed XML is rejected rather than returning
+a partial calendar list.
+
+Comments and processing instructions are ignored; namespace conformance inside
+ignored extension content is not validated. Literal CRLF/CR becomes LF;
+numeric carriage-return references remain intact. DTDs are rejected, and parser
+errors are sanitized so calendar contents do not appear in errors.
+
+REPORT source text remains limited to 16 × 1024 × 1024 UTF-16 code units, not bytes.
 The reader checks this while decoding response chunks and cancels an oversized
-response instead of importing a prefix. The XML reader also permits at most 32
-simultaneously open non-self-closing elements. Read failures or either limit being
-exceeded fail the refresh and leave the previous mirror intact.
+response instead of importing a prefix. Direct parsing checks the same ceiling
+before newline normalization. There is no application XML nesting ceiling; the
+library is recursive and may reject deeply nested input. Read or parsing failures
+leave the previous mirror intact.
 
-These defensive ceilings are not CalDAV requirements, measured capacity targets,
-or total process-memory limits. Received chunks, parsing, and interval construction
-still require additional memory.
+The text ceiling is not a CalDAV requirement, measured capacity target, or total
+process-memory limit. Received chunks, parsing, and interval construction still
+require additional memory.
 
 ## Google event I/O
 

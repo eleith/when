@@ -210,8 +210,10 @@ test('a partial CalDAV response preserves the mirror; a successful empty report 
 	}
 });
 
-test('a malformed CalDAV calendar cannot replace the last good busy mirror', async () => {
-	const body = oneEvent('remote-1').replace(/BEGIN:VEVENT[\s\S]*?END:VEVENT/, 'BEGIN:VTODO');
+test.each([
+	['calendar data', oneEvent('remote-1').replace(/BEGIN:VEVENT[\s\S]*?END:VEVENT/, 'BEGIN:VTODO')],
+	['REPORT XML', oneEvent('remote-1').replace('</multistatus>', '<unclosed>')]
+])('malformed CalDAV %s cannot replace the last good busy mirror', async (_name, body) => {
 	const ctx = await ctxWithDb();
 	const stale = { start: '2026-04-10T09:00:00Z', end: '2026-04-10T09:30:00Z' };
 	try {

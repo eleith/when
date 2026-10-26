@@ -23,6 +23,7 @@
 		"test:coverage": "vitest run --coverage"
 	},
 	"dependencies": {
+		"@rgrove/parse-xml": "5.0.0",
 		"@when/config": "workspace:*",
 		"@when/db": "workspace:*",
 		"ts-ics": "2.4.4"

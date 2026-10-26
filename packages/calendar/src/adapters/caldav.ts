@@ -1,3 +1,4 @@
+import type { XmlElement } from '@rgrove/parse-xml';
 import { logger } from '../logger.js';
 import { parseExpandedCalDavEvents } from '../parse.js';
 import type { BusyEvent, BusyWindow } from '../types.js';
@@ -10,12 +11,9 @@ import type {
 } from '@when/config';
 import { originId, type Appointment } from '@when/db';
 import { buildIcs } from '../ics.js';
-import {
-	readCalDavReport,
-	decodeXmlEntities,
-	MAX_CALDAV_REPORT_CODE_UNITS
-} from './caldav-report.js';
+import { readCalDavReport, MAX_CALDAV_REPORT_CODE_UNITS } from './caldav-report.js';
 import { readCalDavReportBody } from './caldav-response.js';
+import { DAV, CALDAV, readDavMultiStatus, matchingChildren, leafText } from './caldav-xml.js';
 
 export { readCalDavReport } from './caldav-report.js';
 
@@ -230,16 +228,13 @@ export async function discoverCalDavCalendars(
 	service: CalDavProviderCreds
 ): Promise<CalDavCalendarItem[]> {
 	const base = davBaseUrl(service);
-	const principal = firstHref(
-		innerXml(await davPropfind(base, service, PRINCIPAL_BODY, '0'), 'current-user-principal')
-	);
-	const home = firstHref(
-		innerXml(
-			await davPropfind(new URL(principal ?? '', base).toString(), service, HOME_BODY, '0'),
-			'calendar-home-set'
-		)
-	);
-	const xml = await davPropfind(new URL(home ?? '', base).toString(), service, CALENDARS_BODY, '1');
+	const principalXml = await davPropfind(base, service, PRINCIPAL_BODY, '0');
+	const principal = discoveryHref(principalXml, 'current-user-principal');
+	const principalUrl = new URL(principal ?? '', base).toString();
+	const homeXml = await davPropfind(principalUrl, service, HOME_BODY, '0');
+	const home = discoveryHref(homeXml, 'calendar-home-set', CALDAV);
+	const homeUrl = new URL(home ?? '', base).toString();
+	const xml = await davPropfind(homeUrl, service, CALENDARS_BODY, '1');
 	return parseCalendars(xml, base);
 }
 
@@ -265,33 +260,40 @@ async function davPropfind(
 	return res.text();
 }
 
+function discoveryHref(xml: string, name: string, namespace = DAV): string | null {
+	const root = readDavMultiStatus(xml);
+	const property = matchingChildren(root, 'response')
+		.flatMap((response) => properties(response, name, namespace))
+		.at(0);
+	if (!property) return null;
+	const href = matchingChildren(property, 'href').at(0);
+	if (!href) return null;
+	return leafText(href) || null;
+}
+
 function parseCalendars(xml: string, baseUrl: string): CalDavCalendarItem[] {
-	const responses = [...xml.matchAll(/<[a-z0-9]*:?response[\s>][\s\S]*?<\/[a-z0-9]*:?response>/gi)];
+	const root = readDavMultiStatus(xml);
 	const items: CalDavCalendarItem[] = [];
-	for (const [block] of responses) {
-		const resourcetype = innerXml(block, 'resourcetype') ?? '';
-		if (!/<[a-z0-9]*:?calendar[\s/>]/i.test(resourcetype)) continue;
-		const href = firstHref(block);
+	for (const response of matchingChildren(root, 'response')) {
+		const isCalendar = properties(response, 'resourcetype').some(
+			(type) => matchingChildren(type, 'calendar', CALDAV).length > 0
+		);
+		if (!isCalendar) continue;
+		const hrefNode = matchingChildren(response, 'href').at(0);
+		const href = hrefNode ? leafText(hrefNode) : '';
 		if (!href) continue;
-		const displayName =
-			decodeXmlEntities(innerXml(block, 'displayname') ?? '').trim() || '(unnamed)';
+		const nameNode = properties(response, 'displayname').at(0);
+		const displayName = (nameNode ? leafText(nameNode) : '') || '(unnamed)';
 		items.push({ displayName, path: relativePath(href, baseUrl) });
 	}
 	return items;
 }
 
-function innerXml(xml: string | null, localName: string): string | null {
-	if (!xml) return null;
-	const match = xml.match(
-		new RegExp(`<[a-z0-9]*:?${localName}[^>]*>([\\s\\S]*?)</[a-z0-9]*:?${localName}>`, 'i')
-	);
-	return match ? match[1] : null;
-}
-
-function firstHref(xml: string | null): string | null {
-	if (!xml) return null;
-	const match = xml.match(/<[a-z0-9]*:?href[^>]*>\s*([^<\s][\s\S]*?)\s*<\//i);
-	return match ? match[1] : null;
+// Discovery does not require propstat statuses; REPORT validates them before import.
+function properties(response: XmlElement, name: string, namespace = DAV): XmlElement[] {
+	return matchingChildren(response, 'propstat')
+		.flatMap((stat) => matchingChildren(stat, 'prop'))
+		.flatMap((prop) => matchingChildren(prop, name, namespace));
 }
 
 function relativePath(href: string, baseUrl: string): string {
