@@ -61,6 +61,50 @@ describe('createAppointmentFlow duration', () => {
 		expect(flow.selectedSlot).toBe(SLOT_10);
 	});
 
+	it('clears a day that no longer offers the new duration and prevents continuing', () => {
+		const flow = makeFlow({
+			slotsByDuration: {
+				30: { '2026-07-20': [SLOT_10], '2026-07-21': ['2026-07-21T10:00:00Z'] },
+				60: { '2026-07-21': ['2026-07-21T10:00:00Z'] }
+			}
+		});
+		flow.selectDate('2026-07-20');
+		flow.setDuration(60);
+		expect(flow.availableDates.has('2026-07-21')).toBe(true);
+		expect(flow.viewDate).toBeNull();
+		expect(flow.canAdvance).toBe(false);
+		flow.advance();
+		expect(flow.step).toBe(1);
+	});
+
+	it('preserves a day that still offers the new duration', () => {
+		const flow = makeFlow();
+		flow.selectDate('2026-07-20');
+		flow.setDuration(60);
+		expect(flow.viewDate).toBe('2026-07-20');
+		expect(flow.canAdvance).toBe(true);
+	});
+
+	it('keeps an empty time-picker day for recovery but clears it when returning to the calendar', () => {
+		const flow = makeFlow({
+			slotsByDuration: {
+				30: { '2026-07-20': [SLOT_10], '2026-07-21': ['2026-07-21T10:00:00Z'] },
+				60: { '2026-07-21': ['2026-07-21T10:00:00Z'] }
+			}
+		});
+		flow.openDate('2026-07-20');
+		flow.selectSlot(SLOT_10);
+		flow.setDuration(60);
+		expect(flow.step).toBe(2);
+		expect(flow.viewDate).toBe('2026-07-20');
+		expect(flow.selectedSlot).toBeNull();
+		expect(flow.canAdvance).toBe(false);
+		flow.goBack();
+		expect(flow.step).toBe(1);
+		expect(flow.viewDate).toBeNull();
+		expect(flow.canAdvance).toBe(false);
+	});
+
 	it('steps back from the details step when the length drops the slot', () => {
 		const flow = makeFlow();
 		flow.selectSlot(SLOT_1030);

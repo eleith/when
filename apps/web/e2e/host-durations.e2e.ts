@@ -1,8 +1,10 @@
+import { openDb, replaceCalendarBusy } from '@when/db';
 import { expect, test, type Page, type Request } from './support/test.ts';
 import { signInAsAdmin } from './support/auth.ts';
-import { readAppointment } from './support/database.ts';
+import { APP_DB_PATH, readAppointment } from './support/database.ts';
 import { seedAppointment } from './support/seed.ts';
 import { futureWeekday } from './support/dates.ts';
+import { pickFirstBookableDay } from './support/wizard.ts';
 
 const slug = 'host-durations';
 const hostDurations = [15, 25, 30, 45, 60, 90, 120, 180, 240, 300];
@@ -25,6 +27,28 @@ async function chooseDuration(page: Page, current: number, next: number): Promis
 	await dialog.getByRole('button', { name: `${next} minutes`, exact: true }).click();
 	await expect(dialog).not.toBeVisible();
 }
+
+test('a duration change clears an unavailable selected day and disables Continue', async ({
+	page
+}) => {
+	const day = futureWeekday();
+	const db = openDb(APP_DB_PATH);
+	try {
+		// The guest's 25-minute choice fits this day; 60 minutes only fits other days.
+		await replaceCalendarBusy(db, 'main', [{ start: `${day}T09:30:00Z`, end: `${day}T12:00:00Z` }]);
+	} finally {
+		await db.destroy();
+	}
+	await page.goto(`/schedule/${slug}?duration=25&date=${day}`);
+	await expect(page.getByRole('heading', { name: 'Step 2 of 3: Pick a time' })).toBeVisible();
+	await page.getByRole('button', { name: 'Back', exact: true }).click();
+	await expect(page.locator('.cal-day[data-selected]')).toHaveCount(1);
+	await chooseDuration(page, 25, 60);
+	await expect(page.getByRole('heading', { name: 'Step 1 of 3: Pick a day' })).toBeVisible();
+	await expect(page.locator('.cal-day[data-selected]')).toHaveCount(0);
+	await expect(page.getByRole('button', { name: 'Continue', exact: true })).toBeDisabled();
+	await expect.poll(() => new URL(page.url()).searchParams.get('date')).toBeNull();
+});
 
 test('host uses the configured default and finite palette, recovering locally from no availability', async ({
 	baseURL,
@@ -68,8 +92,11 @@ test('host uses the configured default and finite palette, recovering locally fr
 	await expect(page.getByRole('heading', { name: 'Step 1 of 3: Pick a day' })).toBeVisible();
 	await expect(durationTrigger(page, 15)).toBeVisible();
 	await chooseDuration(page, 15, 90);
-	await page.getByRole('button', { name: 'Continue', exact: true }).click();
+	// The earlier unavailable duration invalidated the calendar selection; pick a day again.
+	await expect(page.getByRole('button', { name: 'Continue', exact: true })).toBeDisabled();
+	await pickFirstBookableDay(page);
 	await expect(page.getByRole('heading', { name: 'Step 2 of 3: Pick a time' })).toBeVisible();
+	const selectedDay = new URL(page.url()).searchParams.get('date');
 	await expect(durationTrigger(page, 90)).toBeVisible();
 	const target = page.getByRole('radio', { name: /10:30\s*AM\s*–\s*12:00\s*PM/i });
 	await expect(target).toBeVisible();
@@ -84,7 +111,7 @@ test('host uses the configured default and finite palette, recovering locally fr
 	);
 	await expect(page.locator('input[name="duration"]')).toHaveValue('90');
 	const slot = await page.locator('input[name="slot"]').inputValue();
-	expect(Date.parse(slot)).toBe(Date.parse(`${day}T10:30:00Z`));
+	expect(Date.parse(slot)).toBe(Date.parse(`${selectedDay}T10:30:00Z`));
 	const form = {
 		slot,
 		duration: '90',

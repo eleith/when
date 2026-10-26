@@ -56,9 +56,21 @@ export function createAppointmentFlow({
 	const slotsByDate = $derived(slotsByDuration[duration] ?? {});
 	const allSlots = $derived(flattenSlots(slotsByDate));
 	const dates = $derived(datesFromSlots(allSlots, userTz));
-	// The raw server day keys (host tz), unlike `availableDates` which re-buckets in `userTz`.
 	const offeredDates = $derived(dateKeys(slotsByDate));
-	const canAdvance = $derived(canAdvanceRule(step, viewDate, selectedSlot));
+	const canAdvance = $derived.by(() => {
+		if (step === 1) {
+			if (viewDate === null) return false;
+			return dates.has(viewDate);
+		}
+		return canAdvanceRule(step, viewDate, selectedSlot);
+	});
+
+	function clearUnavailableDateSelection() {
+		if (step === 1 && viewDate && !dates.has(viewDate)) {
+			viewDate = null;
+			selectedSlot = null;
+		}
+	}
 
 	function scrollToTop() {
 		if (typeof window !== 'undefined') window.scrollTo({ top: 0 });
@@ -103,10 +115,12 @@ export function createAppointmentFlow({
 		goBack() {
 			if (step === 1) return;
 			step = (step - 1) as WizardStep;
+			clearUnavailableDateSelection();
 			scrollToTop();
 		},
 		goToStep(target) {
 			step = target;
+			clearUnavailableDateSelection();
 		},
 		selectDate(dateKey) {
 			if (dateKey == null) {
@@ -144,6 +158,7 @@ export function createAppointmentFlow({
 				selectedSlot = null;
 				if (step === 3) step = 2;
 			}
+			clearUnavailableDateSelection();
 		}
 	};
 }
