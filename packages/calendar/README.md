@@ -45,6 +45,18 @@ Explicit timezone-referenced date-times are still resolved by the server and ret
 in UTC. Durations on concrete occurrences use elapsed UTC time, including 24-hour days;
 no server-local Date arithmetic is used. Outgoing ICS generation and publishing are unchanged.
 
+### CalDAV import ceilings
+
+REPORT source text is limited to 16 × 1024 × 1024 UTF-16 code units, not bytes.
+The reader checks this while decoding response chunks and cancels an oversized
+response instead of importing a prefix. The XML reader also permits at most 32
+simultaneously open non-self-closing elements. Read failures or either limit being
+exceeded fail the refresh and leave the previous mirror intact.
+
+These defensive ceilings are not CalDAV requirements, measured capacity targets,
+or total process-memory limits. Received chunks, parsing, and interval construction
+still require additional memory.
+
 ## Google event I/O
 
 `getGoogleEvent` reads a stored event. `patchGoogleEvent` sends supplied fields and

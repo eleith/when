@@ -1,6 +1,11 @@
 const DAV = 'DAV:';
 const CALDAV = 'urn:ietf:params:xml:ns:caldav';
 
+// Retain the existing acceptance ceilings; these are not measured heap limits.
+export const MAX_CALDAV_REPORT_CODE_UNITS = 16 * 1024 * 1024;
+// Bound live namespace scopes. Ordinary calendar-data is five open elements deep.
+const MAX_OPEN_XML_ELEMENTS = 32;
+
 interface ReportElement {
 	name: string;
 	namespace: string;
@@ -126,7 +131,9 @@ function parseOpeningTag(token: string, parentNamespaces?: Map<string, string>) 
 // Deliberately limited XML subset for DAV: no DTDs, external entities or processing
 // instructions. Tokenize before decoding so CDATA/escaped text cannot become tags.
 function parseReportXml(xml: string): ReportElement {
-	if (xml.length > 16 * 1024 * 1024) invalidReport('XML exceeds size limit');
+	if (xml.length > MAX_CALDAV_REPORT_CODE_UNITS) {
+		invalidReport(`XML exceeds ${MAX_CALDAV_REPORT_CODE_UNITS} UTF-16 code units`);
+	}
 	// eslint-disable-next-line no-control-regex -- reject characters forbidden by XML 1.0
 	if (/[\u0000-\u0008\u000b\u000c\u000e-\u001f\ud800-\udfff\ufffe\uffff]/u.test(xml)) {
 		invalidReport('invalid XML character');
@@ -169,7 +176,9 @@ function parseReportXml(xml: string): ReportElement {
 			else if (root) invalidReport('multiple XML roots');
 			else root = element;
 			if (!frame.selfClosing) stack.push(frame);
-			if (stack.length > 32) invalidReport('XML nesting exceeds 32 levels');
+			if (stack.length > MAX_OPEN_XML_ELEMENTS) {
+				invalidReport(`XML nesting exceeds ${MAX_OPEN_XML_ELEMENTS} open elements`);
+			}
 		} else {
 			if (token.includes(']]>')) invalidReport('malformed XML text');
 			const text = decodeXmlEntities(token);

@@ -8,6 +8,7 @@ import {
 	discoverCalDavCalendars
 } from './caldav.js';
 import type { CalDavProvider, NextcloudProvider } from '@when/config';
+import { MAX_CALDAV_REPORT_CODE_UNITS } from './caldav-report.js';
 
 const inst = (s: string): Temporal.Instant => Temporal.Instant.from(s);
 
@@ -95,6 +96,23 @@ test('readCalDavReport accepts default namespaces and genuine empty MultiStatus'
 	expect(readCalDavReport('<multistatus xmlns="DAV:"/>')).toEqual([]);
 });
 
+test('readCalDavReport retains the ceiling of 32 open non-self-closing elements', () => {
+	const reportWithMetadata = (levels: number) => {
+		// multistatus/response/propstat/prop account for the other four open elements.
+		const metadata =
+			'<x:metadata xmlns:x="urn:test">' +
+			'<x:child>'.repeat(levels - 1) +
+			'<x:leaf/>' +
+			'</x:child>'.repeat(levels - 1) +
+			'</x:metadata>';
+		return multistatus(resource(remoteIcs).replace('</d:prop>', `${metadata}</d:prop>`));
+	};
+	expect(readCalDavReport(reportWithMetadata(28))).toEqual([remoteIcs]);
+	expect(() => readCalDavReport(reportWithMetadata(29))).toThrow(
+		/nesting exceeds 32 open elements/
+	);
+});
+
 test.each([
 	['non-XML body', 'upstream unavailable'],
 	['non-MultiStatus XML', '<html><body>upstream unavailable</body></html>'],
@@ -177,6 +195,36 @@ test('fetchCalDavBusy sends a REPORT request with basic auth', async () => {
 	expect(headers['Content-Type']).toContain('application/xml');
 	const expectedAuth = 'Basic ' + Buffer.from('jane:secret').toString('base64');
 	expect(headers['Authorization']).toBe(expectedAuth);
+});
+
+test('fetchCalDavBusy cancels an oversized REPORT before reading it to completion', async () => {
+	let reads = 0;
+	const cancel = vi.fn();
+	const response = new Response(
+		new ReadableStream(
+			{
+				pull(controller) {
+					if (reads++ === 0) {
+						controller.enqueue(new Uint8Array(MAX_CALDAV_REPORT_CODE_UNITS + 1).fill(32));
+					} else {
+						controller.error(new Error('read past the REPORT size ceiling'));
+					}
+				},
+				cancel
+			},
+			{ highWaterMark: 0 }
+		),
+		{ status: 207 }
+	);
+	vi.spyOn(globalThis, 'fetch').mockResolvedValue(response);
+	await expect(
+		fetchCalDavBusy(
+			{ url: 'https://cal.example.com/cal/', username: 'a', password: 'b' },
+			{ start: inst('2026-04-01T00:00:00Z'), end: inst('2026-05-01T00:00:00Z') }
+		)
+	).rejects.toThrow(/exceeds .* UTF-16 code units/);
+	expect(reads).toBe(1);
+	expect(cancel).toHaveBeenCalledOnce();
 });
 
 test('fetchCalDavBusy throws on non-2xx response', async () => {

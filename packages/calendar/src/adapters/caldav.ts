@@ -10,7 +10,12 @@ import type {
 } from '@when/config';
 import { originId, type Appointment } from '@when/db';
 import { buildIcs } from '../ics.js';
-import { readCalDavReport, decodeXmlEntities } from './caldav-report.js';
+import {
+	readCalDavReport,
+	decodeXmlEntities,
+	MAX_CALDAV_REPORT_CODE_UNITS
+} from './caldav-report.js';
+import { readCalDavReportBody } from './caldav-response.js';
 
 export { readCalDavReport } from './caldav-report.js';
 
@@ -57,7 +62,7 @@ export async function fetchCalDavBusy(
 	if (!res.ok) {
 		throw new Error(`CalDAV REPORT ${cfg.url} failed: ${res.status} ${res.statusText}`);
 	}
-	const xml = await res.text();
+	const xml = await readCalDavReportBody(res, MAX_CALDAV_REPORT_CODE_UNITS);
 	const blobs = readCalDavReport(xml);
 	const out: BusyEvent[] = [];
 	for (const ics of blobs) {
