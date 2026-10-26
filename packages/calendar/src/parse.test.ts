@@ -65,6 +65,59 @@ test('parses a single VEVENT with DTSTART/DTEND', () => {
 	expect(busy[0].end.toString()).toBe('2026-04-15T15:00:00Z');
 });
 
+test.each([
+	['a folded property name', 'DTSTA\r\n RT:20260415T140000Z'],
+	['a folded value', 'DTSTART:20260415T14\r\n\t0000Z'],
+	['quoted parameter delimiters', 'DTSTART;X-NOTE="a:b;VALUE=DATE,c":20260415T140000Z']
+])('reads %s without changing event bounds', (_name, start) => {
+	const source = single.replace('DTSTART:20260415T140000Z', start);
+	const busy = parseExpandedCalDavEvents(source);
+	expect(busy).toHaveLength(1);
+	expect(busy[0].start.toString()).toBe('2026-04-15T14:00:00Z');
+	expect(busy[0].end.toString()).toBe('2026-04-15T15:00:00Z');
+});
+
+test('unfolds a DATE parameter header without falling back to DATE-TIME', () => {
+	const source = single
+		.replace('DTSTART:20260415T140000Z', 'DTSTART;VA\r\n LUE="DATE":20260415')
+		.replace('DTEND:20260415T150000Z', 'DTEND;VALUE=DATE:20260416');
+	const busy = parseExpandedCalDavEvents(source);
+	expect(busy).toHaveLength(1);
+	expect(busy[0].start.toString()).toBe('2026-04-15T00:00:00Z');
+	expect(busy[0].end.toString()).toBe('2026-04-16T00:00:00Z');
+});
+
+test('rejects duplicate parameters even when their case differs and values agree', () => {
+	const source = single.replace('DTSTART:', 'DTSTART;VALUE=DATE-TIME;value=DATE-TIME:');
+	expect(() => parseExpandedCalDavEvents(source)).toThrow(/Duplicate CalDAV property parameter/);
+});
+
+test('rejects an unterminated parameter quote rather than guessing the value boundary', () => {
+	const source = single.replace('DTSTART:', 'DTSTART;VALUE="DATE-TIME:');
+	expect(() => parseExpandedCalDavEvents(source)).toThrow(/invalid content line/);
+});
+
+test('unfolds UID text without unescaping or changing its opaque identity', () => {
+	const source = single.replace('event-1@test', 'Team\\,A\\;\r\n B\\\\C@Test');
+	const busy = parseExpandedCalDavEvents(source);
+	expect(busy).toHaveLength(1);
+	expect(busy[0].uid).toBe('Team\\,A\\;B\\\\C@Test');
+});
+
+test.each([
+	['line separator', '\u2028'],
+	['paragraph separator', '\u2029']
+])('accepts a Unicode %s in description text without losing the event', (_name, separator) => {
+	const source = withDuration.replace(
+		'DURATION:PT45M',
+		`DESCRIPTION:First${separator}second\nDURATION:PT45M`
+	);
+	const busy = parseExpandedCalDavEvents(source);
+	expect(busy).toHaveLength(1);
+	expect(busy[0].start.toString()).toBe('2026-04-20T09:00:00Z');
+	expect(busy[0].end.toString()).toBe('2026-04-20T09:45:00Z');
+});
+
 test('parses VEVENT with DURATION instead of DTEND', () => {
 	const busy = parseExpandedCalDavEvents(withDuration);
 	expect(busy).toHaveLength(1);
@@ -136,8 +189,24 @@ test('rejects missing identity and negative time intervals', () => {
 
 test.each([
 	{ name: 'an impossible date', source: single.replaceAll('20260415', '20260230') },
+	{
+		name: 'a wrong date-time separator',
+		source: single.replace('20260415T140000Z', '20260415X140000Z')
+	},
+	{
+		name: 'trailing date-time text',
+		source: single.replace('20260415T140000Z', '20260415T140000Zgarbage')
+	},
+	{
+		name: 'a trailing Unicode separator in a timestamp',
+		source: single.replace('20260415T140000Z', '20260415T140000Z\u2028')
+	},
+	{
+		name: 'a trailing Unicode separator in a duration',
+		source: withDuration.replace('PT45M', 'PT45M\u2029')
+	},
 	{ name: 'a malformed duration', source: withDuration.replace('PT45M', 'garbage') }
-])('rejects $name before the parser can normalize it into a different interval', ({ source }) => {
+])('rejects $name before value conversion can hide malformed input', ({ source }) => {
 	expect(() => parseExpandedCalDavEvents(source)).toThrow(/CalDAV busy event/);
 });
 

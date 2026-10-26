@@ -108,8 +108,9 @@ function prepareExpandedCalendar(icsString: string): EventProperties[] {
 }
 
 function readContentProperty(line: string): ContentProperty {
+	// Only CR/LF delimit content lines; Unicode line/paragraph separators remain value text.
 	const property =
-		/^([a-z0-9-]+)((?:;[a-z0-9-]+=(?:"[^"\n]*"|[^;:",\n]*)(?:,(?:"[^"\n]*"|[^;:",\n]*))*)*):(.*)$/i.exec(
+		/^([a-z0-9-]+)((?:;[a-z0-9-]+=(?:"[^"\n]*"|[^;:",\n]*)(?:,(?:"[^"\n]*"|[^;:",\n]*))*)*):([^\r\n]*)$/i.exec(
 			line
 		);
 	if (!property) throw new Error('Invalid CalDAV calendar data: invalid content line');
