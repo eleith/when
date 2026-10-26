@@ -148,6 +148,8 @@ export function createAppointmentFlow({
 		},
 		setTz(tz) {
 			userTz = tz;
+			if (selectedSlot) viewDate = instantToDateKey(selectedSlot, userTz);
+			clearUnavailableDateSelection();
 		},
 		// Changing the length swaps the live slot map. If the picked time no longer
 		// exists at the new length, drop it and step back so the guest re-picks.

@@ -1,8 +1,4 @@
 <script lang="ts">
-	import IconGlobe from 'virtual:icons/ph/globe';
-	import IconMinus from 'virtual:icons/ph/minus';
-	import IconPlus from 'virtual:icons/ph/plus';
-	import { formatTzShort, tzCity, tzOffset } from '$lib/datetime';
 	import { onDestroy } from 'svelte';
 	import {
 		slotsOnDate,
@@ -15,8 +11,6 @@
 		type TimelineSlot
 	} from '$lib/appointment';
 	import type { AppointmentFlow } from '$lib/appointmentFlow.svelte';
-	import TimezoneDialog from './TimezoneDialog.svelte';
-	import DurationDialog from './DurationDialog.svelte';
 
 	interface Props {
 		flow: AppointmentFlow;
@@ -40,34 +34,9 @@
 	let viewDate = $derived(flow.viewDate);
 	let selectedSlot = $derived(flow.selectedSlot);
 	let userTz = $derived(flow.userTz);
-	let durations = $derived(flow.durations);
-
-	let currentIndex = $derived(durations.indexOf(flow.duration));
-	let canDecrease = $derived(currentIndex > 0);
-	let canIncrease = $derived(currentIndex >= 0 && currentIndex < durations.length - 1);
-	let prevDuration = $derived(canDecrease ? durations[currentIndex - 1] : null);
-	let nextDuration = $derived(canIncrease ? durations[currentIndex + 1] : null);
-
-	function decreaseDuration() {
-		if (canDecrease && prevDuration !== null) {
-			flow.setDuration(prevDuration);
-		}
-	}
-
-	function increaseDuration() {
-		if (canIncrease && nextDuration !== null) {
-			flow.setDuration(nextDuration);
-		}
-	}
 
 	// The picked length is flow state; overlay it onto the static event-type config.
 	let liveEventType = $derived({ ...eventType, duration_minutes: flow.duration });
-
-	let tzFull = $derived(formatTzShort(userTz));
-	let tzShort = $derived(tzOffset(userTz) || tzCity(userTz));
-
-	let tzOpen = $state(false);
-	let durationOpen = $state(false);
 
 	let daySlots = $derived(viewDate ? slotsOnDate(flow.allSlots, viewDate, userTz) : []);
 
@@ -281,56 +250,6 @@
 </script>
 
 <div class="timeline-container">
-	{#if viewDate}
-		<div class="slots-header">
-			<button
-				type="button"
-				class="tz-chip"
-				onclick={() => (tzOpen = true)}
-				aria-label="Change timezone, currently {tzFull}"
-			>
-				<span class="tz-icon"><IconGlobe aria-hidden="true" /></span>
-				<span class="tz-label tz-full">{tzFull}</span>
-				<span class="tz-label tz-short">{tzShort}</span>
-			</button>
-
-			{#if durations.length > 1}
-				<div class="duration-control">
-					<div class="duration-stepper" role="group" aria-label="Duration selector">
-						<button
-							type="button"
-							class="stepper-btn stepper-btn-left"
-							onclick={decreaseDuration}
-							disabled={!canDecrease}
-							aria-label="Decrease duration"
-							title={canDecrease ? `Decrease to ${prevDuration} min` : undefined}
-						>
-							<IconMinus aria-hidden="true" />
-						</button>
-						<button
-							type="button"
-							class="stepper-display"
-							onclick={() => (durationOpen = true)}
-							aria-label="Change duration, currently {flow.duration} minutes"
-							aria-haspopup="dialog"
-						>
-							<span class="duration-value">{flow.duration} min</span>
-						</button>
-						<button
-							type="button"
-							class="stepper-btn stepper-btn-right"
-							onclick={increaseDuration}
-							disabled={!canIncrease}
-							aria-label="Increase duration"
-							title={canIncrease ? `Increase to ${nextDuration} min` : undefined}
-						>
-							<IconPlus aria-hidden="true" />
-						</button>
-					</div>
-				</div>
-			{/if}
-		</div>
-	{/if}
 	{#if timeline}
 		<div class="timeline-scroll">
 			<div class="timeline" style:height="{(timeline.totalMs / 3600000) * 96}px">
@@ -481,14 +400,6 @@
 	{/if}
 {/snippet}
 
-<TimezoneDialog bind:open={tzOpen} />
-<DurationDialog
-	bind:open={durationOpen}
-	{durations}
-	value={flow.duration}
-	onSelect={flow.setDuration}
-/>
-
 <style>
 	.timeline-container {
 		width: 100%;
@@ -502,174 +413,6 @@
 	@media (max-width: 768px) {
 		.timeline-container {
 			--timeline-bg: var(--when-color-surface-page);
-		}
-	}
-
-	/* ---- timeline toolbar / header ---- */
-	.slots-header {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		padding: var(--space-4) var(--space-7);
-		background: var(--color-quiet-bg);
-		border-bottom: 1px solid var(--color-border);
-		min-height: 44px;
-		gap: var(--space-3);
-	}
-
-	@media (max-width: 768px) {
-		.slots-header {
-			padding: var(--space-3) var(--space-5);
-		}
-	}
-
-	.duration-control {
-		display: flex;
-		align-items: center;
-	}
-
-	.duration-stepper {
-		display: inline-flex;
-		align-items: stretch;
-		background: var(--color-surface);
-		border: 1px solid var(--color-border);
-		border-radius: var(--radius);
-		overflow: hidden;
-		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-		transition: border-color var(--transition);
-	}
-
-	.duration-stepper:focus-within {
-		border-color: var(--color-border-strong);
-	}
-
-	.stepper-btn {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		background: transparent;
-		border: none;
-		padding: 0 var(--space-3);
-		min-width: 38px;
-		height: 38px;
-		color: var(--color-text-secondary);
-		cursor: pointer;
-		font-size: var(--font-size-base);
-		transition:
-			background var(--transition),
-			color var(--transition),
-			opacity var(--transition);
-	}
-
-	.stepper-btn:not(:disabled):hover {
-		background: var(--color-surface-active);
-		color: var(--when-color-text);
-	}
-
-	.stepper-btn:disabled {
-		opacity: 0.25;
-		cursor: not-allowed;
-	}
-
-	.stepper-btn:focus-visible {
-		outline: 2px solid var(--when-color-primary);
-		outline-offset: -2px;
-		z-index: 1;
-	}
-
-	.stepper-btn-left {
-		border-right: 1px solid var(--color-border);
-	}
-
-	.stepper-btn-right {
-		border-left: 1px solid var(--color-border);
-	}
-
-	.stepper-display {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		background: transparent;
-		border: none;
-		padding: 0 var(--space-4);
-		height: 38px;
-		font: inherit;
-		color: var(--when-color-text);
-		cursor: pointer;
-		transition: background var(--transition);
-	}
-
-	.stepper-display:hover {
-		background: var(--color-surface-active);
-		color: var(--when-color-text);
-	}
-
-	.stepper-display:focus-visible {
-		outline: 2px solid var(--when-color-primary);
-		outline-offset: -2px;
-		z-index: 1;
-	}
-
-	.duration-value {
-		font-size: var(--font-size-md);
-		font-weight: 600;
-		white-space: nowrap;
-	}
-
-	/* ---- timezone pill on right ---- */
-	.tz-chip {
-		display: inline-flex;
-		align-items: center;
-		gap: var(--space-2);
-		background: var(--color-surface);
-		border: 1px solid var(--color-border);
-		border-radius: var(--radius);
-		padding: 0 var(--space-3);
-		height: 38px;
-		font: inherit;
-		font-size: var(--font-size-sm);
-		color: var(--color-text-secondary);
-		cursor: pointer;
-		white-space: nowrap;
-		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-		transition:
-			background var(--transition),
-			color var(--transition),
-			border-color var(--transition);
-	}
-
-	.tz-chip:hover {
-		background: var(--color-surface-active);
-		color: var(--when-color-text);
-		border-color: var(--color-border-strong);
-	}
-
-	.tz-chip:focus-visible {
-		outline: 2px solid var(--when-color-primary);
-		outline-offset: 2px;
-	}
-
-	.tz-icon {
-		display: inline-flex;
-		font-size: var(--font-size-base);
-		color: var(--color-text-muted);
-	}
-
-	.tz-chip:hover .tz-icon {
-		color: var(--when-color-text);
-	}
-
-	.tz-short {
-		display: none;
-	}
-
-	@media (max-width: 768px) {
-		.tz-full {
-			display: none;
-		}
-
-		.tz-short {
-			display: inline;
 		}
 	}
 

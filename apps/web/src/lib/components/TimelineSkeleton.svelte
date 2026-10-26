@@ -2,19 +2,12 @@
 <script lang="ts">
 	interface Props {
 		rows: number;
-		showDuration?: boolean;
 	}
 
-	let { rows, showDuration = false }: Props = $props();
+	let { rows }: Props = $props();
 </script>
 
 <div class="skeleton" aria-hidden="true">
-	<div class="header">
-		<span class="timezone"></span>
-		{#if showDuration}
-			<span class="stepper-placeholder"></span>
-		{/if}
-	</div>
 	<div class="scroll">
 		<div class="track" style:height="{rows * 96}px">
 			{#each Array.from({ length: rows }, (_, i) => i) as i (i)}
@@ -33,38 +26,6 @@
 		width: 100%;
 		display: flex;
 		flex-direction: column;
-	}
-
-	.header {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		padding: var(--space-4) var(--space-7);
-		background: var(--color-quiet-bg);
-		border-bottom: 1px solid var(--color-border);
-		min-height: 44px;
-	}
-
-	@media (max-width: 768px) {
-		.header {
-			padding: var(--space-3) var(--space-5);
-		}
-	}
-
-	.stepper-placeholder {
-		width: 7rem;
-		height: 38px;
-		border-radius: var(--radius);
-		background: var(--color-surface);
-		border: 1px solid var(--color-border);
-	}
-
-	.timezone {
-		width: 5rem;
-		height: 38px;
-		border-radius: var(--radius);
-		background: var(--color-surface);
-		border: 1px solid var(--color-border);
 	}
 
 	.scroll {

@@ -191,11 +191,15 @@ describe('createAppointmentFlow selection', () => {
 		expect(flow.step).toBe(2);
 	});
 
-	it('selectSlot records the slot and derives the day from it', () => {
+	it('keeps the selected instant and updates its day when the timezone changes', () => {
 		const flow = makeFlow();
 		flow.selectSlot(SLOT_1030);
 		expect(flow.selectedSlot).toBe(SLOT_1030);
 		expect(flow.viewDate).toBe('2026-07-20');
+		flow.setTz('Pacific/Kiritimati');
+		expect(flow.selectedSlot).toBe(SLOT_1030);
+		expect(flow.viewDate).toBe('2026-07-21');
+		expect(flow.canAdvance).toBe(true);
 	});
 
 	it('clearSlot drops the slot', () => {
@@ -205,15 +209,19 @@ describe('createAppointmentFlow selection', () => {
 		expect(flow.selectedSlot).toBeNull();
 	});
 
-	it('re-buckets available dates when the timezone changes', () => {
+	it('re-buckets available dates and clears an unavailable calendar selection when the timezone changes', () => {
 		const flow = createAppointmentFlow({
 			slotsByDuration: { 30: { '2026-07-20': ['2026-07-20T02:00:00Z'] } },
 			durations: [30],
 			initialDuration: 30
 		});
-		expect(flow.availableDates.has('2026-07-20')).toBe(true);
+		flow.selectDate('2026-07-20');
+		expect(flow.canAdvance).toBe(true);
 		flow.setTz('America/New_York');
 		expect(flow.userTz).toBe('America/New_York');
 		expect(flow.availableDates.has('2026-07-19')).toBe(true);
+		expect(flow.availableDates.has('2026-07-20')).toBe(false);
+		expect(flow.viewDate).toBeNull();
+		expect(flow.canAdvance).toBe(false);
 	});
 });

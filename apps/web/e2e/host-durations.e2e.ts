@@ -61,6 +61,7 @@ test('host uses the configured default and finite palette, recovering locally fr
 	await expect(durationTrigger(page, 60)).toBeVisible();
 	await page.getByRole('button', { name: 'Back', exact: true }).click();
 	await expect(page.getByRole('heading', { name: 'Step 1 of 3: Pick a day' })).toBeVisible();
+	await expect(page.getByRole('button', { name: /^Change timezone, currently/ })).toBeVisible();
 	await durationTrigger(page, 60).click();
 	const dialog = page.getByRole('dialog', { name: 'How long?' });
 	await expect(dialog.locator('.duration-row')).toHaveText(
@@ -79,6 +80,7 @@ test('host uses the configured default and finite palette, recovering locally fr
 		page.getByText('No availability in the near future.', { exact: true })
 	).toBeVisible();
 	await expect(durationTrigger(page, 300)).toBeVisible();
+	await expect(page.getByRole('button', { name: /^Change timezone, currently/ })).toBeVisible();
 	await chooseDuration(page, 300, 90);
 	await expect(page.getByRole('heading', { name: 'Step 1 of 3: Pick a day' })).toBeVisible();
 	await expect(page.getByText('No availability in the near future.', { exact: true })).toHaveCount(
@@ -98,6 +100,8 @@ test('host uses the configured default and finite palette, recovering locally fr
 	await expect(page.getByRole('heading', { name: 'Step 2 of 3: Pick a time' })).toBeVisible();
 	const selectedDay = new URL(page.url()).searchParams.get('date');
 	await expect(durationTrigger(page, 90)).toBeVisible();
+	await chooseDuration(page, 90, 60);
+	await chooseDuration(page, 60, 90);
 	const target = page.getByRole('radio', { name: /10:30\s*AM\s*–\s*12:00\s*PM/i });
 	await expect(target).toBeVisible();
 	page.off('request', trackDurationRequest);
@@ -105,6 +109,8 @@ test('host uses the configured default and finite palette, recovering locally fr
 
 	await target.click();
 	await page.getByRole('button', { name: 'Confirm', exact: true }).click();
+	await expect(page.getByRole('group', { name: 'Booking settings' })).toHaveCount(0);
+	await expect(page.locator('.stage-subtitle')).toContainText(/90\s+min/);
 	await expect(page.locator('#appointment-form')).toHaveAttribute(
 		'action',
 		`/admin/schedule/${slug}`
@@ -345,7 +351,7 @@ test('an empty weekend timeline keeps its duration toolbar usable without fetchi
 	// Abidjan is UTC year-round: Saturday now has no working-window geometry.
 	await expect(page.locator('.timeline-scroll')).toHaveCount(0);
 	await expect(page.getByText('No available times on this date.', { exact: true })).toBeVisible();
-	await expect(page.getByRole('group', { name: 'Duration selector' })).toBeVisible();
+	await expect(page.getByRole('group', { name: 'Booking settings' })).toBeVisible();
 	await expect(durationTrigger(page, 60)).toBeVisible();
 	await chooseDuration(page, 60, 90);
 	await expect(durationTrigger(page, 90)).toBeVisible();

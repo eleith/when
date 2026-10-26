@@ -2,7 +2,7 @@
 	import { page } from '$app/state';
 	import DatePicker from '$lib/components/DatePicker.svelte';
 	import DayTimeline from '$lib/components/DayTimeline.svelte';
-	import DurationDialog from '$lib/components/DurationDialog.svelte';
+	import WizardPickerControls from '$lib/components/WizardPickerControls.svelte';
 	import CalendarSkeleton from '$lib/components/CalendarSkeleton.svelte';
 	import TimelineSkeleton from '$lib/components/TimelineSkeleton.svelte';
 	import RescheduleBanner from '$lib/components/RescheduleBanner.svelte';
@@ -80,7 +80,6 @@
 	let selectedSlot = $derived(flow.selectedSlot);
 	let userTz = $derived(flow.userTz);
 	let isGuestFormValid = $state(false);
-	let durationOpen = $state(false);
 
 	let previousAppointmentHref = $derived(
 		rescheduleAppt
@@ -109,7 +108,6 @@
 	$effect(() => {
 		if (!ptz.current) return;
 		flow.setTz(ptz.current);
-		if (flow.selectedSlot) flow.selectSlot(flow.selectedSlot);
 	});
 
 	// svelte-ignore state_referenced_locally
@@ -148,18 +146,6 @@
 </header>
 
 <main class="appointment">
-	{#if !rescheduleError && durations.length > 1 && (step === 1 || flow.availableDates.size === 0)}
-		<button
-			type="button"
-			class="duration-trigger"
-			onclick={() => (durationOpen = true)}
-			aria-label="Change duration, currently {flow.duration} minutes"
-			aria-haspopup="dialog"
-		>
-			Change duration · {flow.duration} min
-		</button>
-	{/if}
-
 	{#if rescheduleError}
 		<div class="card reschedule-error-card">
 			<h1 class="error-title">Can't reschedule this appointment</h1>
@@ -178,8 +164,6 @@
 			</p>
 			<a class="error-back-btn" href="/">Return home</a>
 		</div>
-	{:else if flow.availableDates.size === 0}
-		<p class="empty">No availability in the near future.</p>
 	{:else}
 		{#if rescheduleAppt}
 			<RescheduleBanner
@@ -221,8 +205,14 @@
 					{/if}
 				</header>
 
+				{#if step < 3}
+					<WizardPickerControls {flow} timezoneReady={!!ptz.current} />
+				{/if}
+
 				<div class="appointment-body">
-					{#if step === 1}
+					{#if flow.availableDates.size === 0}
+						<p class="empty">No availability in the near future.</p>
+					{:else if step === 1}
 						{#if ptz.current}
 							<DatePicker {flow} />
 						{:else}
@@ -239,10 +229,7 @@
 								originalSlot={rescheduleAppt?.start_time ?? null}
 							/>
 						{:else}
-							<TimelineSkeleton
-								rows={timelineSkeletonRows}
-								showDuration={data.eventType.durations.length > 1}
-							/>
+							<TimelineSkeleton rows={timelineSkeletonRows} />
 						{/if}
 					{/if}
 
@@ -273,42 +260,12 @@
 	{/if}
 </main>
 
-<DurationDialog
-	bind:open={durationOpen}
-	{durations}
-	value={flow.duration}
-	onSelect={flow.setDuration}
-/>
-
 <style>
 	.appointment {
 		max-width: 960px;
 		margin: 0 auto;
 		padding: var(--space-8) var(--space-6) var(--space-10);
 		color: var(--when-color-text);
-	}
-
-	.duration-trigger {
-		display: block;
-		min-height: calc(var(--space-8) + var(--space-4));
-		margin: var(--space-4) auto;
-		padding: var(--space-2) var(--space-4);
-		background: var(--color-surface);
-		border: none;
-		border-radius: var(--radius);
-		font: inherit;
-		font-size: var(--font-size-sm);
-		color: var(--when-color-primary);
-		cursor: pointer;
-	}
-
-	.duration-trigger:hover {
-		background: var(--color-surface-active);
-	}
-
-	.duration-trigger:focus-visible {
-		outline: none;
-		box-shadow: var(--shadow-focus);
 	}
 
 	.empty {
