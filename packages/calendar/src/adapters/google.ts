@@ -1,13 +1,12 @@
 import { describeAppointment } from '../description.js';
 import { guestContact } from '../guest.js';
 import { logger } from '../logger.js';
-import type { BusyEvent } from '../types.js';
+import type { BusyEvent, BusyWindow } from '../types.js';
 import type { Appointment } from '@when/db';
 import type { FetchBusyOptions } from './caldav.js';
 import type { CalendarAdapter, PushOptions, PushResult, DeleteResult } from '../adapter.js';
 import type { WhenConfiguration, GoogleCalendar, GoogleProvider } from '@when/config';
 import { patchGoogleEvent } from './google-event.js';
-import type { ExpandWindow } from '../expand.js';
 
 export interface GoogleConfig {
 	client_id: string;
@@ -248,7 +247,7 @@ export class GoogleAdapter implements CalendarAdapter {
 		};
 	}
 
-	async fetchBusy(window: ExpandWindow) {
+	async fetchBusy(window: BusyWindow) {
 		return fetchGoogleBusy(this.googleCfg, { start: window.start, end: window.end });
 	}
 

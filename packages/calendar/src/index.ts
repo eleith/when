@@ -17,7 +17,7 @@ export type { CalendarGuest } from './guest.js';
 // availability path can import it without pulling in provider adapters.
 export { busyCalendarsFor } from './busy-calendars.js';
 
-// Worker refresh: fetch + expand one calendar's busy intervals, filtering our own events.
+// Worker refresh: fetch provider-expanded busy intervals, filtering our own events.
 export { fetchBusyIntervals } from './busy.js';
 
 // Pushing appointments to a destination calendar.
@@ -29,8 +29,7 @@ export { getCalendarAdapter } from './adapter.js';
 export type { CalendarAdapter } from './adapter.js';
 export { getProviderAdapter } from './provider-adapter.js';
 export type { ProviderAdapter, ProviderCalendar } from './provider-adapter.js';
-export type { BusyEvent, Interval } from './types.js';
-export type { ExpandWindow } from './expand.js';
+export type { BusyEvent, BusyWindow, Interval } from './types.js';
 
 // Provider connect + discovery — used to authenticate a provider, run the OAuth
 // consent flow, and list available calendars without a calendar-bound adapter

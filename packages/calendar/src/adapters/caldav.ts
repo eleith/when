@@ -1,6 +1,6 @@
 import { logger } from '../logger.js';
-import { parseBusyEvents } from '../parse.js';
-import type { BusyEvent } from '../types.js';
+import { parseExpandedCalDavEvents } from '../parse.js';
+import type { BusyEvent, BusyWindow } from '../types.js';
 import type { CalendarAdapter, PushOptions, PushResult, DeleteResult } from '../adapter.js';
 import type {
 	WhenConfiguration,
@@ -9,7 +9,6 @@ import type {
 	NextcloudProvider
 } from '@when/config';
 import { originId, type Appointment } from '@when/db';
-import type { ExpandWindow } from '../expand.js';
 import { buildIcs } from '../ics.js';
 import { readCalDavReport, decodeXmlEntities } from './caldav-report.js';
 
@@ -42,8 +41,8 @@ function davFetch(
 
 /**
  * Run a CalDAV REPORT calendar-query against the given calendar URL,
- * returning all VEVENTs that intersect [start, end). Recurring masters
- * are returned as-is; the caller is responsible for RRULE expansion.
+ * asking the server for concrete occurrences intersecting [start, end).
+ * Reject failed or unexpanded responses before they can replace the busy mirror.
  */
 export async function fetchCalDavBusy(
 	cfg: CalDavConfig,
@@ -62,7 +61,7 @@ export async function fetchCalDavBusy(
 	const blobs = readCalDavReport(xml);
 	const out: BusyEvent[] = [];
 	for (const ics of blobs) {
-		out.push(...parseBusyEvents(ics));
+		out.push(...parseExpandedCalDavEvents(ics));
 	}
 	logger.debug({ url: cfg.url, count: out.length }, 'fetched CalDAV busy events');
 	return out;
@@ -111,11 +110,30 @@ function joinPath(base: string, child: string): string {
 	return base.endsWith('/') ? base + child : base + '/' + child;
 }
 
+// Pin DATE/floating selection to the same UTC interpretation used by the importer.
+// Otherwise the server's calendar timezone can omit occurrences before we see them.
+const QUERY_TIMEZONE = [
+	'BEGIN:VCALENDAR',
+	'VERSION:2.0',
+	'PRODID:-//When//CalDAV Query//EN',
+	'BEGIN:VTIMEZONE',
+	'TZID:UTC',
+	'BEGIN:STANDARD',
+	'DTSTART:19700101T000000',
+	'TZOFFSETFROM:+0000',
+	'TZOFFSETTO:+0000',
+	'END:STANDARD',
+	'END:VTIMEZONE',
+	'END:VCALENDAR'
+].join('\r\n');
+
 export function buildReportBody(start: Temporal.Instant, end: Temporal.Instant): string {
 	return `<?xml version="1.0" encoding="utf-8" ?>
 <C:calendar-query xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav">
   <D:prop>
-    <C:calendar-data />
+    <C:calendar-data>
+      <C:expand start="${formatCalDavInstant(start)}" end="${formatCalDavInstant(end)}" />
+    </C:calendar-data>
   </D:prop>
   <C:filter>
     <C:comp-filter name="VCALENDAR">
@@ -124,6 +142,7 @@ export function buildReportBody(start: Temporal.Instant, end: Temporal.Instant):
       </C:comp-filter>
     </C:comp-filter>
   </C:filter>
+  <C:timezone>${QUERY_TIMEZONE}</C:timezone>
 </C:calendar-query>`;
 }
 
@@ -153,7 +172,7 @@ export class CalDavAdapter implements CalendarAdapter {
 		};
 	}
 
-	async fetchBusy(window: ExpandWindow) {
+	async fetchBusy(window: BusyWindow) {
 		return fetchCalDavBusy(this.adapterCfg, { start: window.start, end: window.end });
 	}
 

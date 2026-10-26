@@ -1,4 +1,5 @@
 import { expect, test, vi, beforeEach } from 'vitest';
+import { convertIcsCalendar } from 'ts-ics';
 import {
 	buildReportBody,
 	readCalDavReport,
@@ -14,11 +15,24 @@ beforeEach(() => {
 	vi.restoreAllMocks();
 });
 
-test('buildReportBody emits CalDAV time-range in basic ISO format', () => {
+test('requests server expansion and resource filtering for the same UTC window', () => {
 	const body = buildReportBody(inst('2026-04-01T00:00:00Z'), inst('2026-05-01T00:00:00Z'));
-	expect(body).toContain('start="20260401T000000Z"');
-	expect(body).toContain('end="20260501T000000Z"');
+	const range = 'start="20260401T000000Z" end="20260501T000000Z"';
+	expect(body).toContain(`<C:expand ${range} />`);
+	expect(body).toContain(`<C:time-range ${range} />`);
 	expect(body).toContain('<C:comp-filter name="VEVENT">');
+});
+
+test('pins DATE and floating-time selection to UTC rather than the calendar timezone', () => {
+	const body = buildReportBody(inst('2026-04-01T09:00:00Z'), inst('2026-04-02T09:00:00Z'));
+	const timezone = body.match(/<C:timezone>([\s\S]*?)<\/C:timezone>/)?.[1];
+	expect(timezone).toBeDefined();
+	const calendar = convertIcsCalendar(undefined, timezone!);
+	expect(calendar.timezones).toHaveLength(1);
+	expect(calendar.timezones?.[0]).toMatchObject({
+		id: 'UTC',
+		props: [{ type: 'STANDARD', offsetFrom: '+0000', offsetTo: '+0000' }]
+	});
 });
 
 test('buildReportBody strips fractional seconds', () => {
@@ -123,6 +137,19 @@ test.each([
 	).rejects.toThrow(/CalDAV REPORT.*(?:403|404)/);
 });
 
+test('fetchCalDavBusy rejects unexpanded series even when calendar-data reports success', async () => {
+	const ics = remoteIcs.replace('SUMMARY:Remote', 'RRULE:FREQ=WEEKLY;COUNT=3\r\nSUMMARY:Remote');
+	vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+		new Response(multistatus(resource(ics)), { status: 207 })
+	);
+	await expect(
+		fetchCalDavBusy(
+			{ url: 'https://cal.example.com/cal/', username: 'a', password: 'b' },
+			{ start: inst('2026-04-01T00:00:00Z'), end: inst('2026-05-01T00:00:00Z') }
+		)
+	).rejects.toThrow(/expanded occurrences/);
+});
+
 test('fetchCalDavBusy sends a REPORT request with basic auth', async () => {
 	let captured: { url: string; init: RequestInit } | null = null;
 	vi.spyOn(globalThis, 'fetch').mockImplementation(async (url, init) => {
@@ -144,6 +171,7 @@ test('fetchCalDavBusy sends a REPORT request with basic auth', async () => {
 	expect(captured).not.toBeNull();
 	const init = captured!.init;
 	expect(init.method).toBe('REPORT');
+	expect(init.body).toContain('<C:expand ');
 	const headers = init.headers as Record<string, string>;
 	expect(headers['Depth']).toBe('1');
 	expect(headers['Content-Type']).toContain('application/xml');

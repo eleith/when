@@ -1,17 +1,22 @@
 import type { ResolvedCalendar } from '@when/config';
-import type { Interval } from './types.js';
-import type { ExpandWindow } from './expand.js';
+import type { BusyWindow, Interval } from './types.js';
 import { getCalendarAdapter } from './adapter.js';
-import { expandBusy } from './expand.js';
 
 export async function fetchBusyIntervals(
 	cal: ResolvedCalendar,
-	window: ExpandWindow,
+	window: BusyWindow,
 	opts: { excludeUids?: Set<string> } = {}
 ): Promise<Interval[]> {
 	const adapter = getCalendarAdapter(cal);
 	const events = await adapter.fetchBusy(window);
 	const exclude = opts.excludeUids;
-	const kept = exclude ? events.filter((e) => !exclude.has(e.uid)) : events;
-	return expandBusy(kept, window).map((o) => ({ start: o.start, end: o.end }));
+	return events
+		.filter((event) => !exclude?.has(event.uid))
+		.filter(
+			({ start, end }) =>
+				Temporal.Instant.compare(start, end) < 0 &&
+				Temporal.Instant.compare(start, window.end) < 0 &&
+				Temporal.Instant.compare(end, window.start) > 0
+		)
+		.map(({ start, end }) => ({ start, end }));
 }

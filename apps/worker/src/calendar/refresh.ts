@@ -1,5 +1,5 @@
 import { findCalendar, type ResolvedCalendar, type WhenConfiguration } from '@when/config';
-import type { ExpandWindow, Interval } from '@when/calendar';
+import type { BusyWindow, Interval } from '@when/calendar';
 import { busyCalendarsFor, fetchBusyIntervals } from '@when/calendar';
 import {
 	listOwnEventIds,
@@ -34,7 +34,7 @@ export function refreshWindow(
 	config: WhenConfiguration,
 	calendarId: string,
 	now: Temporal.Instant
-): ExpandWindow {
+): BusyWindow {
 	let days = 0;
 	for (const meeting of Object.values(config.meetings)) {
 		if (!busyCalendarsFor(meeting).includes(calendarId)) continue;
@@ -48,7 +48,7 @@ export function refreshWindow(
 export async function refreshCalendar(
 	ctx: WorkerContext,
 	cal: ResolvedCalendar,
-	window: ExpandWindow,
+	window: BusyWindow,
 	opts: RefreshOptions = {}
 ): Promise<RefreshResult> {
 	const at = (opts.now ?? window.start).toString();

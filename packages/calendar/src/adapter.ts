@@ -1,9 +1,8 @@
 import type { ResolvedCalendar, WhenConfiguration } from '@when/config';
 import type { Appointment } from '@when/db';
-import type { ExpandWindow } from './expand.js';
 import { CalDavAdapter } from './adapters/caldav.js';
 import { GoogleAdapter } from './adapters/google.js';
-import type { BusyEvent } from './types.js';
+import type { BusyEvent, BusyWindow } from './types.js';
 
 interface PushOptions {
 	cancelUrl: string;
@@ -22,7 +21,7 @@ interface DeleteResult {
 }
 
 interface CalendarAdapter {
-	fetchBusy(window: ExpandWindow): Promise<BusyEvent[]>;
+	fetchBusy(window: BusyWindow): Promise<BusyEvent[]>;
 	pushAppointment(
 		cfg: WhenConfiguration,
 		appointment: Appointment,

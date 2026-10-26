@@ -210,6 +210,25 @@ test('a partial CalDAV response preserves the mirror; a successful empty report 
 	}
 });
 
+test('a malformed CalDAV calendar cannot replace the last good busy mirror', async () => {
+	const body = oneEvent('remote-1').replace(/BEGIN:VEVENT[\s\S]*?END:VEVENT/, 'BEGIN:VTODO');
+	const ctx = await ctxWithDb();
+	const stale = { start: '2026-04-10T09:00:00Z', end: '2026-04-10T09:30:00Z' };
+	try {
+		await replaceCalendarBusy(ctx.db, 'work', [stale]);
+		vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(body, { status: 207 }));
+		const result = await refreshCalendar(ctx, workCal, window);
+		const retained = await ctx.db
+			.selectFrom('external_calendar_busy')
+			.select(['start_time', 'end_time'])
+			.execute();
+		expect(result).toEqual({ ok: false, error: expect.stringContaining('CalDAV') });
+		expect(retained).toEqual([{ start_time: stale.start, end_time: stale.end }]);
+	} finally {
+		await ctx.db.destroy();
+	}
+});
+
 test.each(['HTTP failure', 'invalid event time'])(
 	'a later Google page with %s preserves the mirror; a later empty import clears it',
 	async (failure) => {
