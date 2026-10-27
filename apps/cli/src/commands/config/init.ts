@@ -4,9 +4,10 @@ import { define } from 'gunshi';
 import { getValidatedConfigPath } from '../../utils/config-path.ts';
 import { pass, fail } from '../../utils/report.ts';
 
-const SKELETON = `# yaml-language-server: $schema=../../../packages/config/src/config.schema.json
-# Minimal starter config. Edit the placeholders, set the \${...} env vars, then
-# run: when-cli config validate. See config/when.example.yml for every option.
+const SKELETON = `# yaml-language-server: $schema=http://localhost:3000/schema.json
+# Adjust the schema URL to your running app's address.
+# Edit the placeholders and set the \${...} env vars, then run: when-cli config validate.
+# Full example: https://git.eleith.com/eleith/when/raw/branch/main/docs/when.example.yaml
 auth:
   credentials:
     username: admin
@@ -70,6 +71,8 @@ export const initCommand = define({
 
 		pass(`wrote ${path}`);
 		console.log('  edit the placeholders, then run: when-cli config validate');
-		console.log('  see config/when.example.yml for every option');
+		console.log(
+			'  see https://git.eleith.com/eleith/when/src/branch/main/docs/when.example.yaml for every option'
+		);
 	}
 });

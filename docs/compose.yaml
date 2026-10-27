@@ -1,0 +1,58 @@
+services:
+  when-app:
+    # Pin web, worker and CLI to matching published versions for controlled updates.
+    image: ghcr.io/eleith/when:latest
+    platform: linux/amd64
+    env_file: .env
+    ports:
+      # Localhost only. Use '3000:3000' for LAN access; restrict it with your firewall.
+      - '127.0.0.1:3000:3000'
+    volumes:
+      - ./config:/app/config:ro
+      - ./data:/app/data
+      - ./public:/app/public:ro
+    restart: unless-stopped
+    depends_on:
+      when-worker:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - --eval
+        - fetch('http://localhost:3000/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))
+      interval: 30s
+      timeout: 3s
+      start_period: 5s
+      retries: 3
+
+  when-worker:
+    image: ghcr.io/eleith/when-worker:latest
+    platform: linux/amd64
+    env_file: .env
+    # Health and metrics stay on the Compose network. No published worker port.
+    volumes:
+      - ./config:/app/config:ro
+      - ./data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - --eval
+        - fetch('http://localhost:9000/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))
+      interval: 30s
+      timeout: 3s
+      start_period: 5s
+      retries: 3
+
+  when-cli:
+    image: ghcr.io/eleith/when-cli:latest
+    platform: linux/amd64
+    profiles:
+      - tools
+    env_file: .env
+    volumes:
+      # Writable so config init can create a starter file. Other services only read it.
+      - ./config:/app/config
+      - ./data:/app/data

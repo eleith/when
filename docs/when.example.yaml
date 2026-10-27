@@ -1,10 +1,8 @@
-# yaml-language-server: $schema=../../../packages/config/src/config.schema.json
-#
-# Example When configuration. Copy this to `when.yaml` in the same directory and
-# edit. The uncommented blocks are a complete, valid starter config; commented
-# lines document every remaining field and its default, so you can uncomment
-# what you need. Secrets are `${ENV_VAR}` references — set those in your
-# environment (docker loads them from `.env`).
+# yaml-language-server: $schema=http://localhost:3000/schema.json
+# Copy to config/when.yaml and replace the placeholders.
+# The schema comes from the running app; adjust its URL if you use another address.
+# Optional fields and defaults are commented below. Secrets use ${ENV_VAR};
+# the sample Compose file passes them from .env.
 
 # Shape of this file. Defaults to 1 and only changes if the config layout does.
 # version: 1
@@ -124,12 +122,13 @@ meetings:
     # additional_busy_calendars: ['personal'] # further calendars to check; booking_calendar is always checked
     # location: 'Suite 200, 123 Main St' # a static address, phone, or link
     # video_chat:
-    #   provider: 'google-service' # generate a video link per booking
+    #   provider: 'nextcloud-service' # configure the provider above first
     #   attach:
-    #     auto: true # auto: true (default) or auto: false (admin generates on demand)
-    #     when: # or conditionally attach based on guest form answers
-    #       - field: 'topic'
-    #         equals: 'Video Meeting'
+    #     auto: true # or false for host-only generation; use auto OR when, not both
+    #     # when: # instead of auto, match the form below
+    #     #   - field: 'topic'
+    #     #     equals: 'Support'
+    # Google Meet requires a Google booking calendar.
     # note: 'Please add an agenda when you book.'
     # notice_minutes: 120 # minimum lead time (default 120)
     # booking_window_days: 60 # how far ahead bookings open (default 60)
@@ -138,12 +137,20 @@ meetings:
     # daily_booking_limit: null # null = unlimited
     # show_slots: false # true draws the slots as buttons; false is a bare drag timeline
     # start_times_every_minutes: 15 # slot step (default 30; independent of the lengths offered)
-    # form_fields: # extra questions asked at booking
+    # form_fields: # replaces the default form; include a required guest_name
+    #   - name: 'name'
+    #     type: 'guest_name'
+    #     label: 'Your name'
+    #     required: true
+    #   - name: 'email'
+    #     type: 'guest_email'
+    #     label: 'Your email'
+    #     required: true
     #   - name: 'topic'
-    #     type: 'text' # guest_name | guest_email | event_location | text | number | phone | paragraph | choice
+    #     type: 'choice' # guest_name | guest_email | event_location | text | number | phone | paragraph | choice
     #     label: 'What would you like to discuss?'
     #     required: false
-    #     choices: ['Sales', 'Support'] # only for type: choice
+    #     choices: ['Sales', 'Support'] # only for choice or event_location
     #   - name: 'phone'
     #     type: 'phone'
     #     label: 'Your phone number'

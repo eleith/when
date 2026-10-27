@@ -18,7 +18,7 @@ export async function bootConfig(path: string = resolveConfigPath()): Promise<Wh
 	if (!exists) {
 		logger.fatal(
 			{ path },
-			'config not found; copy config/when.example.yml to config/when.yaml as a starting point'
+			'config not found; start with the example at https://git.eleith.com/eleith/when/src/branch/main/docs/when.example.yaml'
 		);
 		throw new Error(`config not found at ${path}`);
 	}

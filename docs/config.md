@@ -1,319 +1,389 @@
 # Configuration
 
-`when.yaml` is the heart of "When" — it drives authentication, branding,
-availability, calendars, email, and the meetings people can book, without an admin
-database for settings. This is the complete reference; the canonical source of truth is
-defined in [schema.ts](file:///home/eleith/dev/when/packages/config/src/schema.ts) (TypeBox), which generates `config.schema.json` for editors to point at.
+One `when.yaml` for the web app and worker. Auth, availability, calendars, email,
+and what guests can book. No settings scavenger hunt.
 
-Point your editor at that schema for inline autocomplete and validation:
-
-```yaml
-# yaml-language-server: $schema=./config.schema.json
-```
-
-The required top-level keys are: `auth`, `user`, `smtp`, `providers`, `schedules`, `meetings`. Optional top-level keys include `version`, `database`, `url`, and `prometheus`.
-
-`providers`, `schedules`, and `meetings` are **maps keyed by name, not lists**. The key _is_
-the name — a provider has no `name:` field, a schedule has no `name:`, and a meeting has
-neither `name:` nor `slug:` (its key is the slug, and `title:` holds the text guests see).
-There is likewise **no top-level `calendars:`**: a calendar is declared inside the
-`calendars:` map of the provider that serves it, which is what gives it its type and
-credentials.
+Copy the [example](when.example.yaml) to `config/when.yaml` and edit it. It
+documents every field; this page explains the rules. The running app serves its
+editor schema at `/schema.json`:
 
 ```yaml
-# not this                          # this
-providers:                          providers:
-  - name: cloud                       cloud:
-    type: caldav                        type: caldav
-calendars:                              calendars:
-  - name: work                            work:
-    provider: cloud                         href: 'calendars/jane/work/'
+# yaml-language-server: $schema=http://localhost:3000/schema.json
 ```
 
-## `version`
+Use your app's address if different. In a checkout, the generated schema also
+lives at `packages/config/src/config.schema.json`; the source of truth is the
+[TypeBox schema](../packages/config/src/schema.ts).
 
-The shape of this file, not the app's release. It defaults to `1` and you never need to
-write it; it exists so a future change to the config layout can be detected rather than
-guessed at. Only `1` is accepted today.
+## File shape
 
-```yaml
-version: 1
-```
+| Key          | Required? | Purpose / default                                                                                       |
+| ------------ | --------- | ------------------------------------------------------------------------------------------------------- |
+| `auth`       | Yes       | One admin sign-in strategy.                                                                             |
+| `user`       | Yes       | Owner details and appearance.                                                                           |
+| `smtp`       | Yes       | Outgoing appointment email.                                                                             |
+| `providers`  | No        | Named services and their calendars; defaults to `{}`. Meetings must still reference declared calendars. |
+| `schedules`  | Yes       | At least one named availability schedule.                                                               |
+| `meetings`   | Yes       | At least one bookable meeting.                                                                          |
+| `version`    | No        | Config format version, not the app release. Defaults to `1`; only `1` is accepted.                      |
+| `database`   | No        | SQLite paths.                                                                                           |
+| `url`        | No        | Public and internal service URLs.                                                                       |
+| `prometheus` | No        | Metrics; off by default.                                                                                |
 
-## Environment variable interpolation
+`providers`, `schedules`, and `meetings` are **maps, not lists**. Their keys are
+their names; a meeting's key is also its URL slug. Use lowercase letters, digits,
+and hyphens, starting with a letter or digit. The same rule applies to calendar
+keys.
 
-Any string value may reference `${ENV_VAR}`. Substitution happens **before** validation,
-so secrets stay in the environment rather than on disk. The `${VAR:-default}` form
-supplies a fallback.
-
-```yaml
-auth:
-  oidc:
-    client_secret: '${WHEN_OIDC_CLIENT_SECRET}'
-```
-
-## `auth`
-
-Declare **exactly one** strategy for the `/admin` interface.
-
-```yaml
-# Local username/password:
-auth:
-  credentials:
-    username: 'admin'
-    password: '${WHEN_ADMIN_PASSWORD}' # defaults to WHEN_ADMIN_PASSWORD env var if omitted
-
-# — or — single sign-on via OIDC:
-auth:
-  oidc:
-    issuer: 'https://auth.example.com'
-    client_id: 'when'
-    client_secret: '${WHEN_OIDC_CLIENT_SECRET}'
-    name: 'Single Sign-On' # optional display name, defaults to 'Single Sign-On' (e.g. 'Authelia', 'Google')
-```
-
-Both are supported in production. Which one fits depends on who can reach the sign-in page:
-
-- **`credentials`** is a good fit on a trusted network — a LAN, a VPN, or behind a proxy that
-  authenticates before the request arrives. The app applies **no rate limiting and no lockout**
-  to password attempts, so nothing slows an attacker who can reach `/signin`. Running it in
-  production logs one warning at startup saying so.
-- **`oidc`** is the recommendation for an internet-facing deployment. Attempt throttling,
-  lockout, password policy, and MFA then belong to your identity provider, which is built for
-  them.
-
-If you want `credentials` on a public address anyway, put the rate limiting at the reverse
-proxy — see the sign-in endpoint in `docs/deployment.md`.
-
-## `user`
-
-The schedule owner and the appointment page's appearance.
-
-```yaml
-user:
-  name: 'Your Name'
-  email: 'you@example.com' # required, must be a valid email
-  timezone: 'America/New_York' # IANA timezone; defaults to the TZ env var, or UTC
-  appearance:
-    title: 'Schedule a time with me'
-    description: 'A little bit about me.'
-    app_icon_path: '/public/logo.png'
-    avatar_path: '/public/my-avatar.jpg'
-    favicon_path: '/public/favicon.svg'
-    opengraph_path: '/public/share-card.png'
-    font_name: 'Outfit' # bundled: Noto Sans, Lato, Outfit, Inter
-    font_path: '/public/my-font.woff2' # a woff2 registered as font_name, for a non-bundled family
-    primary_light_color: '#166534' # brand hue, light mode
-    primary_dark_color: '#34d399' # brand hue, dark mode
-    background_light_color: '#f5f5f5'
-    background_dark_color: '#0a0a0a'
-    text_light_color: '#171717'
-    text_dark_color: '#ededed'
-```
-
-`appearance` and all of its fields are optional; defaults are applied when omitted. `app_icon_path` and `favicon_path` default to a bundled spiral-calendar mark (`/assets/images/app-icon.svg`, `/assets/images/favicon.svg`), `avatar_path` defaults to `/assets/images/avatar.svg` — a placeholder avatar generated from `user.name` — and `opengraph_path` defaults to `/assets/images/opengraph.png`, a share card generated from the rest of the appearance. Every `*_path` here is a root-relative path to an asset this app serves; remote URLs are rejected. `primary_light_color` and `primary_dark_color` set the brand hue for light and dark modes, and a muted tonal scale is derived from each; the `background_*_color` and `text_*_color` fields likewise override the light/dark surface and text colors. To override any of them, place custom assets in `./public/` (a sibling of `config/` and `data/`, overridable with `WHEN_PUBLIC_DIR`) and reference them as `/public/...`.
-
-## `smtp`
-
-**Required.** The worker sends all appointment emails over this server; the appointment system
-relies on it.
-
-```yaml
-smtp:
-  host: 'smtp.example.com'
-  port: 587 # defaults to 587
-  username: 'you@example.com'
-  password: '${WHEN_SMTP_PASSWORD}'
-  from: 'bookings@example.com' # optional; defaults to noreply@<your url.app domain>
-```
-
-`from` is the address on every email and the organizer on guest-facing calendar invites, so
-the host's own address is never exposed. It must be one your SMTP server may send from. The
-display name always comes from `user.name`.
-
-## `providers`
-
-External services and the calendars they serve, each keyed by the name you refer to it
-by. Three `type`s are supported: `google`, `caldav`, and `nextcloud`.
-
-A calendar is declared inside the provider that serves it, so it needs no `provider`
-reference and no `type` of its own — both are implied by where it sits. Calendars are
-conflict sources (busy times) and/or appointment destinations.
+There is no top-level `calendars`, no provider or schedule `name`, and no meeting
+`name` or `slug` field. Calendars belong inside their provider:
 
 ```yaml
 providers:
-  my-google-service:
-    type: 'google'
-    client_id: '${WHEN_PROVIDER_GOOGLE_SERVICE_CLIENT_ID}'
-    client_secret: '${WHEN_PROVIDER_GOOGLE_SERVICE_CLIENT_SECRET}'
-    refresh_token: '${WHEN_PROVIDER_GOOGLE_SERVICE_REFRESH_TOKEN:-}' # from /admin; empty = not connected
-    calendars:
-      personal: # referenced by meetings
-        id: 'primary' # the Google calendar ID
-        sync:
-          refresh_every_minutes: 10 # minutes between busy-time refreshes (default 10)
-  my-caldav-service:
-    type: 'caldav'
+  cloud:
+    type: caldav
     url: 'https://cloud.example.com/remote.php/dav/'
-    username: 'jane'
-    password: '${WHEN_PROVIDER_CALDAV_SERVICE_PASSWORD}'
+    username: jane
+    password: '${WHEN_CALDAV_PASSWORD}'
     calendars:
       work:
-        href: 'calendars/jane/work/' # joined to the provider url
-      shared:
-        href: 'https://other.example.com/dav/shared/' # ...or a full URL of its own
-  my-nextcloud-service:
-    type: 'nextcloud'
-    url: 'https://nextcloud.example.com/'
-    username: 'jane'
-    password: '${WHEN_PROVIDER_NEXTCLOUD_SERVICE_PASSWORD}'
-    calendars: {}
+        href: 'calendars/jane/work/'
 ```
 
-**Calendar keys must be unique across every provider**, since meetings reference them by
-name alone. A CalDAV or Nextcloud calendar names its location with `href`, which is either joined to
-the provider's `url` or a full URL of its own. `sync.refresh_every_minutes` is optional
-everywhere.
+Unknown options are rejected. References to schedules, calendars, providers, and
+form fields are checked at load time.
 
-A Google provider's `refresh_token` is the one credential you cannot write from scratch:
-Google only issues it through a browser consent round-trip. Connect the provider from
-`/admin`, which shows the token once, then store it in an env var and reference it here
-like any other secret. It is optional and defaults to empty — an empty token simply reads
-as not connected, so a provider works up to the point of actually reaching Google. See
-[deployment](deployment.md) for the full flow, including the container recreate that a new
-env var needs.
+## Environment variables
+
+Any string value can contain `${ENV_VAR}`. Values are substituted before runtime
+validation, including in defaults. Keep secrets in the environment, not in
+committed YAML.
+
+- `${VAR}` fails loading if the variable is unset.
+- `${VAR:-fallback}` uses the fallback if the variable is unset, not if it is empty.
+- `$$` produces a literal `$`.
+
+For example: `password: '${WHEN_SMTP_PASSWORD}'`. Deployment variables such as
+`CONFIG_PATH`, `AUTH_SECRET`, and `ORIGIN` are covered in
+[deployment](deployment.md#environment-variables).
+
+## `auth`
+
+Choose **exactly one** strategy for `/admin`.
+
+```yaml
+auth:
+  credentials:
+    username: admin
+    # password defaults to ${WHEN_ADMIN_PASSWORD}
+```
+
+Or replace it with OIDC:
+
+```yaml
+auth:
+  oidc:
+    issuer: 'https://auth.example.com'
+    client_id: when
+    client_secret: '${WHEN_OIDC_CLIENT_SECRET}'
+    # name: 'Single Sign-On' # default display name
+```
+
+`credentials.username` is required; `password` must be non-empty and defaults to
+`${WHEN_ADMIN_PASSWORD}`. OIDC requires `issuer`, `client_id`, and `client_secret`;
+`name` defaults to `Single Sign-On`.
+
+Both strategies work in production. Choose based on who can reach sign-in:
+
+- **Credentials:** suitable on a LAN, VPN, or behind an authenticating proxy.
+  The app has **no password-attempt rate limiting or lockout** and warns about
+  this at startup in production.
+- **OIDC:** recommended for an internet-facing deployment. Throttling, lockout,
+  password policy, and MFA belong to your identity provider.
+
+If you expose credentials sign-in publicly, enforce rate limiting at the reverse
+proxy.
+
+## `user`
+
+| Field        | Default      | Meaning                                                                |
+| ------------ | ------------ | ---------------------------------------------------------------------- |
+| `name`       | Required     | Owner's display name.                                                  |
+| `email`      | Required     | Owner's valid email address.                                           |
+| `timezone`   | `${TZ:-UTC}` | IANA zone, such as `America/New_York`. Schedule windows use this zone. |
+| `appearance` | `{}`         | Optional overrides below.                                              |
+
+### Appearance
+
+Every field under `user.appearance` is optional.
+
+| Field                    | Default                                             |
+| ------------------------ | --------------------------------------------------- |
+| `title`                  | `if not now, when?`                                 |
+| `description`            | `find some time and we can meet`                    |
+| `app_icon_path`          | `/assets/images/app-icon.svg`                       |
+| `avatar_path`            | `/assets/images/avatar.svg`                         |
+| `favicon_path`           | `/assets/images/favicon.svg`                        |
+| `opengraph_path`         | `/assets/images/opengraph.png`                      |
+| `font_name`              | `Noto Sans`                                         |
+| `font_path`              | Unset; custom woff2 file registered as `font_name`. |
+| `primary_light_color`    | `#166534`                                           |
+| `primary_dark_color`     | `#34d399`                                           |
+| `background_light_color` | `#f5f5f5`                                           |
+| `background_dark_color`  | `#0a0a0a`                                           |
+| `text_light_color`       | `#171717`                                           |
+| `text_dark_color`        | `#ededed`                                           |
+
+The default icon and favicon are bundled calendar marks. The default avatar is
+generated from `user.name`; the default share card uses the appearance settings.
+Bundled font families are Noto Sans, Lato, Outfit, and Inter.
+
+All `*_path` values must be root-relative paths served by this app. Remote URLs
+are rejected. Put custom files in `./public/`, alongside `config/` and `data/`,
+and reference them as `/public/logo.png`. `WHEN_PUBLIC_DIR` overrides that directory.
+
+Colors accept three- or six-digit hex values. Each primary color generates a
+muted tonal scale for its mode; background and text colors override the surfaces
+and text.
+
+## `smtp`
+
+Required. The worker uses this server for appointment emails.
+
+| Field      | Default                    | Meaning                                       |
+| ---------- | -------------------------- | --------------------------------------------- |
+| `host`     | Required                   | SMTP hostname.                                |
+| `port`     | `587`                      | Integer from 1–65535.                         |
+| `username` | Required                   | SMTP username.                                |
+| `password` | Required                   | SMTP password; use an environment reference.  |
+| `from`     | `noreply@<url.app domain>` | Sender address your server is allowed to use. |
+
+`from` is also the organizer on guest-facing calendar invites, keeping the host's
+own address out of those fields. The sender display name is always `user.name`.
+
+## `providers`
+
+Named services, each containing a `calendars` map. See the
+[example](when.example.yaml) for complete provider blocks.
+
+| `type`      | Required fields               | Optional fields                                             |
+| ----------- | ----------------------------- | ----------------------------------------------------------- |
+| `google`    | `client_id`, `client_secret`  | `refresh_token` (default `''`), `calendars` (default `{}`). |
+| `caldav`    | `url`, `username`, `password` | `calendars` (default `{}`).                                 |
+| `nextcloud` | `url`, `username`, `password` | `calendars` (default `{}`). Also supports Talk video links. |
+
+For CalDAV, `url` is the DAV endpoint. For Nextcloud, it is the instance base URL.
+
+### Calendars
+
+Calendar keys must be **unique across all providers**: meetings reference them by
+name alone. They supply busy times, receive appointments, or both.
+
+| Provider           | Calendar field               | Meaning                                                     |
+| ------------------ | ---------------------------- | ----------------------------------------------------------- |
+| Google             | `id` (required)              | Google calendar ID, such as `primary`.                      |
+| CalDAV / Nextcloud | `href` (required)            | Path joined to the provider's `url`, or a full HTTP(S) URL. |
+| All                | `sync.refresh_every_minutes` | Busy-time refresh interval; integer ≥ 1, default `10`.      |
+
+A calendar needs no `type` or `provider` field; its parent supplies both.
+
+### Google connection
+
+An empty or omitted `refresh_token` means not connected. The config can load,
+but the provider cannot reach Google until you connect it.
+
+Connect from `/admin`. Google issues the token through browser consent; the admin
+UI shows it once for you to save in an environment variable and reference in YAML.
+After saving it, [recreate the containers](deployment.md#environment-variables).
 
 ## `schedules`
 
-Weekly schedules defining availability slots, keyed by the name meetings refer to.
-`weekly` is a list of rules, each naming the `days` it applies to and a `from`/`to` window (24-hour
-`HH:MM`, in `user.timezone`). Availability is the union of all rules.
+Each named schedule has a `weekly` list. Omit `weekly` to use Monday–Friday,
+09:00–17:00. For example, `standard: {}` is a complete schedule.
+
+Each rule needs `days`, `from`, and `to`:
 
 ```yaml
 schedules:
-  standard: # the key is the name meetings reference
-    weekly: # optional; defaults to Monday–Friday 09:00–17:00 when omitted
-      - days: [mon, tue, wed, thu]
+  standard:
+    weekly:
+      - days: [mon, tue, wed, thu, fri]
         from: '09:00'
+        to: '12:00'
+      - days: [mon, tue, wed, thu, fri]
+        from: '13:00'
         to: '17:00'
-      # For multiple windows in a day (e.g. a lunch break), repeat the day:
-      - days: [fri]
-        from: '09:00'
-        to: '13:00'
-      - days: [fri]
-        from: '14:00'
-        to: '17:00'
-      # A day named by no rule has no availability (here: sat, sun).
 ```
+
+- Days are `mon`, `tue`, `wed`, `thu`, `fri`, `sat`, `sun`.
+- Times are 24-hour `HH:MM` in `user.timezone`; `from` must be earlier than `to`.
+- Availability is the union of all rules. Repeat days for split windows.
+- Days absent from every rule are unavailable. An explicit `weekly` list cannot be empty.
 
 ## `meetings`
 
-The meetings people can book. **The key is the URL slug** — `30-min-chat` is booked at
-`/schedule/30-min-chat`. `title`, `schedule`, and `booking_calendar` are required — every
-meeting names what it is, where it books, and when. `duration_minutes` (30),
-`require_approval` (true), and `show_slots` (false) all default; everything else is optional.
+The key is the booking URL slug: `chat` gives `/schedule/chat`.
 
 ```yaml
 meetings:
-  chat: # URL slug: /schedule/chat
-    title: '30-minute chat'
-    duration_minutes: 30 # the default length offered (default 30)
-    additional_duration_minutes: [15, 60] # further lengths the guest may pick
-    description: 'A quick intro call.'
-    visibility: 'public' # 'public' (default) or 'unlisted' (kept off the homepage; the link still works)
-    require_approval: true # true (default, host approves each booking) or false (instant)
-    additional_busy_calendars: ['personal'] # further calendars to check for conflicts; booking_calendar is always checked (default [])
-    booking_calendar: 'work' # required: where the appointment is written
-    schedule: 'standard' # required: references a schedules name
-    location: 'Office Room 101' # a static URL, address, or phone number (optional)
-    video_chat: # provider and dynamic link attachment rules (optional)
-      provider: 'my-nextcloud-service' # references a nextcloud or google provider name
-      attach: # rules for attaching link (optional; defaults to auto: true)
-        auto: true # auto: true (automatic) or auto: false (admin generates on demand)
-        # when: # or attach conditionally based on guest form answers
-        #   - field: 'loc'
-        #     equals: 'Video Call'
-    note: 'Please review materials prior to the call.' # a host note shown to guests (optional)
-    form_fields: # custom booking questions (optional)
-      - name: 'name'
-        type: 'guest_name'
-        label: 'Your Name'
-        required: true
-      - name: 'email'
-        type: 'guest_email'
-        label: 'Your Email'
-        required: true
-      - name: 'loc'
-        type: 'event_location'
-        label: 'Preferred Location'
-        required: true
-      - name: 'goals'
-        type: 'paragraph'
-        label: 'What would you like to discuss?'
-        required: false
-      - name: 'contact_method'
-        type: 'choice'
-        label: 'How should we reach you?'
-        required: true
-        choices: ['phone', 'email']
-      - name: 'phone'
-        type: 'phone'
-        label: 'Your phone number'
-        required: true # required only while shown
-        show_when: # show only when every condition holds (AND)
-          - field: 'contact_method' # references an earlier field by name
-            equals: 'phone' # a single value, or a list for "one of"; omit to mean "filled at all"
-
-    # Scheduling rules:
-    start_times_every_minutes: 30 # slots snap to this boundary (default 30; independent of the lengths offered)
-    notice_minutes: 120 # minutes of lead time required (default 120)
-    booking_window_days: 60 # days bookable into the future (default 60)
-    padding_before_minutes: 0 # minutes padded before a meeting (default 0)
-    padding_after_minutes: 0 # minutes padded after a meeting (default 0)
-    daily_booking_limit: null # cap on meetings per day; null = unlimited (default null)
+  chat:
+    title: 'A quick chat'
+    schedule: standard
+    booking_calendar: work
+    duration_minutes: 30
+    additional_duration_minutes: [15, 60]
 ```
 
-### Custom Form Fields and Video Chats
+### Booking options
 
-Rather than rigid location structures, meetings are customized using:
+| Field                         | Default  | Meaning                                                                                  |
+| ----------------------------- | -------- | ---------------------------------------------------------------------------------------- |
+| `title`                       | Required | Text guests see.                                                                         |
+| `schedule`                    | Required | Declared schedule name.                                                                  |
+| `booking_calendar`            | Required | Declared calendar for confirmed bookings; always checked for conflicts.                  |
+| `duration_minutes`            | `30`     | Default guest-selected length; positive integer.                                         |
+| `additional_duration_minutes` | `[]`     | Other positive integer lengths guests may choose.                                        |
+| `description`                 | Unset    | Brief description.                                                                       |
+| `visibility`                  | `public` | `unlisted` hides it from the homepage, **not** from anyone with its link.                |
+| `require_approval`            | `true`   | Host approves bookings; `false` confirms instantly.                                      |
+| `additional_busy_calendars`   | `[]`     | Other calendar names to check for conflicts.                                             |
+| `show_slots`                  | `false`  | `true` draws slot buttons; `false` uses a bare drag timeline snapping to the same slots. |
+| `location`                    | Unset    | Static address, phone number, or link.                                                   |
+| `note`                        | Unset    | Host note shown to guests after booking.                                                 |
+| `video_chat`                  | Unset    | Dynamic video link settings below.                                                       |
+| `form_fields`                 | Unset    | Custom booking form below.                                                               |
+| `start_times_every_minutes`   | `30`     | Positive integer slot step, independent of offered durations.                            |
+| `notice_minutes`              | `120`    | Minimum lead time; integer ≥ 0.                                                          |
+| `booking_window_days`         | `60`     | Days into the future open for booking; integer ≥ 1.                                      |
+| `padding_before_minutes`      | `0`      | Padding before appointments; integer ≥ 0.                                                |
+| `padding_after_minutes`       | `0`      | Padding after appointments; integer ≥ 0.                                                 |
+| `daily_booking_limit`         | `null`   | Positive integer daily cap; `null` means unlimited.                                      |
 
-- **Fixed Location**: A static string configured via `location`.
-- **Dynamic Video Chat**: Configured under `video_chat` with `provider` (e.g. `my-nextcloud-service` or `my-google-service`) and optional `attach` rules (`auto: true|false` or `when: [...]` conditions based on form answers). Dynamic links (like Nextcloud Talk rooms or Google Meet URLs) are generated automatically upon booking or on-demand by the host.
-- **Custom Questions**: Configured via `form_fields`. Every form **must** include exactly one `guest_name` field (with `required: true`). Optional special field types include `guest_email` and `event_location`. General text fields, numbers, phone numbers, paragraphs, and choices are also supported. A field may be shown conditionally with `show_when`: a list of `{ field, equals }` conditions (all must hold) referencing earlier fields. Omit `equals` to require only that the referenced field is filled, or give it a list to accept any of several values. A field hidden by `show_when` is never required and its answer is not recorded.
+Duration choices are deduplicated and sorted numerically. New bookings start with
+`duration_minutes`, rescheduling starts with the booked length, and a valid
+`duration` link overrides either. The first choice is not necessarily the default.
+Hosts also get preset lengths; guests do not gain those choices except to retain
+a booked length. The slot step does not change with the selected duration.
+A step shorter than a duration produces overlapping candidate slots, visible
+when `show_slots` is enabled.
+
+### Custom forms
+
+Without `form_fields`, the form asks for a required guest name, required guest
+email, and optional notes. Setting `form_fields` **replaces** that default form.
+
+Supply 1–10 fields, with unique `name` values. Each needs `name`, `type`, and
+`label`; `required` defaults to `false`, and `show_when` is optional.
+
+| Type                                   | Rules                                                                       |
+| -------------------------------------- | --------------------------------------------------------------------------- |
+| `guest_name`                           | Exactly one, with `required: true`.                                         |
+| `guest_email`                          | At most one; optional in a custom form.                                     |
+| `event_location`                       | At most one. With `choices`, guests pick a location; without, they type it. |
+| `choice`                               | Requires a non-empty `choices` list of non-empty strings, in display order. |
+| `text`, `number`, `phone`, `paragraph` | General questions; `choices` is not accepted.                               |
+
+This is a `form_fields` block inside a meeting:
+
+```yaml
+form_fields:
+  - name: name
+    type: guest_name
+    label: 'Your name'
+    required: true
+  - name: contact
+    type: choice
+    label: 'How should we reach you?'
+    choices: [email, phone]
+    required: true
+  - name: email
+    type: guest_email
+    label: 'Your email'
+    required: true
+    show_when:
+      - field: contact
+        equals: email
+  - name: phone
+    type: phone
+    label: 'Your phone number'
+    required: true
+    show_when:
+      - field: contact
+        equals: phone
+```
+
+Every `show_when` condition must hold (AND). Conditions reference **earlier** fields:
+
+- `equals: phone` matches one value.
+- `equals: [phone, email]` accepts any listed value.
+- Omitting `equals` tests whether the field is filled.
+
+For a `choice` controller, matched values must exist in its `choices`. Hidden
+fields are never required, and their answers are not recorded.
+
+### Video links
+
+`video_chat.provider` names a declared `google` or `nextcloud` provider, not a
+calendar. Google Meet also requires a Google booking calendar. Generic CalDAV
+providers do not generate video links.
+
+Choose one attachment rule under `video_chat.attach`:
+
+| Rule                     | Behavior                                                       |
+| ------------------------ | -------------------------------------------------------------- |
+| Omitted, or `auto: true` | Generate a link automatically on booking.                      |
+| `auto: false`            | Host generates the link on demand.                             |
+| `when: [...]`            | Generate automatically when every form-answer condition holds. |
+
+Use `auto` **or** `when`, not both. `when` is a non-empty list using the same
+`field` / `equals` conditions as forms, referencing fields in this meeting.
+For example, inside a meeting with a `contact` field:
+
+```yaml
+video_chat:
+  provider: nextcloud-service
+  attach:
+    when:
+      - field: contact
+        equals: video
+```
+
+A `choice` field must include the matched value (`video` here). Links are generated
+per appointment as Google Meet URLs or Nextcloud Talk rooms.
 
 ## `database`
 
-On-disk SQLite paths. Relative paths resolve against the config directory's parent — the
-deployment root that holds `config/` and `data/` as siblings — so the web and worker
-(loading the same `when.yaml`) open the same files.
+| Field   | Default                      | Contents                                           |
+| ------- | ---------------------------- | -------------------------------------------------- |
+| `app`   | `./data/when.sqlite`         | Appointments, mirrored busy times, service status. |
+| `queue` | `./data/openworkflow.sqlite` | Background job queue.                              |
 
-```yaml
-database:
-  app: './data/when.sqlite' # appointments, busy times, service status (default)
-  queue: './data/openworkflow.sqlite' # background job queue (default)
-```
+Relative paths resolve against the config directory's **parent**, not the shell's
+working directory. With `config/when.yaml`, `config/` and `data/` are siblings.
+Web and worker must load the same config and share these files.
+
+`WHEN_DATABASE_PATH` and `WHEN_QUEUE_DB_PATH` override the respective YAML paths.
+Treat both databases and their backups as sensitive; see
+[persistence](deployment.md#persistence).
 
 ## `url`
 
-Public URLs and internal network endpoints for service-to-service communication.
+| Field      | Default                            | Used for                                                                              |
+| ---------- | ---------------------------------- | ------------------------------------------------------------------------------------- |
+| `app`      | `${ORIGIN:-http://localhost:5173}` | Public base URL, including scheme; links in emails and calendar events.               |
+| `internal` | `${WHEN_URL_INTERNAL:-}`           | Worker → web, including branding images embedded in email. Empty falls back to `app`. |
+| `worker`   | `http://when-worker:9000`          | Web → worker telemetry and metrics.                                                   |
 
-```yaml
-url:
-  app: 'https://book.example.com' # public base URL (with scheme); used in emails + calendar events (defaults to ${ORIGIN})
-  internal: 'http://when-app:3000' # base URL the worker uses to reach the web app internally (defaults to ${WHEN_URL_INTERNAL}; falls back to `app`)
-  worker: 'http://when-worker:9000' # base URL the web app uses to reach the worker internally for telemetry and metrics (default 'http://when-worker:9000')
-```
-
-Usually you can omit `app` entirely. It defaults to the `ORIGIN` env var, which
-`adapter-node` requires anyway to run behind a reverse proxy (see
-[`deployment.md`](deployment.md)) — so `ORIGIN` alone keeps both in sync.
+Usually, set `ORIGIN` and leave `url.app` alone. The web adapter needs `ORIGIN`
+behind a reverse proxy anyway. See [deployment](deployment.md#environment-variables).
 
 ## `prometheus`
 
-Configuration for Prometheus metrics collection.
+| Field     | Default                   | Meaning                                   |
+| --------- | ------------------------- | ----------------------------------------- |
+| `enabled` | `false`                   | Enable metrics collection and `/metrics`. |
+| `token`   | `${WHEN_METRICS_TOKEN:-}` | Bearer token required for scraping.       |
 
-```yaml
-prometheus:
-  enabled: false # Whether metrics collection and endpoint are active (default: false)
-  token: '${WHEN_METRICS_TOKEN:-}' # Bearer token for scraping metrics (default: ${WHEN_METRICS_TOKEN})
-```
+When disabled, `/metrics` returns 404. When enabled without a non-empty token,
+it returns 500, not public metrics. Scrape with `Authorization: Bearer <token>`.
+See [operating endpoints](deployment.md#inspect-logs).

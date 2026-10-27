@@ -1,51 +1,42 @@
-# When
+# 📅 When
 
-Single-user appointment scheduling. A public appointment page, an admin UI, calendar
-integration (Google + CalDAV), and email notifications — all configured through one
-YAML file.
+Appointment scheduling for one person. You, probably.
 
-"When" runs as two services that share a single `when.yaml` and data directory:
-the **web** app (appointment page + admin) and a background **worker** that handles
-calendar sync and sends appointment emails off the request path. The bundled
-`apps/web/docker-compose.yml` runs both.
+A public booking page, an admin UI, Google and CalDAV calendars, and email
+notifications. Configure it in YAML. Keep your appointments in SQLite.
 
-## Quick start (Docker)
+No teams. No round-robin routing. No subscription to your own calendar.
 
-1. Copy `apps/web/config/when.example.yml` to `apps/web/config/when.yaml` and fill it in. Point
-   your editor at the bundled schema for autocomplete and validation — the example's
-   first line already does this:
+## Get started
 
-   ```yaml
-   # yaml-language-server: $schema=./config.schema.json
-   ```
+You'll need Docker Compose. In a fresh directory:
 
-   See [`docs/config.md`](docs/config.md) for the full configuration reference.
+```sh
+mkdir when
+cd when
+mkdir config data public
+curl -fsSLo compose.yaml https://git.eleith.com/eleith/when/raw/branch/main/docs/compose.yaml
+curl -fsSLo config/when.yaml https://git.eleith.com/eleith/when/raw/branch/main/docs/when.example.yaml
+curl -fsSLo .env https://git.eleith.com/eleith/when/raw/branch/main/docs/.env.example
+openssl rand -base64 32
+```
 
-2. Copy `apps/web/.env.example` to `apps/web/.env` and fill it in — the compose file
-   loads it into all three services. Generate the secret it asks for:
+Edit `.env` and `config/when.yaml` to make it all cozy and comfortable.
+Make `data/` writable by container UID 1000; see [permissions](docs/deployment.md#start-up).
 
-   ```sh
-   openssl rand -base64 32       # -> AUTH_SECRET
-   ```
+```sh
+docker compose up -d
+```
 
-   Set `ORIGIN` to the public URL you serve from; behind a reverse proxy, form
-   submissions fail with a 403 without it. The full list of environment variables is in
-   [`docs/deployment.md`](docs/deployment.md).
+Open http://localhost:3000 and `/admin` to get a lay of the land.
 
-3. Bring up both services:
-
-   ```sh
-   docker compose -f apps/web/docker-compose.yml up -d
-   ```
-
-   The appointment page is at `http://localhost:3000/` and the admin UI at `/admin`. The
-   container runs database migrations on boot. SQLite lives under `/app/data`; the
-   bundled compose file mounts `./data` so appointments survive restarts.
+There is a lot more going on under the hood, read more documentation if you
+want to learn more.
 
 ## Documentation
 
-- [Philosophy](docs/philosophy.md) — what "When" is, and the principles behind it.
-- [Architecture](docs/architecture.md) — how the system is built.
-- [Configuration](docs/config.md) — the full `when.yaml` reference.
-- [Deployment](docs/deployment.md) — environment variables, Docker, running behind a reverse proxy, persistence, and operating endpoints.
-- [Development](docs/development.md) — running it locally, the scripts, testing, and coding conventions.
+- [Configuration](docs/config.md) — fields, defaults and examples.
+- [Deployment](docs/deployment.md) — run it, update it, recover it.
+- [Development](docs/development.md) — change it without making a hobby of it.
+- [Philosophy](docs/philosophy.md) — what belongs here. And what doesn't.
+- [Architecture](docs/architecture.md) — where the pieces live.

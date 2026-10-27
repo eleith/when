@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { parse as parseYaml } from 'yaml';
 import * as config from '@when/config';
 
-const examplePath = join(process.cwd(), 'config', 'when.example.yml');
+const examplePath = join(process.cwd(), '..', '..', 'docs', 'when.example.yaml');
 const exampleText = readFileSync(examplePath, 'utf8');
 
 // Field names the example intentionally leaves undocumented (none today). Add a
@@ -36,7 +36,7 @@ function allSchemaFieldNames(): Set<string> {
 	return names;
 }
 
-describe('config/when.example.yml', () => {
+describe('docs/when.example.yaml', () => {
 	test('is a structurally valid config', () => {
 		expect(() => config.validateStructure(parseYaml(exampleText))).not.toThrow();
 	});
