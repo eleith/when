@@ -1,6 +1,8 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import { page } from '$app/state';
+	import { goto } from '$app/navigation';
+	import { authClient } from '$lib/auth-client';
 	import IconCalendarBlank from 'virtual:icons/ph/calendar-blank';
 	import IconArrowUpLeft from 'virtual:icons/ph/arrow-up-left';
 	import IconSignOut from 'virtual:icons/ph/sign-out';
@@ -13,6 +15,30 @@
 	let pathname = $derived(page.url.pathname);
 
 	let isHome = $derived(pathname === '/admin' || pathname === '/admin/');
+	let pending = $state(false);
+	let signoutError = $state<'rate' | 'network' | 'auth' | null>(null);
+
+	async function signOut(event: SubmitEvent) {
+		event.preventDefault();
+		if (pending) return;
+
+		const redirectTo = `/signin?callbackUrl=${encodeURIComponent(currentPath)}`;
+		pending = true;
+		signoutError = null;
+
+		try {
+			const { error } = await authClient.signOut();
+			if (error) {
+				signoutError = error.status === 429 ? 'rate' : 'auth';
+				return;
+			}
+			await goto(redirectTo, { invalidateAll: true });
+		} catch {
+			signoutError = 'network';
+		} finally {
+			pending = false;
+		}
+	}
 </script>
 
 <header class="admin-nav">
@@ -41,18 +67,36 @@
 		</nav>
 		<div class="nav-actions">
 			<ThemeToggle />
-			<form method="POST" action="/admin?/signout" class="signout-form" aria-label="Sign out">
-				<input
-					type="hidden"
-					name="redirectTo"
-					value="/signin?callbackUrl={encodeURIComponent(currentPath)}"
-				/>
-				<button type="submit" class="logout-btn" aria-label="Sign out">
+			<form
+				method="POST"
+				class="signout-form"
+				aria-label="Sign out"
+				aria-busy={pending}
+				onsubmit={signOut}
+			>
+				<button
+					type="submit"
+					class="logout-btn"
+					aria-label={pending ? 'Signing out' : 'Sign out'}
+					aria-describedby={signoutError ? 'signout-error' : undefined}
+					disabled={pending}
+				>
 					<IconSignOut aria-hidden="true" />
 				</button>
 			</form>
 		</div>
 	</div>
+	{#if signoutError}
+		<p id="signout-error" class="signout-error" role="alert">
+			{#if signoutError === 'rate'}
+				Too many requests. Please wait and try signing out again.
+			{:else if signoutError === 'network'}
+				Unable to connect. Please try signing out again.
+			{:else}
+				Unable to sign out. Please try again.
+			{/if}
+		</p>
+	{/if}
 </header>
 
 <style>
@@ -136,6 +180,13 @@
 		margin: 0;
 		display: flex;
 		align-items: center;
+	}
+
+	.signout-error {
+		margin: var(--space-2) var(--space-6) 0;
+		color: var(--color-danger);
+		font-size: var(--font-size-sm);
+		text-align: right;
 	}
 
 	.logout-btn {

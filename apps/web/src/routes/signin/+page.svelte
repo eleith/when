@@ -1,27 +1,69 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
+	import { authClient } from '$lib/auth-client';
 	import IconWarningCircle from 'virtual:icons/ph/warning-circle';
 	import IconLock from 'virtual:icons/ph/lock';
 	import IconSignIn from 'virtual:icons/ph/sign-in';
 
 	let { data } = $props();
 
-	// Map error codes to friendly messages
-	let errorMessage = $derived.by(() => {
-		if (!data.errorCode) return null;
-		switch (data.errorCode) {
-			case 'CredentialsSignin':
-				return 'Invalid username or password. Please try again.';
-			case 'SessionRequired':
-				return 'Please sign in to access this page.';
-			default:
-				return 'An authentication error occurred. Please try again.';
+	let pending = $state(false);
+	let submitError = $state<string | null>(null);
+	let errorCode = $derived(submitError ?? data.errorCode);
+
+	async function signIn(event: SubmitEvent) {
+		event.preventDefault();
+		if (pending) return;
+
+		const formData = new FormData(event.currentTarget as HTMLFormElement);
+		pending = true;
+		submitError = null;
+
+		try {
+			if (data.auth.type === 'oidc') {
+				const { error } = await authClient.signIn.social({
+					provider: 'oidc',
+					callbackURL: data.callbackUrl,
+					errorCallbackURL: `/signin?callbackUrl=${encodeURIComponent(data.callbackUrl)}`
+				});
+				if (error) {
+					submitError = error.status === 429 ? 'RateLimited' : 'AuthError';
+					pending = false;
+				}
+				return;
+			}
+
+			const { error } = await authClient.$fetch('/sign-in/credentials', {
+				method: 'POST',
+				body: {
+					username: formData.get('username'),
+					password: formData.get('password')
+				}
+			});
+			if (error) {
+				if (error.status === 401) submitError = 'CredentialsSignin';
+				else if (error.status === 429) submitError = 'RateLimited';
+				else submitError = 'AuthError';
+				pending = false;
+				return;
+			}
+			await goto(data.callbackUrl, { invalidateAll: true });
+		} catch {
+			submitError = 'NetworkError';
+			pending = false;
 		}
-	});
+	}
 </script>
 
 <svelte:head>
 	<title>Sign in — When</title>
 </svelte:head>
+
+<svelte:window
+	onpageshow={(event) => {
+		if (event.persisted) pending = false;
+	}}
+/>
 
 <div class="signin-container">
 	<main class="signin-card">
@@ -31,18 +73,27 @@
 			<p class="signin-subtitle">Appointment Scheduling Portal</p>
 		</header>
 
-		{#if errorMessage}
+		{#if errorCode}
 			<div class="error-banner" role="alert">
 				<span class="error-icon"><IconWarningCircle aria-hidden="true" /></span>
-				<span class="error-text">{errorMessage}</span>
+				<span class="error-text">
+					{#if errorCode === 'CredentialsSignin'}
+						Invalid username or password. Please try again.
+					{:else if errorCode === 'SessionRequired'}
+						Please sign in to access this page.
+					{:else if errorCode === 'RateLimited'}
+						Too many sign-in attempts. Please wait and try again.
+					{:else if errorCode === 'NetworkError'}
+						Unable to connect. Please try again.
+					{:else}
+						An authentication error occurred. Please try again.
+					{/if}
+				</span>
 			</div>
 		{/if}
 
 		{#if data.auth.type === 'credentials'}
-			<form method="POST" class="signin-form">
-				<input type="hidden" name="providerId" value="credentials" />
-				<input type="hidden" name="redirectTo" value={data.callbackUrl} />
-
+			<form method="POST" class="signin-form" onsubmit={signIn} aria-busy={pending}>
 				<div class="form-group">
 					<label for="username" class="form-label">Username</label>
 					<div class="input-wrapper">
@@ -75,24 +126,29 @@
 					</div>
 				</div>
 
-				<button type="submit" class="submit-btn">
+				<button type="submit" class="submit-btn" disabled={pending}>
 					<span class="btn-icon"><IconLock aria-hidden="true" /></span>
-					Sign in
+					{#if pending}
+						Signing in…
+					{:else}
+						Sign in
+					{/if}
 				</button>
 			</form>
 		{:else if data.auth.type === 'oidc'}
-			<form method="POST" class="signin-form">
-				<input type="hidden" name="providerId" value="oidc" />
-				<input type="hidden" name="redirectTo" value={data.callbackUrl} />
-
+			<form method="POST" class="signin-form" onsubmit={signIn} aria-busy={pending}>
 				<p class="sso-desc">
 					Single sign-on via {data.auth.name}.
 				</p>
 
 				<!-- svelte-ignore a11y_autofocus -->
-				<button type="submit" class="submit-btn" autofocus>
+				<button type="submit" class="submit-btn" autofocus disabled={pending}>
 					<span class="btn-icon"><IconSignIn aria-hidden="true" /></span>
-					Sign in
+					{#if pending}
+						Signing in…
+					{:else}
+						Sign in
+					{/if}
 				</button>
 			</form>
 		{/if}

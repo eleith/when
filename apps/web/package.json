@@ -50,7 +50,6 @@
 		"vitest": "4.1.7"
 	},
 	"dependencies": {
-		"@auth/sveltekit": "1.11.3",
 		"@dicebear/core": "10.4.0",
 		"@internationalized/date": "3.12.2",
 		"@when/calendar": "workspace:*",
@@ -58,6 +57,7 @@
 		"@when/db": "workspace:*",
 		"@when/jobs": "workspace:*",
 		"@when/video-chat": "workspace:*",
+		"better-auth": "1.7.14",
 		"bits-ui": "2.18.1",
 		"kysely": "0.28.17",
 		"mrmime": "2.0.1",

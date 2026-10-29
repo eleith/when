@@ -6,9 +6,7 @@ vi.mock('$lib/server/boot', () => ({ bootApp: async () => {} }));
 vi.mock('$lib/server/appearance', () => ({ themeStyleTag: () => '' }));
 vi.mock('$lib/server/state', () => ({ getConfig: () => validConfig }));
 vi.mock('$lib/server/auth', () => ({
-	getAuth: () => ({
-		handle: (({ event, resolve }) => resolve(event)) as Handle
-	})
+	authHandle: (({ event, resolve }) => resolve(event)) as Handle
 }));
 
 import { authGate, securityHeaders } from './hooks.server';

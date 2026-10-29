@@ -1,18 +1,18 @@
-import { expect, test, vi } from 'vitest';
-import { buildProviders, verifyCredentials } from './providers';
+import { expect, test } from 'vitest';
+import { buildAuthOptions, verifyCredentials } from './providers';
 import { requireAuthSecret } from '$lib/server/auth/secret';
 import { validConfig } from '$lib/server/__fixtures__/valid-config';
 import type { WhenConfiguration } from '@when/config';
-import { logger } from '$lib/server/logger';
 
-test('credentials config produces a single Credentials provider', () => {
-	const providers = buildProviders(validConfig);
-	expect(providers).toHaveLength(1);
+test('credentials config registers only the YAML credentials plugin', () => {
+	const options = buildAuthOptions(validConfig);
+	expect(options.plugins?.map((plugin) => plugin.id)).toEqual(['when-credentials']);
 });
 
-test('oidc config produces a single OIDC provider with state checks and default name', () => {
+test('oidc config registers only the generic OAuth plugin', () => {
 	const cfg: WhenConfiguration = {
 		...validConfig,
+		url: { ...validConfig.url, app: 'https://when.example.test' },
 		auth: {
 			oidc: {
 				issuer: 'https://auth.example.com',
@@ -22,32 +22,8 @@ test('oidc config produces a single OIDC provider with state checks and default 
 			}
 		}
 	};
-	const providers = buildProviders(cfg);
-	expect(providers).toHaveLength(1);
-	const p = providers[0] as Record<string, unknown>;
-	expect(p.id).toBe('oidc');
-	expect(p.name).toBe('Single Sign-On');
-	expect(p.type).toBe('oidc');
-	expect(p.issuer).toBe('https://auth.example.com');
-	expect(p.checks).toEqual(['state']);
-});
-
-test('oidc config with custom name sets provider name', () => {
-	const cfg: WhenConfiguration = {
-		...validConfig,
-		auth: {
-			oidc: {
-				issuer: 'https://auth.example.com',
-				client_id: 'when',
-				client_secret: 'shh',
-				name: 'Authelia'
-			}
-		}
-	};
-	const providers = buildProviders(cfg);
-	const p = providers[0] as Record<string, unknown>;
-	expect(p.name).toBe('Authelia');
-	expect(p.checks).toEqual(['state']);
+	const options = buildAuthOptions(cfg);
+	expect(options.plugins?.map((plugin) => plugin.id)).toEqual(['generic-oauth']);
 });
 
 test('requireAuthSecret rejects missing secret', () => {
@@ -98,40 +74,4 @@ test('missing or non-string fields are rejected', () => {
 	expect(verifyCredentials(ADMIN, undefined)).toBeNull();
 	expect(verifyCredentials(ADMIN, {})).toBeNull();
 	expect(verifyCredentials(ADMIN, { username: 1, password: 2 })).toBeNull();
-});
-
-function warningsWhileBuilding(env: string, auth: WhenConfiguration['auth']): string[] {
-	const warn = vi.spyOn(logger, 'warn').mockImplementation(() => {});
-	const previous = process.env.NODE_ENV;
-	process.env.NODE_ENV = env;
-	try {
-		buildProviders({ ...validConfig, auth });
-		return warn.mock.calls.map((call) => JSON.stringify(call));
-	} finally {
-		process.env.NODE_ENV = previous;
-		warn.mockRestore();
-	}
-}
-
-const OIDC = {
-	oidc: {
-		issuer: 'https://auth.example.com',
-		client_id: 'when',
-		client_secret: 'shh',
-		name: 'Single Sign-On'
-	}
-};
-
-test('credentials auth in production warns about the missing rate limiting', () => {
-	expect(warningsWhileBuilding('production', validConfig.auth).join(' ')).toContain(
-		'rate limiting'
-	);
-});
-
-test('credentials auth outside production says nothing', () => {
-	expect(warningsWhileBuilding('development', validConfig.auth)).toEqual([]);
-});
-
-test('oidc in production says nothing', () => {
-	expect(warningsWhileBuilding('production', OIDC)).toEqual([]);
 });

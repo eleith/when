@@ -1,17 +1,9 @@
 import { describe, expect, test, vi } from 'vitest';
-import { load, actions } from './+page.server';
+import { load } from './+page.server';
 import { setState, type AppState } from '$lib/server/state';
 import { validConfig } from '$lib/server/__fixtures__/valid-config';
 
-vi.mock('$lib/server/auth', () => {
-	return {
-		signInAction: vi.fn(),
-		getAuth: vi.fn()
-	};
-});
-import { signInAction } from '$lib/server/auth';
-
-describe('/signin server load and actions', () => {
+describe('/signin server load', () => {
 	test('load function returns callbackUrl, auth, and errorCode', async () => {
 		setState({
 			config: validConfig,
@@ -113,24 +105,6 @@ describe('/signin server load and actions', () => {
 				route: { id: '/signin' },
 				params: {}
 			} as unknown as Parameters<typeof load>[0])
-		).rejects.toThrow();
-	});
-
-	test('action catches AuthError and redirects back with query parameters', async () => {
-		const mockError = Object.assign(new Error('CredentialsSignin'), {
-			type: 'CredentialsSignin'
-		});
-
-		vi.mocked(signInAction).mockRejectedValueOnce(mockError);
-
-		const url = new URL('http://localhost/signin?callbackUrl=/custom-path');
-		const mockEvent = {
-			url,
-			request: {}
-		};
-
-		await expect(
-			actions.default(mockEvent as unknown as Parameters<typeof actions.default>[0])
 		).rejects.toThrow();
 	});
 });

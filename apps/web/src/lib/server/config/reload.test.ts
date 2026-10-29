@@ -6,6 +6,7 @@ function cfg(overrides: Record<string, unknown> = {}): WhenConfiguration {
 	return {
 		auth: { credentials: { username: 'admin', password: 'p' } },
 		database: { app: '/data/app.sqlite', queue: '/data/queue.sqlite' },
+		url: { app: 'http://localhost:5173', internal: '', worker: 'http://when-worker:9000' },
 		user: { name: 'A', email: 'a@example.com', timezone: 'UTC' },
 		...overrides
 	} as unknown as WhenConfiguration;
@@ -42,6 +43,22 @@ test('restarts when the database section changes', () => {
 	applyConfig({ ok: true, config: next }, fx);
 
 	expect(fx.restart).toHaveBeenCalledOnce();
+});
+
+test.for(['app', 'internal', 'worker'] as const)('handles a changed url.%s', (key) => {
+	const current = cfg();
+	const fx = effects(current);
+	const next = cfg({ url: { ...current.url, [key]: 'https://changed.example.com' } });
+
+	applyConfig({ ok: true, config: next }, fx);
+
+	if (key === 'app') {
+		expect(fx.restart).toHaveBeenCalledOnce();
+		expect(fx.swap).not.toHaveBeenCalled();
+	} else {
+		expect(fx.swap).toHaveBeenCalledWith(next);
+		expect(fx.restart).not.toHaveBeenCalled();
+	}
 });
 
 test('keeps the current config when the reload failed', () => {

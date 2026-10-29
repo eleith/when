@@ -1,10 +1,16 @@
+import type { WhenSession } from '$lib/server/auth';
+
 // See https://svelte.dev/docs/kit/types#app.d.ts
 // for information about these interfaces
 declare global {
 	namespace App {
 		// interface Error {}
-		// interface Locals {}
-		// interface PageData {}
+		interface Locals {
+			auth: () => Promise<WhenSession | null>;
+		}
+		interface PageData {
+			session?: WhenSession | null;
+		}
 		// interface PageState {}
 		// interface Platform {}
 	}

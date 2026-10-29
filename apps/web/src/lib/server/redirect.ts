@@ -1,5 +1,3 @@
-// Resolving against the origin we require turns every way out of this site — absolute,
-// protocol-relative, backslash-smuggled, javascript: — into a different origin.
 export function localRedirect(
 	value: string | null | undefined,
 	origin: string,
@@ -7,9 +5,11 @@ export function localRedirect(
 ): string {
 	if (!value) return fallback;
 	try {
-		const url = new URL(value, origin);
-		if (url.origin !== origin) return fallback;
-		return url.pathname + url.search + url.hash;
+		const requested = new URL(value, origin);
+		const path = requested.pathname + requested.search + requested.hash;
+		const destination = new URL(path, origin);
+		if (requested.origin !== origin || destination.origin !== origin) return fallback;
+		return path;
 	} catch {
 		return fallback;
 	}

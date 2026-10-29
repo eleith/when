@@ -14,6 +14,8 @@ test.for([
 	'javascript:alert(1)',
 	'http://localhost.evil.com/x',
 	'http://localhost:9999/other',
+	`${ORIGIN}//evil.com`,
+	`${ORIGIN}/admin/..//evil.com`,
 	'',
 	null
 ])('sends %s to the fallback instead', (value) => {

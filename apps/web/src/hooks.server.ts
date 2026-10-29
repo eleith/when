@@ -1,6 +1,6 @@
 import { sequence } from '@sveltejs/kit/hooks';
 import { redirect, error, type Handle } from '@sveltejs/kit';
-import { getAuth } from '$lib/server/auth';
+import { authHandle } from '$lib/server/auth';
 import { localRedirect } from '$lib/server/redirect';
 import { bootApp } from '$lib/server/boot';
 import { logger } from '$lib/server/logger';
@@ -48,4 +48,4 @@ export const authGate: Handle = async ({ event, resolve }) => {
 	});
 };
 
-export const handle = sequence(securityHeaders, getAuth().handle, authGate);
+export const handle = sequence(securityHeaders, authHandle, authGate);

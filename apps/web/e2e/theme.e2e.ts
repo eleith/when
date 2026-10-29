@@ -261,7 +261,7 @@ test('the nonced head bootstrap applies the saved palette without hydration', as
 	expect(violations).toEqual([]);
 });
 
-test('admin icon actions stay ordered, tappable and separate from the real sign-out form', async ({
+test('admin icon actions stay ordered and tappable, and theme changes do not sign out', async ({
 	page
 }, testInfo) => {
 	await page.setViewportSize({ width: 1280, height: 900 });
@@ -276,11 +276,6 @@ test('admin icon actions stay ordered, tappable and separate from the real sign-
 	await expect(toggle.locator('svg')).toHaveCount(1);
 	await expect(toggle.locator('svg text')).toHaveCount(0);
 	await expect(page.getByRole('navigation', { name: 'Admin breadcrumb' })).toHaveText('');
-	await expect(page.locator('.nav-actions > button + form')).toHaveAttribute(
-		'action',
-		'/admin?/signout'
-	);
-	await expect(page.locator('.signout-form')).toHaveAttribute('method', 'POST');
 	const toggleBounds = await touchTarget(toggle);
 	const signoutBounds = await touchTarget(signout);
 	expect(toggleBounds.x + toggleBounds.width).toBeLessThanOrEqual(signoutBounds.x);
@@ -292,7 +287,9 @@ test('admin icon actions stay ordered, tappable and separate from the real sign-
 
 	let signoutPosts = 0;
 	page.on('request', (request) => {
-		if (request.method() === 'POST' && request.url().endsWith('/admin?/signout')) signoutPosts++;
+		if (request.method() === 'POST' && new URL(request.url()).pathname === '/auth/sign-out') {
+			signoutPosts++;
+		}
 	});
 	await toggle.click();
 	await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
@@ -334,4 +331,6 @@ test('admin icon actions stay ordered, tappable and separate from the real sign-
 	expect(signoutPosts).toBe(1);
 	await expect(themeButton(page)).toHaveCount(0);
 	await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+	const denied = await page.request.get('/admin', { headers: { accept: 'application/json' } });
+	expect(denied.status()).toBe(403);
 });

@@ -2,11 +2,10 @@ import { systemClock } from '$lib/server/clock';
 import { getConfig, getDb } from '$lib/server/state';
 import { toAppointmentView } from '$lib/server/appointments';
 import { evaluateCalendarStatuses } from '$lib/server/calendar/health';
-import { signOutAction } from '$lib/server/auth';
 import { countAppointments, listAppointmentsPage, listServiceStatus } from '@when/db';
 import { allCalendars } from '@when/config';
 import { sql } from 'kysely';
-import type { Actions, PageServerLoad } from './$types';
+import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async () => {
 	const db = getDb();
@@ -121,8 +120,4 @@ export const load: PageServerLoad = async () => {
 		lifetimeMinutes,
 		purgedCount
 	};
-};
-
-export const actions: Actions = {
-	signout: signOutAction
 };
