@@ -2,6 +2,10 @@
 
 Appointment scheduling for one person. You, probably.
 
+![When's homepage with two meeting types and their available lengths](docs/images/homepage.png)
+
+[More screenshots](docs/screenshots.md).
+
 A public booking page, an admin UI, Google and CalDAV calendars, and email
 notifications. Configure it in YAML. Keep your appointments in SQLite.
 
