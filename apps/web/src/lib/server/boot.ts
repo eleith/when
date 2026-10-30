@@ -20,11 +20,12 @@ export async function bootApp(): Promise<void> {
 	makeAuth(config);
 	setState({ config, db });
 
-	watchConfig((result) =>
+	const stopWatching = watchConfig((result) =>
 		applyConfig(result, {
 			current: () => getState().config,
 			swap: (next) => setState({ config: next, db }),
 			restart: () => process.exit(0)
 		})
 	);
+	process.once('sveltekit:shutdown', stopWatching);
 }
