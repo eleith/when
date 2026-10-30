@@ -18,6 +18,9 @@ test('the booking page sends the security headers', async ({ request }) => {
 	expect(headers['referrer-policy']).toBe('strict-origin-when-cross-origin');
 	expect(headers['x-content-type-options']).toBe('nosniff');
 	expect(headers['content-security-policy']).toContain("frame-ancestors 'none'");
+	expect(
+		headers['content-security-policy'].split(';').map((directive) => directive.trim())
+	).toContain("form-action 'self' https://accounts.google.com");
 });
 
 test('booking forms check browser Origin against the same trusted scheme and Host', async ({
