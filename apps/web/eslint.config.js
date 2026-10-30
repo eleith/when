@@ -8,7 +8,10 @@ import prettier from 'eslint-config-prettier';
 import ts from 'typescript-eslint';
 import { loadConfig } from '@sveltejs/load-config';
 
-const svelteConfig = (await loadConfig('./', { traverse: false }))?.config;
+const loadedConfig = await loadConfig(import.meta.dirname, { traverse: false });
+if (!loadedConfig) throw new Error('Svelte configuration not found');
+if ('error' in loadedConfig) throw loadedConfig.error;
+const svelteConfig = loadedConfig.config;
 
 const gitignorePath = path.resolve(import.meta.dirname, '../../.gitignore');
 

@@ -294,8 +294,9 @@
 							action="/admin/appointment/{appointmentId}?/rotate"
 							class="share-rotate"
 							use:enhance={() => {
-								return async ({ update }) => {
-									await update({ reset: false });
+								return async ({ result, update }) => {
+									await update({ reset: false, navigate: false });
+									if (result.type !== 'success') return;
 									rotated = true;
 									copied = false;
 									// The token is the tail of a long value, so scroll it into view.

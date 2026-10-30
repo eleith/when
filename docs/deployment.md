@@ -14,7 +14,26 @@ Make `data/` writable by container UID 1000, or SQLite won't start.
 docker compose up -d
 ```
 
-Web listens on 3000.
+Web listens on backend port 3000. Open the public proxy URL, not the backend.
+
+## reverse proxy
+
+Production browser access requires a trusted reverse proxy. Set
+`PROTOCOL_HEADER=x-forwarded-proto`; the proxy must overwrite `X-Forwarded-Proto`
+with the public scheme and preserve the public `Host`, including any non-default
+port. Reject inappropriate public hosts and keep the backend loopback-only or
+private so clients cannot bypass the proxy and supply trusted headers themselves.
+The adapter trusts these headers; it does not authenticate the proxy.
+
+If your proxy forwards the public authority in `X-Forwarded-Host` instead, set the
+native `HOST_HEADER=x-forwarded-host` only with a matching proxy overwrite policy.
+Do not set `PORT_HEADER` when the authority already includes the port.
+
+`ORIGIN` supplies When's `url.app` default for authentication and generated links;
+SvelteKit 3's native adapter ignores it. The configured public URL and the request
+origin derived from proxy headers must agree. An explicit YAML `url.app` overrides
+that default, not the adapter's request origin. Internal health and branding GETs
+can still use backend HTTP.
 
 ## inspect logs
 
@@ -30,10 +49,11 @@ Copy the [environment example](.env.example) to `.env` beside `compose.yaml` and
 supply real values. After editing `.env`, run `docker compose up -d --force-recreate`.
 A restart keeps the old environment.
 
-| Variable      | Used for                                                                                                                   |
-| ------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `AUTH_SECRET` | Required Auth.js session-signing secret. Generate 32 random bytes with `openssl rand -base64 32`.                          |
-| `ORIGIN`      | Public base URL, no trailing slash. Set it behind a proxy or form POSTs can fail with 403. Also the default for `url.app`. |
+| Variable          | Used for                                                                                                                   |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `AUTH_SECRET`     | Required Better Auth secret. Generate 32 random bytes with `openssl rand -base64 32`.                          |
+| `ORIGIN`          | Public base URL, no trailing slash. Default for When's `url.app`, used for auth and links; not an adapter override.        |
+| `PROTOCOL_HEADER` | Set to `x-forwarded-proto` behind the trusted production proxy, which must overwrite it with the public scheme.             |
 
 Other secret names come from `${ENV_VAR}` references in your config. The example
 uses:

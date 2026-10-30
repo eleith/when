@@ -45,3 +45,5 @@ minimumReleaseAgeExclude:
   - '@takumi-rs/helpers@2.2.0'
   - '@takumi-rs/wasm@2.2.0'
   - takumi-js@2.2.0
+  - '@sveltejs/adapter-node@6.0.1'
+  - '@sveltejs/kit@3.1.1'

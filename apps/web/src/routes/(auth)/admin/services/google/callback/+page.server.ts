@@ -1,4 +1,4 @@
-import { dev } from '$app/environment';
+import { dev } from '$app/env';
 import { getConfig } from '#lib/server/state.js';
 import {
 	exchangeGoogleConnect,

@@ -66,8 +66,10 @@ export function createAppointmentUrlSync(
 			selectedSlot: flow.selectedSlot,
 			viewDate: flow.viewDate
 		});
-		if (urlStateMatches(page.url.searchParams, desired)) return;
-		replaceState(`${page.url.pathname}${buildAppointmentSearch(desired)}`, page.state);
+		// Shallow navigation changes page.shallow, not the last fully loaded page.url.
+		const url = page.shallow?.url ?? page.url;
+		if (urlStateMatches(url.searchParams, desired)) return;
+		void replaceState(`${url.pathname}${buildAppointmentSearch(desired)}`, page.state);
 	});
 
 	return {

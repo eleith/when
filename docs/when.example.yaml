@@ -166,8 +166,9 @@ meetings:
 
 # --- Public and internal URLs ---
 # url:
-# app defaults to ${ORIGIN}, which you must set anyway to run behind a reverse
-# proxy — set ORIGIN in .env and leave this alone rather than repeating it here.
+# app defaults to ${ORIGIN:-http://localhost:5173} for auth and generated links.
+# Set ORIGIN in .env, or override app here. Neither sets the native adapter's
+# request origin: matching trusted proxy headers and Host do (see deployment.md).
 #   app: 'https://when.example.com' # public base URL, used in emails and calendar events
 #   internal: 'http://when-app:3000' # worker → web (defaults to ${WHEN_URL_INTERNAL})
 #   worker: 'http://when-worker:9000' # web → worker

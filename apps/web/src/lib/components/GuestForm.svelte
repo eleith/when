@@ -1,5 +1,6 @@
+<!-- Step 3: the guest fills in their details. Owns all guest-field state and posts the booking. -->
 <script lang="ts">
-	import { applyAction, enhance, type SubmitFunction } from '$app/forms';
+	import { enhance, type SubmitFunction } from '$app/forms';
 	import { evaluateVisibility } from '#lib/forms/conditional.js';
 	import { defaultFieldValue } from '#lib/forms/defaults.js';
 	import FormFieldControl from '#lib/components/FormFieldControl.svelte';
@@ -67,7 +68,9 @@
 	}
 
 	// svelte-ignore state_referenced_locally
-	let fieldValues = $state<Record<string, string>>(Object.fromEntries(formFields.map((f) => [f.name, initialFieldValue(f)])));
+	let fieldValues = $state<Record<string, string>>(
+		Object.fromEntries(formFields.map((f) => [f.name, initialFieldValue(f)]))
+	);
 
 	let rescheduleReasonValue = $state('');
 	const visibleFields = $derived(evaluateVisibility(formFields, (name) => fieldValues[name] ?? ''));
@@ -93,16 +96,10 @@
 
 	const enhanceWithFeedback: SubmitFunction =
 		() =>
-		async ({ result, update }) => {
-			if (result.type === 'failure') {
-				await applyAction(result);
-				return;
-			}
-			await update();
+		async ({ update }) => {
+			await update({ navigate: false });
 		};
 </script>
-
-<!-- Step 3: the guest fills in their details. Owns all guest-field state and posts the booking. -->
 
 <div class="appointment-form">
 	{#if form?.error}
@@ -121,7 +118,7 @@
 		{#each formFields as field (field.name)}
 			{#if visibleFields.get(field.name)}
 				<FormFieldControl
-					field={field}
+					{field}
 					bind:value={fieldValues[field.name]}
 					disabled={fieldsDisabled}
 					error={form?.fieldErrors?.[field.name]}

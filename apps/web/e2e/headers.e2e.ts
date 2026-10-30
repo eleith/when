@@ -20,6 +20,41 @@ test('the booking page sends the security headers', async ({ request }) => {
 	expect(headers['content-security-policy']).toContain("frame-ancestors 'none'");
 });
 
+test('booking forms check browser Origin against the same trusted scheme and Host', async ({
+	baseURL,
+	request
+}) => {
+	const form = { slot: 'not-a-slot' };
+	const headers = { origin: baseURL!, accept: 'application/json' };
+	const sameOrigin = await request.post('/schedule/chat', {
+		form,
+		headers,
+		maxRedirects: 0
+	});
+	expect(sameOrigin.status()).toBe(400);
+	expect(await sameOrigin.json()).toMatchObject({
+		type: 'failure',
+		status: 400,
+		data: expect.stringContaining('Please pick a time slot.')
+	});
+
+	// Change only browser Origin, not the trusted request scheme or authority.
+	const foreignHeaders = { ...headers, origin: 'https://foreign.example.test' };
+	const foreignOrigin = await request.post('/schedule/chat', {
+		form,
+		headers: foreignHeaders,
+		maxRedirects: 0
+	});
+	expect(foreignOrigin.status()).toBe(403);
+
+	// No body/form option: Playwright must not add a Content-Type header.
+	const missingContentType = await request.post('/schedule/chat', {
+		headers: foreignHeaders,
+		maxRedirects: 0
+	});
+	expect(missingContentType.status()).toBe(403);
+});
+
 test('the booking page renders and hydrates under the policy', async ({ page }) => {
 	const violations = collectCspViolations(page);
 

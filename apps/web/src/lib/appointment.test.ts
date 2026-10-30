@@ -369,8 +369,9 @@ describe('desiredUrlState', () => {
 });
 
 describe('urlStateMatches', () => {
-	test('is true only when every param matches', () => {
-		const params = new URLSearchParams('duration=60&date=2025-06-15');
+	test('reads matching values without requiring mutable params', () => {
+		const search = new URLSearchParams('duration=60&date=2025-06-15');
+		const params = { get: search.get.bind(search) };
 		expect(urlStateMatches(params, { duration: '60', slot: null, date: '2025-06-15' })).toBe(true);
 		expect(urlStateMatches(params, { duration: null, slot: null, date: '2025-06-15' })).toBe(false);
 	});

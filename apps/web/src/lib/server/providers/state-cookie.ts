@@ -1,6 +1,6 @@
 import type { Cookies } from '@sveltejs/kit';
 
-type CookieOptions = Parameters<Cookies['set']>[2];
+type CookieOptions = NonNullable<Parameters<Cookies['set']>[2]>;
 
 export const STATE_COOKIE = 'when_google_oauth';
 

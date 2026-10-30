@@ -47,7 +47,12 @@
 				pending = false;
 				return;
 			}
-			await goto(data.callbackUrl, { invalidateAll: true });
+			try {
+				await goto(data.callbackUrl, { invalidateAll: true });
+			} catch {
+				// A same-origin callback may no longer resolve to a Kit route.
+				window.location.assign(data.callbackUrl);
+			}
 		} catch {
 			submitError = 'NetworkError';
 			pending = false;

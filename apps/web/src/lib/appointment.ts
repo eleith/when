@@ -160,7 +160,10 @@ export function desiredUrlState(p: {
 }
 
 /** True when the URL already encodes this state — the guard against a re-encode loop. */
-export function urlStateMatches(params: URLSearchParams, state: AppointmentUrlState): boolean {
+export function urlStateMatches(
+	params: Pick<URLSearchParams, 'get'>,
+	state: AppointmentUrlState
+): boolean {
 	return (
 		params.get('duration') === state.duration &&
 		params.get('slot') === state.slot &&

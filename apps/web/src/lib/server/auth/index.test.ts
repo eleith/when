@@ -49,7 +49,7 @@ function event(path: string, body?: unknown, headers: Record<string, string> = {
 				'x-real-ip': address,
 				...headers
 			},
-			...body === undefined ? {} : { body: JSON.stringify(body) }
+			...(body === undefined ? {} : { body: JSON.stringify(body) })
 		}),
 		locals: {}
 	} as Parameters<Handle>[0]['event'];

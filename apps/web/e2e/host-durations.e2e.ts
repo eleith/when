@@ -364,9 +364,10 @@ test('an empty weekend timeline keeps its duration toolbar usable without fetchi
 		0
 	);
 	await page.getByRole('button', { name: 'Back', exact: true }).click();
-	await expect(
-		page.locator('.cal-day:not([data-unavailable]):not([data-disabled])').first()
-	).toBeVisible();
+	// Remaining bookable days may be in the next month.
+	await pickFirstBookableDay(page);
+	await expect(page.getByRole('heading', { name: 'Step 2 of 3: Pick a time' })).toBeVisible();
+	await expect(page.getByRole('radio').first()).toBeVisible();
 	page.off('request', trackDurationRequest);
 	expect(durationRequests).toEqual([]);
 });
@@ -387,7 +388,7 @@ test('client navigation between meeting slugs replaces duration defaults, choice
 		anchor.id = 'e2e-switch-meeting';
 		anchor.href = href;
 		anchor.textContent = 'Switch to chat fixture';
-		anchor.setAttribute('data-sveltekit-preload-data', 'off');
+		anchor.setAttribute('data-sveltekit-preload-data', 'false');
 		document.body.append(anchor);
 	}, `/schedule/chat?date=${day}`);
 	const documentRequests: string[] = [];
@@ -457,7 +458,7 @@ test('an enhanced host booking conflict preserves entered fields and the chosen 
 		anchor.id = 'e2e-refresh-meeting';
 		anchor.href = href;
 		anchor.textContent = 'Refresh this meeting fixture';
-		anchor.setAttribute('data-sveltekit-preload-data', 'off');
+		anchor.setAttribute('data-sveltekit-preload-data', 'false');
 		document.body.append(anchor);
 	}, `/schedule/${slug}?duration=90&date=${day}`);
 	const historyLength = await page.evaluate(() => history.length);

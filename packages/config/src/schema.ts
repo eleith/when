@@ -289,7 +289,7 @@ export const DatabaseSchema = Type.Object({
 
 export const UrlSchema = Type.Object({
 	app: Type.String({
-		description: 'Public base URL of the app (include the scheme), used to build links in emails and calendar events. Defaults to the ORIGIN env var, which adapter-node needs anyway to sit behind a reverse proxy — set ORIGIN alone and both agree.',
+		description: 'Public base URL of the app (include the scheme), used for authentication and links in emails and calendar events. Defaults to the ORIGIN env var, or http://localhost:5173 if unset. The native adapter ignores ORIGIN; trusted proxy headers and Host must produce the same request origin.',
 		minLength: 1,
 		default: '${ORIGIN:-http://localhost:5173}'
 	}),

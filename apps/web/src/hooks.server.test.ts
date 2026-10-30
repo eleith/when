@@ -3,7 +3,7 @@ import { describe, expect, test, vi } from 'vitest';
 import { validConfig } from '#lib/server/__fixtures__/valid-config.js';
 
 vi.mock('#lib/server/boot.js', () => ({ bootApp: async () => {} }));
-vi.mock('#lib/server/appearance', () => ({ themeStyleTag: () => '' }));
+vi.mock('#lib/server/appearance.js', () => ({ themeStyleTag: () => '' }));
 vi.mock('#lib/server/state.js', () => ({ getConfig: () => validConfig }));
 vi.mock('#lib/server/auth/index.js', () => ({
 	authHandle: (({ event, resolve }) => resolve(event)) as Handle

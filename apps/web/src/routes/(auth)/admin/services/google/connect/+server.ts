@@ -1,5 +1,5 @@
 import { redirect, error } from '@sveltejs/kit';
-import { dev } from '$app/environment';
+import { dev } from '$app/env';
 import { getConfig } from '#lib/server/state.js';
 import { consentUrl, findGoogleProvider } from '#lib/server/providers/google-connect.js';
 import { STATE_COOKIE, stateCookieOptions } from '#lib/server/providers/state-cookie.js';
@@ -16,5 +16,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 	const state = crypto.randomUUID();
 	cookies.set(STATE_COOKIE, JSON.stringify({ state, service: name }), stateCookieOptions(dev));
 
-	redirect(303, consentUrl(provider, config.url.app, state));
+	redirect(303, consentUrl(provider, config.url.app, state), {
+		external: ['https://accounts.google.com']
+	});
 };

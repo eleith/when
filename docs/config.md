@@ -374,8 +374,11 @@ Treat both databases and their backups as sensitive; see
 | `internal` | `${WHEN_URL_INTERNAL:-}`           | Worker → web, including branding images embedded in email. Empty falls back to `app`. |
 | `worker`   | `http://when-worker:9000`          | Web → worker telemetry and metrics.                                                   |
 
-Usually, set `ORIGIN` and leave `url.app` alone. The web adapter needs `ORIGIN`
-behind a reverse proxy anyway. See [deployment](deployment.md#environment-variables).
+Usually, set `ORIGIN` and leave `url.app` alone. It supplies When's public URL
+for authentication and generated links; an explicit `url.app` takes precedence.
+SvelteKit 3's native adapter ignores `ORIGIN` and derives its request origin from
+trusted proxy headers and Host instead. These must match the configured public
+URL; see the [proxy requirements](deployment.md#reverse-proxy).
 
 ## `prometheus`
 

@@ -22,13 +22,15 @@ openssl rand -base64 32
 ```
 
 Edit `.env` and `config/when.yaml` to make it all cozy and comfortable.
+Set `ORIGIN` to your public HTTPS URL and put a trusted reverse proxy in front of
+When; see the [proxy requirements](docs/deployment.md#reverse-proxy).
 Make `data/` writable by container UID 1000; see [permissions](docs/deployment.md#start-up).
 
 ```sh
 docker compose up -d
 ```
 
-Open http://localhost:3000 and `/admin` to get a lay of the land.
+Open your public proxy URL and its `/admin` page to get a lay of the land.
 
 There is a lot more going on under the hood, read more documentation if you
 want to learn more.

@@ -18,14 +18,7 @@ export default async function setup() {
 		await mkdir(join(projectDirectory, 'config'), { recursive: true });
 		// Kit's post-build workers rediscover config from cwd. Build a fresh copy
 		// with the normal configs, rather than overriding paths in one build phase.
-		for (const path of [
-			'src',
-			'static',
-			'package.json',
-			'svelte.config.js',
-			'vite.config.ts',
-			'tsconfig.json'
-		]) {
+		for (const path of ['src', 'static', 'package.json', 'vite.config.ts', 'tsconfig.json']) {
 			await cp(join(webDirectory, path), join(projectDirectory, path), { recursive: true });
 		}
 		await symlink(

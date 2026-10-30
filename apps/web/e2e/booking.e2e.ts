@@ -11,11 +11,13 @@ test('a guest books a meeting from the home page', async ({ page }) => {
 	await pickFirstBookableDay(page);
 
 	await expect(page.getByRole('heading', { name: 'Step 2 of 3: Pick a time' })).toBeVisible();
+	await expect(page).toHaveURL(/\?date=\d{4}-\d{2}-\d{2}$/);
 	await pickSlotFromEndOfDay(page);
 	await page.getByRole('button', { name: 'Confirm' }).click();
 
 	await expect(page.getByRole('heading', { name: 'Step 3 of 3: Enter your info' })).toBeVisible();
 	const slot = await page.locator('input[name="slot"]').inputValue();
+	await expect(page).toHaveURL(`/schedule/${CHAT_MEETING.slug}?slot=${encodeURIComponent(slot)}`);
 	await page.getByLabel('What is your name?').fill('E2E Guest');
 	await page.getByLabel('What is your email?').fill('e2e-guest@example.test');
 	await page.getByRole('button', { name: 'Request' }).click();

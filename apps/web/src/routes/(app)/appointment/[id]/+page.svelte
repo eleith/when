@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Dialog } from 'bits-ui';
-	import { applyAction, deserialize, enhance, type SubmitFunction } from '$app/forms';
+	import { deserialize, enhance, type SubmitFunction } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
 	import { tick } from 'svelte';
 	import IconCalendarBlank from 'virtual:icons/ph/calendar-blank';
@@ -51,15 +51,9 @@
 			return;
 		}
 		declining = true;
-		return async ({ result, update }) => {
+		return async ({ update }) => {
 			try {
-				if (result.type === 'failure') {
-					await applyAction(result);
-				} else {
-					// A cross-route success must also clear any earlier form error.
-					if (result.type === 'success') await applyAction(result);
-					await update();
-				}
+				await update({ navigate: false });
 			} finally {
 				declining = false;
 			}
@@ -215,14 +209,13 @@
 
 	let notes = $derived(
 		[
-		status === 'cancelled' ? cancelEntry : undefined,
-		rescheduleEntry,
-		status === 'declined' ? declineEntry : undefined
-	].filter((e) => e?.payload?.note).map((e) => ({
-		actor: (e!).actor,
-		kind: (e!).action,
-		text: ((e!).payload!).note!
-	})));
+			status === 'cancelled' ? cancelEntry : undefined,
+			rescheduleEntry,
+			status === 'declined' ? declineEntry : undefined
+		]
+			.filter((e) => e?.payload?.note)
+			.map((e) => ({ actor: e!.actor, kind: e!.action, text: e!.payload!.note! }))
+	);
 </script>
 
 <svelte:head>
@@ -360,19 +353,19 @@
 					appointmentId={data.appointment.id}
 					token={data.token}
 					role={data.role}
-					onCancel={() => cancelDialogOpen = true}
+					onCancel={() => (cancelDialogOpen = true)}
 					hasNote={!!data.appointment.note}
-					onEditNote={() => editNoteDialogOpen = true}
+					onEditNote={() => (editNoteDialogOpen = true)}
 					hasLocation={!!data.appointment.location}
-					onEditLocation={() => editLocationDialogOpen = true}
+					onEditLocation={() => (editLocationDialogOpen = true)}
 					hasVideoChat={!!data.appointment.video_chat}
 					videoChatRequested={data.videoChatRequested}
-					changingVideoChat={changingVideoChat}
+					{changingVideoChat}
 					onGenerateVideoChat={handleGenerateVideoChat}
 					onRemoveVideoChat={handleRemoveVideoChat}
-					onEditVideoChat={() => editVideoChatDialogOpen = true}
-					onEditDuration={data.canEditDuration ? () => editDurationDialogOpen = true : undefined}
-					isEditable={isEditable}
+					onEditVideoChat={() => (editVideoChatDialogOpen = true)}
+					onEditDuration={data.canEditDuration ? () => (editDurationDialogOpen = true) : undefined}
+					{isEditable}
 				/>
 			{/if}
 		</section>
@@ -424,7 +417,7 @@
 					{/if}
 
 					{#if data.rescheduledFrom && data.latestAppointment}
-						·
+						&nbsp;&middot;&nbsp;
 					{/if}
 
 					{#if data.latestAppointment}
@@ -459,12 +452,16 @@
 					</div>
 					<div class="detail-secondary">
 						{formatTzShort(displayTz)}{#if zonesDiffer}
-							· you
+							&nbsp;&middot; you
 						{/if}
 					</div>
 					{#if zonesDiffer}
 						<div class="detail-secondary tz-extra">
-							{formatTimeRange(data.appointment.start_time, data.appointment.end_time, counterpartTz)} · {formatTzShort(counterpartTz)} · {counterpartName}
+							{formatTimeRange(
+								data.appointment.start_time,
+								data.appointment.end_time,
+								counterpartTz
+							)} · {formatTzShort(counterpartTz)} · {counterpartName}
 						</div>
 					{/if}
 				</div>
@@ -474,7 +471,7 @@
 					<button
 						type="button"
 						class="detail-row-button"
-						onclick={() => editLocationDialogOpen = true}
+						onclick={() => (editLocationDialogOpen = true)}
 						aria-label="Edit location"
 					>
 						<span class="detail-icon"><IconMapPin aria-hidden="true" /></span>
@@ -518,7 +515,7 @@
 					<button
 						type="button"
 						class="detail-row-button"
-						onclick={() => editVideoChatDialogOpen = true}
+						onclick={() => (editVideoChatDialogOpen = true)}
 						aria-label="Edit video link"
 					>
 						<span class="detail-icon"><IconVideo aria-hidden="true" /></span>
@@ -557,7 +554,7 @@
 					<div class="detail-primary">People</div>
 					<div class="detail-secondary">
 						{data.appointment.guest_name}{#if isHost && data.appointment.guest_email}
-							<{data.appointment.guest_email}>
+							&nbsp;&lt;{data.appointment.guest_email}&gt;
 						{/if}
 					</div>
 					<div class="detail-secondary">
@@ -570,7 +567,7 @@
 					<button
 						type="button"
 						class="detail-row-button"
-						onclick={() => editNoteDialogOpen = true}
+						onclick={() => (editNoteDialogOpen = true)}
 						aria-label="Edit note"
 					>
 						<span class="detail-icon"><IconNote aria-hidden="true" /></span>
@@ -597,10 +594,7 @@
 		{/if}
 
 		{#if isHost}
-			<AppointmentLog
-				log={data.appointment.action_log}
-				displayTz={displayTz}
-			/>
+			<AppointmentLog log={data.appointment.action_log} {displayTz} />
 		{/if}
 
 		{#if data.calendarLinks}
@@ -614,8 +608,8 @@
 						<button
 							type="button"
 							class="decide-btn decide-decline"
-							onclick={() => declineDialogOpen = true}
-						>Decline</button>
+							onclick={() => (declineDialogOpen = true)}>Decline</button
+						>
 					</div>
 				{/if}
 				{#if data.actions.accept.allowed}

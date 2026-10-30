@@ -9,7 +9,8 @@ import type { RequestEvent } from './$types';
 vi.mock('#lib/server/appointment/context.js', () => ({ appointmentContext: () => context }));
 vi.mock('#lib/server/appointment/request-video-chat.js', () => ({ requestVideoChat: vi.fn() }));
 vi.mock('#lib/server/appointment/change-duration.js', async (importOriginal) => {
-	const original = await importOriginal<typeof import('#lib/server/appointment/change-duration.js')>();
+	const original =
+		await importOriginal<typeof import('#lib/server/appointment/change-duration.js')>();
 	return { ...original, changeAppointmentDuration: vi.fn() };
 });
 

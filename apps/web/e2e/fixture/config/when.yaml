@@ -35,6 +35,12 @@ providers:
     password: 'e2e-video-password'
     calendars: {}
 
+  fixture-google:
+    type: 'google'
+    client_id: 'e2e-google-client'
+    client_secret: 'e2e-google-secret'
+    calendars: {}
+
 schedules:
   standard:
     weekly:

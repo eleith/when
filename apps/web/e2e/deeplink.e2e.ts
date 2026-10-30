@@ -40,5 +40,8 @@ test('a day link with no availability explains itself without breaking the route
 
 	await expect(page.getByText('has no availability')).toBeVisible();
 	await expect(page.getByRole('heading', { name: 'Step 1 of 3: Pick a day' })).toBeVisible();
+	await expect(page).toHaveURL('/schedule/chat');
+	await pickLastBookableDay(page);
+	await expect(page.getByRole('heading', { name: 'Step 2 of 3: Pick a time' })).toBeVisible();
 	expect(errors).toEqual([]);
 });
