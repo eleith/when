@@ -1,8 +1,8 @@
 <script lang="ts">
 	import IconWarning from 'virtual:icons/ph/warning';
-	import type { toAppointmentView } from '$lib/server/appointments';
-	import AppointmentsBulkActions from '$lib/components/AppointmentsBulkActions.svelte';
-	import AppointmentsBulkDialog from '$lib/components/AppointmentsBulkDialog.svelte';
+	import type { toAppointmentView } from '#lib/server/appointments.js';
+	import AppointmentsBulkActions from '#lib/components/AppointmentsBulkActions.svelte';
+	import AppointmentsBulkDialog from '#lib/components/AppointmentsBulkDialog.svelte';
 
 	interface Props {
 		appointments: ReturnType<typeof toAppointmentView>[];

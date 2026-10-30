@@ -1,6 +1,6 @@
-import { defaultAvatar } from '$lib/server/avatar';
-import { getConfig } from '$lib/server/state';
-import { getContrastText } from '$lib/server/color';
+import { defaultAvatar } from '#lib/server/avatar.js';
+import { getConfig } from '#lib/server/state.js';
+import { getContrastText } from '#lib/server/color.js';
 import type { RequestHandler } from './$types';
 
 const CACHE_CONTROL = 'public, max-age=3600';

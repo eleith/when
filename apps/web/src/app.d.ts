@@ -1,4 +1,4 @@
-import type { WhenSession } from '$lib/server/auth';
+import type { WhenSession } from '#lib/server/auth/index.js';
 
 // See https://svelte.dev/docs/kit/types#app.d.ts
 // for information about these interfaces

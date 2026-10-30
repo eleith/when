@@ -2,7 +2,7 @@
 	import { DropdownMenu, Dialog } from 'bits-ui';
 	import { enhance } from '$app/forms';
 	import { tick } from 'svelte';
-	import type { AppointmentRole } from '$lib/server/appointment/actions';
+	import type { AppointmentRole } from '#lib/server/appointment/actions.js';
 	import IconDotsThreeVertical from 'virtual:icons/ph/dots-three-vertical';
 	import IconX from 'virtual:icons/ph/x';
 

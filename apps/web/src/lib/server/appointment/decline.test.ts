@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { declineAppointment } from './decline';
 import { confirmAppointment } from './transitions';
-import { systemClock } from '$lib/server/clock';
+import { systemClock } from '#lib/server/clock.js';
 import { openDb, runMigrations } from '@when/db';
-import { validConfig } from '$lib/server/__fixtures__/valid-config';
+import { validConfig } from '#lib/server/__fixtures__/valid-config.js';
 
 vi.mock('../workflow', () => ({ enqueueAppointmentReconciliation: vi.fn() }));
 import { enqueueAppointmentReconciliation } from '../workflow';

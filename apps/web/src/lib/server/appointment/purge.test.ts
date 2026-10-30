@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { purgeAppointment } from './purge';
-import { systemClock } from '$lib/server/clock';
+import { systemClock } from '#lib/server/clock.js';
 import { openDb, runMigrations, type Database } from '@when/db';
 import type { Kysely } from 'kysely';
-import { validConfig } from '$lib/server/__fixtures__/valid-config';
+import { validConfig } from '#lib/server/__fixtures__/valid-config.js';
 
 vi.mock('../workflow', () => ({ enqueuePurgeAppointment: vi.fn() }));
 import { enqueuePurgeAppointment } from '../workflow';

@@ -1,5 +1,5 @@
 import { describe, expect, test, vi } from 'vitest';
-import { validConfig } from '$lib/server/__fixtures__/valid-config';
+import { validConfig } from '#lib/server/__fixtures__/valid-config.js';
 
 const mockDb = {
 	selectFrom: vi.fn().mockReturnValue({
@@ -13,23 +13,23 @@ const mockDb = {
 	})
 };
 
-vi.mock('$lib/server/state', () => ({
+vi.mock('#lib/server/state.js', () => ({
 	getDb: () => mockDb,
 	getConfig: () => validConfig
 }));
 
-vi.mock('$lib/server/providers/status', () => ({
+vi.mock('#lib/server/providers/status.js', () => ({
 	listProviders: vi.fn().mockResolvedValue([]),
 	discoverCalendars: vi.fn(),
 	probeProvider: vi.fn()
 }));
 
-vi.mock('$lib/server/calendar/status', () => ({
+vi.mock('#lib/server/calendar/status.js', () => ({
 	listCalendars: vi.fn().mockResolvedValue([]),
 	probeCalendar: vi.fn()
 }));
 
-vi.mock('$lib/server/email/status', () => ({
+vi.mock('#lib/server/email/status.js', () => ({
 	smtpSummary: vi.fn().mockResolvedValue({
 		host: 'smtp.example.com',
 		port: 587,
@@ -41,18 +41,18 @@ vi.mock('$lib/server/email/status', () => ({
 	sendTestEmail: vi.fn()
 }));
 
-vi.mock('$lib/server/worker', () => ({
+vi.mock('#lib/server/worker.js', () => ({
 	workerReachable: vi.fn().mockResolvedValue(true)
 }));
 
-import { sendTestEmail, type SendResult } from '$lib/server/email/status';
+import { sendTestEmail, type SendResult } from '#lib/server/email/status.js';
 import {
 	discoverCalendars,
 	probeProvider,
 	type DiscoveryResult,
 	type ProbeResult
-} from '$lib/server/providers/status';
-import { probeCalendar, type CalendarProbeResult } from '$lib/server/calendar/status';
+} from '#lib/server/providers/status.js';
+import { probeCalendar, type CalendarProbeResult } from '#lib/server/calendar/status.js';
 import { actions, load } from './+page.server';
 
 type LoadResult = Exclude<Awaited<ReturnType<typeof load>>, void>;

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import AdminNav from '$lib/components/AdminNav.svelte';
+	import AdminNav from '#lib/components/AdminNav.svelte';
 
 	// Owns both the full-bleed nav and the centered content column. Pages render this
 	// rather than a layout so each route can name its own crumb.

@@ -1,7 +1,7 @@
 import { describe, expect, test, vi } from 'vitest';
 import { load } from './+page.server';
-import { setState, type AppState } from '$lib/server/state';
-import { validConfig } from '$lib/server/__fixtures__/valid-config';
+import { setState, type AppState } from '#lib/server/state.js';
+import { validConfig } from '#lib/server/__fixtures__/valid-config.js';
 
 describe('/signin server load', () => {
 	test('load function returns callbackUrl, auth, and errorCode', async () => {

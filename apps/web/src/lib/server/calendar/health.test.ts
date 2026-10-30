@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest';
 import type { ServiceStatus } from '@when/db';
 import type { WhenConfiguration } from '@when/config';
-import { validConfig } from '$lib/server/__fixtures__/valid-config';
+import { validConfig } from '#lib/server/__fixtures__/valid-config.js';
 import { evaluateCalendarStatuses } from './health.js';
 
 const START = Temporal.Instant.from('2026-05-01T00:00:00Z');

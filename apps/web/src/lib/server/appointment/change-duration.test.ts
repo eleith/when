@@ -9,7 +9,7 @@ import {
 	type Appointment,
 	type NewAppointment
 } from '@when/db';
-import { validConfig } from '$lib/server/__fixtures__/valid-config';
+import { validConfig } from '#lib/server/__fixtures__/valid-config.js';
 import { changeAppointmentDuration } from './change-duration';
 import { editAppointment } from './edit';
 import type { AppointmentContext } from './context';

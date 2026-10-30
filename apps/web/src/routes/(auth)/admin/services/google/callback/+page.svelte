@@ -1,5 +1,5 @@
 <script lang="ts">
-	import AdminPage from '$lib/components/AdminPage.svelte';
+	import AdminPage from '#lib/components/AdminPage.svelte';
 
 	let { data } = $props();
 

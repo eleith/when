@@ -1,5 +1,5 @@
+import type { Handle } from '@sveltejs/kit/hooks';
 import { afterAll, afterEach, beforeEach, expect, test, vi } from 'vitest';
-import type { Handle } from '@sveltejs/kit';
 import { parseSetCookieHeader } from 'better-auth/cookies';
 import { validConfig } from '../__fixtures__/valid-config';
 import { userLoginsTotal } from '../metrics';
@@ -43,8 +43,13 @@ function event(path: string, body?: unknown, headers: Record<string, string> = {
 		url,
 		request: new Request(url, {
 			method: body === undefined ? 'GET' : 'POST',
-			headers: { origin, 'content-type': 'application/json', 'x-real-ip': address, ...headers },
-			...(body === undefined ? {} : { body: JSON.stringify(body) })
+			headers: {
+				origin,
+				'content-type': 'application/json',
+				'x-real-ip': address,
+				...headers
+			},
+			...body === undefined ? {} : { body: JSON.stringify(body) }
 		}),
 		locals: {}
 	} as Parameters<Handle>[0]['event'];

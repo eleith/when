@@ -2,7 +2,7 @@
 	import type { Snippet } from 'svelte';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
-	import { authClient } from '$lib/auth-client';
+	import { authClient } from '#lib/auth-client.js';
 	import IconCalendarBlank from 'virtual:icons/ph/calendar-blank';
 	import IconArrowUpLeft from 'virtual:icons/ph/arrow-up-left';
 	import IconSignOut from 'virtual:icons/ph/sign-out';

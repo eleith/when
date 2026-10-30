@@ -1,13 +1,13 @@
 import { redirect } from '@sveltejs/kit';
-import { getConfig, getDb } from '$lib/server/state';
+import { getConfig, getDb } from '#lib/server/state.js';
 import { findAppointment, isChainTerminal } from '@when/db';
-import { purgeAppointment } from '$lib/server/appointment/purge';
-import { cancelAppointment } from '$lib/server/appointment/cancel';
-import { acceptAppointment } from '$lib/server/appointment/accept';
-import { declineAppointment } from '$lib/server/appointment/decline';
-import { validateReason } from '$lib/server/appointment/form.server';
-import { appointmentContext } from '$lib/server/appointment/context';
-import { systemClock } from '$lib/server/clock';
+import { purgeAppointment } from '#lib/server/appointment/purge.js';
+import { cancelAppointment } from '#lib/server/appointment/cancel.js';
+import { acceptAppointment } from '#lib/server/appointment/accept.js';
+import { declineAppointment } from '#lib/server/appointment/decline.js';
+import { validateReason } from '#lib/server/appointment/form.server.js';
+import { appointmentContext } from '#lib/server/appointment/context.js';
+import { systemClock } from '#lib/server/clock.js';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = () => {

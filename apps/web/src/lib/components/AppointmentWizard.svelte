@@ -1,22 +1,22 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import DatePicker from '$lib/components/DatePicker.svelte';
-	import DayTimeline from '$lib/components/DayTimeline.svelte';
-	import WizardPickerControls from '$lib/components/WizardPickerControls.svelte';
-	import CalendarSkeleton from '$lib/components/CalendarSkeleton.svelte';
-	import TimelineSkeleton from '$lib/components/TimelineSkeleton.svelte';
-	import RescheduleBanner from '$lib/components/RescheduleBanner.svelte';
-	import LinkNotice from '$lib/components/LinkNotice.svelte';
-	import WizardContext from '$lib/components/WizardContext.svelte';
-	import WizardActions from '$lib/components/WizardActions.svelte';
-	import GuestForm from '$lib/components/GuestForm.svelte';
-	import { createAppointmentFlow } from '$lib/appointmentFlow.svelte';
-	import { createAppointmentUrlSync } from '$lib/appointmentUrlSync.svelte';
-	import { buildDayTimeline } from '$lib/appointment';
-	import { formatDate, formatDateCompact, formatTimeShort, formatTzAbbrev } from '$lib/datetime';
-	import { getPreferredTimezone } from '$lib/preferredTimezone.svelte';
+	import DatePicker from '#lib/components/DatePicker.svelte';
+	import DayTimeline from '#lib/components/DayTimeline.svelte';
+	import WizardPickerControls from '#lib/components/WizardPickerControls.svelte';
+	import CalendarSkeleton from '#lib/components/CalendarSkeleton.svelte';
+	import TimelineSkeleton from '#lib/components/TimelineSkeleton.svelte';
+	import RescheduleBanner from '#lib/components/RescheduleBanner.svelte';
+	import LinkNotice from '#lib/components/LinkNotice.svelte';
+	import WizardContext from '#lib/components/WizardContext.svelte';
+	import WizardActions from '#lib/components/WizardActions.svelte';
+	import GuestForm from '#lib/components/GuestForm.svelte';
+	import { createAppointmentFlow } from '#lib/appointmentFlow.svelte.js';
+	import { createAppointmentUrlSync } from '#lib/appointmentUrlSync.svelte.js';
+	import { buildDayTimeline } from '#lib/appointment.js';
+	import { formatDate, formatDateCompact, formatTimeShort, formatTzAbbrev } from '#lib/datetime.js';
+	import { getPreferredTimezone } from '#lib/preferredTimezone.svelte.js';
 	import type { GuestAnswer, Appearance, FormField } from '@when/config';
-	import type { PublicEventType } from '$lib/server/appointment/sanitize';
+	import type { PublicEventType } from '#lib/server/appointment/sanitize.js';
 
 	// Shared shape served by both the new-appointment route and the reschedule route.
 	export interface AppointmentWizardData {

@@ -1,5 +1,5 @@
 import { describe, expect, test, vi, beforeEach } from 'vitest';
-import { validConfig } from '$lib/server/__fixtures__/valid-config';
+import { validConfig } from '#lib/server/__fixtures__/valid-config.js';
 import type { Appointment } from '@when/db';
 
 const h = vi.hoisted(() => ({
@@ -8,12 +8,12 @@ const h = vi.hoisted(() => ({
 	buildIcs: vi.fn(() => 'BEGIN:VCALENDAR')
 }));
 
-vi.mock('$lib/server/state', () => ({ getConfig: () => validConfig, getDb: () => ({}) }));
+vi.mock('#lib/server/state.js', () => ({ getConfig: () => validConfig, getDb: () => ({}) }));
 vi.mock('@when/db', async (io) => ({
 	...(await io<typeof import('@when/db')>()),
 	findAppointment: async () => h.row.current
 }));
-vi.mock('$lib/server/appointment/access', () => ({
+vi.mock('#lib/server/appointment/access.js', () => ({
 	isViewAllowed: h.viewAllowed
 }));
 vi.mock('@when/calendar', async (io) => ({

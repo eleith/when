@@ -3,7 +3,7 @@ import { toPublicEventType, toPublicAppointment } from './sanitize';
 import { resolveBookingDurations } from './duration';
 import type { Meeting } from '@when/config';
 import type { Appointment } from '@when/db';
-import { validConfig } from '$lib/server/__fixtures__/valid-config';
+import { validConfig } from '#lib/server/__fixtures__/valid-config.js';
 
 const baseEventType: Meeting = {
 	...validConfig.meetings['30-min-chat'],

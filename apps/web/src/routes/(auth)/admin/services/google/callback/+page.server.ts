@@ -1,15 +1,15 @@
 import { dev } from '$app/environment';
-import { getConfig } from '$lib/server/state';
+import { getConfig } from '#lib/server/state.js';
 import {
 	exchangeGoogleConnect,
 	findGoogleProvider,
 	refreshTokenEnvVar
-} from '$lib/server/providers/google-connect';
+} from '#lib/server/providers/google-connect.js';
 import {
 	STATE_COOKIE,
 	parseOAuthState,
 	stateCookieOptions
-} from '$lib/server/providers/state-cookie';
+} from '#lib/server/providers/state-cookie.js';
 import type { PageServerLoad } from './$types';
 
 function failed(service: string | null, error: string) {

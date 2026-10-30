@@ -2,7 +2,7 @@ import type { Kysely } from 'kysely';
 import { allCalendars, calendarTarget, type WhenConfiguration } from '@when/config';
 import type { Database } from '@when/db';
 import { getOpenWorkflow, testCalendar } from '@when/jobs';
-import { workerReachable } from '$lib/server/worker';
+import { workerReachable } from '#lib/server/worker.js';
 import { lastCalendarRefreshAt, listServiceStatus } from '@when/db';
 import { evaluateCalendarStatuses } from './health';
 

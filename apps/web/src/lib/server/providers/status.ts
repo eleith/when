@@ -4,8 +4,8 @@ import type { Database } from '@when/db';
 import { getProviderAdapter, type ProviderCalendar } from '@when/calendar';
 import { listServiceStatus } from '@when/db';
 import { getOpenWorkflow, listProviderCalendars, testProvider } from '@when/jobs';
-import { observedFrom, type ObservedView } from '$lib/server/observed';
-import { workerReachable } from '$lib/server/worker';
+import { observedFrom, type ObservedView } from '#lib/server/observed.js';
+import { workerReachable } from '#lib/server/worker.js';
 import { googleRedirectUri } from './google-connect';
 
 const PROBE_TIMEOUT_MS = 30_000;

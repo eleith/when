@@ -1,21 +1,21 @@
 import { describe, expect, test, vi, beforeEach } from 'vitest';
 import { actions, load } from './+page.server';
-import { requestVideoChat } from '$lib/server/appointment/request-video-chat';
-import { changeAppointmentDuration } from '$lib/server/appointment/change-duration';
-import { declineAppointment } from '$lib/server/appointment/decline';
+import { requestVideoChat } from '#lib/server/appointment/request-video-chat.js';
+import { changeAppointmentDuration } from '#lib/server/appointment/change-duration.js';
+import { declineAppointment } from '#lib/server/appointment/decline.js';
 import { findAppointment, type Appointment } from '@when/db';
 import type { RequestEvent } from './$types';
 
-vi.mock('$lib/server/appointment/context', () => ({ appointmentContext: () => context }));
-vi.mock('$lib/server/appointment/request-video-chat', () => ({ requestVideoChat: vi.fn() }));
-vi.mock('$lib/server/appointment/change-duration', async (importOriginal) => {
-	const original = await importOriginal<typeof import('$lib/server/appointment/change-duration')>();
+vi.mock('#lib/server/appointment/context.js', () => ({ appointmentContext: () => context }));
+vi.mock('#lib/server/appointment/request-video-chat.js', () => ({ requestVideoChat: vi.fn() }));
+vi.mock('#lib/server/appointment/change-duration.js', async (importOriginal) => {
+	const original = await importOriginal<typeof import('#lib/server/appointment/change-duration.js')>();
 	return { ...original, changeAppointmentDuration: vi.fn() };
 });
 
-vi.mock('$lib/server/appointment/decline', () => ({ declineAppointment: vi.fn() }));
-vi.mock('$lib/server/state', async (importOriginal) => {
-	const original = await importOriginal<typeof import('$lib/server/state')>();
+vi.mock('#lib/server/appointment/decline.js', () => ({ declineAppointment: vi.fn() }));
+vi.mock('#lib/server/state.js', async (importOriginal) => {
+	const original = await importOriginal<typeof import('#lib/server/state.js')>();
 	return { ...original, getDb: () => context.db };
 });
 vi.mock('@when/db', async (importOriginal) => {

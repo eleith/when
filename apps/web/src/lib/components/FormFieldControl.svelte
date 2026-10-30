@@ -9,7 +9,7 @@
 		LIMIT_EMAIL,
 		LIMIT_REASON,
 		validateFieldValue
-	} from '$lib/forms/validation.js';
+	} from '#lib/forms/validation.js';
 
 	interface Props {
 		field: FormField;

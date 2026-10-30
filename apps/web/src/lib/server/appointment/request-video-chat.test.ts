@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { findAppointment, openDb, runMigrations, withWriteTransaction } from '@when/db';
 import { generateVideoChat } from '@when/jobs';
-import { validConfig } from '$lib/server/__fixtures__/valid-config';
+import { validConfig } from '#lib/server/__fixtures__/valid-config.js';
 import { requestVideoChat } from './request-video-chat';
 
 const { runWorkflow } = vi.hoisted(() => ({ runWorkflow: vi.fn() }));

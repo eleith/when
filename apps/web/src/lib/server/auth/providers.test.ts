@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest';
 import { buildAuthOptions, verifyCredentials } from './providers';
-import { requireAuthSecret } from '$lib/server/auth/secret';
-import { validConfig } from '$lib/server/__fixtures__/valid-config';
+import { requireAuthSecret } from '#lib/server/auth/secret.js';
+import { validConfig } from '#lib/server/__fixtures__/valid-config.js';
 import type { WhenConfiguration } from '@when/config';
 
 test('credentials config registers only the YAML credentials plugin', () => {

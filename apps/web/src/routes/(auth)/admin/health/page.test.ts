@@ -2,7 +2,7 @@ import { expect, test, vi } from 'vitest';
 import { render } from 'svelte/server';
 import HealthPage from './+page.svelte';
 import type { ActionData, PageData } from './$types';
-import { validConfig } from '$lib/server/__fixtures__/valid-config';
+import { validConfig } from '#lib/server/__fixtures__/valid-config.js';
 
 vi.mock('$app/state', () => ({
 	page: { url: new URL('https://book.example.com/admin/health') }

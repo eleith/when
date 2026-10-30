@@ -1,7 +1,7 @@
 <!-- Shown above the wizard when the guest is rescheduling an existing appointment. -->
 <script lang="ts">
 	import IconInfo from 'virtual:icons/ph/info';
-	import { formatSlot } from '$lib/datetime';
+	import { formatSlot } from '#lib/datetime.js';
 
 	interface Props {
 		previousHref: string;

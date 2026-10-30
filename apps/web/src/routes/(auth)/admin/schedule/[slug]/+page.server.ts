@@ -1,14 +1,14 @@
 import { error, fail, redirect } from '@sveltejs/kit';
-import { isNewSlotBookable } from '$lib/server/availability/booking';
-import { getConfig, getDb } from '$lib/server/state';
-import { createAppointment } from '$lib/server/appointment/create';
-import { resolveDuration } from '$lib/server/appointment/duration';
+import { isNewSlotBookable } from '#lib/server/availability/booking.js';
+import { getConfig, getDb } from '#lib/server/state.js';
+import { createAppointment } from '#lib/server/appointment/create.js';
+import { resolveDuration } from '#lib/server/appointment/duration.js';
 import {
 	parseAndValidateAppointmentForm,
 	parseSlot,
 	resolveTimezone
-} from '$lib/server/appointment/form.server';
-import { appointmentContext } from '$lib/server/appointment/context';
+} from '#lib/server/appointment/form.server.js';
+import { appointmentContext } from '#lib/server/appointment/context.js';
 import type { Actions } from './$types';
 
 export const actions: Actions = {

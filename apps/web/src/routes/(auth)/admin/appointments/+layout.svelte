@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import AdminAlert from '$lib/components/AdminAlert.svelte';
-	import AdminPage from '$lib/components/AdminPage.svelte';
+	import AdminAlert from '#lib/components/AdminAlert.svelte';
+	import AdminPage from '#lib/components/AdminPage.svelte';
 	import IconCaretLeft from 'virtual:icons/ph/caret-left';
 	import IconCaretRight from 'virtual:icons/ph/caret-right';
 

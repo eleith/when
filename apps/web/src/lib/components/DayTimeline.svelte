@@ -9,8 +9,8 @@
 		isDirectSlotHit,
 		type TimelineEventType,
 		type TimelineSlot
-	} from '$lib/appointment';
-	import type { AppointmentFlow } from '$lib/appointmentFlow.svelte';
+	} from '#lib/appointment.js';
+	import type { AppointmentFlow } from '#lib/appointmentFlow.svelte.js';
 
 	interface Props {
 		flow: AppointmentFlow;

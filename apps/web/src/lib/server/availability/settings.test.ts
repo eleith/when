@@ -4,7 +4,7 @@ import {
 	resolveAvailabilitySettings,
 	resolveAvailabilitySettingsById
 } from './settings';
-import { validConfig } from '$lib/server/__fixtures__/valid-config';
+import { validConfig } from '#lib/server/__fixtures__/valid-config.js';
 import { validateConfig, type WhenConfiguration } from '@when/config';
 
 test('per-event settings flow through', () => {

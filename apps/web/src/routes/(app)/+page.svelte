@@ -1,6 +1,6 @@
 <script lang="ts">
 	import IconShieldCheck from 'virtual:icons/ph/shield-check';
-	import ThemeToggle from '$lib/components/ThemeToggle.svelte';
+	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
 
 	let { data } = $props();
 </script>

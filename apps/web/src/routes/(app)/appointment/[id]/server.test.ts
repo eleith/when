@@ -1,15 +1,15 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { actions, load } from './+page.server';
-import { validConfig } from '$lib/server/__fixtures__/valid-config';
+import { validConfig } from '#lib/server/__fixtures__/valid-config.js';
 import type { Appointment } from '@when/db';
-import type { AppointmentRole } from '$lib/server/appointment/actions';
-import { resolveBookingDurations } from '$lib/server/appointment/duration';
+import type { AppointmentRole } from '#lib/server/appointment/actions.js';
+import { resolveBookingDurations } from '#lib/server/appointment/duration.js';
 
 const h = vi.hoisted(() => ({ cancelAppointment: vi.fn() }));
 
-vi.mock('$lib/server/appointment/cancel', () => ({ cancelAppointment: h.cancelAppointment }));
-vi.mock('$lib/server/appointment/duration', async (importOriginal) => {
-	const original = await importOriginal<typeof import('$lib/server/appointment/duration')>();
+vi.mock('#lib/server/appointment/cancel.js', () => ({ cancelAppointment: h.cancelAppointment }));
+vi.mock('#lib/server/appointment/duration.js', async (importOriginal) => {
+	const original = await importOriginal<typeof import('#lib/server/appointment/duration.js')>();
 	return { ...original, resolveBookingDurations: vi.fn(original.resolveBookingDurations) };
 });
 
@@ -130,7 +130,7 @@ const automaticVideoAppointment: Appointment = {
 	])
 };
 
-vi.mock('$lib/server/state', () => ({
+vi.mock('#lib/server/state.js', () => ({
 	getConfig: () => loadConfig,
 	getDb: () => mockDb
 }));

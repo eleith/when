@@ -1,10 +1,10 @@
 import { error } from '@sveltejs/kit';
-import { getConfig } from '$lib/server/state';
+import { getConfig } from '#lib/server/state.js';
 import {
 	disconnectGoogle,
 	findGoogleProvider,
 	refreshTokenEnvVar
-} from '$lib/server/providers/google-connect';
+} from '#lib/server/providers/google-connect.js';
 import type { Actions } from './$types';
 
 export const actions: Actions = {

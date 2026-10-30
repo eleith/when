@@ -1,5 +1,5 @@
+import type { Handle } from '@sveltejs/kit/hooks';
 import { building } from '$app/environment';
-import type { Handle } from '@sveltejs/kit';
 import { betterAuth, type BetterAuthOptions } from 'better-auth/minimal';
 import { svelteKitHandler } from 'better-auth/svelte-kit';
 import type { WhenConfiguration } from '@when/config';

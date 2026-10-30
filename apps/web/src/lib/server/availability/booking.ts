@@ -2,7 +2,7 @@ import type { Kysely } from 'kysely';
 import { getBusyIntervals, type Appointment, type BusyInterval, type Database } from '@when/db';
 import { busyCalendarsFor } from '@when/calendar';
 import type { Meeting, WhenConfiguration } from '@when/config';
-import { systemClock } from '$lib/server/clock';
+import { systemClock } from '#lib/server/clock.js';
 import { computeSlots, type ComputeOptions } from './calc';
 import { mergeBlocks } from './intervals';
 import { loadAppointmentBlocks } from './blocks';

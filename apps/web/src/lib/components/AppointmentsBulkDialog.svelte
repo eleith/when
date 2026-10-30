@@ -3,7 +3,7 @@
 	import IconX from 'virtual:icons/ph/x';
 	import { Dialog } from 'bits-ui';
 	import CharacterCount from './CharacterCount.svelte';
-	import { LIMIT_REASON } from '$lib/forms/validation';
+	import { LIMIT_REASON } from '#lib/forms/validation.js';
 
 	interface Props {
 		open: boolean;

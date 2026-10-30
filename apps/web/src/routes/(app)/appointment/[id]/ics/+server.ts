@@ -1,11 +1,11 @@
 import { error, isHttpError } from '@sveltejs/kit';
-import { isViewAllowed } from '$lib/server/appointment/access';
-import { systemClock } from '$lib/server/clock';
+import { isViewAllowed } from '#lib/server/appointment/access.js';
+import { systemClock } from '#lib/server/clock.js';
 import { buildIcs } from '@when/calendar';
 import { senderEmail } from '@when/config';
 import { findAppointment } from '@when/db';
-import { getConfig, getDb } from '$lib/server/state';
-import { icsDownloadsTotal } from '$lib/server/metrics';
+import { getConfig, getDb } from '#lib/server/state.js';
+import { icsDownloadsTotal } from '#lib/server/metrics.js';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ params, url }) => {

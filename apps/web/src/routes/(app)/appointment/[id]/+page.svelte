@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { Dialog } from 'bits-ui';
-	import { applyAction, deserialize, enhance } from '$app/forms';
-	import type { SubmitFunction } from '@sveltejs/kit';
+	import { applyAction, deserialize, enhance, type SubmitFunction } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
 	import { tick } from 'svelte';
 	import IconCalendarBlank from 'virtual:icons/ph/calendar-blank';
@@ -13,14 +12,14 @@
 	import IconNote from 'virtual:icons/ph/note';
 	import IconPencilSimple from 'virtual:icons/ph/pencil-simple';
 	import IconVideo from 'virtual:icons/ph/video-conference';
-	import AppointmentActions from '$lib/components/AppointmentActions.svelte';
-	import DurationEditor from '$lib/components/DurationEditor.svelte';
-	import CharacterCount from '$lib/components/CharacterCount.svelte';
-	import AppointmentLog from '$lib/components/AppointmentLog.svelte';
-	import AppointmentQuestions from '$lib/components/AppointmentQuestions.svelte';
-	import AddToCalendar from '$lib/components/AddToCalendar.svelte';
-	import { formatDateShort, formatWeekday, formatTimeRange, formatTzShort } from '$lib/datetime';
-	import { LIMIT_LONG, LIMIT_REASON } from '$lib/forms/validation';
+	import AppointmentActions from '#lib/components/AppointmentActions.svelte';
+	import DurationEditor from '#lib/components/DurationEditor.svelte';
+	import CharacterCount from '#lib/components/CharacterCount.svelte';
+	import AppointmentLog from '#lib/components/AppointmentLog.svelte';
+	import AppointmentQuestions from '#lib/components/AppointmentQuestions.svelte';
+	import AddToCalendar from '#lib/components/AddToCalendar.svelte';
+	import { formatDateShort, formatWeekday, formatTimeRange, formatTzShort } from '#lib/datetime.js';
+	import { LIMIT_LONG, LIMIT_REASON } from '#lib/forms/validation.js';
 
 	let { data, form } = $props();
 
@@ -216,13 +215,14 @@
 
 	let notes = $derived(
 		[
-			status === 'cancelled' ? cancelEntry : undefined,
-			rescheduleEntry,
-			status === 'declined' ? declineEntry : undefined
-		]
-			.filter((e) => e?.payload?.note)
-			.map((e) => ({ actor: e!.actor, kind: e!.action, text: e!.payload!.note! }))
-	);
+		status === 'cancelled' ? cancelEntry : undefined,
+		rescheduleEntry,
+		status === 'declined' ? declineEntry : undefined
+	].filter((e) => e?.payload?.note).map((e) => ({
+		actor: (e!).actor,
+		kind: (e!).action,
+		text: ((e!).payload!).note!
+	})));
 </script>
 
 <svelte:head>
@@ -360,19 +360,19 @@
 					appointmentId={data.appointment.id}
 					token={data.token}
 					role={data.role}
-					onCancel={() => (cancelDialogOpen = true)}
+					onCancel={() => cancelDialogOpen = true}
 					hasNote={!!data.appointment.note}
-					onEditNote={() => (editNoteDialogOpen = true)}
+					onEditNote={() => editNoteDialogOpen = true}
 					hasLocation={!!data.appointment.location}
-					onEditLocation={() => (editLocationDialogOpen = true)}
+					onEditLocation={() => editLocationDialogOpen = true}
 					hasVideoChat={!!data.appointment.video_chat}
 					videoChatRequested={data.videoChatRequested}
-					{changingVideoChat}
+					changingVideoChat={changingVideoChat}
 					onGenerateVideoChat={handleGenerateVideoChat}
 					onRemoveVideoChat={handleRemoveVideoChat}
-					onEditVideoChat={() => (editVideoChatDialogOpen = true)}
-					onEditDuration={data.canEditDuration ? () => (editDurationDialogOpen = true) : undefined}
-					{isEditable}
+					onEditVideoChat={() => editVideoChatDialogOpen = true}
+					onEditDuration={data.canEditDuration ? () => editDurationDialogOpen = true : undefined}
+					isEditable={isEditable}
 				/>
 			{/if}
 		</section>
@@ -422,7 +422,11 @@
 							{formatDateShort(data.rescheduledFrom.start_time, displayTz)}
 						</a>
 					{/if}
-					{#if data.rescheduledFrom && data.latestAppointment}&nbsp;·&nbsp;{/if}
+
+					{#if data.rescheduledFrom && data.latestAppointment}
+						·
+					{/if}
+
 					{#if data.latestAppointment}
 						<a
 							class="state-meta-link"
@@ -454,16 +458,13 @@
 						{formatTimeRange(data.appointment.start_time, data.appointment.end_time, displayTz)}
 					</div>
 					<div class="detail-secondary">
-						{formatTzShort(displayTz)}{#if zonesDiffer}&nbsp;&middot; you{/if}
+						{formatTzShort(displayTz)}{#if zonesDiffer}
+							· you
+						{/if}
 					</div>
 					{#if zonesDiffer}
 						<div class="detail-secondary tz-extra">
-							{formatTimeRange(
-								data.appointment.start_time,
-								data.appointment.end_time,
-								counterpartTz
-							)}
-							&middot; {formatTzShort(counterpartTz)} &middot; {counterpartName}
+							{formatTimeRange(data.appointment.start_time, data.appointment.end_time, counterpartTz)} · {formatTzShort(counterpartTz)} · {counterpartName}
 						</div>
 					{/if}
 				</div>
@@ -473,7 +474,7 @@
 					<button
 						type="button"
 						class="detail-row-button"
-						onclick={() => (editLocationDialogOpen = true)}
+						onclick={() => editLocationDialogOpen = true}
 						aria-label="Edit location"
 					>
 						<span class="detail-icon"><IconMapPin aria-hidden="true" /></span>
@@ -517,7 +518,7 @@
 					<button
 						type="button"
 						class="detail-row-button"
-						onclick={() => (editVideoChatDialogOpen = true)}
+						onclick={() => editVideoChatDialogOpen = true}
 						aria-label="Edit video link"
 					>
 						<span class="detail-icon"><IconVideo aria-hidden="true" /></span>
@@ -555,8 +556,9 @@
 				<div class="detail-text">
 					<div class="detail-primary">People</div>
 					<div class="detail-secondary">
-						{data.appointment.guest_name}{#if isHost && data.appointment.guest_email}&nbsp;&lt;{data
-								.appointment.guest_email}&gt;{/if}
+						{data.appointment.guest_name}{#if isHost && data.appointment.guest_email}
+							<{data.appointment.guest_email}>
+						{/if}
 					</div>
 					<div class="detail-secondary">
 						{data.user.name} (host)
@@ -568,7 +570,7 @@
 					<button
 						type="button"
 						class="detail-row-button"
-						onclick={() => (editNoteDialogOpen = true)}
+						onclick={() => editNoteDialogOpen = true}
 						aria-label="Edit note"
 					>
 						<span class="detail-icon"><IconNote aria-hidden="true" /></span>
@@ -595,7 +597,10 @@
 		{/if}
 
 		{#if isHost}
-			<AppointmentLog log={data.appointment.action_log} {displayTz} />
+			<AppointmentLog
+				log={data.appointment.action_log}
+				displayTz={displayTz}
+			/>
 		{/if}
 
 		{#if data.calendarLinks}
@@ -609,10 +614,8 @@
 						<button
 							type="button"
 							class="decide-btn decide-decline"
-							onclick={() => (declineDialogOpen = true)}
-						>
-							Decline
-						</button>
+							onclick={() => declineDialogOpen = true}
+						>Decline</button>
 					</div>
 				{/if}
 				{#if data.actions.accept.allowed}

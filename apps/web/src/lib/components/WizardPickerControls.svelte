@@ -1,7 +1,7 @@
 <script lang="ts">
 	import IconCaretDown from 'virtual:icons/ph/caret-down';
-	import { formatTzShort } from '$lib/datetime';
-	import type { AppointmentFlow } from '$lib/appointmentFlow.svelte';
+	import { formatTzShort } from '#lib/datetime.js';
+	import type { AppointmentFlow } from '#lib/appointmentFlow.svelte.js';
 	import DurationDialog from './DurationDialog.svelte';
 	import TimezoneDialog from './TimezoneDialog.svelte';
 

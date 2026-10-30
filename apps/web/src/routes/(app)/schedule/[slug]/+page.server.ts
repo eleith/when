@@ -1,20 +1,20 @@
 import { error, fail, redirect } from '@sveltejs/kit';
-import { isNewSlotBookable, loadAvailability } from '$lib/server/availability/booking';
-import { logger } from '$lib/server/logger';
-import { getConfig, getDb } from '$lib/server/state';
+import { isNewSlotBookable, loadAvailability } from '#lib/server/availability/booking.js';
+import { logger } from '#lib/server/logger.js';
+import { getConfig, getDb } from '#lib/server/state.js';
 import { resolveFormFields } from '@when/config';
-import { createAppointment } from '$lib/server/appointment/create';
-import type { AppointmentRole } from '$lib/server/appointment/actions';
-import { resolveBookingDurations, resolveDuration } from '$lib/server/appointment/duration';
+import { createAppointment } from '#lib/server/appointment/create.js';
+import type { AppointmentRole } from '#lib/server/appointment/actions.js';
+import { resolveBookingDurations, resolveDuration } from '#lib/server/appointment/duration.js';
 import {
 	parseAndValidateAppointmentForm,
 	parseSlot,
 	resolveTimezone
-} from '$lib/server/appointment/form.server';
-import { appointmentContext } from '$lib/server/appointment/context';
-import { normalizeDeepLinkParams } from '$lib/appointment';
-import { toPublicEventType } from '$lib/server/appointment/sanitize';
-import { bookingAttemptsTotal } from '$lib/server/metrics';
+} from '#lib/server/appointment/form.server.js';
+import { appointmentContext } from '#lib/server/appointment/context.js';
+import { normalizeDeepLinkParams } from '#lib/appointment.js';
+import { toPublicEventType } from '#lib/server/appointment/sanitize.js';
+import { bookingAttemptsTotal } from '#lib/server/metrics.js';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params, url, locals }) => {

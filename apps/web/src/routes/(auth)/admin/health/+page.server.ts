@@ -1,11 +1,11 @@
 import { sql, type Kysely } from 'kysely';
 import { durationsOf } from '@when/config';
 import type { Database } from '@when/db';
-import { getConfig, getDb } from '$lib/server/state';
-import { discoverCalendars, listProviders, probeProvider } from '$lib/server/providers/status';
-import { listCalendars, probeCalendar } from '$lib/server/calendar/status';
-import { sendTestEmail, smtpSummary } from '$lib/server/email/status';
-import { workerReachable } from '$lib/server/worker';
+import { getConfig, getDb } from '#lib/server/state.js';
+import { discoverCalendars, listProviders, probeProvider } from '#lib/server/providers/status.js';
+import { listCalendars, probeCalendar } from '#lib/server/calendar/status.js';
+import { sendTestEmail, smtpSummary } from '#lib/server/email/status.js';
+import { workerReachable } from '#lib/server/worker.js';
 import type { Actions, PageServerLoad } from './$types';
 
 async function listBookingCounts(db: Kysely<Database>): Promise<Map<string, number>> {

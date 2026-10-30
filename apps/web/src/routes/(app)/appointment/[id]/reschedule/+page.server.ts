@@ -1,21 +1,21 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { findAppointment } from '@when/db';
-import { systemClock } from '$lib/server/clock';
-import { getConfig, getDb } from '$lib/server/state';
+import { systemClock } from '#lib/server/clock.js';
+import { getConfig, getDb } from '#lib/server/state.js';
 import { resolveFormFields } from '@when/config';
-import { isRescheduleSlotBookable, loadAvailability } from '$lib/server/availability/booking';
-import { resolveDuration } from '$lib/server/appointment/duration';
-import { isViewAllowed } from '$lib/server/appointment/access';
-import type { AppointmentRole } from '$lib/server/appointment/actions';
-import { classifyReschedule, rescheduleAppointment } from '$lib/server/appointment/reschedule';
+import { isRescheduleSlotBookable, loadAvailability } from '#lib/server/availability/booking.js';
+import { resolveDuration } from '#lib/server/appointment/duration.js';
+import { isViewAllowed } from '#lib/server/appointment/access.js';
+import type { AppointmentRole } from '#lib/server/appointment/actions.js';
+import { classifyReschedule, rescheduleAppointment } from '#lib/server/appointment/reschedule.js';
 import {
 	parseAndValidateAppointmentForm,
 	parseSlot,
 	resolveTimezone,
 	validateReason
-} from '$lib/server/appointment/form.server';
-import { appointmentContext } from '$lib/server/appointment/context';
-import { toPublicAppointment, toPublicEventType } from '$lib/server/appointment/sanitize';
+} from '#lib/server/appointment/form.server.js';
+import { appointmentContext } from '#lib/server/appointment/context.js';
+import { toPublicAppointment, toPublicEventType } from '#lib/server/appointment/sanitize.js';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params, url, locals }) => {

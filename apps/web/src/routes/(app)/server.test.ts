@@ -1,12 +1,12 @@
 import { describe, expect, test, vi, beforeEach } from 'vitest';
-import { validConfig } from '$lib/server/__fixtures__/valid-config';
+import { validConfig } from '#lib/server/__fixtures__/valid-config.js';
 import type { Meeting, WhenConfiguration } from '@when/config';
 
 const h = vi.hoisted(() => ({
 	cfg: { current: null as unknown as WhenConfiguration }
 }));
 
-vi.mock('$lib/server/state', () => ({ getConfig: () => h.cfg.current }));
+vi.mock('#lib/server/state.js', () => ({ getConfig: () => h.cfg.current }));
 
 import { load } from './+page.server';
 

@@ -1,11 +1,11 @@
+import type { Handle } from '@sveltejs/kit/hooks';
 import { describe, expect, test, vi } from 'vitest';
-import type { Handle } from '@sveltejs/kit';
-import { validConfig } from '$lib/server/__fixtures__/valid-config';
+import { validConfig } from '#lib/server/__fixtures__/valid-config.js';
 
-vi.mock('$lib/server/boot', () => ({ bootApp: async () => {} }));
-vi.mock('$lib/server/appearance', () => ({ themeStyleTag: () => '' }));
-vi.mock('$lib/server/state', () => ({ getConfig: () => validConfig }));
-vi.mock('$lib/server/auth', () => ({
+vi.mock('#lib/server/boot.js', () => ({ bootApp: async () => {} }));
+vi.mock('#lib/server/appearance', () => ({ themeStyleTag: () => '' }));
+vi.mock('#lib/server/state.js', () => ({ getConfig: () => validConfig }));
+vi.mock('#lib/server/auth/index.js', () => ({
 	authHandle: (({ event, resolve }) => resolve(event)) as Handle
 }));
 

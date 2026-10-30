@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
 import { mergeBlocks, overlapsAny } from './intervals';
-import { generateSlots } from '$lib/server/availability/slots';
+import { generateSlots } from '#lib/server/availability/slots.js';
 
 const I = (s: string) => Temporal.Instant.from(s);
 const interval = (s: string, e: string) => ({ start: I(s), end: I(e) });

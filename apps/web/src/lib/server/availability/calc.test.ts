@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
-import { computeSlots } from '$lib/server/availability';
-import type { AvailabilitySettings, Interval, TimeRange } from '$lib/server/availability';
+import { computeSlots } from '#lib/server/availability/index.js';
+import type { AvailabilitySettings, Interval, TimeRange } from '#lib/server/availability/index.js';
 
 const NYC = 'America/New_York';
 const PARIS = 'Europe/Paris';

@@ -4,7 +4,7 @@ import type { ServiceOutcome } from '@when/db';
 import { fetchBusyIntervals } from '@when/calendar';
 import { getOpenWorkflow } from '@when/jobs';
 import type { WhenConfiguration } from '@when/config';
-import { validConfig } from '$lib/server/__fixtures__/valid-config';
+import { validConfig } from '#lib/server/__fixtures__/valid-config.js';
 import { listCalendars, probeCalendar } from './status';
 
 vi.mock('@when/calendar', async (importOriginal) => {

@@ -1,7 +1,7 @@
 import { describe, expect, test, vi } from 'vitest';
 import type { RequestEvent } from './$types';
 import { GET } from './+server';
-import { register } from '$lib/server/metrics';
+import { register } from '#lib/server/metrics.js';
 
 const mockConfig = {
 	prometheus: {
@@ -13,7 +13,7 @@ const mockConfig = {
 	}
 };
 
-vi.mock('$lib/server/state', () => ({
+vi.mock('#lib/server/state.js', () => ({
 	getConfig: () => mockConfig
 }));
 

@@ -1,18 +1,18 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { getConfig, getDb } from '$lib/server/state';
+import { getConfig, getDb } from '#lib/server/state.js';
 import { findAppointment, isChainTerminal } from '@when/db';
-import { acceptAppointment } from '$lib/server/appointment/accept';
-import { declineAppointment } from '$lib/server/appointment/decline';
-import { cancelAppointment } from '$lib/server/appointment/cancel';
-import { purgeAppointment } from '$lib/server/appointment/purge';
-import { editAppointment } from '$lib/server/appointment/edit';
-import { changeAppointmentDuration } from '$lib/server/appointment/change-duration';
-import { validateDeclineNote, validateReason } from '$lib/server/appointment/form.server';
-import { appointmentContext } from '$lib/server/appointment/context';
-import { rotateGuestTokenTransition } from '$lib/server/appointment/transitions';
-import { requestVideoChat } from '$lib/server/appointment/request-video-chat';
+import { acceptAppointment } from '#lib/server/appointment/accept.js';
+import { declineAppointment } from '#lib/server/appointment/decline.js';
+import { cancelAppointment } from '#lib/server/appointment/cancel.js';
+import { purgeAppointment } from '#lib/server/appointment/purge.js';
+import { editAppointment } from '#lib/server/appointment/edit.js';
+import { changeAppointmentDuration } from '#lib/server/appointment/change-duration.js';
+import { validateDeclineNote, validateReason } from '#lib/server/appointment/form.server.js';
+import { appointmentContext } from '#lib/server/appointment/context.js';
+import { rotateGuestTokenTransition } from '#lib/server/appointment/transitions.js';
+import { requestVideoChat } from '#lib/server/appointment/request-video-chat.js';
 import type { Actions, PageServerLoad } from './$types';
-import { systemClock } from '$lib/server/clock';
+import { systemClock } from '#lib/server/clock.js';
 
 export const load: PageServerLoad = async ({ params }) => {
 	// A direct GET request redirects back to the public appointment detail page.

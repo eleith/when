@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
 import { buildBaseWindows, candidateDates, localToInstant, weekdayOf } from './windows';
-import type { TimeRange, WeeklySchedule } from '$lib/server/availability/types';
+import type { TimeRange, WeeklySchedule } from '#lib/server/availability/types.js';
 
 const NYC = 'America/New_York';
 

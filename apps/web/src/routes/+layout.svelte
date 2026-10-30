@@ -1,14 +1,14 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import '$lib/styles/reset.css';
-	import '$lib/styles/theme.css';
-	import '$lib/styles/calendar.css';
-	import '$lib/styles/utility.css';
-	import '$lib/styles/fonts/outfit.css';
-	import '$lib/styles/fonts/inter.css';
-	import '$lib/styles/fonts/lato.css';
-	import '$lib/styles/fonts/noto-sans.css';
-	import { createPreferredTimezone } from '$lib/preferredTimezone.svelte';
+	import '#lib/styles/reset.css';
+	import '#lib/styles/theme.css';
+	import '#lib/styles/calendar.css';
+	import '#lib/styles/utility.css';
+	import '#lib/styles/fonts/outfit.css';
+	import '#lib/styles/fonts/inter.css';
+	import '#lib/styles/fonts/lato.css';
+	import '#lib/styles/fonts/noto-sans.css';
+	import { createPreferredTimezone } from '#lib/preferredTimezone.svelte.js';
 
 	let { data, children } = $props();
 

@@ -14,7 +14,7 @@
 	import IconCalendarBlank from 'virtual:icons/ph/calendar-blank';
 	import IconPencilSimple from 'virtual:icons/ph/pencil-simple';
 	import IconDot from 'virtual:icons/ph/dot-outline';
-	import { formatTimestamp } from '$lib/datetime';
+	import { formatTimestamp } from '#lib/datetime.js';
 
 	let {
 		log,

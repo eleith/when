@@ -1,7 +1,7 @@
 import { error } from '@sveltejs/kit';
-import { register } from '$lib/server/metrics';
-import { getConfig } from '$lib/server/state';
-import { logger } from '$lib/server/logger';
+import { register } from '#lib/server/metrics.js';
+import { getConfig } from '#lib/server/state.js';
+import { logger } from '#lib/server/logger.js';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ request, fetch }) => {

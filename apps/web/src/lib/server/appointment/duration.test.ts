@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest';
 import type { Meeting } from '@when/config';
 import type { Appointment } from '@when/db';
 import { resolveBookingDurations, resolveDuration } from './duration';
-import { validConfig } from '$lib/server/__fixtures__/valid-config';
+import { validConfig } from '#lib/server/__fixtures__/valid-config.js';
 
 const base: Meeting = {
 	...validConfig.meetings['30-min-chat'],

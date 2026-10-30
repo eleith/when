@@ -2,9 +2,9 @@
 <script lang="ts">
 	import IconArrowRight from 'virtual:icons/ph/arrow-right';
 	import IconCaretLeft from 'virtual:icons/ph/caret-left';
-	import { formatDate, formatTime } from '$lib/datetime';
-	import type { AppointmentFlow } from '$lib/appointmentFlow.svelte';
-	import type { PublicEventType } from '$lib/server/appointment/sanitize';
+	import { formatDate, formatTime } from '#lib/datetime.js';
+	import type { AppointmentFlow } from '#lib/appointmentFlow.svelte.js';
+	import type { PublicEventType } from '#lib/server/appointment/sanitize.js';
 
 	interface Props {
 		flow: AppointmentFlow;

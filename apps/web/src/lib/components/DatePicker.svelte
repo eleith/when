@@ -3,7 +3,7 @@
 	import { CalendarDate, type DateValue } from '@internationalized/date';
 	import IconCaretLeft from 'virtual:icons/ph/caret-left';
 	import IconCaretRight from 'virtual:icons/ph/caret-right';
-	import type { AppointmentFlow } from '$lib/appointmentFlow.svelte';
+	import type { AppointmentFlow } from '#lib/appointmentFlow.svelte.js';
 
 	interface Props {
 		flow: AppointmentFlow;

@@ -1,10 +1,10 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { openDb, runMigrations } from '@when/db';
-import { validConfig } from '$lib/server/__fixtures__/valid-config';
-import { systemClock } from '$lib/server/clock';
+import { validConfig } from '#lib/server/__fixtures__/valid-config.js';
+import { systemClock } from '#lib/server/clock.js';
 
 let mockDb: Awaited<ReturnType<typeof makeDb>> | null = null;
-vi.mock('$lib/server/state', () => ({
+vi.mock('#lib/server/state.js', () => ({
 	getDb: () => {
 		if (!mockDb) throw new Error('mockDb not initialized');
 		return mockDb;

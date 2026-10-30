@@ -1,5 +1,5 @@
 <script lang="ts">
-	import AppointmentWizard from '$lib/components/AppointmentWizard.svelte';
+	import AppointmentWizard from '#lib/components/AppointmentWizard.svelte';
 
 	let { data, form } = $props();
 </script>

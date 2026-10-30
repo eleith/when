@@ -3,8 +3,8 @@ import type { WhenConfiguration } from '@when/config';
 import { senderEmail } from '@when/config';
 import { listServiceStatus, type Database } from '@when/db';
 import { getOpenWorkflow, testEmail } from '@when/jobs';
-import { observedFrom, type ObservedView } from '$lib/server/observed';
-import { workerReachable } from '$lib/server/worker';
+import { observedFrom, type ObservedView } from '#lib/server/observed.js';
+import { workerReachable } from '#lib/server/worker.js';
 
 const RESULT_TIMEOUT_MS = 30_000;
 

@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { tick } from 'svelte';
 	import { Dialog } from 'bits-ui';
-	import { getTimezoneIndex, searchTimezones } from '$lib/timezones';
-	import { getPreferredTimezone } from '$lib/preferredTimezone.svelte';
+	import { getTimezoneIndex, searchTimezones } from '#lib/timezones.js';
+	import { getPreferredTimezone } from '#lib/preferredTimezone.svelte.js';
 
 	interface Props {
 		open?: boolean;

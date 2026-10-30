@@ -1,7 +1,7 @@
 import { describe, expect, test, vi, beforeEach } from 'vitest';
 import type { RequestEvent } from './$types';
 import { POST } from './+server';
-import { validConfig } from '$lib/server/__fixtures__/valid-config';
+import { validConfig } from '#lib/server/__fixtures__/valid-config.js';
 import type { Appointment } from '@when/db';
 
 const mockDb = {
@@ -66,7 +66,7 @@ const mockAppts: Record<string, Appointment> = {
 	}
 };
 
-vi.mock('$lib/server/state', () => ({
+vi.mock('#lib/server/state.js', () => ({
 	getConfig: () => validConfig,
 	getDb: () => mockDb
 }));
@@ -88,7 +88,7 @@ vi.mock('@when/db', async (importOriginal) => {
 });
 
 const mockPurgeAppointment = vi.fn();
-vi.mock('$lib/server/appointment/purge', () => ({
+vi.mock('#lib/server/appointment/purge.js', () => ({
 	purgeAppointment: async (_ctx: unknown, input: { appointment: Appointment }) => {
 		mockPurgeAppointment(input.appointment.id);
 		return { ok: true };
@@ -96,7 +96,7 @@ vi.mock('$lib/server/appointment/purge', () => ({
 }));
 
 const mockCancelAppointment = vi.fn();
-vi.mock('$lib/server/appointment/cancel', () => ({
+vi.mock('#lib/server/appointment/cancel.js', () => ({
 	cancelAppointment: async (
 		_ctx: unknown,
 		input: { appointment: Appointment; initiator: string; reason: string }
@@ -107,7 +107,7 @@ vi.mock('$lib/server/appointment/cancel', () => ({
 }));
 
 const mockAcceptAppointment = vi.fn();
-vi.mock('$lib/server/appointment/accept', () => ({
+vi.mock('#lib/server/appointment/accept.js', () => ({
 	acceptAppointment: async (_ctx: unknown, input: { appointment: Appointment }) => {
 		mockAcceptAppointment(input.appointment.id);
 		return { ok: true };
@@ -115,7 +115,7 @@ vi.mock('$lib/server/appointment/accept', () => ({
 }));
 
 const mockDeclineAppointment = vi.fn();
-vi.mock('$lib/server/appointment/decline', () => ({
+vi.mock('#lib/server/appointment/decline.js', () => ({
 	declineAppointment: async (_ctx: unknown, input: { appointment: Appointment }) => {
 		mockDeclineAppointment(input.appointment.id);
 		return { ok: true };

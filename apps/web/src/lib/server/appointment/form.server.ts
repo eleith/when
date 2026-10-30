@@ -6,8 +6,8 @@ import {
 	LIMIT_LONG,
 	LIMIT_EMAIL,
 	LIMIT_REASON
-} from '$lib/forms/validation.js';
-import { evaluateVisibility } from '$lib/forms/conditional';
+} from '#lib/forms/validation.js';
+import { evaluateVisibility } from '#lib/forms/conditional.js';
 
 const DEL = 0x7f;
 const FIRST_PRINTABLE = 0x20;

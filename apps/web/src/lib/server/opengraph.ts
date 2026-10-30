@@ -2,7 +2,7 @@ import { render } from 'svelte/server';
 import { ImageResponse } from 'takumi-js/response';
 import { Renderer } from 'takumi-js/node';
 import type { Appearance, WhenConfiguration } from '@when/config';
-import OpengraphImage from '$lib/opengraph/OpengraphImage.svelte';
+import OpengraphImage from '#lib/opengraph/OpengraphImage.svelte';
 import { getConfig } from './state.js';
 import { hexToRgba } from './color.js';
 import { FALLBACK_FONT_NAME, bundledFontUrls, fontStack, isBundledFont } from './fonts.js';

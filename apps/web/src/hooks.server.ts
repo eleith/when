@@ -1,11 +1,11 @@
-import { sequence } from '@sveltejs/kit/hooks';
-import { redirect, error, type Handle } from '@sveltejs/kit';
-import { authHandle } from '$lib/server/auth';
-import { localRedirect } from '$lib/server/redirect';
-import { bootApp } from '$lib/server/boot';
-import { logger } from '$lib/server/logger';
-import { getConfig } from '$lib/server/state';
-import { themeStyleTag } from '$lib/server/appearance';
+import { redirect, error } from '@sveltejs/kit';
+import { sequence, type Handle } from '@sveltejs/kit/hooks';
+import { authHandle } from '#lib/server/auth/index.js';
+import { localRedirect } from '#lib/server/redirect.js';
+import { bootApp } from '#lib/server/boot.js';
+import { logger } from '#lib/server/logger.js';
+import { getConfig } from '#lib/server/state.js';
+import { themeStyleTag } from '#lib/server/appearance.js';
 
 try {
 	await bootApp();

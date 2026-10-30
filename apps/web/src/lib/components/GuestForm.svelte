@@ -1,14 +1,12 @@
-<!-- Step 3: the guest fills in their details. Owns all guest-field state and posts the booking. -->
 <script lang="ts">
-	import { applyAction, enhance } from '$app/forms';
-	import type { SubmitFunction } from '@sveltejs/kit';
-	import { evaluateVisibility } from '$lib/forms/conditional';
-	import { defaultFieldValue } from '$lib/forms/defaults';
-	import FormFieldControl from '$lib/components/FormFieldControl.svelte';
-	import { validateFieldValue } from '$lib/forms/validation.js';
-	import type { AppointmentFlow } from '$lib/appointmentFlow.svelte';
+	import { applyAction, enhance, type SubmitFunction } from '$app/forms';
+	import { evaluateVisibility } from '#lib/forms/conditional.js';
+	import { defaultFieldValue } from '#lib/forms/defaults.js';
+	import FormFieldControl from '#lib/components/FormFieldControl.svelte';
+	import { validateFieldValue } from '#lib/forms/validation.js';
+	import type { AppointmentFlow } from '#lib/appointmentFlow.svelte.js';
 	import type { GuestAnswer, FormField } from '@when/config';
-	import type { PublicEventType } from '$lib/server/appointment/sanitize';
+	import type { PublicEventType } from '#lib/server/appointment/sanitize.js';
 
 	const RESCHEDULE_FIELD: FormField = {
 		name: 'reschedule_reason',
@@ -69,11 +67,9 @@
 	}
 
 	// svelte-ignore state_referenced_locally
-	let fieldValues = $state<Record<string, string>>(
-		Object.fromEntries(formFields.map((f) => [f.name, initialFieldValue(f)]))
-	);
-	let rescheduleReasonValue = $state('');
+	let fieldValues = $state<Record<string, string>>(Object.fromEntries(formFields.map((f) => [f.name, initialFieldValue(f)])));
 
+	let rescheduleReasonValue = $state('');
 	const visibleFields = $derived(evaluateVisibility(formFields, (name) => fieldValues[name] ?? ''));
 
 	let isFormValid = $derived.by(() => {
@@ -106,6 +102,8 @@
 		};
 </script>
 
+<!-- Step 3: the guest fills in their details. Owns all guest-field state and posts the booking. -->
+
 <div class="appointment-form">
 	{#if form?.error}
 		<p class="form-error" role="alert">{form.error}</p>
@@ -123,7 +121,7 @@
 		{#each formFields as field (field.name)}
 			{#if visibleFields.get(field.name)}
 				<FormFieldControl
-					{field}
+					field={field}
 					bind:value={fieldValues[field.name]}
 					disabled={fieldsDisabled}
 					error={form?.fieldErrors?.[field.name]}

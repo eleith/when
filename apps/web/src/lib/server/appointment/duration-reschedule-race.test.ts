@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { openDb, parseActionLog, runMigrations, type Appointment } from '@when/db';
-import { validConfig } from '$lib/server/__fixtures__/valid-config';
+import { validConfig } from '#lib/server/__fixtures__/valid-config.js';
 import { changeAppointmentDuration } from './change-duration';
 import { resolveDuration } from './duration';
 import { rescheduleAppointment, type RescheduleAppointmentInput } from './reschedule';

@@ -1,14 +1,14 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { shouldAttachVideoChat } from '@when/video-chat';
-import { isEditAllowed, isViewAllowed } from '$lib/server/appointment/access';
+import { isEditAllowed, isViewAllowed } from '#lib/server/appointment/access.js';
 import {
 	isActiveStatus,
 	resolveAppointmentActions,
 	type AppointmentRole
-} from '$lib/server/appointment/actions';
-import { buildAddToCalendarLinks } from '$lib/server/calendar-links';
-import { systemClock } from '$lib/server/clock';
-import { getConfig, getDb } from '$lib/server/state';
+} from '#lib/server/appointment/actions.js';
+import { buildAddToCalendarLinks } from '#lib/server/calendar-links/index.js';
+import { systemClock } from '#lib/server/clock.js';
+import { getConfig, getDb } from '#lib/server/state.js';
 import {
 	findAppointment,
 	findChainTip,
@@ -17,13 +17,13 @@ import {
 	parseActionLog,
 	type Appointment
 } from '@when/db';
-import { toPublicAppointment } from '$lib/server/appointment/sanitize';
-import { readMeetingSnapshot } from '$lib/server/appointment/snapshot';
-import { resolveBookingDurations } from '$lib/server/appointment/duration';
+import { toPublicAppointment } from '#lib/server/appointment/sanitize.js';
+import { readMeetingSnapshot } from '#lib/server/appointment/snapshot.js';
+import { resolveBookingDurations } from '#lib/server/appointment/duration.js';
 import type { Actions, PageServerLoad } from './$types';
-import { cancelAppointment } from '$lib/server/appointment/cancel';
-import { validateReason } from '$lib/server/appointment/form.server';
-import { appointmentContext } from '$lib/server/appointment/context';
+import { cancelAppointment } from '#lib/server/appointment/cancel.js';
+import { validateReason } from '#lib/server/appointment/form.server.js';
+import { appointmentContext } from '#lib/server/appointment/context.js';
 
 type ClockStatus = 'upcoming' | 'in_progress' | 'concluded';
 

@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest';
-import { buildTimezoneEntry, getTimezoneIndex, searchTimezones } from '$lib/timezones';
+import { buildTimezoneEntry, getTimezoneIndex, searchTimezones } from '#lib/timezones.js';
 
 describe('buildTimezoneEntry', () => {
 	test('extracts city, offset, and timezone name for America/Los_Angeles', () => {

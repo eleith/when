@@ -1,7 +1,7 @@
 <script lang="ts">
 	import IconWarning from 'virtual:icons/ph/warning';
-	import AdminAlert from '$lib/components/AdminAlert.svelte';
-	import AdminPage from '$lib/components/AdminPage.svelte';
+	import AdminAlert from '#lib/components/AdminAlert.svelte';
+	import AdminPage from '#lib/components/AdminPage.svelte';
 
 	let { data } = $props();
 

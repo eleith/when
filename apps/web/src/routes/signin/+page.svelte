@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { authClient } from '$lib/auth-client';
+	import { authClient } from '#lib/auth-client.js';
 	import IconWarningCircle from 'virtual:icons/ph/warning-circle';
 	import IconLock from 'virtual:icons/ph/lock';
 	import IconSignIn from 'virtual:icons/ph/sign-in';

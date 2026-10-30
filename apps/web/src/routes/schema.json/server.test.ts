@@ -7,7 +7,7 @@ const getConfig = vi.hoisted(() =>
 		throw new Error('Schema must not read instance configuration');
 	})
 );
-vi.mock('$lib/server/state', () => ({ getConfig }));
+vi.mock('#lib/server/state.js', () => ({ getConfig }));
 
 describe('GET /schema.json', () => {
 	test('returns only the bundled editor schema with the schema media type', async () => {

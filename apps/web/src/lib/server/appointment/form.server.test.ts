@@ -6,7 +6,7 @@ import {
 	validateDeclineNote,
 	validateReason
 } from './form.server';
-import { validConfig } from '$lib/server/__fixtures__/valid-config';
+import { validConfig } from '#lib/server/__fixtures__/valid-config.js';
 
 const baseEvent: Meeting = {
 	...validConfig.meetings['30-min-chat'],

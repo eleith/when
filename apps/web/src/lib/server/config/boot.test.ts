@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { stringify } from 'yaml';
 import { bootConfig } from './boot';
 import { ConfigError } from '@when/config';
-import { validConfig } from '$lib/server/__fixtures__/valid-config';
+import { validConfig } from '#lib/server/__fixtures__/valid-config.js';
 
 let dir: string;
 beforeEach(async () => {

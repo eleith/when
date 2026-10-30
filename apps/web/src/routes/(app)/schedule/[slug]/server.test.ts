@@ -1,9 +1,9 @@
 import { describe, expect, test, vi, beforeEach } from 'vitest';
-import { validConfig } from '$lib/server/__fixtures__/valid-config';
+import { validConfig } from '#lib/server/__fixtures__/valid-config.js';
 import type { Meeting, WhenConfiguration } from '@when/config';
-import type { AppointmentRole } from '$lib/server/appointment/actions';
-import { resolveBookingDurations } from '$lib/server/appointment/duration';
-import { toPublicEventType } from '$lib/server/appointment/sanitize';
+import type { AppointmentRole } from '#lib/server/appointment/actions.js';
+import { resolveBookingDurations } from '#lib/server/appointment/duration.js';
+import { toPublicEventType } from '#lib/server/appointment/sanitize.js';
 
 const h = vi.hoisted(() => ({
 	cfg: { current: null as unknown as WhenConfiguration },
@@ -17,26 +17,26 @@ const h = vi.hoisted(() => ({
 	resolveDuration: vi.fn()
 }));
 
-vi.mock('$lib/server/state', () => ({ getConfig: () => h.cfg.current, getDb: h.getDb }));
-vi.mock('$lib/server/availability/booking', () => ({
+vi.mock('#lib/server/state.js', () => ({ getConfig: () => h.cfg.current, getDb: h.getDb }));
+vi.mock('#lib/server/availability/booking.js', () => ({
 	loadAvailability: h.loadAvailability,
 	isNewSlotBookable: h.isNewSlotBookable
 }));
-vi.mock('$lib/server/appointment/create', () => ({ createAppointment: h.createAppointment }));
-vi.mock('$lib/server/appointment/form.server', async (io) => {
-	const original = await io<typeof import('$lib/server/appointment/form.server')>();
+vi.mock('#lib/server/appointment/create.js', () => ({ createAppointment: h.createAppointment }));
+vi.mock('#lib/server/appointment/form.server.js', async (io) => {
+	const original = await io<typeof import('#lib/server/appointment/form.server.js')>();
 	return {
 		...original,
 		parseAndValidateAppointmentForm: h.parseForm,
 		resolveTimezone: h.resolveTimezone
 	};
 });
-vi.mock('$lib/server/appointment/duration', async (importOriginal) => {
-	const original = await importOriginal<typeof import('$lib/server/appointment/duration')>();
+vi.mock('#lib/server/appointment/duration.js', async (importOriginal) => {
+	const original = await importOriginal<typeof import('#lib/server/appointment/duration.js')>();
 	return { ...original, resolveDuration: h.resolveDuration };
 });
-vi.mock('$lib/server/appointment/sanitize', async (importOriginal) => {
-	const original = await importOriginal<typeof import('$lib/server/appointment/sanitize')>();
+vi.mock('#lib/server/appointment/sanitize.js', async (importOriginal) => {
+	const original = await importOriginal<typeof import('#lib/server/appointment/sanitize.js')>();
 	return { ...original, toPublicEventType: vi.fn(original.toPublicEventType) };
 });
 

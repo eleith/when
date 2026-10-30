@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { validConfig } from '$lib/server/__fixtures__/valid-config';
+import { validConfig } from '#lib/server/__fixtures__/valid-config.js';
 
 const h = vi.hoisted(() => ({
 	db: {},
@@ -10,21 +10,21 @@ const h = vi.hoisted(() => ({
 	resolveDuration: vi.fn()
 }));
 
-vi.mock('$lib/server/state', () => ({ getConfig: () => validConfig, getDb: () => h.db }));
+vi.mock('#lib/server/state.js', () => ({ getConfig: () => validConfig, getDb: () => h.db }));
 vi.mock('@when/db', async (io) => {
 	const original = await io<typeof import('@when/db')>();
 	return { ...original, findAppointment: h.findAppointment };
 });
-vi.mock('$lib/server/availability/booking', () => ({
+vi.mock('#lib/server/availability/booking.js', () => ({
 	isRescheduleSlotBookable: h.isRescheduleSlotBookable
 }));
-vi.mock('$lib/server/appointment/reschedule', () => ({ rescheduleAppointment: h.reschedule }));
-vi.mock('$lib/server/appointment/duration', async (importOriginal) => {
-	const original = await importOriginal<typeof import('$lib/server/appointment/duration')>();
+vi.mock('#lib/server/appointment/reschedule.js', () => ({ rescheduleAppointment: h.reschedule }));
+vi.mock('#lib/server/appointment/duration.js', async (importOriginal) => {
+	const original = await importOriginal<typeof import('#lib/server/appointment/duration.js')>();
 	return { ...original, resolveDuration: h.resolveDuration };
 });
-vi.mock('$lib/server/appointment/form.server', async (io) => {
-	const original = await io<typeof import('$lib/server/appointment/form.server')>();
+vi.mock('#lib/server/appointment/form.server.js', async (io) => {
+	const original = await io<typeof import('#lib/server/appointment/form.server.js')>();
 	return { ...original, validateReason: h.validateReason };
 });
 

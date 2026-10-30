@@ -1,11 +1,11 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import type { WhenConfiguration } from '@when/config';
 import type { Appointment } from '@when/db';
-import { validConfig } from '$lib/server/__fixtures__/valid-config';
+import { validConfig } from '#lib/server/__fixtures__/valid-config.js';
 import { resolveBookingDurations, resolveDuration } from '../appointment/duration';
 
 const h = vi.hoisted(() => ({ nowMs: 0 }));
-vi.mock('$lib/server/clock', () => ({ systemClock: { nowMs: () => h.nowMs } }));
+vi.mock('#lib/server/clock.js', () => ({ systemClock: { nowMs: () => h.nowMs } }));
 vi.mock('@when/db', async (importOriginal) => {
 	const actual = await importOriginal<typeof import('@when/db')>();
 	return { ...actual, getBusyIntervals: vi.fn(actual.getBusyIntervals) };

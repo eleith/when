@@ -1,5 +1,5 @@
-import { systemClock } from '$lib/server/clock';
-import { getDb } from '$lib/server/state';
+import { systemClock } from '#lib/server/clock.js';
+import { getDb } from '#lib/server/state.js';
 import { countAppointments } from '@when/db';
 import { sql } from 'kysely';
 import type { LayoutServerLoad } from './$types';

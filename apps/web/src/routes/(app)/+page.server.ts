@@ -1,6 +1,6 @@
 import { durationsOf } from '@when/config';
-import { getConfig } from '$lib/server/state';
-import type { AppointmentRole } from '$lib/server/appointment/actions';
+import { getConfig } from '#lib/server/state.js';
+import type { AppointmentRole } from '#lib/server/appointment/actions.js';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {

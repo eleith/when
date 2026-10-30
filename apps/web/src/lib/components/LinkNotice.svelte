@@ -1,8 +1,8 @@
 <!-- Warns that a deep-linked slot or day is no longer available. -->
 <script lang="ts">
 	import IconWarningCircle from 'virtual:icons/ph/warning-circle';
-	import { formatDate, formatSlot } from '$lib/datetime';
-	import type { DeepLinkResult } from '$lib/appointment';
+	import { formatDate, formatSlot } from '#lib/datetime.js';
+	import type { DeepLinkResult } from '#lib/appointment.js';
 
 	interface Props {
 		notice: NonNullable<DeepLinkResult['notice']>;

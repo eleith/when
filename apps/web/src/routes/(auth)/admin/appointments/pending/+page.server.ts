@@ -1,6 +1,6 @@
-import { systemClock } from '$lib/server/clock';
-import { getConfig, getDb } from '$lib/server/state';
-import { toAppointmentView } from '$lib/server/appointments';
+import { systemClock } from '#lib/server/clock.js';
+import { getConfig, getDb } from '#lib/server/state.js';
+import { toAppointmentView } from '#lib/server/appointments.js';
 import { countAppointments, listAppointmentsPage } from '@when/db';
 import type { PageServerLoad } from './$types';
 

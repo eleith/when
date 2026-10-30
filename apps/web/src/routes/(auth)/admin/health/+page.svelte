@@ -3,8 +3,8 @@
 	import IconWarningCircle from 'virtual:icons/ph/warning-circle';
 	import IconSpinner from 'virtual:icons/ph/spinner';
 	import { enhance } from '$app/forms';
-	import AdminPage from '$lib/components/AdminPage.svelte';
-	import { timeAgo } from '$lib/datetime';
+	import AdminPage from '#lib/components/AdminPage.svelte';
+	import { timeAgo } from '#lib/datetime.js';
 	import type { SubmitFunction } from './$types';
 
 	let { data, form } = $props();

@@ -1,9 +1,9 @@
 import { describe, expect, test, vi } from 'vitest';
 import type { RequestEvent } from './$types';
 import { GET } from './+server';
-import { validConfig } from '$lib/server/__fixtures__/valid-config';
+import { validConfig } from '#lib/server/__fixtures__/valid-config.js';
 
-vi.mock('$lib/server/state', () => ({
+vi.mock('#lib/server/state.js', () => ({
 	getConfig: () => validConfig
 }));
 

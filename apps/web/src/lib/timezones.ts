@@ -1,4 +1,4 @@
-import { tzCity, tzOffset } from '$lib/datetime';
+import { tzCity, tzOffset } from '#lib/datetime.js';
 
 export interface TimezoneEntry {
 	tz: string;
