@@ -32,7 +32,7 @@
 				signoutError = error.status === 429 ? 'rate' : 'auth';
 				return;
 			}
-			await goto(redirectTo, { invalidateAll: true });
+			await goto(redirectTo, { refreshAll: true });
 		} catch {
 			signoutError = 'network';
 		} finally {

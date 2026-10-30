@@ -1,5 +1,5 @@
 import { page } from '$app/state';
-import { replaceState, afterNavigate } from '$app/navigation';
+import { goto, afterNavigate } from '$app/navigation';
 import {
 	resolveDeepLink,
 	desiredUrlState,
@@ -69,7 +69,11 @@ export function createAppointmentUrlSync(
 		// Shallow navigation changes page.shallow, not the last fully loaded page.url.
 		const url = page.shallow?.url ?? page.url;
 		if (urlStateMatches(url.searchParams, desired)) return;
-		void replaceState(`${url.pathname}${buildAppointmentSearch(desired)}`, page.state);
+		void goto(`${url.pathname}${buildAppointmentSearch(desired)}`, {
+			shallow: true,
+			replace: true,
+			state: page.state
+		}).catch((error) => console.error('Failed to synchronize booking URL', error));
 	});
 
 	return {

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Dialog } from 'bits-ui';
 	import { deserialize, enhance, type SubmitFunction } from '$app/forms';
-	import { invalidateAll } from '$app/navigation';
+	import { refreshAll } from '$app/navigation';
 	import { tick } from 'svelte';
 	import IconCalendarBlank from 'virtual:icons/ph/calendar-blank';
 	import IconClock from 'virtual:icons/ph/clock';
@@ -82,7 +82,7 @@
 			const body = await res.text();
 			const result = deserialize(body);
 			if (result.type === 'success') {
-				await invalidateAll();
+				await refreshAll();
 			} else {
 				const error = result.type === 'failure' ? result.data?.error : undefined;
 				videoChatError = { message: typeof error === 'string' ? error : undefined };

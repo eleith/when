@@ -48,7 +48,7 @@
 				return;
 			}
 			try {
-				await goto(data.callbackUrl, { invalidateAll: true });
+				await goto(data.callbackUrl, { refreshAll: true });
 			} catch {
 				// A same-origin callback may no longer resolve to a Kit route.
 				window.location.assign(data.callbackUrl);
