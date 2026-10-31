@@ -5,7 +5,7 @@ import { prepareAppointmentEmails } from '../email/dispatch.js';
 import { systemClock, type Clock } from '../email/clock.js';
 import { getWorkerContext } from '../services/context.js';
 import { appendEmailJobLog } from '../services/job-log.js';
-import { implementObservedWorkflow } from '../services/metrics.js';
+import { implementWorkflow } from '../services/workflow-registration.js';
 import {
 	deliverAppointmentEmail,
 	type DeliverAppointmentEmailInput,
@@ -71,7 +71,5 @@ export async function runNotifyAppointment(
 }
 
 export function registerNotifyAppointmentWorkflow(): void {
-	implementObservedWorkflow(notifyAppointment, ({ input, step }) =>
-		runNotifyAppointment(input, step)
-	);
+	implementWorkflow(notifyAppointment, ({ input, step }) => runNotifyAppointment(input, step));
 }

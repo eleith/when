@@ -1,54 +1,36 @@
+import { implementWorkflow } from '../services/workflow-registration.js';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { OpenWorkflow, defineWorkflowSpec } from 'openworkflow';
 import { BackendSqlite } from 'openworkflow/sqlite';
 import * as jobs from '@when/jobs';
-import {
-	implementObservedWorkflow,
-	jobDuration,
-	jobsActive,
-	jobsTotal,
-	register
-} from './metrics.js';
+import { jobDuration, jobsActive, jobsTotal, register } from './registry.js';
 
 test('registry default labels are set correctly', async () => {
-	const json = await register.getMetricsAsJSON();
-	// Default labels should be attached to registered metrics
-	const firstMetric = json.find((m) => m.name === 'process_resident_memory_bytes');
-	expect(firstMetric).toBeDefined();
-	if (firstMetric) {
-		const firstVal = firstMetric.values[0];
-		expect(firstVal).toBeDefined();
-		if (firstVal) {
-			expect(firstVal.labels).toMatchObject({ app: 'when', service: 'worker' });
-		}
+	jobsActive.set({ job_name: 'test-job' }, 0);
+	try {
+		const json = await register.getMetricsAsJSON();
+		expect(json.find((metric) => metric.name === 'when_jobs_active')?.values).toMatchObject([
+			{ labels: { app: 'when', service: 'worker', job_name: 'test-job' }, value: 0 }
+		]);
+	} finally {
+		jobsActive.reset();
 	}
 });
 
-test('low-value default metrics are pruned', async () => {
+test('only application metrics are registered', async () => {
 	const json = await register.getMetricsAsJSON();
-	const names = json.map((m) => m.name);
-
-	// High-value metrics we keep
-	expect(names).toContain('process_resident_memory_bytes');
-	expect(names).toContain('process_cpu_seconds_total');
-
-	// Low-value metrics we prune
-	expect(names).not.toContain('nodejs_active_handles');
-	expect(names).not.toContain('nodejs_heap_space_size_total_bytes');
-	expect(names).not.toContain('process_virtual_memory_bytes');
-});
-
-test('custom worker metrics are registered', async () => {
-	const json = await register.getMetricsAsJSON();
-	const names = json.map((m) => m.name);
-
-	expect(names).toContain('when_jobs_total');
-	expect(names).toContain('when_job_duration_seconds');
-	expect(names).toContain('when_jobs_active');
-	expect(names).toContain('when_emails_total');
-	expect(names).toContain('when_calendar_sync_total');
-	expect(names).toContain('when_calendar_sync_duration_seconds');
-	expect(names).toContain('when_calendar_refresh_total');
+	expect(json.map((metric) => metric.name).sort()).toEqual([
+		'when_appointment_operations_total',
+		'when_calendar_refresh_total',
+		'when_calendar_sync_duration_seconds',
+		'when_calendar_sync_total',
+		'when_emails_total',
+		'when_job_duration_seconds',
+		'when_job_oldest_active_seconds',
+		'when_jobs_active',
+		'when_jobs_total',
+		'when_operation_failures_total'
+	]);
 });
 
 describe('native workflow handler metrics', () => {
@@ -80,15 +62,19 @@ describe('native workflow handler metrics', () => {
 		statuses: Partial<Record<'returned' | 'escaped', number>>,
 		executions: number
 	) {
-		const total = await jobsTotal.get();
+		const snapshot = await register.getMetricsAsJSON();
+		const totals = snapshot.find((metric) => metric.name === 'when_jobs_total')?.values ?? [];
 		const active = await jobsActive.get();
 		const duration = await jobDuration.get();
-		const counts = Object.fromEntries(
-			total.values.map(({ labels, value }) => [labels.status, value])
-		);
+		const counts = Object.fromEntries(totals.map(({ labels, value }) => [labels.status, value]));
 		expect(counts).toEqual(statuses);
-		expect(total.values.every(({ labels }) => labels.job_name === jobName)).toBe(true);
+		expect(totals.every(({ labels }) => labels.job_name === jobName)).toBe(true);
 		expect(active.values).toMatchObject([{ labels: { job_name: jobName }, value: 0 }]);
+		expect(
+			snapshot
+				.find((metric) => metric.name === 'when_job_oldest_active_seconds')
+				?.values.find((sample) => sample.labels.job_name === jobName)?.value
+		).toBe(0);
 		expect(
 			duration.values
 				.filter(({ metricName }) => metricName === 'when_job_duration_seconds_count')
@@ -100,7 +86,16 @@ describe('native workflow handler metrics', () => {
 		const spec = defineWorkflowSpec<{ value: number }, { doubled: number }>({
 			name: 'observed-return'
 		});
-		implementObservedWorkflow(spec, async ({ input, step }) => {
+		implementWorkflow(spec, async ({ input, step }) => {
+			expect((await jobsActive.get()).values).toMatchObject([
+				{ labels: { job_name: spec.name }, value: 1 }
+			]);
+			const snapshot = await register.getMetricsAsJSON();
+			expect(
+				snapshot
+					.find((metric) => metric.name === 'when_job_oldest_active_seconds')
+					?.values.find((sample) => sample.labels.job_name === spec.name)?.value
+			).toBeGreaterThan(0);
 			const doubled = await step.run({ name: 'double' }, () => input.value * 2);
 			return { doubled };
 		});
@@ -118,7 +113,7 @@ describe('native workflow handler metrics', () => {
 	test('counts an escaped root error without swallowing it', async () => {
 		const spec = defineWorkflowSpec<Record<string, never>, void>({ name: 'observed-throw' });
 		const opaqueError = new Error('root handler failed');
-		implementObservedWorkflow(spec, () => {
+		implementWorkflow(spec, () => {
 			throw opaqueError;
 		});
 		worker = client.newWorker({ concurrency: 1 });
@@ -138,7 +133,7 @@ describe('native workflow handler metrics', () => {
 			name: 'observed-parent'
 		});
 		client.implementWorkflow(child, () => 'sent');
-		implementObservedWorkflow(parent, async ({ step }) => {
+		implementWorkflow(parent, async ({ step }) => {
 			const childResult = await step.runWorkflow(child, {}, { name: 'delivery' });
 			return { childResult };
 		});

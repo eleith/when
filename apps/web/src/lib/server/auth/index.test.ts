@@ -2,7 +2,7 @@ import type { Handle } from '@sveltejs/kit/hooks';
 import { afterAll, afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { parseSetCookieHeader } from 'better-auth/cookies';
 import { validConfig } from '../__fixtures__/valid-config';
-import { userLoginsTotal } from '../metrics';
+import { userLoginsTotal } from '../metrics/registry';
 import { authHandle, getAuth, makeAuth } from './index';
 
 // Exercise the actual production limiter and origin checks, not test-mode defaults.

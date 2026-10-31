@@ -93,7 +93,7 @@ describe('smtp', () => {
 		expect(logger.error).not.toHaveBeenCalled();
 	});
 
-	test('returns the provider failure but logs only its numeric SMTP status', async () => {
+	test('returns the provider failure but logs only its category and numeric SMTP status', async () => {
 		const response = `550 5.1.1 <${envelope.to}>: Recipient address rejected`;
 		const error = Object.assign(
 			new Error(`Can't send mail - all recipients were rejected: ${response}`),
@@ -112,30 +112,57 @@ describe('smtp', () => {
 		const result = await mailer.send(envelope);
 
 		expect(sendMail).toHaveBeenCalledTimes(1);
-		expect(result).toEqual({ ok: false, reason: String(error) });
-		expect(logger.error).toHaveBeenCalledExactlyOnceWith({ responseCode: 550 }, 'SMTP send failed');
+		expect(result).toEqual({ ok: false, reason: String(error), code: 'rejected' });
+		expect(logger.error).toHaveBeenCalledExactlyOnceWith(
+			{ code: 'rejected', responseCode: 550 },
+			'SMTP send failed'
+		);
+
 		expect(logger.info).not.toHaveBeenCalled();
 	});
 
 	test.each([
-		{ name: 'a connection failure without SMTP status', error: new Error('connect ECONNREFUSED') },
+		{
+			name: 'a connection failure without structured metadata',
+			error: new Error('connect ECONNREFUSED'),
+			expected: 'unknown'
+		},
+		{
+			name: 'structured authentication failure',
+			error: Object.assign(new Error('Private provider detail'), { code: 'EAUTH' }),
+			expected: 'auth'
+		},
+		{
+			name: 'structured timeout',
+			error: Object.assign(new Error('Private provider detail'), { code: 'ETIMEDOUT' }),
+			expected: 'timeout'
+		},
+		{
+			name: 'structured connection failure',
+			error: Object.assign(new Error('Private provider detail'), { code: 'ECONNREFUSED' }),
+			expected: 'connection'
+		},
 		{
 			name: 'a provider failure with private text in its status',
 			error: Object.assign(new Error(`Recipient ${envelope.to} rejected`), {
 				responseCode: `550 ${envelope.to}`
-			})
+			}),
+			expected: 'unknown'
 		}
-	])('logs no unsafe metadata for $name, preserving its detailed reason', async ({ error }) => {
-		createTransport.mockReturnValueOnce({ sendMail: vi.fn().mockRejectedValue(error) });
-		const mailer = createMailer(configForPort(587), logger as unknown as Logger);
+	])(
+		'logs no unsafe metadata for $name, preserving its detailed reason',
+		async ({ error, expected }) => {
+			createTransport.mockReturnValueOnce({ sendMail: vi.fn().mockRejectedValue(error) });
+			const mailer = createMailer(configForPort(587), logger as unknown as Logger);
 
-		const result = await mailer.send(envelope);
+			const result = await mailer.send(envelope);
 
-		expect(result).toEqual({ ok: false, reason: String(error) });
-		expect(logger.error).toHaveBeenCalledExactlyOnceWith(
-			{ responseCode: undefined },
-			'SMTP send failed'
-		);
-		expect(logger.info).not.toHaveBeenCalled();
-	});
+			expect(result).toEqual({ ok: false, reason: String(error), code: expected });
+			expect(logger.error).toHaveBeenCalledExactlyOnceWith(
+				{ code: expected, responseCode: undefined },
+				'SMTP send failed'
+			);
+			expect(logger.info).not.toHaveBeenCalled();
+		}
+	);
 });

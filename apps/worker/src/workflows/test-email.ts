@@ -7,7 +7,7 @@ import { emailTheme } from '../email/theme.js';
 import { recordSendOutcome } from '../email/status.js';
 import { systemClock, type Clock } from '../email/clock.js';
 import { testEmailMessage } from '../email/builders/test-email.js';
-import { implementObservedWorkflow } from '../services/metrics.js';
+import { implementWorkflow } from '../services/workflow-registration.js';
 
 export async function runTestEmail(
 	input: TestEmailInput,
@@ -25,5 +25,5 @@ export async function runTestEmail(
 }
 
 export function registerTestEmailWorkflow(): void {
-	implementObservedWorkflow(testEmail, ({ input }) => runTestEmail(input));
+	implementWorkflow(testEmail, ({ input }) => runTestEmail(input));
 }

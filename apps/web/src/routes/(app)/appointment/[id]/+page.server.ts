@@ -21,7 +21,7 @@ import { toPublicAppointment } from '#lib/server/appointment/sanitize.js';
 import { readMeetingSnapshot } from '#lib/server/appointment/snapshot.js';
 import { resolveBookingDurations } from '#lib/server/appointment/duration.js';
 import type { Actions, PageServerLoad } from './$types';
-import { cancelAppointment } from '#lib/server/appointment/cancel.js';
+import { cancelAppointment } from '#lib/server/appointment-operations.js';
 import { validateReason } from '#lib/server/appointment/form.server.js';
 import { appointmentContext } from '#lib/server/appointment/context.js';
 

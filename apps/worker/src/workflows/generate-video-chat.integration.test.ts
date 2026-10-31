@@ -349,7 +349,7 @@ describe('durable background video generation with native concurrency one', () =
 	test('approval while the original pending notice is parked stops its failed-request continuation', async () => {
 		await db.updateTable('appointments').set({ status: 'pending' }).execute();
 		vi.mocked(patchGoogleEvent).mockRejectedValueOnce(new Error('Google PATCH HTTP 503'));
-		send.mockResolvedValueOnce({ ok: false, reason: 'temporary SMTP failure' });
+		send.mockResolvedValueOnce({ ok: false, reason: 'temporary SMTP failure', code: 'unknown' });
 		const queue = openQueue();
 		try {
 			const generation = await queue.client.runWorkflow(generateVideoChat, {
@@ -840,7 +840,7 @@ describe('durable background video generation with native concurrency one', () =
 
 	test('original SMTP exhaustion fails generation before any later provider retry', async () => {
 		requestOutcome = 'pending';
-		send.mockResolvedValue({ ok: false, reason: 'SMTP unavailable' });
+		send.mockResolvedValue({ ok: false, reason: 'SMTP unavailable', code: 'unknown' });
 		const queue = openQueue();
 		try {
 			const generation = await queue.client.runWorkflow(generateVideoChat, {

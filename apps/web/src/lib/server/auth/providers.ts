@@ -1,17 +1,11 @@
 import { timingSafeEqual } from 'node:crypto';
 import type { BetterAuthOptions, BetterAuthPlugin } from 'better-auth';
-import {
-	APIError,
-	createAuthEndpoint,
-	createAuthMiddleware,
-	formCsrfMiddleware
-} from 'better-auth/api';
+import { APIError, createAuthEndpoint, formCsrfMiddleware } from 'better-auth/api';
 import { setSessionCookie } from 'better-auth/cookies';
 import { genericOAuth } from 'better-auth/plugins/generic-oauth';
 import type { CredentialsAuth, OidcAuth, WhenConfiguration } from '@when/config';
-import { userLoginsTotal } from '../metrics';
 
-type AuthOptions = Pick<BetterAuthOptions, 'plugins' | 'hooks' | 'onAPIError'>;
+type AuthOptions = Pick<BetterAuthOptions, 'plugins' | 'onAPIError'>;
 
 export function buildAuthOptions(cfg: WhenConfiguration): AuthOptions {
 	if (cfg.auth.credentials) return credentialsAuth(cfg.auth.credentials, cfg.user.email);
@@ -21,14 +15,7 @@ export function buildAuthOptions(cfg: WhenConfiguration): AuthOptions {
 
 function credentialsAuth(admin: CredentialsAuth, email: string): AuthOptions {
 	return {
-		plugins: [credentialsProvider(admin, email)],
-		hooks: {
-			after: createAuthMiddleware(async (ctx) => {
-				if (ctx.path !== '/sign-in/credentials') return;
-				const status = ctx.context.newSession ? 'success' : 'failure';
-				userLoginsTotal.inc({ provider: 'credentials', status });
-			})
-		}
+		plugins: [credentialsProvider(admin, email)]
 	};
 }
 
@@ -52,15 +39,7 @@ function oidcAuth(oidc: OidcAuth, appUrl: string): AuthOptions {
 				]
 			})
 		],
-		onAPIError: { errorURL: new URL('/signin', appUrl).href },
-		hooks: {
-			after: createAuthMiddleware(async (ctx) => {
-				if (ctx.path !== '/callback/:id') return;
-				if (ctx.params?.id !== 'oidc') return;
-				const status = ctx.context.newSession ? 'success' : 'failure';
-				userLoginsTotal.inc({ provider: 'oidc', status });
-			})
-		}
+		onAPIError: { errorURL: new URL('/signin', appUrl).href }
 	};
 }
 

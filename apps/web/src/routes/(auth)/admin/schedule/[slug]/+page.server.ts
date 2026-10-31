@@ -1,7 +1,7 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { isNewSlotBookable } from '#lib/server/availability/booking.js';
 import { getConfig, getDb } from '#lib/server/state.js';
-import { createAppointment } from '#lib/server/appointment/create.js';
+import { createAppointment } from '#lib/server/appointment-operations.js';
 import { resolveDuration } from '#lib/server/appointment/duration.js';
 import {
 	parseAndValidateAppointmentForm,

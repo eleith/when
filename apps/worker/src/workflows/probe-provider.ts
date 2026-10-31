@@ -8,7 +8,7 @@ import type {
 	TestProviderResult
 } from '@when/jobs';
 import { getWorkerContext, type WorkerContext } from '../services/context.js';
-import { implementObservedWorkflow } from '../services/metrics.js';
+import { implementWorkflow } from '../services/workflow-registration.js';
 
 function configuredAdapter(ctx: WorkerContext, name: string): ProviderAdapter {
 	const provider = ctx.config.providers[name];
@@ -50,6 +50,6 @@ export async function runListProviderCalendars(
 }
 
 export function registerProbeProviderWorkflows(): void {
-	implementObservedWorkflow(testProvider, ({ input }) => runTestProvider(input));
-	implementObservedWorkflow(listProviderCalendars, ({ input }) => runListProviderCalendars(input));
+	implementWorkflow(testProvider, ({ input }) => runTestProvider(input));
+	implementWorkflow(listProviderCalendars, ({ input }) => runListProviderCalendars(input));
 }

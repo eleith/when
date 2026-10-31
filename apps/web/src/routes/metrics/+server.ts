@@ -1,54 +1,15 @@
 import { error } from '@sveltejs/kit';
-import { register } from '#lib/server/metrics.js';
+import { collectMetricsResponse } from '#lib/server/metrics/scrape.js';
 import { getConfig } from '#lib/server/state.js';
-import { logger } from '#lib/server/logger.js';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ request, fetch }) => {
 	const config = getConfig();
-
-	if (!config.prometheus.enabled) {
-		error(404);
-	}
-
+	if (!config.prometheus.enabled) error(404);
 	const token = config.prometheus.token;
-	if (!token) {
-		return new Response('prometheus.token not configured', { status: 500 });
-	}
-
-	const auth = request.headers.get('authorization');
-	const expected = `Bearer ${token}`;
-	if (!auth || auth !== expected) {
+	if (!token) return new Response('prometheus.token not configured', { status: 500 });
+	if (request.headers.get('authorization') !== `Bearer ${token}`) {
 		return new Response('Unauthorized', { status: 401 });
 	}
-
-	const webMetrics = await register.metrics();
-	let workerMetrics = '';
-
-	try {
-		const res = await fetch(`${config.url.worker}/metrics`, {
-			headers: {
-				authorization: `Bearer ${token}`
-			},
-			signal: AbortSignal.timeout(2000)
-		});
-
-		if (res.ok) {
-			const text = await res.text();
-			// Strip duplicate Prometheus headers (# HELP / # TYPE comments) from the worker payload
-			workerMetrics = text.replace(/^#[^\r\n]*[\r\n]*/gm, '');
-		} else {
-			logger.warn({ status: res.status }, 'Failed to fetch worker metrics');
-		}
-	} catch (err) {
-		logger.warn({ err }, 'Error fetching worker metrics');
-	}
-
-	// Combine web and worker metrics gracefully
-	const body = [webMetrics, workerMetrics].filter(Boolean).join('\n');
-
-	return new Response(body, {
-		status: 200,
-		headers: { 'content-type': register.contentType }
-	});
+	return collectMetricsResponse(fetch, config.url.worker, token);
 };

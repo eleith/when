@@ -49,6 +49,14 @@ commands. Worker stop is not queue draining. See
 [updates](deployment.md#updates) before deploying
 changed workflow graphs.
 
+## Instrumentation
+
+Prometheus code lives in each app's metrics area. Public appointment APIs and
+worker service facades wire the observers. HTTP routes explicitly record known
+outcomes through those metrics modules; auth uses its native hooks. Domain
+implementations do not import Prometheus or record metrics.
+See [metrics](metrics.md) for what the counters mean.
+
 ## Time
 
 Use native `Temporal` on the server and `temporal-polyfill/fns/*` in the browser.

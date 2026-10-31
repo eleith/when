@@ -14,8 +14,8 @@ import { findAppointment, type Appointment } from '@when/db';
 import { getWorkerContext, type WorkerContext } from '../services/context.js';
 import { videoChatResource, wantsGeneratedVideoChat } from '../services/video-chat.js';
 import { removeUnusedVideoChat } from '../services/video-chat-cleanup.js';
-import { reconcileAppointment as syncCalendarForAppointment } from '../calendar/sync.js';
-import { implementObservedWorkflow } from '../services/metrics.js';
+import { reconcileAppointment as syncCalendarForAppointment } from '../services/calendar.js';
+import { implementWorkflow } from '../services/workflow-registration.js';
 import {
 	notifyAppointment,
 	type NotifyAppointmentInput,
@@ -169,7 +169,7 @@ async function enqueueVideoChat(
 }
 
 export function registerReconcileAppointmentWorkflow(): void {
-	implementObservedWorkflow(reconcileAppointment, ({ input, step }) =>
+	implementWorkflow(reconcileAppointment, ({ input, step }) =>
 		runReconcileAppointment(input, step)
 	);
 }

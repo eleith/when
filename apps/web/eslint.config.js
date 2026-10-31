@@ -32,6 +32,24 @@ export default defineConfig(
 		}
 	},
 	{
+		files: ['src/**/*.ts', 'src/**/*.svelte'],
+		ignores: ['src/lib/server/metrics/**', 'src/**/*.test.ts'],
+		rules: {
+			'no-restricted-imports': [
+				'error',
+				{
+					patterns: [
+						{
+							group: ['@prometheus-io/client', '@prometheus-io/client/*', '**/metrics/registry*'],
+							message:
+								'Keep Prometheus details inside server/metrics; use an observer or an explicit HTTP outcome recorder.'
+						}
+					]
+				}
+			]
+		}
+	},
+	{
 		files: ['**/*.svelte', '**/*.svelte.ts', '**/*.svelte.js'],
 		languageOptions: {
 			parserOptions: {

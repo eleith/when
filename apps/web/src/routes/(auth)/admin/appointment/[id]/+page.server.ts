@@ -1,9 +1,11 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { getConfig, getDb } from '#lib/server/state.js';
 import { findAppointment, isChainTerminal } from '@when/db';
-import { acceptAppointment } from '#lib/server/appointment/accept.js';
-import { declineAppointment } from '#lib/server/appointment/decline.js';
-import { cancelAppointment } from '#lib/server/appointment/cancel.js';
+import {
+	acceptAppointment,
+	declineAppointment,
+	cancelAppointment
+} from '#lib/server/appointment-operations.js';
 import { purgeAppointment } from '#lib/server/appointment/purge.js';
 import { editAppointment } from '#lib/server/appointment/edit.js';
 import { changeAppointmentDuration } from '#lib/server/appointment/change-duration.js';

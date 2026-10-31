@@ -382,11 +382,12 @@ URL; see the [proxy requirements](deployment.md#reverse-proxy).
 
 ## `prometheus`
 
-| Field     | Default                   | Meaning                                   |
-| --------- | ------------------------- | ----------------------------------------- |
-| `enabled` | `false`                   | Enable metrics collection and `/metrics`. |
-| `token`   | `${WHEN_METRICS_TOKEN:-}` | Bearer token required for scraping.       |
+| Field     | Default                   | Meaning                                            |
+| --------- | ------------------------- | -------------------------------------------------- |
+| `enabled` | `false`                   | Expose `/metrics`; instrumentation remains active. |
+| `token`   | `${WHEN_METRICS_TOKEN:-}` | Bearer token required for scraping.                |
 
 When disabled, `/metrics` returns 404. When enabled without a non-empty token,
 it returns 500, not public metrics. Scrape with `Authorization: Bearer <token>`.
-See [operating endpoints](deployment.md#inspect-logs).
+See [operating endpoints](deployment.md#inspect-logs) and the
+[metrics reference](metrics.md) for collection health, action counts and job semantics.

@@ -6,7 +6,8 @@ import {
 	type Appointment,
 	type CalendarEventReference
 } from '@when/db';
-import { getGoogleEvent, patchGoogleEvent, pushAppointment } from '@when/calendar';
+import { getGoogleEvent, patchGoogleEvent } from '@when/calendar';
+import { pushAppointment } from './calendar-provider.js';
 import {
 	getVideoChatAdapter,
 	shouldAttachVideoChat,

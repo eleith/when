@@ -29,7 +29,7 @@ test('a failed send records the reason using the observed attempt time', async (
 	const ctx = await freshCtx();
 	try {
 		const at = '2026-02-01T12:00:00.000Z';
-		await recordSendOutcome(ctx, { ok: false, reason: 'EAUTH' }, at);
+		await recordSendOutcome(ctx, { ok: false, reason: 'EAUTH', code: 'auth' }, at);
 
 		const [smtp] = await listServiceStatus(ctx.db, 'smtp');
 		expect(smtp.error).toBe('EAUTH');

@@ -1,10 +1,10 @@
 import type { RetryPolicy } from 'openworkflow';
-import { deleteAppointmentFromCalendar } from '@when/calendar';
+import { deleteAppointmentFromCalendar } from '../services/calendar-provider.js';
 import { findAppointment, listActiveAppointmentsForCalendarEvent } from '@when/db';
 import { purgeAppointment } from '@when/jobs/specs';
 import type { PurgeAppointmentInput, PurgeAppointmentResult } from '@when/jobs';
 import { getWorkerContext } from '../services/context.js';
-import { implementObservedWorkflow } from '../services/metrics.js';
+import { implementWorkflow } from '../services/workflow-registration.js';
 import { cleanupStandaloneVideoChat } from '../services/video-chat-cleanup.js';
 
 const CALENDAR_RETRY: Partial<RetryPolicy> = {
@@ -53,7 +53,5 @@ export async function runPurgeAppointment(
 }
 
 export function registerPurgeAppointmentWorkflow(): void {
-	implementObservedWorkflow(purgeAppointment, ({ input, step }) =>
-		runPurgeAppointment(input, step)
-	);
+	implementWorkflow(purgeAppointment, ({ input, step }) => runPurgeAppointment(input, step));
 }

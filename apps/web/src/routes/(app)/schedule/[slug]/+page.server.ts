@@ -3,7 +3,7 @@ import { isNewSlotBookable, loadAvailability } from '#lib/server/availability/bo
 import { logger } from '#lib/server/logger.js';
 import { getConfig, getDb } from '#lib/server/state.js';
 import { resolveFormFields } from '@when/config';
-import { createAppointment } from '#lib/server/appointment/create.js';
+import { createAppointment } from '#lib/server/appointment-operations.js';
 import type { AppointmentRole } from '#lib/server/appointment/actions.js';
 import { resolveBookingDurations, resolveDuration } from '#lib/server/appointment/duration.js';
 import {
@@ -14,7 +14,7 @@ import {
 import { appointmentContext } from '#lib/server/appointment/context.js';
 import { normalizeDeepLinkParams } from '#lib/appointment.js';
 import { toPublicEventType } from '#lib/server/appointment/sanitize.js';
-import { bookingAttemptsTotal } from '#lib/server/metrics.js';
+import { recordBookingOutcome } from '#lib/server/metrics/requests.js';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params, url, locals }) => {
@@ -81,20 +81,20 @@ export const actions: Actions = {
 
 		const start = parseSlot(slotStr);
 		if (!start) {
-			bookingAttemptsTotal.inc({ event_type_id: params.slug, status: 'invalid_input' });
+			recordBookingOutcome(params.slug, 'invalid_input');
 			return fail(400, { error: 'Please pick a time slot.' });
 		}
 
 		const parsed = parseAndValidateAppointmentForm(eventType, form);
 		if (!parsed.ok) {
-			bookingAttemptsTotal.inc({ event_type_id: params.slug, status: 'invalid_input' });
+			recordBookingOutcome(params.slug, 'invalid_input');
 			return fail(400, { fieldErrors: parsed.errors });
 		}
 		const { name, email, answers, location: resolvedLocation } = parsed.data;
 
 		const duration = resolveDuration(eventType, 'guest', form);
 		if (duration === null) {
-			bookingAttemptsTotal.inc({ event_type_id: params.slug, status: 'invalid_input' });
+			recordBookingOutcome(params.slug, 'invalid_input');
 			return fail(400, { error: 'Please pick a valid meeting length.' });
 		}
 
@@ -108,7 +108,7 @@ export const actions: Actions = {
 			duration
 		);
 		if (!bookable) {
-			bookingAttemptsTotal.inc({ event_type_id: params.slug, status: 'slot_taken' });
+			recordBookingOutcome(params.slug, 'slot_taken');
 			return fail(409, { error: 'That time is no longer available. Please pick another.' });
 		}
 
@@ -131,7 +131,7 @@ export const actions: Actions = {
 				initiator: 'guest'
 			});
 		} catch (err) {
-			bookingAttemptsTotal.inc({ event_type_id: params.slug, status: 'database_error' });
+			recordBookingOutcome(params.slug, 'error');
 			logger.error(
 				{ err, eventTypeId: params.slug, slot: slotStr },
 				'failed to insert appointment'
@@ -139,11 +139,9 @@ export const actions: Actions = {
 			return fail(500, { error: 'Could not save the appointment. Please try again.' });
 		}
 		if (!created.ok) {
-			bookingAttemptsTotal.inc({ event_type_id: params.slug, status: 'slot_taken' });
+			recordBookingOutcome(params.slug, 'slot_taken');
 			return fail(409, { error: 'That time was just taken. Please pick another.' });
 		}
-
-		bookingAttemptsTotal.inc({ event_type_id: params.slug, status: 'success' });
 
 		cookies.set('submitted', 'request', {
 			path: '/',
@@ -152,6 +150,7 @@ export const actions: Actions = {
 			sameSite: 'lax'
 		});
 
+		recordBookingOutcome(params.slug, 'success');
 		redirect(
 			303,
 			`/appointment/${created.appointment.id}?token=${encodeURIComponent(created.appointment.cancel_token)}`

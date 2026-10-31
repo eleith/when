@@ -255,7 +255,7 @@ describe('notify appointment', () => {
 		const notification = { ...input, kind: 'video-chat-added', videoChatUrl: uri } as const;
 		send.mockImplementation(async (envelope) =>
 			envelope.to === sampleAppointment.guest_email
-				? { ok: false, reason: 'guest SMTP down' }
+				? { ok: false, reason: 'guest SMTP down', code: 'unknown' }
 				: { ok: true }
 		);
 		const first = runNotifyAppointment(notification, f.step, clock);
@@ -294,7 +294,7 @@ describe('notify appointment', () => {
 	test('SMTP failure escapes; replay reuses prepared envelopes and URI despite a changed row', async () => {
 		const prepare = vi.spyOn(dispatch, 'prepareAppointmentEmails');
 		const f = nativeStep();
-		send.mockResolvedValue({ ok: false, reason: 'SMTP down' });
+		send.mockResolvedValue({ ok: false, reason: 'SMTP down', code: 'unknown' });
 		const first = runNotifyAppointment(input, f.step, clock);
 		await expect(first).rejects.toThrow('SMTP down');
 		await Promise.allSettled(f.children);
@@ -319,7 +319,7 @@ describe('notify appointment', () => {
 		await db.updateTable('appointments').set({ guest_email: sampleConfig.user.email }).execute();
 		const f = nativeStep();
 		send
-			.mockResolvedValueOnce({ ok: false, reason: 'guest failed' })
+			.mockResolvedValueOnce({ ok: false, reason: 'guest failed', code: 'unknown' })
 			.mockResolvedValue({ ok: true });
 		const first = runNotifyAppointment(input, f.step, clock);
 		await expect(first).rejects.toThrow('guest failed');

@@ -4,6 +4,7 @@ import { betterAuth, type BetterAuthOptions } from 'better-auth/minimal';
 import { svelteKitHandler } from 'better-auth/svelte-kit';
 import type { WhenConfiguration } from '@when/config';
 import { logger } from '../logger';
+import { loginMetricsHooks } from '../metrics/auth';
 import { buildAuthOptions } from './providers';
 import { requireAuthSecret } from './secret';
 
@@ -38,6 +39,7 @@ export function makeAuth(cfg: WhenConfiguration) {
 			ipAddress: { ipAddressHeaders: ['x-real-ip'] }
 		},
 		...buildAuthOptions(cfg),
+		hooks: loginMetricsHooks(cfg.auth.credentials ? 'credentials' : 'oidc'),
 		logger: {
 			// Library messages/arguments can contain credentials, codes or tokens.
 			log: (level) => logger[level]({ source: 'better-auth' }, 'authentication event')

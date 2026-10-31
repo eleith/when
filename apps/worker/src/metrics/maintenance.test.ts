@@ -5,10 +5,10 @@ import { refreshCycle } from '../calendar/refresh.js';
 import { sampleAppointment, sampleConfig } from '../email/__fixtures__/appointment.js';
 import { setWorkerContext, type WorkerContext } from '../services/context.js';
 import { createLogger } from '../services/logger.js';
-import { calendarSyncTotal } from '../services/metrics.js';
-import { runSyncCalendars } from './sync-calendars.js';
-import { runRefreshCalendars } from './refresh-calendars.js';
-import { runExpirePendingAppointments } from './expire-pending-appointments.js';
+import { appointmentOperationsTotal, calendarSyncTotal } from './registry.js';
+import { runSyncCalendars } from '../workflows/sync-calendars.js';
+import { runRefreshCalendars } from '../workflows/refresh-calendars.js';
+import { runExpirePendingAppointments } from '../workflows/expire-pending-appointments.js';
 
 vi.mock('../calendar/sync.js', () => ({ scanOnce: vi.fn() }));
 vi.mock('../calendar/refresh.js', () => ({ refreshCycle: vi.fn() }));
@@ -32,6 +32,7 @@ function makeStep() {
 beforeEach(async () => {
 	vi.resetAllMocks();
 	calendarSyncTotal.reset();
+	appointmentOperationsTotal.reset();
 	const db = openDb(':memory:');
 	await runMigrations(db);
 	ctx = {
@@ -152,8 +153,20 @@ test('expiry uses the injected clock, is idempotent, and logs the changed count'
 	const step = makeStep();
 	const firstExpiryResult = await runExpirePendingAppointments(step, clock);
 	expect(firstExpiryResult).toBe('expired');
+	expect((await appointmentOperationsTotal.get()).values).toEqual([
+		expect.objectContaining({
+			labels: { action: 'expire', actor: 'system', status: 'success' },
+			value: 1
+		})
+	]);
 	const repeatedExpiryResult = await runExpirePendingAppointments(step, clock);
 	expect(repeatedExpiryResult).toBe('expired');
+	expect((await appointmentOperationsTotal.get()).values).toEqual([
+		expect.objectContaining({
+			labels: { action: 'expire', actor: 'system', status: 'success' },
+			value: 2
+		})
+	]);
 	for (const { id, expectedStatus } of cases) {
 		const row = await ctx.db
 			.selectFrom('appointments')
@@ -184,4 +197,10 @@ test('expiry local SQL errors escape rather than completing the pass', async () 
 	await ctx.db.schema.dropTable('appointments').execute();
 	await expect(runExpirePendingAppointments(makeStep(), clock)).rejects.toThrow();
 	expect(ctx.logger.info).not.toHaveBeenCalled();
+	expect((await appointmentOperationsTotal.get()).values).toEqual([
+		expect.objectContaining({
+			labels: { action: 'expire', actor: 'system', status: 'error' },
+			value: 1
+		})
+	]);
 });

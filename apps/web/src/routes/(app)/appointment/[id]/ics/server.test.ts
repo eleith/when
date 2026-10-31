@@ -1,6 +1,7 @@
 import { describe, expect, test, vi, beforeEach } from 'vitest';
 import { validConfig } from '#lib/server/__fixtures__/valid-config.js';
 import type { Appointment } from '@when/db';
+import { icsDownloadsTotal } from '#lib/server/metrics/registry.js';
 
 const h = vi.hoisted(() => ({
 	row: { current: null as Appointment | null },
@@ -52,6 +53,7 @@ function appt(status = 'confirmed'): Appointment {
 
 beforeEach(() => {
 	vi.clearAllMocks();
+	icsDownloadsTotal.reset();
 	h.row.current = appt();
 	h.viewAllowed.mockResolvedValue(true);
 	h.buildIcs.mockReturnValue('BEGIN:VCALENDAR');
@@ -60,6 +62,9 @@ beforeEach(() => {
 describe('GET /appointment/[id]/ics', () => {
 	test('404s when no token is supplied', async () => {
 		expect((await caught(() => GET(event(null)))).status).toBe(404);
+		expect(await icsDownloadsTotal.get()).toMatchObject({
+			values: [{ labels: { status: 'not_found' }, value: 1 }]
+		});
 	});
 
 	test('serves the ics for a confirmed, viewable appointment', async () => {
@@ -68,6 +73,9 @@ describe('GET /appointment/[id]/ics', () => {
 		expect(res.headers.get('content-type')).toBe('text/calendar; charset=utf-8');
 		expect(res.headers.get('content-disposition')).toBe('attachment; filename="appt-1.ics"');
 		expect(await res.text()).toBe('BEGIN:VCALENDAR');
+		expect(await icsDownloadsTotal.get()).toMatchObject({
+			values: [{ labels: { status: 'success' }, value: 1 }]
+		});
 	});
 
 	test('403s when the appointment is not confirmed', async () => {
@@ -75,6 +83,9 @@ describe('GET /appointment/[id]/ics', () => {
 		h.viewAllowed.mockResolvedValue(true);
 		expect((await caught(() => GET(event('tok-1')))).status).toBe(403);
 		expect(h.buildIcs).not.toHaveBeenCalled();
+		expect(await icsDownloadsTotal.get()).toMatchObject({
+			values: [{ labels: { status: 'forbidden' }, value: 1 }]
+		});
 	});
 
 	test('404s when the meeting type no longer exists', async () => {
@@ -82,10 +93,27 @@ describe('GET /appointment/[id]/ics', () => {
 		h.row.current.event_type_id = 'gone';
 		h.viewAllowed.mockResolvedValue(true);
 		expect((await caught(() => GET(event('tok-1')))).status).toBe(404);
+		expect(await icsDownloadsTotal.get()).toMatchObject({
+			values: [{ labels: { status: 'not_found' }, value: 1 }]
+		});
 	});
 
 	test('404s on a bad or expired token', async () => {
 		h.viewAllowed.mockResolvedValue(false);
 		expect((await caught(() => GET(event('tok-1')))).status).toBe(404);
+		expect(await icsDownloadsTotal.get()).toMatchObject({
+			values: [{ labels: { status: 'not_found' }, value: 1 }]
+		});
+	});
+
+	test('counts a rendering failure once and rethrows the same error', async () => {
+		const fault = new Error('Rendering failed');
+		h.buildIcs.mockImplementationOnce(() => {
+			throw fault;
+		});
+		await expect(GET(event('tok-1'))).rejects.toBe(fault);
+		expect(await icsDownloadsTotal.get()).toMatchObject({
+			values: [{ labels: { status: 'error' }, value: 1 }]
+		});
 	});
 });

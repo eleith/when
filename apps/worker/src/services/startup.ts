@@ -9,7 +9,7 @@ import {
 } from '@when/jobs';
 import { setLogger } from '@when/calendar';
 import type { OpenWorkflow } from 'openworkflow';
-import { createMailer } from '../email/smtp.js';
+import { createMailer } from './email.js';
 import { registerWorkflows } from '../workflows/index.js';
 import { applyConfig } from './config-reload.js';
 import { setWorkerContext, type WorkerContext } from './context.js';

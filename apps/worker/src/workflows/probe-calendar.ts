@@ -1,9 +1,10 @@
 import { testCalendar } from '@when/jobs';
 import { findCalendar } from '@when/config';
 import type { TestCalendarInput, TestCalendarResult } from '@when/jobs';
-import { refreshCalendar, refreshWindow } from '../calendar/refresh.js';
+import { refreshCalendar } from '../services/calendar.js';
+import { refreshWindow } from '../calendar/refresh-calendar.js';
 import { getWorkerContext } from '../services/context.js';
-import { implementObservedWorkflow } from '../services/metrics.js';
+import { implementWorkflow } from '../services/workflow-registration.js';
 
 export async function runTestCalendar(input: TestCalendarInput): Promise<TestCalendarResult> {
 	const ctx = getWorkerContext();
@@ -20,5 +21,5 @@ export async function runTestCalendar(input: TestCalendarInput): Promise<TestCal
 }
 
 export function registerProbeCalendarWorkflow(): void {
-	implementObservedWorkflow(testCalendar, ({ input }) => runTestCalendar(input));
+	implementWorkflow(testCalendar, ({ input }) => runTestCalendar(input));
 }

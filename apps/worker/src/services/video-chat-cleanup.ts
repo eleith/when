@@ -1,4 +1,4 @@
-import { deleteAppointmentFromCalendar } from '@when/calendar';
+import { deleteAppointmentFromCalendar } from './calendar-provider.js';
 import { findCalendar } from '@when/config';
 import {
 	findAppointment,

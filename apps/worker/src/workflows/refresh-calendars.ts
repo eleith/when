@@ -1,7 +1,8 @@
 import { refreshCalendars, type RefreshCalendarsResult } from '@when/jobs';
-import { refreshCycle, type RefreshOptions } from '../calendar/refresh.js';
+import { refreshCycle } from '../calendar/refresh.js';
+import type { RefreshOptions } from '../calendar/refresh-calendar.js';
 import { getWorkerContext } from '../services/context.js';
-import { implementObservedWorkflow } from '../services/metrics.js';
+import { implementWorkflow } from '../services/workflow-registration.js';
 
 interface RefreshStep {
 	run<T>(config: { name: string }, fn: () => Promise<T>): Promise<T>;
@@ -18,5 +19,5 @@ export async function runRefreshCalendars(
 }
 
 export function registerRefreshCalendarsWorkflow(): void {
-	implementObservedWorkflow(refreshCalendars, ({ step }) => runRefreshCalendars(step));
+	implementWorkflow(refreshCalendars, ({ step }) => runRefreshCalendars(step));
 }

@@ -40,7 +40,7 @@ vi.mock('@when/jobs', async (importOriginal) => {
 	};
 });
 vi.mock('@when/calendar', () => ({ setLogger: mocks.setLogger }));
-vi.mock('./email/smtp.js', () => ({ createMailer: mocks.createMailer }));
+vi.mock('./services/email.js', () => ({ createMailer: mocks.createMailer }));
 vi.mock('./services/context.js', () => ({ setWorkerContext: mocks.setWorkerContext }));
 vi.mock('./services/health.js', () => ({ createHealthServer: mocks.createHealthServer }));
 vi.mock('./services/logger.js', () => ({ logger: mocks.logger }));

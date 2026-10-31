@@ -5,7 +5,8 @@ import { systemClock, type Clock } from '../email/clock.js';
 import { recordSendOutcome } from '../email/status.js';
 import { getWorkerContext } from '../services/context.js';
 import { appendEmailJobLog } from '../services/job-log.js';
-import { implementObservedWorkflow, emailsTotal } from '../services/metrics.js';
+import { implementWorkflow } from '../services/workflow-registration.js';
+import { sendAppointmentEmail } from '../services/email.js';
 
 export interface DeliverAppointmentEmailInput {
 	appointmentId: string;
@@ -53,14 +54,8 @@ export async function runDeliverAppointmentEmail(
 				.executeTakeFirst();
 			if (!row) return null;
 
-			const result = await ctx.mailer.send(input.envelope);
+			const result = await sendAppointmentEmail(ctx.mailer, input.envelope, input.role, input.kind);
 			const observedAt = clock.now().toISOString();
-			const deliveryStatus = result.ok ? 'success' : 'failure';
-			emailsTotal.inc({
-				recipient_type: input.role,
-				email_kind: input.kind,
-				status: deliveryStatus
-			});
 			if (!result.ok) {
 				await recordSendOutcome(ctx, result, observedAt);
 				await appendEmailJobLog(ctx.db, input.appointmentId, 'failed', observedAt);
@@ -76,7 +71,7 @@ export async function runDeliverAppointmentEmail(
 }
 
 export function registerDeliverAppointmentEmailWorkflow(): void {
-	implementObservedWorkflow(deliverAppointmentEmail, ({ input, step }) =>
+	implementWorkflow(deliverAppointmentEmail, ({ input, step }) =>
 		runDeliverAppointmentEmail(input, step)
 	);
 }

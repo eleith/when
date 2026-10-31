@@ -208,7 +208,7 @@ function failingMailer(failures: Record<RecipientRole, number>) {
 		const role = envelope.to === config.user.email ? 'host' : 'guest';
 		counts[role] += 1;
 		return counts[role] <= failures[role]
-			? { ok: false, reason: `SMTP ${role} unavailable` }
+			? { ok: false, reason: `SMTP ${role} unavailable`, code: 'unknown' }
 			: { ok: true };
 	});
 	return counts;
@@ -1059,7 +1059,7 @@ describe('appointment email reconciliation with native children', () => {
 
 	test('a native SMTP retry rechecks eligibility after a queue restart', async () => {
 		const directory = await mkdtemp(join(tmpdir(), 'when-email-eligibility-'));
-		send.mockResolvedValue({ ok: false, reason: 'temporary SMTP failure' });
+		send.mockResolvedValue({ ok: false, reason: 'temporary SMTP failure', code: 'unknown' });
 		let queue = openQueue(join(directory, 'queue.sqlite'));
 		try {
 			const parent = await queue.client.runWorkflow(reconcileAppointment, input);

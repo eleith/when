@@ -7,7 +7,8 @@ import { isRescheduleSlotBookable, loadAvailability } from '#lib/server/availabi
 import { resolveDuration } from '#lib/server/appointment/duration.js';
 import { isViewAllowed } from '#lib/server/appointment/access.js';
 import type { AppointmentRole } from '#lib/server/appointment/actions.js';
-import { classifyReschedule, rescheduleAppointment } from '#lib/server/appointment/reschedule.js';
+import { classifyReschedule } from '#lib/server/appointment/reschedule.js';
+import { rescheduleAppointment } from '#lib/server/appointment-operations.js';
 import {
 	parseAndValidateAppointmentForm,
 	parseSlot,

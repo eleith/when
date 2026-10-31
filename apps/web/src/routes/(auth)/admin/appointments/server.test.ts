@@ -1,4 +1,5 @@
 import { describe, expect, test, vi, beforeEach } from 'vitest';
+import { appointmentOperationsTotal } from '#lib/server/metrics/registry.js';
 import type { RequestEvent } from './$types';
 import { POST } from './+server';
 import { validConfig } from '#lib/server/__fixtures__/valid-config.js';
@@ -124,6 +125,7 @@ vi.mock('#lib/server/appointment/decline.js', () => ({
 
 describe('Admin Bulk Actions server actions', () => {
 	beforeEach(() => {
+		appointmentOperationsTotal.reset();
 		mockPurgeAppointment.mockClear();
 		mockCancelAppointment.mockClear();
 		mockAcceptAppointment.mockClear();
@@ -207,6 +209,9 @@ describe('Admin Bulk Actions server actions', () => {
 		});
 
 		expect(mockCancelAppointment).toHaveBeenCalledWith('appt-upcoming', 'Scheduling conflict');
+		expect(await appointmentOperationsTotal.get()).toMatchObject({
+			values: [{ labels: { action: 'cancel', actor: 'host', status: 'success' }, value: 1 }]
+		});
 	});
 
 	test('bulkCancel validation failure when reason is missing', async () => {

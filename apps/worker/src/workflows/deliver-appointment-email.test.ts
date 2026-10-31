@@ -7,7 +7,8 @@ import type { SendResult } from '../email/smtp.js';
 import * as status from '../email/status.js';
 import { setWorkerContext } from '../services/context.js';
 import { createLogger } from '../services/logger.js';
-import { emailsTotal } from '../services/metrics.js';
+import { emailsTotal, operationFailuresTotal, register } from '../metrics/registry.js';
+import { observeMailer } from '../metrics/email.js';
 import {
 	deliverAppointmentEmail,
 	runDeliverAppointmentEmail
@@ -39,11 +40,18 @@ function directStep(before?: (config: StepConfig) => Promise<void>) {
 let db: ReturnType<typeof openDb>;
 let send: ReturnType<typeof vi.fn<(envelope: Envelope) => Promise<SendResult>>>;
 beforeEach(async () => {
+	emailsTotal.reset();
+	operationFailuresTotal.reset();
 	db = openDb(':memory:');
 	await runMigrations(db);
 	await db.insertInto('appointments').values(sampleAppointment).execute();
 	send = vi.fn(async () => ({ ok: true }));
-	setWorkerContext({ db, config: sampleConfig, logger: createLogger(), mailer: { send } });
+	setWorkerContext({
+		db,
+		config: sampleConfig,
+		logger: createLogger(),
+		mailer: observeMailer({ send })
+	});
 });
 afterEach(async () => {
 	vi.restoreAllMocks();
@@ -86,18 +94,14 @@ describe('delivery attempt boundaries', () => {
 	});
 
 	test('records an observed failure inside the callback before throwing to the engine', async () => {
-		send.mockResolvedValue({ ok: false, reason: 'SMTP unavailable' });
-		const increment = vi.spyOn(emailsTotal, 'inc');
+		send.mockResolvedValue({ ok: false, reason: 'SMTP unavailable', code: 'unknown' });
+
 		const step = directStep();
 		await expect(runDeliverAppointmentEmail(input, step, clock)).rejects.toThrow(
 			'SMTP unavailable'
 		);
 		expect(step.configs.map((config) => config.name)).toEqual(['smtp']);
-		expect(increment).toHaveBeenCalledWith({
-			recipient_type: 'guest',
-			email_kind: 'confirmed',
-			status: 'failure'
-		});
+
 		const entries = await emailEntries();
 		expect(entries).toEqual([
 			expect.objectContaining({
@@ -119,7 +123,7 @@ describe('delivery attempt boundaries', () => {
 
 	test.each([
 		{ name: 'successful', result: { ok: true } },
-		{ name: 'failed', result: { ok: false, reason: 'SMTP unavailable' } }
+		{ name: 'failed', result: { ok: false, reason: 'SMTP unavailable', code: 'unknown' } }
 	] as const)('captures the $name attempt time before recording its status', async ({ result }) => {
 		const sentAt = '2026-02-01T12:01:00.000Z';
 		const writtenAt = '2026-02-01T12:10:00.000Z';
@@ -164,17 +168,34 @@ describe('delivery attempt boundaries', () => {
 		}
 	);
 
-	test('a success-status error escapes without a provider-failure log or metric', async () => {
+	test('a success-status error escapes without a provider-failure log', async () => {
 		const fault = new Error('local status write failed');
 		vi.spyOn(status, 'recordSendOutcome').mockRejectedValueOnce(fault);
-		const increment = vi.spyOn(emailsTotal, 'inc');
+
 		const step = directStep();
 		await expect(runDeliverAppointmentEmail(input, step, clock)).rejects.toBe(fault);
 		expect(step.configs.map((config) => config.name)).toEqual(['smtp', 'smtp:status']);
 		expect(send).toHaveBeenCalledTimes(1);
 		const entries = await emailEntries();
 		expect(entries).toEqual([]);
-		expect(increment).not.toHaveBeenCalledWith(expect.objectContaining({ status: 'failure' }));
+		const snapshot = await register.getMetricsAsJSON();
+		expect(snapshot.find((metric) => metric.name === 'when_emails_total')?.values).toEqual([
+			expect.objectContaining({
+				labels: {
+					app: 'when',
+					service: 'worker',
+					recipient_type: 'guest',
+					email_kind: 'confirmed',
+					status: 'success'
+				},
+				value: 1
+			})
+		]);
+		expect(
+			snapshot
+				.find((metric) => metric.name === 'when_operation_failures_total')
+				?.values.filter(({ labels }) => labels.operation === 'smtp_send')
+		).toEqual([]);
 	});
 
 	test('does not catch opaque errors from a durable call', async () => {
@@ -188,5 +209,12 @@ describe('delivery attempt boundaries', () => {
 		expect(send).not.toHaveBeenCalled();
 		const entries = await emailEntries();
 		expect(entries).toEqual([]);
+		const snapshot = await register.getMetricsAsJSON();
+		expect(snapshot.find((metric) => metric.name === 'when_emails_total')?.values).toEqual([]);
+		expect(
+			snapshot
+				.find((metric) => metric.name === 'when_operation_failures_total')
+				?.values.filter(({ labels }) => labels.operation === 'smtp_send')
+		).toEqual([]);
 	});
 });

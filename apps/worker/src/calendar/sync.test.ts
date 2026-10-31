@@ -4,7 +4,8 @@ import type { WhenConfiguration } from '@when/config';
 import { openDb, runMigrations, listOutOfSyncAppointments, parseActionLog } from '@when/db';
 import type { Logger } from '../services/logger.js';
 import type { WorkerContext } from '../services/context.js';
-import { reconcileAppointment, scanOnce } from './sync.js';
+import { reconcileAppointment } from '../services/calendar.js';
+import { scanOnce } from '../services/calendar-scan.js';
 import { cleanupAppointmentVideoChat } from '../services/video-chat-cleanup.js';
 
 vi.mock('../services/video-chat-cleanup.js', () => ({
@@ -70,6 +71,7 @@ function recordingFetch(status = 204) {
 
 beforeEach(() => {
 	vi.restoreAllMocks();
+
 	vi.mocked(cleanupAppointmentVideoChat).mockReset().mockResolvedValue(true);
 });
 
@@ -103,6 +105,7 @@ test('confirmed without an external event is created and marked synced', async (
 		expect(row.external_calendar_id).toBe('work');
 		expect(row.calendar_synced_revision).toBe(1);
 		expect(calls.some((c) => c.method === 'PUT')).toBe(true);
+
 		const states = await calendarJobStates(ctx.db, '1');
 		expect(states).toEqual(['done']);
 	} finally {
@@ -291,6 +294,7 @@ test('a should-not-exist row with no external event is a no-op marked synced', a
 		const row = await rowById(ctx.db, '1');
 		expect(row.calendar_synced_revision).toBe(2);
 		expect(calls).toHaveLength(0);
+
 		const states = await calendarJobStates(ctx.db, '1');
 		expect(states).toEqual([]);
 	} finally {

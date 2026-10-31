@@ -68,8 +68,18 @@ test('GET /metrics returns 200 with metrics if successfully authenticated', asyn
 	expect(res.headers.get('content-type')).toContain('text/plain');
 
 	const text = await res.text();
-	// Should contain system metrics we keep
-	expect(text).toContain('process_resident_memory_bytes');
-	// Should contain custom worker metrics
 	expect(text).toContain('when_jobs_total');
+});
+
+test('authenticated JSON snapshots retain application metadata', async () => {
+	mockConfig.prometheus.enabled = true;
+	const response = await fetch(`${base}/metrics`, {
+		headers: { Authorization: 'Bearer test-token', Accept: 'application/json' }
+	});
+	expect(response.status).toBe(200);
+	expect(response.headers.get('content-type')).toContain('application/json');
+	const snapshot = (await response.json()) as Array<{ name: string; type: string }>;
+	expect(snapshot.find((metric) => metric.name === 'when_jobs_total')).toMatchObject({
+		type: 'counter'
+	});
 });

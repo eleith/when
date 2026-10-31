@@ -3,11 +3,36 @@ import { senderEmail, type WhenConfiguration } from '@when/config';
 import type { Logger } from '../services/logger.js';
 import type { Envelope } from './recipients.js';
 
-export type SendResult = { ok: true } | { ok: false; reason: string };
+export type SmtpFailureCode = 'auth' | 'timeout' | 'connection' | 'rejected' | 'unknown';
+export type SendResult = { ok: true } | { ok: false; reason: string; code: SmtpFailureCode };
 
 /** Sends a rendered envelope over SMTP. Built once at boot via `createMailer`. */
 export interface Mailer {
 	send(envelope: Envelope): Promise<SendResult>;
+}
+
+function smtpFailureCode(error: unknown, responseCode: number | undefined): SmtpFailureCode {
+	let providerCode: unknown;
+	if (error && typeof error === 'object' && 'code' in error) {
+		providerCode = error.code;
+	}
+	if (
+		providerCode === 'EAUTH' ||
+		responseCode === 530 ||
+		responseCode === 534 ||
+		responseCode === 535
+	)
+		return 'auth';
+	if (providerCode === 'ETIMEDOUT') return 'timeout';
+	if (
+		typeof providerCode === 'string' &&
+		['ECONNECTION', 'ESOCKET', 'ECONNREFUSED', 'ECONNRESET', 'ENOTFOUND', 'EAI_AGAIN'].includes(
+			providerCode
+		)
+	)
+		return 'connection';
+	if (responseCode !== undefined) return 'rejected';
+	return 'unknown';
 }
 
 export function isSecurePort(port: number): boolean {
@@ -52,8 +77,9 @@ export function createMailer(config: WhenConfiguration, logger: Logger): Mailer 
 						responseCode = code;
 					}
 				}
-				logger.error({ responseCode }, 'SMTP send failed');
-				return { ok: false, reason: String(err) };
+				const code = smtpFailureCode(err, responseCode);
+				logger.error({ code, responseCode }, 'SMTP send failed');
+				return { ok: false, reason: String(err), code };
 			}
 		}
 	};

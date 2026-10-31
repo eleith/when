@@ -4,6 +4,7 @@ import { validConfig } from '#lib/server/__fixtures__/valid-config.js';
 import type { Appointment } from '@when/db';
 import type { AppointmentRole } from '#lib/server/appointment/actions.js';
 import { resolveBookingDurations } from '#lib/server/appointment/duration.js';
+import { appointmentOperationsTotal } from '#lib/server/metrics/registry.js';
 
 const h = vi.hoisted(() => ({ cancelAppointment: vi.fn() }));
 
@@ -13,7 +14,10 @@ vi.mock('#lib/server/appointment/duration.js', async (importOriginal) => {
 	return { ...original, resolveBookingDurations: vi.fn(original.resolveBookingDurations) };
 });
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+	vi.clearAllMocks();
+	appointmentOperationsTotal.reset();
+});
 
 const mockDb = {
 	selectFrom: vi.fn(),
@@ -520,6 +524,9 @@ describe('/appointment/[id] cancel action — characterization', () => {
 				reason: 'no longer needed'
 			})
 		);
+		expect(await appointmentOperationsTotal.get()).toMatchObject({
+			values: [{ labels: { action: 'cancel', actor: 'guest', status: 'success' }, value: 1 }]
+		});
 	});
 
 	test('another row token in the chain cannot cancel this row', async () => {

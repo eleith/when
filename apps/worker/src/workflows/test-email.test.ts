@@ -51,7 +51,7 @@ describe('runTestEmail', () => {
 	});
 
 	test('throws when the mailer reports failure', async () => {
-		setContext({ ok: false, reason: 'SMTP 535 auth failed' });
+		setContext({ ok: false, reason: 'SMTP 535 auth failed', code: 'auth' });
 		const observedAt = '2026-02-01T12:01:00.000Z';
 		const clock = { now: () => new Date(observedAt) };
 		await expect(runTestEmail({ to: 'me@example.com' }, clock)).rejects.toThrow(

@@ -1,6 +1,6 @@
 import { createServer, type IncomingMessage, type ServerResponse, type Server } from 'node:http';
 import type { WhenConfiguration } from '@when/config';
-import { register } from './metrics.js';
+import { exportMetrics } from '../metrics/export.js';
 
 /** A tiny HTTP server exposing GET /healthz for container liveness checks and GET /metrics for scraping. */
 export function createHealthServer(getConfig: () => WhenConfiguration): Server {
@@ -36,9 +36,11 @@ export function createHealthServer(getConfig: () => WhenConfiguration): Server {
 			}
 
 			try {
-				const body = await register.metrics();
 				res.statusCode = 200;
-				res.setHeader('content-type', register.contentType);
+				const { contentType, body } = await exportMetrics(
+					req.headers.accept === 'application/json'
+				);
+				res.setHeader('content-type', contentType);
 				res.end(body);
 			} catch (err) {
 				res.statusCode = 500;

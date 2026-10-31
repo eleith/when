@@ -21,6 +21,7 @@ import { fetchBusyIntervals, pushAppointment } from '@when/calendar';
 import { sampleAppointment, sampleConfig } from '../email/__fixtures__/appointment.js';
 import { setWorkerContext, type WorkerContext } from '../services/context.js';
 import { createLogger } from '../services/logger.js';
+import { jobDuration, jobsActive, jobsTotal, register } from '../metrics/registry.js';
 import { registerWorkflows } from './index.js';
 
 const engine = vi.hoisted(() => ({ client: null as OpenWorkflow | null }));
@@ -42,6 +43,9 @@ let worker: Worker;
 let ctx: WorkerContext;
 
 beforeEach(async () => {
+	jobsTotal.reset();
+	jobDuration.reset();
+	jobsActive.reset();
 	vi.useFakeTimers({ toFake: ['Date'] });
 	vi.setSystemTime(new Date(at));
 	vi.mocked(fetchBusyIntervals).mockReset().mockResolvedValue([]);
@@ -130,6 +134,27 @@ test('producer-only enqueue and implementation registration persist no schedules
 	await drain(1);
 	const syncResult = await run.result({ timeoutMs: 500 });
 	expect(syncResult).toBe('requested');
+	const snapshot = await register.getMetricsAsJSON();
+	expect(snapshot.find((metric) => metric.name === 'when_jobs_total')?.values).toEqual([
+		expect.objectContaining({
+			labels: { app: 'when', service: 'worker', job_name: 'sync-calendars', status: 'returned' },
+			value: 1
+		})
+	]);
+	const duration = await jobDuration.get();
+	expect(
+		duration.values.filter(({ metricName }) => metricName === 'when_job_duration_seconds_count')
+	).toEqual([expect.objectContaining({ labels: { job_name: 'sync-calendars' }, value: 1 })]);
+	expect(
+		snapshot
+			.find((metric) => metric.name === 'when_jobs_active')
+			?.values.filter(({ labels }) => labels.job_name === 'sync-calendars')
+	).toEqual([
+		expect.objectContaining({
+			labels: { app: 'when', service: 'worker', job_name: 'sync-calendars' },
+			value: 0
+		})
+	]);
 	const schedulesAfterDrain = await schedules();
 	expect(schedulesAfterDrain).toEqual([]);
 });

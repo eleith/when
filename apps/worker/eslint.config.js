@@ -9,6 +9,24 @@ export default ts.config(
 	...ts.configs.recommended,
 	prettier,
 	{
+		files: ['src/**/*.ts'],
+		ignores: ['src/metrics/**', 'src/**/*.test.ts'],
+		rules: {
+			'no-restricted-imports': [
+				'error',
+				{
+					patterns: [
+						{
+							group: ['@prometheus-io/client', '@prometheus-io/client/*', '**/metrics/registry*'],
+							message:
+								'Keep Prometheus details inside metrics; wire an operation observer at the service boundary.'
+						}
+					]
+				}
+			]
+		}
+	},
+	{
 		languageOptions: { globals: { ...globals.node } },
 		rules: {
 			'@typescript-eslint/no-unused-vars': [

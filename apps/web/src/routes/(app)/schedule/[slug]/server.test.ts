@@ -4,6 +4,7 @@ import type { Meeting, WhenConfiguration } from '@when/config';
 import type { AppointmentRole } from '#lib/server/appointment/actions.js';
 import { resolveBookingDurations } from '#lib/server/appointment/duration.js';
 import { toPublicEventType } from '#lib/server/appointment/sanitize.js';
+import { appointmentOperationsTotal, bookingAttemptsTotal } from '#lib/server/metrics/registry.js';
 
 const h = vi.hoisted(() => ({
 	cfg: { current: null as unknown as WhenConfiguration },
@@ -76,6 +77,8 @@ async function caught(fn: () => unknown): Promise<Thrown> {
 
 beforeEach(() => {
 	vi.clearAllMocks();
+	appointmentOperationsTotal.reset();
+	bookingAttemptsTotal.reset();
 	h.cfg.current = validConfig;
 	h.resolveTimezone.mockReturnValue('UTC');
 	h.getDb.mockReturnValue(h.db);
@@ -227,6 +230,7 @@ describe('/schedule/[slug] book action', () => {
 		event.params.slug = 'missing';
 		const result = await caught(() => actions.default(event));
 		expect(result.status).toBe(404);
+		expect((await bookingAttemptsTotal.get()).values).toEqual([]);
 		expect(h.isNewSlotBookable).not.toHaveBeenCalled();
 		expect(h.createAppointment).not.toHaveBeenCalled();
 	});
@@ -235,6 +239,9 @@ describe('/schedule/[slug] book action', () => {
 		const response = await actions.default(bookEvent(new FormData()));
 		const result = response as Failure;
 		expect(result?.status).toBe(400);
+		expect(await bookingAttemptsTotal.get()).toMatchObject({
+			values: [{ labels: { event_type_id: '30-min-chat', status: 'invalid_input' }, value: 1 }]
+		});
 	});
 
 	test.for(['not-a-time', '2099-13-45T99:99:99Z', '2099-05-01'])(
@@ -252,6 +259,9 @@ describe('/schedule/[slug] book action', () => {
 		h.parseForm.mockReturnValue({ ok: false, errors: { name: 'required' } });
 		const response = await actions.default(bookEvent(validForm()));
 		expect((response as Failure)?.status).toBe(400);
+		expect(await bookingAttemptsTotal.get()).toMatchObject({
+			values: [{ labels: { event_type_id: '30-min-chat', status: 'invalid_input' }, value: 1 }]
+		});
 	});
 
 	test('rejects an invalid duration with 400', async () => {
@@ -259,6 +269,9 @@ describe('/schedule/[slug] book action', () => {
 		h.resolveDuration.mockReturnValue(null);
 		const response = await actions.default(bookEvent(validForm()));
 		expect((response as Failure)?.status).toBe(400);
+		expect(await bookingAttemptsTotal.get()).toMatchObject({
+			values: [{ labels: { event_type_id: '30-min-chat', status: 'invalid_input' }, value: 1 }]
+		});
 		expect(h.isNewSlotBookable).not.toHaveBeenCalled();
 		expect(h.createAppointment).not.toHaveBeenCalled();
 	});
@@ -270,6 +283,9 @@ describe('/schedule/[slug] book action', () => {
 		const response = await actions.default(bookEvent(validForm()));
 		const result = response as Failure;
 		expect(result?.status).toBe(409);
+		expect(await bookingAttemptsTotal.get()).toMatchObject({
+			values: [{ labels: { event_type_id: '30-min-chat', status: 'slot_taken' }, value: 1 }]
+		});
 		expect(h.isNewSlotBookable).toHaveBeenCalledExactlyOnceWith(
 			h.db,
 			h.cfg.current,
@@ -358,6 +374,12 @@ describe('/schedule/[slug] book action', () => {
 				initiator: 'guest'
 			})
 		);
+		expect(await bookingAttemptsTotal.get()).toMatchObject({
+			values: [{ labels: { event_type_id: '30-min-chat', status: 'success' }, value: 1 }]
+		});
+		expect(await appointmentOperationsTotal.get()).toMatchObject({
+			values: [{ labels: { action: 'create', actor: 'guest', status: 'success' }, value: 1 }]
+		});
 	});
 
 	test('409s when the row insert loses the race (created not ok)', async () => {
@@ -367,6 +389,12 @@ describe('/schedule/[slug] book action', () => {
 		h.createAppointment.mockResolvedValue({ ok: false });
 		const response = await actions.default(bookEvent(validForm()));
 		expect((response as Failure)?.status).toBe(409);
+		expect(await bookingAttemptsTotal.get()).toMatchObject({
+			values: [{ labels: { event_type_id: '30-min-chat', status: 'slot_taken' }, value: 1 }]
+		});
+		expect(await appointmentOperationsTotal.get()).toMatchObject({
+			values: [{ labels: { action: 'create', actor: 'guest', status: 'rejected' }, value: 1 }]
+		});
 	});
 
 	test('500s when the insert throws', async () => {
@@ -376,5 +404,11 @@ describe('/schedule/[slug] book action', () => {
 		h.createAppointment.mockRejectedValue(new Error('db down'));
 		const response = await actions.default(bookEvent(validForm()));
 		expect((response as Failure)?.status).toBe(500);
+		expect(await bookingAttemptsTotal.get()).toMatchObject({
+			values: [{ labels: { event_type_id: '30-min-chat', status: 'error' }, value: 1 }]
+		});
+		expect(await appointmentOperationsTotal.get()).toMatchObject({
+			values: [{ labels: { action: 'create', actor: 'guest', status: 'error' }, value: 1 }]
+		});
 	});
 });

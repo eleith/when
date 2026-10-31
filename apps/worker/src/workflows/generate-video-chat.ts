@@ -11,7 +11,7 @@ import {
 	type CalendarEventReference
 } from '@when/db';
 import { getWorkerContext, type WorkerContext } from '../services/context.js';
-import { reconcileAppointment as syncCalendarForAppointment } from '../calendar/sync.js';
+import { reconcileAppointment as syncCalendarForAppointment } from '../services/calendar.js';
 import {
 	tryBookVideoChatEvent,
 	publishVideoChat,
@@ -28,7 +28,7 @@ import {
 	removeUnusedVideoChat
 } from '../services/video-chat-cleanup.js';
 import { systemClock, type Clock } from '../email/clock.js';
-import { implementObservedWorkflow } from '../services/metrics.js';
+import { implementWorkflow } from '../services/workflow-registration.js';
 import {
 	notifyAppointment,
 	type NotifyAppointmentInput,
@@ -356,7 +356,5 @@ async function selectedVideoChatUrl(
 }
 
 export function registerGenerateVideoChatWorkflow(): void {
-	implementObservedWorkflow(generateVideoChat, ({ input, step }) =>
-		runGenerateVideoChat(input, step)
-	);
+	implementWorkflow(generateVideoChat, ({ input, step }) => runGenerateVideoChat(input, step));
 }
