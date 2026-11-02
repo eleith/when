@@ -1,6 +1,7 @@
 <!-- Desktop-only sidebar: provider and event summary. Hidden on mobile. -->
 <script lang="ts">
 	import type { Appearance } from '@when/config';
+	import { avatarThumbnailUrl } from '#lib/avatar.js';
 
 	interface Props {
 		appearance: Appearance;
@@ -16,7 +17,7 @@
 	<section class="section">
 		<a href="/" class="provider">
 			{#if appearance.avatar_path}
-				<img src={appearance.avatar_path} alt={providerName} class="avatar" />
+				<img src={avatarThumbnailUrl(appearance.avatar_path)} alt={providerName} class="avatar" />
 			{/if}
 		</a>
 	</section>

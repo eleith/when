@@ -154,6 +154,31 @@ All `*_path` values must be root-relative paths served by this app. Remote URLs
 are rejected. Put custom files in `./public/`, alongside `config/` and `data/`,
 and reference them as `/public/logo.png`. `WHEN_PUBLIC_DIR` overrides that directory.
 
+For an `avatar_path` of `/public/photo.webp`, `/avatar/public/photo.webp` serves
+the original and `/avatar/public/photo.webp?thumbnail=true` serves a thumbnail.
+The path is only checked against the configured avatar: mismatches return 404,
+and the app always loads the source selected by configuration, never by the
+request path. Changing the configured path changes the browser's cache key
+without embedding a path in a query parameter.
+
+Web pages request thumbnails automatically, resizing raster avatars to at most
+216 × 216 pixels (enough for the largest 72-pixel avatar at 3× density).
+`thumbnail=false` also serves the full image; other values are rejected. Keep
+setting only `avatar_path`; no separate thumbnail or image tool is needed.
+Generated share cards continue to load the original image.
+
+Thumbnail responses preserve SVGs, small images and animations. It uses WebP
+only when the result is smaller, and falls back to the original on conversion
+failure. Sources above 8 MiB are served directly instead of processed. The app
+caches the current derivative in memory and revalidates its source when the route
+is requested. Concurrent requests share source loading and resizing. Browser
+caching lasts up to one hour; changing `avatar_path` also
+changes the web thumbnail's cache key. The source file is never overwritten.
+
+**Known limitation:** Takumi currently ignores EXIF orientation metadata. A photo
+that relies on that metadata may appear rotated in the generated thumbnail. This
+also occurs with Takumi 2.19.0; it is not corrected by this optimization.
+
 Colors accept three- or six-digit hex values. Each primary color generates a
 muted tonal scale for its mode; background and text colors override the surfaces
 and text.

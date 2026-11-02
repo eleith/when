@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import { avatarThumbnailUrl } from '#lib/avatar.js';
 	import DatePicker from '#lib/components/DatePicker.svelte';
 	import DayTimeline from '#lib/components/DayTimeline.svelte';
 	import WizardPickerControls from '#lib/components/WizardPickerControls.svelte';
@@ -128,7 +129,11 @@
 <header class="page-banner">
 	<a href="/" class="banner-link">
 		{#if data.user.appearance.avatar_path}
-			<img src={data.user.appearance.avatar_path} alt={data.user.name} class="banner-avatar" />
+			<img
+				src={avatarThumbnailUrl(data.user.appearance.avatar_path)}
+				alt={data.user.name}
+				class="banner-avatar"
+			/>
 		{/if}
 		<div class="banner-text">
 			<span class="banner-title">{data.user.appearance.title}</span>

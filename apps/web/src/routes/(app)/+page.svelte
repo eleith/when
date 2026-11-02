@@ -1,6 +1,7 @@
 <script lang="ts">
 	import IconShieldCheck from 'virtual:icons/ph/shield-check';
 	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
+	import { avatarThumbnailUrl } from '#lib/avatar.js';
 
 	let { data } = $props();
 </script>
@@ -14,7 +15,11 @@
 		<div class="profile">
 			{#if data.user.appearance.avatar_path}
 				<div class="avatar-container">
-					<img src={data.user.appearance.avatar_path} alt={data.user.name} class="avatar" />
+					<img
+						src={avatarThumbnailUrl(data.user.appearance.avatar_path)}
+						alt={data.user.name}
+						class="avatar"
+					/>
 					{#if data.role === 'host'}
 						<a
 							href="/admin"
