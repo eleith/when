@@ -40,6 +40,16 @@ test.each(['My Font', 'Noto Sans'])('a custom file takes precedence for %s', (fa
 	expect(primaryFontUrl(family, '/public/custom.woff2')).toBe('/public/custom.woff2');
 });
 
+test.each(['constructor', '__proto__'])(
+	'inherited object key %s is not a bundled family',
+	(family) => {
+		expect(isBundledFont(family)).toBe(false);
+		expect(bundledFontUrls(family)).toEqual([]);
+		expect(primaryFontUrl(family)).toBeNull();
+		expect(fontStack(family)).toBe(`${family}, ${FALLBACK_FONT_NAME}`);
+	}
+);
+
 test('fontStack backs only custom fonts with the fallback', () => {
 	expect(fontStack('Lato')).toBe('Lato');
 	expect(fontStack('My Font')).toBe(`My Font, ${FALLBACK_FONT_NAME}`);

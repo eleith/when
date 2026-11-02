@@ -9,10 +9,11 @@ const BUNDLED_FONT_WEIGHTS: Record<string, number[]> = {
 };
 
 export function isBundledFont(family: string): boolean {
-	return family.toLowerCase() in BUNDLED_FONT_WEIGHTS;
+	return Object.hasOwn(BUNDLED_FONT_WEIGHTS, family.toLowerCase());
 }
 
 export function bundledFontUrls(family: string): string[] {
+	if (!isBundledFont(family)) return [];
 	const key = family.toLowerCase();
 	const slug = key.replaceAll(' ', '-');
 	return (BUNDLED_FONT_WEIGHTS[key] ?? []).map(
