@@ -12,6 +12,7 @@ const data: PageData = {
 	session: { expires: '2026-05-01T12:00:00Z' },
 	preferredTimezone: null,
 	appearance: validConfig.user.appearance,
+	fontPreloadUrl: null,
 	ogImage: 'https://book.example.com/og.png',
 	providers: [
 		{

@@ -20,6 +20,11 @@ export function bundledFontUrls(family: string): string[] {
 	);
 }
 
+/** Preload only the configured face; leave other weights and fallbacks on demand. */
+export function primaryFontUrl(family: string, customPath?: string): string | null {
+	return customPath ?? bundledFontUrls(family)[0] ?? null;
+}
+
 export function fontFamilies(family: string): string[] {
 	return isBundledFont(family) ? [family] : [family, FALLBACK_FONT_NAME];
 }

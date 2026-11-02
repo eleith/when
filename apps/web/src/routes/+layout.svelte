@@ -27,6 +27,15 @@
 </script>
 
 <svelte:head>
+	{#if data.fontPreloadUrl}
+		<link
+			rel="preload"
+			href={data.fontPreloadUrl}
+			as="font"
+			type="font/woff2"
+			crossorigin="anonymous"
+		/>
+	{/if}
 	<link rel="icon" href={favicon} />
 	<meta name="description" content={data.appearance.description} />
 	<meta property="og:type" content="website" />

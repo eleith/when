@@ -1,4 +1,5 @@
 import { getConfig } from '#lib/server/state.js';
+import { primaryFontUrl } from '#lib/server/fonts.js';
 import type { LayoutServerLoad } from './$types';
 
 export const load: LayoutServerLoad = ({ cookies }) => {
@@ -12,6 +13,7 @@ export const load: LayoutServerLoad = ({ cookies }) => {
 			title: cfg.user.appearance.title,
 			description: cfg.user.appearance.description
 		},
+		fontPreloadUrl: primaryFontUrl(cfg.user.appearance.font_name, cfg.user.appearance.font_path),
 		ogImage: `${cfg.url.app}${cfg.user.appearance.opengraph_path}`,
 		preferredTimezone: cookies.get('tz') ?? null
 	};
