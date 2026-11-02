@@ -1,5 +1,27 @@
 # @when/web
 
+## 0.1.1
+
+### Patch Changes
+
+- d9aba2d: Isolate configuration loading inputs and adopt a reusable, serialized reload monitor based on Directory's approach. Preserve existing path conventions and restart rules, retain accepted settings after invalid edits, and make cleanup available before startup reconciliation.
+- a1a3d31: Allow rescheduling to change the start time, duration, or both within the existing guest and admin constraints. Start with the current day and interval selected in the calendar wizard, retain the start when a new duration fits, and build a factual proposed-selection summary as changes are made. Keep navigation available and disable only final reschedule submission until the interval is valid and changed, with the same check inside the write transaction.
+
+  Restore pending guests' saved public location choices in the reschedule form without exposing private host-entered meeting details.
+
+- d60f89c: Allow Google's consent origin in the form security policy so the admin calendar connection can redirect in Chromium.
+- c84110f: Upgrade to SvelteKit 3 with native subpath imports, current framework APIs, and trusted reverse-proxy origin handling.
+- d5561bf: Show a themed navigation progress bar using native SvelteKit state and Svelte motion. Preserve a short completion cue across full-page transitions with session storage, handle back-to-back navigation safely, and respect reduced-motion preferences.
+- c5feeb8: Replace deprecated prom-client with the official @prometheus-io/client and remove Node collectors and their background sampling. Aggregate private worker snapshots natively and expose worker collection health. Centralize instrumentation at operation boundaries, count appointment operation outcomes, and categorize SMTP/calendar failures without putting metric calls in business implementations.
+
+  Booking attempts now label unclassified failures `error` rather than `database_error`.
+
+- 7802f13: Replace Auth.js with stateless Better Auth for admin sign-in, including native request throttling and fixed seven-day sessions. Existing sessions require signing in again.
+- 71da8a9: Stop the configuration watcher after native server shutdown so the web process can exit cleanly.
+- e11ef0d: Make first-time setup YAML-first without requiring an environment file. Accept an optional `auth.secret`, preserve existing `AUTH_SECRET` overrides, and otherwise generate a secure session key at web startup; restarting signs users out unless a stable key is configured.
+
+  Align Compose, configuration examples, CLI starter and setup documentation around existing service/path defaults, optional interpolation and advanced per-service overrides. Leave required passwords blank rather than shipping a shared admin login, create CLI starters with private permissions, and keep inline credentials out of YAML syntax diagnostics.
+
 ## 0.1.0
 
 ### Minor Changes
