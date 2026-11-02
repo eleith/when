@@ -24,7 +24,8 @@ export default defineConfig(({ command }) => {
 						filename.split(/[/\\]/).includes('node_modules') ? undefined : true
 				},
 				adapter: adapter(),
-				inlineStyleThreshold: 10240,
+				// Include the booking wizard's CSS in the initial HTML, avoiding a blocking request.
+				inlineStyleThreshold: 32 * 1024,
 				csp: {
 					directives: {
 						'default-src': ['self'],
