@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import NavigationProgressBar from '#lib/components/NavigationProgressBar.svelte';
 	import '#lib/styles/reset.css';
 	import '#lib/styles/theme.css';
 	import '#lib/styles/calendar.css';
@@ -39,6 +40,8 @@
 	<meta name="twitter:description" content={data.appearance.description} />
 	<meta name="twitter:image" content={ogImage} />
 </svelte:head>
+
+<NavigationProgressBar />
 
 <div class="app-root">
 	{@render children()}
