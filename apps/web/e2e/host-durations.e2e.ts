@@ -16,7 +16,7 @@ const forgedHost = { role: 'host', viewer: 'host', isAdmin: 'true' };
 
 function durationTrigger(page: Page, current: number) {
 	return page.getByRole('button', {
-		name: `Change duration, currently ${current} minutes`,
+		name: `${current} min, change duration`,
 		exact: true
 	});
 }
@@ -58,7 +58,7 @@ test('host uses the configured default and finite palette, recovering locally fr
 	const day = futureWeekday();
 	await signInAsAdmin(page);
 	await page.goto(`/schedule/${slug}?date=${day}`);
-	await expect(durationTrigger(page, 60)).toBeVisible();
+	await expect(durationTrigger(page, 60)).toHaveText('60 min');
 	await page.getByRole('button', { name: 'Back', exact: true }).click();
 	await expect(page.getByRole('heading', { name: 'Step 1 of 3: Pick a day' })).toBeVisible();
 	await expect(page.getByRole('button', { name: /^Change timezone, currently/ })).toBeVisible();
@@ -79,7 +79,7 @@ test('host uses the configured default and finite palette, recovering locally fr
 	await expect(
 		page.getByText('No availability in the near future.', { exact: true })
 	).toBeVisible();
-	await expect(durationTrigger(page, 300)).toBeVisible();
+	await expect(durationTrigger(page, 300)).toHaveText('300 min');
 	await expect(page.getByRole('button', { name: /^Change timezone, currently/ })).toBeVisible();
 	await chooseDuration(page, 300, 90);
 	await expect(page.getByRole('heading', { name: 'Step 1 of 3: Pick a day' })).toBeVisible();

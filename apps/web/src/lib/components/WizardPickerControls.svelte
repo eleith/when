@@ -21,7 +21,7 @@
 		<button
 			type="button"
 			onclick={() => (durationOpen = true)}
-			aria-label="Change duration, currently {flow.duration} minutes"
+			aria-label="{flow.duration} min, change duration"
 			aria-haspopup="dialog"
 		>
 			{flow.duration} min <IconCaretDown aria-hidden="true" />
