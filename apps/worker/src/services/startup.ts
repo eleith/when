@@ -1,5 +1,9 @@
 import { once } from 'node:events';
-import { watchConfig, type WhenConfiguration } from '@when/config';
+import {
+	startConfigReloading,
+	type ConfigReloadOptions,
+	type WhenConfiguration
+} from '@when/config';
 import { runMigrations } from '@when/db';
 import {
 	expirePendingAppointments,
@@ -67,11 +71,12 @@ export async function startHealthServer(
 	ctx.logger.info({ port }, 'health server listening');
 }
 
-export function watchConfigAndSignals(
+export async function watchConfigAndSignals(
 	ctx: WorkerContext,
 	resources: ShutdownResources,
-	shutdown: () => Promise<void>
-): void {
+	shutdown: () => Promise<void>,
+	source: Pick<ConfigReloadOptions<WhenConfiguration>, 'path' | 'load'>
+): Promise<void> {
 	const requestShutdown = (signal: string): void => {
 		ctx.logger.info({ signal }, 'worker shutting down');
 		void shutdown().then(
@@ -86,9 +91,17 @@ export function watchConfigAndSignals(
 		);
 	};
 
-	resources.stopWatch = watchConfig((result) =>
-		applyConfig(result, ctx, () => requestShutdown('config-change'))
-	);
+	const monitoring = startConfigReloading({
+		...source,
+		initial: ctx.config,
+		onChange: (next, previous) =>
+			applyConfig(next, previous, ctx, () => requestShutdown('config-change')),
+		onError: (error) => {
+			ctx.logger.error({ err: error }, 'config reload failed; keeping current config');
+		}
+	});
+	resources.stopWatch = monitoring.stop;
 	process.on('SIGTERM', () => requestShutdown('SIGTERM'));
 	process.on('SIGINT', () => requestShutdown('SIGINT'));
+	await monitoring.ready;
 }

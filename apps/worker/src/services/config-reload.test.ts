@@ -22,12 +22,14 @@ function fakeCtx(config: WhenConfiguration): WorkerContext {
 }
 
 test('applies a soft change in place without restarting', () => {
-	const ctx = fakeCtx(cfg({ user: { name: 'Old' } }));
+	const previous = cfg({ user: { name: 'Old' } });
+	const ctx = fakeCtx(previous);
 	const next = cfg({ user: { name: 'New' } });
 	const onRestart = vi.fn();
 
-	applyConfig({ ok: true, config: next }, ctx, onRestart);
+	const accepted = applyConfig(next, previous, ctx, onRestart);
 
+	expect(accepted).toBe(true);
 	expect(ctx.config).toBe(next);
 	expect(onRestart).not.toHaveBeenCalled();
 });
@@ -38,29 +40,22 @@ test('restarts when a restart-required key (smtp) changes', () => {
 	const next = cfg({ smtp: { host: 'new.example.com', port: 587, username: 'u', password: 'p' } });
 	const onRestart = vi.fn();
 
-	applyConfig({ ok: true, config: next }, ctx, onRestart);
+	const accepted = applyConfig(next, old, ctx, onRestart);
 
+	expect(accepted).toBe(false);
 	expect(onRestart).toHaveBeenCalledOnce();
-	expect(ctx.config).toBe(old); // not swapped — the reboot picks up the change
+	expect(ctx.config).toBe(old);
 });
 
-test('restarts when the database section changes', () => {
-	const ctx = fakeCtx(cfg());
+test('restarts when the database section changes without swapping config', () => {
+	const previous = cfg();
+	const ctx = fakeCtx(previous);
 	const next = cfg({ database: { app: '/other/app.sqlite', queue: '/data/queue.sqlite' } });
 	const onRestart = vi.fn();
 
-	applyConfig({ ok: true, config: next }, ctx, onRestart);
+	const accepted = applyConfig(next, previous, ctx, onRestart);
 
+	expect(accepted).toBe(false);
 	expect(onRestart).toHaveBeenCalledOnce();
-});
-
-test('keeps the current config when the reload failed', () => {
-	const old = cfg();
-	const ctx = fakeCtx(old);
-	const onRestart = vi.fn();
-
-	applyConfig({ ok: false, error: new Error('bad config') }, ctx, onRestart);
-
-	expect(ctx.config).toBe(old);
-	expect(onRestart).not.toHaveBeenCalled();
+	expect(ctx.config).toBe(previous);
 });

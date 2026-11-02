@@ -1,4 +1,5 @@
-import { loadConfig } from '@when/config';
+import { resolve } from 'node:path';
+import { loadConfigFile, resolveConfigPath } from '@when/config';
 import { openDb } from '@when/db';
 import { closeOpenWorkflow } from '@when/jobs';
 import { logger } from './services/logger.js';
@@ -12,7 +13,10 @@ import {
 } from './services/startup.js';
 
 async function main(): Promise<void> {
-	const config = await loadConfig();
+	const options = { env: process.env, cwd: process.cwd() };
+	const selectedPath = resolveConfigPath(options);
+	const loadConfiguration = () => loadConfigFile(selectedPath, options);
+	const config = await loadConfiguration();
 	logger.info({ user: config.user.email }, 'config loaded');
 
 	const db = openDb(config.database.app);
@@ -27,7 +31,10 @@ async function main(): Promise<void> {
 		const client = await startWorkflowWorker(ctx, resources);
 		await enqueueStartupMaintenance(client);
 		await startHealthServer(ctx, resources);
-		watchConfigAndSignals(ctx, resources, shutdown);
+		await watchConfigAndSignals(ctx, resources, shutdown, {
+			path: resolve(options.cwd, selectedPath),
+			load: loadConfiguration
+		});
 	} catch (error) {
 		try {
 			await shutdown();

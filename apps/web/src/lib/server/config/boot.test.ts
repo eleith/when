@@ -26,10 +26,17 @@ test('invalid config throws ConfigError', async () => {
 	await expect(bootConfig(cfgPath)).rejects.toBeInstanceOf(ConfigError);
 });
 
-test('valid config loads and returns typed object', async () => {
-	const cfgPath = join(dir, 'config.yaml');
-	await writeFile(cfgPath, stringify(validConfig));
-	const cfg = await bootConfig(cfgPath);
-	expect(cfg.user.name).toBe('Jane Doe');
-	expect(cfg.meetings['30-min-chat'].title).toBe('30 minute chat');
+test('boot uses the supplied file context without relocating bare-filename databases', async () => {
+	const raw = {
+		...validConfig,
+		auth: { credentials: { username: 'admin', password: '${BOOT_PASSWORD}' } }
+	};
+	await writeFile(join(dir, 'when.yaml'), stringify(raw));
+	const cfg = await bootConfig(undefined, {
+		cwd: dir,
+		env: { CONFIG_PATH: 'when.yaml', BOOT_PASSWORD: 'synthetic-boot-password' }
+	});
+	expect(cfg.auth.credentials?.password).toBe('synthetic-boot-password');
+	expect(cfg.database.app).toBe(join(dir, 'data', 'when.sqlite'));
+	expect(cfg.database.queue).toBe(join(dir, 'data', 'openworkflow.sqlite'));
 });

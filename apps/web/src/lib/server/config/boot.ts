@@ -1,17 +1,22 @@
 import { access } from 'node:fs/promises';
+import { resolve } from 'node:path';
 import { logger } from '../logger';
 
 import {
 	allCalendars,
 	ConfigError,
-	loadConfig,
+	loadConfigFile,
 	MissingEnvVarsError,
 	resolveConfigPath
 } from '@when/config';
-import type { WhenConfiguration } from '@when/config';
+import type { ConfigPathOptions, WhenConfiguration } from '@when/config';
 
-export async function bootConfig(path: string = resolveConfigPath()): Promise<WhenConfiguration> {
-	const exists = await access(path).then(
+export async function bootConfig(
+	selectedPath?: string,
+	options: ConfigPathOptions = {}
+): Promise<WhenConfiguration> {
+	const path = selectedPath ?? resolveConfigPath(options);
+	const exists = await access(resolve(options.cwd ?? process.cwd(), path)).then(
 		() => true,
 		() => false
 	);
@@ -23,7 +28,7 @@ export async function bootConfig(path: string = resolveConfigPath()): Promise<Wh
 		throw new Error(`config not found at ${path}`);
 	}
 	try {
-		const cfg = await loadConfig(path);
+		const cfg = await loadConfigFile(path, options);
 		logger.info(
 			{
 				path,

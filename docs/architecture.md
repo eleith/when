@@ -9,16 +9,27 @@ This is the map. The code has the street names.
 Node 26, strict TypeScript and pnpm workspaces. SvelteKit serves web;
 `node:sqlite` and Kysely handle data. OpenWorkflow runs background jobs.
 
-| Path                  | Job                                           |
-| --------------------- | --------------------------------------------- |
-| `apps/web`            | Booking, admin and HTTP routes.               |
-| `apps/worker`         | Calendar I/O, video links and email.          |
-| `apps/cli`            | Config validation and operator commands.      |
-| `packages/config`     | TypeBox schema, YAML loading and validation.  |
-| `packages/db`         | App database, queries and migrations.         |
-| `packages/jobs`       | Workflow contracts and queue client.          |
-| `packages/calendar`   | Google/CalDAV adapters and local ICS helpers. |
-| `packages/video-chat` | Google Meet and Nextcloud Talk adapters.      |
+| Path                  | Job                                            |
+| --------------------- | ---------------------------------------------- |
+| `apps/web`            | Booking, admin and HTTP routes.                |
+| `apps/worker`         | Calendar I/O, video links and email.           |
+| `apps/cli`            | Config validation and operator commands.       |
+| `packages/config`     | TypeBox schema, loading and reload monitoring. |
+| `packages/db`         | App database, queries and migrations.          |
+| `packages/jobs`       | Workflow contracts and queue client.           |
+| `packages/calendar`   | Google/CalDAV adapters and local ICS helpers.  |
+| `packages/video-chat` | Google Meet and Nextcloud Talk adapters.       |
+
+## Configuration
+
+The config package validates When's YAML and provides a schema-independent reload
+monitor. Each process selects its loading context once. The monitor serializes
+reads and tracks the last accepted value; the app decides whether to apply an
+edit or restart boot-time resources. Invalid edits keep the accepted configuration.
+
+The monitor returns cleanup before reconciling startup changes, so shutdown owns
+it immediately. Web uses SvelteKit's shutdown hook; worker keeps its normal
+resource shutdown order. There is no separate package-global configuration cache.
 
 ## A booking
 

@@ -1,11 +1,13 @@
 import { EventEmitter } from 'node:events';
+import { resolve } from 'node:path';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
-import type { ReloadResult, WhenConfiguration } from '@when/config';
+import type { ConfigReloadOptions, WhenConfiguration } from '@when/config';
 import { expirePendingAppointments, refreshCalendars, syncCalendars } from '@when/jobs';
 
 const mocks = vi.hoisted(() => ({
-	loadConfig: vi.fn(),
-	watchConfig: vi.fn(),
+	loadConfigFile: vi.fn(),
+	resolveConfigPath: vi.fn(),
+	startConfigReloading: vi.fn(),
 	stopWatch: vi.fn(),
 	openDb: vi.fn(),
 	runMigrations: vi.fn(),
@@ -26,9 +28,18 @@ const mocks = vi.hoisted(() => ({
 	logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() }
 }));
 
+vi.mock('node:fs', async (importOriginal) => {
+	const actual = await importOriginal<typeof import('node:fs')>();
+	return { ...actual, watchFile: vi.fn(), unwatchFile: vi.fn() };
+});
 vi.mock('@when/config', async (importOriginal) => {
 	const actual = await importOriginal<typeof import('@when/config')>();
-	return { ...actual, loadConfig: mocks.loadConfig, watchConfig: mocks.watchConfig };
+	return {
+		...actual,
+		loadConfigFile: mocks.loadConfigFile,
+		resolveConfigPath: mocks.resolveConfigPath,
+		startConfigReloading: mocks.startConfigReloading
+	};
 });
 vi.mock('@when/db', () => ({ openDb: mocks.openDb, runMigrations: mocks.runMigrations }));
 vi.mock('@when/jobs', async (importOriginal) => {
@@ -59,7 +70,9 @@ const worker = { start: mocks.start, stop: mocks.stop };
 const client = { newWorker: mocks.newWorker, runWorkflow: mocks.runWorkflow };
 let events: string[];
 let signals: Map<string, () => void>;
-let reload: (result: ReloadResult) => void;
+let reloadOptions: ConfigReloadOptions<WhenConfiguration>;
+let monitoringReady: Promise<void>;
+let stopMonitoring: (() => void) | undefined;
 let server: EventEmitter & {
 	listening: boolean;
 	listen: ReturnType<typeof vi.fn>;
@@ -74,16 +87,21 @@ function finishListening() {
 async function boot() {
 	await import('./index.js');
 	await vi.waitFor(() => {
-		expect(mocks.watchConfig).toHaveBeenCalledOnce();
+		expect(mocks.startConfigReloading).toHaveBeenCalledOnce();
 		expect(signals.has('SIGTERM')).toBe(true);
 		expect(signals.has('SIGINT')).toBe(true);
 	});
 }
 
-beforeEach(() => {
+beforeEach(async () => {
 	vi.resetModules();
 	vi.resetAllMocks();
+	const { startConfigReloading } =
+		await vi.importActual<typeof import('@when/config')>('@when/config');
+	stopMonitoring = undefined;
 	vi.stubEnv('PORT', '19099');
+	vi.stubEnv('CONFIG_PATH', 'when.yaml');
+	vi.stubEnv('WHEN_WORKER_CONFIG_TEST', 'synthetic-context');
 	events = [];
 	signals = new Map();
 	vi.spyOn(process, 'on').mockImplementation((event, listener) => {
@@ -91,7 +109,8 @@ beforeEach(() => {
 		return process;
 	});
 	vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
-	mocks.loadConfig.mockResolvedValue(config);
+	mocks.loadConfigFile.mockResolvedValue(config);
+	mocks.resolveConfigPath.mockReturnValue('when.yaml');
 	mocks.openDb.mockReturnValue(db);
 	mocks.runMigrations.mockResolvedValue([]);
 	mocks.createMailer.mockReturnValue(mailer);
@@ -105,13 +124,19 @@ beforeEach(() => {
 		events.push(`enqueue:${spec.name}`);
 		return { result: mocks.result };
 	});
-	mocks.stopWatch.mockImplementation(() => {
-		events.push('watch:stop');
-	});
-	mocks.watchConfig.mockImplementation((callback: typeof reload) => {
-		reload = callback;
-		return mocks.stopWatch;
-	});
+	mocks.startConfigReloading.mockImplementation(
+		(options: ConfigReloadOptions<WhenConfiguration>) => {
+			reloadOptions = options;
+			const monitor = startConfigReloading(options);
+			stopMonitoring = monitor.stop;
+			monitoringReady = monitor.ready;
+			mocks.stopWatch.mockImplementation(() => {
+				events.push('watch:stop');
+				monitor.stop();
+			});
+			return { stop: mocks.stopWatch, ready: monitor.ready };
+		}
+	);
 	mocks.stop.mockImplementation(async () => {
 		events.push('worker:stop');
 	});
@@ -143,6 +168,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+	stopMonitoring?.();
 	vi.restoreAllMocks();
 	vi.unstubAllEnvs();
 });
@@ -158,7 +184,7 @@ test('registers workflows before starting one default worker, then enqueues all 
 	await vi.waitFor(() => expect(mocks.start).toHaveBeenCalledOnce());
 	expect(mocks.runWorkflow).not.toHaveBeenCalled();
 	expect(mocks.createHealthServer).not.toHaveBeenCalled();
-	expect(mocks.loadConfig).toHaveBeenCalledWith();
+	expect(mocks.loadConfigFile.mock.calls[0][0]).toBe('when.yaml');
 	expect(mocks.openDb).toHaveBeenCalledWith(config.database.app);
 	expect(mocks.runMigrations).toHaveBeenCalledWith(db);
 	expect(mocks.createMailer).toHaveBeenCalledWith(config, mocks.logger);
@@ -175,7 +201,7 @@ test('registers workflows before starting one default worker, then enqueues all 
 	expect(mocks.newWorker).toHaveBeenCalledWith();
 
 	started.resolve();
-	await vi.waitFor(() => expect(mocks.watchConfig).toHaveBeenCalledOnce());
+	await vi.waitFor(() => expect(mocks.startConfigReloading).toHaveBeenCalledOnce());
 	expect(mocks.runWorkflow.mock.calls).toEqual([
 		[refreshCalendars, {}],
 		[expirePendingAppointments, {}],
@@ -216,13 +242,108 @@ test.each([0, 1, 2])(
 		enqueued.resolve();
 		await vi.waitFor(() => expect(server.listen).toHaveBeenCalledOnce());
 		expect(mocks.runWorkflow).toHaveBeenCalledTimes(3);
-		expect(mocks.watchConfig).not.toHaveBeenCalled();
+		expect(mocks.startConfigReloading).not.toHaveBeenCalled();
 		expect(signals.size).toBe(0);
 		finishListening();
-		await vi.waitFor(() => expect(mocks.watchConfig).toHaveBeenCalledOnce());
+		await vi.waitFor(() => expect(mocks.startConfigReloading).toHaveBeenCalledOnce());
 		expect(signals.size).toBe(2);
 	}
 );
+
+test('reconciliation keeps the original selected path and loading context', async () => {
+	const cwd = process.cwd();
+	mocks.runMigrations.mockImplementation(async () => {
+		vi.stubEnv('CONFIG_PATH', 'other.yaml');
+		return [];
+	});
+
+	await boot();
+	await monitoringReady;
+
+	expect(mocks.resolveConfigPath).toHaveBeenCalledOnce();
+	expect(reloadOptions.path).toBe(resolve(cwd, 'when.yaml'));
+	expect(mocks.loadConfigFile).toHaveBeenCalledTimes(2);
+	for (const [path, options] of mocks.loadConfigFile.mock.calls) {
+		expect(path).toBe('when.yaml');
+		expect(options.cwd).toBe(cwd);
+		expect(options.env.WHEN_WORKER_CONFIG_TEST).toBe('synthetic-context');
+	}
+	expect(mocks.loadConfigFile.mock.calls[0][1] === mocks.loadConfigFile.mock.calls[1][1]).toBe(
+		true
+	);
+});
+
+test('reconciliation updates the shared context and health config without rebuilding resources', async () => {
+	const next = { ...config, user: { ...config.user, name: 'Updated owner' } };
+	mocks.loadConfigFile.mockResolvedValueOnce(config).mockResolvedValueOnce(next);
+
+	await boot();
+	await monitoringReady;
+
+	const ctx = mocks.setWorkerContext.mock.calls[0][0];
+	const getConfig = mocks.createHealthServer.mock.calls[0][0] as () => WhenConfiguration;
+	expect(ctx.config).toBe(next);
+	expect(getConfig()).toBe(next);
+	expect(mocks.createMailer).toHaveBeenCalledOnce();
+	expect(mocks.openDb).toHaveBeenCalledOnce();
+	expect(mocks.initOpenWorkflow).toHaveBeenCalledOnce();
+	expect(process.exit).not.toHaveBeenCalled();
+});
+
+test('an invalid reconciliation keeps the usable config and later soft edits still apply', async () => {
+	const failure = new Error('invalid configuration');
+	mocks.loadConfigFile.mockResolvedValueOnce(config).mockRejectedValueOnce(failure);
+
+	await boot();
+	await monitoringReady;
+
+	const getConfig = mocks.createHealthServer.mock.calls[0][0] as () => WhenConfiguration;
+	expect(getConfig()).toBe(config);
+	expect(mocks.logger.error).toHaveBeenCalledWith(
+		{ err: failure },
+		'config reload failed; keeping current config'
+	);
+	const next = { ...config, user: { ...config.user, name: 'Corrected owner' } };
+	expect(reloadOptions.onChange(next, config)).toBe(true);
+	expect(getConfig()).toBe(next);
+	expect(process.exit).not.toHaveBeenCalled();
+});
+
+test('a restart during initial reconciliation already owns watcher cleanup and signals', async () => {
+	const next = { ...config, database: { ...config.database, app: '/new.sqlite' } };
+	mocks.loadConfigFile.mockResolvedValueOnce(config).mockResolvedValueOnce(next);
+
+	await import('./index.js');
+	await vi.waitFor(() => expect(process.exit).toHaveBeenCalledWith(0));
+
+	expect(signals.has('SIGTERM')).toBe(true);
+	expect(signals.has('SIGINT')).toBe(true);
+	expect(mocks.stopWatch).toHaveBeenCalledOnce();
+	expect(mocks.stopWatch).toHaveBeenCalledBefore(server.close);
+	expect(mocks.stopWatch).toHaveBeenCalledBefore(mocks.stop);
+	expect(mocks.stop).toHaveBeenCalledBefore(mocks.closeOpenWorkflow);
+	expect(mocks.closeOpenWorkflow).toHaveBeenCalledBefore(mocks.destroy);
+	const getConfig = mocks.createHealthServer.mock.calls[0][0] as () => WhenConfiguration;
+	expect(getConfig()).toBe(config);
+});
+
+test('SIGTERM during pending reconciliation stops monitoring before cleanup and suppresses late apply', async () => {
+	const pending = Promise.withResolvers<WhenConfiguration>();
+	mocks.loadConfigFile.mockResolvedValueOnce(config).mockReturnValueOnce(pending.promise);
+	await boot();
+	await vi.waitFor(() => expect(mocks.loadConfigFile).toHaveBeenCalledTimes(2));
+
+	signals.get('SIGTERM')!();
+	await vi.waitFor(() => expect(process.exit).toHaveBeenCalledWith(0));
+	expect(mocks.stopWatch).toHaveBeenCalledBefore(server.close);
+	expect(mocks.stopWatch).toHaveBeenCalledBefore(mocks.stop);
+
+	pending.resolve({ ...config, user: { ...config.user, name: 'Too late' } });
+	await monitoringReady;
+	const getConfig = mocks.createHealthServer.mock.calls[0][0] as () => WhenConfiguration;
+	expect(getConfig()).toBe(config);
+	expect(mocks.logger.info).not.toHaveBeenCalledWith('config reloaded');
+});
 
 test('signals and restart-required config changes share one safe resource shutdown', async () => {
 	await boot();
@@ -247,9 +368,12 @@ test('signals and restart-required config changes share one safe resource shutdo
 		return server;
 	});
 	events = [];
+	const next = { ...config, database: { ...config.database, app: '/new.sqlite' } };
+	expect(reloadOptions.onChange(next, config)).toBe(false);
+	const getConfig = mocks.createHealthServer.mock.calls[0][0] as () => WhenConfiguration;
+	expect(getConfig()).toBe(config);
 	signals.get('SIGTERM')!();
 	signals.get('SIGINT')!();
-	reload({ ok: true, config: { ...config, database: { ...config.database, app: '/new.sqlite' } } });
 	expect(events).toEqual(['watch:stop', 'server:close', 'worker:stop']);
 	expect(mocks.closeOpenWorkflow).not.toHaveBeenCalled();
 	expect(mocks.destroy).not.toHaveBeenCalled();
@@ -283,7 +407,7 @@ test('signals and restart-required config changes share one safe resource shutdo
 	}
 });
 
-test.each(['migration', 'start', 'enqueue', 'listen'] as const)(
+test.each(['migration', 'start', 'enqueue', 'listen', 'watch'] as const)(
 	'%s failure awaits cleanup of partially created resources before exiting',
 	async (stage) => {
 		const failure = new Error(`${stage} failed`);
@@ -296,6 +420,11 @@ test.each(['migration', 'start', 'enqueue', 'listen'] as const)(
 				return server;
 			});
 		}
+		if (stage === 'watch') {
+			mocks.startConfigReloading.mockImplementation(() => {
+				throw failure;
+			});
+		}
 		const databaseClosed = Promise.withResolvers<void>();
 		mocks.destroy.mockImplementation(async () => {
 			events.push('db:close');
@@ -304,7 +433,13 @@ test.each(['migration', 'start', 'enqueue', 'listen'] as const)(
 		await import('./index.js');
 		await vi.waitFor(() => expect(mocks.destroy).toHaveBeenCalledOnce());
 		expect(process.exit).not.toHaveBeenCalled();
-		expect(mocks.watchConfig).not.toHaveBeenCalled();
+		if (stage === 'watch') {
+			expect(mocks.startConfigReloading).toHaveBeenCalledOnce();
+			expect(mocks.stopWatch).not.toHaveBeenCalled();
+			expect(server.close).toHaveBeenCalledOnce();
+		} else {
+			expect(mocks.startConfigReloading).not.toHaveBeenCalled();
+		}
 		expect(signals.size).toBe(0);
 		if (stage === 'migration') {
 			expect(mocks.initOpenWorkflow).not.toHaveBeenCalled();
@@ -314,7 +449,9 @@ test.each(['migration', 'start', 'enqueue', 'listen'] as const)(
 			expect(mocks.stop).toHaveBeenCalledBefore(mocks.closeOpenWorkflow);
 			expect(mocks.closeOpenWorkflow).toHaveBeenCalledBefore(mocks.destroy);
 		}
-		if (stage !== 'listen') expect(mocks.createHealthServer).not.toHaveBeenCalled();
+		if (stage !== 'listen' && stage !== 'watch') {
+			expect(mocks.createHealthServer).not.toHaveBeenCalled();
+		}
 		databaseClosed.resolve();
 		await vi.waitFor(() => expect(process.exit).toHaveBeenCalledWith(1));
 		expect(mocks.logger.error).toHaveBeenCalledWith(
@@ -330,10 +467,8 @@ test.each(['SIGTERM', 'SIGINT', 'config-change'])(
 		await boot();
 		mocks.stop.mockRejectedValue(new Error('active work did not stop'));
 		if (trigger === 'config-change') {
-			reload({
-				ok: true,
-				config: { ...config, smtp: { ...config.smtp, host: 'new.example.test' } }
-			});
+			const next = { ...config, smtp: { ...config.smtp, host: 'new.example.test' } };
+			expect(reloadOptions.onChange(next, config)).toBe(false);
 		} else {
 			signals.get(trigger)!();
 		}

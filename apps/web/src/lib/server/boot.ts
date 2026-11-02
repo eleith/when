@@ -1,16 +1,24 @@
 import { makeAuth } from './auth';
-import { getState, setState } from './state';
+import { setState } from './state';
+import { resolve } from 'node:path';
 import { bootConfig } from './config/boot';
 import { applyConfig } from './config/reload';
 import { openDb, runMigrations } from '@when/db';
 import { initOpenWorkflow } from '@when/jobs';
 import { setLogger } from '@when/calendar';
-import { watchConfig } from '@when/config';
+import {
+	loadConfigFile,
+	resolveConfigPath,
+	startConfigReloading,
+	type ConfigPathOptions
+} from '@when/config';
 import { logger } from './logger';
 
-export async function bootApp(): Promise<void> {
+export async function bootApp(options: ConfigPathOptions = {}): Promise<void> {
 	setLogger(logger);
-	const config = await bootConfig();
+	const context = { env: options.env ?? process.env, cwd: options.cwd ?? process.cwd() };
+	const selectedPath = resolveConfigPath(context);
+	const config = await bootConfig(selectedPath, context);
 	makeAuth(config);
 	const db = openDb(config.database.app);
 	const applied = await runMigrations(db);
@@ -18,12 +26,17 @@ export async function bootApp(): Promise<void> {
 	initOpenWorkflow({ dbPath: config.database.queue });
 	setState({ config, db });
 
-	const stopWatching = watchConfig((result) =>
-		applyConfig(result, {
-			current: () => getState().config,
-			swap: (next) => setState({ config: next, db }),
-			restart: () => process.exit(0)
-		})
-	);
-	process.once('sveltekit:shutdown', stopWatching);
+	const monitor = startConfigReloading({
+		path: resolve(context.cwd, selectedPath),
+		initial: config,
+		load: () => loadConfigFile(selectedPath, context),
+		onChange: (next, previous) =>
+			applyConfig(next, previous, {
+				swap: (next) => setState({ config: next, db }),
+				restart: () => process.exit(0)
+			}),
+		onError: (error) => logger.error({ err: error }, 'config reload failed; keeping current config')
+	});
+	process.once('sveltekit:shutdown', monitor.stop);
+	await monitor.ready;
 }
