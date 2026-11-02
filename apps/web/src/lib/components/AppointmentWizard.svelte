@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import * as InstantFns from 'temporal-polyfill/fns/Instant';
 	import DatePicker from '#lib/components/DatePicker.svelte';
 	import DayTimeline from '#lib/components/DayTimeline.svelte';
 	import WizardPickerControls from '#lib/components/WizardPickerControls.svelte';
@@ -72,7 +73,11 @@
 		? durationParam
 		: data.eventType.duration_minutes;
 
-	const flow = createAppointmentFlow({ slotsByDuration, durations, initialDuration });
+	// svelte-ignore state_referenced_locally
+	const reschedule = rescheduleAppt
+		? { start: rescheduleAppt.start_time, duration: data.eventType.duration_minutes }
+		: undefined;
+	const flow = createAppointmentFlow({ slotsByDuration, durations, initialDuration, reschedule });
 	const ptz = getPreferredTimezone();
 
 	let step = $derived(flow.step);
@@ -80,6 +85,15 @@
 	let selectedSlot = $derived(flow.selectedSlot);
 	let userTz = $derived(flow.userTz);
 	let isGuestFormValid = $state(false);
+
+	const originalStart = $derived.by(() => {
+		if (!rescheduleAppt) return null;
+		const start = InstantFns.fromString(rescheduleAppt.start_time);
+		return InstantFns.toString(start);
+	});
+	const originalStartAvailable = $derived(
+		originalStart !== null && flow.allSlots.includes(originalStart)
+	);
 
 	let previousAppointmentHref = $derived(
 		rescheduleAppt
@@ -102,19 +116,13 @@
 		return t ? Math.round(t.totalMs / 3600000) : 0;
 	});
 
-	// Set the viewer timezone before the URL sync applies a deep-linked slot, so it
-	// resolves to the right day. The effect re-applies once tz resolves client-side.
-	if (ptz.current) flow.setTz(ptz.current);
-	$effect(() => {
-		if (!ptz.current) return;
-		flow.setTz(ptz.current);
-	});
-
 	// svelte-ignore state_referenced_locally
 	const urlSync = createAppointmentUrlSync(flow, {
 		deepLink,
-		tz: ptz.current ?? data.user.timezone,
-		defaultDuration: data.eventType.duration_minutes
+		initialTimezone: ptz.current ?? data.user.timezone,
+		timezone: () => ptz.current,
+		defaultDuration: data.eventType.duration_minutes,
+		reschedule
 	});
 	let linkNotice = $derived(urlSync.notice);
 </script>
@@ -165,11 +173,12 @@
 			<a class="error-back-btn" href="/">Return home</a>
 		</div>
 	{:else}
-		{#if rescheduleAppt}
+		{#if rescheduleAppt && ptz.current}
 			<RescheduleBanner
 				previousHref={previousAppointmentHref}
 				startTime={rescheduleAppt.start_time}
-				tz={userTz}
+				endTime={rescheduleAppt.end_time}
+				{flow}
 			/>
 		{/if}
 
@@ -191,7 +200,7 @@
 						<span class="stage-step">Step {step} of 3:</span>
 						{#if step === 1}Pick a day{:else if step === 2}Pick a time{:else}Enter your info{/if}
 					</h1>
-					{#if step === 2 && viewDate}
+					{#if step === 2 && viewDate && ptz.current}
 						<p class="stage-subtitle">{formatDate(viewDate)}</p>
 					{:else if step === 3 && selectedSlot}
 						<p class="stage-subtitle">
@@ -207,6 +216,17 @@
 
 				{#if step < 3}
 					<WizardPickerControls {flow} timezoneReady={!!ptz.current} />
+				{/if}
+
+				{#if rescheduleAppt && !selectedSlot}
+					<p class="reschedule-notice" role="status">
+						Choose an available start time for this duration.
+					</p>
+				{:else if rescheduleAppt && !originalStartAvailable && selectedSlot === originalStart}
+					<p class="reschedule-notice" role="status">
+						The current start time isn't available for this duration. Choose another time or
+						duration.
+					</p>
 				{/if}
 
 				<div class="appointment-body">
@@ -226,14 +246,13 @@
 								busyBlocks={data.availability.busyBlocks}
 								eventType={data.eventType}
 								showSlots={data.eventType.show_slots}
-								originalSlot={rescheduleAppt?.start_time ?? null}
 							/>
 						{:else}
 							<TimelineSkeleton rows={timelineSkeletonRows} />
 						{/if}
 					{/if}
 
-					{#if step === 3 && selectedSlot}
+					{#if step === 3 && (selectedSlot || rescheduleAppt)}
 						<GuestForm
 							{flow}
 							formFields={data.formFields}
@@ -251,8 +270,9 @@
 				<WizardActions
 					{flow}
 					isReschedule={!!rescheduleAppt}
+					timezoneReady={!!ptz.current}
 					requireApproval={data.eventType.require_approval}
-					canSubmit={step === 3 ? isGuestFormValid : true}
+					{isGuestFormValid}
 					homeHref={previousAppointmentHref || '/'}
 				/>
 			</div>
@@ -266,6 +286,11 @@
 		margin: 0 auto;
 		padding: var(--space-8) var(--space-6) var(--space-10);
 		color: var(--when-color-text);
+	}
+
+	.reschedule-notice {
+		padding: var(--space-4) var(--space-7);
+		color: var(--when-color-text-secondary);
 	}
 
 	.empty {

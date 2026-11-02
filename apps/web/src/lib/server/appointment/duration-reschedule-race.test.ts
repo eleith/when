@@ -120,6 +120,32 @@ describe('duration change between reschedule prevalidation and commit', () => {
 		);
 	});
 
+	test.each(['guest', 'host'] as const)(
+		'%s duration-only request becomes a no-op after the host saves that duration',
+		async (role) => {
+			ctx.cfg.meetings['30-min-chat'].additional_duration_minutes = [60];
+			const page = await currentRow();
+			const request = prevalidate(page, role, 60);
+			request.newStart = page.start_time;
+			request.newEnd = Temporal.Instant.from(page.start_time).add({ minutes: 60 }).toString();
+
+			await changeAppointmentDuration(ctx, { appointmentId, durationMinutes: 60 });
+			const committed = await currentRow();
+			expect(committed.end_time).toBe(request.newEnd);
+			expect(committed.ics_sequence).toBe(1);
+
+			expect(await rescheduleAppointment(ctx, request)).toEqual({
+				ok: false,
+				reason: 'no_changes'
+			});
+			expect(await db.selectFrom('appointments').selectAll().execute()).toEqual([committed]);
+			expect(enqueueAppointmentReconciliation).toHaveBeenCalledExactlyOnceWith(
+				committed,
+				'edited-by-host'
+			);
+		}
+	);
+
 	test.each([
 		{
 			name: 'guest requested configured 30 before the host change',

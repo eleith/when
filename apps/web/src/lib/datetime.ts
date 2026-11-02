@@ -101,6 +101,11 @@ export function formatTimeShort(iso: string, tz: string): string {
 	}
 }
 
+/** Compact time range in `tz`, e.g. "9:00am – 9:30am", without dates. */
+export function formatTimeRangeShort(start: string, end: string, tz: string): string {
+	return `${formatTimeShort(start, tz)} – ${formatTimeShort(end, tz)}`;
+}
+
 /** Time range across two instants in `tz`, e.g. "09:00 AM – 09:30 AM". */
 export function formatTimeRange(start: string, end: string, tz: string): string {
 	try {

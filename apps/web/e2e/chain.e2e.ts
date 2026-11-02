@@ -12,6 +12,7 @@ test('a stale link shows the move but cannot authorize access to the new appoint
 	const staleLink = `/appointment/${original.id}?token=${original.cancel_token}`;
 
 	await page.goto(`/appointment/${original.id}/reschedule?token=${original.cancel_token}`);
+	await expect(page.getByRole('heading', { name: 'Step 1 of 3: Pick a day' })).toBeVisible();
 	await pickLastBookableDay(page);
 	await pickSlotFromEndOfDay(page);
 	await page.getByRole('button', { name: 'Confirm' }).click();
@@ -42,6 +43,7 @@ test('the live token is a master key over the appointment history', async ({ pag
 	const original = await seedAppointment({ status: 'confirmed' });
 
 	await page.goto(`/appointment/${original.id}/reschedule?token=${original.cancel_token}`);
+	await expect(page.getByRole('heading', { name: 'Step 1 of 3: Pick a day' })).toBeVisible();
 	await pickLastBookableDay(page);
 	await pickSlotFromEndOfDay(page);
 	await page.getByRole('button', { name: 'Confirm' }).click();

@@ -1,3 +1,5 @@
+import * as InstantFns from 'temporal-polyfill/fns/Instant';
+import { untrack } from 'svelte';
 import { page } from '$app/state';
 import { goto, afterNavigate } from '$app/navigation';
 import {
@@ -7,58 +9,104 @@ import {
 	urlStateMatches,
 	type DeepLinkResult
 } from './appointment';
-import type { AppointmentFlow } from './appointmentFlow.svelte';
+import { instantToDateKey } from './datetime';
+import type { AppointmentFlow, AppointmentFlowInit } from './appointmentFlow.svelte';
 
 export interface AppointmentUrlSync {
 	readonly notice: NonNullable<DeepLinkResult['notice']> | null;
 }
 
-/**
- * Wires the appointment flow to the URL, keeping the wizard declarative:
- * applies an incoming ?slot/?date deep link on load, exposes any "no longer
- * available" notice, and mirrors the flow position back into the query string
- * (canonical order, guarded against a re-encode loop). All the browser/router
- * coupling lives here. Call once during wizard init, after the viewer timezone
- * has been set on the flow so a deep-linked slot resolves to the right day.
- */
+/** Applies the incoming link once the viewer timezone is known, then mirrors flow state. */
 export function createAppointmentUrlSync(
 	flow: AppointmentFlow,
-	opts: { deepLink: boolean; tz: string; defaultDuration: number }
-): AppointmentUrlSync {
-	const result = resolveDeepLink({
-		slotParam: page.url.searchParams.get('slot'),
-		dateParam: page.url.searchParams.get('date'),
-		allSlots: flow.allSlots,
-		tz: opts.tz
-	});
-
-	let notice = $state<NonNullable<DeepLinkResult['notice']> | null>(result.notice ?? null);
-
-	if (result.slot) {
-		flow.selectSlot(result.slot);
-		flow.goToStep(3);
-	} else if (result.date) {
-		flow.openDate(result.date);
+	opts: {
+		deepLink: boolean;
+		initialTimezone: string;
+		timezone: () => string | null;
+		defaultDuration: number;
+		reschedule?: AppointmentFlowInit['reschedule'];
 	}
+): AppointmentUrlSync {
+	const slotParam = page.url.searchParams.get('slot');
+	const dateParam = page.url.searchParams.get('date');
+	let notice = $state<NonNullable<DeepLinkResult['notice']> | null>(null);
+	let requestedDate: string | undefined;
+	let linkApplied = $state(false);
+	flow.setTz(opts.initialTimezone);
+
+	function resolveIncomingLink(tz: string) {
+		let result = resolveDeepLink({ slotParam, dateParam, allSlots: flow.allSlots, tz });
+
+		// The current interval is context, not an extra offered slot.
+		if (opts.reschedule) {
+			const originalSlot = InstantFns.toString(InstantFns.fromString(opts.reschedule.start));
+			const originalDate = instantToDateKey(originalSlot, tz);
+			let requestedSlot = result.slot;
+			if (!requestedSlot && result.notice?.kind === 'slot') {
+				requestedSlot = result.notice.requested;
+			}
+			if (requestedSlot === originalSlot && flow.duration === opts.reschedule.duration) {
+				result = { step: 1, slot: originalSlot };
+			} else if (result.notice?.kind === 'date' && result.notice.requested === originalDate) {
+				result = { step: 2, date: originalDate };
+			}
+		}
+		return result;
+	}
+
+	function applyLink(tz: string) {
+		const result = resolveIncomingLink(tz);
+		notice = result.notice ?? null;
+		requestedDate = result.date;
+		if (notice) {
+			flow.clearSlot();
+			if (!result.date) {
+				flow.selectDate(null);
+				flow.goToStep(1);
+			}
+		}
+		if (result.slot) {
+			flow.selectSlot(result.slot);
+			flow.goToStep(result.step);
+		} else if (result.date) {
+			flow.openDate(result.date);
+		}
+	}
+
+	const initialTimezone = opts.timezone();
+	if (initialTimezone) {
+		flow.setTz(initialTimezone);
+		applyLink(initialTimezone);
+		linkApplied = true;
+	}
+
+	$effect(() => {
+		const tz = opts.timezone();
+		if (!tz) return;
+		untrack(() => {
+			flow.setTz(tz);
+			if (linkApplied) return;
+			applyLink(tz);
+			linkApplied = true;
+		});
+	});
 
 	let routerReady = $state(false);
 	afterNavigate(() => {
 		routerReady = true;
 	});
 
-	// Clear the notice once the guest moves past the unavailable slot/day.
 	$effect(() => {
-		if (!opts.deepLink || !notice) return;
+		if (!notice) return;
 		if (notice.kind === 'slot') {
-			if (flow.selectedSlot || (flow.viewDate && flow.viewDate !== result.date)) notice = null;
+			if (flow.selectedSlot || (flow.viewDate && flow.viewDate !== requestedDate)) notice = null;
 		} else if (flow.viewDate) {
 			notice = null;
 		}
 	});
 
-	// Mirror the flow position into the URL, skipping the write when it already matches.
 	$effect(() => {
-		if (!routerReady || !opts.deepLink) return;
+		if (!routerReady || !linkApplied || !opts.deepLink) return;
 		const desired = desiredUrlState({
 			duration: flow.duration,
 			defaultDuration: opts.defaultDuration,

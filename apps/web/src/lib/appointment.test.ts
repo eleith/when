@@ -224,7 +224,6 @@ describe('buildDayTimeline', () => {
 		eventType: { duration_minutes: 30 },
 		daySlots: ['2025-06-15T09:00:00Z', '2025-06-15T09:30:00Z'],
 		tz: 'UTC',
-		originalSlot: null,
 		// well before the view window, so nothing is in the past
 		now: Temporal.Instant.from('2025-06-15T00:00:00Z')
 	};
@@ -281,24 +280,22 @@ describe('buildDayTimeline', () => {
 		expect(t.buffers[0].height).toBeCloseTo(20);
 	});
 
-	test('places slots by start and duration, flagging the original', () => {
-		const t = buildDayTimeline({ ...base, originalSlot: '2025-06-15T09:30:00Z' })!;
+	test('places slots by start and duration', () => {
+		const t = buildDayTimeline(base)!;
 		expect(t.slots).toEqual([
 			{
 				iso: '2025-06-15T09:00:00Z',
 				time: '09:00 AM',
 				endTime: '09:30 AM',
 				top: 10,
-				height: 5,
-				isOriginal: false
+				height: 5
 			},
 			{
 				iso: '2025-06-15T09:30:00Z',
 				time: '09:30 AM',
 				endTime: '10:00 AM',
 				top: 15,
-				height: 5,
-				isOriginal: true
+				height: 5
 			}
 		]);
 	});
@@ -457,16 +454,14 @@ describe('nearestTimelineSlot', () => {
 			time: '9:00 AM',
 			endTime: '9:30 AM',
 			top: 10,
-			height: 5,
-			isOriginal: false
+			height: 5
 		},
 		{
 			iso: '2025-06-15T09:30:00Z',
 			time: '9:30 AM',
 			endTime: '10:00 AM',
 			top: 15,
-			height: 5,
-			isOriginal: false
+			height: 5
 		}
 	];
 
@@ -486,8 +481,7 @@ describe('isDirectSlotHit', () => {
 		time: '9:00 AM',
 		endTime: '9:30 AM',
 		top: 10,
-		height: 5,
-		isOriginal: false
+		height: 5
 	};
 
 	test('returns true within slot bounds', () => {

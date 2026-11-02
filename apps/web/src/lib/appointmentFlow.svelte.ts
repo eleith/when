@@ -1,3 +1,4 @@
+import * as browserInstantFns from 'temporal-polyfill/fns/Instant';
 import {
 	availableDates as datesFromSlots,
 	canAdvance as canAdvanceRule,
@@ -17,6 +18,8 @@ export interface AppointmentFlow {
 	readonly allSlots: string[];
 	readonly availableDates: Set<string>;
 	readonly offeredDates: Set<string>;
+	readonly hasChanges: boolean;
+	readonly canSubmit: boolean;
 	readonly canAdvance: boolean;
 	advance(): void;
 	goBack(): void;
@@ -33,6 +36,7 @@ export interface AppointmentFlowInit {
 	slotsByDuration: Record<number, Record<string, string[]>>;
 	durations: number[];
 	initialDuration: number;
+	reschedule?: { start: string; duration: number };
 }
 
 /**
@@ -45,11 +49,26 @@ export interface AppointmentFlowInit {
 export function createAppointmentFlow({
 	slotsByDuration,
 	durations,
-	initialDuration
+	initialDuration,
+	reschedule
 }: AppointmentFlowInit): AppointmentFlow {
+	const originalSlot = reschedule
+		? browserInstantFns.toString(browserInstantFns.fromString(reschedule.start))
+		: null;
+	// A duration link behaves like changing length: retain the start only if it fits.
+	// At the booked length, keep the original interval even if it is no longer offered.
+	let initialSlot = originalSlot;
+	if (
+		reschedule &&
+		originalSlot &&
+		initialDuration !== reschedule.duration &&
+		!flattenSlots(slotsByDuration[initialDuration] ?? {}).includes(originalSlot)
+	) {
+		initialSlot = null;
+	}
 	let step = $state<WizardStep>(1);
-	let viewDate = $state<string | null>(null);
-	let selectedSlot = $state<string | null>(null);
+	let viewDate = $state<string | null>(originalSlot ? instantToDateKey(originalSlot, 'UTC') : null);
+	let selectedSlot = $state<string | null>(initialSlot);
 	let userTz = $state('UTC');
 	let duration = $state(initialDuration);
 
@@ -57,7 +76,16 @@ export function createAppointmentFlow({
 	const allSlots = $derived(flattenSlots(slotsByDate));
 	const dates = $derived(datesFromSlots(allSlots, userTz));
 	const offeredDates = $derived(dateKeys(slotsByDate));
+	const originalDate = $derived(originalSlot ? instantToDateKey(originalSlot, userTz) : null);
+	const intervalChanged = $derived(
+		!reschedule || selectedSlot !== originalSlot || duration !== reschedule.duration
+	);
+	const hasChanges = $derived(intervalChanged || viewDate !== originalDate);
+	const canSubmit = $derived(
+		selectedSlot !== null && allSlots.includes(selectedSlot) && intervalChanged
+	);
 	const canAdvance = $derived.by(() => {
+		if (reschedule) return true;
 		if (step === 1) {
 			if (viewDate === null) return false;
 			return dates.has(viewDate);
@@ -66,7 +94,7 @@ export function createAppointmentFlow({
 	});
 
 	function clearUnavailableDateSelection() {
-		if (step === 1 && viewDate && !dates.has(viewDate)) {
+		if (step === 1 && viewDate && viewDate !== originalDate && !dates.has(viewDate)) {
 			viewDate = null;
 			selectedSlot = null;
 		}
@@ -104,6 +132,12 @@ export function createAppointmentFlow({
 		get offeredDates() {
 			return offeredDates;
 		},
+		get hasChanges() {
+			return hasChanges;
+		},
+		get canSubmit() {
+			return canSubmit;
+		},
 		get canAdvance() {
 			return canAdvance;
 		},
@@ -128,15 +162,15 @@ export function createAppointmentFlow({
 				selectedSlot = null;
 				return;
 			}
-			if (!dates.has(dateKey)) return;
+			if (!dates.has(dateKey) && dateKey !== originalDate) return;
 			viewDate = dateKey;
-			if (selectedSlot && !selectedSlot.startsWith(dateKey)) selectedSlot = null;
+			if (selectedSlot && instantToDateKey(selectedSlot, userTz) !== dateKey) selectedSlot = null;
 		},
 		// Open the time picker on a day from a deep link, regardless of current availability —
 		// the timeline shows that day's slots (or its empty state).
 		openDate(dateKey) {
 			viewDate = dateKey;
-			selectedSlot = null;
+			if (selectedSlot && instantToDateKey(selectedSlot, userTz) !== dateKey) selectedSlot = null;
 			step = 2;
 		},
 		selectSlot(iso) {
@@ -147,8 +181,12 @@ export function createAppointmentFlow({
 			selectedSlot = null;
 		},
 		setTz(tz) {
+			const viewingOriginalDate = viewDate === originalDate;
 			userTz = tz;
 			if (selectedSlot) viewDate = instantToDateKey(selectedSlot, userTz);
+			else if (viewingOriginalDate && originalSlot) {
+				viewDate = instantToDateKey(originalSlot, userTz);
+			}
 			clearUnavailableDateSelection();
 		},
 		// Changing the length swaps the live slot map. If the picked time no longer

@@ -94,11 +94,15 @@
 		onvaliditychange?.(isFormValid);
 	});
 
-	const enhanceWithFeedback: SubmitFunction =
-		() =>
-		async ({ update }) => {
+	const enhanceWithFeedback: SubmitFunction = ({ cancel }) => {
+		if (!isFormValid || !flow.canSubmit) {
+			cancel();
+			return;
+		}
+		return async ({ update }) => {
 			await update({ navigate: false });
 		};
+	};
 </script>
 
 <div class="appointment-form">
@@ -140,7 +144,7 @@
 			/>
 		{/if}
 
-		<button type="submit" class="submit-btn" disabled={!isFormValid}>
+		<button type="submit" class="submit-btn" disabled={!isFormValid || !flow.canSubmit}>
 			{#if rescheduleAppt}Confirm Reschedule{:else if requireApproval}Request{:else}Schedule{/if}
 		</button>
 	</form>

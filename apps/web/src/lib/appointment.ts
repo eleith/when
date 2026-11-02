@@ -197,7 +197,6 @@ export interface TimelineSlot extends TimelineBlock {
 	iso: string;
 	time: string;
 	endTime: string;
-	isOriginal: boolean;
 }
 
 export interface TimelineLabel {
@@ -222,7 +221,6 @@ export interface BuildDayTimelineParams {
 	eventType: TimelineEventType;
 	daySlots: string[];
 	tz: string;
-	originalSlot?: string | null;
 	now?: InstantFns.Record | unknown;
 }
 
@@ -249,7 +247,6 @@ export function buildDayTimeline({
 	eventType,
 	daySlots,
 	tz,
-	originalSlot = null,
 	now
 }: BuildDayTimelineParams): DayTimeline | null {
 	const nowInst = now ? resolveInstant(now) : NowFns.instant();
@@ -344,8 +341,7 @@ export function buildDayTimeline({
 			time: formatTime(iso, tz),
 			endTime: formatTime(InstantFns.toString(end), tz),
 			top: toPercent(start),
-			height: toPercent(end) - toPercent(start),
-			isOriginal: iso === originalSlot
+			height: toPercent(end) - toPercent(start)
 		};
 	});
 

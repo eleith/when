@@ -18,17 +18,9 @@
 		busyBlocks: { start: string; end: string }[];
 		eventType: TimelineEventType;
 		showSlots?: boolean;
-		originalSlot?: string | null;
 	}
 
-	let {
-		flow,
-		workingWindows,
-		busyBlocks,
-		eventType,
-		showSlots = false,
-		originalSlot = null
-	}: Props = $props();
+	let { flow, workingWindows, busyBlocks, eventType, showSlots = false }: Props = $props();
 
 	// read-only views of the shared flow; all mutations go through flow.* below
 	let viewDate = $derived(flow.viewDate);
@@ -48,17 +40,10 @@
 					busyBlocks,
 					eventType: liveEventType,
 					daySlots,
-					tz: userTz,
-					originalSlot
+					tz: userTz
 				})
 			: null
 	);
-
-	function selectSlot(iso: string) {
-		const s = timeline?.slots.find((slot) => slot.iso === iso);
-		if (s?.isOriginal) return;
-		flow.selectSlot(iso);
-	}
 
 	const DRAG_THRESHOLD_PX = 6;
 	const SNAP_HOLD_MS = 90;
@@ -174,16 +159,16 @@
 	function snapToClick(percent: number) {
 		if (!timeline) return;
 		const best = nearestTimelineSlot(timeline.slots, percent);
-		if (!best || best.isOriginal) return;
+		if (!best) return;
 
 		if (isDirectSlotHit(best, percent)) {
 			gestures.clearSnap();
-			if (selectedSlot !== best.iso) selectSlot(best.iso);
+			if (selectedSlot !== best.iso) flow.selectSlot(best.iso);
 			return;
 		}
 
 		gestures.snapTo(percent, () => {
-			if (selectedSlot !== best.iso) selectSlot(best.iso);
+			if (selectedSlot !== best.iso) flow.selectSlot(best.iso);
 		});
 	}
 
@@ -209,7 +194,7 @@
 			onDropSlot: (percent) => {
 				if (!timeline) return;
 				const best = nearestTimelineSlot(timeline.slots, percent);
-				if (best && !best.isOriginal) selectSlot(best.iso);
+				if (best) flow.selectSlot(best.iso);
 			},
 			onClearSlot: () => flow.clearSlot(),
 			onClickTrack: (percent) => {
@@ -226,7 +211,7 @@
 
 	function handleKeyDown(e: KeyboardEvent) {
 		if (!timeline) return;
-		const available = timeline.slots.filter((s) => !s.isOriginal);
+		const available = timeline.slots;
 		if (available.length === 0) return;
 
 		const currentIndex = available.findIndex((s) => s.iso === selectedSlot);
@@ -235,12 +220,12 @@
 			e.preventDefault();
 			gestures.clearSnap();
 			const next = currentIndex < available.length - 1 ? currentIndex + 1 : 0;
-			selectSlot(available[next].iso);
+			flow.selectSlot(available[next].iso);
 		} else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
 			e.preventDefault();
 			gestures.clearSnap();
 			const prev = currentIndex > 0 ? currentIndex - 1 : available.length - 1;
-			selectSlot(available[prev].iso);
+			flow.selectSlot(available[prev].iso);
 		} else if (e.key === 'Escape' || e.key === 'Delete' || e.key === 'Backspace') {
 			e.preventDefault();
 			gestures.clearSnap();
@@ -299,17 +284,6 @@
 					{:else}
 						{@render continuousTrack()}
 					{/if}
-
-					{#if timeline.slots.some((s) => s.isOriginal)}
-						{@const orig = timeline.slots.find((s) => s.isOriginal)!}
-						<div
-							class="slot-block original-appointment"
-							style:top="{orig.top}%"
-							style:height="{orig.height}%"
-						>
-							<span class="slot-text">{orig.time} (Current)</span>
-						</div>
-					{/if}
 				</div>
 			</div>
 		</div>
@@ -329,21 +303,19 @@
 {#snippet discreteSlots()}
 	{#if timeline}
 		{#each timeline.slots as s (s.iso)}
-			{#if !s.isOriginal}
-				{@const isSelected = s.iso === selectedSlot}
-				<button
-					type="button"
-					role="radio"
-					aria-checked={isSelected}
-					class="slot-btn"
-					class:selected={isSelected}
-					style:top="{s.top}%"
-					style:height="{s.height}%"
-					onclick={() => selectSlot(s.iso)}
-				>
-					<span class="slot-text">{s.time} – {s.endTime}</span>
-				</button>
-			{/if}
+			{@const isSelected = s.iso === selectedSlot}
+			<button
+				type="button"
+				role="radio"
+				aria-checked={isSelected}
+				class="slot-btn"
+				class:selected={isSelected}
+				style:top="{s.top}%"
+				style:height="{s.height}%"
+				onclick={() => flow.selectSlot(s.iso)}
+			>
+				<span class="slot-text">{s.time} – {s.endTime}</span>
+			</button>
 		{/each}
 	{/if}
 {/snippet}
@@ -351,24 +323,22 @@
 {#snippet continuousTrack()}
 	{#if timeline}
 		{#each timeline.slots as s (s.iso)}
-			{#if !s.isOriginal}
-				{@const isSelected = s.iso === selectedSlot}
-				<button
-					type="button"
-					role="radio"
-					aria-checked={isSelected}
-					class="slot-hit-target"
-					class:selected={isSelected}
-					style:top="{s.top}%"
-					style:height="{s.height}%"
-					onclick={() => {
-						gestures.clearSnap();
-						selectSlot(s.iso);
-					}}
-				>
-					<span class="visually-hidden">{s.time} – {s.endTime}</span>
-				</button>
-			{/if}
+			{@const isSelected = s.iso === selectedSlot}
+			<button
+				type="button"
+				role="radio"
+				aria-checked={isSelected}
+				class="slot-hit-target"
+				class:selected={isSelected}
+				style:top="{s.top}%"
+				style:height="{s.height}%"
+				onclick={() => {
+					gestures.clearSnap();
+					flow.selectSlot(s.iso);
+				}}
+			>
+				<span class="visually-hidden">{s.time} – {s.endTime}</span>
+			</button>
 		{/each}
 
 		{#if selectedSlot}
@@ -597,14 +567,6 @@
 		background: var(--color-danger-bg);
 		border-color: var(--color-danger);
 		color: var(--color-danger);
-	}
-
-	.slot-block.original-appointment {
-		background: var(--color-surface-muted);
-		border: 1px dashed var(--color-border-strong);
-		color: var(--color-text-secondary);
-		cursor: not-allowed;
-		z-index: 4;
 	}
 
 	.slot-text {

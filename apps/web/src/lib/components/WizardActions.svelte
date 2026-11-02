@@ -9,12 +9,20 @@
 	interface Props {
 		flow: AppointmentFlow;
 		isReschedule: boolean;
+		timezoneReady: boolean;
 		requireApproval: PublicEventType['require_approval'];
-		canSubmit?: boolean;
+		isGuestFormValid?: boolean;
 		homeHref?: string;
 	}
 
-	let { flow, isReschedule, requireApproval, canSubmit = true, homeHref = '/' }: Props = $props();
+	let {
+		flow,
+		isReschedule,
+		timezoneReady,
+		requireApproval,
+		isGuestFormValid = true,
+		homeHref = '/'
+	}: Props = $props();
 
 	// read-only views of the shared flow; navigation goes through flow.* below
 	let step = $derived(flow.step);
@@ -24,9 +32,9 @@
 </script>
 
 <div class="actions">
-	{#if step === 1 && viewDate}
+	{#if timezoneReady && step === 1 && viewDate}
 		<p class="summary">You selected {formatDate(viewDate)}</p>
-	{:else if step === 2 && selectedSlot}
+	{:else if timezoneReady && step === 2 && selectedSlot}
 		<p class="summary">You selected {formatTime(selectedSlot, userTz)}</p>
 	{/if}
 
@@ -65,7 +73,7 @@
 			type="submit"
 			form="appointment-form"
 			class="button"
-			disabled={!selectedSlot || !canSubmit}
+			disabled={!flow.canSubmit || !isGuestFormValid}
 		>
 			{#if isReschedule}Confirm Reschedule{:else if requireApproval}Request{:else}Schedule{/if}
 		</button>

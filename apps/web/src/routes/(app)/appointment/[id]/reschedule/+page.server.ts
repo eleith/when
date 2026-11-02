@@ -16,7 +16,7 @@ import {
 	validateReason
 } from '#lib/server/appointment/form.server.js';
 import { appointmentContext } from '#lib/server/appointment/context.js';
-import { toPublicAppointment, toPublicEventType } from '#lib/server/appointment/sanitize.js';
+import { toRescheduleAppointment, toPublicEventType } from '#lib/server/appointment/sanitize.js';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params, url, locals }) => {
@@ -42,6 +42,7 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 		now
 	});
 	const rescheduleError = ctx.kind === 'error' ? ctx.code : null;
+	const formFields = resolveFormFields(eventType);
 
 	const { bookingDurations, slotsByDuration, workingWindows, busyBlocks } = await loadAvailability(
 		getDb(),
@@ -58,12 +59,12 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 			: `/appointment/${row.id}/reschedule`;
 	return {
 		eventType: toPublicEventType(row.event_type_id, eventType, role, bookingDurations),
-		formFields: resolveFormFields(eventType),
+		formFields,
 		formAction,
 		guestFieldsDisabled: role === 'host' && rescheduleError === null,
 		availability: { slotsByDuration, workingWindows, busyBlocks },
 		reschedule: {
-			appt: rescheduleError ? null : toPublicAppointment(row, role),
+			appt: rescheduleError ? null : toRescheduleAppointment(row, role, formFields),
 			error: rescheduleError,
 			token
 		},
@@ -84,9 +85,6 @@ export const actions: Actions = {
 		if (!found || found.cancel_token !== token) {
 			return fail(403, { error: 'Invalid reschedule token.' });
 		}
-		if (found.start_time === slotStr) {
-			return fail(400, { error: 'Please select a new time slot.' });
-		}
 
 		const cfg = getConfig();
 		const eventType = cfg.meetings[found.event_type_id];
@@ -104,6 +102,11 @@ export const actions: Actions = {
 		const duration = resolveDuration(eventType, 'guest', form, found);
 		if (duration === null) return fail(400, { error: 'Please pick a valid meeting length.' });
 
+		const end = start.add({ minutes: duration });
+		if (start.equals(found.start_time) && end.equals(found.end_time)) {
+			return fail(400, { error: 'Please select a new time or duration.' });
+		}
+
 		// Re-validate the slot is currently bookable, ignoring the appointment's own current slot.
 		const bookable = await isRescheduleSlotBookable(
 			getDb(),
@@ -111,7 +114,7 @@ export const actions: Actions = {
 			found.event_type_id,
 			eventType,
 			'guest',
-			slotStr,
+			start.toString(),
 			duration,
 			found
 		);
@@ -119,7 +122,6 @@ export const actions: Actions = {
 			return fail(409, { error: 'That time is no longer available. Please pick another.' });
 		}
 
-		const end = start.add({ minutes: duration });
 		const result = await rescheduleAppointment(appointmentContext(), {
 			appointmentId: found.id,
 			initiator: 'guest',
@@ -130,6 +132,9 @@ export const actions: Actions = {
 			reason
 		});
 		if (!result.ok) {
+			if (result.reason === 'no_changes') {
+				return fail(400, { error: 'Please select a new time or duration.' });
+			}
 			if (result.reason === 'slot_taken') {
 				return fail(409, { error: 'That time was just taken. Please pick another.' });
 			}

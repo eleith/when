@@ -19,10 +19,6 @@ export const actions: Actions = {
 		const found = await findAppointment(getDb(), params.id);
 		if (!found) return fail(404, { error: 'Appointment not found.' });
 
-		if (found.start_time === slotStr) {
-			return fail(400, { error: 'Please select a new time slot.' });
-		}
-
 		const cfg = getConfig();
 		const eventType = cfg.meetings[found.event_type_id];
 		if (!eventType) return fail(409, { error: 'This meeting type no longer exists.' });
@@ -34,6 +30,11 @@ export const actions: Actions = {
 		const duration = resolveDuration(eventType, 'host', form, found);
 		if (duration === null) return fail(400, { error: 'Please pick a valid meeting length.' });
 
+		const end = start.add({ minutes: duration });
+		if (start.equals(found.start_time) && end.equals(found.end_time)) {
+			return fail(400, { error: 'Please select a new time or duration.' });
+		}
+
 		// Re-validate the slot is currently bookable, ignoring the appointment's own current slot.
 		const bookable = await isRescheduleSlotBookable(
 			getDb(),
@@ -41,7 +42,7 @@ export const actions: Actions = {
 			found.event_type_id,
 			eventType,
 			'host',
-			slotStr,
+			start.toString(),
 			duration,
 			found
 		);
@@ -49,7 +50,6 @@ export const actions: Actions = {
 			return fail(409, { error: 'That time is no longer available. Please pick another.' });
 		}
 
-		const end = start.add({ minutes: duration });
 		const result = await rescheduleAppointment(appointmentContext(), {
 			appointmentId: found.id,
 			initiator: 'host', // Admin is always the host
@@ -58,6 +58,9 @@ export const actions: Actions = {
 			reason
 		});
 		if (!result.ok) {
+			if (result.reason === 'no_changes') {
+				return fail(400, { error: 'Please select a new time or duration.' });
+			}
 			if (result.reason === 'slot_taken') {
 				return fail(409, { error: 'That time was just taken. Please pick another.' });
 			}

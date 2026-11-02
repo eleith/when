@@ -1,6 +1,7 @@
 import { expect, test } from './support/test.ts';
 import { readAppointment } from './support/database.ts';
 import { pickFirstBookableDay, pickSlotFromEndOfDay } from './support/wizard.ts';
+import { signInAsAdmin } from './support/auth.ts';
 
 test('conditional questions are required only while visible and hidden answers are not saved', async ({
 	page
@@ -12,6 +13,7 @@ test('conditional questions are required only while visible and hidden answers a
 
 	await page.getByLabel('Your name').fill('Phone Guest');
 	await page.getByLabel('Phone number').fill('+1 202 555 0123');
+	await page.getByLabel('Meeting place').selectOption('Garden trail');
 	const focus = page.getByLabel('Meeting focus');
 	const details = page.getByLabel('Project details');
 	const submit = page.getByRole('button', { name: 'Request', exact: true });
@@ -39,6 +41,7 @@ test('conditional questions are required only while visible and hidden answers a
 		event_type_id: 'conditional-form',
 		guest_name: 'Phone Guest',
 		guest_email: null,
+		location: 'Garden trail',
 		status: 'pending'
 	});
 	// This form legitimately collects a phone number instead of an email address.
@@ -46,4 +49,18 @@ test('conditional questions are required only while visible and hidden answers a
 		{ name: 'phone', label: 'Phone number', type: 'phone', value: '+1 202 555 0123' },
 		{ name: 'focus', label: 'Meeting focus', type: 'choice', value: 'General question' }
 	]);
+
+	const reschedule = `/appointment/${id}/reschedule?token=${encodeURIComponent(row.cancel_token)}`;
+	for (const role of ['guest', 'host']) {
+		if (role === 'host') await signInAsAdmin(page);
+		await page.goto(reschedule);
+		await page.getByRole('button', { name: 'Continue', exact: true }).click();
+		await page.getByRole('button', { name: 'Confirm', exact: true }).click();
+		const location = page.getByLabel('Meeting place');
+		await expect(location).toHaveValue('Garden trail');
+		await expect(page.getByLabel('Meeting focus')).toHaveValue('General question');
+		if (role === 'guest') await expect(location).toBeEnabled();
+		else await expect(location).toBeDisabled();
+	}
+	expect(await readAppointment(id)).toEqual(row);
 });

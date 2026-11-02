@@ -1,4 +1,4 @@
-import { parseGuestAnswers, type Meeting } from '@when/config';
+import { parseGuestAnswers, type FormField, type Meeting } from '@when/config';
 import { parseActionLog, type ActionLogEntry, type Appointment } from '@when/db';
 import { resolveAvailabilityLimits } from '../availability/settings';
 import type { AppointmentRole } from './actions';
@@ -56,6 +56,21 @@ export function toPublicEventType(
 		padding_after_minutes: limits.buffer_after,
 		notice_minutes: eventType.notice_minutes
 	};
+}
+
+export function toRescheduleAppointment(
+	row: Appointment,
+	role: AppointmentRole,
+	formFields: readonly FormField[]
+): PublicAppointment {
+	const appointment = toPublicAppointment(row, role);
+	if (role !== 'guest' || row.status !== 'pending') return appointment;
+
+	// Restore an already-public form choice, not a private host-entered location.
+	const field = formFields.find((field) => field.type === 'event_location');
+	const location = field?.choices?.find((choice) => choice === row.location);
+	if (location === undefined) return appointment;
+	return { ...appointment, location };
 }
 
 export function toPublicAppointment(row: Appointment, role: AppointmentRole): PublicAppointment {

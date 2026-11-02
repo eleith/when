@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest';
-import { toPublicEventType, toPublicAppointment } from './sanitize';
+import { toPublicEventType, toPublicAppointment, toRescheduleAppointment } from './sanitize';
 import { resolveBookingDurations } from './duration';
-import type { Meeting } from '@when/config';
+import type { FormField, Meeting } from '@when/config';
 import type { Appointment } from '@when/db';
 import { validConfig } from '#lib/server/__fixtures__/valid-config.js';
 
@@ -285,6 +285,55 @@ describe('toPublicAppointment decline note privacy', () => {
 			},
 			{ action: 'decline', actor: 'host', at, payload: { note: declineNote, metadata: undefined } }
 		]);
+	});
+});
+
+describe('toRescheduleAppointment', () => {
+	const locationField: FormField = {
+		name: 'meeting_place',
+		type: 'event_location',
+		label: 'Meeting place',
+		required: false,
+		choices: ['Lakeside path', 'Garden trail']
+	};
+
+	test('restores a pending guest location choice only in the reschedule form', () => {
+		const row: Appointment = { ...baseRow, status: 'pending', location: 'Garden trail' };
+		const original = structuredClone(row);
+		const guest = toRescheduleAppointment(row, 'guest', [locationField]);
+		expect(guest.location).toBe('Garden trail');
+		expect(guest.note).toBeNull();
+		expect(guest.video_chat).toBeNull();
+		expect(guest).not.toHaveProperty('cancel_token');
+		expect(toPublicAppointment(row, 'guest').location).toBeNull();
+		expect(toRescheduleAppointment(row, 'host', [locationField]).location).toBe('Garden trail');
+		expect(row).toEqual(original);
+	});
+
+	test('does not reveal a private host-entered location to a pending guest', () => {
+		const row: Appointment = { ...baseRow, status: 'pending' };
+		const guest = toRescheduleAppointment(row, 'guest', [locationField]);
+		expect(guest.location).toBeNull();
+		expect(guest.note).toBeNull();
+		expect(guest.video_chat).toBeNull();
+		expect(toRescheduleAppointment(row, 'host', [locationField]).location).toBe(row.location);
+	});
+
+	test.for([
+		[],
+		[{ name: 'meeting_place', type: 'event_location', label: 'Meeting place', required: false }],
+		[
+			{
+				name: 'other',
+				type: 'choice',
+				label: 'Other question',
+				required: false,
+				choices: ['Garden trail']
+			}
+		]
+	] satisfies FormField[][])('requires an explicit location-choice field: %j', (fields) => {
+		const row: Appointment = { ...baseRow, status: 'pending', location: 'Garden trail' };
+		expect(toRescheduleAppointment(row, 'guest', fields).location).toBeNull();
 	});
 });
 

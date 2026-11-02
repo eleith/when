@@ -47,7 +47,7 @@ export interface RescheduleAppointmentInput {
 
 export type RescheduleAppointmentResult =
 	| { ok: true; appointment: Appointment }
-	| { ok: false; reason: 'gated' | 'conflict' | 'slot_taken' };
+	| { ok: false; reason: 'gated' | 'conflict' | 'slot_taken' | 'no_changes' };
 
 function isUniqueViolation(err: unknown): boolean {
 	if (!err || typeof err !== 'object') return false;
@@ -78,6 +78,13 @@ export async function rescheduleAppointment(
 				const duration = (Date.parse(input.newEnd) - Date.parse(input.newStart)) / 60_000;
 				const profile = resolveBookingDurations(eventType, input.initiator, appointment);
 				if (!profile.durations.includes(duration)) return { ok: false, reason: 'gated' } as const;
+			}
+
+			if (
+				Temporal.Instant.from(input.newStart).equals(appointment.start_time) &&
+				Temporal.Instant.from(input.newEnd).equals(appointment.end_time)
+			) {
+				return { ok: false, reason: 'no_changes' } as const;
 			}
 
 			const details = rescheduleDetails(appointment, input, eventType);

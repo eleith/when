@@ -7,6 +7,7 @@ import {
 	formatWeekday,
 	formatTime,
 	formatTimeShort,
+	formatTimeRangeShort,
 	formatTimeRange,
 	formatSlot,
 	formatTimestamp,
@@ -110,6 +111,16 @@ describe('formatTimeShort', () => {
 
 	test('returns the input unchanged on bad data', () => {
 		expect(formatTimeShort('nope', 'UTC')).toBe('nope');
+	});
+});
+
+describe('formatTimeRangeShort', () => {
+	test('joins compact start and end times', () => {
+		expect(formatTimeRangeShort(ISO, ISO_END, 'UTC')).toBe('9:30am – 10:00am');
+	});
+
+	test('keeps a range crossing local midnight time-only', () => {
+		expect(formatTimeRangeShort(ISO, ISO_END, 'Pacific/Kiritimati')).toBe('11:30pm – 12:00am');
 	});
 });
 

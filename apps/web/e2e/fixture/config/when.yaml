@@ -88,6 +88,11 @@ meetings:
         label: 'Meeting focus'
         required: true
         choices: ['General question', 'Project review']
+      - name: 'meeting_place'
+        type: 'event_location'
+        label: 'Meeting place'
+        required: false
+        choices: ['Lakeside path', 'Garden trail']
       - name: 'details'
         type: 'paragraph'
         label: 'Project details'

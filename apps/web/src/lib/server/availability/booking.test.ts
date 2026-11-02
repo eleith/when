@@ -301,22 +301,25 @@ describe('active appointments and self-exclusion', () => {
 		expect(availability.slotsByDuration[30][DAY]).not.toContain(`${DAY}T10:00:00Z`);
 	});
 
-	test('rescheduling excludes itself, not another meeting type', async () => {
-		const cfg = makeConfig([30]);
+	test('same-start duration changes exclude self but not conflicts beyond the old end', async () => {
+		const cfg = makeConfig([15, 30, 60, 90]);
 		cfg.meetings.lunch = { ...cfg.meetings[CHAT] };
 		await book(CHAT, `${DAY}T10:00:00Z`, `${DAY}T10:30:00Z`);
 		await book('lunch', `${DAY}T11:00:00Z`, `${DAY}T11:30:00Z`);
 		const own = `${DAY}T10:00:00Z`;
-		const ownSlot = await isRescheduleSlotBookable(
-			db,
-			cfg,
-			CHAT,
-			cfg.meetings[CHAT],
-			'guest',
-			own,
-			30,
-			currentAppointment(own)
-		);
+		for (const duration of [15, 60, 90]) {
+			const ownSlot = await isRescheduleSlotBookable(
+				db,
+				cfg,
+				CHAT,
+				cfg.meetings[CHAT],
+				'guest',
+				own,
+				duration,
+				currentAppointment(own)
+			);
+			expect(ownSlot, `same start with ${duration} minutes`).toBe(duration < 90);
+		}
 		const otherSlot = await isRescheduleSlotBookable(
 			db,
 			cfg,
@@ -327,7 +330,6 @@ describe('active appointments and self-exclusion', () => {
 			30,
 			currentAppointment(own)
 		);
-		expect(ownSlot).toBe(true);
 		expect(otherSlot).toBe(false);
 	});
 

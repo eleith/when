@@ -254,45 +254,67 @@ describe('rescheduleAppointment', () => {
 		vi.mocked(enqueueAppointmentReconciliation).mockResolvedValue(undefined);
 	});
 
-	test('happy path: creates a linked new row, ends the old one, queues a calendar sync', async () => {
-		const db = await makeDb();
-		try {
-			await db
-				.insertInto('appointments')
-				.values({ ...opBaseRow, id: 'r1', status: 'confirmed', cancel_token: 't1' })
-				.execute();
-			const row = await fetchRow(db, 'r1');
+	test.each([
+		{ initiator: 'guest', newStart: '2099-01-02T10:00:00Z', newEnd: '2099-01-02T10:30:00Z' },
+		{ initiator: 'guest', newStart: opBaseRow.start_time, newEnd: '2099-01-01T16:00:00Z' },
+		{ initiator: 'host', newStart: opBaseRow.start_time, newEnd: '2099-01-01T17:00:00Z' }
+	] as const)(
+		'creates a linked successor and sync for $initiator interval $newStart – $newEnd',
+		async ({ initiator, newStart, newEnd }) => {
+			const cfg = structuredClone(validConfig);
+			cfg.meetings['30-min-chat'].additional_duration_minutes = [60];
+			const db = await makeDb();
+			try {
+				await db
+					.insertInto('appointments')
+					.values({ ...opBaseRow, id: 'r1', status: 'confirmed', cancel_token: 't1' })
+					.execute();
+				const row = await fetchRow(db, 'r1');
 
-			const result = await rescheduleAppointment(
-				{ db, cfg: validConfig, clock: systemClock },
-				{
-					appointmentId: row.id,
-					initiator: 'guest',
-					newStart: '2099-01-02T10:00:00Z',
-					newEnd: '2099-01-02T10:30:00Z'
+				const result = await rescheduleAppointment(
+					{ db, cfg, clock: systemClock },
+					{
+						appointmentId: row.id,
+						initiator,
+						newStart,
+						newEnd
+					}
+				);
+
+				expect(result.ok).toBe(true);
+				if (result.ok) {
+					const next = result.appointment;
+					expect(next.id).not.toBe('r1');
+					expect(next.start_time).toBe(newStart);
+					expect(next.end_time).toBe(newEnd);
+					expect(next.status).toBe('confirmed');
+					expect(next.ics_sequence).toBe(1);
+					expect(next.origin_id).toBe('r1');
+					expect(next.cancel_token).not.toBe('t1');
+
+					const old = await fetchRow(db, 'r1');
+					expect(old.status).toBe('rescheduled');
+					expect(old.action_log).toBe(next.action_log);
+					expect(parseActionLog(next.action_log)).toEqual([
+						expect.objectContaining({
+							action: 'reschedule',
+							actor: initiator,
+							payload: expect.objectContaining({
+								metadata: { previous_id: row.id, next_id: next.id }
+							})
+						})
+					]);
+
+					expect(enqueueAppointmentReconciliation).toHaveBeenCalledExactlyOnceWith(
+						next,
+						`rescheduled-by-${initiator}`
+					);
 				}
-			);
-
-			expect(result.ok).toBe(true);
-			if (result.ok) {
-				const next = result.appointment;
-				expect(next.id).not.toBe('r1');
-				expect(next.start_time).toBe('2099-01-02T10:00:00Z');
-				expect(next.end_time).toBe('2099-01-02T10:30:00Z');
-				expect(next.status).toBe('confirmed');
-				expect(next.ics_sequence).toBe(1);
-				expect(next.origin_id).toBe('r1');
-				expect(next.cancel_token).not.toBe('t1');
-
-				const old = await fetchRow(db, 'r1');
-				expect(old.status).toBe('rescheduled');
-
-				expect(enqueueAppointmentReconciliation).toHaveBeenCalledWith(next, 'rescheduled-by-guest');
+			} finally {
+				await db.destroy();
 			}
-		} finally {
-			await db.destroy();
 		}
-	});
+	);
 
 	test('guest re-collect: the new row takes the re-submitted form values', async () => {
 		const db = await makeDb();

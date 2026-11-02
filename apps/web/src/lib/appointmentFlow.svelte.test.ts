@@ -115,6 +115,119 @@ describe('createAppointmentFlow duration', () => {
 	});
 });
 
+describe('createAppointmentFlow rescheduling', () => {
+	it('normalizes the original instant and starts on the calendar with navigation allowed but no-op submission blocked', () => {
+		const flow = makeFlow({
+			reschedule: { start: '2026-07-20T10:00:00.000Z', duration: 30 }
+		});
+		expect(flow.step).toBe(1);
+		expect(flow.viewDate).toBe('2026-07-20');
+		expect(flow.selectedSlot).toBe(SLOT_10);
+		expect(flow.hasChanges).toBe(false);
+		expect(flow.canAdvance).toBe(true);
+		expect(flow.canSubmit).toBe(false);
+		flow.advance();
+		expect(flow.step).toBe(2);
+		expect(flow.canAdvance).toBe(true);
+		flow.advance();
+		expect(flow.step).toBe(3);
+		expect(flow.canSubmit).toBe(false);
+		flow.goBack();
+		flow.goToStep(3);
+		expect(flow.step).toBe(3);
+		expect(flow.selectedSlot).toBe(SLOT_10);
+		expect(flow.hasChanges).toBe(false);
+		expect(flow.canSubmit).toBe(false);
+	});
+
+	it('retains a fitting start across length changes and blocks only submission when the booked length is restored', () => {
+		const flow = makeFlow({
+			initialDuration: 60,
+			reschedule: { start: SLOT_10, duration: 60 }
+		});
+		flow.setDuration(30);
+		expect(flow.step).toBe(1);
+		expect(flow.duration).toBe(30);
+		expect(flow.selectedSlot).toBe(SLOT_10);
+		expect(flow.hasChanges).toBe(true);
+		expect(flow.canAdvance).toBe(true);
+		expect(flow.canSubmit).toBe(true);
+		flow.advance();
+		flow.advance();
+		expect(flow.step).toBe(3);
+		expect(flow.canSubmit).toBe(true);
+		flow.setDuration(60);
+		expect(flow.duration).toBe(60);
+		expect(flow.selectedSlot).toBe(SLOT_10);
+		expect(flow.hasChanges).toBe(false);
+		expect(flow.canAdvance).toBe(true);
+		expect(flow.canSubmit).toBe(false);
+		flow.goBack();
+		expect(flow.step).toBe(2);
+		flow.advance();
+		expect(flow.step).toBe(3);
+		expect(flow.canSubmit).toBe(false);
+	});
+
+	it('allows navigation through unoffered original context and partial day or duration changes without allowing submission', () => {
+		const original = '2026-07-20T11:30:00Z';
+		const flow = makeFlow({
+			slotsByDuration: {
+				30: { '2026-07-20': [original], '2026-07-21': ['2026-07-21T11:30:00Z'] },
+				60: { '2026-07-20': [SLOT_10], '2026-07-21': ['2026-07-21T11:30:00Z'] }
+			},
+			initialDuration: 60,
+			reschedule: { start: '2026-07-20T11:30:00.000Z', duration: 60 }
+		});
+		flow.setTz('Pacific/Kiritimati');
+		expect(flow.step).toBe(1);
+		expect(flow.viewDate).toBe('2026-07-21');
+		expect(flow.selectedSlot).toBe(original);
+		expect(flow.allSlots).not.toContain(original);
+		expect(flow.hasChanges).toBe(false);
+		expect(flow.canAdvance).toBe(true);
+		expect(flow.canSubmit).toBe(false);
+		flow.advance();
+		expect(flow.step).toBe(2);
+		flow.advance();
+		expect(flow.step).toBe(3);
+		expect(flow.canSubmit).toBe(false);
+
+		flow.goBack();
+		flow.setDuration(30);
+		expect(flow.selectedSlot).toBe(original);
+		expect(flow.hasChanges).toBe(true);
+		expect(flow.canSubmit).toBe(true);
+		flow.goBack();
+		expect(flow.viewDate).toBe('2026-07-21');
+		flow.selectDate('2026-07-22');
+		expect(flow.viewDate).toBe('2026-07-22');
+		expect(flow.selectedSlot).toBeNull();
+		expect(flow.hasChanges).toBe(true);
+		expect(flow.canAdvance).toBe(true);
+		expect(flow.canSubmit).toBe(false);
+		flow.setDuration(60);
+		expect(flow.duration).toBe(60);
+		expect(flow.viewDate).toBe('2026-07-22');
+		expect(flow.selectedSlot).toBeNull();
+		expect(flow.hasChanges).toBe(true);
+		expect(flow.canAdvance).toBe(true);
+		expect(flow.canSubmit).toBe(false);
+		flow.advance();
+		expect(flow.step).toBe(2);
+		flow.advance();
+		expect(flow.step).toBe(3);
+		expect(flow.canSubmit).toBe(false);
+		flow.openDate('2026-07-21');
+		expect(flow.viewDate).toBe('2026-07-21');
+		expect(flow.selectedSlot).toBeNull();
+		flow.setDuration(30);
+		expect(flow.hasChanges).toBe(true);
+		expect(flow.canAdvance).toBe(true);
+		expect(flow.canSubmit).toBe(false);
+	});
+});
+
 describe('createAppointmentFlow navigation', () => {
 	it('blocks advancing from step 1 until a date is in view', () => {
 		const flow = makeFlow();
@@ -182,13 +295,15 @@ describe('createAppointmentFlow selection', () => {
 		expect(flow.selectedSlot).toBeNull();
 	});
 
-	it('openDate jumps to the timeline and drops any slot', () => {
+	it('openDate preserves a slot on the viewed day and drops it on another day', () => {
 		const flow = makeFlow();
 		flow.selectSlot(SLOT_10);
 		flow.openDate('2026-07-20');
 		expect(flow.viewDate).toBe('2026-07-20');
-		expect(flow.selectedSlot).toBeNull();
+		expect(flow.selectedSlot).toBe(SLOT_10);
 		expect(flow.step).toBe(2);
+		flow.openDate('2026-07-21');
+		expect(flow.selectedSlot).toBeNull();
 	});
 
 	it('keeps the selected instant and updates its day when the timezone changes', () => {
