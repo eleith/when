@@ -7,6 +7,8 @@ export {
 } from './load.js';
 export type { ConfigIssue } from './load.js';
 export type { ConfigEnvironment, ConfigLoadOptions, ConfigPathOptions } from './options.js';
+export { startConfigReloading } from './monitor.js';
+export type { ConfigReloadOptions } from './monitor.js';
 export { loadConfig, reloadConfig, watchConfig, configChanged } from './store.js';
 export type { ReloadResult } from './store.js';
 export { interpolate, MissingEnvVarsError } from './interpolate.js';
