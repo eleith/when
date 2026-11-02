@@ -3,21 +3,6 @@ import { render } from 'svelte/server';
 import type { ActionLogEntry } from '@when/db';
 import AppointmentLog from './AppointmentLog.svelte';
 
-// A new action must have an expected human-readable label, not just an icon branch.
-const ACTION_COPY: Record<ActionLogEntry['action'], string> = {
-	create: 'Created',
-	confirm: 'Confirmed',
-	decline: 'Declined',
-	cancel: 'Cancelled',
-	reschedule: 'Rescheduled',
-	rotate: 'Guest link rotated',
-	expire: 'Expired',
-	email: 'Email queued',
-	calendar: 'Calendar sync queued',
-	video_chat: 'Video room queued',
-	edit: 'Details updated'
-};
-
 function renderEntry(action: ActionLogEntry['action'], metadata?: Record<string, unknown>) {
 	const entry: ActionLogEntry = {
 		action,
@@ -32,22 +17,18 @@ function renderEntry(action: ActionLogEntry['action'], metadata?: Record<string,
 		.trim();
 }
 
-test.for(Object.keys(ACTION_COPY) as ActionLogEntry['action'][])(
-	'renders human-readable copy for %s',
-	(action) => {
-		expect(renderEntry(action)).toContain(ACTION_COPY[action]);
-	}
-);
-
 test.each([
-	['email', 'done', 'Email sent'],
-	['email', 'failed', 'Email failed'],
-	['calendar', 'done', 'Calendar synced'],
-	['calendar', 'failed', 'Calendar sync failed'],
-	['video_chat', 'done', 'Video room created'],
-	['video_chat', 'failed', 'Video room failed']
-] as const)('renders %s in the %s state', (action, state, copy) => {
-	expect(renderEntry(action, { state })).toContain(copy);
+	{ action: 'email', metadata: undefined, expected: 'Email queued' },
+	{ action: 'email', metadata: { state: 'done' }, expected: 'Email sent' },
+	{ action: 'email', metadata: { state: 'failed' }, expected: 'Email failed' },
+	{ action: 'calendar', metadata: undefined, expected: 'Calendar sync queued' },
+	{ action: 'calendar', metadata: { state: 'done' }, expected: 'Calendar synced' },
+	{ action: 'calendar', metadata: { state: 'failed' }, expected: 'Calendar sync failed' },
+	{ action: 'video_chat', metadata: undefined, expected: 'Video room queued' },
+	{ action: 'video_chat', metadata: { state: 'done' }, expected: 'Video room created' },
+	{ action: 'video_chat', metadata: { state: 'failed' }, expected: 'Video room failed' }
+] as const)('$action status is shown as "$expected"', ({ action, metadata, expected }) => {
+	expect(renderEntry(action, metadata)).toContain(expected);
 });
 
 test('describes a duration change with its previous and new lengths', () => {

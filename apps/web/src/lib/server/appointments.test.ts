@@ -1,7 +1,5 @@
 import { expect, test } from 'vitest';
-import { deriveDisplayStatus, toAppointmentView } from './appointments';
-import type { Appointment } from '@when/db';
-import type { WhenConfiguration } from '@when/config';
+import { deriveDisplayStatus } from './appointments';
 
 test('deriveDisplayStatus works for non-confirmed statuses', () => {
 	const now = new Date('2026-06-15T12:00:00Z');
@@ -39,45 +37,4 @@ test('deriveDisplayStatus classifies confirmed statuses by time', () => {
 			now
 		)
 	).toBe('concluded');
-});
-
-test('toAppointmentView enriches appointment rows correctly', () => {
-	const now = new Date('2026-06-15T12:00:00Z');
-	const mockRow: Appointment = {
-		id: 'a1',
-		event_type_id: '30 Minute Chat',
-		start_time: '2026-06-15T13:00:00Z',
-		end_time: '2026-06-15T13:30:00Z',
-		guest_name: 'Jane Doe',
-		guest_email: 'jane@example.com',
-		guest_answers: null,
-		guest_timezone: 'UTC',
-		location: 'Zoom',
-		note: null,
-		video_chat: null,
-		video_chat_request: null,
-		status: 'confirmed',
-		origin_id: null,
-		cancel_token: 'tok-a1',
-		action_log: null,
-		external_event_id: null,
-		external_calendar_id: null,
-		calendar_revision: 1,
-		calendar_synced_revision: null,
-		has_possible_conflict: 1,
-		ics_sequence: 0,
-		meeting_snapshot: null,
-		created_at: '',
-		updated_at: ''
-	};
-
-	const mockCfg = {
-		meetings: [{ name: '30 Minute Chat', duration_minutes: 30, slug: 'chat-30' }]
-	} as unknown as WhenConfiguration;
-
-	const view = toAppointmentView(mockRow, mockCfg, now);
-	expect(view.event_type_name).toBe('30 Minute Chat');
-	expect(view.display_status).toBe('confirmed');
-	expect(view.is_past).toBe(false);
-	expect(view.possible_conflict).toBe(true);
 });

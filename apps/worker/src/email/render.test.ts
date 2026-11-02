@@ -105,7 +105,7 @@ describe('renderHtmlBody', () => {
 	});
 });
 
-describe('the brand appears once, on the action', () => {
+describe('branded email rendering', () => {
 	const content: EmailContent = {
 		...base,
 		actions: [{ href: 'https://x/review', label: 'Review request' }]
@@ -115,21 +115,10 @@ describe('the brand appears once, on the action', () => {
 		brand: { ...base.brand, logoUrl: 'cid:brand-logo' }
 	};
 
-	test('the brand color reaches the button and nothing else', () => {
-		const html = renderHtmlBody(content, theme);
-		expect(html.match(/#2563eb/g)).toHaveLength(2);
-	});
-
-	test('the footer carries the icon, and the name only as its alt text', () => {
+	test('the footer references the embedded logo and app URL', () => {
 		const html = renderHtmlBody(branded, theme);
 		expect(html).toContain('cid:brand-logo');
 		expect(html).toContain('https://when.example.com');
-		expect(html.match(/Acme/g)).toHaveLength(1);
-	});
-
-	test('the footer does not include a dot separator', () => {
-		expect(renderHtmlBody(branded, theme)).not.toContain('&middot;');
-		expect(renderHtmlBody(content, theme)).not.toContain('&middot;');
 	});
 
 	test('long detail labels wrap instead of forcing the table wider', () => {

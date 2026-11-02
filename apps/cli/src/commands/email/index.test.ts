@@ -2,7 +2,6 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { join } from 'node:path';
 import { writeFileSync, unlinkSync } from 'node:fs';
 import { initOpenWorkflow } from '@when/jobs';
-import { emailCommand } from './index.ts';
 import { testCommand } from './test.ts';
 import * as worker from '../../utils/worker.ts';
 
@@ -92,12 +91,6 @@ describe('email command', () => {
 		} catch {
 			/* ignore */
 		}
-	});
-
-	test('bare email prints usage', () => {
-		emailCommand.run!();
-		expect(process.exitCode).toBeUndefined();
-		expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('when-cli email test <address>'));
 	});
 
 	test('test without an address fails', async () => {

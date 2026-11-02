@@ -352,20 +352,72 @@ test.each([
 	}
 );
 
+const reference = { calendarId: 'work', eventId: 'event' };
+
 test.each([
-	['matching pair', 'work', 'event', 'work', 'event', true],
-	['changed calendar', 'other', 'event', 'work', 'event', false],
-	['changed event', 'work', 'other', 'work', 'event', false],
-	['matching empty pair', null, null, null, null, true],
-	['matching calendar only', 'work', null, 'work', null, true],
-	['matching event only', null, 'event', null, 'event', true],
-	['calendar filled since receipt', 'work', 'event', null, 'event', false],
-	['event filled since receipt', 'work', 'event', 'work', null, false],
-	['calendar cleared since receipt', null, 'event', 'work', 'event', false],
-	['event cleared since receipt', 'work', null, 'work', 'event', false]
-] as const)(
-	'markSynced requires a null-safe reference match: %s',
-	async (_name, calendarId, eventId, expectedCalendarId, expectedEventId, matches) => {
+	{
+		name: 'matching pair',
+		currentReference: reference,
+		receiptReference: reference,
+		expectedSyncedRevision: 2
+	},
+	{
+		name: 'changed calendar',
+		currentReference: { ...reference, calendarId: 'other' },
+		receiptReference: reference,
+		expectedSyncedRevision: 1
+	},
+	{
+		name: 'changed event',
+		currentReference: { ...reference, eventId: 'other' },
+		receiptReference: reference,
+		expectedSyncedRevision: 1
+	},
+	{
+		name: 'matching empty pair',
+		currentReference: { calendarId: null, eventId: null },
+		receiptReference: { calendarId: null, eventId: null },
+		expectedSyncedRevision: 2
+	},
+	{
+		name: 'matching calendar only',
+		currentReference: { calendarId: 'work', eventId: null },
+		receiptReference: { calendarId: 'work', eventId: null },
+		expectedSyncedRevision: 2
+	},
+	{
+		name: 'matching event only',
+		currentReference: { calendarId: null, eventId: 'event' },
+		receiptReference: { calendarId: null, eventId: 'event' },
+		expectedSyncedRevision: 2
+	},
+	{
+		name: 'calendar filled since receipt',
+		currentReference: reference,
+		receiptReference: { ...reference, calendarId: null },
+		expectedSyncedRevision: 1
+	},
+	{
+		name: 'event filled since receipt',
+		currentReference: reference,
+		receiptReference: { ...reference, eventId: null },
+		expectedSyncedRevision: 1
+	},
+	{
+		name: 'calendar cleared since receipt',
+		currentReference: { ...reference, calendarId: null },
+		receiptReference: reference,
+		expectedSyncedRevision: 1
+	},
+	{
+		name: 'event cleared since receipt',
+		currentReference: { ...reference, eventId: null },
+		receiptReference: reference,
+		expectedSyncedRevision: 1
+	}
+])(
+	'markSynced requires a null-safe reference match: $name',
+	async ({ currentReference, receiptReference, expectedSyncedRevision }) => {
 		const db = await freshDb();
 		try {
 			await db
@@ -374,39 +426,76 @@ test.each([
 					appt({
 						calendar_revision: 2,
 						calendar_synced_revision: 1,
-						external_calendar_id: calendarId,
-						external_event_id: eventId
+						external_calendar_id: currentReference.calendarId,
+						external_event_id: currentReference.eventId
 					})
 				)
 				.execute();
 			const before = await db.selectFrom('appointments').selectAll().executeTakeFirstOrThrow();
 
-			await markSynced(db, 'a', 2, {
-				calendarId: expectedCalendarId,
-				eventId: expectedEventId
-			});
+			await markSynced(db, 'a', 2, receiptReference);
 
 			const after = await db.selectFrom('appointments').selectAll().executeTakeFirstOrThrow();
-			expect(after).toEqual({ ...before, calendar_synced_revision: matches ? 2 : 1 });
+			expect(after).toEqual({ ...before, calendar_synced_revision: expectedSyncedRevision });
 		} finally {
 			await db.destroy();
 		}
 	}
 );
 
-const reference = { calendarId: 'work', eventId: 'event' };
-
 test.each([
-	['current pair and revision', 2, 'cancelled', 'work', 'event', true],
-	['stale revision', 3, 'cancelled', 'work', 'event', false],
-	['changed calendar', 2, 'cancelled', 'other', 'event', false],
-	['changed event', 2, 'cancelled', 'work', 'other', false],
-	['missing calendar', 2, 'cancelled', null, 'event', false],
-	['missing event', 2, 'cancelled', 'work', null, false],
-	['purged row', 2, 'purged', 'work', 'event', false]
-] as const)(
-	'deletion receipt requires the current complete pair and revision: %s',
-	async (_name, revision, status, calendarId, eventId, matches) => {
+	{
+		name: 'current pair and revision',
+		revision: 2,
+		status: 'cancelled',
+		currentReference: reference,
+		deletesReference: true
+	},
+	{
+		name: 'stale revision',
+		revision: 3,
+		status: 'cancelled',
+		currentReference: reference,
+		deletesReference: false
+	},
+	{
+		name: 'changed calendar',
+		revision: 2,
+		status: 'cancelled',
+		currentReference: { ...reference, calendarId: 'other' },
+		deletesReference: false
+	},
+	{
+		name: 'changed event',
+		revision: 2,
+		status: 'cancelled',
+		currentReference: { ...reference, eventId: 'other' },
+		deletesReference: false
+	},
+	{
+		name: 'missing calendar',
+		revision: 2,
+		status: 'cancelled',
+		currentReference: { ...reference, calendarId: null },
+		deletesReference: false
+	},
+	{
+		name: 'missing event',
+		revision: 2,
+		status: 'cancelled',
+		currentReference: { ...reference, eventId: null },
+		deletesReference: false
+	},
+	{
+		name: 'purged row',
+		revision: 2,
+		status: 'purged',
+		currentReference: reference,
+		deletesReference: false
+	}
+])(
+	'deletion receipt requires the current complete pair and revision: $name',
+	async ({ revision, status, currentReference, deletesReference }) => {
 		const db = await freshDb();
 		try {
 			await db
@@ -416,8 +505,8 @@ test.each([
 						status,
 						calendar_revision: revision,
 						calendar_synced_revision: 1,
-						external_calendar_id: calendarId,
-						external_event_id: eventId,
+						external_calendar_id: currentReference.calendarId,
+						external_event_id: currentReference.eventId,
 						ics_sequence: 4,
 						video_chat: 'https://selected.example/room',
 						video_chat_request: 'suppress'
@@ -429,16 +518,16 @@ test.each([
 			await recordCalendarEventDeletion(db, 'a', 2, reference);
 
 			const after = await db.selectFrom('appointments').selectAll().executeTakeFirstOrThrow();
-			expect(after).toEqual(
-				matches
-					? {
-							...before,
-							external_calendar_id: null,
-							external_event_id: null,
-							calendar_synced_revision: 2
-						}
-					: before
-			);
+			let expected = before;
+			if (deletesReference) {
+				expected = {
+					...before,
+					external_calendar_id: null,
+					external_event_id: null,
+					calendar_synced_revision: 2
+				};
+			}
+			expect(after).toEqual(expected);
 		} finally {
 			await db.destroy();
 		}

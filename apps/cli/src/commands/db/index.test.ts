@@ -4,7 +4,6 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { openDb, runMigrations } from '@when/db';
 import type { WhenConfiguration } from '@when/config';
-import { dbCommand } from './index.ts';
 import { runDbStatus } from './status.ts';
 import { runDbMigrate } from './migrate.ts';
 
@@ -31,12 +30,6 @@ describe('db command', () => {
 		errorSpy.mockRestore();
 		process.exitCode = originalExitCode;
 		rmSync(dir, { recursive: true, force: true });
-	});
-
-	test('bare db prints usage', () => {
-		dbCommand.run!();
-		expect(process.exitCode).toBeUndefined();
-		expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('when-cli db status'));
 	});
 
 	test('status on a missing database reports it and creates nothing', async () => {

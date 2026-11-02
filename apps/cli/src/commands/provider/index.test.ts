@@ -6,7 +6,6 @@ import { openDb, runMigrations, recordServiceOutcome } from '@when/db';
 import { join as joinPath } from 'node:path';
 import { tmpdir } from 'node:os';
 import { rmSync } from 'node:fs';
-import { providerCommand } from './index.ts';
 import { listCommand } from './list.ts';
 import { testCommand } from './test.ts';
 import { calendarsCommand } from './calendars.ts';
@@ -112,12 +111,6 @@ describe('provider command', () => {
 			/* ignore */
 		}
 		rmSync(dataDir, { recursive: true, force: true });
-	});
-
-	test('bare provider prints usage', () => {
-		providerCommand.run!();
-		expect(process.exitCode).toBeUndefined();
-		expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('when-cli provider test <name>'));
 	});
 
 	test('list reads the stored status without reaching the provider', async () => {

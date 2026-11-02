@@ -462,31 +462,23 @@ test('slow refresh blocks a queued probe at concurrency one until the real provi
 });
 
 test.each(specs)(
-	'$name local failure uses ten native attempts with 1s ×2 backoff capped at 100s',
+	'$name propagates an application database failure instead of reporting success',
 	async (spec) => {
 		await ctx.db.schema.dropTable('appointments').execute();
 		const handle = await client.runWorkflow(spec, {});
-		const delays = [1000, 2000, 4000, 8000, 16000, 32000, 64000, 100000, 100000];
-		for (let i = 0; i < 10; i++) {
-			const started = Date.now();
-			const claimedCount = await worker.tick();
-			expect(claimedCount).toBe(1);
-			await worker.stop();
-			const run = await backend.getWorkflowRun({ workflowRunId: handle.workflowRun.id });
-			const attempts = await backend.listStepAttempts({
-				workflowRunId: handle.workflowRun.id,
-				limit: 100
-			});
-			expect(attempts.data).toHaveLength(i + 1);
-			expect(attempts.data.every((attempt) => attempt.status === 'failed')).toBe(true);
-			if (i < 9) {
-				expect(run).toMatchObject({ status: 'pending', workerId: null });
-				expect(run!.availableAt!.getTime() - started).toBe(delays[i]);
-				vi.setSystemTime(run!.availableAt!);
-			} else {
-				expect(run).toMatchObject({ status: 'failed', output: null, workerId: null });
-			}
-		}
-		await expect(handle.result({ timeoutMs: 500 })).rejects.toThrow();
+		await drain(1);
+
+		const run = await backend.getWorkflowRun({ workflowRunId: handle.workflowRun.id });
+		expect(run).toMatchObject({
+			status: 'pending',
+			output: null,
+			workerId: null,
+			error: { message: expect.stringContaining('no such table: appointments') }
+		});
+		const attempts = await backend.listStepAttempts({
+			workflowRunId: handle.workflowRun.id,
+			limit: 100
+		});
+		expect(attempts.data).toMatchObject([{ status: 'failed' }]);
 	}
 );

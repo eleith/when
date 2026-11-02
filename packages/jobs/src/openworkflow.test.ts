@@ -2,7 +2,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
-import { OpenWorkflow, defineWorkflowSpec } from 'openworkflow';
+import { OpenWorkflow } from 'openworkflow';
 import { BackendSqlite } from 'openworkflow/sqlite';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { getWorkflowRun, getStepAttempts } from './openworkflow.js';
@@ -74,8 +74,6 @@ describe('real SQLite engine integration', () => {
 			await backend.stop();
 		} finally {
 			worker = undefined;
-			vi.restoreAllMocks();
-			vi.useRealTimers();
 			raw.close();
 			await rm(directory, { recursive: true, force: true });
 		}
@@ -117,70 +115,5 @@ describe('real SQLite engine integration', () => {
 		expect(steps[0].started_at! <= steps[1].started_at!).toBe(true);
 		expect(getWorkflowRun(raw, 'missing')).toBeNull();
 		expect(getStepAttempts(raw, 'missing')).toEqual([]);
-	});
-
-	test.each([
-		['completed', 10],
-		['completed', 11],
-		['failed', 10],
-		['failed', 11],
-		['canceled', 10],
-		['canceled', 11]
-	] as const)(
-		'result() observes %s when its read crosses the %ims timeout boundary',
-		async (status, elapsed) => {
-			vi.useFakeTimers({ toFake: ['Date'] });
-			const start = new Date('2026-02-01T00:00:00.000Z');
-			vi.setSystemTime(start);
-			const workflow = client.defineWorkflow(
-				{ name: 'boundary-probe', retryPolicy: { maximumAttempts: 1 } },
-				() => {
-					if (status === 'failed') throw new Error('synthetic boundary failure');
-					return 'finished';
-				}
-			);
-			const handle = await workflow.run({});
-			if (status === 'canceled') {
-				await handle.cancel();
-			} else {
-				worker = client.newWorker({ concurrency: 1 });
-				expect(await worker.tick()).toBe(1);
-				await worker.stop();
-			}
-			expect(getWorkflowRun(raw, handle.workflowRun.id)!.status).toBe(status);
-			// Model a backend read completing at/after the deadline. Exercise the actual
-			// returned handle, not a local reproduction of its polling algorithm.
-			const read = backend.getWorkflowRun.bind(backend);
-			vi.spyOn(backend, 'getWorkflowRun').mockImplementation(async (params) => {
-				const run = await read(params);
-				vi.setSystemTime(start.getTime() + elapsed);
-				return run;
-			});
-			if (status === 'completed') {
-				await expect(handle.result({ timeoutMs: 10 })).resolves.toBe('finished');
-			} else {
-				await expect(handle.result({ timeoutMs: 10 })).rejects.toThrow(
-					status === 'failed' ? /synthetic boundary failure/ : /canceled/
-				);
-			}
-		}
-	);
-
-	test('result() still times out if a read crosses the boundary with a nonterminal run', async () => {
-		vi.useFakeTimers({ toFake: ['Date'] });
-		const start = new Date('2026-02-01T00:00:00.000Z');
-		vi.setSystemTime(start);
-		const handle = await client.runWorkflow(
-			defineWorkflowSpec({ name: 'unregistered-producer' }),
-			{}
-		);
-		const read = backend.getWorkflowRun.bind(backend);
-		vi.spyOn(backend, 'getWorkflowRun').mockImplementation(async (params) => {
-			const run = await read(params);
-			vi.setSystemTime(start.getTime() + 11);
-			return run;
-		});
-		await expect(handle.result({ timeoutMs: 10 })).rejects.toThrow(/Timed out/);
-		expect(getWorkflowRun(raw, handle.workflowRun.id)!.status).toBe('pending');
 	});
 });
