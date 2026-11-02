@@ -8,6 +8,7 @@ import { interpolate } from './interpolate.js';
 import { withDerivedDefaults } from './normalize.js';
 import { checkCrossRefs } from './cross-refs.js';
 import { resolveConfigPath, resolveDeploymentRoot } from './paths.js';
+import type { ConfigEnvironment, ConfigLoadOptions, ConfigPathOptions } from './options.js';
 
 const { WhenConfigurationSchema } = schemas;
 type WhenConfiguration = schemas.WhenConfiguration;
@@ -45,11 +46,11 @@ export class ConfigError extends Error {
 	}
 }
 
-export function validateConfig(raw: unknown): WhenConfiguration {
+export function validateConfig(raw: unknown, options: ConfigLoadOptions = {}): WhenConfiguration {
 	const withDefaults = structuredClone(raw) ?? {};
 	Value.Default(WhenConfigurationSchema, subschemas, withDefaults);
 
-	const interpolated = interpolate(withDefaults);
+	const interpolated = interpolate(withDefaults, options.env ?? process.env);
 	const normalized = withDerivedDefaults(interpolated) as WhenConfiguration;
 	const config = checkAgainstSchema(normalized);
 	if (config.auth.secret !== undefined && config.auth.secret.length < 32) {
@@ -87,8 +88,8 @@ function checkAgainstSchema(normalized: WhenConfiguration): WhenConfiguration {
 	return normalized;
 }
 
-async function readAndParse(path: string): Promise<unknown> {
-	const source = await readFile(path, 'utf8');
+async function readAndParse(path: string, cwd: string): Promise<unknown> {
+	const source = await readFile(resolve(cwd, path), 'utf8');
 	const lineCounter = new LineCounter();
 	try {
 		return parseYaml(source, { lineCounter, prettyErrors: false, logLevel: 'error' });
@@ -103,25 +104,37 @@ async function readAndParse(path: string): Promise<unknown> {
 }
 
 export async function loadConfigFile(
-	path: string = resolveConfigPath()
+	path?: string,
+	options: ConfigPathOptions = {}
 ): Promise<WhenConfiguration> {
-	const config = validateConfig(await readAndParse(path));
-	resolveDatabasePaths(config, path);
+	const env = options.env ?? process.env;
+	const cwd = options.cwd ?? process.cwd();
+	const selectedPath = path ?? resolveConfigPath({ env, cwd });
+	const config = validateConfig(await readAndParse(selectedPath, cwd), { env });
+	resolveDatabasePaths(config, selectedPath, cwd, env);
 	return config;
 }
 
 // Read and structurally validate a config file without interpolating env refs.
 export async function loadConfigFileStructure(
-	path: string = resolveConfigPath()
+	path?: string,
+	options: ConfigPathOptions = {}
 ): Promise<WhenConfiguration> {
-	return validateStructure(await readAndParse(path));
+	const cwd = options.cwd ?? process.cwd();
+	const selectedPath = path ?? resolveConfigPath(options);
+	return validateStructure(await readAndParse(selectedPath, cwd));
 }
 
 // Resolve relative db paths against the deployment root, in place; env vars override.
-function resolveDatabasePaths(config: WhenConfiguration, configPath: string): void {
-	const root = resolveDeploymentRoot(configPath);
-	config.database.app = process.env.WHEN_DATABASE_PATH ?? resolve(root, config.database.app);
-	config.database.queue = process.env.WHEN_QUEUE_DB_PATH ?? resolve(root, config.database.queue);
+function resolveDatabasePaths(
+	config: WhenConfiguration,
+	configPath: string,
+	cwd: string,
+	env: ConfigEnvironment
+): void {
+	const root = resolve(cwd, resolveDeploymentRoot(configPath));
+	config.database.app = env.WHEN_DATABASE_PATH ?? resolve(root, config.database.app);
+	config.database.queue = env.WHEN_QUEUE_DB_PATH ?? resolve(root, config.database.queue);
 }
 
 function toIssue(err: ValueError): ConfigIssue {

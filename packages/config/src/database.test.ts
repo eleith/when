@@ -8,7 +8,7 @@ import { validConfig } from './__fixtures__/valid-config.js';
 
 test('database paths default when the section is omitted', () => {
 	const { database: _omit, ...withoutDatabase } = validConfig;
-	const config = validateConfig(withoutDatabase);
+	const config = validateConfig(withoutDatabase, { env: {} });
 	expect(config.database).toEqual({
 		app: './data/when.sqlite',
 		queue: './data/openworkflow.sqlite'
@@ -16,35 +16,52 @@ test('database paths default when the section is omitted', () => {
 });
 
 let dir: string;
-const saved = { ...process.env };
 
 beforeEach(async () => {
 	dir = await mkdtemp(join(tmpdir(), 'when-config-'));
-	delete process.env.WHEN_DATABASE_PATH;
-	delete process.env.WHEN_QUEUE_DB_PATH;
 });
 
 afterEach(async () => {
-	process.env = { ...saved };
 	await rm(dir, { recursive: true, force: true });
 });
 
-test('loadConfigFile resolves relative db paths against the deployment root (config dir parent)', async () => {
-	const configDir = join(dir, 'config');
-	await mkdir(configDir);
-	const path = join(configDir, 'when.yaml');
-	await writeFile(path, stringify(validConfig));
-	const config = await loadConfigFile(path);
+test('an explicit relative file is read from cwd and resolves db paths against the deployment root', async () => {
+	await mkdir(join(dir, 'config'));
+	await writeFile(join(dir, 'config', 'when.yaml'), stringify(validConfig));
+	const config = await loadConfigFile('config/when.yaml', {
+		cwd: dir,
+		env: { CONFIG_PATH: 'not-the-selected-file.yaml' }
+	});
 	expect(config.database.app).toBe(join(dir, 'data', 'when.sqlite'));
 	expect(config.database.queue).toBe(join(dir, 'data', 'openworkflow.sqlite'));
 });
 
-test('WHEN_DATABASE_PATH / WHEN_QUEUE_DB_PATH override the resolved paths', async () => {
-	process.env.WHEN_DATABASE_PATH = '/var/lib/when/app.sqlite';
-	process.env.WHEN_QUEUE_DB_PATH = '/var/lib/when/jobs.sqlite';
+test('a bare CONFIG_PATH keeps data under cwd and uses the supplied interpolation environment', async () => {
+	const raw = {
+		...validConfig,
+		smtp: { ...validConfig.smtp, password: '${SMTP_PASSWORD}' }
+	};
+	await writeFile(join(dir, 'when.yaml'), stringify(raw));
+	const config = await loadConfigFile(undefined, {
+		cwd: dir,
+		env: { CONFIG_PATH: 'when.yaml', SMTP_PASSWORD: 'context-password' }
+	});
+	expect(config.smtp.password).toBe('context-password');
+	expect(config.database.app).toBe(join(dir, 'data', 'when.sqlite'));
+	expect(config.database.queue).toBe(join(dir, 'data', 'openworkflow.sqlite'));
+	expect(config.meetings['30-min-chat'].daily_booking_limit).toBeNull();
+});
+
+test.for([
+	{ app: '/var/lib/when/app.sqlite', queue: '/var/lib/when/jobs.sqlite' },
+	{ app: './app.sqlite', queue: './jobs.sqlite' },
+	{ app: '', queue: '' }
+])('database environment overrides are returned unchanged: %j', async ({ app, queue }) => {
 	const path = join(dir, 'config.yaml');
 	await writeFile(path, stringify(validConfig));
-	const config = await loadConfigFile(path);
-	expect(config.database.app).toBe('/var/lib/when/app.sqlite');
-	expect(config.database.queue).toBe('/var/lib/when/jobs.sqlite');
+	const config = await loadConfigFile(path, {
+		cwd: dir,
+		env: { WHEN_DATABASE_PATH: app, WHEN_QUEUE_DB_PATH: queue }
+	});
+	expect(config.database).toEqual({ app, queue });
 });

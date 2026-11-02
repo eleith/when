@@ -59,12 +59,9 @@ test('uses ${VAR:-default} fallback when the var is unset', () => {
 	expect(result).toEqual({ url: 'http://localhost:8080' });
 });
 
-test('prefers the env value over a ${VAR:-default} fallback', () => {
-	const result = interpolate(
-		{ url: '${APP_URL:-http://localhost:8080}' },
-		{ APP_URL: 'https://x' }
-	);
-	expect(result).toEqual({ url: 'https://x' });
+test.for(['https://x', ''])('set env values override fallbacks, even empty: %s', (value) => {
+	const result = interpolate({ url: '${APP_URL:-http://localhost:8080}' }, { APP_URL: value });
+	expect(result).toEqual({ url: value });
 });
 
 test('${VAR:-} yields an empty string when unset (no throw)', () => {

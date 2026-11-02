@@ -1,8 +1,15 @@
 import { expect, test } from 'vitest';
-import { mkdtemp, writeFile, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { ConfigError, loadConfigFile, validateConfig, validateStructure } from './load.js';
+import { stringify } from 'yaml';
+import {
+	ConfigError,
+	loadConfigFile,
+	loadConfigFileStructure,
+	validateConfig,
+	validateStructure
+} from './load.js';
 import { MissingEnvVarsError } from './interpolate.js';
 import { validConfig } from './__fixtures__/valid-config.js';
 import type { WhenConfiguration } from './schema.js';
@@ -53,19 +60,44 @@ test('an unknown version is rejected', () => {
 test('validateStructure accepts unset secret env refs that validateConfig rejects', () => {
 	const raw = clone(validConfig) as WhenConfiguration;
 	raw.auth = { credentials: { username: 'admin', password: '${WHEN_UNSET_PW_TEST}' } };
-	const prev = process.env.WHEN_UNSET_PW_TEST;
-	delete process.env.WHEN_UNSET_PW_TEST;
+	expect(() => validateConfig(raw, { env: {} })).toThrow(MissingEnvVarsError);
+	const cfg = validateStructure(raw);
+	expect(cfg.auth).toEqual({
+		credentials: { username: 'admin', password: '${WHEN_UNSET_PW_TEST}' }
+	});
+});
+
+test('structural file loading uses context for selection, not interpolation or database overrides', async () => {
+	const directory = await mkdtemp(join(tmpdir(), 'when-config-structure-'));
+	const raw = {
+		...validConfig,
+		auth: { credentials: { username: 'admin', password: '${WHEN_ADMIN_PASSWORD}' } },
+		database: { app: '${DB_PATH}', queue: './jobs.sqlite' }
+	};
+	const options = {
+		cwd: directory,
+		env: {
+			CONFIG_PATH: 'config/when.yaml',
+			WHEN_ADMIN_PASSWORD: 'context-password',
+			DB_PATH: './resolved.sqlite',
+			WHEN_DATABASE_PATH: '/override.sqlite',
+			WHEN_QUEUE_DB_PATH: '/override-jobs.sqlite'
+		}
+	};
 	try {
-		// full validation interpolates and fails on the missing var...
-		expect(() => validateConfig(clone(raw))).toThrow(MissingEnvVarsError);
-		// ...but structural validation leaves the ref intact and passes.
-		const cfg = validateStructure(clone(raw));
-		expect(cfg.auth).toEqual({
-			credentials: { username: 'admin', password: '${WHEN_UNSET_PW_TEST}' }
+		await mkdir(join(directory, 'config'));
+		await writeFile(join(directory, 'config', 'when.yaml'), stringify(raw));
+		const structural = await loadConfigFileStructure(undefined, options);
+		expect(structural.auth.credentials?.password).toBe('${WHEN_ADMIN_PASSWORD}');
+		expect(structural.database).toEqual(raw.database);
+		const runtime = await loadConfigFile(undefined, options);
+		expect(runtime.auth.credentials?.password).toBe('context-password');
+		expect(runtime.database).toEqual({
+			app: '/override.sqlite',
+			queue: '/override-jobs.sqlite'
 		});
 	} finally {
-		if (prev === undefined) delete process.env.WHEN_UNSET_PW_TEST;
-		else process.env.WHEN_UNSET_PW_TEST = prev;
+		await rm(directory, { recursive: true, force: true });
 	}
 });
 
@@ -145,20 +177,12 @@ test.for<WhenConfiguration['auth']>([
 
 test('structural session-secret references stay unresolved; runtime checks the resolved length', () => {
 	const raw = { ...clone(validConfig), auth: { ...validConfig.auth, secret: '${AUTH_SECRET}' } };
-	const previous = process.env.AUTH_SECRET;
-	delete process.env.AUTH_SECRET;
-	try {
-		expect(validateStructure(raw).auth.secret).toBe('${AUTH_SECRET}');
-		expect(() => validateConfig(raw)).toThrow(MissingEnvVarsError);
-		process.env.AUTH_SECRET = 'a'.repeat(32);
-		expect(validateConfig(raw).auth.secret).toBe(process.env.AUTH_SECRET);
-		for (const value of ['', 'a'.repeat(31)]) {
-			process.env.AUTH_SECRET = value;
-			expect(() => validateConfig(raw)).toThrow(ConfigError);
-		}
-	} finally {
-		if (previous === undefined) delete process.env.AUTH_SECRET;
-		else process.env.AUTH_SECRET = previous;
+	expect(validateStructure(raw).auth.secret).toBe('${AUTH_SECRET}');
+	expect(() => validateConfig(raw, { env: {} })).toThrow(MissingEnvVarsError);
+	const secret = 'a'.repeat(32);
+	expect(validateConfig(raw, { env: { AUTH_SECRET: secret } }).auth.secret).toBe(secret);
+	for (const value of ['', 'a'.repeat(31)]) {
+		expect(() => validateConfig(raw, { env: { AUTH_SECRET: value } })).toThrow(ConfigError);
 	}
 });
 
@@ -297,34 +321,19 @@ test('video_chat rejects invalid value', () => {
 test('env vars are interpolated before validation', () => {
 	const raw = clone(validConfig) as WhenConfiguration;
 	raw.auth = { credentials: { username: 'admin', password: '${ADMIN_PW_TEST}' } };
-	// Stash and restore process.env for the test
-	const prev = process.env.ADMIN_PW_TEST;
-	process.env.ADMIN_PW_TEST = 'real-password';
-	try {
-		const cfg = validateConfig(raw);
-		expect(cfg.auth).toEqual({
-			credentials: { username: 'admin', password: 'real-password' }
-		});
-	} finally {
-		if (prev === undefined) delete process.env.ADMIN_PW_TEST;
-		else process.env.ADMIN_PW_TEST = prev;
-	}
+	const cfg = validateConfig(raw, { env: { ADMIN_PW_TEST: 'real-password' } });
+	expect(cfg.auth).toEqual({
+		credentials: { username: 'admin', password: 'real-password' }
+	});
 });
 
 test('password defaults to WHEN_ADMIN_PASSWORD if omitted', () => {
 	const raw = clone(validConfig) as unknown as { auth: { credentials: { password?: string } } };
 	delete raw.auth.credentials.password;
-	const prev = process.env.WHEN_ADMIN_PASSWORD;
-	process.env.WHEN_ADMIN_PASSWORD = 'defaulted-password';
-	try {
-		const cfg = validateConfig(raw);
-		expect(cfg.auth).toEqual({
-			credentials: { username: 'admin', password: 'defaulted-password' }
-		});
-	} finally {
-		if (prev === undefined) delete process.env.WHEN_ADMIN_PASSWORD;
-		else process.env.WHEN_ADMIN_PASSWORD = prev;
-	}
+	const cfg = validateConfig(raw, { env: { WHEN_ADMIN_PASSWORD: 'defaulted-password' } });
+	expect(cfg.auth).toEqual({
+		credentials: { username: 'admin', password: 'defaulted-password' }
+	});
 });
 
 test('smtp.port defaults to 587 when omitted', () => {
@@ -371,27 +380,15 @@ test('meeting require_approval defaults to true when omitted', () => {
 test('user timezone defaults to the TZ env var when omitted', () => {
 	const raw = clone(validConfig) as unknown as { user: { timezone?: string } };
 	delete raw.user.timezone;
-	const prev = process.env.TZ;
-	process.env.TZ = 'America/Chicago';
-	try {
-		expect(validateConfig(raw).user.timezone).toBe('America/Chicago');
-	} finally {
-		if (prev === undefined) delete process.env.TZ;
-		else process.env.TZ = prev;
-	}
+	expect(validateConfig(raw, { env: { TZ: 'America/Chicago' } }).user.timezone).toBe(
+		'America/Chicago'
+	);
 });
 
 test('user timezone defaults to UTC when omitted and TZ is unset', () => {
 	const raw = clone(validConfig) as unknown as { user: { timezone?: string } };
 	delete raw.user.timezone;
-	const prev = process.env.TZ;
-	delete process.env.TZ;
-	try {
-		expect(validateConfig(raw).user.timezone).toBe('UTC');
-	} finally {
-		if (prev === undefined) delete process.env.TZ;
-		else process.env.TZ = prev;
-	}
+	expect(validateConfig(raw, { env: {} }).user.timezone).toBe('UTC');
 });
 
 test('a meeting must name its schedule and booking_calendar', () => {
