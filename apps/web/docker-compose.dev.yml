@@ -1,5 +1,8 @@
 services:
   when-app:
+    env_file:
+      - path: .env
+        required: false
     build:
       context: ../..
       dockerfile: apps/web/Dockerfile
@@ -43,6 +46,9 @@ services:
       retries: 3
 
   when-worker:
+    env_file:
+      - path: .env
+        required: false
     build:
       context: ../..
       dockerfile: apps/worker/Dockerfile
@@ -77,6 +83,9 @@ services:
       - ../../packages/video-chat/src:/m/packages/video-chat/src
 
   when-cli:
+    env_file:
+      - path: .env
+        required: false
     profiles:
       - tools
     build:

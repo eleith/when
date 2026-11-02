@@ -37,8 +37,19 @@ function allSchemaFieldNames(): Set<string> {
 }
 
 describe('docs/when.example.yaml', () => {
-	test('is a structurally valid config', () => {
-		expect(() => config.validateStructure(parseYaml(exampleText))).not.toThrow();
+	test('requires real passwords and validates without an environment file once filled', () => {
+		const raw = parseYaml(exampleText);
+		expect(raw.auth.credentials.password).toBe('');
+		expect(raw.smtp.password).toBe('');
+		expect(raw.providers['caldav-service'].password).toBe('');
+		expect(() => config.validateStructure(raw)).toThrow(config.ConfigError);
+		raw.auth.credentials.password = 'test-only-admin-password';
+		raw.smtp.password = 'test-only-smtp-password';
+		raw.providers['caldav-service'].password = 'test-only-caldav-password';
+		expect(JSON.stringify(raw)).not.toContain('${');
+		const loaded = config.validateConfig(raw);
+		expect(loaded.auth.secret).toBeUndefined();
+		expect(loaded.url.app).toBe('https://when.example.com');
 	});
 
 	test('documents every schema field (as a key or a comment)', () => {

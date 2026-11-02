@@ -124,6 +124,7 @@ url:
 		logSpy.mockRestore();
 		errorSpy.mockRestore();
 		process.exitCode = originalExitCode;
+		vi.unstubAllEnvs();
 
 		// Clean up files
 		try {
@@ -246,6 +247,27 @@ url:
 		expect(errorSpy).toHaveBeenCalledWith(
 			expect.stringContaining('missing env vars: MISSING_TEST_ENV_VAR')
 		);
+	});
+
+	test('checks resolved session-secret length only with --check-env and redacts the value', async () => {
+		const variable = 'WHEN_TEST_SESSION_SECRET';
+		vi.stubEnv(variable, undefined);
+		writeFileSync(
+			tempValidPath,
+			validConfigYaml.replace('auth:\n', 'auth:\n  secret: "${WHEN_TEST_SESSION_SECRET}"\n')
+		);
+		const ctx = {
+			positionals: ['config', 'validate', tempValidPath],
+			commandPath: ['config', 'validate']
+		} as unknown as Parameters<NonNullable<typeof validateCommand.run>>[0];
+		await validateCommand.run!(ctx);
+		expect(process.exitCode).toBeUndefined();
+		const secret = 'private-short-session-key';
+		vi.stubEnv(variable, secret);
+		await validateCommand.run!({ ...ctx, values: { 'check-env': true } });
+		expect(process.exitCode).toBe(1);
+		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('at least 32 characters'));
+		expect(errorSpy.mock.calls.flat().join('\n')).not.toContain(secret);
 	});
 
 	test('fails if specified file does not exist', async () => {

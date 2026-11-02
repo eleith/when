@@ -56,8 +56,10 @@ form fields are checked at load time.
 ## Environment variables
 
 Any string value can contain `${ENV_VAR}`. Values are substituted before runtime
-validation, including in defaults. Keep secrets in the environment, not in
-committed YAML.
+validation, including in defaults. This is optional: literal values in private
+YAML work without an environment file. If you prefer interpolation, the sample
+Compose file passes an optional `.env` to web, worker and CLI. Keep files containing
+secrets private and out of Git.
 
 - `${VAR}` fails loading if the variable is unset.
 - `${VAR:-fallback}` uses the fallback if the variable is unset, not if it is empty.
@@ -75,7 +77,7 @@ Choose **exactly one** strategy for `/admin`.
 auth:
   credentials:
     username: admin
-    # password defaults to ${WHEN_ADMIN_PASSWORD}
+    password: '' # required: set your own password before starting
 ```
 
 Or replace it with OIDC:
@@ -85,24 +87,34 @@ auth:
   oidc:
     issuer: 'https://auth.example.com'
     client_id: when
-    client_secret: '${WHEN_OIDC_CLIENT_SECRET}'
+    client_secret: '' # required: your provider's client secret
     # name: 'Single Sign-On' # default display name
 ```
 
-`credentials.username` is required; `password` must be non-empty and defaults to
-`${WHEN_ADMIN_PASSWORD}`. OIDC requires `issuer`, `client_id`, and `client_secret`;
-`name` defaults to `Single Sign-On`.
+`credentials.username` is required; `password` must be non-empty. Set it directly
+in YAML or use interpolation. Omitting it still uses `${WHEN_ADMIN_PASSWORD}` for
+existing environment-driven configs. OIDC requires `issuer`, `client_id`, and
+`client_secret`; `name` defaults to `Single Sign-On`.
+
+Optional `auth.secret` is a session signing key of at least 32 characters after
+interpolation. With no YAML secret, web uses `AUTH_SECRET` if set; otherwise it
+generates a secure random key at startup. Generated keys sign everyone out on web
+restart. Set a stable YAML secret (or keep `AUTH_SECRET`) to preserve sessions.
+Generate one once with `openssl rand -base64 32`. Ordinary config reloads keep the
+current key. Empty or short configured keys are errors, not requests to generate
+one. Structural CLI validation leaves interpolation references unresolved;
+`config validate --check-env` checks the resolved YAML key's length.
 
 Both strategies work in production. Choose based on who can reach sign-in:
 
 - **Credentials:** suitable on a LAN, VPN, or behind an authenticating proxy.
-  The app has **no password-attempt rate limiting or lockout** and warns about
-  this at startup in production.
+  Native sign-in throttling uses the trusted `X-Real-IP` header. Keep the backend
+  private and have the proxy overwrite that header; this is not durable lockout.
 - **OIDC:** recommended for an internet-facing deployment. Throttling, lockout,
   password policy, and MFA belong to your identity provider.
 
-If you expose credentials sign-in publicly, enforce rate limiting at the reverse
-proxy.
+If you expose credentials sign-in publicly, also enforce rate limiting at the
+reverse proxy.
 
 ## `user`
 
@@ -150,13 +162,13 @@ and text.
 
 Required. The worker uses this server for appointment emails.
 
-| Field      | Default                    | Meaning                                       |
-| ---------- | -------------------------- | --------------------------------------------- |
-| `host`     | Required                   | SMTP hostname.                                |
-| `port`     | `587`                      | Integer from 1–65535.                         |
-| `username` | Required                   | SMTP username.                                |
-| `password` | Required                   | SMTP password; use an environment reference.  |
-| `from`     | `noreply@<url.app domain>` | Sender address your server is allowed to use. |
+| Field      | Default                    | Meaning                                           |
+| ---------- | -------------------------- | ------------------------------------------------- |
+| `host`     | Required                   | SMTP hostname.                                    |
+| `port`     | `587`                      | Integer from 1–65535.                             |
+| `username` | Required                   | SMTP username.                                    |
+| `password` | Required                   | SMTP password; literal or optional interpolation. |
+| `from`     | `noreply@<url.app domain>` | Sender address your server is allowed to use.     |
 
 `from` is also the organizer on guest-facing calendar invites, keeping the host's
 own address out of those fields. The sender display name is always `user.name`.
@@ -193,8 +205,9 @@ An empty or omitted `refresh_token` means not connected. The config can load,
 but the provider cannot reach Google until you connect it.
 
 Connect from `/admin`. Google issues the token through browser consent; the admin
-UI shows it once for you to save in an environment variable and reference in YAML.
-After saving it, [recreate the containers](deployment.md#environment-variables).
+UI shows it once. Save it as the provider's YAML `refresh_token`, or use optional
+environment interpolation. Environment changes require
+[recreating the containers](deployment.md#environment-variables).
 
 ## `schedules`
 
@@ -254,7 +267,6 @@ meetings:
 | `form_fields`                 | Unset    | Custom booking form below.                                                               |
 | `start_times_every_minutes`   | `30`     | Positive integer slot step, independent of offered durations.                            |
 | `notice_minutes`              | `120`    | Minimum lead time; integer ≥ 0.                                                          |
-| `booking_window_days`         | `60`     | Days into the future open for booking; integer ≥ 1.                                      |
 | `padding_before_minutes`      | `0`      | Padding before appointments; integer ≥ 0.                                                |
 | `padding_after_minutes`       | `0`      | Padding after appointments; integer ≥ 0.                                                 |
 | `daily_booking_limit`         | `null`   | Positive integer daily cap; `null` means unlimited.                                      |
@@ -374,8 +386,9 @@ Treat both databases and their backups as sensitive; see
 | `internal` | `${WHEN_URL_INTERNAL:-}`           | Worker → web, including branding images embedded in email. Empty falls back to `app`. |
 | `worker`   | `http://when-worker:9000`          | Web → worker telemetry and metrics.                                                   |
 
-Usually, set `ORIGIN` and leave `url.app` alone. It supplies When's public URL
-for authentication and generated links; an explicit `url.app` takes precedence.
+Set `url.app` in YAML to your public HTTPS URL for authentication and generated
+links. `ORIGIN` remains an optional default when that YAML field is omitted;
+an explicit YAML value takes precedence.
 SvelteKit 3's native adapter ignores `ORIGIN` and derives its request origin from
 trusted proxy headers and Host instead. These must match the configured public
 URL; see the [proxy requirements](deployment.md#reverse-proxy).

@@ -33,18 +33,26 @@ export const CredentialsAuthSchema = Type.Object({
 	password: Type.String({
 		minLength: 1,
 		default: '${WHEN_ADMIN_PASSWORD}',
-		description: 'Admin password. Defaults to the WHEN_ADMIN_PASSWORD environment variable.'
+		description: 'Admin password: a YAML literal or an optional environment reference. If omitted, uses the WHEN_ADMIN_PASSWORD environment variable.'
 	})
 }, { $id: 'CredentialsAuth', additionalProperties: false, title: 'CredentialsAuth', description: 'Local username/password authentication.' });
+
+// Validate the resolved length at runtime; structural checks must accept ${VAR} references.
+const authSecret = Type.Optional(Type.String({
+	minLength: 1,
+	description: 'Optional session signing secret: at least 32 characters after environment interpolation. Defaults to AUTH_SECRET when set, otherwise a random secret generated at auth startup. Set this to keep sessions across restarts.'
+}));
 
 export const AuthSchema = Type.Union([
 	Type.Object({
 		oidc: Ref(OidcAuthSchema, { description: 'OIDC authentication provider configuration.' }),
-		credentials: Type.Optional(Type.Null({ description: 'Disabled when OIDC is active.' }))
+		credentials: Type.Optional(Type.Null({ description: 'Disabled when OIDC is active.' })),
+		secret: authSecret
 	}, { additionalProperties: false, title: 'Single sign-on (oidc)' }),
 	Type.Object({
 		credentials: Ref(CredentialsAuthSchema, { description: 'Credentials authentication configuration.' }),
-		oidc: Type.Optional(Type.Null({ description: 'Disabled when Credentials auth is active.' }))
+		oidc: Type.Optional(Type.Null({ description: 'Disabled when Credentials auth is active.' })),
+		secret: authSecret
 	}, { additionalProperties: false, title: 'Username and password (credentials)' })
 ], {
 	$id: 'Auth',
@@ -114,7 +122,7 @@ export const GoogleProviderSchema = Type.Object({
 	type: Type.Literal('google', { description: 'Provider type: must be google.' }),
 	client_id: Type.String({ minLength: 1, description: 'Google OAuth client ID.' }),
 	client_secret: Type.String({ minLength: 1, description: 'Google OAuth client secret.' }),
-	refresh_token: Type.String({ default: '', description: 'Google OAuth refresh token. Connect the provider from /admin, which shows the token for you to store in an env var and reference here. Empty means not connected.' }),
+	refresh_token: Type.String({ default: '', description: 'Google OAuth refresh token. Connect the provider from /admin, then save the supplied token here or use optional environment interpolation. Empty means not connected.' }),
 	calendars: Type.Record(Type.String({ pattern: '^[a-z0-9][a-z0-9-]*$' }), Ref(GoogleCalendarSchema, { default: {} }), { additionalProperties: false, default: {}, description: 'Calendars served by this provider, keyed by the name meetings reference.' })
 }, { $id: 'GoogleProvider', additionalProperties: false, title: 'GoogleProvider', description: 'Google API provider credentials.' });
 

@@ -6,9 +6,7 @@ import type { WhenConfiguration } from '@when/config';
 import { logger } from '../logger';
 import { loginMetricsHooks } from '../metrics/auth';
 import { buildAuthOptions } from './providers';
-import { requireAuthSecret } from './secret';
-
-export { requireAuthSecret } from './secret';
+import { resolveAuthSecret } from './secret';
 
 const WEEK_SECONDS = 7 * 24 * 60 * 60;
 
@@ -21,7 +19,7 @@ let instance: ReturnType<typeof betterAuth> | null = null;
 
 export function makeAuth(cfg: WhenConfiguration) {
 	instance = betterAuth<BetterAuthOptions>({
-		secret: requireAuthSecret(),
+		secret: resolveAuthSecret(cfg.auth.secret),
 		baseURL: cfg.url.app.replace(/\/+$/, ''),
 		basePath: '/auth',
 		telemetry: { enabled: false },

@@ -31,6 +31,13 @@ describe('public editor schema asset', () => {
 		expect(generatedSchema.required).not.toContain('providers');
 		expect(generatedSchema.$defs.Meeting.required).toContain('title');
 		expect(generatedSchema.$defs.Meeting.required).not.toContain('duration_minutes');
+		for (const auth of generatedSchema.$defs.Auth.anyOf) {
+			expect(auth.required).not.toContain('secret');
+			expect(auth.properties.secret.minLength).toBe(1);
+			expect(auth.properties.secret.description).toContain(
+				'32 characters after environment interpolation'
+			);
+		}
 		const refs = references(generatedSchema);
 		expect(refs.length).toBeGreaterThan(0);
 		for (const reference of refs) expect(reference).toMatch(/^#/);

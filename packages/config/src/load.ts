@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import { parse as parseYaml } from 'yaml';
+import { LineCounter, YAMLParseError, parse as parseYaml } from 'yaml';
 import { FormatRegistry, type TSchema } from '@sinclair/typebox';
 import { Value, type ValueError } from '@sinclair/typebox/value';
 import * as schemas from './schema.js';
@@ -51,7 +51,16 @@ export function validateConfig(raw: unknown): WhenConfiguration {
 
 	const interpolated = interpolate(withDefaults);
 	const normalized = withDerivedDefaults(interpolated) as WhenConfiguration;
-	return checkAgainstSchema(normalized);
+	const config = checkAgainstSchema(normalized);
+	if (config.auth.secret !== undefined && config.auth.secret.length < 32) {
+		throw new ConfigError('config failed auth secret validation', [
+			{
+				path: '/auth/secret',
+				message: 'must contain at least 32 characters after environment interpolation'
+			}
+		]);
+	}
+	return config;
 }
 
 // Validate shape and cross-references without interpolating `${VAR}` refs, so a
@@ -80,12 +89,16 @@ function checkAgainstSchema(normalized: WhenConfiguration): WhenConfiguration {
 
 async function readAndParse(path: string): Promise<unknown> {
 	const source = await readFile(path, 'utf8');
+	const lineCounter = new LineCounter();
 	try {
-		return parseYaml(source);
+		return parseYaml(source, { lineCounter, prettyErrors: false, logLevel: 'error' });
 	} catch (err) {
-		throw new ConfigError(`${path} is not valid YAML`, [
-			{ path: '/', message: err instanceof Error ? err.message : String(err) }
-		]);
+		let message = 'invalid YAML syntax';
+		if (err instanceof YAMLParseError) {
+			const { line, col } = lineCounter.linePos(err.pos[0]);
+			message += ` at line ${line}, column ${col} (${err.code})`;
+		}
+		throw new ConfigError(`${path} is not valid YAML`, [{ path: '/', message }]);
 	}
 }
 

@@ -19,6 +19,7 @@ export interface AppointmentFlow {
 	readonly availableDates: Set<string>;
 	readonly offeredDates: Set<string>;
 	readonly hasChanges: boolean;
+	readonly originalStartUnavailable: boolean;
 	readonly canSubmit: boolean;
 	readonly canAdvance: boolean;
 	advance(): void;
@@ -77,6 +78,9 @@ export function createAppointmentFlow({
 	const dates = $derived(datesFromSlots(allSlots, userTz));
 	const offeredDates = $derived(dateKeys(slotsByDate));
 	const originalDate = $derived(originalSlot ? instantToDateKey(originalSlot, userTz) : null);
+	const originalStartUnavailable = $derived(
+		originalSlot !== null && selectedSlot === originalSlot && !allSlots.includes(originalSlot)
+	);
 	const intervalChanged = $derived(
 		!reschedule || selectedSlot !== originalSlot || duration !== reschedule.duration
 	);
@@ -134,6 +138,9 @@ export function createAppointmentFlow({
 		},
 		get hasChanges() {
 			return hasChanges;
+		},
+		get originalStartUnavailable() {
+			return originalStartUnavailable;
 		},
 		get canSubmit() {
 			return canSubmit;

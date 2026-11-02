@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { join } from 'node:path';
-import { writeFileSync, readFileSync, existsSync, unlinkSync } from 'node:fs';
+import { writeFileSync, readFileSync, statSync, existsSync, unlinkSync } from 'node:fs';
 import { parse as parseYaml } from 'yaml';
-import { validateStructure } from '@when/config';
+import { validateConfig, validateStructure } from '@when/config';
 import { initCommand } from './init.ts';
 
 describe('config init', () => {
@@ -23,6 +23,7 @@ describe('config init', () => {
 		logSpy.mockRestore();
 		errorSpy.mockRestore();
 		process.exitCode = originalExitCode;
+		vi.unstubAllEnvs();
 		if (existsSync(path)) unlinkSync(path);
 	});
 
@@ -34,12 +35,38 @@ describe('config init', () => {
 		} as unknown as Parameters<NonNullable<typeof initCommand.run>>[0];
 	}
 
-	test('writes a skeleton that passes structural validation', async () => {
+	test('writes a YAML-first starter that validates after its blank passwords are filled', async () => {
+		vi.stubEnv('WHEN_ADMIN_PASSWORD', undefined);
+		vi.stubEnv('WHEN_SMTP_PASSWORD', undefined);
+		vi.stubEnv('WHEN_PROVIDER_MY_CALDAV_PASSWORD', undefined);
+
 		await initCommand.run!(ctx());
 		expect(process.exitCode).toBeUndefined();
 		expect(existsSync(path)).toBe(true);
+		expect(statSync(path).mode & 0o777).toBe(0o600);
 		const content = readFileSync(path, 'utf8');
-		expect(() => validateStructure(parseYaml(content))).not.toThrow();
+		const raw = parseYaml(content);
+		expect(content).not.toContain('${');
+		expect(raw.auth.credentials).toEqual({ username: 'admin', password: '' });
+		expect(raw.auth.secret).toBeUndefined();
+		expect(raw.smtp.password).toBe('');
+		expect(raw.providers['my-caldav'].password).toBe('');
+		expect(() => validateStructure(raw)).toThrow('schema validation');
+
+		raw.auth.credentials.password = 'test-only-admin-password';
+		raw.smtp.password = 'test-only-smtp-password';
+		raw.providers['my-caldav'].password = 'test-only-caldav-password';
+		const config = validateConfig(raw);
+		expect(config.database).toEqual({
+			app: './data/when.sqlite',
+			queue: './data/openworkflow.sqlite'
+		});
+		expect(config.schedules.standard.weekly).toEqual([
+			{ days: ['mon', 'tue', 'wed', 'thu', 'fri'], from: '09:00', to: '17:00' }
+		]);
+		expect(config.smtp.port).toBe(587);
+		expect(config.meetings['30-min'].duration_minutes).toBe(30);
+		expect(config.url.app).toBe('https://book.example.com');
 		expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('config validate'));
 	});
 

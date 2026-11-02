@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import * as InstantFns from 'temporal-polyfill/fns/Instant';
 	import DatePicker from '#lib/components/DatePicker.svelte';
 	import DayTimeline from '#lib/components/DayTimeline.svelte';
 	import WizardPickerControls from '#lib/components/WizardPickerControls.svelte';
@@ -85,15 +84,6 @@
 	let selectedSlot = $derived(flow.selectedSlot);
 	let userTz = $derived(flow.userTz);
 	let isGuestFormValid = $state(false);
-
-	const originalStart = $derived.by(() => {
-		if (!rescheduleAppt) return null;
-		const start = InstantFns.fromString(rescheduleAppt.start_time);
-		return InstantFns.toString(start);
-	});
-	const originalStartAvailable = $derived(
-		originalStart !== null && flow.allSlots.includes(originalStart)
-	);
 
 	let previousAppointmentHref = $derived(
 		rescheduleAppt
@@ -222,7 +212,7 @@
 					<p class="reschedule-notice" role="status">
 						Choose an available start time for this duration.
 					</p>
-				{:else if rescheduleAppt && !originalStartAvailable && selectedSlot === originalStart}
+				{:else if flow.originalStartUnavailable}
 					<p class="reschedule-notice" role="status">
 						The current start time isn't available for this duration. Choose another time or
 						duration.

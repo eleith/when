@@ -8,10 +8,10 @@ import { authHandle, getAuth, makeAuth } from './index';
 // Exercise the actual production limiter and origin checks, not test-mode defaults.
 vi.hoisted(() => {
 	vi.stubEnv('NODE_ENV', 'production');
-	vi.stubEnv('AUTH_SECRET', 'only-a-test-secret-with-at-least-32-characters');
 });
 
 const origin = 'https://when.example.test';
+const testSecret = 'only-a-test-secret-with-at-least-32-characters';
 const cfg = {
 	...validConfig,
 	auth: {
@@ -25,6 +25,7 @@ let client = 0;
 let address: string;
 
 beforeEach(() => {
+	vi.stubEnv('AUTH_SECRET', testSecret);
 	vi.useFakeTimers({ toFake: ['Date'] });
 	vi.setSystemTime(new Date('2026-10-29T12:00:00Z'));
 	address = `192.0.2.${++client}`;
@@ -145,6 +146,35 @@ test('cookies survive a fresh instance, expose only app fields and expire at the
 	expect(await appSession(cookie)).toEqual(session);
 	vi.setSystemTime(new Date('2026-11-05T12:00:01Z'));
 	expect(await appSession(cookie)).toBeNull();
+});
+
+test('a YAML secret keeps sessions across restarts without AUTH_SECRET', async () => {
+	const yamlConfig = {
+		...cfg,
+		auth: { ...cfg.auth, secret: 'yaml-secret-with-at-least-32-characters' }
+	};
+	vi.stubEnv('AUTH_SECRET', 'too-short');
+	makeAuth(yamlConfig);
+	const login = await request('/sign-in/credentials', credentials);
+	expect(login.status).toBe(200);
+	const cookie = cookies(login);
+	const session = await appSession(cookie);
+	vi.stubEnv('AUTH_SECRET', undefined);
+	makeAuth(yamlConfig);
+	expect(await appSession(cookie)).toEqual(session);
+	expect(session.user.name).toBe(credentials.username);
+});
+
+test('generated secrets work within an instance and sign out after a restart', async () => {
+	vi.stubEnv('AUTH_SECRET', undefined);
+	makeAuth(cfg);
+	const login = await request('/sign-in/credentials', credentials);
+	expect(login.status).toBe(200);
+	const cookie = cookies(login);
+	expect((await appSession(cookie)).user.name).toBe(credentials.username);
+	makeAuth(cfg);
+	expect(await appSession(cookie)).toBeNull();
+	expect((await request('/sign-in/credentials', credentials)).status).toBe(200);
 });
 
 test('bypassing the cache cannot renew the underlying session past seven days', async () => {

@@ -1,5 +1,8 @@
 import { expect, test } from 'vitest';
-import { ConfigError, validateConfig, validateStructure } from './load.js';
+import { mkdtemp, writeFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { ConfigError, loadConfigFile, validateConfig, validateStructure } from './load.js';
 import { MissingEnvVarsError } from './interpolate.js';
 import { validConfig } from './__fixtures__/valid-config.js';
 import type { WhenConfiguration } from './schema.js';
@@ -7,6 +10,27 @@ import type { WhenConfiguration } from './schema.js';
 function clone<T>(v: T): T {
 	return JSON.parse(JSON.stringify(v));
 }
+
+test('malformed YAML reports its position without echoing an inline password', async () => {
+	const directory = await mkdtemp(join(tmpdir(), 'when-config-redaction-'));
+	const path = join(directory, 'when.yaml');
+	const secret = 'SYNTHETIC_PRIVATE_PASSWORD_SENTINEL';
+	try {
+		await writeFile(path, `auth:\n  credentials:\n    password: "${secret}\n`);
+		let failure: unknown;
+		try {
+			await loadConfigFile(path);
+		} catch (error) {
+			failure = error;
+		}
+		expect(failure).toBeInstanceOf(ConfigError);
+		expect(String(failure)).toMatch(/invalid YAML syntax at line \d+, column \d+ \(MISSING_CHAR\)/);
+		expect(String(failure)).not.toContain(secret);
+		expect(JSON.stringify((failure as ConfigError).issues)).not.toContain(secret);
+	} finally {
+		await rm(directory, { recursive: true, force: true });
+	}
+});
 
 test('valid config passes schema validation', () => {
 	const cfg = validateConfig(clone(validConfig));
@@ -100,6 +124,68 @@ test('oidc auth preserves custom name override', () => {
 	};
 	const loaded = validateConfig(cfg);
 	expect(loaded.auth.oidc?.name).toBe('Authelia');
+});
+
+test.for<WhenConfiguration['auth']>([
+	validConfig.auth,
+	{
+		oidc: {
+			issuer: 'https://auth.example.com',
+			client_id: 'when',
+			client_secret: 'test',
+			name: 'SSO'
+		}
+	}
+])('either auth strategy accepts an optional persistent session secret', (auth) => {
+	const raw = { ...clone(validConfig), auth };
+	expect(validateConfig(raw).auth.secret).toBeUndefined();
+	const secret = 'a'.repeat(32);
+	expect(validateConfig({ ...raw, auth: { ...auth, secret } }).auth.secret).toBe(secret);
+});
+
+test('structural session-secret references stay unresolved; runtime checks the resolved length', () => {
+	const raw = { ...clone(validConfig), auth: { ...validConfig.auth, secret: '${AUTH_SECRET}' } };
+	const previous = process.env.AUTH_SECRET;
+	delete process.env.AUTH_SECRET;
+	try {
+		expect(validateStructure(raw).auth.secret).toBe('${AUTH_SECRET}');
+		expect(() => validateConfig(raw)).toThrow(MissingEnvVarsError);
+		process.env.AUTH_SECRET = 'a'.repeat(32);
+		expect(validateConfig(raw).auth.secret).toBe(process.env.AUTH_SECRET);
+		for (const value of ['', 'a'.repeat(31)]) {
+			process.env.AUTH_SECRET = value;
+			expect(() => validateConfig(raw)).toThrow(ConfigError);
+		}
+	} finally {
+		if (previous === undefined) delete process.env.AUTH_SECRET;
+		else process.env.AUTH_SECRET = previous;
+	}
+});
+
+test('short literal session-secret errors identify the field without exposing its value', () => {
+	const secret = 'private-short-session-key';
+	const raw = { ...clone(validConfig), auth: { ...validConfig.auth, secret } };
+	expect(validateStructure(raw).auth.secret).toBe(secret);
+	try {
+		validateConfig(raw);
+		throw new Error('expected ConfigError');
+	} catch (error) {
+		expect(error).toBeInstanceOf(ConfigError);
+		expect((error as ConfigError).issues).toEqual([
+			{
+				path: '/auth/secret',
+				message: 'must contain at least 32 characters after environment interpolation'
+			}
+		]);
+		expect(String(error)).not.toContain(secret);
+		expect(JSON.stringify((error as ConfigError).issues)).not.toContain(secret);
+	}
+});
+
+test.for(['', null, 32])('an empty or non-string session secret is rejected: %s', (secret) => {
+	const raw = { ...clone(validConfig), auth: { ...validConfig.auth, secret } };
+	expect(() => validateStructure(raw)).toThrow(ConfigError);
+	expect(() => validateConfig(raw)).toThrow(ConfigError);
 });
 
 test('invalid email format fails', () => {

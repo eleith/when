@@ -1,11 +1,16 @@
 services:
   when-app:
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      PROTOCOL_HEADER: x-forwarded-proto
     build:
       context: ../..
       dockerfile: apps/web/Dockerfile
       target: prod
     ports:
-      - '3000:3000'
+      - '127.0.0.1:${WHEN_HTTP_PORT:-3000}:3000'
     volumes:
       - ./config:/app/config
       - ./data:/app/data
@@ -28,6 +33,9 @@ services:
       retries: 3
 
   when-worker:
+    env_file:
+      - path: .env
+        required: false
     build:
       context: ../..
       dockerfile: apps/worker/Dockerfile
@@ -50,6 +58,9 @@ services:
       retries: 3
 
   when-cli:
+    env_file:
+      - path: .env
+        required: false
     build:
       context: ../..
       dockerfile: apps/cli/Dockerfile

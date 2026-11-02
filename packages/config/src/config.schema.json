@@ -173,6 +173,11 @@
 						"credentials": {
 							"description": "Disabled when OIDC is active.",
 							"type": "null"
+						},
+						"secret": {
+							"minLength": 1,
+							"description": "Optional session signing secret: at least 32 characters after environment interpolation. Defaults to AUTH_SECRET when set, otherwise a random secret generated at auth startup. Set this to keep sessions across restarts.",
+							"type": "string"
 						}
 					}
 				},
@@ -189,6 +194,11 @@
 						"oidc": {
 							"description": "Disabled when Credentials auth is active.",
 							"type": "null"
+						},
+						"secret": {
+							"minLength": 1,
+							"description": "Optional session signing secret: at least 32 characters after environment interpolation. Defaults to AUTH_SECRET when set, otherwise a random secret generated at auth startup. Set this to keep sessions across restarts.",
+							"type": "string"
 						}
 					}
 				}
@@ -309,7 +319,7 @@
 				"password": {
 					"minLength": 1,
 					"default": "${WHEN_ADMIN_PASSWORD}",
-					"description": "Admin password. Defaults to the WHEN_ADMIN_PASSWORD environment variable.",
+					"description": "Admin password: a YAML literal or an optional environment reference. If omitted, uses the WHEN_ADMIN_PASSWORD environment variable.",
 					"type": "string"
 				}
 			}
@@ -560,7 +570,7 @@
 				},
 				"refresh_token": {
 					"default": "",
-					"description": "Google OAuth refresh token. Connect the provider from /admin, which shows the token for you to store in an env var and reference here. Empty means not connected.",
+					"description": "Google OAuth refresh token. Connect the provider from /admin, then save the supplied token here or use optional environment interpolation. Empty means not connected.",
 					"type": "string"
 				},
 				"calendars": {

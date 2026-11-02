@@ -13,7 +13,7 @@ No teams. No round-robin routing. No subscription to your own calendar.
 
 ## Get started
 
-You'll need Docker Compose. In a fresh directory:
+You'll need Docker Compose 2.24 or newer. In a fresh directory:
 
 ```sh
 mkdir when
@@ -21,20 +21,24 @@ cd when
 mkdir config data public
 curl -fsSLo compose.yaml https://git.eleith.com/eleith/when/raw/branch/main/docs/compose.yaml
 curl -fsSLo config/when.yaml https://git.eleith.com/eleith/when/raw/branch/main/docs/when.example.yaml
-curl -fsSLo .env https://git.eleith.com/eleith/when/raw/branch/main/docs/.env.example
-openssl rand -base64 32
+chmod 600 config/when.yaml
 ```
 
-Edit `.env` and `config/when.yaml` to make it all cozy and comfortable.
-Set `ORIGIN` to your public HTTPS URL and put a trusted reverse proxy in front of
-When; see the [proxy requirements](docs/deployment.md#reverse-proxy).
-Make `data/` writable by container UID 1000; see [permissions](docs/deployment.md#start-up).
+Edit `config/when.yaml`: your public HTTPS URL (`url.app`), admin password,
+owner details, SMTP account and calendar. No `.env` file is required.
+
+Put a trusted reverse proxy in front of When; see the
+[proxy requirements](docs/deployment.md#reverse-proxy). Keep your config private
+and readable by container UID 1000; make `data/` writable by that UID. See
+[permissions](docs/deployment.md#start-up).
 
 ```sh
 docker compose up -d
 ```
 
 Open your public proxy URL and its `/admin` page to get a lay of the land.
+Optional environment interpolation, port overrides and persistent sessions are
+covered in [deployment](docs/deployment.md#environment-variables).
 
 There is a lot more going on under the hood, read more documentation if you
 want to learn more.

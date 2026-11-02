@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
 import { buildAuthOptions, verifyCredentials } from './providers';
-import { requireAuthSecret } from '#lib/server/auth/secret.js';
+import { resolveAuthSecret } from '#lib/server/auth/secret.js';
 import { validConfig } from '#lib/server/__fixtures__/valid-config.js';
 import type { WhenConfiguration } from '@when/config';
 
@@ -26,17 +26,24 @@ test('oidc config registers only the generic OAuth plugin', () => {
 	expect(options.plugins?.map((plugin) => plugin.id)).toEqual(['generic-oauth']);
 });
 
-test('requireAuthSecret rejects missing secret', () => {
-	expect(() => requireAuthSecret({})).toThrow(/AUTH_SECRET/);
+test('an omitted secret generates a fresh 32-byte key', () => {
+	const secret = resolveAuthSecret(undefined, {});
+	expect(Buffer.from(secret, 'base64')).toHaveLength(32);
+	expect(resolveAuthSecret(undefined, {})).not.toBe(secret);
 });
 
-test('requireAuthSecret rejects short secret', () => {
-	expect(() => requireAuthSecret({ AUTH_SECRET: 'too-short' })).toThrow();
-});
+test.for(['', 'too-short', 'a'.repeat(31)])(
+	'a configured short or empty secret fails closed: %s',
+	(secret) => {
+		expect(() => resolveAuthSecret(secret, { AUTH_SECRET: 'b'.repeat(32) })).toThrow(/at least 32/);
+		expect(() => resolveAuthSecret(undefined, { AUTH_SECRET: secret })).toThrow(/at least 32/);
+	}
+);
 
-test('requireAuthSecret accepts a 32+ char secret', () => {
+test('YAML takes precedence over the existing environment secret', () => {
 	const secret = 'a'.repeat(32);
-	expect(requireAuthSecret({ AUTH_SECRET: secret })).toBe(secret);
+	expect(resolveAuthSecret(secret, { AUTH_SECRET: 'too-short' })).toBe(secret);
+	expect(resolveAuthSecret(undefined, { AUTH_SECRET: secret })).toBe(secret);
 });
 
 const ADMIN = { username: 'admin', password: 'correct horse' };

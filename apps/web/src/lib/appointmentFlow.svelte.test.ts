@@ -25,6 +25,7 @@ describe('createAppointmentFlow duration', () => {
 		expect(flow.duration).toBe(30);
 		expect(flow.durations).toEqual([30, 60]);
 		expect(flow.allSlots).toEqual([SLOT_10, SLOT_1030]);
+		expect(flow.originalStartUnavailable).toBe(false);
 	});
 
 	it('switches the live slot map when the length changes', () => {
@@ -123,6 +124,7 @@ describe('createAppointmentFlow rescheduling', () => {
 		expect(flow.step).toBe(1);
 		expect(flow.viewDate).toBe('2026-07-20');
 		expect(flow.selectedSlot).toBe(SLOT_10);
+		expect(flow.originalStartUnavailable).toBe(false);
 		expect(flow.hasChanges).toBe(false);
 		expect(flow.canAdvance).toBe(true);
 		expect(flow.canSubmit).toBe(false);
@@ -184,6 +186,7 @@ describe('createAppointmentFlow rescheduling', () => {
 		expect(flow.viewDate).toBe('2026-07-21');
 		expect(flow.selectedSlot).toBe(original);
 		expect(flow.allSlots).not.toContain(original);
+		expect(flow.originalStartUnavailable).toBe(true);
 		expect(flow.hasChanges).toBe(false);
 		expect(flow.canAdvance).toBe(true);
 		expect(flow.canSubmit).toBe(false);
@@ -196,6 +199,7 @@ describe('createAppointmentFlow rescheduling', () => {
 		flow.goBack();
 		flow.setDuration(30);
 		expect(flow.selectedSlot).toBe(original);
+		expect(flow.originalStartUnavailable).toBe(false);
 		expect(flow.hasChanges).toBe(true);
 		expect(flow.canSubmit).toBe(true);
 		flow.goBack();
@@ -203,6 +207,7 @@ describe('createAppointmentFlow rescheduling', () => {
 		flow.selectDate('2026-07-22');
 		expect(flow.viewDate).toBe('2026-07-22');
 		expect(flow.selectedSlot).toBeNull();
+		expect(flow.originalStartUnavailable).toBe(false);
 		expect(flow.hasChanges).toBe(true);
 		expect(flow.canAdvance).toBe(true);
 		expect(flow.canSubmit).toBe(false);

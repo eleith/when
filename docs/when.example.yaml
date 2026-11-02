@@ -1,24 +1,35 @@
 # yaml-language-server: $schema=http://localhost:3000/schema.json
 # Copy to config/when.yaml and replace the placeholders.
 # The schema comes from the running app; adjust its URL if you use another address.
-# Optional fields and defaults are commented below. Secrets use ${ENV_VAR};
-# the sample Compose file passes them from .env.
+# Edit this file with your real URL, account details and passwords before starting.
+# No .env file is required. Keep this file private when it contains secrets.
+# Optional fields and defaults are commented below. Any string can use ${ENV_VAR}
+# from an optional .env file beside compose.yaml instead of a literal value.
 
 # Shape of this file. Defaults to 1 and only changes if the config layout does.
 # version: 1
+
+# --- Your public URL: must match the trusted reverse proxy's public origin ---
+url:
+  app: 'https://when.example.com'
+  # internal: 'http://when-app:3000' # worker → web; supplied by the worker image
+  # worker: 'http://when-worker:9000' # web → worker; default private Compose address
 
 # --- Admin sign-in: exactly one of `credentials` or `oidc` ---
 auth:
   credentials:
     username: admin
-    # password defaults to the ${WHEN_ADMIN_PASSWORD} env var
+    password: '' # required: set your own password before starting
   # Or single sign-on instead of credentials:
   # oidc:
   #   issuer: 'https://accounts.example.com'
   #   client_id: 'when'
-  #   client_secret: '${WHEN_OIDC_CLIENT_SECRET}'
+  #   client_secret: '' # required: your provider's client secret
   #   # name defaults to 'Single Sign-On'
   #   # name: 'Single Sign-On'
+  # Omit secret to generate a secure session key at startup; restarts sign you out.
+  # To keep sessions across restarts, generate a value once: openssl rand -base64 32
+  # secret: '${AUTH_SECRET}' # or put the generated value directly here
 
 # --- The schedule owner ---
 user:
@@ -47,7 +58,7 @@ user:
 smtp:
   host: 'smtp.example.com'
   username: 'you@example.com'
-  password: '${WHEN_SMTP_PASSWORD}'
+  password: '' # required: your SMTP password
   # port defaults to 587
   # port: 465
   # from defaults to noreply@<your url.app domain>
@@ -62,7 +73,7 @@ providers:
     type: 'caldav'
     url: 'https://caldav.example.com/dav/' # DAV base URL
     username: 'you'
-    password: '${WHEN_PROVIDER_CALDAV_SERVICE_PASSWORD}'
+    password: '' # required: your CalDAV password
     calendars:
       main:
         href: 'calendars/you/main/' # joined to the provider url, or give a full URL instead
@@ -72,10 +83,10 @@ providers:
   # google-service:
   #   type: 'google'
   #   client_id: '...apps.googleusercontent.com'
-  #   client_secret: '${WHEN_PROVIDER_GOOGLE_SERVICE_CLIENT_SECRET}'
-  #   # Optional — omit it and the provider simply reads as not connected. Keeping the
-  #   # line with its `:-` fallback means connecting later is one edit to .env, not two.
-  #   refresh_token: '${WHEN_PROVIDER_GOOGLE_SERVICE_REFRESH_TOKEN:-}'
+  #   client_secret: '' # required: your Google client secret
+  #   # Optional — omit it and the provider reads as not connected. Connect from
+  #   # /admin, then save the supplied token here (or use optional interpolation).
+  #   refresh_token: ''
   #   calendars:
   #     personal:
   #       id: 'primary'
@@ -84,7 +95,7 @@ providers:
   #   type: 'nextcloud'
   #   url: 'https://cloud.example.com'
   #   username: 'you'
-  #   password: '${WHEN_PROVIDER_NEXTCLOUD_SERVICE_PASSWORD}'
+  #   password: '' # required: your Nextcloud password
   #   calendars:
   #     shared:
   #       href: 'calendars/you/shared/'
@@ -163,15 +174,6 @@ meetings:
 # database:
 #   app: './data/when.sqlite'
 #   queue: './data/openworkflow.sqlite'
-
-# --- Public and internal URLs ---
-# url:
-# app defaults to ${ORIGIN:-http://localhost:5173} for auth and generated links.
-# Set ORIGIN in .env, or override app here. Neither sets the native adapter's
-# request origin: matching trusted proxy headers and Host do (see deployment.md).
-#   app: 'https://when.example.com' # public base URL, used in emails and calendar events
-#   internal: 'http://when-app:3000' # worker → web (defaults to ${WHEN_URL_INTERNAL})
-#   worker: 'http://when-worker:9000' # web → worker
 
 # --- Prometheus metrics (off by default) ---
 # prometheus:
