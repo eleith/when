@@ -1,5 +1,18 @@
 # @when/web
 
+## 0.1.2
+
+### Patch Changes
+
+- aaf9eea: Match the duration picker's accessible name to its visible label so screen readers and voice controls identify the same duration.
+- 328f8ab: Raise the per-stylesheet inlining limit so booking and rescheduling include their initial styles in the HTML rather than waiting for a render-blocking CSS request. This applies across the app, trading larger HTML responses for fewer separate stylesheet requests; styles above the limit remain external.
+- f159f36: Build the timezone search index in small client-side batches only when the picker is first opened, rather than during server rendering or page hydration. Show a loading state while keeping search and close controls usable, reuse the completed index, and allow retrying failed initialization.
+- dbf71e2: Preload the configured font's regular face from the initial HTML so it can download before stylesheet discovery. Respect custom font files and leave other weights and fallback fonts on demand. Treat inherited object-property names as unknown font families rather than failing page loads.
+- 9691ea7: Upgrade the Takumi image renderer to 2.19.0.
+- 9691ea7: Serve the configured avatar through `/avatar/<configured-path>`, with `?thumbnail=true` providing a cached, automatically resized web avatar without a separate image or new configuration. The requested path is only validated against configuration; it never selects another source. Keep original images for share cards, preserve SVGs and animations, and use the original when resizing cannot reduce the download. Document Takumi's existing EXIF-orientation limitation.
+
+  Share concurrent source loading and resizing, and forward originals without mismatched compression headers.
+
 ## 0.1.1
 
 ### Patch Changes
