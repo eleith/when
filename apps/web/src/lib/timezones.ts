@@ -116,25 +116,47 @@ export function buildTimezoneEntry(tz: string, now: Date = new Date()): Timezone
 	};
 }
 
-let cachedIndex: TimezoneIndex | null = null;
+let cachedIndexPromise: Promise<TimezoneIndex> | null = null;
+
+async function buildTimezoneIndex(
+	allTimezones: string[] | undefined,
+	now: Date
+): Promise<TimezoneIndex> {
+	const list = allTimezones ?? Intl.supportedValuesOf('timeZone');
+	const entries: TimezoneEntry[] = [];
+	const batchSize = 8;
+
+	for (let start = 0; start < list.length; start += batchSize) {
+		// Let the dialog paint before the first batch and yield between batches.
+		await new Promise<void>((resolve) => setTimeout(resolve, 0));
+		for (const tz of list.slice(start, start + batchSize)) {
+			entries.push(buildTimezoneEntry(tz, now));
+		}
+	}
+
+	return {
+		entries,
+		byTz: new Map(entries.map((entry) => [entry.tz, entry]))
+	};
+}
 
 /**
- * Returns a search index for all supported IANA timezones (or a provided subset).
+ * Builds the search index on demand, yielding between small batches of Intl work.
+ * Default callers share pending work and the completed result; subsets are uncached.
  */
-export function getTimezoneIndex(allTimezones?: string[], now: Date = new Date()): TimezoneIndex {
-	if (!allTimezones && cachedIndex) {
-		return cachedIndex;
-	}
+export function getTimezoneIndex(
+	allTimezones?: string[],
+	now: Date = new Date()
+): Promise<TimezoneIndex> {
+	if (allTimezones) return buildTimezoneIndex(allTimezones, now);
 
-	const list = allTimezones ?? Intl.supportedValuesOf('timeZone');
-	const entries = list.map((tz) => buildTimezoneEntry(tz, now));
-	const byTz = new Map<string, TimezoneEntry>(entries.map((e) => [e.tz, e]));
-
-	const index = { entries, byTz };
-	if (!allTimezones) {
-		cachedIndex = index;
+	if (!cachedIndexPromise) {
+		cachedIndexPromise = buildTimezoneIndex(undefined, now).catch((error) => {
+			cachedIndexPromise = null;
+			throw error;
+		});
 	}
-	return index;
+	return cachedIndexPromise;
 }
 
 /**
@@ -142,10 +164,7 @@ export function getTimezoneIndex(allTimezones?: string[], now: Date = new Date()
  * Supports multi-word queries, abbreviations (e.g. PST, EST, CET, BST),
  * city names, regions, and GMT/UTC offsets.
  */
-export function searchTimezones(
-	query: string,
-	index: TimezoneIndex = getTimezoneIndex()
-): TimezoneEntry[] {
+export function searchTimezones(query: string, index: TimezoneIndex): TimezoneEntry[] {
 	const qTerms = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
 	if (qTerms.length === 0) {
 		return index.entries;

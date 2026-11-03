@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { tick } from 'svelte';
 	import { Dialog } from 'bits-ui';
-	import { getTimezoneIndex, searchTimezones } from '#lib/timezones.js';
+	import { getTimezoneIndex, searchTimezones, type TimezoneIndex } from '#lib/timezones.js';
 	import { getPreferredTimezone } from '#lib/preferredTimezone.svelte.js';
 
 	interface Props {
@@ -10,26 +10,48 @@
 
 	let { open = $bindable(false) }: Props = $props();
 
-	const ptz = getPreferredTimezone();
-	const tzIndex = getTimezoneIndex();
+	const preferredTimezone = getPreferredTimezone();
+	let timezoneIndex = $state.raw<TimezoneIndex | null>(null);
+	let loadError = $state(false);
 
 	let search = $state('');
 	let searchInput = $state<HTMLInputElement | null>(null);
 	let listEl = $state<HTMLUListElement | null>(null);
 
-	let filtered = $derived(searchTimezones(search, tzIndex));
+	let matchingTimezones = $derived(timezoneIndex ? searchTimezones(search, timezoneIndex) : []);
+
+	async function loadTimezones() {
+		if (timezoneIndex) return;
+		loadError = false;
+		try {
+			timezoneIndex = await getTimezoneIndex();
+		} catch {
+			loadError = true;
+		}
+	}
+
+	function handleOpen(event: Event) {
+		event.preventDefault();
+		searchInput?.focus();
+		void loadTimezones();
+	}
+
+	function retryLoadTimezones() {
+		searchInput?.focus();
+		void loadTimezones();
+	}
 
 	$effect(() => {
-		if (!open) return;
+		if (!open || !timezoneIndex) return;
 		tick().then(() => {
-			searchInput?.focus();
+			if (!open) return;
 			const selected = listEl?.querySelector('.tz-option.selected');
 			(selected as HTMLElement | null)?.scrollIntoView({ block: 'center' });
 		});
 	});
 
 	function select(tz: string) {
-		ptz.set(tz, { persist: true });
+		preferredTimezone.set(tz, { persist: true });
 		open = false;
 		search = '';
 	}
@@ -42,12 +64,7 @@
 				<div {...props} class="dialog-overlay"></div>
 			{/snippet}
 		</Dialog.Overlay>
-		<Dialog.Content
-			onOpenAutoFocus={(e) => {
-				e.preventDefault();
-				searchInput?.focus();
-			}}
-		>
+		<Dialog.Content onOpenAutoFocus={handleOpen}>
 			{#snippet child({ props })}
 				<div {...props} class="dialog-content tz-dialog">
 					<header class="tz-dialog-header">
@@ -62,41 +79,53 @@
 							{/snippet}
 						</Dialog.Close>
 					</header>
-					<!-- svelte-ignore a11y_autofocus -->
 					<input
 						class="tz-search"
 						type="search"
+						aria-label="Search timezones"
 						placeholder="Search timezone or city…"
 						bind:value={search}
 						bind:this={searchInput}
 						autocomplete="off"
-						autofocus
 					/>
-					<ul class="tz-list" bind:this={listEl}>
-						{#each filtered as item (item.tz)}
-							<li>
-								<button
-									type="button"
-									class="tz-option"
-									class:selected={item.tz === ptz.current}
-									onclick={() => select(item.tz)}
+					<div class="tz-results">
+						{#if loadError}
+							<div class="tz-empty">
+								<p role="status">Couldn’t load timezones.</p>
+								<button type="button" class="tz-retry" onclick={retryLoadTimezones}
+									>Try again</button
 								>
-									<div class="tz-option-main">
-										<span class="tz-option-city">{item.city}</span>
-										{#if item.tzName}
-											<span class="tz-option-name">{item.tzName}</span>
-										{/if}
-									</div>
-									{#if item.offset}
-										<span class="tz-option-offset">{item.offset}</span>
-									{/if}
-								</button>
-							</li>
-						{/each}
-						{#if filtered.length === 0}
-							<li class="tz-empty">No matches</li>
+							</div>
+						{:else if !timezoneIndex}
+							<p class="tz-empty" role="status">Loading timezones…</p>
+						{:else}
+							<ul class="tz-list" bind:this={listEl}>
+								{#each matchingTimezones as item (item.tz)}
+									<li>
+										<button
+											type="button"
+											class="tz-option"
+											class:selected={item.tz === preferredTimezone.current}
+											onclick={() => select(item.tz)}
+										>
+											<div class="tz-option-main">
+												<span class="tz-option-city">{item.city}</span>
+												{#if item.tzName}
+													<span class="tz-option-name">{item.tzName}</span>
+												{/if}
+											</div>
+											{#if item.offset}
+												<span class="tz-option-offset">{item.offset}</span>
+											{/if}
+										</button>
+									</li>
+								{/each}
+								{#if matchingTimezones.length === 0}
+									<li class="tz-empty">No matches</li>
+								{/if}
+							</ul>
 						{/if}
-					</ul>
+					</div>
 				</div>
 			{/snippet}
 		</Dialog.Content>
@@ -120,6 +149,7 @@
 		z-index: 201;
 		display: flex;
 		flex-direction: column;
+		height: 80vh;
 		max-height: 80vh;
 		background: var(--color-surface);
 		border-top: 1px solid var(--color-border);
@@ -138,6 +168,7 @@
 			right: auto;
 			width: 400px;
 			max-width: calc(100vw - var(--space-7) * 2);
+			height: 70vh;
 			max-height: min(70vh, 520px);
 			transform: translate(-50%, -50%);
 			border: 1px solid var(--color-border);
@@ -219,6 +250,24 @@
 		outline: none;
 		border-color: var(--when-color-primary);
 		box-shadow: var(--shadow-focus);
+	}
+
+	.tz-results {
+		display: flex;
+		flex-direction: column;
+		flex: 1;
+		min-height: 0;
+	}
+
+	.tz-retry {
+		margin-top: var(--space-3);
+		padding: var(--space-3) var(--space-5);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius);
+		background: var(--color-surface);
+		color: var(--when-color-text);
+		font: inherit;
+		cursor: pointer;
 	}
 
 	.tz-list {

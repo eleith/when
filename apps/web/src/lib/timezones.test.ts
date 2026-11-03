@@ -1,5 +1,10 @@
-import { describe, test, expect } from 'vitest';
-import { buildTimezoneEntry, getTimezoneIndex, searchTimezones } from '#lib/timezones.js';
+import { afterEach, beforeAll, beforeEach, describe, test, expect, vi } from 'vitest';
+import {
+	buildTimezoneEntry,
+	getTimezoneIndex,
+	searchTimezones,
+	type TimezoneIndex
+} from '#lib/timezones.js';
 
 describe('buildTimezoneEntry', () => {
 	test('extracts city, offset, and timezone name for America/Los_Angeles', () => {
@@ -54,7 +59,10 @@ describe('searchTimezones', () => {
 		'UTC'
 	];
 
-	const index = getTimezoneIndex(sampleTimezones);
+	let index: TimezoneIndex;
+	beforeAll(async () => {
+		index = await getTimezoneIndex(sampleTimezones);
+	});
 
 	test('returns all entries on empty or whitespace query', () => {
 		expect(searchTimezones('', index)).toHaveLength(sampleTimezones.length);
@@ -112,5 +120,81 @@ describe('searchTimezones', () => {
 	test('returns empty array when no matches are found', () => {
 		const results = searchTimezones('nonexistentplace123', index);
 		expect(results).toHaveLength(0);
+	});
+});
+
+describe('getTimezoneIndex', () => {
+	let loadIndex: typeof getTimezoneIndex;
+
+	beforeEach(async () => {
+		vi.useFakeTimers();
+		vi.resetModules();
+		({ getTimezoneIndex: loadIndex } = await import('#lib/timezones.js'));
+	});
+
+	afterEach(() => {
+		vi.useRealTimers();
+		vi.restoreAllMocks();
+	});
+
+	test('yields before building entries and between batches, without changing the result', async () => {
+		const zones = Intl.supportedValuesOf('timeZone').slice(0, 20);
+		const now = new Date();
+		const formatters = vi.spyOn(Intl, 'DateTimeFormat');
+		const pending = loadIndex(zones, now);
+		expect(formatters).not.toHaveBeenCalled();
+
+		await vi.advanceTimersToNextTimerAsync();
+		const firstBatchCalls = formatters.mock.calls.length;
+		expect(firstBatchCalls).toBeGreaterThan(0);
+		await vi.runAllTimersAsync();
+		expect(formatters.mock.calls.length).toBeGreaterThan(firstBatchCalls);
+
+		const index = await pending;
+		expect(index.entries).toEqual(zones.map((tz) => buildTimezoneEntry(tz, now)));
+		expect([...index.byTz.keys()]).toEqual(zones);
+	});
+
+	test('shares pending work and reuses the completed default index', async () => {
+		const supported = vi.spyOn(Intl, 'supportedValuesOf').mockReturnValue(['Asia/Tokyo']);
+		const formatters = vi.spyOn(Intl, 'DateTimeFormat');
+		const first = loadIndex();
+		const concurrent = loadIndex();
+		expect(concurrent).toBe(first);
+		await vi.runAllTimersAsync();
+		const index = await first;
+		const calls = formatters.mock.calls.length;
+
+		expect(index.entries.map((entry) => entry.tz)).toEqual(['Asia/Tokyo']);
+		await expect(loadIndex()).resolves.toBe(index);
+		expect(formatters).toHaveBeenCalledTimes(calls);
+		expect(supported).toHaveBeenCalledTimes(1);
+	});
+
+	test('keeps explicit subsets and empty lists out of the shared cache', async () => {
+		vi.spyOn(Intl, 'supportedValuesOf').mockReturnValue(['Asia/Tokyo']);
+		const subset = loadIndex(['UTC']);
+		const empty = loadIndex([]);
+		const full = loadIndex();
+		await vi.runAllTimersAsync();
+
+		expect((await subset).entries.map((entry) => entry.tz)).toEqual(['UTC']);
+		expect((await empty).entries).toEqual([]);
+		expect((await full).entries.map((entry) => entry.tz)).toEqual(['Asia/Tokyo']);
+		await expect(loadIndex()).resolves.toBe(await full);
+	});
+
+	test('clears failed work so the next request can retry', async () => {
+		const supported = vi.spyOn(Intl, 'supportedValuesOf');
+		supported.mockImplementationOnce(() => {
+			throw new Error('Timezone lookup failed');
+		});
+		await expect(loadIndex()).rejects.toThrow('Timezone lookup failed');
+
+		supported.mockReturnValue(['Asia/Tokyo']);
+		const retry = loadIndex();
+		await vi.runAllTimersAsync();
+		expect((await retry).byTz.has('Asia/Tokyo')).toBe(true);
+		expect(supported).toHaveBeenCalledTimes(2);
 	});
 });
